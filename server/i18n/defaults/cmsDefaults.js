@@ -945,6 +945,10 @@ const DESIGN_DEFAULTS = {
         cardStyle:       'hairline',  // hairline | soft | flat | elevated
         cardPadding:     'default',   // compact .75× | default 1× | roomy 1.3×
         shadow:          'soft',      // none | soft | medium | strong
+        tileShape:       'default',   // default (as before) | square | rounded | circle | hexagon
+        tileFill:        'default',   // default (tint + ring) | tint | solid | none
+        tileSize:        'default',   // default | sm | lg
+        tileIconColor:   'default',   // default (the tile colour) | light | dark
     },
     layout: {
         containerWidth:  'default',   // narrow 1120 | default 1280 | wide 1440 | full 1760
@@ -964,6 +968,10 @@ const DESIGN_COMPONENT_ENUMS = {
     cardStyle:       ['hairline', 'soft', 'flat', 'elevated'],
     cardPadding:     ['compact', 'default', 'roomy'],
     shadow:          ['none', 'soft', 'medium', 'strong'],
+    tileShape:       ['default', 'square', 'rounded', 'circle', 'hexagon'],
+    tileFill:        ['default', 'tint', 'solid', 'none'],
+    tileSize:        ['default', 'sm', 'lg'],
+    tileIconColor:   ['default', 'light', 'dark'],
 };
 // Where the cookie banner sits: today's floating card, a slim full-width bar
 // along the bottom edge, or a small card in the bottom-left corner.

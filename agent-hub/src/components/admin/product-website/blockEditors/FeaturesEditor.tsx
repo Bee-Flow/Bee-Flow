@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextField, IconField, ImageField, RepeatableList, FieldRow, Toggle } from '../fields';
+import { TextField, IconAssetField, ImageField, RepeatableList, FieldRow, Toggle } from '../fields';
 import { InlineHint, ColorSwatch, BackgroundCard, SegmentedControl } from '../primitives';
 import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields, CardActionFields } from './shared';
@@ -115,7 +115,7 @@ export function FeaturesEditor({ data = {}, onChange }: BlockEditorProps<Feature
                                 ) : null}
                             </>
                         ) : null}
-                        <IconField label={t('cms_site.blocks.features.icon', 'Icon')} value={item.icon} onChange={v => update({ ...item, icon: v })} />
+                        <IconAssetField label={t('cms_site.blocks.features.icon', 'Icon')} value={item.icon} onChange={v => update({ ...item, icon: v })} />
                         {/* Card title + body — also inline-editable in the
                             preview, but the editor needs explicit inputs so
                             users can fill them in before the card is

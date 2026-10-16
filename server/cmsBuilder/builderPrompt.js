@@ -92,7 +92,7 @@ function buildSystemPrompt() {
 - A menu item = { id?, label, link, children?, dropdown? }. The draft state lists the current items with their nav_… ids — reuse those ids for items you keep (ids anchor locale overrides); omit id on new items and one is minted.
 - link uses the same link objects as blocks ({kind:"page",pageId} | {kind:"external",url,newTab?} | {kind:"anchor",anchor} | {kind:"app",path}) — page links need a REAL pg_… id.
 - children = a flat dropdown: up to 10 sub-items { id?, label, link }.
-- dropdown = a mega menu { columns:[{ id?, heading, items:[{ id?, label, link, description?, icon?, openInNewTab? }] }] } — up to 4 columns of up to 10 items. A mega item's icon is an EMOJI or short text (e.g. 🚀), NOT a Lucide name. For a SIMPLE flat dropdown use "children" instead; only use "dropdown" for a multi-column mega menu.
+- dropdown = a mega menu { columns:[{ id?, heading, items:[{ id?, label, link, description?, icon?, openInNewTab? }] }] } — up to 4 columns of up to 10 items. A mega item's icon is a Lucide name (e.g. ShieldCheck) or an uploaded asset url (cms_list_assets: cms/<file> or /api/cms/asset/cms/<file>); an emoji only still renders for old content, so do not write new ones. For a SIMPLE flat dropdown use "children" instead; only use "dropdown" for a multi-column mega menu.
 
 ## Design (cms_update_design)
 

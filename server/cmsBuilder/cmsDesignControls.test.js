@@ -221,3 +221,84 @@ test('locale override media: a hostile address written around the setter is stil
     });
     assert.strictEqual(eff.page.blocks[0].content.media.src, 'cms/en.png');
 });
+
+// ── Icon tiles and colour roles (#254, #255) ────────────────────────
+
+const { sanitizeDesign } = require('../stores/cms/shared');
+const { safeIconAsset } = require('../stores/cms/localeMedia');
+
+test('safeIconAsset: only uploaded-asset addresses, never another origin or markup', () => {
+    for (const ok of ['cms/icon.svg', ' /api/cms/asset/cms/icon.png ']) assert.ok(safeIconAsset(ok), ok);
+    for (const bad of ['https://x.example/i.svg', '/other/path.svg', '//evil.example/i.svg', 'cms/../x', 'cms/a b.svg',
+        'javascript:alert(1)', 'Shield', '', null, 4]) {
+        assert.strictEqual(safeIconAsset(bad), '', JSON.stringify(bad));
+    }
+});
+
+test('sanitizeDesign: tile enums default to the identity value and drop anything else', () => {
+    const base = sanitizeDesign({});
+    assert.deepStrictEqual(
+        [base.components.tileShape, base.components.tileFill, base.components.tileSize, base.components.tileIconColor],
+        ['default', 'default', 'default', 'default'],
+    );
+    const set = sanitizeDesign({ components: { tileShape: 'hexagon', tileFill: 'solid', tileSize: 'lg', tileIconColor: 'light' } });
+    assert.strictEqual(set.components.tileShape, 'hexagon');
+    assert.strictEqual(set.components.tileFill, 'solid');
+    assert.strictEqual(set.components.tileSize, 'lg');
+    const bad = sanitizeDesign({ components: { tileShape: 'polygon(0 0)', tileSize: '99px' } });
+    assert.strictEqual(bad.components.tileShape, 'default');
+    assert.strictEqual(bad.components.tileSize, 'default');
+});
+
+test('cms_update_design: tile enums are validated', async () => {
+    const draft = await makeDraft();
+    const ok = await applyToolCall(draft, 'cms_update_design', {
+        componentsPatch: { tileShape: 'hexagon', tileFill: 'solid', tileIconColor: 'light' },
+    });
+    assert.ok(!ok.error, JSON.stringify(ok));
+    const stored = (await cmsStore.getProject(draft.siteId)).design;
+    assert.strictEqual(stored.components.tileShape, 'hexagon');
+    assert.strictEqual(stored.components.tileFill, 'solid');
+    assert.strictEqual(stored.colors.primary, '#F5A623', 'colours are untouched by a tile patch');
+    for (const args of [
+        { componentsPatch: { tileShape: 'star' } },
+        { componentsPatch: { tileSize: '99px' } },
+        { componentsPatch: { tileFill: 'url(x)' } },
+    ]) {
+        const r = await applyToolCall(draft, 'cms_update_design', args);
+        assert.ok(r.error, JSON.stringify(args));
+    }
+});
+
+test('cms_update_header_nav: a mega item icon may be a Lucide name, an uploaded asset or legacy emoji; foreign addresses are rejected', async () => {
+    const draft = await makeDraft();
+    const item = (icon) => ({ label: 'Docs', link: { kind: 'app', path: '/app' }, icon });
+    const nav = (icon) => ({ nav: [{ label: 'Menu', link: { kind: 'app', path: '/app' }, dropdown: { columns: [{ heading: 'H', items: [item(icon)] }] } }] });
+    for (const icon of ['ShieldCheck', '/api/cms/asset/cms/shield.svg', 'cms/shield.svg', '🚀']) {
+        const r = await applyToolCall(draft, 'cms_update_header_nav', nav(icon));
+        assert.ok(!r.error, `${icon}: ${JSON.stringify(r)}`);
+        assert.strictEqual(draft.site.header.nav[0].dropdown.columns[0].items[0].icon, icon);
+    }
+    for (const icon of ['//evil.example/i.svg', '/other/i.svg', 'cms/../x.svg', 'cms/a b.svg']) {
+        const r = await applyToolCall(draft, 'cms_update_header_nav', nav(icon));
+        assert.ok(r.error, icon);
+        assert.match(r._fixHint, /Lucide|asset/i);
+    }
+});
+
+test('validateSiteDraft: an uploaded-asset icon is fine in blocks and chrome, a foreign address warns', async () => {
+    const draft = await makeDraft();
+    const home = draft.site.pages[0].id;
+    const page = await cmsStore.getPage(draft.siteId, home);
+    page.blocks = [{ id: 'blk_i', type: 'features', enabled: true, style: {}, content: { items: [
+        { icon: '/api/cms/asset/cms/a.svg', title: 'A', body: 'a', techTag: '' },
+        { icon: '//evil.example/a.svg', title: 'B', body: 'b', techTag: '' },
+    ] } }];
+    await cmsStore.setPage(draft.siteId, page);
+    draft.pages.set(home, page);
+    draft.site = await cmsStore.getProject(draft.siteId);
+    const v = validateSiteDraft(draft);
+    const codes = v.warnings.filter((w) => /icon/.test(w.code));
+    assert.strictEqual(codes.length, 1, JSON.stringify(codes));
+    assert.ok(codes[0].path.endsWith('items[1].icon'), codes[0].path);
+});

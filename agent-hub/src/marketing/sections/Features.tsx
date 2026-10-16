@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { inlineTextStyle } from './textStyle';
-import AppIcon from '../../components/icons/AppIcon';
+import IconGlyph from '../components/IconGlyph';
 import CardActionWrapper from '../components/CardActionWrapper';
 import EditableText from '../components/EditableText';
 import FramedMedia from '../components/FramedMedia';
@@ -101,7 +101,7 @@ export default function Features({ data }: { data?: FeaturesData | null }) {
                                     {...(spotlight ? { onMouseMove: trackSpotlight } : {})}
                                 >
                                     {item.icon ? (
-                                        <div className="icon-tile"><AppIcon name={item.icon} className="w-6 h-6" /></div>
+                                        <div className="icon-tile"><IconGlyph icon={item.icon} className="w-6 h-6" /></div>
                                     ) : null}
                                     <EditableText
                                         as="h3"

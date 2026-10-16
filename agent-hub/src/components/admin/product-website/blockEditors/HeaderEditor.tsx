@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextField, Toggle, ImageField, RepeatableList, LinkField, FieldRow } from '../fields';
+import { TextField, Toggle, ImageField, IconAssetField, RepeatableList, LinkField, FieldRow } from '../fields';
 import {
     InlineHint,
     CollapsibleCard,
@@ -346,11 +346,10 @@ function NavDropdownEditor({ item, update, pages }: NavDropdownEditorProps) {
                                             onChange={v => updMi({ ...mi, description: v })}
                                             placeholder={t('cms_site.blocks.header.optional_one_liner_shown_under_the', 'Optional one-liner shown under the label')}
                                         />
-                                        <TextField
+                                        <IconAssetField
                                             label={t('cms_site.blocks.header.icon', 'Icon')}
                                             value={mi.icon || ''}
                                             onChange={v => updMi({ ...mi, icon: v })}
-                                            placeholder={t('cms_site.blocks.header.optional_emoji_e_g_or_short', 'Optional emoji (e.g. 🚀) or short text')}
                                         />
                                         <Toggle
                                             label={t('cms_site.blocks.header.open_in_new_tab', 'Open in new tab')}

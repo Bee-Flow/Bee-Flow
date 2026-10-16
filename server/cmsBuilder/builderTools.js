@@ -27,6 +27,7 @@
 
 const crypto = require('crypto');
 const cmsStore = require('../stores/cmsStore');
+const { sanitizeNavIcon } = require('./navIcon');
 const { validateStylePatch, STYLE_KEYS } = require('./blockStyle');
 const {
     BLOCK_DEFAULTS, BLOCK_TYPE_IDS,
@@ -622,8 +623,8 @@ async function applyReorderPages(draftWrap, args) {
 // dropdown? }. children[] = flat sub-items { id, label, link }; dropdown =
 // mega menu { layout:'columns'|'list', columns:[{ id, heading, items:[{ id,
 // label, link, description?, icon?, openInNewTab? }] }] }. A mega item's
-// icon is an EMOJI or short text by design (see the agent-hub HeaderEditor),
-// NOT a Lucide name. There is no header-specific store updater — the tool
+// icon is a Lucide name or an uploaded asset (NavIcon renders both); an emoji
+// is legacy content that still renders. There is no header-specific store updater — the tool
 // persists read-modify-write through cmsStore.setProject, which stores nav
 // VERBATIM, so every check lives here.
 
@@ -674,7 +675,11 @@ function sanitizeNavEntry(draftWrap, raw, path, { withExtras = false } = {}) {
     };
     if (withExtras) {
         if (typeof raw.description === 'string' && raw.description) item.description = raw.description;
-        if (typeof raw.icon === 'string' && raw.icon) item.icon = raw.icon;
+        if (typeof raw.icon === 'string' && raw.icon) {
+            const icon = sanitizeNavIcon(raw.icon, path);
+            if ('error' in icon) return { error: icon.error, _fixHint: icon._fixHint };
+            item.icon = icon.icon;
+        }
         if (typeof raw.openInNewTab === 'boolean') item.openInNewTab = raw.openInNewTab;
     }
     return { item };

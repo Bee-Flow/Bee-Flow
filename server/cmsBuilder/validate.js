@@ -15,10 +15,11 @@
  *   warnings: empty_page          — a page with zero blocks
  *             unknown_icon        — an icon value that is not a Lucide
  *                                   PascalCase name (renderers show nothing).
- *                                   PAGE BLOCKS ONLY — header/footer chrome
- *                                   icons (e.g. mega-menu items) are emoji or
- *                                   short text by design, so those trees are
- *                                   exempt from the icon check.
+ *                                   Page blocks only: header/footer chrome
+ *                                   (mega-menu items) may hold legacy emoji,
+ *                                   so those trees skip the name check.
+ *             invalid_icon_asset  — an icon that looks like an address (cms/… or /…)
+ *                                   but is not an uploaded asset (any tree)
  *             bad_color           — a design colour that is not #rrggbb
  *             unknown_font        — a design font outside the loadable library
  *             low_contrast        — a design colour pair below WCAG AA (4.5:1)
@@ -41,6 +42,7 @@ const { BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FO
 const { checkTabs, checkStoryHeader, checkScrollStory, checkFeatureDemo } = require('./validateBlocks');
 const { slugProblem } = require('../stores/cms/slugRules');
 const { checkPageMedia } = require('./validateMedia');
+const { safeIconAsset } = require('../stores/cms/localeMedia');
 const { experimentWarnings } = require('./experiments');
 
 // Lucide component names are PascalCase ASCII (Star, ShieldCheck, BarChart3).
@@ -218,8 +220,27 @@ function validateSiteDraft(draftWrap) {
     }
 
     // ── Link + icon walk over site chrome and every loaded page. The icon
-    //    check is opt-out: header/footer chrome icons are emoji/short text
-    //    by design (agent-hub HeaderEditor), only page blocks use Lucide. ──
+    //    name check is opt-out: header/footer chrome may hold legacy emoji. ──
+    // An address-shaped icon must be an uploaded asset; a name is checked as
+    // Lucide only where the tree is not exempt (chrome keeps legacy emoji).
+    const iconWarning = (icon, path, checkName) => {
+        if (icon.startsWith('cms/') || icon.startsWith('/')) {
+            if (safeIconAsset(icon)) return;
+            warnings.push({
+                code: 'invalid_icon_asset',
+                path: `${path}.icon`,
+                message: `Icon ${JSON.stringify(icon)} is not an uploaded asset of this site, so no icon is shown.`,
+                hint: 'Use a Lucide name, or the url of an uploaded file from cms_list_assets (cms/<file> or /api/cms/asset/cms/<file>).',
+            });
+        } else if (checkName && !LUCIDE_NAME_RE.test(icon)) {
+            warnings.push({
+                code: 'unknown_icon',
+                path: `${path}.icon`,
+                message: `Icon ${JSON.stringify(icon)} does not look like a Lucide icon name.`,
+                hint: 'Icons are Lucide PascalCase names, e.g. Star, Zap, ShieldCheck, BarChart3, or an uploaded asset url.',
+            });
+        }
+    };
     const checkTree = (root, rootPath, { checkIcons = true } = {}) => {
         walk(root, rootPath, (node, path) => {
             if (node.kind === 'page' && typeof node.pageId === 'string' && !knownIds.has(node.pageId)) {
@@ -230,14 +251,7 @@ function validateSiteDraft(draftWrap) {
                     hint: `Point it at a real page or switch to an external/anchor link. ${knownIdsHint}`,
                 });
             }
-            if (checkIcons && typeof node.icon === 'string' && node.icon && !LUCIDE_NAME_RE.test(node.icon)) {
-                warnings.push({
-                    code: 'unknown_icon',
-                    path: `${path}.icon`,
-                    message: `Icon ${JSON.stringify(node.icon)} does not look like a Lucide icon name.`,
-                    hint: 'Icons are Lucide PascalCase names, e.g. Star, Zap, ShieldCheck, BarChart3.',
-                });
-            }
+            if (typeof node.icon === 'string' && node.icon) iconWarning(node.icon, path, checkIcons);
         });
     };
 

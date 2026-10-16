@@ -56,6 +56,7 @@ import { resolveAssetUrl } from './assetUrl';
 import ExperimentSection, { experimentAttrs } from './experiments/ExperimentSection';
 import { designStyleClasses, designStyleVars } from './blockWrap';
 import { blockFlowOptions } from './blockFlow';
+import { applyTileVars, TILE_VAR_PROPS } from './designTiles';
 import { applyTypographyVars } from './designTypography';
 import { LOCALE_PREFIXES } from '../utils/cmsPublicRouting';
 import type {
@@ -218,6 +219,7 @@ function applyDesignToRoot(rootEl: HTMLElement | null, design: SiteDesign | null
     applyEnum(style, SHAPE_MAPS.shadow,          comp.shadow);
     applyEnum(style, SHAPE_MAPS.containerWidth,  lay.containerWidth);
     applyEnum(style, SHAPE_MAPS.sectionRhythm,   lay.sectionRhythm);
+    applyTileVars(style, comp);
 
     // Button label color. 'auto' derives from the RESOLVED primary's
     // luminance, which a single site-wide value can't express when a theme
@@ -320,6 +322,7 @@ function relativeLuminance(hex: string | undefined) {
 }
 
 const CSS_VAR_PROPS = [
+    ...TILE_VAR_PROPS,
     '--brand-primary', '--brand-secondary', '--brand-accent',
     '--brand-bg', '--brand-surface',
     '--brand-text', '--brand-text-secondary',

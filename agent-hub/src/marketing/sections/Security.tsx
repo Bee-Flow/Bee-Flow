@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { inlineTextStyle } from './textStyle';
-import AppIcon from '../../components/icons/AppIcon';
+import IconGlyph from '../components/IconGlyph';
 import CardActionWrapper from '../components/CardActionWrapper';
 import EditableText from '../components/EditableText';
 import PopupModal from '../components/PopupModal';
@@ -172,7 +172,7 @@ export default function Security({ data }: { data?: SecurityData | null }) {
                             >
                                 <div className="security-card-head">
                                     {card.icon ? (
-                                        <div className="icon-tile"><AppIcon name={card.icon} className="w-5 h-5" /></div>
+                                        <div className="icon-tile"><IconGlyph icon={card.icon} className="w-5 h-5" /></div>
                                     ) : null}
                                     <div>
                                         <EditableText

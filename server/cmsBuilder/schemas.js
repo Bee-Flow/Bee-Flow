@@ -240,7 +240,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'cms_update_header_nav',
-            description: `Replace the public site header's menu. nav REPLACES the entire existing menu WHOLESALE — send every item you want to keep, in render order (max 20). Item: { id?, label, link, children?, dropdown? }; keep the nav_… ids from the draft state for items you keep (ids anchor locale overrides), omit id for new items. children = flat sub-menu of { label, link } (max 10). dropdown = MULTI-COLUMN mega menu { columns:[{ heading, items:[{ label, link, description?, icon?, openInNewTab? }] }] } (max 4 columns × 10 items; a mega item's icon is an EMOJI or short text like 🚀 — NOT a Lucide name) — for a simple flat dropdown use children instead. ${LINK_HINT}`,
+            description: `Replace the public site header's menu. nav REPLACES the entire existing menu WHOLESALE — send every item you want to keep, in render order (max 20). Item: { id?, label, link, children?, dropdown? }; keep the nav_… ids from the draft state for items you keep (ids anchor locale overrides), omit id for new items. children = flat sub-menu of { label, link } (max 10). dropdown = MULTI-COLUMN mega menu { columns:[{ heading, items:[{ label, link, description?, icon?, openInNewTab? }] }] } (max 4 columns × 10 items; a mega item's icon is a Lucide name like ShieldCheck or an uploaded asset url from cms_list_assets; emoji is legacy only) — for a simple flat dropdown use children instead. ${LINK_HINT}`,
             parameters: {
                 type: 'object',
                 properties: {

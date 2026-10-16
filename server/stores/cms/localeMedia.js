@@ -48,6 +48,18 @@ function safeMediaRef(v) {
 }
 
 /**
+ * The clean address when `v` is an uploaded-asset address usable as an icon
+ * ("cms/…" or "/api/cms/asset/…"), else ''. Stricter than safeMediaRef: an icon
+ * never points at another origin or an arbitrary site path.
+ * @param {unknown} v
+ * @returns {string}
+ */
+function safeIconAsset(v) {
+    const ref = safeMediaRef(v);
+    return ref.startsWith('cms/') || ref.startsWith('/api/cms/asset/') ? ref : '';
+}
+
+/**
  * Copy of an override's `content` in which every media key holds a legal
  * address or is gone. Text keys pass through untouched.
  * @param {unknown} node
@@ -126,4 +138,4 @@ function applyOverrideMedia(base, override) {
     return out;
 }
 
-module.exports = { MEDIA_KEYS, MEDIA_WARNING, countMediaRefs, mediaWarningFor, safeMediaRef, cleanOverrideMedia, applyOverrideMedia };
+module.exports = { MEDIA_KEYS, MEDIA_WARNING, countMediaRefs, mediaWarningFor, safeMediaRef, safeIconAsset, cleanOverrideMedia, applyOverrideMedia };

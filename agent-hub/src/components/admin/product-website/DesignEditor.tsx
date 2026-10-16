@@ -11,6 +11,7 @@ import useConfirm from '../../shared/useConfirm';
 import '../../../marketing/self-hosted-fonts.css';
 import DisplayTrackingControl from './controls/DisplayTrackingControl';
 import DarkBandControl from './controls/DarkBandControl';
+import IconTileControls from './controls/IconTileControls';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { DesignColors, DesignEditorProps, EditableDesign, ThemePreset } from './DesignEditor.types';
 
@@ -359,6 +360,7 @@ export default function DesignEditor({ design, onChange }: DesignEditorProps) {
                     />
                 </FieldRow>
 
+                <IconTileControls components={cp} onChange={setComponent} />
                 <SectionDivider label="Layout" />
                 <FieldRow label="Content width" hint="The max width every section aligns to.">
                     <SegmentedControl

@@ -1,6 +1,6 @@
 import React from 'react';
 import SectionHeader from '../components/SectionHeader';
-import AppIcon from '../../components/icons/AppIcon';
+import IconGlyph from '../components/IconGlyph';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import { resolveAssetUrl } from '../assetUrl';
@@ -93,7 +93,7 @@ export default function Integrations({ data }: { data?: IntegrationsData | null 
                                             ) : brandLogo(item.logoId) ? (
                                                 <BrandMark id={item.logoId} />
                                             ) : item.icon ? (
-                                                <span className="icon-tile"><AppIcon name={item.icon} className="w-4 h-4" /></span>
+                                                <span className="icon-tile"><IconGlyph icon={item.icon} className="w-4 h-4" /></span>
                                             ) : null}
                                             <EditableText
                                                 path={`integrations.categories.${i}.items.${j}.label`}

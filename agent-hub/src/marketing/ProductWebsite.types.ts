@@ -53,6 +53,10 @@ export interface DesignComponents {
     cardPadding?: string;
     cardStyle?: string;
     shadow?: string;
+    tileShape?: string;
+    tileFill?: string;
+    tileSize?: string;
+    tileIconColor?: string;
 }
 
 export interface DesignLayout {

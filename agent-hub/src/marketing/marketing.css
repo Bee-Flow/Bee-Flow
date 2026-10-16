@@ -1414,17 +1414,18 @@
    looked like it was floating in the padding. 16px below it instead of 20
    also binds it to its title rather than leaving it adrift at the top. */
 .marketing-root .feature-card .icon-tile {
-    width: 44px; height: 44px;
-    border-radius: var(--radius-md);
-    background: var(--accent-tint-08);
-    border: 1px solid var(--hairline-accent);
-    color: var(--accent);
+    width: calc(44px * var(--tile-scale, 1)); height: calc(44px * var(--tile-scale, 1));
+    border-radius: var(--tile-radius, var(--radius-md));
+    clip-path: var(--tile-clip, none);
+    background: var(--tile-bg, var(--accent-tint-08));
+    border: var(--tile-border, 1px solid var(--hairline-accent));
+    color: var(--tile-fg, var(--tile-color, var(--accent)));
     display: flex; align-items: center; justify-content: center;
     margin-bottom: 16px;
     transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 .marketing-root .feature-card:hover .icon-tile {
-    background: var(--accent-tint-22);
+    background: var(--tile-bg-hover, var(--accent-tint-22));
 }
 /* `color` and `hyphens` are declared EXPLICITLY, not left to inherit.
    A since-deleted QuoteRenderer.css once shipped a global
@@ -1836,10 +1837,12 @@
     gap: 16px;
 }
 .marketing-root .security-card .icon-tile {
-    width: 44px; height: 44px;
-    border-radius: var(--radius-sm);
-    background: var(--accent-tint-08);
-    color: var(--accent);
+    width: calc(44px * var(--tile-scale, 1)); height: calc(44px * var(--tile-scale, 1));
+    border-radius: var(--tile-radius, var(--radius-sm));
+    clip-path: var(--tile-clip, none);
+    background: var(--tile-bg, var(--accent-tint-08));
+    border: var(--tile-border, 0 none);
+    color: var(--tile-fg, var(--tile-color, var(--accent)));
     flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
 }
@@ -2027,18 +2030,20 @@
 }
 .marketing-root .integration-item .icon-tile {
     flex: 0 0 auto;
-    width: 26px;
-    height: 26px;
-    border-radius: 7px;
-    background: var(--accent-tint-08);
-    color: var(--accent);
+    width: calc(26px * var(--tile-scale, 1));
+    height: calc(26px * var(--tile-scale, 1));
+    border-radius: var(--tile-radius, 7px);
+    clip-path: var(--tile-clip, none);
+    background: var(--tile-bg, var(--accent-tint-08));
+    border: var(--tile-border, 0 none);
+    color: var(--tile-fg, var(--tile-color, var(--accent)));
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background var(--transition-fast);
 }
 .marketing-root .integration-item:hover .icon-tile {
-    background: var(--accent-tint-22);
+    background: var(--tile-bg-hover, var(--accent-tint-22));
 }
 /* Real logo on the chip — same recipe as the social-proof wall:
    normalized height, grayscale until the chip is hovered. */

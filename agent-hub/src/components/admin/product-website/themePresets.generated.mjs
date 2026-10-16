@@ -40,6 +40,10 @@ const BASE_COMPONENTS = {
     cardStyle: 'hairline',
     cardPadding: 'default',
     shadow: 'soft',
+    tileShape: 'default',
+    tileFill: 'default',
+    tileSize: 'default',
+    tileIconColor: 'default',
 };
 const BASE_LAYOUT = { containerWidth: 'default', sectionRhythm: 'default' };
 
