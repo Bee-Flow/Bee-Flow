@@ -1,8 +1,8 @@
 # L-C report: remaining agent-hub JS sweep (laptop)
 
-Status: final-review B3 (caught-error casts) on branch ts-laptop/fix-b3: Opus-reviewed, fixes in, full checks before the push. B2 (shims + non-null) drafting on ts-laptop/fix-b2.
+Status: final-review B3 pushed on ts-laptop/fix-b3 (all checks green; contains origin/ts-int/staging @0058a60e). B2 (shims + non-null) drafting on ts-laptop/fix-b2.
 Done: sweep 81/314 files (merged); B3: one commit aaf2e646 on 060da5ca. LF-A8 rest: replaced by B3 (branch ts-laptop/lf-a8 local, reviewed, not pushed).
-Next: push ts-laptop/fix-b3 when green; then ts-laptop/fix-b2.
+Next: ts-laptop/fix-b2 (B2 shims + non-null `!`): Opus review, full checks, push.
 
 Branch `ts-laptop/sweep-c`. BASE `0ae29a17` (= origin/ccr-28820270-xkvwp8 at branch time; ts-local/prep2 already in it).
 Final commit: see `git log -1` of the branch (this file is updated with every push).
@@ -14,6 +14,9 @@ Final commit: see `git log -1` of the branch (this file is updated with every pu
 - `any` leaks: hooks/appBuilderStream/session.ts fixed (RestoredSnapshot.messages: BuilderMessage[]; compiled JS identical). compliance settingsFields.ts:333 `asArray` NOT fixed: see Needs integrator.
 - Behaviour (documented helper differences): a thrown null/undefined gives undefined/the fallback instead of a TypeError; a non-string message/code and a numeric-string status are dropped.
 - Side effects: editor bundles rebuilt (formula.ts is an input; generated only); 16 files lose blank lines to stay at their file-budget ceilings (whitespace only).
+- ci.yml: the mobile filter lists agent-hub/src/utils/caughtError.ts (30cd6837): B3 made FormTriggerFields.tsx, which mobile reads, import it (mobile serverClosure.test.ts).
+- Merged origin/ts-int/staging @0058a60e (595b8c8c): on 060da5ca mobile serverShapes.lockstep.test.ts failed (fixed upstream by 0058a60e).
+- Checks at 595b8c8c: check:fast 39/39; server typecheck 0; duplication 15166 ≤ 15290 / 26188 ≤ 26228; gitleaks clean; agent-hub tsc 0; vitest 1864 files, 22004 pass, 0 errors; mobile tsc 0; mobile jest 762 suites, 13428 pass; server 29101 pass, 0 fail, 0 HUNG.
 - Review: reviews/LC-fix-b3.md (Opus; every changed file compiled base vs head and diffed: 10 identical, the rest only the substitutions; APPROVED with fixes → the 15 missed casts, applied). Nine caught-error casts already on main (outside B3) are listed there for a later sweep.
 
 ## Needs integrator:
