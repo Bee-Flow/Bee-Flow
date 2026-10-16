@@ -141,12 +141,38 @@ function typeValid(p, value) {
         default: return typeof value === 'string';
     }
 }
+/**
+ * A number given as text ("21", "21,5" in a nl locale) becomes a number; anything
+ * else is left alone so typeValid refuses it by name. Template-bound values and
+ * stored defaults are strings, so without this a constant could never fill a
+ * number parameter.
+ */
+function coerceNumber(value) {
+    if (typeof value !== 'string') return value;
+    const t = value.trim();
+    if (!/^-?\d+(?:[.,]\d+)?$/.test(t)) return value;
+    const n = Number(t.replace(',', '.'));
+    return Number.isFinite(n) ? n : value;
+}
+function coerceNumberParams(params, scope) {
+    for (const p of params || []) {
+        const { found, value } = lookup(p.key, [scope]);
+        if (!found) continue;
+        if (p.type === 'number') {
+            const n = coerceNumber(value);
+            if (n !== value) setPath(scope, p.key, n);
+        } else if (p.type === 'list' && Array.isArray(value)) {
+            for (const item of value) if (item && typeof item === 'object') coerceNumberParams(p.fields, item);
+        }
+    }
+}
 function prepareDocument(doc, supplied = {}, overrides = {}) {
     const contract = getContract(doc);
     const values = Object.create(null);
     if (!supplied || typeof supplied !== 'object' || Array.isArray(supplied) || Object.keys(supplied).length > 200) throw bad('Expected at most 200 parameter values.');
     for (const [key, value] of Object.entries(supplied)) setPath(values, key, value);
     for (const p of contract.parameters) if (!lookup(p.key, [values]).found && p.default !== undefined) setPath(values, p.key, p.default);
+    coerceNumberParams(contract.parameters, values);
     const issues = [];
     for (const [id, choice] of Object.entries(overrides || {})) {
         if (!contract.sections.some(s => s.id === id) || !['automatic', 'include', 'exclude'].includes(choice)) issues.push({ code: 'invalid_override', sectionId: id, message: 'Invalid section choice' });
@@ -179,7 +205,7 @@ function prepareDocument(doc, supplied = {}, overrides = {}) {
             if (p.required) issues.push({ code: 'required', key, message: `${p.label || key} is required` });
             return;
         }
-        if (!typeValid(p, value)) issues.push({ code: 'type', key, message: `${key} must be ${p.type}` });
+        if (!typeValid(p, value)) issues.push({ code: 'type', key, message: p.type === 'number' && typeof value === 'string' ? `${key} must be a number, got "${value.slice(0, 40)}"` : `${key} must be ${p.type}` });
         else if (p.type === 'list') value.forEach((item, i) => (p.fields || []).forEach(f => check(f, item, `${key}[${i}].`)));
     }
     const ruleKeys = new Set(); const activeRuleKeys = new Set();

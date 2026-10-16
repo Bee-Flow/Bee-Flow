@@ -83,7 +83,9 @@ function applyAddFillDocument(draft, args, draftWrap) {
             if (!holes.has(key)) notes.push(`"${key}" is not a placeholder in "${doc.name}" — it will not appear in the document. Its placeholders are: ${[...holes].join(', ') || '(none)'}.`);
         }
         for (const p of (doc.placeholders || [])) {
-            if (!Object.hasOwn(args.values || {}, p.key)) notes.push(`"${p.key}" has no value bound, so it prints blank in "${doc.name}".`);
+            if (Object.hasOwn(args.values || {}, p.key)) continue;
+            const hasDefault = (doc.parameters || []).some(q => q.key === p.key && q.default !== undefined);
+            if (!hasDefault) notes.push(`"${p.key}" has no value bound, so it prints blank in "${doc.name}".`);
         }
     }
 
