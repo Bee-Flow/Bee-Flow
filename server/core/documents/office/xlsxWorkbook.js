@@ -3,7 +3,7 @@
  * table) built with jszip, one worksheet per entry of `sheets`. Pure, no I/O.
  * Used by officegen.buildSpreadsheet (automations, nextcloud_create_spreadsheet)
  * and by the chat's create_spreadsheet (integrations/spreadsheetTools.js),
- * which alone turns on `formulas`.
+ * which alone turns on `formulas`; a formula is a cell object { formula }.
  */
 
 const JSZip = require('jszip');
@@ -12,6 +12,11 @@ const { chartPartsFor } = require('./xlsxCharts');
 
 function isNumericCell(v) {
     return typeof v === 'number' && Number.isFinite(v);
+}
+
+/** A cell the caller marked as a formula: { formula: '=SUM(B2:B10)' } (the "=" is optional). */
+function isFormulaCell(v) {
+    return !!v && typeof v === 'object' && typeof v.formula === 'string' && v.formula.replace(/^=/, '').trim() !== '';
 }
 
 function sanitizeSheetName(name) {
@@ -32,9 +37,13 @@ function xlsxSheetXml(matrix, formulas, hasDrawing) {
             // Only for a model-built workbook (create_spreadsheet): a model
             // often sends amounts as strings, and =SUM() skips text cells.
             if (formulas && ri > 0 && typeof val === 'string' && NUMERIC_TEXT.test(val)) return `<c r="${ref}"><v>${Number(val)}</v></c>`;
-            if (formulas && typeof val === 'string' && /^=.+/.test(val)) {
-                return `<c r="${ref}"><f>${xmlEscape(val.slice(1))}</f></c>`;
+            // A formula only when the caller marks it: a cell object
+            // { formula: '=SUM(B2:B10)' }. Text is always written as text, whatever
+            // it starts with.
+            if (formulas && isFormulaCell(val)) {
+                return `<c r="${ref}"><f>${xmlEscape(val.formula.replace(/^=/, ''))}</f></c>`;
             }
+            if (typeof val === 'object') return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xmlEscape(JSON.stringify(val))}</t></is></c>`;
             return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xmlEscape(val)}</t></is></c>`;
         }).join('');
         return `<row r="${ri + 1}">${cells}</row>`;
@@ -47,8 +56,9 @@ function xlsxSheetXml(matrix, formulas, hasDrawing) {
 /**
  * A workbook with one or more sheets: `sheets` = [{ name, matrix }]. Sheet names
  * are sanitised and made unique (Excel rejects duplicates). With
- * `opts.formulas`, a string cell starting with "=" becomes a real formula and
- * a plain decimal string below the header row a number. A sheet may carry
+ * `opts.formulas`, a cell object { formula } becomes a real formula (text
+ * starting with "=" stays text) and a plain decimal string below the header row
+ * a number. A sheet may carry
  * `charts` (+ `values`, its computed cells): they become native Excel charts
  * (xlsxCharts.js).
  */

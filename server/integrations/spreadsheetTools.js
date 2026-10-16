@@ -10,8 +10,8 @@
  * CONTENT. `sheets` is a list of tabs, each { name?, rows, columns? }, where
  * `rows` are row objects or arrays of cells, exactly as
  * nextcloud_create_spreadsheet takes them (rowsToMatrix in
- * core/documents/office/officegen.js). Numbers stay numbers; a text cell that
- * starts with "=" becomes a real formula.
+ * core/documents/office/officegen.js). Numbers stay numbers; a formula is a
+ * cell object { formula: "=SUM(B2:B10)" }, and text is always written as text.
  *
  * EDITING AN UPLOADED WORKBOOK. The model cannot patch a file; it reads the
  * attachment's content from the conversation and rebuilds the whole workbook
@@ -31,7 +31,7 @@ const SPREADSHEET_TOOLS = [
         type: 'function',
         function: {
             name: 'create_spreadsheet',
-            description: 'Build a REAL Excel workbook (.xlsx) that opens in Excel, LibreOffice and Nextcloud Office. Use it whenever the user asks for an Excel file, an .xlsx, a spreadsheet to download, or wants an UPLOADED spreadsheet changed and given back (the attachment\'s content is in the conversation: apply the changes and rebuild the WHOLE workbook, every sheet and row, with this tool). Never tell the user you cannot make or edit Excel files. `sheets` is a list of tabs; each has `rows` (objects keyed by column, or arrays of cells; numbers stay numbers, a text starting with "=" is a formula such as "=SUM(B2:B10)") and optional `columns` (header names) and `name`. WHERE IT GOES: by default the result has { downloadUrl, filename } — END YOUR REPLY with a markdown link [filename](downloadUrl). `nextcloudPath` saves it into Nextcloud (the result has `webUrl`: "Open in Nextcloud Office"), `oneDrivePath` into the user\'s own OneDrive (`webUrl`: "Open in OneDrive"); parent folders are created, never create them yourself. If the user did not say where they want it and Nextcloud or OneDrive tools are available to you, ASK first: a download, OneDrive or Nextcloud.',
+            description: 'Build a REAL Excel workbook (.xlsx) that opens in Excel, LibreOffice and Nextcloud Office. Use it whenever the user asks for an Excel file, an .xlsx, a spreadsheet to download, or wants an UPLOADED spreadsheet changed and given back (the attachment\'s content is in the conversation: apply the changes and rebuild the WHOLE workbook, every sheet and row, with this tool). Never tell the user you cannot make or edit Excel files. `sheets` is a list of tabs; each has `rows` (objects keyed by column, or arrays of cells; numbers stay numbers; a FORMULA is a cell object {"formula": "=SUM(B2:B10)"}, while plain text, even one starting with "=", is written as text) and optional `columns` (header names) and `name`. WHERE IT GOES: by default the result has { downloadUrl, filename } — END YOUR REPLY with a markdown link [filename](downloadUrl). `nextcloudPath` saves it into Nextcloud (the result has `webUrl`: "Open in Nextcloud Office"), `oneDrivePath` into the user\'s own OneDrive (`webUrl`: "Open in OneDrive"); parent folders are created, never create them yourself. If the user did not say where they want it and Nextcloud or OneDrive tools are available to you, ASK first: a download, OneDrive or Nextcloud.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -113,7 +113,7 @@ async function buildSpreadsheetFile(args = {}) {
         if (!sh.rows.every((r) => r && typeof r === 'object')) {
             return { error: `Sheet ${i + 1}: every row must be an object or an array of cell values.` };
         }
-        const matrix = rowsToMatrix(sh.rows, sh.columns);
+        const matrix = rowsToMatrix(sh.rows, sh.columns, { keepFormulas: true });
         cells += matrix.reduce((n, r) => n + r.length, 0);
         if (cells > MAX_CELLS) {
             return { error: `The workbook is too large (more than ${MAX_CELLS} cells). Reduce the rows or columns.` };

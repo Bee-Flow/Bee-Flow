@@ -49,8 +49,8 @@ test('functionsIn ignores text in quotes', () => {
 test('an xlsx becomes a document with a tab per sheet, formulas kept, odd functions listed', async () => {
     const f = fakes();
     const buffer = await buildXlsxWorkbook([
-        { name: 'Budget', matrix: [['Item', 'Cost'], ['Rent', 1200], ['Food', 300.5], ['Total', '=SUM(B2:B3)']] },
-        { name: 'Notes', matrix: [['x'], ['=XLOOKUP(A1,A1:A2,A1:A2)']] },
+        { name: 'Budget', matrix: [['Item', 'Cost'], ['Rent', 1200], ['Food', 300.5], ['Total', { formula: '=SUM(B2:B3)' }]] },
+        { name: 'Notes', matrix: [['x'], [{ formula: '=XLOOKUP(A1,A1:A2,A1:A2)' }]] },
     ], { formulas: true });
     const out = await makeSheetImport(f).importWorkbook({ userId: 'u1', buffer, fileName: 'Budget 2026.xlsx' });
     assert.strictEqual(out.name, 'Budget 2026');
