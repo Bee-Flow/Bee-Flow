@@ -4,6 +4,10 @@ import { ColumnKindIcon } from './ColumnKind';
 import { columnLabel, columnTypeKind, expiringSoonCutoffIso } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
 import useTranslation from '../../../../hooks/useTranslation';
+import { errorCode, errorMessage } from '../../../../utils/caughtError';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { CSSProperties } from 'react';
+import type { DtColumn } from './rowBrowser/rowBrowserModel';
 import SegmentedControl from '../../../shared/SegmentedControl';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 
@@ -36,6 +40,25 @@ import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
  * own copy in the run history — the one people are surprised by.
  */
 
+/** The table as the panel reads it: its window, its column, and when the sweep last ran. */
+interface RetentionTable {
+    id: string;
+    managedKind?: string | null;
+    retentionDays?: number | null;
+    retentionField?: string | null;
+    lastRetentionAt?: string | null;
+}
+
+/** What the window control offers: off, one of the presets, or a number typed in. */
+type RetentionChoice = 'off' | 'custom' | number;
+
+interface RetentionPanelProps {
+    table: RetentionTable;
+    canEdit: boolean;
+    columns?: DtColumn[];
+    onChanged?: () => void;
+}
+
 const PRESETS = [7, 30, 90];
 /** The server's own cap (`MAX_RETENTION_DAYS`); anything past it is a 400. */
 const MAX_DAYS = 3650;
@@ -44,15 +67,15 @@ const SOON_DAYS = 7;
 /** One page, so the count is a real count. Mirrors the route's ROWS_PAGE_MAX. */
 const COUNT_LIMIT = 500;
 
-export default function RetentionPanel({ table, canEdit, columns = [], onChanged }) {
+export default function RetentionPanel({ table, canEdit, columns = [], onChanged }: RetentionPanelProps) {
     const { t } = useTranslation();
     const managed = !!table.managedKind;
-    const [days, setDays] = useState(table.retentionDays ?? null);
-    const [field, setField] = useState(table.retentionField || defaultField(table, columns));
+    const [days, setDays] = useState<number | null>(table.retentionDays ?? null);
+    const [field, setField] = useState<string>(table.retentionField || defaultField(table, columns));
     const [custom, setCustom] = useState(!!table.retentionDays && !PRESETS.includes(table.retentionDays));
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState(null);
-    const [note, setNote] = useState(null);
+    const [error, setError] = useState<string | null>(null);
+    const [note, setNote] = useState<string | null>(null);
 
     // The table object is replaced on every refresh, so the panel follows the
     // server rather than holding a stale draft after somebody else's save.
@@ -73,7 +96,7 @@ export default function RetentionPanel({ table, canEdit, columns = [], onChanged
     const effectiveField = field || defaultField(table, columns);
     const fieldLabel = labelOf(t, columns, table.retentionField || effectiveField);
 
-    const save = useCallback(async (nextDays, nextField) => {
+    const save = useCallback(async (nextDays: number | null, nextField?: string) => {
         setBusy(true);
         setError(null);
         setNote(null);
@@ -89,15 +112,15 @@ export default function RetentionPanel({ table, canEdit, columns = [], onChanged
                 : t('datatables.retention_saved', 'Saved. Rows are deleted {n} days after their {field}.', { n: nextDays, field: labelOf(t, columns, nextField) }));
             onChanged?.();
         } catch (e) {
-            setError(e.code === 'retention_field_required'
+            setError(errorCode(e) === 'retention_field_required'
                 ? t('datatables.retention_field_required', 'Pick the date column the age is measured from.')
-                : (e.message || t('datatables.err_retention', 'Could not change the retention window')));
+                : (errorMessage(e) || t('datatables.err_retention', 'Could not change the retention window')));
         } finally {
             setBusy(false);
         }
     }, [table.id, columns, onChanged, t]);
 
-    const choose = (value) => {
+    const choose = (value: RetentionChoice) => {
         if (value === 'custom') { setCustom(true); return; }
         if (value === 'off') { setCustom(false); setDays(null); save(null); return; }
         setCustom(false);
@@ -229,25 +252,25 @@ export default function RetentionPanel({ table, canEdit, columns = [], onChanged
     );
 }
 
-const CARD = {
+const CARD: CSSProperties = {
     borderRadius: 12,
     background: 'var(--bg-card)',
     border: '1px solid var(--border-default)',
     boxShadow: 'var(--shadow-sm)',
 };
-const CONTROL = {
+const CONTROL: CSSProperties = {
     background: 'var(--bg-primary)', borderColor: 'var(--border-default)',
     color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)',
 };
 
 /** The column a new window would count from, when the table has an obvious one. */
-function defaultField(table, columns) {
+function defaultField(table: RetentionTable, columns: DtColumn[] | null | undefined): string {
     if (table.managedKind === 'http_cache') return 'fetched_at';
     const dates = (columns || []).filter(c => c && (c.type === 'date' || c.type === 'datetime'));
     return dates[0]?.key || '';
 }
 
-function labelOf(t, columns, key) {
+function labelOf(t: TranslateFn, columns: DtColumn[] | null | undefined, key: string | null | undefined): string {
     if (!key) return t('datatables.retention_no_field', 'no column');
     const hit = (columns || []).find(c => c && c.key === key);
     return hit?.name || key;
@@ -257,7 +280,7 @@ function labelOf(t, columns, key) {
  * How much is about to go — the number that turns a retention setting from a
  * policy into a decision.
  */
-function ExpiringSoon({ t, table, columns }) {
+function ExpiringSoon({ t, table, columns }: { t: TranslateFn; table: RetentionTable; columns: DtColumn[] }) {
     const [state, setState] = useState({ loading: true, count: 0, more: false, failed: false });
     const { retentionDays, retentionField } = table;
 
