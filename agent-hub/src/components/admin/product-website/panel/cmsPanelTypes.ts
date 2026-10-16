@@ -74,8 +74,8 @@ export interface CmsSiteDoc {
 
 /** Sparse per-locale text overrides. */
 export interface CmsLocaleOverrides {
-    siteByLocale?: Record<string, Record<string, unknown> | undefined>;
-    pagesByLocale?: Record<string, Record<string, Record<string, unknown> | undefined> | undefined>;
+    siteByLocale?: Record<string, Record<string, unknown> | null | undefined>;
+    pagesByLocale?: Record<string, Record<string, Record<string, unknown> | null | undefined> | undefined>;
 }
 
 /** One site of GET /api/cms/sites. */
