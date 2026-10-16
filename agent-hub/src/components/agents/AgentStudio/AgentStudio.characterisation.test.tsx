@@ -250,7 +250,8 @@ describe('AgentStudio — deep links, publishing and deleting from the editor', 
     it('a deep link opens that agent once the list has loaded', async () => {
         const { onNavigate } = mount({ initialAgentId: 'agent-2' });
         expect(await screen.findByTestId('split')).toHaveAttribute('data-agent-id', 'agent-2');
-        expect(onNavigate).toHaveBeenCalledWith('studio/agents/agent-2');
+        // The navigate call comes from an effect after the split renders: wait for it.
+        await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/agents/agent-2'));
         expect(onNavigate).not.toHaveBeenCalledWith('studio/agents');
     });
 
