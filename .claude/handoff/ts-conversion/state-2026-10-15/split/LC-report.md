@@ -1,8 +1,8 @@
 # L-C report: remaining agent-hub JS sweep (laptop)
 
-Status: round 1 pushed (all checks green). Round 2 drafting/review (p4-p7, drafted on the round-1 drafts).
-Done: 43/314 files, 4 packages merged (p1a 22, p1b 15, p2 1, p3 5).
-Next: Opus review + integrate round 2 (~2-3 h), then round 3 (p8) and a blocked-file retry.
+Status: round 2 pushed (all checks green). Round 3 (p8a, p8b) reviewed (reviews/LC-round3.md); integrating next.
+Done: 69/314 files, 8 packages merged (round 1: 43; round 2: p4 6, p5 2, p6 16, p7 2).
+Next: integrate round 3 + full checks + push (~1 h); then a retry package for files whose blocker is now TS (~1-2 h).
 
 Branch `ts-laptop/sweep-c`. BASE `0ae29a17` (= origin/ccr-28820270-xkvwp8 at branch time; ts-local/prep2 already in it).
 Final commit: see `git log -1` of the branch (this file is updated with every push).
@@ -40,9 +40,16 @@ runtime-equivalent rewrites.
 | p1b components/shared, apps | 15/21 | (same gate line) | same |
 | p2 editor | 1/15 (serialization/index.ts barrel; bundles rebuilt, emitted code identical) | (same gate line) | same |
 | p3 meeting-notes, global | 5/25 (4 types + SpeakerEditor catch recipe) | (same gate line) | same |
+| p4 chat, cowork, renderers | 6/40 (4 types + CoworkPage, VegaLiteRenderer catch recipe) | round 2 merged vs 77793e85: 20 identical / 6 different (the 6 = catch-recipe files) | reviews/LC-round2.md (Opus incl. security, CHANGES REQUIRED → fixed in the round-2 fix commit) |
+| p5 agents | 2/27 (deleteBlock + ExternalShareSection catch recipe) | (same gate line) | same |
+| p6 admin, integrations | 16/54 (12 types + RuntimeRow types + localRuntimeApi, LocalModelsCard, RerankerConfig catch recipe; countries reverted by review) | (same gate line) | same |
+| p7 settings, login | 2/37 (LearningRail, ConsumerBetaFeaturesSection; 5 reverted by review: bits, OverviewView, ReviewView, widgets, ConsumerUsageSection) | (same gate line) | same |
 
 Catch-recipe commits: downloadWebpageZip `String(err?.message || err)` → `describeError(err)` (// behaviour: a truthy
 non-string message is no longer stringified; recipe row, accepted by review). SpeakerEditor 2× `messageOf(e, '<literal>')`.
+Round 2: CoworkPage 3× and VegaLiteRenderer 1× `errorMessage`; ExternalShareSection 4× `setError(errorMessage(e))`
+(state `string | null | undefined`); localRuntimeApi/RerankerConfig recipe swaps; LocalModelsCard handleDetect
+`messageOf(e, '')` (// behaviour: target is a string field). CoworkPage also collapses a 3-line import to 1 (formatting).
 
 ### Kept JS: blocked or by rule
 - react-hooks disable: moduleRuntime/RemoteStudioApp, editor/react/BeeEditor, shared/StudioSectionHeader.
@@ -52,6 +59,8 @@ non-string message is no longer stringified; recipe row, accepted by review). Sp
 - apps/appCatalog: was blocked by integrationGlyphs (now TS) — retry in the sweep.
 - editor/nodeviews/FormulaView: blocked by editor/engine/view.js.
 - meeting-notes: MeetingHeader (StudioSectionHeader), MeetingVisibility (VisibilityCapsule, now TS → retry), LibraryFilters (FilterPills, now TS → retry), MeetingNotesPage, MeetingDetail, SummaryActionsLayout, InsightsPanel (blocked by JS siblings), useAudioRecorder (error state read by files outside p3; `webkitAudioContext`).
+
+- Round 2 blocked: p4 GoogleDrivePicker (ExternalFilePickers/KnowledgePanel onFilesSelected), ChatActivity (timelineParts DurationPill), CoworkRunHistory (coworkFormat), SupportAIConfig + p5 AgentDesignerPanel (AgentEditorUI `@param {Object}`), AgentChatView/DirectChatView/ComposerPills (InputArea/index, ComposerPill, SkillsPopover: excluded / react-hooks), ElevenLabsSettings/MusicGenSettings/MediaCreationPanel (useMediaGenSection returns Record<string, unknown>), WorkspaceNotebook (NotebookEditorFacade). p5 toolChooserModel (toolGrants), AdvancedDrawer (BehaviorPicker), AgentEditorUI (KnowledgePanel has no agentId), BuilderChatPanel (PlanCard), AgentEditorHeader (StudioSectionHeader), TestSetCard/useAgentTests (testSetFacts), AgentWizard/index + AgentStudio/index (BuilderSplit props), automation/index (Builder off limits). p6 OverviewPage/UsageExplorerPage/ActivityPage (monitoring/shared), FeaturesSection (FeatureCardGrid), MarketplaceTab (moduleActions), ai-config/index (WebSearchInferenceConfig), OrgShieldEditor (orgShieldPosture), AdminDashboard (ProductWebsitePanel, SupportInboxPanel props), OrgSettings (OrgUsersPanel initialSection string|undefined vs null). p7 CourseView (LearningHeader), UsageSection (OrgFeedbackPanel, OverviewTab), SimpleApiKeyIntegration (IntegrationsSection), VoiceprintEnrollModal (useAudioRecorder), SignupWizard (Signup steps), LoginPage (SignupWizard). p7 reverted by review: bits (StepMixLine `mix?.[k]` has no honest typing), OverviewView/ReviewView (need bits), widgets/ConsumerUsageSection (nullable DB `source`/`model` used as map index).
 
 ## Follow-up: needs runtime rewrite (file — construct)
 - lib/googleOAuthPopup — `= {}` destructured default whose fields are called unguarded
@@ -81,10 +90,35 @@ non-string message is no longer stringified; recipe row, accepted by review). Sp
 - meeting-notes/library/MeetingLibrary — Date arithmetic
 - meeting-notes/detail/ExtractedPanel, TranscriptLineMenu, DestinationPicker, TranscriptView — nullable props/values in closures
 - meeting-notes/detail/insights/FollowUpTab — `.replace('{n}', number)`
+- chat/AnswerTracePanel, settings/usage/OverviewTab, settings/ConsumerIntegrationsSection, admin/org/people/useUserDirectory, admin/subscriptions/ui/FeatureCardGrid — `Map.get(k).push`
+- chat/MessageItem/timelineParts — `Number.isFinite(ms)` does not narrow; ThinkingPanel — `.filter(Boolean)` does not narrow
+- chat/MessageItem/ToolsUsedTimeline — `tool.resultPreview?.length > 150`; MessageContentBody — `msg.completedToolCount > 0`; ComposerToolsMenu — `item.badge > 0`
+- chat/MessageItem/ActivityIndicator — `toolCall.name` unknown, optional `phase.stage`; KbSourcesPanel — `msg.kbSources` unguarded
+- chat/TokenisedBadge — FALLBACK_T / interpolate param; shell/sidebar/NavRow — NavItem lacks primary/kbd, nullable onClick; shell/Sidebar — untyped prop bag (not attempted)
+- chat/MessageItem/CalendarDraftCard, cowork/coworkFormat, shell/SearchOverlay, AgentHub/useAgentHubActions, AgentHub/useDirectChatEvents — Date arithmetic
+- renderers/PageRenderer — `<pre>{unknown}</pre>`; ResearchRenderer — `src={string|null}`; TestReportRenderer — `statusConfig[test.status]` with undefined key
+- knowledge/SystemKnowledgeBasesPanel — `clearInterval(null)`, computed key string|undefined; skills/SkillsPanel — `err.message` into toast.error(string)
+- agents/AgentWizard/canUse/toolGrants — `effective.length` on `string[]|null` correlated via `known`; `granted.includes(a.name)` optional
+- agents/AgentWizard/tests/testSetFacts — `Math.min(intOrNull(...), total)`; `best.item` from null start
+- agents/AgentWizard/PlanCard — `capabilities?.length > 0`; pickers/BehaviorPicker — optional callbacks called unguarded; pickers/AvatarPicker, AgentDesigner/sections/IdentitySection, settings/AvatarPicker — `ev.target.result`
+- agents/AgentWizard/pickers/SchedulePickers, agents/AgentMarketplace — Date arithmetic (+ `.replace('{n}', n)`)
+- agents/VersionHistory — `prompt.length` on re-read optional; AgentSkillsTab — `s.name.toLowerCase()` optional; canUse/ToolChooser — optional onClose passed to required Modal prop
+- agents/AgentStudio/DeleteBlockedNotice — `othersChats > 0` nullable; AgentDesigner/hooks/useAgentChat — `res.body` deref
+- admin/monitoring/shared, monitoring/index, TerminationsPage, integrations/azure/SSOSection — Date arithmetic
+- admin/ai-config/chatModelTiers/TierCard — possibly-undefined modelId to string params; WebSearchInferenceConfig — narrowing through alias
+- admin/security/guardrails/GuardrailsHub — nullable `active` to Tabs value; Info — `string|null` title; orgShield/activity/shieldRows — optional timestamp; orgShieldDirty — `v?.external` untyped; orgShieldPosture — `egress.x` after Number.isFinite
+- admin/org/orgInfo/OrgInfoSection — nullable ncOrg; access/CloudCeilingEditor — `encodeURIComponent(undefined)`
+- admin/subscriptions: PlanCard, QuickAssignDialog, TrialOffersPanel — `%`/`>` on nullable; OrgEditor — `includes(undefined)`; PromoEditor — `parseInt(number)`; GrantsView — `g.blob` narrowing lost in closure
+- integrations/azure/ChatModelsSection — `replace` with a number; admin/modules/moduleActions, modules/index, integrations/nextcloud/NcScopeSection — nullable deref / `clearTimeout(null)`; GitHubSyncPanel — nullable `status.config`; NextcloudSyncPanel — spread of nullable config; IntegrationsAdminPanel — Dispatch<number> as `(value: string) => void`
+- settings/learning/LearningHeader — SegmentedControl onChange vs CourseView; AchievementsView — `earnedById[c.badge?.id]`; CertificateDrawer — `writeText(string|null)`; admin/AcademyContentEditor — nullable course in closures
+- login/MfaLoginStep, SignupStepAuth, SignupStepPrivacy, SignupStepOrg, SignupStepAccount — optional callbacks called unguarded
+- TemplatesPage — `setFillTemplate(prev => ({...prev}))` on nullable; EmbedChat — `response.body.getReader()`; PublicFormPage — `FormDef|null` to required prop; AdvancedSettings — `onBack` prop mismatch (+ mobile lockstep reads its path)
+- settings/OrgFeedbackPanel — `agent_id?.length > 20`; OrgTerminationsPanel — unguarded nullable fields; ConnectionsManager — `authType.id` nullable; IntegrationsSection — `filter(Boolean)` + destructuring; PolicyAcknowledgements — `t(..., null)`; OrganisationSection — prop mismatch + null vs string; SecuritySection — `securityKeys > 0`
 
 ## Push log
 | Pushed commit | check:fast | server typecheck | duplication (prod / test) | gitleaks | agent-hub tsc | agent-hub vitest | mobile tsc | mobile jest | server npm test |
 |---|---|---|---|---|---|---|---|---|---|
+| round 2 (+ cherry-pick -x cfb10394, the integrator's useBfMarks test mock: first vitest run had 21872/21872 pass but 2 unhandled 'window is not defined' from WebpageIDE.i18n.test.jsx → useBfMarks.ts; full rerun after the cherry-pick green) | 39/39 | 0 errors | 15184 ≤ 15290 / 26228 = 26228 | clean | 0 errors | 1858 files, 21872 pass, 0 errors | 0 errors | 762 suites, 13428 pass | 29058 pass, 0 fail, 0 HUNG |
 | round 1 (checks at the fix commit; then merged c79185eb, a 1-line server test change: that test + check:fast re-run green) | 39/39 | 0 errors | 15225 ≤ 15290 / 26228 = 26228 | clean | 0 errors | 1858 files, 21872 pass | 0 errors | 762 suites, 13428 pass | 29058 pass, 0 fail, 0 HUNG |
 
 ## Integrator: watch at merge
@@ -93,4 +127,6 @@ non-string message is no longer stringified; recipe row, accepted by review). Sp
 - Accepted casts (review notes): guarded `Map.get(k) as T` after has/set in SpeakerEditor, insightsData, transcriptLines; `segments as MentionSegment[]` after Array.isArray with per-entry guards.
 - useTranscription.ts error is `unknown` with `TODO(err-unknown)`: MeetingDetail.jsx (JS) passes it to MeetingLoadError, which reads it as ApiError.
 - Redundant FilterPills cast shims now removable (OverviewToolbar, ExecutionsFilterBar, MemoryFilters, studioParts, SolutionsOverviewParts); studioParts duplicates FilterPillOption/FilterPillsProps.
-- Mirror candidates (under budget, not mirrored): FilterPills ↔ mobile shared/ui/Chip.tsx; VisibilityCapsule ↔ mobile shared/patterns/AudienceSheet.tsx.
+- Round 2 type-only edits in TS files outside the packages: hooks/useGoogleWorkspacePicker.ts (status.user = session user object, optional authWindowName), cowork/cowork.types.ts (CoworkPageProps), useProviderConfig.ts, tierTypes.ts (CustomTier budgetTokens, verbosity), AddRuntimeForm.tsx (imports new ProviderCards/local/runtimeTypes.ts). Accepted casts: ExternalShareSection `s.url as string` and OrgAuthSection `as OrgFormData` (value cannot change after the guard).
+- Cherry-picked (-x) the integrator's cfb10394 (WebpageIDE.i18n.test.jsx mocks ./useBfMarks) from ts-int/staging: without it the full vitest run ends red on 2 unhandled rejections. Identical patch, merges cleanly with staging.
+- Mirror candidates (under budget, not mirrored): FilterPills ↔ mobile shared/ui/Chip.tsx; VisibilityCapsule ↔ mobile shared/patterns/AudienceSheet.tsx; subscriptions/access/countries.js ↔ mobile features/org/model/countries.ts (kept JS: converting makes a 105-line clone).
