@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS media helpers: clip uploads (demo videos WITH sound, up to 500 MB) and
  * WebVTT captions validation.

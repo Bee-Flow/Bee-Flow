@@ -1,3 +1,4 @@
+// @typecheck
 // §WS5 #4 — public inbound trigger surface (webhook + provider event pushes),
 // extracted verbatim from routes/automation.js. Mounted BEFORE the auth chain.
 //
