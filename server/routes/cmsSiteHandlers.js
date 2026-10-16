@@ -11,9 +11,9 @@
  */
 
 const cmsStore = require('../stores/cmsStore');
-const { HttpError } = require('../core/http/errors');
 const cmsTranslate = require('../core/cms/cmsTranslate');
 const languageStore = require('../stores/languageStore');
+const { HttpError } = require('../core/http/errors');
 const { getLiveSiteId, setLiveSiteId, ensurePublishedSnapshot } = require('./cmsShared');
 const { provisionAnalyticsForSite } = require('./cmsAnalytics');
 
@@ -46,9 +46,11 @@ async function getGraph(req, res) {
 }
 
 async function putSiteDoc(req, res) {
+    const { site } = req.body || {};
+    if (!site) return res.status(400).json({ error: 'site object required' });
+    const chromeProblem = cmsStore.validateSiteChrome(site);
+    if (chromeProblem) throw new HttpError(400, 'invalid_site_chrome', chromeProblem);
     try {
-        const { site } = req.body || {};
-        if (!site) return res.status(400).json({ error: 'site object required' });
         const report = {};
         const saved = await cmsStore.setProject(req.siteId, site, report);
         // `localeOverrides`: header/footer translations re-aligned to this save's item order.

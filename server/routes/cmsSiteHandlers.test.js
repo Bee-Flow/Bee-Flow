@@ -42,6 +42,7 @@ mock.method(cmsStore, 'getSiteLocaleOverride', async () => ({ kept: 'manual' }))
 mock.method(cmsStore, 'setSiteLocaleOverride', async (...args) => { calls.push(['setSiteLocaleOverride', ...args]); });
 mock.method(cmsStore, 'saveTranslatedSiteOverride', async (...args) => { calls.push(['saveTranslatedSiteOverride', ...args]); return args[2]; });
 mock.method(cmsStore, 'deleteSiteLocaleOverride', async (...args) => { calls.push(['deleteSiteLocaleOverride', ...args]); });
+mock.method(cmsStore, 'setProject', async (id, site) => { calls.push(['setProject', id]); return site; });
 mock.method(cmsStore, 'setDefaultLocale', async (code) => { calls.push(['setDefaultLocale', code]); });
 mock.method(languageStore, 'getAvailableLocales', async () => [{ code: 'nl', name: 'Nederlands' }]);
 mock.method(cmsTranslate, 'aiTranslateSite', async (args) => {
@@ -197,4 +198,18 @@ test('postSiteAiTranslate translates with the language name and persists the ove
 test('localeName falls back to the code for an unknown locale', async () => {
     assert.strictEqual(await handlers.localeName('nl'), 'Nederlands');
     assert.strictEqual(await handlers.localeName('xx'), 'xx');
+});
+
+test('putSiteDoc: a footer whose columns is a string is refused, nothing is saved (#231)', async () => {
+    await assert.rejects(
+        call(handlers.putSiteDoc, { siteId: 'pj_aaaa1111', body: { site: { footer: { columns: 'x' } } } }),
+        (e) => e.status === 400 && e.code === 'invalid_site_chrome' && /footer\.columns must be a list/.test(e.message),
+    );
+    assert.deepStrictEqual(calls, []);
+});
+
+test('putSiteDoc: a sound site is saved', async () => {
+    const res = await call(handlers.putSiteDoc, { siteId: 'pj_aaaa1111', body: { site: { footer: { columns: [] } } } });
+    assert.strictEqual(res.body.success, true);
+    assert.deepStrictEqual(calls, [['setProject', 'pj_aaaa1111']]);
 });

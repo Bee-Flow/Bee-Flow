@@ -64,6 +64,7 @@ function makeHarness(over = {}) {
         getAdminPayload: async (id) => ({ site: structuredClone(projects[id]), pages: [], defaultLocale: 'en', localeOverrides: { siteByLocale: {}, pagesByLocale: {} } }),
         getDefaultLocale: async () => 'en',
         isValidLocale: (c) => /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/.test(c),
+        validateSiteChrome: require('../../stores/cms/chromeValidation').validateSiteChrome,
         setProject: async (id, site) => { calls.setProject.push([id, site]); projects[id] = site; return site; },
         publishSite: async (id) => { calls.publish.push(id); return { publishedAt: '2026-10-10T10:00:00.000Z' }; },
         removePage: async (id, pageId) => { calls.removed.push([id, pageId]); return { removed: { id: pageId, slug: 'x' }, newHomepage: { id: 'pg_1', slug: 'home' }, neutralisedLinks: 2 }; },
@@ -380,6 +381,8 @@ test('cms_update_site_settings rejects unknown sections, unknown keys, header.na
         [{ footer: 'text' }, /must be an object/],
         [{ cookieBanner: { enabled: 'yes' } }, /true or false/],
         [{ analytics: { gaMeasurementId: 'UA-1' } }, /not a Google Analytics 4 id/],
+        [{ footer: { columns: 'x' } }, /footer\.columns must be a list/],
+        [{ header: { ctas: [{ label: 1, link: { kind: 'bogus' } }] } }, /header\.ctas\[0\]\.label must be text/],
         [{ name: '' }, /name must be text/],
         [{}, /Nothing to change/],
     ];

@@ -1,5 +1,7 @@
 import React from 'react';
-import type { FooterProps } from './Footer.types';
+import type { FooterData, FooterProps } from './Footer.types';
+import SiteChromeGuard from '../components/SiteChromeGuard';
+import { normalizeFooterData } from './footerData';
 import AppIcon from '../../components/icons/AppIcon';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
@@ -9,7 +11,21 @@ const isPreview = () =>
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).has('preview');
 
-export default function Footer({ data, isDark, onToggleTheme }: FooterProps) {
+/**
+ * The public footer. A stored setting of the wrong shape (a string where a
+ * list belongs) is read as empty, and anything that still throws while
+ * rendering hides the footer instead of the whole page.
+ */
+export default function Footer(props: FooterProps) {
+    return (
+        <SiteChromeGuard label="footer" resetKey={props.data}>
+            <FooterView {...props} />
+        </SiteChromeGuard>
+    );
+}
+
+function FooterView({ data: rawData, isDark, onToggleTheme }: FooterProps) {
+    const data: FooterData | null = normalizeFooterData(rawData);
     if (!data?.enabled) return null;
     const showThemeSwitcher = !!data.themeSwitcher?.enabled;
     // Master footer-link style — applied to every column link and every

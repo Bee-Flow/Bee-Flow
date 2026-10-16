@@ -316,3 +316,14 @@ test('import reports a page link it cannot resolve instead of leaving it silentl
     const result = await cmsStore.importSite(bundle);
     assert.ok(result.warnings.some(w => /page link/i.test(w)), JSON.stringify(result.warnings));
 });
+
+test('import keeps a sound bundle and replaces a wrong-typed footer with the default, with a warning (#231)', async () => {
+    const { siteId } = await buildSourceSite();
+    const bundle = await cmsStore.exportSite(siteId);
+    bundle.site.chrome.footer = { columns: 'x' };
+    const result = await cmsStore.importSite(bundle);
+    assert.strictEqual(result.warnings.filter((w) => /footer was not used/.test(w)).length, 1);
+    const site = await cmsStore.getProject(result.siteId);
+    assert.ok(Array.isArray(site.footer.columns), 'the default footer was stored');
+    assert.strictEqual(site.pages.length, bundle.site.pages.length, 'the rest of the bundle imported');
+});

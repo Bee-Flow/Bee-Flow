@@ -32,3 +32,8 @@ export interface HeaderData extends Pick<SectionDataBase, 'enabled'> {
     navStyle?: TextStyleBlob;
     ctas?: HeaderCta[];
 }
+
+export interface HeaderProps {
+    data?: HeaderData;
+    showLanguageSwitcher?: boolean;
+}

@@ -130,6 +130,10 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
             next.analytics = cleaned;
         }
 
+        const chromeProblem = cmsStore.validateSiteChrome(next);
+        if (chromeProblem) {
+            return err(chromeProblem, { _fixHint: 'Nothing was saved. Lists (columns, links, socials, ctas) must be lists of objects, text fields must be text, and link kinds are page, external, anchor or app. Read the current values with cms_get_site_settings.' });
+        }
         const saved = await cmsStore.setProject(found.siteId, next);
         const draftWrap = await loadDraft(found.siteId, ctx);
         const validation = validationOf(draftWrap);

@@ -68,6 +68,7 @@ const {
     EXPORT_MARKER, EXPORT_VERSION, EXPORT_SUPPORTED_VERSIONS,
 } = require('./cms/exportImport');
 const { mergeLocaleContent, sanitizeAnalytics, sanitizeBlogSettings } = require('./cms/shared');
+const { validateSiteChrome } = require('./cms/chromeValidation');
 const posts = require('./cms/posts');
 const { getEffectiveBlog, getLatestPublishedPosts } = require('./cms/blogEffective');
 
@@ -107,6 +108,6 @@ module.exports = {
     PostError: posts.PostError, POST_LIMITS: posts.POST_LIMITS, POST_STATUSES: posts.POST_STATUSES,
     // helpers / constants for tests
     makeBlock, resolveLink, mergeLocaleContent, sanitizeBlocks,
-    sanitizeAnalytics, sanitizePageIndexEntry,
+    sanitizeAnalytics, sanitizePageIndexEntry, validateSiteChrome,
     BLOCK_TYPE_IDS, RESERVED_PAGE_SLUGS,
 };

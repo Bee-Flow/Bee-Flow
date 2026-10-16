@@ -11,6 +11,7 @@ const { getProject, mutateProjectsIndex } = require('./projects');
 const { getPage } = require('./pages');
 const { annotatePageLinks } = require('./pageLinks');
 const { getDefaultLocale, collectLocaleOverrides } = require('./localeOverrides');
+const { validateSiteChrome } = require('./chromeValidation');
 const {
     validateImport, planPages, makePageLinkRemapper, buildSiteDoc, writePages,
     restoreLocaleOverrides, restoreBlogPosts,
@@ -239,6 +240,25 @@ async function exportSite(siteId) {
     };
 }
 
+/**
+ * Keep the sections of a bundle's chrome that pass the same shape check as a
+ * save; a bad section falls back to the defaults (buildSiteDoc) and is
+ * reported, so one wrong value does not reject the whole import.
+ * @param {Record<string, any>} chrome
+ * @param {string[]} warnings
+ */
+function keepSoundChrome(chrome, warnings) {
+    /** @type {Record<string, any>} */
+    const kept = { ...chrome };
+    for (const name of ['header', 'footer', 'cookieBanner', 'announcement']) {
+        const problem = validateSiteChrome({ [name]: kept[name] });
+        if (!problem) continue;
+        delete kept[name];
+        warnings.push(`The imported ${name} was not used (${problem}); the default was kept.`);
+    }
+    return kept;
+}
+
 async function importSite(exportData) {
     const { incoming, postsPreview } = validateImport(exportData, {
         marker: EXPORT_MARKER, supportedVersions: EXPORT_SUPPORTED_VERSIONS,
@@ -257,16 +277,16 @@ async function importSite(exportData) {
     const linkStats = { unresolved: 0 };
     const remapPageLinks = makePageLinkRemapper(slugToNewId, linkStats);
 
-    const incomingChrome = isPlainObject(incoming.chrome) ? incoming.chrome : {};
+    const warnings = renamedSlugs.map(
+        slug => `Page slug "${slug}" is reserved on this site and was renamed to "${slug}-page"`
+    );
+    const incomingChrome = keepSoundChrome(isPlainObject(incoming.chrome) ? incoming.chrome : {}, warnings);
     const newSite = buildSiteDoc({ incoming, incomingChrome, newSiteId, siteName, pagesOut, remapPageLinks });
     await configStore.setConfig(projectKey(newSiteId), newSite);
 
     const { droppedBlocks, blockIdMapByPageIndex } = await writePages({ newSiteId, pagesOut, pagesInAligned, remapPageLinks });
 
     const importedLocales = new Set();
-    const warnings = renamedSlugs.map(
-        slug => `Page slug "${slug}" is reserved on this site and was renamed to "${slug}-page"`
-    );
     await restoreLocaleOverrides({
         newSiteId, incomingChrome, pagesOut, pagesInAligned, slugToNewId, blockIdMapByPageIndex, importedLocales, warnings, remapPageLinks,
     });
