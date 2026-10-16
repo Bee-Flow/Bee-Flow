@@ -178,6 +178,8 @@
     position: relative;
 }
 .marketing-root section.alt-bg { background: var(--bg-secondary); }
+/* Two plain sections stacked: one --section-y between them, not two (see blockFlow.ts). */
+.marketing-root .cms-block-wrap--joined > section { padding-top: 0; }
 
 /* ── Buttons ──────────────────────────────────────────────────────────── */
 /* Buttons are token-driven so a theme can pick shape (pill / soft /

@@ -62,6 +62,7 @@ import { PreviewBlockChrome, InsertZone } from './components/PreviewBlockChrome'
 import { resolveAssetUrl } from './assetUrl';
 import ExperimentSection, { experimentAttrs } from './experiments/ExperimentSection';
 import { designStyleClasses, designStyleVars } from './blockWrap';
+import { joinsPreviousBlock } from './blockFlow';
 import { applyTypographyVars } from './designTypography';
 import { LOCALE_PREFIXES } from '../utils/cmsPublicRouting';
 import type {
@@ -524,8 +525,9 @@ const WRAPPER_REVEAL_TYPES = new Set<string | undefined>([
     'live-component', 'pricing', 'customer-support',
 ]);
 
-function blockWrapClasses(style: BlockStyle | undefined, { type, inPreview }: { type?: string; inPreview?: boolean } = {}) {
+function blockWrapClasses(style: BlockStyle | undefined, { type, inPreview, joined }: { type?: string; inPreview?: boolean; joined?: boolean } = {}) {
     const out = ['cms-block-wrap'];
+    if (joined) out.push('cms-block-wrap--joined');
     const maxWidth = style?.maxWidth || 'full';
     out.push(`cms-block-wrap--${['narrow', 'medium', 'wide', 'full'].includes(maxWidth) ? maxWidth : 'full'}`);
     if (style?.align && ['left', 'center', 'right'].includes(style.align)) {
@@ -541,7 +543,7 @@ function blockWrapClasses(style: BlockStyle | undefined, { type, inPreview }: { 
         out.push(`cms-band--${(style as BlockStyle).band}`);
     }
     // rhythm: re-declares --section-y for the wrapped section.
-    if ((['compact', 'spacious'] as (string | undefined)[]).includes(style?.rhythm)) {
+    if ((['tight', 'compact', 'spacious'] as (string | undefined)[]).includes(style?.rhythm)) {
         out.push(`cms-rhythm--${(style as BlockStyle).rhythm}`);
     }
     if (style?.glow === true) out.push('cms-glow');
@@ -916,7 +918,7 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
                 <BlogView blog={content.blog} />
             ) : orderedBlocks ? (
                 <>
-                    {orderedBlocks.map((b: CmsBlock) => {
+                    {orderedBlocks.map((b: CmsBlock, orderedIndex: number) => {
                         const Comp = SECTION_REGISTRY[b.type];
                         const overrideCss = buildBlockOverrideCss(b.id, b.style);
                         // Chrome positions are computed against the FULL
@@ -936,7 +938,7 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
                                     data-cms-block-id={b.id}
                                     // Read by analyticsEvents.js: attributes a CTA click to its block.
                                     data-cms-block-type={b.type}
-                                    className={`${blockWrapClasses(b.style, { type: b.type, inPreview })}${isActive ? ' cms-block-active' : ''}`}
+                                    className={`${blockWrapClasses(b.style, { type: b.type, inPreview, joined: joinsPreviousBlock(orderedBlocks[orderedIndex - 1], b) })}${isActive ? ' cms-block-active' : ''}`}
                                     style={blockWrapStyle(b.style)}
                                     {...experimentAttrs(b.content as Record<string, unknown> | undefined, { preview: inPreview, type: b.type })} // A/B goal attrs, see track.ts
                                     // Clicking anywhere in the block (images,

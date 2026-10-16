@@ -21,7 +21,7 @@ const SPACING_KEYS = ['paddingTop', 'paddingBottom'];
 // Style v2 (the renderer's blockWrapClasses / blockWrapStyle): closed enums.
 const STYLE_ENUMS = {
     band: ['default', 'surface', 'tint', 'dark', 'primary'],
-    rhythm: ['compact', 'default', 'spacious'],
+    rhythm: ['tight', 'compact', 'default', 'spacious'],
     reveal: ['on', 'off'],
 };
 const STYLE_COLUMNS = [2, 3, 4];

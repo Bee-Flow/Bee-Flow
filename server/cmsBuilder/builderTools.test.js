@@ -225,18 +225,18 @@ test('cms_update_block: style v2 keys (band, rhythm, reveal, glow, columns) are 
 
     const ok = await applyToolCall(draft, 'cms_update_block', {
         pageId: home, blockId,
-        stylePatch: { band: 'dark', rhythm: 'spacious', reveal: 'off', glow: true, columns: '3' },
+        stylePatch: { band: 'dark', rhythm: 'tight', reveal: 'off', glow: true, columns: '3' },
     });
     assert.ok(!ok.error && !ok._hints, JSON.stringify(ok));
     const saved = draft.pages.get(home).blocks[0];
     assert.deepStrictEqual(
         { band: saved.style.band, rhythm: saved.style.rhythm, reveal: saved.style.reveal, glow: saved.style.glow, columns: saved.style.columns },
-        { band: 'dark', rhythm: 'spacious', reveal: 'off', glow: true, columns: 3 },
+        { band: 'dark', rhythm: 'tight', reveal: 'off', glow: true, columns: 3 },
     );
 
     for (const [patch, hint] of [
         [{ band: 'neon' }, /default, surface, tint, dark, primary/],
-        [{ rhythm: 'tight' }, /compact, default, spacious/],
+        [{ rhythm: 'loose' }, /tight, compact, default, spacious/],
         [{ reveal: true }, /on, off/],
         [{ glow: 'yes' }, /true or false/],
         [{ columns: 5 }, /2, 3, 4/],

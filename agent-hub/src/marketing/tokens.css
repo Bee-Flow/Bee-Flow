@@ -65,7 +65,7 @@
     --space-1: 4px;  --space-2: 8px;   --space-3: 12px; --space-4: 16px;
     --space-6: 24px; --space-8: 32px;  --space-12: 48px; --space-16: 64px;
     --space-24: 96px; --space-32: 128px;
-    --section-y:      clamp(72px, 6vw + 40px, 112px);
+    --section-y:      clamp(56px, 5vw + 24px, 96px);
     --section-y-hero: clamp(88px, 8vw + 48px, 152px);
 
     /* ── Motion tokens ──────────────────────────────────────────────── */
@@ -184,6 +184,7 @@
 
 /* Vertical rhythm presets — re-declare the section padding token for the
    wrapped section; explicit spacing strings (inline padding) still win. */
+.marketing-root .cms-rhythm--tight    { --section-y: clamp(40px, 3vw + 20px, 64px); }
 .marketing-root .cms-rhythm--compact  { --section-y: 48px; }
 .marketing-root .cms-rhythm--spacious { --section-y: clamp(128px, 11vw, 176px); }
 

@@ -325,7 +325,7 @@ function validateSiteDraft(draftWrap) {
             if (st && typeof st === 'object') {
                 const styleEnums = {
                     band:    ['default', 'surface', 'tint', 'dark', 'primary'],
-                    rhythm:  ['compact', 'default', 'spacious'],
+                    rhythm:  ['tight', 'compact', 'default', 'spacious'],
                     reveal:  ['on', 'off'],
                 };
                 for (const [key, allowedVals] of Object.entries(styleEnums)) {
