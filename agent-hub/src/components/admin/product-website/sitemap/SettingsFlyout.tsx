@@ -9,6 +9,7 @@ import { authFetch } from '../../../../utils/helpers';
 import useConfirm from '../../../shared/useConfirm';
 import { AppIcon } from '../blog/jsComponents';
 import { cmsApi } from '../cmsApi';
+import { askDeletePage } from '../panel/deletePageConfirm';
 
 interface SlugIssue {
     kind: 'reserved' | 'duplicate' | 'unroutable';
@@ -45,7 +46,7 @@ const isNavEntryFor = (pageId: string) => (n: { link?: { kind?: string; pageId?:
  * runner — `busy` gates the whole form, `error` surfaces the last failure,
  * `run` never throws.
  */
-function useSitemapPageActions({ page, site, siteId, onChanged }: Pick<SettingsFlyoutProps, 'page' | 'site' | 'siteId' | 'onChanged'>) {
+function useSitemapPageActions({ page, pages, site, siteId, onChanged }: Pick<SettingsFlyoutProps, 'page' | 'pages' | 'site' | 'siteId' | 'onChanged'>) {
     const { confirm, confirmDialog } = useConfirm();
     const { run, loading: busy, error } = useAsyncAction((task: () => Promise<void>) => task());
 
@@ -94,9 +95,15 @@ function useSitemapPageActions({ page, site, siteId, onChanged }: Pick<SettingsF
     });
 
     const deletePage = async () => {
-        if (!(await confirm({ title: `Delete page "${page.title || page.slug}"?`, description: 'This cannot be undone.', confirmLabel: 'Delete', destructive: true }))) return;
+        const { confirmed, redirectTo } = await askDeletePage(confirm, page, pages, {
+            title: `Delete page "${page.title || page.slug}"?`,
+            description: 'This cannot be undone.',
+            confirmLabel: 'Delete',
+        });
+        if (!confirmed) return;
         run(async () => {
-            const res = await authFetch(cmsApi.page(siteId, page.id), { method: 'DELETE' });
+            const query = redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : '';
+            const res = await authFetch(`${cmsApi.page(siteId, page.id)}${query}`, { method: 'DELETE' });
             await ensureOk(res, 'Delete failed');
             onChanged();
         });
@@ -165,7 +172,7 @@ export default function SettingsFlyout({ page, pages, site, siteId, anchorPos, c
     const { t } = useTranslation();
     const [title, setTitle] = useState(page.title || '');
     const [slug, setSlug]   = useState(page.slug  || '');
-    const { busy, error, saveMeta, toggleNav, setHomepage, deletePage, confirmDialog } = useSitemapPageActions({ page, site, siteId, onChanged });
+    const { busy, error, saveMeta, toggleNav, setHomepage, deletePage, confirmDialog } = useSitemapPageActions({ page, pages, site, siteId, onChanged });
     const ref = useRef<HTMLDivElement | null>(null);
 
     // In-nav membership lives on the site doc's header.nav, not on the page

@@ -7,6 +7,7 @@ import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { exportPage as exportPageToFile } from '../pageIO';
 import { HEADER_VIRTUAL_ID } from '../sentinels';
+import { askDeletePage } from './deletePageConfirm';
 
 export default function useCmsPagesTemplates({
     activeSiteIdRef, drainPendingSaves, setActivePageId, pages, updatePage, confirm,
@@ -129,16 +130,16 @@ export default function useCmsPagesTemplates({
         const siteId = activeSiteIdRef.current;
         if (!siteId) return;
         const page = pages.find(p => p.id === pageId);
-        const ok = await confirm({
+        const { confirmed, redirectTo } = await askDeletePage(confirm, page || { id: pageId }, pages, {
             title: `Delete "${page?.title || 'this page'}"?`,
             description: 'The page and all of its blocks are permanently removed. This cannot be undone.',
             confirmLabel: 'Delete page',
-            destructive: true,
         });
-        if (!ok) return;
+        if (!confirmed) return;
         await drainPendingSaves();
         try {
-            const res = await authFetch(cmsApi.page(siteId, pageId), { method: 'DELETE' });
+            const query = redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : '';
+            const res = await authFetch(`${cmsApi.page(siteId, pageId)}${query}`, { method: 'DELETE' });
             if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
             await reloadPayload();
             setActivePageId(HEADER_VIRTUAL_ID);
