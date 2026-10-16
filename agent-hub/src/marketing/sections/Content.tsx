@@ -12,7 +12,7 @@ import type { ContentBlockData, RenderElement } from './Content.types';
 
 /**
  * Flexible Content section. Each block is a grid of N columns, each column
- * is a list of elements (text / image / video / iframe / cta). Old shape
+ * is a list of elements (text / image / video / iframe / cta; button and link alias cta). Old shape
  * (heading/body/image/imagePosition/…) is migrated on read so the renderer
  * only deals with the new shape internally.
  *
@@ -98,7 +98,10 @@ function ContentElement({ el, colIdx, elIdx, firstHeading, fullWidth }: ContentE
         case 'image':  return <ImageElement  el={el} pathBase={pathBase} fullWidth={fullWidth} />;
         case 'video':  return <VideoElement  el={el} pathBase={pathBase} />;
         case 'iframe': return <IframeElement el={el} pathBase={pathBase} />;
-        case 'cta':    return <CtaElement    el={el} pathBase={pathBase} />;
+        // `button` and `link` are what an author reaches for first: same element as cta.
+        case 'cta':
+        case 'button':
+        case 'link':   return <CtaElement    el={el} pathBase={pathBase} />;
         default:       return null;
     }
 }
