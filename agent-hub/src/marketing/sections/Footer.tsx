@@ -3,12 +3,36 @@ import AppIcon from '../../components/icons/AppIcon';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import { inlineTextStyle } from './textStyle';
+import type { SectionDataBase, TextStyleBlob } from './sectionData.types';
+
+interface FooterLink {
+    href?: string;
+    target?: string;
+    rel?: string;
+    label?: string;
+}
+
+interface FooterData extends SectionDataBase {
+    themeSwitcher?: { enabled?: boolean };
+    linkStyle?: TextStyleBlob;
+    accountability?: {
+        address?: string;
+        registration?: string;
+        vat?: string;
+        links?: FooterLink[];
+    };
+    brand?: { logoText?: string; showDot?: boolean; blurb?: string };
+    columns?: { heading?: string; links?: FooterLink[] }[];
+    copyright?: string;
+    showLanguageSwitcher?: boolean;
+    socials?: (FooterLink & { platform?: string })[];
+}
 
 const isPreview = () =>
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).has('preview');
 
-export default function Footer({ data, isDark, onToggleTheme }) {
+export default function Footer({ data, isDark, onToggleTheme }: { data?: FooterData | null; isDark?: boolean; onToggleTheme?: () => void }) {
     if (!data?.enabled) return null;
     const showThemeSwitcher = !!data.themeSwitcher?.enabled;
     // Master footer-link style — applied to every column link and every
@@ -163,14 +187,14 @@ function FooterLocaleToggle() {
             return v.toLowerCase().split('-')[0] === 'nl' ? 'nl' : 'en';
         } catch { return 'en'; }
     })();
-    const go = (loc) => (e) => {
+    const go = (loc: string) => (e: React.MouseEvent) => {
         e.preventDefault();
         if (isPreview() || loc === current) return;
         const url = new URL(window.location.href);
         url.searchParams.set('locale', loc);
         window.location.assign(url.toString());
     };
-    const cls = (loc) => (loc === current
+    const cls = (loc: string) => (loc === current
         ? { fontWeight: 600, color: 'var(--text-primary)' }
         : { color: 'var(--text-muted)' });
     return (
@@ -184,7 +208,7 @@ function FooterLocaleToggle() {
 
 // Single-button day/night toggle. The icon shows the CURRENT mode; clicking
 // flips to the other. No system option — keep the affordance to one button.
-function ThemeSwitcher({ isDark, onToggle }) {
+function ThemeSwitcher({ isDark, onToggle }: { isDark: boolean; onToggle: () => void }) {
     const label = isDark ? 'Switch to light mode' : 'Switch to dark mode';
     return (
         <button

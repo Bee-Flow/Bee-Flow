@@ -21,7 +21,23 @@ import {
 
 // Built-in copy. Caller-supplied `text` is overlaid per language, so a
 // partial override (e.g. just the message) keeps the default button labels.
-const DEFAULT_TEXT = {
+interface CookieStrings {
+    message: string;
+    accept: string;
+    decline: string;
+    privacyLabel: string;
+    privacyUrl: string;
+}
+
+interface CookieBannerProps {
+    enabled?: boolean;
+    language?: string;
+    text?: Record<string, Partial<CookieStrings>>;
+}
+
+type ConsentChoice = 'accepted' | 'declined';
+
+const DEFAULT_TEXT: Record<string, CookieStrings> = {
     en: {
         message: 'We use cookies to improve your experience.',
         accept: 'Accept',
@@ -42,7 +58,7 @@ export default function CookieBanner({
     enabled = true,
     language = 'en',
     text = undefined,
-} = {}) {
+}: CookieBannerProps = {}) {
     // Prefer the requested language when we have strings for it (built-in or
     // caller-provided); otherwise fall back to English.
     const lang = (DEFAULT_TEXT[language] || text?.[language]) ? language : 'en';
@@ -54,7 +70,7 @@ export default function CookieBanner({
     // 'unset' until we've read localStorage on mount — this avoids a flash of
     // the banner for returning visitors who already chose, and keeps the
     // component SSR-safe. After mount it is 'accepted' | 'declined' | null.
-    const [consent, setConsent] = useState('unset');
+    const [consent, setConsent] = useState<'unset' | ConsentChoice | null>('unset');
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -79,7 +95,7 @@ export default function CookieBanner({
         }
     }, []);
 
-    const choose = (value) => {
+    const choose = (value: ConsentChoice) => {
         setConsent(value);
         try {
             window.localStorage.setItem(STORAGE_KEY, value);
@@ -158,7 +174,7 @@ export default function CookieBanner({
 // fallback so the banner is legible anywhere it's mounted.
 const Z = 2147483000; // above virtually everything, below browser chrome
 
-const bannerStyle = {
+const bannerStyle: React.CSSProperties = {
     position: 'fixed',
     left: '1rem',
     right: '1rem',
@@ -180,25 +196,25 @@ const bannerStyle = {
     fontFamily: 'var(--font-body, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif)',
 };
 
-const messageStyle = {
+const messageStyle: React.CSSProperties = {
     margin: 0,
     flex: '1 1 260px',
     fontSize: '0.875rem',
     lineHeight: 1.5,
 };
 
-const linkStyle = {
+const linkStyle: React.CSSProperties = {
     color: 'var(--brand-primary, #2563eb)',
     textDecoration: 'underline',
 };
 
-const actionsStyle = {
+const actionsStyle: React.CSSProperties = {
     display: 'flex',
     gap: '0.5rem',
     flexShrink: 0,
 };
 
-const baseButtonStyle = {
+const baseButtonStyle: React.CSSProperties = {
     appearance: 'none',
     cursor: 'pointer',
     fontSize: '0.8125rem',
@@ -209,13 +225,13 @@ const baseButtonStyle = {
     fontFamily: 'inherit',
 };
 
-const acceptButtonStyle = {
+const acceptButtonStyle: React.CSSProperties = {
     ...baseButtonStyle,
     background: 'var(--brand-primary, #2563eb)',
     color: '#ffffff',
 };
 
-const declineButtonStyle = {
+const declineButtonStyle: React.CSSProperties = {
     ...baseButtonStyle,
     background: 'transparent',
     color: 'var(--brand-text, #0f172a)',
@@ -225,7 +241,7 @@ const declineButtonStyle = {
 // Re-open affordance — a subtle surface chip on a hairline border (not a
 // bare emoji floating over the page), quiet enough to live bottom-right
 // permanently while staying an obvious tap target.
-const reopenButtonStyle = {
+const reopenButtonStyle: React.CSSProperties = {
     position: 'fixed',
     right: '1rem',
     bottom: '1rem',

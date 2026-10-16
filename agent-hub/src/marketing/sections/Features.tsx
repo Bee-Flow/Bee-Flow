@@ -8,16 +8,38 @@ import PopupModal from '../components/PopupModal';
 import SectionFrame from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';
 import SectionHeader from '../components/SectionHeader';
+import type { MediaSlot, SectionDataBase } from './sectionData.types';
+
+interface FeatureItem {
+    title?: string;
+    body?: string;
+    icon?: string;
+    span?: number | string;
+    media?: MediaSlot;
+    titleColor?: string;
+    bodyColor?: string;
+    titleAlign?: string;
+    bodyAlign?: string;
+    cardAction?: string;
+    cardUrl?: string;
+    popupEmbed?: string;
+}
+
+interface FeaturesData extends SectionDataBase {
+    items?: FeatureItem[];
+    variant?: string;
+    spotlight?: boolean;
+}
 
 // Spotlight hover — writes the cursor position into CSS vars the
 // .feature-card--spotlight::after radial highlight reads.
-function trackSpotlight(e) {
+function trackSpotlight(e: React.MouseEvent<HTMLElement>) {
     const r = e.currentTarget.getBoundingClientRect();
     e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`);
     e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`);
 }
 
-export default function Features({ data }) {
+export default function Features({ data }: { data?: FeaturesData | null }) {
     // Hooks must run unconditionally — declared BEFORE the
     // `enabled` early-return so toggling enabled on/off doesn't
     // change the hook count between renders.
