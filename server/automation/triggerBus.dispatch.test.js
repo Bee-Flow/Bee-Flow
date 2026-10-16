@@ -14,56 +14,12 @@
 const { test } = require('node:test');
 const assert = require('assert');
 
-// Stub automationStore + userStore before requiring dispatch.js so it loads
-// without booting a DB pool, and so we can hand back synthetic subscriptions
-// spanning two different orgs' users.
-const storePath = require.resolve('../stores/automationStore');
-const SUBS = [
-    { id: 'sub-orgA', automationId: 'auto-orgA', userId: 'user-orgA', filter: null },
-    { id: 'sub-orgB', automationId: 'auto-orgB', userId: 'user-orgB', filter: null },
-];
-require.cache[storePath] = {
-    id: storePath,
-    filename: storePath,
-    loaded: true,
-    exports: {
-        getSubscriptionsForProvider: async () => SUBS,
-        getAutomation: async (id) => ({ id, isActive: true, isDraft: false }),
-    },
-};
-
-const userStorePath = require.resolve('../stores/userStore');
-const USERS = {
-    'user-orgA': { id: 'user-orgA', organizationId: 'org-A' },
-    'user-orgB': { id: 'user-orgB', organizationId: 'org-B' },
-};
-require.cache[userStorePath] = {
-    id: userStorePath,
-    filename: userStorePath,
-    loaded: true,
-    exports: { getUser: async (uid) => USERS[uid] || null },
-};
-
-const runnerPath = require.resolve('../core/automationRunner');
-const dispatchedRuns = [];
-require.cache[runnerPath] = {
-    id: runnerPath,
-    filename: runnerPath,
-    loaded: true,
-    exports: {
-        executeAutomation: async (automation) => {
-            dispatchedRuns.push(automation.id);
-            return { id: `run-${automation.id}` };
-        },
-    },
-};
+// Stub automationStore, userStore and the runner before requiring dispatch.js
+// (synthetic subscriptions spanning two orgs' users; see triggerBus.testkit.js).
+const { installDispatchStubs, tick } = require('./triggerBus.testkit');
+const { SUBS, dispatchedRuns } = installDispatchStubs();
 
 const { dispatchEvent, dispatchToSubscription, dispatchOrgScopedEvent } = require('./triggerBus/dispatch');
-
-// executeAutomation now runs fire-and-forget (setImmediate) inside dispatch.js
-// so ingest routes / the polling tick never block on a slow automation —
-// give scheduled setImmediate callbacks a turn before asserting on side effects.
-const tick = () => new Promise((resolve) => setImmediate(resolve));
 
 test('dispatchEvent: nextcloud event with no userId AND no orgId is dropped, not fanned out', async () => {
     dispatchedRuns.length = 0;

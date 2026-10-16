@@ -16,48 +16,11 @@
 const { test } = require('node:test');
 const assert = require('assert');
 
-const storePath = require.resolve('../stores/automationStore');
-const SUBS = [
-    { id: 'sub-orgA', automationId: 'auto-orgA', userId: 'user-orgA', filter: null },
-    { id: 'sub-orgB', automationId: 'auto-orgB', userId: 'user-orgB', filter: null },
-];
-require.cache[storePath] = {
-    id: storePath,
-    filename: storePath,
-    loaded: true,
-    exports: {
-        getSubscriptionsForProvider: async () => SUBS,
-        getAutomation: async (id) => ({ id, isActive: true, isDraft: false }),
-    },
-};
-
-const userStorePath = require.resolve('../stores/userStore');
-const USERS = {
-    'user-orgA': { id: 'user-orgA', organizationId: 'org-A' },
-    'user-orgB': { id: 'user-orgB', organizationId: 'org-B' },
-};
-require.cache[userStorePath] = {
-    id: userStorePath,
-    filename: userStorePath,
-    loaded: true,
-    exports: { getUser: async (uid) => USERS[uid] || null },
-};
-
-const runnerPath = require.resolve('../core/automationRunner');
-const dispatchedRuns = [];
-require.cache[runnerPath] = {
-    id: runnerPath,
-    filename: runnerPath,
-    loaded: true,
-    exports: {
-        executeAutomation: async (automation) => { dispatchedRuns.push(automation.id); return { id: 'run' }; },
-    },
-};
+const { installDispatchStubs, tick } = require('./triggerBus.testkit');
+const { dispatchedRuns, storePath } = installDispatchStubs();
 
 const { registerTriggerSource } = require('./triggerSources');
 const { dispatchEvent, dispatchOrgScopedEvent } = require('./triggerBus/dispatch');
-
-const tick = () => new Promise((resolve) => setImmediate(resolve));
 
 const declaration = (id, scope) => ({
     id,

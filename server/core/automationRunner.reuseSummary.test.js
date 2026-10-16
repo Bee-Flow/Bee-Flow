@@ -19,61 +19,9 @@
  */
 
 const { test, after, beforeEach } = require('node:test');
-// The runner reaches automation/, integrations/ and services/ through
-// core/automationRunner/featurePorts.js; boot registers these for the server.
-require('../automation/runnerPorts');
-require('../integrations/runnerPorts');
-require('../services/runnerPorts');
 const assert = require('node:assert');
 
-const runs = new Map();
-let runSeq = 0;
-
-function makeRun({ automationId, version, userId, triggerKind, triggerPayload, mode, parentRunId }) {
-    const id = `run-${++runSeq}`;
-    const row = {
-        id, automationId, version, userId, triggerKind,
-        triggerPayload: triggerPayload || null, mode, status: 'queued',
-        startedAt: new Date().toISOString(), finishedAt: null, durationMs: null,
-        error: null, summary: null, parentRunId: parentRunId ?? null,
-        cancelRequested: false, awaitingStepId: null, approvalToken: null,
-        awaitingStepExpiresAt: null, errorClass: null, handledErrorCount: 0,
-    };
-    runs.set(id, row);
-    return row;
-}
-
-const storeStub = {
-    initDB: async () => {},
-    createRun: async (args) => makeRun(args),
-    getRun: async (id) => (runs.has(id) ? { ...runs.get(id) } : null),
-    updateRun: async (id, updates) => {
-        const r = runs.get(id);
-        if (!r) return false;
-        Object.assign(r, updates);
-        return true;
-    },
-    getRunsForAutomation: async () => [],
-    getRunSteps: async () => [],
-    recordRunStep: async () => {},
-    markRunning: async () => true,
-    releaseAutomation: async () => {},
-    resetAttempts: async () => {},
-    updateAutomation: async () => true,
-    touchRunHeartbeat: async () => {},
-    requestCancelRun: async () => null,
-    getAutomation: async () => null,
-};
-
-function stub(modPath, exportsObj) {
-    const resolved = require.resolve(modPath);
-    require.cache[resolved] = { id: resolved, filename: resolved, loaded: true, exports: exportsObj };
-}
-
-stub('../stores/automationStore', storeStub);
-stub('../stores/userStore', { getUser: async () => null, getOrganization: async () => null });
-stub('../stores/configStore', { getConfig: async () => null, setConfig: async () => {} });
-stub('../stores/notificationStore', { createNotification: async () => {} });
+const { resetRuns, stub } = require('./automationRunner.testkit').installRunnerStoreStubs();
 
 // The memo the runner puts on ctx — the counters are whatever this says.
 let memoStats = { hits: 0, misses: 0, durableHits: 0, refused: 0, entries: 0, bytes: 0 };
@@ -90,16 +38,12 @@ stub('./automationRunner/toolMemo', {
     }),
 });
 
-process.env.AUTOMATION_AUTH_LEGACY = '0';
-process.env.NODE_ENV = 'test';
-
 const runner = require('./automationRunner');
 
 after(() => { setImmediate(() => process.exit(process.exitCode || 0)); });
 
 beforeEach(() => {
-    runs.clear();
-    runSeq = 0;
+    resetRuns();
     memoStats = { hits: 0, misses: 0, durableHits: 0, refused: 0, entries: 0, bytes: 0 };
 });
 

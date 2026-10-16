@@ -23,45 +23,10 @@ process.env.NODE_ENV = 'test';
 // stores/cmsStore.blog.test.js; no module-system mocking).
 const { recordDb } = require('../../testUtils/routeHarness');
 
+const { configTableAnswer } = require('../cmsStore.testkit');
+
 const configState = { map: new Map() };
-function likeToRegex(pattern) {
-    // LIKE with ESCAPE '\': a backslash makes the next character literal; % is any run, _ any one character.
-    let src = '';
-    const chars = [...String(pattern)];
-    for (let i = 0; i < chars.length; i++) {
-        const c = chars[i];
-        if (c === '\\' && i + 1 < chars.length) src += chars[++i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        else if (c === '%') src += '.*';
-        else if (c === '_') src += '.';
-        else src += c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-    return new RegExp(`^${src}$`);
-}
-const keysLike = (p) => [...configState.map.keys()].filter((k) => likeToRegex(p).test(k)).map((key) => ({ key }));
-recordDb((sql, params = []) => {
-    if (/^\s*SELECT value FROM config WHERE key = \$1/i.test(sql)) {
-        return { rows: configState.map.has(params[0]) ? [{ value: configState.map.get(params[0]) }] : [] };
-    }
-    if (/INSERT INTO config/i.test(sql)) { configState.map.set(params[0], params[1]); return { rows: [], rowCount: 1 }; }
-    if (/^\s*DELETE FROM config WHERE key = \$1/i.test(sql)) {
-        const had = configState.map.delete(params[0]);
-        return { rows: [], rowCount: had ? 1 : 0 };
-    }
-    // publishSite: the site doc, its pages and its locale overrides in one statement.
-    if (/SELECT key, value FROM config WHERE key = \$1 OR key LIKE \$2/i.test(sql)) {
-        const patterns = params.slice(1).map(likeToRegex);
-        return {
-            rows: [...configState.map.keys()]
-                .filter((k) => k === params[0] || patterns.some((re) => re.test(k)))
-                .map((key) => ({ key, value: configState.map.get(key) })),
-        };
-    }
-    if (/SELECT key FROM config WHERE key = \$1 OR key LIKE \$2/i.test(sql)) {
-        return { rows: [...(configState.map.has(params[0]) ? [{ key: params[0] }] : []), ...keysLike(params[1])] };
-    }
-    if (/SELECT key FROM config WHERE key LIKE \$1/i.test(sql)) return { rows: keysLike(params[0]) };
-    return undefined;
-});
+recordDb(configTableAnswer(configState));
 
 const cmsStore = require('../cmsStore');
 const { getPublishedStories, fillCustomerStories, sectorSlug, storyCard } = require('./stories');

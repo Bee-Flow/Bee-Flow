@@ -101,4 +101,42 @@ function installCmsStoreMocks(extra = () => ({})) {
     return { ...mocks, clone, restore };
 }
 
-module.exports = { clone, likeToRegex, createCmsConfigMocks, installCmsStoreMocks };
+/**
+ * A `recordDb` / routeHarness `answer` over an in-memory config table: the
+ * handful of statements configStore issues (value read, upsert, delete, the
+ * publishSite multi-key read and the key listings), answered from
+ * `configState.map` (values stored as the JSON strings the pool would hold).
+ * Anything else returns undefined, so the harness falls through.
+ *
+ *   const configState = { map: new Map() };
+ *   recordDb(configTableAnswer(configState));
+ */
+function configTableAnswer(configState) {
+    const keysLike = (p) => [...configState.map.keys()].filter((k) => likeToRegex(p).test(k)).map((key) => ({ key }));
+    return (sql, params = []) => {
+        if (/^\s*SELECT value FROM config WHERE key = \$1/i.test(sql)) {
+            return { rows: configState.map.has(params[0]) ? [{ value: configState.map.get(params[0]) }] : [] };
+        }
+        if (/INSERT INTO config/i.test(sql)) { configState.map.set(params[0], params[1]); return { rows: [], rowCount: 1 }; }
+        if (/^\s*DELETE FROM config WHERE key = \$1/i.test(sql)) {
+            const had = configState.map.delete(params[0]);
+            return { rows: [], rowCount: had ? 1 : 0 };
+        }
+        // publishSite: the site doc, its pages and its locale overrides in one statement.
+        if (/SELECT key, value FROM config WHERE key = \$1 OR key LIKE \$2/i.test(sql)) {
+            const patterns = params.slice(1).map(likeToRegex);
+            return {
+                rows: [...configState.map.keys()]
+                    .filter((k) => k === params[0] || patterns.some((re) => re.test(k)))
+                    .map((key) => ({ key, value: configState.map.get(key) })),
+            };
+        }
+        if (/SELECT key FROM config WHERE key = \$1 OR key LIKE \$2/i.test(sql)) {
+            return { rows: [...(configState.map.has(params[0]) ? [{ key: params[0] }] : []), ...keysLike(params[1])] };
+        }
+        if (/SELECT key FROM config WHERE key LIKE \$1/i.test(sql)) return { rows: keysLike(params[0]) };
+        return undefined;
+    };
+}
+
+module.exports = { clone, likeToRegex, createCmsConfigMocks, installCmsStoreMocks, configTableAnswer };

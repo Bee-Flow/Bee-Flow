@@ -55,7 +55,7 @@ test('every documented / editor-offered Nextcloud filter key is in NEXTCLOUD_FIL
         if (!known) continue;
         for (const k of note.filters.flatMap(bare)) assert.ok(known.includes(k), `${key}: documented filter "${k}" would draw an unknown-key warning`);
     }
-    const src = fs.readFileSync(path.join(__dirname, '../../../agent-hub/src/components/automation/Builder/flow/settings/triggerFilters.jsx'), 'utf8');
+    const src = fs.readFileSync(path.join(__dirname, '../../../agent-hub/src/components/automation/Builder/flow/settings/triggerFilters.tsx'), 'utf8');
     const keysOf = (component) => {
         const body = new RegExp(`export function ${component}\\([\\s\\S]*?\\n}\\n`).exec(src)?.[0] || '';
         return [...body.matchAll(/setFilter\('(\w+)'/g)].map(m => m[1]);
