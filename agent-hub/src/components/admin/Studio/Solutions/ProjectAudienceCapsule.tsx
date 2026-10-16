@@ -1,6 +1,19 @@
 import { Lock, Users } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
+
+/** One `project_shares` row, as far as the audience reads it. */
+interface ProjectShare { sharedWithType?: string; sharedWithId: string }
+
+/** Group names by id: a plain object, or anything with a `get(id)`. */
+type GroupNames = Record<string, string> & { get?: (id: string) => string | undefined };
+
+interface ProjectAudienceCapsuleProps {
+    members?: unknown;
+    groupNames?: GroupNames | null;
+    className?: string;
+}
 
 /**
  * Who can reach this Solution — the PROJECT ladder, wearing the capsule's
@@ -50,14 +63,14 @@ import { useTranslation } from '../../../../hooks/useTranslation';
  * and unknown must not render as "Members only" — that is a narrower claim than
  * the truth might be, and this control's whole job is to be right about scope.
  */
-export function describeProjectAudience(members, groupNames = null) {
+export function describeProjectAudience(members: unknown, groupNames: GroupNames | null = null) {
     if (!Array.isArray(members)) return null;
-    const groups = members.filter(m => m?.sharedWithType === 'group');
-    const people = members.filter(m => m?.sharedWithType === 'user');
-    return { groupIds: groups.map(g => g.sharedWithId), peopleCount: people.length, groupNames };
+    const groups = members.filter((m: ProjectShare | null | undefined) => m?.sharedWithType === 'group');
+    const people = members.filter((m: ProjectShare | null | undefined) => m?.sharedWithType === 'user');
+    return { groupIds: groups.map((g: ProjectShare) => g.sharedWithId), peopleCount: people.length, groupNames };
 }
 
-export default function ProjectAudienceCapsule({ members, groupNames = null, className = '' }) {
+export default function ProjectAudienceCapsule({ members, groupNames = null, className = '' }: ProjectAudienceCapsuleProps) {
     const { t } = useTranslation();
     const audience = describeProjectAudience(members, groupNames);
 
@@ -65,10 +78,10 @@ export default function ProjectAudienceCapsule({ members, groupNames = null, cla
     if (!audience) return null;
 
     const { groupIds } = audience;
-    const nameOf = (id) => (groupNames && (groupNames[id] || groupNames.get?.(id))) || null;
+    const nameOf = (id: string) => (groupNames && (groupNames[id] || groupNames.get?.(id))) || null;
 
-    let label;
-    let Icon;
+    let label: string;
+    let Icon: LucideIcon;
     if (groupIds.length === 0) {
         Icon = Lock;
         label = t('solutions.audience_members_only', 'Members only');

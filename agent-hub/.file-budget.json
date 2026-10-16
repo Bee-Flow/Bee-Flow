@@ -98,7 +98,7 @@
     "src/components/admin/Studio/Playbooks/stages/AccessStage.jsx": 546,
     "src/components/admin/Studio/SkillsStudio/ExamplesTab.jsx": 504,
     "src/components/admin/Studio/SkillsStudio/SkillDetail.jsx": 568,
-    "src/components/admin/Studio/SkillsStudio/SkillStepEditor.jsx": 419,
+    "src/components/admin/Studio/SkillsStudio/SkillStepEditor.tsx": 419,
     "src/components/admin/Studio/SkillsStudio/TestTab.jsx": 428,
     "src/components/admin/Studio/Solutions/installWizardSteps.jsx": 576,
     "src/components/admin/Studio/Solutions/SolutionDetail.jsx": 407,
