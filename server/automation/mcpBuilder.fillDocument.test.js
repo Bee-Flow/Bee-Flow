@@ -75,11 +75,22 @@ test('the read is scoped to the automation and the caller', async () => {
     } finally { env.restore(); }
 });
 
+test('a read is dropped when the document has a newer version by the next call', async () => {
+    mcpDocumentReads.clear();
+    const env = stubAll();
+    try {
+        await call('builder_read_document', { automationId: 'auto_1', documentId: 'doc_1' });
+        catalogModule.buildDocumentCatalogForUser = async () => [{ id: 'doc_1', name: 'Invoice', docType: 'invoice', versionId: 'v2', placeholders: [] }];
+        const added = await call('builder_add_fill_document', { automationId: 'auto_1', documentId: 'doc_1', values: { 'customer.name': 'x' } });
+        assert.match(added.error, /Read builder_read_document/);
+    } finally { env.restore(); }
+});
+
 test('a read expires after the TTL', async () => {
     mcpDocumentReads.clear();
     const wrap = { userId: 'u1', automationId: 'auto_1', _documentContracts: { doc_1: { versionId: 'v1' } } };
     mcpDocumentReads.remember(wrap, 1000);
-    const fresh = { userId: 'u1', automationId: 'auto_1' };
+    const fresh = { userId: 'u1', automationId: 'auto_1', _documents: [{ id: 'doc_1', versionId: 'v1' }] };
     mcpDocumentReads.restore(fresh, 1000 + mcpDocumentReads.TTL_MS + 1);
     assert.equal(fresh._documentContracts, undefined);
     mcpDocumentReads.restore(fresh, 1000 + 5);

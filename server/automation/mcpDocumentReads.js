@@ -10,7 +10,10 @@
  * configured. This keeps the read for a short time.
  *
  * Scope: one entry per (user, automation). Never shared across users or
- * automations, in memory only, expires after TTL_MS since the last read.
+ * automations, expires after TTL_MS since the last read. In memory and per
+ * process: a restart or another replica forgets it, and the caller reads again.
+ * A contract is restored only while the wrap's document catalog still lists
+ * the same versionId, so a newer revision never gets silently pinned to an old one.
  */
 
 const TTL_MS = 30 * 60 * 1000;
@@ -29,13 +32,18 @@ function sweep(now) {
 
 /**
  * Put the contracts this caller read earlier on a fresh draft wrap.
- * @param {{ userId?: string, automationId?: string, _documentContracts?: Record<string, any> }} wrap
+ * @param {{ userId?: string, automationId?: string, _documents?: Array<any> | null, _documentContracts?: Record<string, any> }} wrap
  */
 function restore(wrap, now = Date.now()) {
     if (!wrap.userId || !wrap.automationId) return;
     const entry = reads.get(keyOf(wrap.userId, wrap.automationId));
     if (!entry || now - entry.at > TTL_MS) return;
-    wrap._documentContracts = { ...entry.contracts, ...(wrap._documentContracts || {}) };
+    const current = {};
+    for (const [id, contract] of Object.entries(entry.contracts)) {
+        const listed = wrap._documents?.find(d => d.id === id);
+        if (listed?.versionId && listed.versionId === contract?.versionId) current[id] = contract;
+    }
+    wrap._documentContracts = { ...current, ...(wrap._documentContracts || {}) };
 }
 
 /**
@@ -47,6 +55,7 @@ function remember(wrap, now = Date.now()) {
     if (!wrap.userId || !wrap.automationId || !wrap._documentContracts) return;
     const key = keyOf(wrap.userId, wrap.automationId);
     sweep(now);
+    reads.delete(key); // re-insert so the size cap evicts the least recently used
     reads.set(key, { at: now, contracts: { ...wrap._documentContracts } });
 }
 
