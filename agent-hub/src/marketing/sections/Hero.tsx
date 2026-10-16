@@ -86,6 +86,8 @@ export default function Hero({ data }: { data?: HeroData }) {
         variant !== 'classic' ? `hero--${variant}` : '',
         bgVariant !== 'default' ? `cms-bg--${bgVariant}` : '',
         backgroundVideoSectionClass(data.backgroundVideo),
+        // Lead and buttons follow a left-aligned title (split is always left).
+        data.align === 'left' && variant !== 'split' ? 'hero--align-left' : '',
     ].filter(Boolean).join(' ');
 
     // Copy column — identical markup (and EditableText paths) across all

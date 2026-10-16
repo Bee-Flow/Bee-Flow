@@ -18,6 +18,8 @@ const isEditable = () =>
     typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).has('preview');
 
+const hasLabel = (v: unknown) => typeof v === 'string' && v.trim() !== '';
+
 export default function CTA({ data }: { data?: CtaData }) {
     if (!data?.enabled) return null;
     // Page-closing band: the hex-motif echo (accent line-art at whisper
@@ -70,7 +72,7 @@ export default function CTA({ data }: { data?: CtaData }) {
                                     </EditableText>
                                 </Button>
                             ) : null}
-                            {secondary && secondary.label !== undefined ? (
+                            {secondary && (hasLabel(secondary.label) || (isEditable() && secondary.label !== undefined)) ? (
                                 <Button variant="secondary" href={secondary.href || secondary.link?.href || '#'}>
                                     <EditableText path="cta.secondaryCta.label" placeholder="Secondary">
                                         {secondary.label || ''}
