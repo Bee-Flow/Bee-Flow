@@ -190,7 +190,7 @@ function ScreenSettings({ screen, onCommit: commitScreen, disabled }) {
         </div>
     );
 }
-
+/** @param {import('./ThemePanel.types').ThemePanelProps} props */
 export default function ThemePanel({ definition, onCommit, disabled = false, screenId = null }) {
     const { t } = useTranslation();
     const theme = definition?.theme || {};

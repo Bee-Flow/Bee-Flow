@@ -138,7 +138,7 @@ function skipSentence(t, entry) {
 }
 
 // ── Main section ───────────────────────────────────────────────────────────
-
+/** @param {import('./ActionsSection.types').ActionsSectionProps} props */
 export default function ActionsSection({ node, definition, onCommit, onTestActionResult, disabled = false, appId = null }) {
     const events = TYPE_EVENT_LISTS[node?.type] || [];
     const actions = definition?.actions || {};

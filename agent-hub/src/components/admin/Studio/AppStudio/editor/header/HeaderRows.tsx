@@ -82,7 +82,7 @@ export interface HeaderViewRowsProps {
     dataOpen: { tab: string; n: number };
     /** The Logic view (LogicaTab, or the shell's own); rendered by the header to keep this module out of LogicaTab's import cycle. */
     renderLogic: () => ReactNode;
-    onCommit?: (def: AppDefinition) => void;
+    onCommit: (def: AppDefinition) => void;
     canUndo?: boolean;
     canRedo?: boolean;
     onUndo?: () => void;

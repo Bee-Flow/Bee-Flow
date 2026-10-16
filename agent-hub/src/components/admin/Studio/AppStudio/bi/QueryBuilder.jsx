@@ -161,7 +161,7 @@ async function runPreview(appId, payload, t) {
     if (!res.ok) throw new Error(body?.error || t('studio_apps_bi.query.preview_failed_status', 'Preview failed ({status})', { status: res.status }));
     return { rows: Array.isArray(body?.rows) ? body.rows : [] };
 }
-
+/** @param {import('./QueryBuilder.types').QueryBuilderProps} props */
 export default function QueryBuilder({ open, onClose, appId, componentType = 'chart', onSave, onOpenTables = null }) {
     const { t } = useTranslation();
     const { tables, isLoading: tablesLoading } = useAppTables(open ? appId : null);
@@ -481,8 +481,8 @@ function formatCell(v) {
  * inspector's own updateNodeProps→onCommit committer, so a chart lands in ONE
  * history entry. appId comes from the editor-chrome context; the button renders
  * inert (disabled) outside the editor shell, where no appId is in scope — so the
- * per-type inspector smoke tests stay green. (Inspectors also pass node/
- * definition for symmetry; they're unused here and safely ignored.)
+ * per-type inspector smoke tests stay green.
+ * @param {import('./QueryBuilder.types').ConfigureDataButtonProps} props
  */
 export function ConfigureDataButton({ patch, componentType = 'chart', disabled = false }) {
     const { t } = useTranslation();

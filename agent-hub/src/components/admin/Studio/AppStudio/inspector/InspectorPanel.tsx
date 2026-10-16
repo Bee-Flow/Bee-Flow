@@ -1,5 +1,6 @@
 import { Copy, Rows3, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
+import type { ReactNode } from 'react';
 import ActionsSection from './ActionsSection';
 import LogicSection from './logic/LogicSection';
 import StudioScopeProvider from './logic/StudioScopeProvider';
@@ -19,6 +20,25 @@ import { getComponentEntry } from '../runtime/componentRegistry';
 import { useAppEditor } from '../state/AppEditorContext';
 import { findNode, duplicateNode, removeNode } from '../state/definitionOps';
 import './panels'; // side effect: registers every per-type Content panel
+import type { AppDefinition, AppNode } from './appDefinition';
+import type { ActionsSectionProps } from './ActionsSection.types';
+
+/** Which half of a component the inspector shows. */
+type InspectorTab = 'look' | 'behaviour';
+
+interface InspectorHeaderProps {
+    node: AppNode;
+    tab: InspectorTab;
+    onTab: (tab: InspectorTab) => void;
+    onDuplicate: () => void;
+    onDelete: () => void;
+    disabled: boolean;
+}
+
+export interface EditorInspectorPanelProps {
+    onCommit: (definition: AppDefinition) => void;
+    onTestActionResult?: ActionsSectionProps['onTestActionResult'];
+}
 
 /**
  * InspectorPanel — the fixed right-hand property inspector.
@@ -46,7 +66,7 @@ import './panels'; // side effect: registers every per-type Content panel
  * card and the editor header use. It is a var() reference, never a hex — the
  * AppStudio.noPurple source scan enforces exactly that.
  */
-function InspectorHeader({ node, tab, onTab, onDuplicate, onDelete, disabled }) {
+function InspectorHeader({ node, tab, onTab, onDuplicate, onDelete, disabled }: InspectorHeaderProps) {
     const { t } = useTranslation();
     const entry = getComponentEntry(node.type);
     const TypeIcon = entry?.icon || null;
@@ -100,7 +120,7 @@ function InspectorHeader({ node, tab, onTab, onDuplicate, onDelete, disabled }) 
     );
 }
 
-export default function InspectorPanel({ onCommit, onTestActionResult }) {
+export default function InspectorPanel({ onCommit, onTestActionResult }: EditorInspectorPanelProps) {
     const { t } = useTranslation();
     const { appId, definition, screenId, selectedNodeId, selectedNodeIds, streamLock, dispatch } = useAppEditor();
     const disabled = !!streamLock;
@@ -108,11 +128,11 @@ export default function InspectorPanel({ onCommit, onTestActionResult }) {
     // Behaviour = Actions + Logic. Sticky across selections on purpose: an
     // author wiring six buttons in a row should not have to re-open Behaviour
     // for each one.
-    const [tab, setTab] = useState('look');
+    const [tab, setTab] = useState<InspectorTab>('look');
     const multiCount = selectedNodeIds instanceof Set ? selectedNodeIds.size : 0;
     // The confirm dialog remembers WHICH node it was opened for, so a stale
     // dialog can never delete a different node after the selection moves.
-    const [confirmFor, setConfirmFor] = useState(null);
+    const [confirmFor, setConfirmFor] = useState<string | null>(null);
     const confirmDelete = confirmFor != null && confirmFor === selectedNodeId;
 
     // The panel does NOT own its width, border or scrollbar — AppEditorShell's
@@ -121,7 +141,7 @@ export default function InspectorPanel({ onCommit, onTestActionResult }) {
     // containers, and two different widths (320px outside, w-80 inside) fighting
     // over the same column. Anything that resizes or collapses the panel has to
     // have exactly one place to do it.
-    const shell = (children) => (
+    const shell = (children: ReactNode) => (
         <div className="h-full bg-[var(--bg-secondary)]">{children}</div>
     );
 
