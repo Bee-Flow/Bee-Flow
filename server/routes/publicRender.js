@@ -52,6 +52,7 @@ const { buildSitemap, buildRobots, buildLlmsTxt } = require('../core/seo/sitemap
 const { localesForPage } = require('../core/seo/locales');
 const { LEGACY_SLUGS, GONE_SLUGS } = require('../core/seo/legacySlugs');
 const { resolveSiteRedirect } = require('../core/seo/siteRedirect');
+const { versionOf } = require('../core/seo/ogCard');
 const { jsonForScript } = require('../core/seo/html');
 const { sendNotFound } = require('../core/seo/notFound');
 const { synthesizeLegacyContent } = require('../core/cms/legacyContent');
@@ -458,7 +459,7 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res
 
         const head = buildHead({
             origin, slug: parsed.slug, locale, defaultLocale, locales: pageLocales,
-            page: eff.page, design: eff.design || {}, siteName,
+            page: eff.page, design: eff.design || {}, siteName, shareImageVersion: versionOf(snapshot && snapshot.publishedAt),
         });
         await require('../stores/cms/stories').fillCustomerStories(siteId, eff.page, locale);
         const body = renderBlocks(eff.page.blocks, { fallbackTitle: eff.page.title, chrome: { header: eff.header, footer: eff.footer } });

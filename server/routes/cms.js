@@ -255,6 +255,7 @@ router.use('/forms', require('./cmsForms').createDefaultPublicRouter());
 // Public asset stream (./cmsAssets.js): byte ranges, scriptable types forced
 // to download, sanitized SVG inline under a strict CSP.
 router.get(/^\/asset\/(.+)$/, serveAsset);
+router.get(/^\/og\/([a-z]{2,3})\/([a-z0-9][a-z0-9-]*)\.png$/, require('./cmsOgImage').serveOgImage); // generated share image (routes/cmsOgImage.js)
 
 // ══════════════════════════════════════════════════════════════════
 // ADMIN — /admin/* (single-site bridge, back-compat)

@@ -8,7 +8,7 @@ const {
     SITE_DEFAULTS,
     DESIGN_DEFAULTS,
     DESIGN_COMPONENT_ENUMS,
-    DESIGN_LAYOUT_ENUMS,
+    DESIGN_LAYOUT_ENUMS, SHARE_IMAGE_TEMPLATES,
 } = require('../../i18n/defaults/cmsDefaults');
 const { THEME_PRESET_IDS } = require('../../i18n/defaults/themePresets');
 const { normalizeSlug, normalizeStoredSlug, isReservedSlug } = require('./slugRules');
@@ -170,6 +170,11 @@ function sanitizeDesign(input) {
         grain:  d.grain === true,
         components: sanitizeEnumGroup(d.components, DESIGN_COMPONENT_ENUMS, DESIGN_DEFAULTS.components),
         layout:     sanitizeEnumGroup(d.layout,     DESIGN_LAYOUT_ENUMS,    DESIGN_DEFAULTS.layout),
+        // The generated share image of pages without an og:image (core/seo/ogCard.js).
+        shareImage: {
+            template: oneOf(isPlainObject(d.shareImage) ? d.shareImage.template : null, SHARE_IMAGE_TEMPLATES, 'light'),
+            motif:    !isPlainObject(d.shareImage) || d.shareImage.motif !== false,
+        },
     };
 }
 

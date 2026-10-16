@@ -895,6 +895,8 @@ const DESIGN_LAYOUT_ENUMS = {
 // Scalar design enums (shared with the AI design tool so its rejections can
 // name the legal set instead of guessing).
 const DESIGN_THEMES   = ['light', 'dark'];
+// Templates of the generated share image (core/seo/ogCard.js pins its own list to this one).
+const SHARE_IMAGE_TEMPLATES = ['light', 'dark', 'brand'];
 const DESIGN_MOTIONS  = ['none', 'subtle', 'full'];
 const DISPLAY_SIZES   = ['md', 'lg', 'xl'];
 const HEADING_WEIGHTS = [500, 600, 700];
@@ -934,6 +936,7 @@ module.exports = {
     DESIGN_COMPONENT_ENUMS,
     DESIGN_LAYOUT_ENUMS,
     DESIGN_THEMES,
+    SHARE_IMAGE_TEMPLATES,
     DESIGN_MOTIONS,
     DISPLAY_SIZES,
     HEADING_WEIGHTS,
