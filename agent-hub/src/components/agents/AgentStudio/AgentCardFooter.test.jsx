@@ -118,7 +118,7 @@ describe('the warning', () => {
         expect(el.dataset.variant).toBe('ungrounded');
         expect(el.textContent).toBe('Answers from memory — connect a knowledge base');
         expect(el.textContent).not.toMatch(/312|automation/);
-        expect(el.getAttribute('style')).toContain('var(--warning)');
+        expect(el.className).toContain('text-[var(--warning)]');
     });
 
     it('does not appear when the server could not establish the verdict', () => {

@@ -44,7 +44,7 @@ mock(path.join(SERVER, 'automation/triggerBus'), {
     fetchLatestGmailMatch: async (userId, filter) => { calls.gmailLookups.push(filter); return { messageId: 'm1', subject: 'latest' }; },
     fetchLatestNextcloudMatch: async () => null,
 });
-mock(path.join(SERVER, 'automation/cron'), { nextRunAt: () => null });
+mock(path.join(SERVER, 'core/scheduling/cron'), { nextRunAt: () => null });
 mock(path.join(SERVER, 'automation/deliverableEvents'), { getDeliverableEvents: () => [], isPushPending: () => false });
 mock(path.join(SERVER, 'utils/perUserRateLimit'), { perUserRateLimit: () => (req, res, next) => next() });
 

@@ -13,6 +13,7 @@
 
 const express = require('express');
 const log = require('../../../telemetry/log');
+const { HttpError } = require('../../../core/http/errors');
 const router = express.Router();
 const { z, typeError } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
@@ -248,7 +249,7 @@ router.post('/map-json-fields', requireAuth, mapJsonFieldsRateLimit, validate({ 
         ], MAP_JSON_FIELDS_TOOL, { maxTokens: 1024, temperature: 0, reasoningEffort: 'none', budgetTokens: 0 }));
     } catch (e) {
         log.error('[automationBuilder/map-json-fields] inference failed:', e.message);
-        return res.status(502).json({ error: 'Could not map fields right now. Please try again.' });
+        throw new HttpError(502, 'map_json_fields_unavailable', 'Could not map fields right now. Please try again.');
     }
 
     const itemsRef = verifyMapJsonItemsRef(structured?.itemsRef, sample);

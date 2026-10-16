@@ -56,7 +56,7 @@ const SignupStepOrg = ({ signupData, setSignupData, signupOrgs, handleSignupNext
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                                        <span className="text-sm font-semibold text-[var(--text-primary)]">
                                             {type.title}
                                         </span>
                                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md"
@@ -67,7 +67,7 @@ const SignupStepOrg = ({ signupData, setSignupData, signupOrgs, handleSignupNext
                                             {type.subtitle}
                                         </span>
                                     </div>
-                                    <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                                    <p className="text-xs mt-1 leading-relaxed text-[var(--text-secondary)]">
                                         {type.description}
                                     </p>
                                 </div>
@@ -75,7 +75,7 @@ const SignupStepOrg = ({ signupData, setSignupData, signupOrgs, handleSignupNext
                                     <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
                                         style={{ borderColor: isSelected ? 'var(--accent-primary)' : 'var(--border-subtle)' }}>
                                         {isSelected && (
-                                            <div className="w-2.5 h-2.5 rounded-full" style={{ background: 'var(--accent-primary)' }} />
+                                            <div className="w-2.5 h-2.5 rounded-full bg-[var(--accent-primary)]" />
                                         )}
                                     </div>
                                 </div>

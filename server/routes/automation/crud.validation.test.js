@@ -51,7 +51,7 @@ mock(path.join(SERVER, 'stores/automationStore'), {
     ensureFormPage: async () => ({ id: 'page1' }),
     setFormPageAudience: async (...a) => { touched.push({ what: 'setFormPageAudience', args: a }); return { audience: 'org' }; },
 });
-mock(path.join(SERVER, 'automation/cron'), { nextRunAt: () => new Date(Date.now() + 3600e3).toISOString() });
+mock(path.join(SERVER, 'core/scheduling/cron'), { nextRunAt: () => new Date(Date.now() + 3600e3).toISOString() });
 mock(path.join(SERVER, 'automation/validate'), { validateDefinition: () => ({ ok: true, warnings: [] }) });
 mock(path.join(SERVER, 'automation/summarise'), { summariseDefinition: () => ({ summary: '' }) });
 mock(path.join(SERVER, 'automation/deliverableEvents'), { getDeliverableEvents: () => [] });

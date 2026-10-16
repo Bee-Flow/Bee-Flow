@@ -83,7 +83,7 @@ export default function InsightsPanel({ meeting, onSeek, viewerName = '', perPer
         return (
             <section aria-label={t('meeting_notes.insights', 'Insights')}>
                 <PanelHeading t={t} />
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-sm text-[var(--text-muted)]">
                     {t('meeting_notes.insights_empty', 'Not enough data for insights on this meeting.')}
                 </p>
             </section>
@@ -130,8 +130,7 @@ export default function InsightsPanel({ meeting, onSeek, viewerName = '', perPer
                         onClick={() => setOpen((v) => !v)}
                         aria-expanded={open}
                         aria-controls={mode === 'headline' ? undefined : 'insights-details'}
-                        className="flex items-center gap-1 text-xs rounded px-1.5 py-1 hover:bg-[var(--bg-tertiary)] transition-colors"
-                        style={{ color: 'var(--text-muted)' }}
+                        className="flex items-center gap-1 text-xs rounded px-1.5 py-1 hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-muted)]"
                     >
                         {open ? t('meeting_notes.insights_hide', 'Hide details') : t('meeting_notes.insights_show', 'Show details')}
                         <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -183,7 +182,7 @@ export default function InsightsPanel({ meeting, onSeek, viewerName = '', perPer
                     </div>
 
                     {!perPersonEnabled && (
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-xs text-[var(--text-muted)]">
                             {t('meeting_notes.insights_per_person_off', 'Per-person statistics are disabled by your organization.')}
                         </p>
                     )}
@@ -195,7 +194,7 @@ export default function InsightsPanel({ meeting, onSeek, viewerName = '', perPer
 
 function PanelHeading({ t }) {
     return (
-        <h2 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+        <h2 className="text-sm font-semibold flex items-center gap-2 text-[var(--text-primary)]">
             <BarChart3 className="w-4 h-4" />
             {t('meeting_notes.insights', 'Insights')}
         </h2>

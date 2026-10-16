@@ -17,6 +17,8 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
+const PLAN_POLICY_MSG = 'Could not verify plan availability right now. Please try again in a moment.';
 
 const router = express.Router();
 
@@ -199,10 +201,7 @@ router.post('/checkout', requireCloud, stripeIpLimiter, requireAuth, stripeUserL
                 // Fail CLOSED, like the whitelist lookup below: a DB blip must
                 // not wave through a purchase we may have to unwind.
                 log.error('[Stripe] NC-audience lookup failed — refusing checkout:', e.message);
-                return res.status(503).json({
-                    error: 'plan_policy_unavailable',
-                    message: 'Could not verify plan availability right now. Please try again in a moment.',
-                });
+                throw new HttpError(503, 'plan_policy_unavailable', PLAN_POLICY_MSG);
             }
             if (!ncOrg) {
                 return res.status(403).json({
@@ -237,10 +236,7 @@ router.post('/checkout', requireCloud, stripeIpLimiter, requireAuth, stripeUserL
                 // configStore blip must not quietly wave the purchase through —
                 // undoing a wrong subscription costs more than a retry does.
                 log.error('[Stripe] allowed-plans lookup failed — refusing checkout:', e.message);
-                return res.status(503).json({
-                    error: 'plan_policy_unavailable',
-                    message: 'Could not verify plan availability right now. Please try again in a moment.',
-                });
+                throw new HttpError(503, 'plan_policy_unavailable', PLAN_POLICY_MSG);
             }
         }
 
@@ -327,6 +323,7 @@ router.post('/checkout', requireCloud, stripeIpLimiter, requireAuth, stripeUserL
             res.json({ url: session.url, sessionId: session.id });
         }
     } catch (err) {
+        if (err instanceof HttpError) throw err;
         log.error('[Stripe] Checkout error:', err);
         // BFSF-243: never leak raw Stripe internals (param names, request ids)
         // to end users — the full error is already in the server log above.
@@ -336,7 +333,7 @@ router.post('/checkout', requireCloud, stripeIpLimiter, requireAuth, stripeUserL
         // surfaces directly in the license page banner.
         const friendly = 'Betaling starten is mislukt, probeer het opnieuw. — Could not start checkout, please try again.';
         const message = String(err?.type || '').startsWith('Stripe') ? friendly : (err.message || friendly);
-        res.status(500).json({ error: message });
+        throw new HttpError(500, 'checkout_failed', message);
     }
 });
 

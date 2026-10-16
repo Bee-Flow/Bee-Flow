@@ -11,6 +11,7 @@ const agentStore = require('../../../stores/agentStore');
 const { encryptionOpts } = require('./shared');
 const chatSignalsTurn = require('./chatSignalsTurn');
 const log = require('../../../telemetry/log');
+const { HttpError } = require('../../../core/http/errors');
 const { openSse } = require('../../../core/http/sseHelpers');
 const { turnTierRefusal } = require('../../../core/llm/resolveTurnModel');
 
@@ -35,7 +36,7 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
         const swarmId = 'builtin:research_swarm';
         const swarmEntry = loadSwarmById(swarmId);
         if (!swarmEntry) {
-            return res.status(500).json({ error: `Swarm runtime is misconfigured: ${swarmId} not registered.` });
+            throw new HttpError(500, 'swarm_misconfigured', `Swarm runtime is misconfigured: ${swarmId} not registered.`);
         }
 
         // Resolve the Swarm tier's configured model (used as a fallback

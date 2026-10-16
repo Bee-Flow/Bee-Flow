@@ -72,18 +72,17 @@ export default function AgentSkillsTab({ user, attachedSkillIds = [], onChangeAt
                 <div>
                     <div className="flex items-center gap-2">
                         <Sparkles size={16} style={{ color: kindColorVar('skill') }} aria-hidden="true" />
-                        <h3 className="text-sm font-semibold m-0" style={{ color: 'var(--text-primary)' }}>
+                        <h3 className="text-sm font-semibold m-0 text-[var(--text-primary)]">
                             {t('agent_skills.title', 'Attached skills')}
                         </h3>
                     </div>
-                    <p className="text-xs m-0 mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-xs m-0 mt-1 text-[var(--text-secondary)]">
                         {t('agent_skills.help', 'A skill attached here applies to every conversation with this agent.')}
                     </p>
                 </div>
                 <button
                     onClick={() => { setEditingSkill(null); setShowForm(true); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold shadow-sm transition-opacity hover:opacity-90"
-                    style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold shadow-sm transition-opacity hover:opacity-90 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                 >
                     <Plus size={13} aria-hidden="true" /> {t('agent_skills.new', 'New skill')}
                 </button>
@@ -109,7 +108,7 @@ export default function AgentSkillsTab({ user, attachedSkillIds = [], onChangeAt
             )}
 
             {error && (
-                <div className="py-3 text-center text-sm" style={{ color: 'var(--error)' }} role="status">
+                <div className="py-3 text-center text-sm text-[var(--error)]" role="status">
                     {error} —{' '}
                     <button onClick={refresh} className="underline text-[var(--accent-primary)]">
                         {t('agent_skills.retry', 'retry')}
@@ -118,14 +117,14 @@ export default function AgentSkillsTab({ user, attachedSkillIds = [], onChangeAt
             )}
 
             {!loading && !error && filtered.length === 0 && (
-                <div className="py-8 text-center rounded-xl border" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+                <div className="py-8 text-center rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                     <Zap size={26} className="mx-auto mb-2" style={{ color: kindColorVar('skill') }} aria-hidden="true" />
-                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                    <div className="text-sm font-medium text-[var(--text-primary)]">
                         {search
                             ? t('agent_skills.no_match', 'No skills match your search')
                             : t('agent_skills.none', 'No skills yet')}
                     </div>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-xs mt-1 text-[var(--text-secondary)]">
                         {search
                             ? t('agent_skills.no_match_help', 'Try a different search term.')
                             : t('agent_skills.none_help', 'Create one to get started.')}
@@ -135,8 +134,7 @@ export default function AgentSkillsTab({ user, attachedSkillIds = [], onChangeAt
 
             {!loading && !error && filtered.length > 0 && (
                 <div
-                    className="rounded-xl border divide-y overflow-hidden"
-                    style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
+                    className="rounded-xl border divide-y overflow-hidden border-[var(--border-subtle)] bg-[var(--bg-secondary)]"
                 >
                     {filtered.map(skill => (
                         <SkillRow
@@ -153,7 +151,7 @@ export default function AgentSkillsTab({ user, attachedSkillIds = [], onChangeAt
             )}
 
             {attachedSkillIds.length > 0 && (
-                <div className="flex items-center gap-2 text-[12px] pt-1" style={{ color: 'var(--text-secondary)' }}>
+                <div className="flex items-center gap-2 text-[12px] pt-1 text-[var(--text-secondary)]">
                     <Check size={13} style={{ color: 'var(--success)' }} aria-hidden="true" />
                     {t('agent_skills.attached_count', '{count} skills attached', { count: attachedSkillIds.length })}
                 </div>
@@ -181,21 +179,20 @@ function SkillRow({ skill, attached, canEdit, onToggle, onEdit, t }) {
             data-skill-id={skill.id}
         >
             <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[16px]"
-                style={{ background: 'var(--bg-tertiary)' }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[16px] bg-[var(--bg-tertiary)]"
             >
                 {skill.icon || '⚡'}
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                    <span className="text-sm font-medium truncate text-[var(--text-primary)]">
                         {skill.name}
                     </span>
                     {skill.isShared
                         ? <Users size={10} style={{ color: 'var(--text-tertiary)' }} aria-label={t('skill_form.shared_org', 'Shared with org')} />
                         : <Lock size={10} style={{ color: 'var(--text-tertiary)' }} aria-label={t('skill_form.private', 'Private')} />}
                 </div>
-                <div className="text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>
+                <div className="text-[11px] truncate text-[var(--text-tertiary)]">
                     {/* What attaching this actually costs: a static skill is in
                         every prompt; a dynamic one only when the agent asks. */}
                     {skill.dynamicActivation
@@ -206,8 +203,7 @@ function SkillRow({ skill, attached, canEdit, onToggle, onEdit, t }) {
             {canEdit && (
                 <button
                     onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                    className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-primary)]"
-                    style={{ color: 'var(--text-tertiary)' }}
+                    className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-primary)] text-[var(--text-tertiary)]"
                     title={t('agent_skills.edit', 'Edit skill')}
                     aria-label={t('agent_skills.edit', 'Edit skill')}
                 >

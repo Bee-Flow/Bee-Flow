@@ -10,6 +10,7 @@ import Modal from '../../../../shared/Modal';
 import Tabs from '../../../../shared/Tabs';
 import toast from '../../../../shared/Toast';
 import { studioAppsApi } from '../studioAppsApi';
+import { messageOf } from '../../../../../utils/caughtError';
 
 // ── New-app modal ───────────────────────────────────────────────────
 
@@ -64,7 +65,7 @@ function NewAppModal({ open, onClose, onCreated }: NewAppModalProps) {
             const res = await studioAppsApi.listTemplates();
             setTemplates(res?.templates || []);
         } catch (err) {
-            setTemplatesError((err as ApiError)?.message || t('studio_apps_bi.list.templates_load_failed', 'Could not load templates.'));
+            setTemplatesError(messageOf(err, t('studio_apps_bi.list.templates_load_failed', 'Could not load templates.')));
         } finally {
             setTemplatesLoading(false);
         }
@@ -83,7 +84,7 @@ function NewAppModal({ open, onClose, onCreated }: NewAppModalProps) {
             setTemplates((prev) => (prev || []).filter((x) => x.id !== tpl.id));
             toast.success(t('studio_apps_bi.list.template_deleted', 'Template "{title}" deleted', { title: tpl.title }));
         } catch (err) {
-            toast.error((err as ApiError)?.message || t('studio_apps_bi.list.template_delete_failed', 'Could not delete the template'));
+            toast.error(messageOf(err, t('studio_apps_bi.list.template_delete_failed', 'Could not delete the template')));
         } finally {
             setDeletingTemplateId(null);
         }
@@ -123,7 +124,7 @@ function NewAppModal({ open, onClose, onCreated }: NewAppModalProps) {
             }
             onCreated(app, openOptions);
         } catch (err) {
-            toast.error((err as ApiError)?.message || t('studio_apps_bi.list.create_failed', 'Could not create the app.'));
+            toast.error(messageOf(err, t('studio_apps_bi.list.create_failed', 'Could not create the app.')));
             setBusy(false);
         }
     }, [onCreated, t]);
@@ -178,7 +179,7 @@ function NewAppModal({ open, onClose, onCreated }: NewAppModalProps) {
             if (warnings.length) toast.success(t('studio_apps_bi.list.export_warnings', 'Template exported. {warnings}', { warnings: warnings.join(' ') }));
             else toast.success(t('studio_apps_bi.list.exported', 'Template exported.'));
         } catch (err) {
-            toast.error((err as ApiError)?.message || t('studio_apps_bi.list.export_failed', 'Could not export the template.'));
+            toast.error(messageOf(err, t('studio_apps_bi.list.export_failed', 'Could not export the template.')));
         } finally {
             setExportingTemplateId(null);
         }
@@ -211,7 +212,7 @@ function NewAppModal({ open, onClose, onCreated }: NewAppModalProps) {
             />
 
             <div className="mb-4">
-                <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
+                <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">
                     {tab === 'blank' ? t('studio_apps_bi.list.name', 'Name')
                         : tab === 'import' ? t('studio_apps_bi.list.name_import', 'Name (optional — renames the imported template)')
                             : t('studio_apps_bi.list.name_template', 'Name (optional — templates bring their own)')}
@@ -246,8 +247,7 @@ function NewAppModal({ open, onClose, onCreated }: NewAppModalProps) {
                     <button
                         type="submit"
                         disabled={busy}
-                        className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-1.5 disabled:opacity-50"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-1.5 disabled:opacity-50 bg-[var(--accent-primary)]"
                     >
                         {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                         {t('studio_apps_bi.list.create_app', 'Create app')}

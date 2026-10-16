@@ -12,9 +12,11 @@
  */
 
 const automationStore = require('../../../stores/automationStore');
-const { pool } = require('../../../db');
-const holidays = require('../../../automation/holidays');
+const holidays = require('../../scheduling/holidays');
 const { holidaySkipFor } = require('./holidaySkip');
+// What the ticks drive in automation/ and jobs/ (both above core) and in
+// meeting notes (core/meetingNotes/runnerPorts.js): see ../featurePorts.js.
+const { runnerPort } = require('../featurePorts');
 // Google Meet auto-import: discovery under a NAMED lock (one pod per tick),
 // then the ingest worker on every pod.
 const { processGmeetAutoImport } = require('./gmeetImportTick');
@@ -28,8 +30,6 @@ const { INSTANCE_ID } = require('../engine');
 const { executeAutomation } = require('../execution');
 const {
     reapStuckAutomations,
-    reapOrphanFormUploads,
-    reapExpiredGeneratedFiles,
     reapStuckTranscriptions,
 } = require('./reapers');
 const log = require('../../../telemetry/log');
@@ -105,7 +105,7 @@ async function processDueAutomations() {
     // Automation-evolution canaries: judge the ones that have seen enough runs.
     // Lazy-required and fully caught so a store hiccup never touches scheduling.
     try {
-        await require('../../../automation/evolution').evaluateCanaries();
+        await runnerPort('evolution').evaluateCanaries();
     } catch (e) {
         log.error('[AutomationRunner] evaluateCanaries error:', e.message);
     }
@@ -184,217 +184,17 @@ async function processDuePrimarySchedules() {
     }
 }
 
-// ── Polling / renewal tick ──────────────────────────────
-//
-// Multi-pod safety: polling and renewal both write to the
-// `automation_event_subscriptions` table and dispatch event runs. With
-// multiple pods all running the same setInterval, two pods would race for
-// the same subscriptions and could double-fire events. We guard the tick
-// with a Postgres advisory lock — at most one pod runs polling at any
-// instant. If the lock-holder crashes Postgres releases it on session end
-// (the next tick on any pod re-acquires).
-//
-// We don't lock schedule processing (that uses FOR UPDATE SKIP LOCKED so
-// it's already safe), and we don't lock per-subscription (one global lock
-// keeps the implementation trivial; polling work is small enough that a
-// single pod can handle it for the foreseeable future).
-
-const POLLING_LOCK_KEY = 0xBEEF105; // arbitrary stable int for pg_try_advisory_lock
-
-async function processPollingAndRenewals() {
-    let acquired = false;
-    let client;
-    try {
-        client = await pool.connect();
-        const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [POLLING_LOCK_KEY]);
-        acquired = !!lockRes.rows[0]?.locked;
-        if (!acquired) {
-            // Another pod owns the lock for this tick; back off cleanly.
-            return;
-        }
-        const triggerBus = require('../../../automation/triggerBus');
-        await triggerBus.runPollingPass();
-        await triggerBus.renewExpiringSubscriptions();
-    } catch (e) {
-        log.error('[AutomationRunner] polling/renewal error:', e.message);
-    } finally {
-        if (client) {
-            try {
-                if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [POLLING_LOCK_KEY]);
-            } catch (_) { /* lock release is best-effort */ }
-            client.release();
-        }
-    }
-}
-
-// Talk auto-record: poll active Talk calls of opted-in users and start
-// recording the ones they moderate. Single-pod-per-tick via its own advisory
-// lock (same discipline as polling — a different stable key).
-const TALK_AUTORECORD_LOCK_KEY = 0xBEEF106;
-
-async function processTalkAutoRecord() {
-    let acquired = false;
-    let client;
-    try {
-        client = await pool.connect();
-        const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [TALK_AUTORECORD_LOCK_KEY]);
-        acquired = !!lockRes.rows[0]?.locked;
-        if (!acquired) return; // another pod owns this tick
-        await require('../../meetingNotes/talkAutoRecord').scanAndRecord();
-    } catch (e) {
-        log.error('[AutomationRunner] talk auto-record error:', e.message);
-    } finally {
-        if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [TALK_AUTORECORD_LOCK_KEY]); } catch (_) { /* best-effort */ }
-            client.release();
-        }
-    }
-}
-
-// Microsoft Teams auto-import: same two-phase shape as Google Meet (./gmeetImportTick.js), with
-// its own lock key so the two discoveries never wait on each other.
-const TEAMS_IMPORT_LOCK_KEY = 0xBEEF113; // 0xBEEF105–0xBEEF112 are all taken (0xBEEF10A by the ISO evidence collector)
-
-async function processTeamsAutoImport() {
-    const teamsAutoImport = require('../../meetingNotes/teamsAutoImport');
-    let acquired = false;
-    let client;
-    try {
-        client = await pool.connect();
-        const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [TEAMS_IMPORT_LOCK_KEY]);
-        acquired = !!lockRes.rows[0]?.locked;
-        if (acquired) await teamsAutoImport.discover();
-    } catch (e) {
-        log.error('[AutomationRunner] teams auto-import discovery error:', e.message);
-    } finally {
-        if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [TEAMS_IMPORT_LOCK_KEY]); } catch (_) { /* best-effort */ }
-            client.release();
-        }
-    }
-    try {
-        await teamsAutoImport.processDue();
-    } catch (e) {
-        log.error('[AutomationRunner] teams auto-import ingest error:', e.message);
-    }
-}
-
-// §WS3.1 — run-history retention sweep. Advisory-locked so only one pod drains
-// the backlog per tick (the DELETE is safe concurrently, but one pod is enough).
-const RETENTION_LOCK_KEY = 0xBEEF107;
-
-async function processRunRetention() {
-    let acquired = false;
-    let client;
-    try {
-        client = await pool.connect();
-        const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [RETENTION_LOCK_KEY]);
-        acquired = !!lockRes.rows[0]?.locked;
-        if (!acquired) return; // another pod owns this tick
-        await require('../../../jobs/runRetention').runRetentionPass();
-        // Automations in the trash past their 30 days (handoff 5). Same shape of
-        // work as the pass above — bounded, idempotent, one pod — so it
-        // shares this tick and its lock. Never lets a failure end the tick.
-        try {
-            await require('../../../jobs/automationTrashPurge').purgeTrashPass();
-        } catch (e) {
-            log.warn('[AutomationRunner] trash purge failed:', e.message);
-        }
-        // Monitoring ledgers and the PII scan ledger do NOT ride this tick:
-        // chat and DLP fill them whether or not Automations is installed, so
-        // they run from jobs/platformRetention.js, ungated (BFSF-439).
-        //
-        // Form-trigger uploads that never reached a submission (visitor closed
-        // the tab after picking a file). Rides this tick because it is the same
-        // shape of work: bounded, idempotent, one pod.
-        await reapOrphanFormUploads();
-        await reapExpiredGeneratedFiles();
-        // Visitor sessions for multi-page forms. Purely a pointer row, so this
-        // is a plain delete — the run it referenced has its own retention.
-        try {
-            const n = await require('../../../stores/automationStore').deleteExpiredFormSessions(500);
-            if (n) log.info(`[AutomationRunner] reaped ${n} expired form session(s)`);
-        } catch (e) {
-            log.warn('[AutomationRunner] form-session reap failed:', e.message);
-        }
-    } catch (e) {
-        log.error('[AutomationRunner] run-retention error:', e.message);
-    } finally {
-        if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [RETENTION_LOCK_KEY]); } catch (_) { /* best-effort */ }
-            client.release();
-        }
-    }
-}
-
-// Datatable row retention. Its own tick and its own lock, and DELIBERATELY NOT
-// wrapped in moduleGatedTick — see the header of jobs/datatableRetention.js.
-// A module gate re-reads the runtime module row on every invocation, so the
-// moment an org's Automations module is switched off (or its licence lapses)
-// deletion would stop while the personal data stayed and the Studio kept
-// promising "deleted after N days". A retention obligation must not be gated on
-// a billable feature.
-//
-// The lock is HERE rather than in the job because that is where every other
-// pass keeps it (processRunRetention, polling, talk, gmeet): the job's own
-// header claims a lock, and this is the line that makes that claim true.
-const DATATABLE_RETENTION_LOCK_KEY = 0xBEEF10E;
-
-async function processDatatableRetention() {
-    let acquired = false;
-    let client;
-    try {
-        client = await pool.connect();
-        const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [DATATABLE_RETENTION_LOCK_KEY]);
-        acquired = !!lockRes.rows[0]?.locked;
-        if (!acquired) return; // another pod owns this tick
-        await require('../../../jobs/datatableRetention').datatableRetentionPass();
-    } catch (e) {
-        log.error('[AutomationRunner] datatable-retention error:', e.message);
-    } finally {
-        if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [DATATABLE_RETENTION_LOCK_KEY]); } catch (_) { /* best-effort */ }
-            client.release();
-        }
-    }
-}
-
-// Automation notifications that wait: throttled messages bundled into one
-// "n more", and the daily summary (jobs/automationDigest.js, handoff 5).
-// Five minutes keeps a 17:00 summary within minutes of 17:00. One pod.
-const NOTIFICATION_DIGEST_LOCK_KEY = 0xBEEF112;
-const NOTIFICATION_DIGEST_INTERVAL_MS = 5 * 60_000;
-
-// Form submissions that were accepted (202) but whose pod died before their
-// run started: the work is on the session row, and a lapsed lease means no
-// live pod holds it. Every pod sweeps — the claim is atomic (SKIP LOCKED), so
-// no lock is needed. See automation/formQueue.js.
-async function processQueuedFormWork() {
-    try {
-        await require('../../../automation/formQueue').recoverPending();
-    } catch (e) {
-        log.warn('[AutomationRunner] form-queue recovery failed:', e.message);
-    }
-}
-
-async function processNotificationDigest() {
-    let acquired = false;
-    let client;
-    try {
-        client = await pool.connect();
-        const lockRes = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [NOTIFICATION_DIGEST_LOCK_KEY]);
-        acquired = !!lockRes.rows[0]?.locked;
-        if (!acquired) return; // another pod owns this tick
-        await require('../../../jobs/automationDigest').digestPass();
-    } catch (e) {
-        log.error('[AutomationRunner] notification digest error:', e.message);
-    } finally {
-        if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [NOTIFICATION_DIGEST_LOCK_KEY]); } catch (_) { /* best-effort */ }
-            client.release();
-        }
-    }
-}
+// The lock-guarded background passes the ticks mount.
+const {
+    processPollingAndRenewals,
+    processTalkAutoRecord,
+    processTeamsAutoImport,
+    processRunRetention,
+    processDatatableRetention,
+    processQueuedFormWork,
+    processNotificationDigest,
+    NOTIFICATION_DIGEST_INTERVAL_MS,
+} = require('./passes');
 
 // ── Boot ────────────────────────────────────────────────
 
@@ -527,7 +327,7 @@ async function stop({ timeoutMs = 25_000 } = {}) {
     // them, and hand them back so another pod runs them now rather than after
     // their lease lapses. The one already running is an ACTIVE_RUN below.
     try {
-        await require('../../../automation/formQueue').stop();
+        await runnerPort('formQueue').stop();
     } catch (e) {
         log.warn('[AutomationRunner] form-queue hand-back failed:', e.message);
     }

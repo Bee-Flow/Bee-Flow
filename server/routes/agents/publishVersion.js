@@ -127,7 +127,7 @@ router.post('/:id/publish-version', validate({ body: NoBody, query: NoQuery }), 
             currentVersion: result.currentRev,
         });
     }
-    if (!result.ok) return res.status(500).json({ error: 'Failed to publish version' });
+    if (!result.ok) throw new Error('Failed to publish version');
 
     // History row: the published state, never pruned (kind != autosave).
     try {

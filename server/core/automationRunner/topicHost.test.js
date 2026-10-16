@@ -10,7 +10,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const { parseTopicExpr, prepareTopics, MAX_TEXTS_PER_STEP } = require('./topicHost');
-const { evaluate } = require('../../automation/expr');
+const { evaluate } = require('./expr');
 
 const answerAll = (score) => async (texts, labels) => ({
     scores: texts.map(() => Object.fromEntries(labels.map((l) => [l, score]))),

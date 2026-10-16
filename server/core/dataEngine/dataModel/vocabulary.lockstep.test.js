@@ -6,7 +6,7 @@
  *   2. server-zijdig — appStudio/validate/refs.js, appStudio/dataModel/
  *      modelValidate.js en appStudio/datatableSource.js importeren (1) en zijn
  *      dus per definitie in de pas
- *   3. agent-hub/.../tables/TablesManager.jsx — een LETTERLIJKE kopie, want er
+ *   3. agent-hub/.../tables/tablesManagerModel.ts — een LETTERLIJKE kopie, want er
  *      is geen gedeelde vocabulairemodule tussen server en client
  *
  * Kopie 3 kan niet importeren, dus wordt hij hier GELEZEN. Zonder deze test is
@@ -35,14 +35,16 @@ const {
     WRITABLE_TABLE_SOURCE_MODE,
 } = require('./vocabulary');
 
+// Sinds de split van TablesManager staan de modes en sourceIsWritable in het
+// model-bestand naast het scherm.
 const TABLES_MANAGER = path.resolve(
-    __dirname, '../../../../agent-hub/src/components/admin/Studio/AppStudio/tables/TablesManager.jsx',
+    __dirname, '../../../../agent-hub/src/components/admin/Studio/AppStudio/tables/tablesManagerModel.ts',
 );
 
-/** De letterlijke `const NAME = ['a', 'b'];` uit een JSX-bestand. */
+/** De letterlijke `const NAME = ['a', 'b'];` uit een agent-hub-bestand. */
 function arrayLiteral(source, name) {
     const m = new RegExp(`const\\s+${name}\\s*=\\s*\\[([^\\]]*)\\]`).exec(source);
-    assert.ok(m, `${name} niet gevonden in TablesManager.jsx — is hij hernoemd?`);
+    assert.ok(m, `${name} niet gevonden in tablesManagerModel.ts — is hij hernoemd?`);
     return m[1].split(',').map((s) => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
 }
 
@@ -60,8 +62,8 @@ test('TablesManager noemt dezelfde ENE schrijfbare mode en dezelfde kind', () =>
     // `sourceIsWritable` is de plek waar het scherm beslist of het de knop
     // "rijen bewerken" laat zien. Hij moet dezelfde twee woorden noemen als
     // vocabulary.js, anders belooft het scherm iets wat de server weigert.
-    const m = /function sourceIsWritable\(source\) \{([\s\S]*?)\n\}/.exec(src);
-    assert.ok(m, 'sourceIsWritable niet gevonden in TablesManager.jsx');
+    const m = /function sourceIsWritable\(source[^)]*\)[^{]*\{([\s\S]*?)\n\}/.exec(src);
+    assert.ok(m, 'sourceIsWritable niet gevonden in tablesManagerModel.ts');
     const body = m[1];
     assert.match(body, new RegExp(`source\\.mode === '${WRITABLE_TABLE_SOURCE_MODE}'`));
     for (const kind of TABLE_SOURCE_KINDS) {

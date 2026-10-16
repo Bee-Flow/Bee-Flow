@@ -80,7 +80,7 @@ function ColumnChips({ t, columns, publicColumns, allColumns }) {
     };
     if (!columns.length) {
         return (
-            <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <span className="text-[11px] text-[var(--text-secondary)]">
                 {t('webpages.data.no_columns_bound', 'No columns picked yet — this page reads nothing from this table')}
             </span>
         );
@@ -110,7 +110,7 @@ function TableCard({ t, table }) {
                         {t('webpages.data.table_unavailable', 'Table unavailable')}
                     </span>
                 </div>
-                <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-[11px] text-[var(--text-secondary)]">
                     {t('webpages.data.table_unavailable_hint',
                         'This page is still linked to {id}, but you cannot open it right now.',
                         { id: table.datatableId })}
@@ -134,7 +134,7 @@ function TableCard({ t, table }) {
                     <Chip label={t('webpages.data.not_used', 'Not used on this page')} tone="muted" dashed />
                 )}
             </div>
-            <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <div className="text-[11px] text-[var(--text-secondary)]">
                 {table.rowCount === null
                     ? t('webpages.data.rows_unknown', 'Row count unavailable')
                     : t(table.rowCount === 1 ? 'webpages.data.rows' : 'webpages.data.rows_plural',
@@ -166,7 +166,7 @@ function AutomationCard({ t, automation }) {
                     tone="muted"
                 />
             </div>
-            <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <div className="text-[11px] text-[var(--text-secondary)]">
                 {t('webpages.data.automation_feeds', 'Feeds {table}', { table: automation.tableName || automation.datatableId })}
                 {' · '}
                 {automation.lastRunAt
@@ -210,7 +210,7 @@ function WarningCard({ t, warning, onNavigate }) {
                                 table: warning.tableName || warning.datatableId,
                             })}
                     </p>
-                    <p className="text-[11px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-[11px] mt-1 text-[var(--text-secondary)]">
                         {t('webpages.data.warn_writes_directly_hint',
                             'Changes made there show up on this page without anyone editing it.')}
                     </p>
@@ -238,7 +238,7 @@ function KnowledgeCard({ t, sources }) {
                 <FileText size={14} style={{ color: 'var(--kind-kb)' }} />
                 <span className="text-sm font-medium">{t('webpages.data.knowledge', 'Knowledge sources')}</span>
             </div>
-            <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <div className="text-[11px] text-[var(--text-secondary)]">
                 {t(n === 1 ? 'webpages.data.knowledge_count' : 'webpages.data.knowledge_count_plural',
                     n === 1 ? '{count} source the assistant reads when building this page'
                         : '{count} sources the assistant reads when building this page',
@@ -276,7 +276,7 @@ export default function WebpageDataCards({ webpageId, sources = [], onNavigate =
 
     if (state.loading) {
         return (
-            <div className="p-4 flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <div className="p-4 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                 <Loader2 size={14} className="animate-spin" />
                 {t('webpages.data.loading', 'Loading what feeds this page…')}
             </div>
@@ -286,7 +286,7 @@ export default function WebpageDataCards({ webpageId, sources = [], onNavigate =
     if (state.error) {
         return (
             <div className="p-4 flex flex-col gap-2 items-start">
-                <p className="text-sm" style={{ color: 'var(--warning)' }}>
+                <p className="text-sm text-[var(--warning)]">
                     {t('webpages.data.load_failed', 'Could not load what is linked to this page.')}
                 </p>
                 <button type="button" className="text-xs underline inline-flex items-center gap-1" onClick={load}>
@@ -307,8 +307,7 @@ export default function WebpageDataCards({ webpageId, sources = [], onNavigate =
             ))}
 
             {tables.length === 0 && (
-                <div className="rounded-lg border border-dashed p-4 text-sm"
-                    style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}>
+                <div className="rounded-lg border border-dashed p-4 text-sm border-[var(--border-subtle)] text-[var(--text-secondary)]">
                     <div className="flex items-center gap-2">
                         <Database size={14} />
                         {t('webpages.data.no_tables', 'No table is linked to this page yet.')}

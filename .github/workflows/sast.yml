@@ -39,6 +39,12 @@ jobs:
       - name: Install Semgrep
         run: pip install semgrep==1.178.0
       - name: Semgrep (new findings fail the PR)
+        # TEMPORARY (owner's call, 2026-10-16): the TypeScript conversion PR
+        # moves and renames ~1,300 files, and the baseline scan reports their
+        # existing findings as new. The scan still runs and lists every
+        # finding in this log; the follow-up PR that fixes or annotates them
+        # removes this line again.
+        continue-on-error: true
         env:
           SEMGREP_SEND_METRICS: 'off'
           BASE_SHA: ${{ github.event.pull_request.base.sha }}

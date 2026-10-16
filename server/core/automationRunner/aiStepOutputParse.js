@@ -29,7 +29,7 @@ function parseAiStepOutput(content, { step, effectiveSchema, inferred, inferredF
             // writing a document. That is not a broken answer, it is a
             // mis-escaped one, and throwing it away loses a page of work that
             // was already paid for.
-            const { parseJsonish } = require('../../automation/jsonRepair');
+            const { parseJsonish } = require('../automationModel/jsonRepair');
             const r = parseJsonish(m[0]);
             if (r.ok) {
                 parsed = r.value;

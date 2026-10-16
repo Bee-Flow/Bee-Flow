@@ -6,6 +6,7 @@
  */
 
 const log = require('../../../telemetry/log');
+const { HttpError } = require('../../../core/http/errors');
 const automationStore = require('../../../stores/automationStore');
 const storageStore = require('../../../stores/storageStore');
 const notebookStore = require('../../../stores/notebookStore');
@@ -13,6 +14,7 @@ const { contentDisposition } = require('../../../core/http/contentDisposition');
 const { endingFrom, resultOf, markdownToSafeHtml, webpageSlots, aiStepsOf, resultFilename } = require('../../../automation/formResult');
 const { privateHeaders, loadForm, loadSession, currentRunFor, journeyRunIds } = require('./access');
 const { ipLimiter, sessionLimiter, exportLimiter } = require('./limits');
+const { friendly } = require('./friendly');
 
 /**
  * POST /form/:token/s/:sid/file/:fileId/notebook — put this document's TEXT
@@ -41,62 +43,57 @@ const { ipLimiter, sessionLimiter, exportLimiter } = require('./limits');
  * produce ownerless notebooks.
  */
 async function openFileInNotebooks(req, res) {
+    privateHeaders(res);
+    const userId = req.session?.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+
+    const found = await loadForm(req, res);
+    if (!found) return undefined;
+    const loaded = await loadSession(found, req.params.sid);
+    if (!loaded || loaded.expired) return res.status(404).json({ error: 'Not found' });
+
+    const runIds = await journeyRunIds(loaded.session);
+    if (runIds.length === 0) return res.status(404).json({ error: 'Not found' });
+    const file = await automationStore.getGeneratedFileForRuns(req.params.fileId, runIds);
+    if (!file) return res.status(404).json({ error: 'Not found' });
+
+    let buffer;
     try {
-        privateHeaders(res);
-        const userId = req.session?.user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-
-        const found = await loadForm(req, res);
-        if (!found) return undefined;
-        const loaded = await loadSession(found, req.params.sid);
-        if (!loaded || loaded.expired) return res.status(404).json({ error: 'Not found' });
-
-        const runIds = await journeyRunIds(loaded.session);
-        if (runIds.length === 0) return res.status(404).json({ error: 'Not found' });
-        const file = await automationStore.getGeneratedFileForRuns(req.params.fileId, runIds);
-        if (!file) return res.status(404).json({ error: 'Not found' });
-
-        let buffer;
-        try {
-            const streamed = await storageStore.streamFile(file.storageKey);
-            const chunks = [];
-            for await (const chunk of streamed.stream) chunks.push(chunk);
-            buffer = Buffer.concat(chunks);
-        } catch (e) {
-            // Same race the download route documents: the reaper drops blobs
-            // before rows, so a live row with no bytes is not a server fault.
-            log.warn(`[automation/form] generated file ${file.id} has no bytes: ${e.message}`);
-            return res.status(404).json({ error: 'Not found' });
-        }
-
-        // `returnHtml` so a Word document keeps its headings and lists; a PDF
-        // ignores it and comes back as text, which documentHtml then wraps.
-        const { parseDocument } = require('../../../core/documents/documentParser');
-        let parsed;
-        try {
-            parsed = await parseDocument(buffer, file.mimeType, file.filename, { returnHtml: true });
-        } catch (e) {
-            log.warn(`[automation/form] could not read ${file.filename} for Notebooks: ${e.message}`);
-            return res.status(422).json({ error: 'This document could not be read into Notebooks.' });
-        }
-
-        const notebook = await notebookStore.createNotebook({
-            userId,
-            name: notebookNameFor(file.filename, found),
-            description: '',
-            instructions: '',
-            organizationId: req.session?.user?.organizationId || null,
-        });
-        // createNotebook always starts empty, so the content is a second write.
-        const html = documentHtml(parsed);
-        await notebookStore.updateNotebook(notebook.id, userId, { documentContent: html });
-        await recordImportedVersion(notebook.id, userId, html);
-
-        return res.json({ notebookId: notebook.id });
+        const streamed = await storageStore.streamFile(file.storageKey);
+        const chunks = [];
+        for await (const chunk of streamed.stream) chunks.push(chunk);
+        buffer = Buffer.concat(chunks);
     } catch (e) {
-        log.error('[automation/form] open-in-notebooks error:', e.message);
-        return res.status(500).json({ error: 'Could not open this in Notebooks' });
+        // Same race the download route documents: the reaper drops blobs
+        // before rows, so a live row with no bytes is not a server fault.
+        log.warn(`[automation/form] generated file ${file.id} has no bytes: ${e.message}`);
+        return res.status(404).json({ error: 'Not found' });
     }
+
+    // `returnHtml` so a Word document keeps its headings and lists; a PDF
+    // ignores it and comes back as text, which documentHtml then wraps.
+    const { parseDocument } = require('../../../core/documents/documentParser');
+    let parsed;
+    try {
+        parsed = await parseDocument(buffer, file.mimeType, file.filename, { returnHtml: true });
+    } catch (e) {
+        log.warn(`[automation/form] could not read ${file.filename} for Notebooks: ${e.message}`);
+        return res.status(422).json({ error: 'This document could not be read into Notebooks.' });
+    }
+
+    const notebook = await notebookStore.createNotebook({
+        userId,
+        name: notebookNameFor(file.filename, found),
+        description: '',
+        instructions: '',
+        organizationId: req.session?.user?.organizationId || null,
+    });
+    // createNotebook always starts empty, so the content is a second write.
+    const html = documentHtml(parsed);
+    await notebookStore.updateNotebook(notebook.id, userId, { documentContent: html });
+    await recordImportedVersion(notebook.id, userId, html);
+
+    return res.json({ notebookId: notebook.id });
 }
 
 /**
@@ -139,32 +136,27 @@ async function loadResult(req, res) {
  * ownerless notebook).
  */
 async function saveResultToNotebook(req, res) {
-    try {
-        privateHeaders(res);
-        const userId = req.session?.user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    privateHeaders(res);
+    const userId = req.session?.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
-        const loaded = await loadResult(req, res);
-        if (!loaded) return undefined;
-        const { result } = loaded;
+    const loaded = await loadResult(req, res);
+    if (!loaded) return undefined;
+    const { result } = loaded;
 
-        const notebook = await notebookStore.createNotebook({
-            userId,
-            name: result.title,
-            description: '',
-            instructions: '',
-            organizationId: req.session?.user?.organizationId || null,
-        });
-        // createNotebook always starts empty, so the content is a second write.
-        const html = markdownToSafeHtml(result.markdown);
-        await notebookStore.updateNotebook(notebook.id, userId, { documentContent: html });
-        await recordImportedVersion(notebook.id, userId, html);
+    const notebook = await notebookStore.createNotebook({
+        userId,
+        name: result.title,
+        description: '',
+        instructions: '',
+        organizationId: req.session?.user?.organizationId || null,
+    });
+    // createNotebook always starts empty, so the content is a second write.
+    const html = markdownToSafeHtml(result.markdown);
+    await notebookStore.updateNotebook(notebook.id, userId, { documentContent: html });
+    await recordImportedVersion(notebook.id, userId, html);
 
-        return res.json({ notebookId: notebook.id });
-    } catch (e) {
-        log.error('[automation/form] save-to-notebook error:', e.message);
-        return res.status(500).json({ error: 'Could not save this to Notebooks' });
-    }
+    return res.json({ notebookId: notebook.id });
 }
 
 /**
@@ -180,34 +172,29 @@ async function saveResultToNotebook(req, res) {
  * organisation's policy (resolveMarking) decides whether it marks at all.
  */
 async function exportResult(req, res) {
-    try {
-        privateHeaders(res);
-        const { renderDocument, FORMATS } = require('../../../core/documents/render/documentRenderer');
-        if (!FORMATS.includes(req.params.format)) return res.status(404).json({ error: 'Not found' });
+    privateHeaders(res);
+    const { renderDocument, FORMATS } = require('../../../core/documents/render/documentRenderer');
+    if (!FORMATS.includes(req.params.format)) return res.status(404).json({ error: 'Not found' });
 
-        const loaded = await loadResult(req, res);
-        if (!loaded) return undefined;
-        const { found, result } = loaded;
+    const loaded = await loadResult(req, res);
+    if (!loaded) return undefined;
+    const { found, result } = loaded;
 
-        const marking = await exportMarking(req, found);
-        const { buffer, contentType, extension, degraded } = await renderDocument({
-            content: result.markdown,
-            contentFormat: 'markdown',
-            title: result.title,
-            format: req.params.format,
-            marking,
-        });
-        if (degraded) log.warn('[automation/form] result PDF rendered without a browser — plain fallback layout.');
+    const marking = await exportMarking(req, found);
+    const { buffer, contentType, extension, degraded } = await renderDocument({
+        content: result.markdown,
+        contentFormat: 'markdown',
+        title: result.title,
+        format: req.params.format,
+        marking,
+    });
+    if (degraded) log.warn('[automation/form] result PDF rendered without a browser — plain fallback layout.');
 
-        res.setHeader('Content-Type', contentType);
-        res.setHeader('X-Content-Type-Options', 'nosniff');
-        res.setHeader('Content-Disposition', contentDisposition(resultFilename(result.title, extension)));
-        res.setHeader('Content-Length', buffer.length);
-        return res.end(buffer);
-    } catch (e) {
-        log.error('[automation/form] export error:', e.message);
-        return res.status(500).json({ error: 'Could not create this file' });
-    }
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Disposition', contentDisposition(resultFilename(result.title, extension)));
+    res.setHeader('Content-Length', buffer.length);
+    return res.end(buffer);
 }
 
 /** The marking for an exported result, or null. A failure to resolve never blocks the download. */
@@ -247,41 +234,36 @@ function webpagesGate(req, res, next) {
  * time, owned by the caller, never one of theirs written into.
  */
 async function saveResultAsWebpage(req, res) {
-    try {
-        privateHeaders(res);
-        const userId = req.session?.user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    privateHeaders(res);
+    const userId = req.session?.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
-        const loaded = await loadResult(req, res);
-        if (!loaded) return undefined;
-        const { result } = loaded;
+    const loaded = await loadResult(req, res);
+    if (!loaded) return undefined;
+    const { result } = loaded;
 
-        // Webpage files live in object storage. Checked before the row is
-        // made, so a missing store leaves no empty webpage behind.
-        if (!storageStore.isAvailable()) return res.status(503).json({ error: 'Webpages cannot be saved right now.' });
+    // Webpage files live in object storage. Checked before the row is
+    // made, so a missing store leaves no empty webpage behind.
+    if (!storageStore.isAvailable()) throw new HttpError(503, 'storage_unavailable', 'Webpages cannot be saved right now.');
 
-        const webpageStore = require('../../../stores/webpageStore');
-        const webpage = await webpageStore.createWebpage({
-            userId,
-            name: result.title,
-            description: '',
-            settings: { framework: 'vanilla', runtime: 'light' },
-        });
-        // The same bookkeeping the editor's own save does: each slot's sha and
-        // size go on the row, or the editor thinks the page is still empty.
-        const metadata = {};
-        for (const [slot, content] of Object.entries(webpageSlots(result))) {
-            const { sha, size } = await webpageStore.writeSlot(userId, webpage.id, slot, content);
-            metadata[`${slot}Sha`] = sha;
-            metadata[`${slot}Size`] = size;
-        }
-        await webpageStore.updateWebpageMetadata(webpage.id, userId, metadata);
-
-        return res.json({ webpageId: webpage.id });
-    } catch (e) {
-        log.error('[automation/form] save-as-webpage error:', e.message);
-        return res.status(500).json({ error: 'Could not save this as a webpage' });
+    const webpageStore = require('../../../stores/webpageStore');
+    const webpage = await webpageStore.createWebpage({
+        userId,
+        name: result.title,
+        description: '',
+        settings: { framework: 'vanilla', runtime: 'light' },
+    });
+    // The same bookkeeping the editor's own save does: each slot's sha and
+    // size go on the row, or the editor thinks the page is still empty.
+    const metadata = {};
+    for (const [slot, content] of Object.entries(webpageSlots(result))) {
+        const { sha, size } = await webpageStore.writeSlot(userId, webpage.id, slot, content);
+        metadata[`${slot}Sha`] = sha;
+        metadata[`${slot}Size`] = size;
     }
+    await webpageStore.updateWebpageMetadata(webpage.id, userId, metadata);
+
+    return res.json({ webpageId: webpage.id });
 }
 
 /**
@@ -327,10 +309,10 @@ function documentHtml(parsed) {
  * POST …/webpage — in that order, between the download and the resume.
  */
 function register(router) {
-    router.post('/form/:token/s/:sid/file/:fileId/notebook', ipLimiter, sessionLimiter, openFileInNotebooks);
-    router.post('/form/:token/s/:sid/notebook', ipLimiter, sessionLimiter, saveResultToNotebook);
-    router.get('/form/:token/s/:sid/export/:format', ipLimiter, sessionLimiter, exportLimiter, exportResult);
-    router.post('/form/:token/s/:sid/webpage', ipLimiter, sessionLimiter, webpagesGate, saveResultAsWebpage);
+    router.post('/form/:token/s/:sid/file/:fileId/notebook', ipLimiter, sessionLimiter, friendly(openFileInNotebooks, 'notebook_open_failed', 'Could not open this in Notebooks'));
+    router.post('/form/:token/s/:sid/notebook', ipLimiter, sessionLimiter, friendly(saveResultToNotebook, 'notebook_save_failed', 'Could not save this to Notebooks'));
+    router.get('/form/:token/s/:sid/export/:format', ipLimiter, sessionLimiter, exportLimiter, friendly(exportResult, 'export_failed', 'Could not create this file'));
+    router.post('/form/:token/s/:sid/webpage', ipLimiter, sessionLimiter, webpagesGate, friendly(saveResultAsWebpage, 'webpage_save_failed', 'Could not save this as a webpage'));
 }
 
 module.exports = { register };

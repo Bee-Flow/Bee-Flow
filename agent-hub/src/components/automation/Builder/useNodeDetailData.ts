@@ -5,12 +5,14 @@ import { stepNumbers } from './flow/flowOrder';
 import { stepPayload } from './flow/stepPayload';
 import { isInlineId, parseInlineId } from './flow/inlineFlowlets';
 import { matchValidationToStep } from './flow/matchValidationToStep';
+import type { Validation } from './flow/matchValidationToStep';
 import { routeContextOf, routeSummaryOf } from './output/routeNote';
 import { routeFollowOf, wholeRunNoticeOf, type RouteFollow, type WholeRunNotice } from './flow/routeFollowNotes';
 import type { DataSummary, FlowDefinition, FlowEdge, FlowStep, RunStepRow } from './flow/types';
 import { usedPathsIn } from './mapping/boundPaths';
 import { buildRealOutputMap, buildSampleRoot } from './mapping/realOutputs';
 import { buildToolOutputMap, describeNode } from './mapping/upstream';
+import type { ToolOutputMap, TriggerOutputs } from './mapping/upstream/upstream.types';
 import useAutomationApi from '../../../hooks/useAutomationApi';
 import useUpstreamVariables from '../../../hooks/useUpstreamVariables';
 import type { UpstreamGroup } from '../../../hooks/useUpstreamVariables';
@@ -20,7 +22,7 @@ import { initialValues } from '../../forms/PublicFormRenderer';
 
 /** The tool schemas the editor draws its output guesses from. */
 export interface ToolCatalog {
-    triggerOutputs?: Record<string, unknown>;
+    triggerOutputs?: TriggerOutputs;
     [key: string]: unknown;
 }
 
@@ -86,7 +88,7 @@ const numbersFor = stepNumbers as (
 const describe = describeNode as (
     node: FlowStep,
     definition: FlowDefinition | null | undefined,
-    toolToOutput: Map<string, unknown>,
+    toolToOutput: ToolOutputMap,
     triggerOutputs: Record<string, unknown>,
     sampleRoot?: unknown,
     catalog?: ToolCatalog | null,
@@ -102,7 +104,7 @@ export interface UseNodeDetailDataOptions {
     definition: FlowDefinition | null | undefined;
     /** The whole document, when `definition` is a flowlet. */
     rootDefinition?: FlowDefinition | null;
-    validation?: { errors?: unknown[]; warnings?: unknown[] } | null;
+    validation?: Validation | null;
     /** The owner's catalog copy; absent on stand-alone mounts, which fetch one. */
     catalog?: ToolCatalog | null;
     realOutputById?: ReadonlyMap<string, unknown> | null;

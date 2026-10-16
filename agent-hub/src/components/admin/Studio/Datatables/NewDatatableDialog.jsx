@@ -1,19 +1,24 @@
-import { Building2, ChevronDown, Cloud, FileSpreadsheet, Loader2, Plus, ShieldAlert, User, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { ChevronDown, Cloud, FileSpreadsheet, Plus, X } from 'lucide-react';
+import React, { useState } from 'react';
 import AiTablePanel from './AiTablePanel';
-import ChoiceCard from './ChoiceCard';
 import { ColumnKindIcon, kindWord } from './ColumnKind';
 import { COLUMN_TYPES, SOURCE_KINDS, canLinkNextcloud, columnTypeKind, keyFromName, sourceErrorMessage, validateColumns } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
 import LinkNextcloudTablesDialog from './LinkNextcloudTablesDialog';
 import LinkSpreadsheetDialog from './LinkSpreadsheetDialog';
-import { ssReasonText } from './spreadsheet/wizardState';
+import AudienceChoice from './newDatatable/AudienceChoice';
+import { INPUT, INPUT_STYLE, ORG_SCOPE_PERMISSION } from './newDatatable/constants';
+import CreatedResultModal from './newDatatable/CreatedResultModal';
+import KindChoice from './newDatatable/KindChoice';
+import LinkedResultModal from './newDatatable/LinkedResultModal';
+import NewDatatableFooter from './newDatatable/NewDatatableFooter';
+import NewTableFields from './newDatatable/NewTableFields';
+import { useLinkSources } from './newDatatable/useLinkSources';
 import { checkPermission } from '../../../../hooks/usePermissionCheck';
 import useTranslation from '../../../../hooks/useTranslation';
 import { kindIcon, kindTileStyle } from '../../../shared/kindColors';
 import Modal from '../../../shared/Modal';
 import SegmentedControl from '../../../shared/SegmentedControl';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 
 /**
  * Create a table (Datatables artboard 1c).
@@ -110,23 +115,7 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
     // The dialog stays open on it: it is the one real reduction against the
     // hidden cache tier, and closing over it would make it a notification.
     const [created, setCreated] = useState(null);
-    // The server's default for this caller, so the dialog opens on the answer
-    // it would have given. Keyed on 'org' rather than on NOT-'user', because
-    // the list can also answer `scope: null` (no tenancy at all): the old
-    // condition then showed the personal sentence and submitted `organisation`,
-    // which is the shape of copy-says-one-thing-request-says-another that sent
-    // BFSF-412 round twice.
-    //
-    // And the tenancy is only half the question. The choice needs BOTH a
-    // tenancy to put a table in and the permission the server asks for before
-    // it will accept one; offering it on the tenancy alone is the same failure
-    // one layer down, answered after the click by a 403 instead of before it.
-    const mayUseOrgScope = mayCreateOrgTable(user);
-    const canChoose = scope?.kind === 'org' && mayUseOrgScope;
-    // The organisation is there, the permission is not — the one case that
-    // gets its own sentence, because a missing card with no explanation reads
-    // as a product that forgot the feature.
-    const orgScopeWithheld = scope?.kind === 'org' && !mayUseOrgScope;
+    const { canChoose, orgScopeWithheld } = orgScopeChoice(scope, user);
     const [target, setTarget] = useState(canChoose ? 'organisation' : 'personal');
 
     const managed = kind === 'http_cache';
@@ -137,33 +126,9 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
     // A Nextcloud-bound organisation? Then ask the server what this account
     // could link — once, on open — so the card can say why it is off.
     const offerNextcloud = canLinkNextcloud(user);
-    const [linkable, setLinkable] = useState(null);   // { connected, reason, tables } | null while loading
     const [picking, setPicking] = useState(null);     // null | 'nextcloud' | 'spreadsheet'
     const [linked, setLinked] = useState(null);       // a wizard's answer, tagged with its kind
-    useEffect(() => {
-        if (!offerNextcloud) return undefined;
-        let alive = true;
-        datatablesApi.linkable(canChoose ? undefined : 'personal')
-            .then(b => { if (alive) setLinkable(b || { connected: false, reason: 'nextcloud_unavailable', tables: [] }); })
-            .catch(e => { if (alive) setLinkable({ connected: false, reason: e?.code || 'nextcloud_unavailable', tables: [] }); });
-        return () => { alive = false; };
-    }, [offerNextcloud, canChoose]);
-    // Which storages could a spreadsheet come from? Asked always (no client
-    // pre-gate, see the header), answered cheaply, and never allowed to
-    // break the dialog: [] is "no card".
-    const [providers, setProviders] = useState(null);   // [{provider, connected, reason?}] | null while loading
-    useEffect(() => {
-        let alive = true;
-        (async () => {
-            try {
-                const b = await datatablesApi.spreadsheetProviders(canChoose ? undefined : 'personal');
-                if (alive) setProviders(Array.isArray(b?.providers) ? b.providers : []);
-            } catch {
-                if (alive) setProviders([]);
-            }
-        })();
-        return () => { alive = false; };
-    }, [canChoose]);
+    const { linkable, providers } = useLinkSources(offerNextcloud, canChoose);
     const offerSpreadsheet = !!(providers && providers.length);
     const ssConnected = !!(providers && providers.some(p => p.connected));
 
@@ -178,43 +143,10 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
             ? ssConnected
             : (!!name.trim() && !!effectiveKey && (managed || !!description.trim()) && columnProblems.length === 0);
 
-    const submit = async (e) => {
-        e.preventDefault();
-        if (nextcloud) { setPicking('nextcloud'); return; }
-        if (spreadsheet) { setPicking('spreadsheet'); return; }
-        setBusy(true);
-        setError(null);
-        try {
-            if (managed) {
-                const body = await datatablesApi.createManaged({
-                    kind: 'http_cache',
-                    scope: target,
-                    name: name.trim(),
-                    key: effectiveKey,
-                    // Omitted, not blanked: undefined is what makes the server
-                    // use its own Art. 30 sentence for the kind.
-                    ...(description.trim() ? { description: description.trim() } : {}),
-                });
-                setCreated(body);
-            } else {
-                const body = await datatablesApi.create({
-                    scope: target,
-                    name: name.trim(),
-                    key: effectiveKey,
-                    description: description.trim(),
-                    fields: fields.map(f => ({ key: f.key, name: f.name, type: f.type, ...(f.options ? { options: f.options } : {}) })),
-                });
-                onCreated(body.datatable);
-            }
-        } catch (err) {
-            // Read the CODE, not the sentence: the server's wording is a
-            // server-side decision and a client that matches on it breaks the
-            // day somebody improves the copy.
-            setError(messageFor(t, err));
-        } finally {
-            setBusy(false);
-        }
-    };
+    const submit = (e) => submitDraft(e, {
+        nextcloud, spreadsheet, managed, target, name, effectiveKey, description, fields, t, onCreated,
+        setPicking, setBusy, setError, setCreated,
+    });
 
     if (picking === 'nextcloud') {
         return (
@@ -246,70 +178,24 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
         // `linkedBody`); the title has no source in it and is shared.
         const spec = SOURCE_KINDS[linked.kind] || SOURCE_KINDS.nextcloud_table;
         return (
-            <Modal
-                open
-                onClose={() => onCreated(linked.datatables[0])}
+            <LinkedResultModal
                 title={<TitleRow kind="datatable" icon={spec.icon === 'spreadsheet' ? FileSpreadsheet : Cloud} text={t('datatables.nc_linked_title', 'The tables are ready')} />}
-                size="md"
-                className="sm:max-w-[520px]"
-            >
-                <div className="space-y-3">
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        {spec.linkedBody(t, n)}
-                    </p>
-                    {/* VERBATIM, like the managed warning: the server owns these sentences. */}
-                    {(linked.warnings || []).map((w, i) => (
-                        <p key={i} className="text-xs px-3 py-2 rounded-lg flex items-start gap-2"
-                            style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-                            <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
-                            <span>{w}</span>
-                        </p>
-                    ))}
-                    <div className="flex justify-end">
-                        <button type="button" onClick={() => onCreated(linked.datatables[0])}
-                            className={`${BTN} font-medium`}
-                            style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}>
-                            {t('datatables.created_open', 'Open the table')}
-                        </button>
-                    </div>
-                </div>
-            </Modal>
+                body={spec.linkedBody(t, n)}
+                warnings={linked.warnings || []}
+                onOpen={() => onCreated(linked.datatables[0])}
+                t={t}
+            />
         );
     }
 
     if (created) {
         return (
-            <Modal
-                open
-                onClose={() => onCreated(created.datatable)}
+            <CreatedResultModal
                 title={<TitleRow kind="datatable" text={t('datatables.created_title', 'The table is ready')} />}
-                size="md"
-                className="sm:max-w-[520px]"
-            >
-                <div className="space-y-3">
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                        {t('datatables.created_managed', 'Automations can now point their “remember answers in a table” tick at it.')}
-                    </p>
-                    {/* VERBATIM. The server owns this sentence so it stays true
-                        when the storage does; paraphrasing it here is how a
-                        warning about plaintext survives a change that made it
-                        wrong. */}
-                    {created.warning && (
-                        <p className="text-xs px-3 py-2 rounded-lg flex items-start gap-2"
-                            style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-                            <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
-                            <span>{created.warning}</span>
-                        </p>
-                    )}
-                    <div className="flex justify-end">
-                        <button type="button" onClick={() => onCreated(created.datatable)}
-                            className={`${BTN} font-medium`}
-                            style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}>
-                            {t('datatables.created_open', 'Open the table')}
-                        </button>
-                    </div>
-                </div>
-            </Modal>
+                warning={created.warning}
+                onOpen={() => onCreated(created.datatable)}
+                t={t}
+            />
         );
     }
 
@@ -333,227 +219,63 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
                 />
             )}
             footer={(
-                <>
-                    {/* The technical name is STATED even when its editor is
-                        hidden: it is the identifier a Datatable step refers to,
-                        and a person who never sees it cannot look their table
-                        up later. */}
-                    <span className="mr-auto text-[11px] min-w-0 truncate" style={{ color: 'var(--text-tertiary)' }}>
-                        {nextcloud ? t('datatables.nc_footer', 'Names and technical names are chosen per table in the next step.')
-                            : spreadsheet ? t('datatables.ss_footer', 'Names and technical names are chosen per sheet in the next step.') : (
-                            <>
-                                {t('datatables.technical_name', 'Technical name:')}{' '}
-                                <code className="font-mono">{effectiveKey || '—'}</code>
-                                {mode === 'simple' && (
-                                    <>{' · '}{t('datatables.technical_name_hint', 'editable under All options')}</>
-                                )}
-                            </>
-                        )}
-                    </span>
-                    <button type="button" onClick={onClose} className={`${BTN} border`}
-                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
-                        {t('datatables.cancel', 'Cancel')}
-                    </button>
-                    {/* type=button + the same handler, not a form-associated
-                        submit: the footer lives outside the <form> (the Modal
-                        owns that slot), and cross-form association is one of
-                        the places jsdom and browsers disagree. Enter inside a
-                        field still submits, through the form's own onSubmit. */}
-                    <button
-                        type="button"
-                        onClick={submit}
-                        disabled={busy || !ready}
-                        className={`${BTN} font-medium disabled:opacity-50 inline-flex items-center gap-1.5`}
-                        style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }}
-                    >
-                        {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
-                        {nextcloud ? t('datatables.nc_choose', 'Choose tables…') : spreadsheet ? t('datatables.ss_choose', 'Choose files…') : t('datatables.create', 'Create')}
-                    </button>
-                </>
+                <NewDatatableFooter
+                    nextcloud={nextcloud}
+                    spreadsheet={spreadsheet}
+                    effectiveKey={effectiveKey}
+                    mode={mode}
+                    onClose={onClose}
+                    submit={submit}
+                    busy={busy}
+                    ready={ready}
+                    t={t}
+                />
             )}
         >
             <form onSubmit={submit} className="space-y-4">
-                <fieldset>
-                    <legend className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                        {t('datatables.new_kind', 'What kind of table?')}
-                    </legend>
-                    <div className="grid grid-cols-2 gap-2">
-                        <ChoiceCard
-                            name="datatable-kind"
-                            checked={kind === 'plain'}
-                            onChange={() => setKind('plain')}
-                            kind="datatable"
-                            title={t('datatables.kind_plain', 'An ordinary table')}
-                            blurb={t('datatables.kind_plain_blurb', 'You decide the columns. Automations read and write the rows.')}
-                        />
-                        <ChoiceCard
-                            name="datatable-kind"
-                            checked={managed}
-                            onChange={() => setKind('http_cache')}
-                            kind="app"
-                            title={t('datatables.kind_http_cache', 'Web service answers')}
-                            blurb={t('datatables.kind_http_cache_blurb', 'For the “remember answers in a table” tick on a Call a web service step. Its columns are fixed, because an automation writes them by name.')}
-                        />
-                        {offerNextcloud && (
-                            <ChoiceCard
-                                name="datatable-kind"
-                                checked={nextcloud}
-                                onChange={() => setKind('nextcloud_table')}
-                                kind="datatable"
-                                icon={<Cloud className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--type-data)' }} aria-hidden="true" />}
-                                title={t('datatables.kind_nextcloud', 'A table from Nextcloud')}
-                                blurb={t('datatables.kind_nextcloud_blurb', 'A copy of a Nextcloud Tables table or view, kept in step with it. Rows changed here are changed in Nextcloud; the columns are Nextcloud’s.')}
-                                disabled={!!linkable && !linkable.connected}
-                                note={linkable && !linkable.connected ? reasonText(t, linkable.reason) : null}
-                            />
-                        )}
-                        {offerSpreadsheet && (
-                            <ChoiceCard
-                                name="datatable-kind"
-                                checked={spreadsheet}
-                                onChange={() => setKind('spreadsheet_file')}
-                                kind="datatable"
-                                icon={<FileSpreadsheet className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--type-data)' }} aria-hidden="true" />}
-                                title={t('datatables.kind_spreadsheet', 'A spreadsheet from your files')}
-                                blurb={t('datatables.kind_spreadsheet_blurb', 'A copy of a sheet in Google Drive, OneDrive or Nextcloud, kept in step with the file. Rows changed here are written to the file; the columns are the sheet’s header row.')}
-                                disabled={!ssConnected}
-                                note={!ssConnected ? ssReasonText(t, providers[0]) : null}
-                            />
-                        )}
-                    </div>
-                </fieldset>
+                <KindChoice
+                    kind={kind}
+                    setKind={setKind}
+                    managed={managed}
+                    nextcloud={nextcloud}
+                    spreadsheet={spreadsheet}
+                    offerNextcloud={offerNextcloud}
+                    offerSpreadsheet={offerSpreadsheet}
+                    linkable={linkable}
+                    ssConnected={ssConnected}
+                    providers={providers || []}
+                    t={t}
+                />
 
                 {kind === 'plain' && (
                     <AiTablePanel
                         mode="create"
                         compact
                         current={{ name, description, fields }}
-                        onApply={(d) => {
-                            // Undo hands back what the dialog held; a draft fills
-                            // name, purpose and columns and lets the key follow the
-                            // name again. Nothing is created until "Create".
-                            setName(d.name || '');
-                            setDescription(d.description || '');
-                            setFields((Array.isArray(d.fields) ? d.fields : []).map(f => ({
-                                key: f.key, name: f.name, type: f.type,
-                                ...(f.options ? { options: f.options } : {}),
-                                ...(f.required ? { required: true } : {}),
-                            })));
-                            if (!d.undo) setKeyTouched(false);
-                        }}
+                        onApply={(d) => applyDraft(d, { setName, setDescription, setFields, setKeyTouched })}
                         testId="new-table-ai"
                     />
                 )}
 
-                {!linking && (
-                <label className="block">
-                    <span className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                        {t('datatables.field_name', 'Name')}
-                    </span>
-                    <input
-                        autoFocus
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder={t('studio_misc.newtable.name_placeholder', 'Customers')}
-                        className={INPUT}
-                        style={INPUT_STYLE}
-                    />
-                </label>
-                )}
+                <NewTableFields
+                    linking={linking}
+                    managed={managed}
+                    mode={mode}
+                    name={name}
+                    setName={setName}
+                    effectiveKey={effectiveKey}
+                    setKey={setKey}
+                    setKeyTouched={setKeyTouched}
+                    description={description}
+                    setDescription={setDescription}
+                    firstColumns={<FirstColumns t={t} fields={fields} problems={columnProblems} onChange={setFields} />}
+                    t={t}
+                />
 
-                {!linking && mode === 'advanced' && (
-                    <label className="block">
-                        <span className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                            {t('datatables.field_key', 'Technical name')}
-                        </span>
-                        <input
-                            value={effectiveKey}
-                            onChange={(e) => { setKeyTouched(true); setKey(e.target.value); }}
-                            placeholder={t('studio_misc.newtable.key_placeholder', 'customers')}
-                            className={`${INPUT} font-mono`}
-                            style={INPUT_STYLE}
-                        />
-                        <span className="block text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                            {t('datatables.field_key_help', 'Lowercase letters, numbers and underscores. Renaming it later means moving the data, so it is worth a moment now.')}
-                        </span>
-                    </label>
-                )}
-
-                {!linking && (
-                <label className="block">
-                    <span className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
-                        {t('datatables.field_purpose', 'What is it for?')}
-                    </span>
-                    <textarea
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        rows={2}
-                        placeholder={t('studio_misc.newtable.purpose_placeholder', 'Customers we have already sent the onboarding e-mail to.')}
-                        className={INPUT}
-                        style={INPUT_STYLE}
-                    />
-                    <span className="block text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                        {managed
-                            ? t('datatables.field_purpose_managed', 'Optional here — left empty, this kind of table brings its own sentence for the processing record.')
-                            : t('datatables.field_purpose_help', 'Required — this sentence goes into your organisation’s processing record.')}
-                    </span>
-                </label>
-                )}
-
-                {!managed && !linking && (
-                    <FirstColumns t={t} fields={fields} problems={columnProblems} onChange={setFields} />
-                )}
-
-                {canChoose ? (
-                    <fieldset className="block">
-                        <legend className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                            {t('datatables.field_audience', 'Who is it for?')}
-                        </legend>
-                        <div className="grid grid-cols-2 gap-2">
-                            <ChoiceCard
-                                name="datatable-scope"
-                                icon={<Building2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />}
-                                checked={target === 'organisation'}
-                                onChange={() => setTarget('organisation')}
-                                title={t('datatables.scope_org', 'Your organisation')}
-                                blurb={t('datatables.scope_org_blurb', 'You decide afterwards who may read or change the rows. Automations your colleagues own can use it.')}
-                            />
-                            <ChoiceCard
-                                name="datatable-scope"
-                                icon={<User className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />}
-                                checked={target === 'personal'}
-                                onChange={() => setTarget('personal')}
-                                title={t('datatables.scope_personal', 'This account only')}
-                                blurb={t('datatables.scope_personal_blurb', 'Only this account can see the rows — not colleagues, not administrators. It cannot be shared later.')}
-                            />
-                        </div>
-                    </fieldset>
-                ) : (
-                    <p className="text-[11px] px-3 py-2 rounded-lg flex items-start gap-2"
-                        style={{ background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
-                        <User className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
-                        <span>
-                            {t('datatables.scope_personal_blurb', 'Only this account can see the rows — not colleagues, not administrators. It cannot be shared later.')}
-                            {orgScopeWithheld && (
-                                <>
-                                    {' '}
-                                    {/* The sentence carries the words; the title
-                                        keeps the exact permission id, so the
-                                        administrator this gets forwarded to has
-                                        the string to grant and does not have to
-                                        guess it back out of the copy. */}
-                                    <span title={ORG_SCOPE_PERMISSION} className="underline decoration-dotted">
-                                        {t('datatables.scope_org_not_permitted', 'Making one for the whole organisation needs a permission this account does not have — an administrator grants it under Organisation → Roles.')}
-                                    </span>
-                                </>
-                            )}
-                        </span>
-                    </p>
-                )}
+                <AudienceChoice canChoose={canChoose} orgScopeWithheld={orgScopeWithheld} target={target} setTarget={setTarget} t={t} />
 
                 {error && (
-                    <p role="alert" className="text-xs px-3 py-2 rounded-lg"
-                        style={{ background: 'var(--bg-primary)', color: 'var(--warning)' }}>
+                    <p role="alert" className="text-xs px-3 py-2 rounded-lg bg-[var(--bg-primary)] text-[var(--warning)]">
                         {error}
                     </p>
                 )}
@@ -561,22 +283,6 @@ export default function NewDatatableDialog({ scope = null, onClose, onCreated, u
         </Modal>
     );
 }
-
-const INPUT = 'w-full px-3 py-2 rounded-lg text-sm border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1';
-// --bg-primary, not --bg-secondary: the Modal panel is itself --bg-secondary,
-// so an input painted the same colour has no edge at all.
-const INPUT_STYLE = {
-    background: 'var(--bg-primary)', borderColor: 'var(--border-default)',
-    color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)',
-};
-const BTN = 'px-3 py-2 rounded-[10px] text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
-
-/**
- * The permission POST /api/datatables asks for before it will put a table in
- * an organisation — spelled exactly as the server spells it, because this
- * string is what an administrator types into Organisation → Roles.
- */
-const ORG_SCOPE_PERMISSION = 'manage_datatables';
 
 /**
  * May this account create an ORGANISATION table?
@@ -623,10 +329,10 @@ function FirstColumns({ t, fields, problems, onChange }) {
     return (
         <div className="space-y-2">
             <div className="flex items-baseline gap-2">
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-sm font-medium text-[var(--text-primary)]">
                     {t('datatables.first_columns', 'Columns')}
                 </span>
-                <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-[11px] text-[var(--text-tertiary)]">
                     {t('datatables.first_columns_hint', 'optional · can also be added later')}
                 </span>
             </div>
@@ -658,8 +364,7 @@ function FirstColumns({ t, fields, problems, onChange }) {
                 <Plus className="w-3.5 h-3.5" aria-hidden="true" /> {t('datatables.column_add', 'Add a column')}
             </button>
             {problems.length > 0 && (
-                <ul role="alert" className="text-xs space-y-1 px-3 py-2 rounded-lg"
-                    style={{ background: 'var(--bg-primary)', color: 'var(--warning)' }}>
+                <ul role="alert" className="text-xs space-y-1 px-3 py-2 rounded-lg bg-[var(--bg-primary)] text-[var(--warning)]">
                     {problems.map((p, i) => <li key={i}>{p}</li>)}
                 </ul>
             )}
@@ -724,16 +429,84 @@ function messageFor(t, err) {
     }
 }
 
-/** Why the Nextcloud card is off right now — the server's reason, as a sentence. */
-function reasonText(t, reason) {
-    switch (reason) {
-        case 'nc_scope_denied':
-            return t('datatables.nc_reason_scope_off', 'Bee Flow may not read this account’s Nextcloud tables yet. Switch Tables on under Settings → Connections → Nextcloud.');
-        case 'nextcloud_integration_off':
-            return t('datatables.nc_reason_integration_off', 'Nextcloud Tables is switched off for this organisation. An administrator can switch it on under Organisation → Nextcloud.');
-        case 'not_nc_org':
-            return t('datatables.err_not_nc_org', 'This organisation is not connected to Nextcloud.');
-        default:
-            return t('datatables.nc_reason_unavailable', 'Nextcloud could not be reached just now.');
+/**
+ * Whether this account may CHOOSE the organisation, and whether the choice is
+ * missing only because a permission is.
+ */
+function orgScopeChoice(scope, user) {
+    // The server's default for this caller, so the dialog opens on the answer
+    // it would have given. Keyed on 'org' rather than on NOT-'user', because
+    // the list can also answer `scope: null` (no tenancy at all): the old
+    // condition then showed the personal sentence and submitted `organisation`,
+    // which is the shape of copy-says-one-thing-request-says-another that sent
+    // BFSF-412 round twice.
+    //
+    // And the tenancy is only half the question. The choice needs BOTH a
+    // tenancy to put a table in and the permission the server asks for before
+    // it will accept one; offering it on the tenancy alone is the same failure
+    // one layer down, answered after the click by a 403 instead of before it.
+    const mayUseOrgScope = mayCreateOrgTable(user);
+    const canChoose = scope?.kind === 'org' && mayUseOrgScope;
+    // The organisation is there, the permission is not — the one case that
+    // gets its own sentence, because a missing card with no explanation reads
+    // as a product that forgot the feature.
+    const orgScopeWithheld = scope?.kind === 'org' && !mayUseOrgScope;
+    return { canChoose, orgScopeWithheld };
+}
+
+/** Create the table, or hand over to the link wizard for a mirror kind. */
+async function submitDraft(e, {
+    nextcloud, spreadsheet, managed, target, name, effectiveKey, description, fields, t, onCreated,
+    setPicking, setBusy, setError, setCreated,
+}) {
+    e.preventDefault();
+    if (nextcloud) { setPicking('nextcloud'); return; }
+    if (spreadsheet) { setPicking('spreadsheet'); return; }
+    setBusy(true);
+    setError(null);
+    try {
+        if (managed) {
+            const body = await datatablesApi.createManaged({
+                kind: 'http_cache',
+                scope: target,
+                name: name.trim(),
+                key: effectiveKey,
+                // Omitted, not blanked: undefined is what makes the server
+                // use its own Art. 30 sentence for the kind.
+                ...(description.trim() ? { description: description.trim() } : {}),
+            });
+            setCreated(body);
+        } else {
+            const body = await datatablesApi.create({
+                scope: target,
+                name: name.trim(),
+                key: effectiveKey,
+                description: description.trim(),
+                fields: fields.map(f => ({ key: f.key, name: f.name, type: f.type, ...(f.options ? { options: f.options } : {}) })),
+            });
+            onCreated(body.datatable);
+        }
+    } catch (err) {
+        // Read the CODE, not the sentence: the server's wording is a
+        // server-side decision and a client that matches on it breaks the
+        // day somebody improves the copy.
+        setError(messageFor(t, err));
+    } finally {
+        setBusy(false);
     }
+}
+
+/** An AI draft (or its undo) fills the dialog; nothing is created until "Create". */
+function applyDraft(d, { setName, setDescription, setFields, setKeyTouched }) {
+    // Undo hands back what the dialog held; a draft fills
+    // name, purpose and columns and lets the key follow the
+    // name again. Nothing is created until "Create".
+    setName(d.name || '');
+    setDescription(d.description || '');
+    setFields((Array.isArray(d.fields) ? d.fields : []).map(f => ({
+        key: f.key, name: f.name, type: f.type,
+        ...(f.options ? { options: f.options } : {}),
+        ...(f.required ? { required: true } : {}),
+    })));
+    if (!d.undo) setKeyTouched(false);
 }

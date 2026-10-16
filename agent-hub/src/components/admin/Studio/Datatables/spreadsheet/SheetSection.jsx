@@ -52,20 +52,20 @@ export default function SheetSection({ t, s, describe, mark, onChange }) {
     const sheetLabel = s.sheetLabel ?? sheetLabelOf(s.sheet, s.fileName);
 
     return (
-        <section className="p-3 space-y-3 rounded-lg" style={{ background: 'var(--bg-secondary)' }} aria-label={`${sheetLabel} — ${s.fileName}`}>
+        <section className="p-3 space-y-3 rounded-lg bg-[var(--bg-secondary)]" aria-label={`${sheetLabel} — ${s.fileName}`}>
             <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{sheetLabel}</span>
+                <span className="text-sm font-medium text-[var(--text-primary)]">{sheetLabel}</span>
                 <HeaderRowStepper t={t} sheet={sheetLabel} value={s.headerRow} onSettle={(headerRow) => onChange(s.sheetKey, { headerRow })} />
                 {(d.loading || !data) && !d.error && (
-                    <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]">
                         <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />{t('datatables.nc_reading', 'Reading the columns…')}
                     </span>
                 )}
             </div>
             {d.error && (
-                <p role="alert" className="text-[11px]" style={{ color: 'var(--warning)' }}>{ssErrorMessage(t, d.error) || d.error.message}</p>
+                <p role="alert" className="text-[11px] text-[var(--warning)]">{ssErrorMessage(t, d.error) || d.error.message}</p>
             )}
-            {mark && <p className="text-[11px]" style={{ color: 'var(--warning)' }}>{mark}</p>}
+            {mark && <p className="text-[11px] text-[var(--warning)]">{mark}</p>}
             {preview.length > 0 && <Preview t={t} sheet={sheetLabel} rows={preview} />}
             {columns.length > 0 && (
                 <ul className="space-y-1.5" role="list" aria-label={t('datatables.ss_columns_list', 'Columns of {sheet}', { sheet: sheetLabel })}>
@@ -74,18 +74,18 @@ export default function SheetSection({ t, s, describe, mark, onChange }) {
                             <span className="min-w-0 flex flex-col gap-0.5">
                                 <span className="inline-flex items-center gap-1.5 min-w-0 text-xs">
                                     <ColumnKindIcon kind={columnTypeKind(c.type)} size={12} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
-                                    <span className="truncate" style={{ color: 'var(--text-primary)' }}>
+                                    <span className="truncate text-[var(--text-primary)]">
                                         {c.blankHeader ? t('datatables.ss_blank_header', '(no header) → {key}', { key: c.key }) : c.header}
                                     </span>
-                                    <code className="text-[10px] font-mono shrink-0" style={{ color: 'var(--text-tertiary)' }}>{c.letter || ''}{c.letter ? ' · ' : ''}{c.key}</code>
+                                    <code className="text-[10px] font-mono shrink-0 text-[var(--text-tertiary)]">{c.letter || ''}{c.letter ? ' · ' : ''}{c.key}</code>
                                     {c.formula && (
-                                        <span className="text-[10px] px-1.5 rounded shrink-0" style={{ background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
+                                        <span className="text-[10px] px-1.5 rounded shrink-0 bg-[var(--bg-primary)] text-[var(--text-secondary)]">
                                             {t('datatables.ss_formula_col', 'formula · read-only')}
                                         </span>
                                     )}
                                 </span>
                                 {Array.isArray(c.samples) && c.samples.length > 0 && (
-                                    <span className="text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>
+                                    <span className="text-[11px] truncate text-[var(--text-tertiary)]">
                                         {t('datatables.ss_samples', 'e.g. {samples}', { samples: c.samples.slice(0, 3).map(v => String(v)).join(', ') })}
                                     </span>
                                 )}
@@ -98,8 +98,8 @@ export default function SheetSection({ t, s, describe, mark, onChange }) {
             )}
             {columns.length > 0 && (
                 <fieldset className="space-y-1">
-                    <legend className="text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('datatables.ss_identity_legend', 'How to recognise a row')}</legend>
-                    <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: 'var(--text-primary)' }}>
+                    <legend className="text-xs font-medium mb-1 text-[var(--text-primary)]">{t('datatables.ss_identity_legend', 'How to recognise a row')}</legend>
+                    <label className="flex items-center gap-2 text-xs cursor-pointer text-[var(--text-primary)]">
                         <input type="radio" name={`identity:${s.sheetKey}`} checked={s.keyColumn === null} onChange={() => setKey(null)}
                             aria-label={t('datatables.ss_identity_rownum_option', 'Row number (default)')} />
                         {t('datatables.ss_identity_rownum_option', 'Row number (default)')}
@@ -111,17 +111,17 @@ export default function SheetSection({ t, s, describe, mark, onChange }) {
                             <label key={c.col} className={`flex items-center gap-2 text-xs ${e.ok ? 'cursor-pointer' : 'cursor-not-allowed'}`} style={{ color: 'var(--text-primary)', opacity: e.ok ? 1 : 0.6 }}>
                                 <input type="radio" name={`identity:${s.sheetKey}`} checked={s.keyColumn === c.col} disabled={!e.ok} onChange={() => setKey(c.col)} aria-label={title} />
                                 <span>{title}</span>
-                                {!e.ok && <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{reasonWord(t, e.reason)}</span>}
+                                {!e.ok && <span className="text-[11px] text-[var(--text-tertiary)]">{reasonWord(t, e.reason)}</span>}
                             </label>
                         );
                     })}
-                    <p className="text-[11px] pt-1" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="text-[11px] pt-1 text-[var(--text-tertiary)]">
                         {t('datatables.ss_identity_help', 'A key column keeps a row’s identity when rows are inserted or sorted in the sheet; with the row number, inserting a row above shifts the rows below.')}
                     </p>
                 </fieldset>
             )}
             {(dupKeys.length > 0 || blank > 0 || (data && data.warnings && data.warnings.length > 0)) && (
-                <ul className="space-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <ul className="space-y-1 text-[11px] text-[var(--text-secondary)]">
                     {dupKeys.length > 0 && <Warning text={t('datatables.ss_warn_dup_headers', 'Duplicate headers get a number: {keys}.', { keys: dupKeys.join(', ') })} />}
                     {blank > 0 && <Warning text={t('datatables.ss_warn_blank_headers', '{n} columns have no header and are named by their letter.', { n: blank })} />}
                     {((data && data.warnings) || []).map((w, i) => <Warning key={i} text={w} />)}
@@ -158,10 +158,10 @@ function HeaderRowStepper({ t, sheet, value, onSettle }) {
     }, [settled, value, onSettle]);
     const label = t('datatables.ss_header_row', 'Header row');
     return (
-        <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
             <span>{label}</span>
             <button type="button" onClick={() => setDraft(d => clamp((Number(d) || 1) - 1))} aria-label={t('datatables.ss_header_dec', 'One row up')}
-                className="p-0.5 rounded border" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                className="p-0.5 rounded border border-[var(--border-default)] text-[var(--text-secondary)]">
                 <Minus className="w-3 h-3" aria-hidden="true" />
             </button>
             <input type="number" min={HEADER_ROW_MIN} max={HEADER_ROW_MAX} value={draft}
@@ -170,7 +170,7 @@ function HeaderRowStepper({ t, sheet, value, onSettle }) {
                 className="w-12 px-1.5 py-0.5 rounded border text-center text-xs"
                 style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
             <button type="button" onClick={() => setDraft(d => clamp((Number(d) || 1) + 1))} aria-label={t('datatables.ss_header_inc', 'One row down')}
-                className="p-0.5 rounded border" style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+                className="p-0.5 rounded border border-[var(--border-default)] text-[var(--text-secondary)]">
                 <Plus className="w-3 h-3" aria-hidden="true" />
             </button>
         </span>

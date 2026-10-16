@@ -7,12 +7,12 @@ const identity = { azureTenantId: '11111111-1111-1111-1111-111111111111',
 const login = () => ({ isAuthenticated: true, oauthProvider: 'microsoft', microsoftIdentityVersion: 2,
     microsoftLoginIdentity: { ...identity }, user: { id: 'local' } });
 async function invoke(session, binding, middleware) {
-    let destroyed = false, nexted = false;
+    let destroyed = false, nexted = false, err;
     const req = { session: { ...session, destroy: cb => { destroyed = true; cb(); } } };
     const res = { statusCode: 200, status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } };
     const gate = middleware || createMicrosoftSessionMiddleware({ getIdentityBinding: async () => binding });
-    await gate(req, res, () => { nexted = true; });
-    return { req, res, destroyed, nexted };
+    await gate(req, res, (e) => { if (e) err = e; else nexted = true; });
+    return { req, res, destroyed, nexted, err };
 }
 test('Microsoft cookie and bridged logins require the exact current identity and revision', async () => {
     assert.equal((await invoke(login(), identity)).nexted, true);
@@ -60,7 +60,7 @@ test('database errors refuse access without destroying a valid login; validation
     await invoke(login(), identity, gate);
     assert.equal(reads, 2);
     const failure = await invoke(login(), null, createMicrosoftSessionMiddleware({ getIdentityBinding: async () => { throw new Error('database unavailable'); } }));
-    assert.equal(failure.res.statusCode, 503);
+    assert.deepEqual([failure.err.status, failure.err.code, failure.err.message], [503, 'auth_unavailable', 'auth_unavailable']);
     assert.equal(failure.nexted, false);
     assert.equal(failure.destroyed, false);
 });

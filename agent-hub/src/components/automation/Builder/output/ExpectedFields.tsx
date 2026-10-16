@@ -1,4 +1,3 @@
-import type { ComponentType } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { humanizeFieldKey as humanizeFieldKeyJs } from '../flow/displayHelpers';
 import FieldKindIconJs from '../mapping/FieldKindIcon';
@@ -6,7 +5,7 @@ import { KIND_WORD as KIND_WORD_JS, isPlaceholder as isPlaceholderJs, kindOfValu
 import { isTechnicalKey } from './columns';
 import { isPlainObject } from './valueHelpers';
 
-const FieldKindIcon = FieldKindIconJs as unknown as ComponentType<{ kind: string; size?: number; className?: string }>;
+const FieldKindIcon = FieldKindIconJs;
 const kindOfValue = kindOfValueJs as (v: unknown) => string;
 const isPlaceholder = isPlaceholderJs as (v: unknown) => boolean;
 const humanizeFieldKey = humanizeFieldKeyJs as (key: string) => string;

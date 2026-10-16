@@ -486,8 +486,9 @@ test('a store failure returns a generic message, not the DB error', async () => 
     try {
         const res = await dispatch({ method: 'GET', url: '/', session: ALICE });
         assert.strictEqual(res.statusCode, 500);
-        assert.strictEqual(res.body.error, 'Request failed');
-        assert.ok(!/relation|character/.test(JSON.stringify(res.body)), 'no SQL text in the response');
+        assert.strictEqual(res.body.error, 'Internal server error');
+        // The body now carries a `correlationId`, whose name contains "relation".
+        assert.ok(!/relation "projects"|character 15/.test(JSON.stringify(res.body)), 'no SQL text in the response');
     } finally {
         MOCKS['../stores/projectStore'].listUserProjects = original;
     }

@@ -20,7 +20,6 @@ const { publicTable } = require('./projection');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { bodyOf, choice, idText, worded } = require('./schemas');
-const log = require('../../telemetry/log');
 
 // The three audiences a person can pick. The route below is the ONLY place one
 // becomes columns.
@@ -153,8 +152,7 @@ function register(router) {
                 // e.code carries the machine-readable half (groups_required) so the
                 // surface can say "pick a group" instead of a generic failure.
                 if (e.status) return res.status(e.status).json({ error: e.message, ...(e.code ? { code: e.code } : {}) });
-                log.error('[datatables] sharing failed:', e.message);
-                res.status(500).json({ error: 'Could not update sharing' });
+                throw e;
             }
         });
 
@@ -173,8 +171,7 @@ function register(router) {
                 res.json({ grants });
             } catch (e) {
                 if (e.status) return res.status(e.status).json({ error: e.message });
-                log.error('[datatables] grant failed:', e.message);
-                res.status(500).json({ error: 'Could not share the datatable' });
+                throw e;
             }
         });
 
@@ -185,12 +182,7 @@ function register(router) {
             // Deliberately NOT licence-gated, and deliberately NOT refused on a
             // personal table either: removing access must always be possible, and a
             // table that holds no grants answers this with an empty list anyway.
-            try {
-                res.json({ grants: await datatableStore.removeGrant(req.datatable.id, req.params.grantId) });
-            } catch (e) {
-                log.error('[datatables] grant removal failed:', e.message);
-                res.status(500).json({ error: 'Could not remove the share' });
-            }
+            res.json({ grants: await datatableStore.removeGrant(req.datatable.id, req.params.grantId) });
         });
 
     router.get('/:id/grants', requireDatatableGrade('viewer'), async (req, res) => {
@@ -200,12 +192,7 @@ function register(router) {
     // ── Who else uses this table ────────────────────────────────────────────────
 
     router.get('/:id/usage', requireDatatableGrade('viewer'), async (req, res) => {
-        try {
-            res.json({ usage: await datatableStore.listUsage(req.datatable.id) });
-        } catch (e) {
-            log.error('[datatables] usage read failed:', e.message);
-            res.status(500).json({ error: 'Could not load who uses this datatable' });
-        }
+        res.json({ usage: await datatableStore.listUsage(req.datatable.id) });
     });
 }
 

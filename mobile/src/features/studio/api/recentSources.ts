@@ -1,6 +1,6 @@
 /**
  * The per-section lists "Recently edited" reads — a port of
- * STUDIO_RECENT_SOURCES (agent-hub/src/utils/studioRecentSources.js): the
+ * STUDIO_RECENT_SOURCES (agent-hub/src/utils/studioRecentSources.ts): the
  * same URL, envelope, name/time fields and status reading per section, so the
  * phone's list and the web's cannot disagree about what a row is called or
  * what state it is in. The web file explains each choice; the short version:

@@ -7,7 +7,6 @@
  */
 
 const express = require('express');
-const log = require('../../../telemetry/log');
 const router = express.Router();
 const configStore = require('../../../stores/configStore');
 const agentStore = require('../../../stores/agentStore');
@@ -20,6 +19,7 @@ const { MAX_ATTACHED_KB_IDS } = require('../../../core/kb/kbSelection');
 const { encryptionOpts } = require('./shared');
 const { z, typeError } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
+const { HttpError } = require('../../../core/http/errors');
 
 // ── What a caller may send ────────────────────────────────────────────────
 // Every schema is `.strict()`: a key the router does not read is a client
@@ -77,72 +77,57 @@ const WorkspaceBody = z.object({
 // ─── Conversation CRUD ───────────────────────────────────────────
 
 router.get('/direct/conversations', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const conversations = await agentStore.listDirectConversations(userId);
-        res.json(conversations);
-    } catch (e) {
-        log.error('Failed to list direct conversations:', e);
-        res.status(500).json({ error: 'Failed to list conversations' });
-    }
+    const userId = req.session.user.id;
+    const conversations = await agentStore.listDirectConversations(userId);
+    res.json(conversations);
 });
 
 router.get('/direct/conversations/:id', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const conv = await agentStore.getDirectConversation(req.params.id, userId, encryptionOpts(req));
-        if (!conv) return res.status(404).json({ error: 'Conversation not found' });
-        // ── Attached knowledge bases: CHECKED AGAIN, ON EVERY READ ──────
-        //
-        // Being stored is not a permission. A base can be unpublished, pulled
-        // out of a group, switched off for chat or deleted after it was
-        // attached — and on a shared thread the READER is not necessarily the
-        // owner who attached it. So the same check the turn runs
-        // (kbVisibility + usage_contexts) runs here, and the client is handed
-        // only what survives it.
-        //
-        // The raw column is stripped rather than shipped alongside: leaving
-        // both on the payload would put an unfiltered list one property away
-        // from the honest one, and something would eventually read the wrong
-        // one. `knowledgeBaseIds` is the whole answer.
-        //
-        // A project member reading a colleague's SHARED thread gets the
-        // transcript and what they may do with it, not the owner's own state
-        // around it (./sharedDirectRead.js).
-        let payload;
-        if (conv.user_id !== userId) {
-            const { resolveConversationAccess } = require('../../../stores/agent/conversationAccess');
-            const access = await resolveConversationAccess(conv.id, userId, 'direct');
-            if (!access) return res.status(404).json({ error: 'Conversation not found' });
-            payload = require('./sharedDirectRead').directMemberView(conv, access);
-        } else {
-            payload = { ...conv };
-            delete payload.knowledge_base_ids;
-        }
-        payload.knowledgeBaseIds = await usableKbIdsForRequest(req, conv.knowledgeBaseIds);
-        res.json(payload);
-    } catch (e) {
-        log.error('Failed to get direct conversation:', e);
-        res.status(500).json({ error: 'Failed to get conversation' });
+    const userId = req.session.user.id;
+    const conv = await agentStore.getDirectConversation(req.params.id, userId, encryptionOpts(req));
+    if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+    // ── Attached knowledge bases: CHECKED AGAIN, ON EVERY READ ──────
+    //
+    // Being stored is not a permission. A base can be unpublished, pulled
+    // out of a group, switched off for chat or deleted after it was
+    // attached — and on a shared thread the READER is not necessarily the
+    // owner who attached it. So the same check the turn runs
+    // (kbVisibility + usage_contexts) runs here, and the client is handed
+    // only what survives it.
+    //
+    // The raw column is stripped rather than shipped alongside: leaving
+    // both on the payload would put an unfiltered list one property away
+    // from the honest one, and something would eventually read the wrong
+    // one. `knowledgeBaseIds` is the whole answer.
+    //
+    // A project member reading a colleague's SHARED thread gets the
+    // transcript and what they may do with it, not the owner's own state
+    // around it (./sharedDirectRead.js).
+    let payload;
+    if (conv.user_id !== userId) {
+        const { resolveConversationAccess } = require('../../../stores/agent/conversationAccess');
+        const access = await resolveConversationAccess(conv.id, userId, 'direct');
+        if (!access) return res.status(404).json({ error: 'Conversation not found' });
+        payload = require('./sharedDirectRead').directMemberView(conv, access);
+    } else {
+        payload = { ...conv };
+        delete payload.knowledge_base_ids;
     }
+    payload.knowledgeBaseIds = await usableKbIdsForRequest(req, conv.knowledgeBaseIds);
+    res.json(payload);
 });
 
 router.get('/direct/conversations/:id/session-skills', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const conv = await agentStore.getDirectConversation(req.params.id, userId, encryptionOpts(req));
-        if (!conv) return res.status(404).json({ error: 'Conversation not found' });
-        const skills = Array.isArray(conv.sessionSkills) ? conv.sessionSkills : [];
-        const activated = Array.isArray(conv.activatedSessionSkillIds) ? conv.activatedSessionSkillIds : [];
-        res.json({
-            skills,
-            activatedSkillIds: activated,
-            modelTier: conv.model_tier || 'fast',
-        });
-    } catch (e) {
-        log.error('Failed to get direct session skills:', e);
-        res.status(500).json({ error: 'Failed to load session skills' });
-    }
+    const userId = req.session.user.id;
+    const conv = await agentStore.getDirectConversation(req.params.id, userId, encryptionOpts(req));
+    if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+    const skills = Array.isArray(conv.sessionSkills) ? conv.sessionSkills : [];
+    const activated = Array.isArray(conv.activatedSessionSkillIds) ? conv.activatedSessionSkillIds : [];
+    res.json({
+        skills,
+        activatedSkillIds: activated,
+        modelTier: conv.model_tier || 'fast',
+    });
 });
 
 // Regenerate the chat-local session-skill set for a Standard-tier conversation.
@@ -228,71 +213,61 @@ router.post('/direct/conversations/:id/session-skills/regenerate', requireAuth, 
 
 // Delete one chat-local session skill from a conversation.
 router.delete('/direct/conversations/:id/session-skills/:skillId', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const conv = await agentStore.getDirectConversation(req.params.id, userId, encryptionOpts(req));
-        if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+    const userId = req.session.user.id;
+    const conv = await agentStore.getDirectConversation(req.params.id, userId, encryptionOpts(req));
+    if (!conv) return res.status(404).json({ error: 'Conversation not found' });
 
-        const sessionSkills = Array.isArray(conv.sessionSkills) ? conv.sessionSkills : [];
-        const skillId = req.params.skillId;
-        const nextSkills = sessionSkills.filter(s => s.id !== skillId);
-        if (nextSkills.length === sessionSkills.length) {
-            return res.status(404).json({ error: 'Session skill not found' });
-        }
-        const nextActivated = (Array.isArray(conv.activatedSessionSkillIds) ? conv.activatedSessionSkillIds : []).filter(id => id !== skillId);
-        const nextCompleted = (Array.isArray(conv.completedSessionSkillIds) ? conv.completedSessionSkillIds : []).filter(id => id !== skillId);
-        const nextCompletions = (Array.isArray(conv.sessionSkillsCompletions) ? conv.sessionSkillsCompletions : []).filter(c => c?.skillId !== skillId);
-
-        const existingMessages = Array.isArray(conv.messages) ? conv.messages : [];
-        await agentStore.updateDirectConversation(req.params.id, existingMessages, userId, {
-            sessionSkills: nextSkills,
-            activatedSessionSkillIds: nextActivated,
-            completedSessionSkillIds: nextCompleted,
-            sessionSkillsCompletions: nextCompletions,
-        }, encryptionOpts(req));
-
-        res.json({ success: true, skills: nextSkills, activatedSkillIds: nextActivated, completedSkillIds: nextCompleted });
-    } catch (e) {
-        log.error('Failed to delete session skill:', e);
-        res.status(500).json({ error: 'Failed to delete session skill' });
+    const sessionSkills = Array.isArray(conv.sessionSkills) ? conv.sessionSkills : [];
+    const skillId = req.params.skillId;
+    const nextSkills = sessionSkills.filter(s => s.id !== skillId);
+    if (nextSkills.length === sessionSkills.length) {
+        return res.status(404).json({ error: 'Session skill not found' });
     }
+    const nextActivated = (Array.isArray(conv.activatedSessionSkillIds) ? conv.activatedSessionSkillIds : []).filter(id => id !== skillId);
+    const nextCompleted = (Array.isArray(conv.completedSessionSkillIds) ? conv.completedSessionSkillIds : []).filter(id => id !== skillId);
+    const nextCompletions = (Array.isArray(conv.sessionSkillsCompletions) ? conv.sessionSkillsCompletions : []).filter(c => c?.skillId !== skillId);
+
+    const existingMessages = Array.isArray(conv.messages) ? conv.messages : [];
+    await agentStore.updateDirectConversation(req.params.id, existingMessages, userId, {
+        sessionSkills: nextSkills,
+        activatedSessionSkillIds: nextActivated,
+        completedSessionSkillIds: nextCompleted,
+        sessionSkillsCompletions: nextCompletions,
+    }, encryptionOpts(req));
+
+    res.json({ success: true, skills: nextSkills, activatedSkillIds: nextActivated, completedSkillIds: nextCompleted });
 });
 
 router.post('/direct/conversations/:id/session-skills/:skillId/import', requireAuth, validate({ body: ImportSkillBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const conv = await agentStore.getDirectConversation(req.params.id, userId, encryptionOpts(req));
-        if (!conv) return res.status(404).json({ error: 'Conversation not found' });
+    const userId = req.session.user.id;
+    const conv = await agentStore.getDirectConversation(req.params.id, userId, encryptionOpts(req));
+    if (!conv) return res.status(404).json({ error: 'Conversation not found' });
 
-        const sessionSkills = Array.isArray(conv.sessionSkills) ? conv.sessionSkills : [];
-        const source = sessionSkills.find(s => s.id === req.params.skillId);
-        if (!source) return res.status(404).json({ error: 'Session skill not found' });
+    const sessionSkills = Array.isArray(conv.sessionSkills) ? conv.sessionSkills : [];
+    const source = sessionSkills.find(s => s.id === req.params.skillId);
+    if (!source) return res.status(404).json({ error: 'Session skill not found' });
 
-        const userStore = require('../../../stores/userStore');
-        const skillStore = require('../../../stores/skillStore');
-        const user = await userStore.getUser(userId);
-        const orgId = user?.organizationId || null;
-        if (!orgId) return res.status(400).json({ error: 'No organization found' });
+    const userStore = require('../../../stores/userStore');
+    const skillStore = require('../../../stores/skillStore');
+    const user = await userStore.getUser(userId);
+    const orgId = user?.organizationId || null;
+    if (!orgId) return res.status(400).json({ error: 'No organization found' });
 
-        const created = await skillStore.createSkill({
-            orgId,
-            userId,
-            name: req.body.name || source.name,
-            description: source.description || '',
-            instructions: source.instructions || '',
-            workflow: source.workflow || '',
-            rules: source.rules || '',
-            examples: source.examples || '',
-            icon: '⚡',
-            isShared: req.body.isShared,
-            dynamicActivation: req.body.dynamicActivation,
-        });
+    const created = await skillStore.createSkill({
+        orgId,
+        userId,
+        name: req.body.name || source.name,
+        description: source.description || '',
+        instructions: source.instructions || '',
+        workflow: source.workflow || '',
+        rules: source.rules || '',
+        examples: source.examples || '',
+        icon: '⚡',
+        isShared: req.body.isShared,
+        dynamicActivation: req.body.dynamicActivation,
+    });
 
-        res.json({ success: true, skill: created });
-    } catch (e) {
-        log.error('Failed to import direct session skill:', e);
-        res.status(500).json({ error: 'Failed to import session skill' });
-    }
+    res.json({ success: true, skill: created });
 });
 
 // Rename / pin / label / attach knowledge bases to a direct conversation
@@ -346,98 +321,67 @@ router.patch('/direct/conversations/:id', requireAuth, validate({ body: Conversa
     } catch (e) {
         // A schema that has not migrated yet is not "you are not the owner".
         if (e?.code === 'KB_COLUMN_MISSING') {
-            return res.status(503).json({ error: 'Knowledge bases cannot be attached until the database has migrated' });
+            throw new HttpError(503, 'kb_column_missing', 'Knowledge bases cannot be attached until the database has migrated');
         }
-        log.error('Failed to update direct conversation:', e);
-        res.status(500).json({ error: 'Failed to update conversation' });
+        throw e;
     }
 });
 
 // ─── Conversation Label CRUD ───
 router.get('/labels', requireAuth, async (req, res) => {
-    try {
-        const labels = await agentStore.listLabels(req.session.user.id);
-        res.json(labels);
-    } catch (e) {
-        log.error('Failed to list labels:', e);
-        res.status(500).json({ error: 'Failed to list labels' });
-    }
+    const labels = await agentStore.listLabels(req.session.user.id);
+    res.json(labels);
 });
 
 router.post('/labels', requireAuth, validate({ body: LabelBody }), async (req, res) => {
-    try {
-        const { name, color } = req.body;
-        const label = await agentStore.createLabel(req.session.user.id, name, color);
-        res.json(label);
-    } catch (e) {
-        log.error('Failed to create label:', e);
-        res.status(500).json({ error: 'Failed to create label' });
-    }
+    const { name, color } = req.body;
+    const label = await agentStore.createLabel(req.session.user.id, name, color);
+    res.json(label);
 });
 
 router.patch('/labels/:id', requireAuth, validate({ body: LabelPatch }), async (req, res) => {
-    try {
-        const { name, color } = req.body;
-        await agentStore.updateLabel(req.params.id, req.session.user.id, { name, color });
-        res.json({ success: true });
-    } catch (e) {
-        log.error('Failed to update label:', e);
-        res.status(500).json({ error: 'Failed to update label' });
-    }
+    const { name, color } = req.body;
+    await agentStore.updateLabel(req.params.id, req.session.user.id, { name, color });
+    res.json({ success: true });
 });
 
 router.delete('/labels/:id', requireAuth, async (req, res) => {
-    try {
-        await agentStore.deleteLabel(req.params.id, req.session.user.id);
-        res.json({ success: true });
-    } catch (e) {
-        log.error('Failed to delete label:', e);
-        res.status(500).json({ error: 'Failed to delete label' });
-    }
+    await agentStore.deleteLabel(req.params.id, req.session.user.id);
+    res.json({ success: true });
 });
 
 router.delete('/direct/conversations/:id', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const success = await agentStore.deleteDirectConversation(req.params.id, userId);
-        if (!success) return res.status(404).json({ error: 'Conversation not found' });
-        res.json({ success: true });
-    } catch (e) {
-        log.error('Failed to delete direct conversation:', e);
-        res.status(500).json({ error: 'Failed to delete conversation' });
-    }
+    const userId = req.session.user.id;
+    const success = await agentStore.deleteDirectConversation(req.params.id, userId);
+    if (!success) return res.status(404).json({ error: 'Conversation not found' });
+    res.json({ success: true });
 });
 
 // Get workspace content for a direct conversation
 router.get('/direct/conversations/:id/workspace', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const conv = await agentStore.getDirectConversation(req.params.id, userId, encryptionOpts(req));
-        // The workspace is the OWNER's side panel, not part of a shared
-        // thread: a project member who may read the conversation gets the
-        // same 404 as a stranger (the agent side answers the same way).
-        if (!conv || conv.user_id !== userId) return res.status(404).json({ error: 'Conversation not found' });
-        // Render-time un-tokenisation. The stored workspace_content keeps the
-        // raw `[person_N]` tokens so the AI can re-read them via notebook_read
-        // in a later turn; this endpoint reaches the user, so swap them back
-        // to real values. Async getter so an open-after-server-restart hits the
-        // DB hydrate path in dlpRunner.
-        const { restoreTokens } = require('../../../core/privacy/piiDetection');
-        const _convMap = await require('../../../core/dlp/dlpRunner').getConversationTokenMapAsync(req.params.id);
-        const { resolveWorkspaceContent } = require('../../../integrations/workspaceTools');
-        const content = await resolveWorkspaceContent({
-            notebookId: conv.workspace_notebook_id,
-            userId,
-            fallbackContent: conv.workspace_content,
-        });
-        res.json({
-            content: restoreTokens(content, _convMap),
-            notebookId: conv.workspace_notebook_id || null,
-        });
-    } catch (e) {
-        log.error('Failed to get direct conversation workspace:', e);
-        res.status(500).json({ error: 'Failed to get workspace' });
-    }
+    const userId = req.session.user.id;
+    const conv = await agentStore.getDirectConversation(req.params.id, userId, encryptionOpts(req));
+    // The workspace is the OWNER's side panel, not part of a shared
+    // thread: a project member who may read the conversation gets the
+    // same 404 as a stranger (the agent side answers the same way).
+    if (!conv || conv.user_id !== userId) return res.status(404).json({ error: 'Conversation not found' });
+    // Render-time un-tokenisation. The stored workspace_content keeps the
+    // raw `[person_N]` tokens so the AI can re-read them via notebook_read
+    // in a later turn; this endpoint reaches the user, so swap them back
+    // to real values. Async getter so an open-after-server-restart hits the
+    // DB hydrate path in dlpRunner.
+    const { restoreTokens } = require('../../../core/privacy/piiDetection');
+    const _convMap = await require('../../../core/dlp/dlpRunner').getConversationTokenMapAsync(req.params.id);
+    const { resolveWorkspaceContent } = require('../../../integrations/workspaceTools');
+    const content = await resolveWorkspaceContent({
+        notebookId: conv.workspace_notebook_id,
+        userId,
+        fallbackContent: conv.workspace_content,
+    });
+    res.json({
+        content: restoreTokens(content, _convMap),
+        notebookId: conv.workspace_notebook_id || null,
+    });
 });
 
 // Update workspace content for a direct conversation
@@ -462,8 +406,7 @@ router.put('/direct/conversations/:id/workspace', requireAuth, validate({ body: 
     } catch (e) {
         if (e?.code === 'INVALID_WORKSPACE_CONTENT') return res.status(400).json({ error: 'Workspace content must be a string' });
         if (e?.code === 'WORKSPACE_CONTENT_TOO_LARGE') return res.status(413).json({ error: 'Workspace content is too large' });
-        log.error('Failed to update direct conversation workspace:', e);
-        res.status(500).json({ error: 'Failed to update workspace' });
+        throw e;
     }
 });
 

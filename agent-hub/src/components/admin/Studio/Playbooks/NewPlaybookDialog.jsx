@@ -256,7 +256,7 @@ export default function NewPlaybookDialog({ user = null, onClose, onCreated, has
             description={t('playbooks.new.subtitle', 'The AI builds in phases and stops after each one for your go-ahead.')}
             footer={(
                 <div className="flex items-center justify-end gap-2">
-                    <button type="button" onClick={onClose} className="h-8 px-3 rounded-[10px] text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                    <button type="button" onClick={onClose} className="h-8 px-3 rounded-[10px] text-xs font-medium text-[var(--text-secondary)]">
                         {t('playbooks.new.cancel', 'Cancel')}
                     </button>
                     <button
@@ -321,7 +321,7 @@ export default function NewPlaybookDialog({ user = null, onClose, onCreated, has
                                 {composing ? <Loader2 className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Wand2 className="w-3.5 h-3.5" aria-hidden="true" />}
                                 {composed ? t('playbooks.new.compose_again', 'Write it again') : t('playbooks.new.compose', 'Let the AI write the phases')}
                             </button>
-                            {composing && <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{t('playbooks.new.composing', 'Writing the playbook…')}</span>}
+                            {composing && <span className="text-[11px] text-[var(--text-secondary)]">{t('playbooks.new.composing', 'Writing the playbook…')}</span>}
                         </div>
                         {composeError && <p className="mt-2 text-xs" style={{ color: 'var(--error-ink, var(--error))' }} role="alert">{composeError}</p>}
                         {composed && <RecipePreview recipe={composed} warnings={composeWarnings} t={t} />}
@@ -352,7 +352,7 @@ export default function NewPlaybookDialog({ user = null, onClose, onCreated, has
                                     <div className="mt-2">
                                         <label className={label} htmlFor="pbk-table" style={{ color: 'var(--text-secondary)' }}>{t('playbooks.new.pick_table', 'Table')}</label>
                                         {tables === null ? (
-                                            <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}><Loader2 className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />{t('playbooks.new.loading_tables', 'Loading your tables…')}</span>
+                                            <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)]"><Loader2 className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />{t('playbooks.new.loading_tables', 'Loading your tables…')}</span>
                                         ) : (
                                             <select id="pbk-table" className={input} style={inputStyle} value={datatableId} onChange={(e) => setDatatableId(e.target.value)} data-testid="playbook-table-pick">
                                                 <option value="">{t('playbooks.new.pick_table_placeholder', 'Pick a table…')}</option>
@@ -361,7 +361,7 @@ export default function NewPlaybookDialog({ user = null, onClose, onCreated, has
                                                 ))}
                                             </select>
                                         )}
-                                        <p className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{t('playbooks.new.table_existing_hint', 'Own table or a Nextcloud mirror — you need edit rights; its columns are checked in the first phase.')}</p>
+                                        <p className="mt-1 text-[11px] text-[var(--text-secondary)]">{t('playbooks.new.table_existing_hint', 'Own table or a Nextcloud mirror — you need edit rights; its columns are checked in the first phase.')}</p>
                                     </div>
                                 )}
                             </div>
@@ -372,7 +372,7 @@ export default function NewPlaybookDialog({ user = null, onClose, onCreated, has
                                 <label className={label} htmlFor={`pbk-in-${i.key}`} style={{ color: 'var(--text-secondary)' }}>{i.key === 'folderPath' && recipe.source === 'builtin' ? t('playbooks.new.folder', 'Nextcloud folder with the invoices') : i.label}</label>
                                 <input id={`pbk-in-${i.key}`} data-testid={`playbook-input-${i.key}`} className={input} style={inputStyle} value={inputs[i.key] || ''} onChange={(e) => setInputs((prev) => ({ ...prev, [i.key]: e.target.value }))} placeholder={i.placeholder || (i.kind === 'folder' ? '/Invoices' : '')} />
                                 {i.kind === 'folder' && folderProblems.includes(i) && <p className="mt-1 text-[11px]" style={{ color: 'var(--error-ink, var(--error))' }}>{t('playbooks.new.err_folder', 'The folder is an absolute Nextcloud path, e.g. /Invoices.')}</p>}
-                                {i.kind === 'folder' && !canLinkNextcloud(user) && <p className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{t('playbooks.new.folder_hint', 'The automation reads this folder through your Nextcloud connection.')}</p>}
+                                {i.kind === 'folder' && !canLinkNextcloud(user) && <p className="mt-1 text-[11px] text-[var(--text-secondary)]">{t('playbooks.new.folder_hint', 'The automation reads this folder through your Nextcloud connection.')}</p>}
                             </div>
                         ))}
 
@@ -385,14 +385,14 @@ export default function NewPlaybookDialog({ user = null, onClose, onCreated, has
                                 size="sm"
                                 options={tierKeys.map((k) => ({ value: k, label: t(tierI18nKey(k), tierLabel(k, modelTiers || {})) }))}
                             />
-                            <p className="mt-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>{t('playbooks.new.tier_hint_generic', 'Every phase of this playbook is built on the tier you pick here; Auto picks one per turn.')}</p>
+                            <p className="mt-1 text-[11px] text-[var(--text-secondary)]">{t('playbooks.new.tier_hint_generic', 'Every phase of this playbook is built on the tier you pick here; Auto picks one per turn.')}</p>
                         </div>
 
                         {wantsApprover && (
                             <div>
                                 <label className={label} htmlFor="pbk-approver" style={{ color: 'var(--text-secondary)' }}>{t('playbooks.new.approver', 'Approver group (optional)')}</label>
                                 {approvalsAllowed === false || (approvalsAllowed === null && !hasLicenseFeature('approvals')) ? (
-                                    <p className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                                    <p className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
                                         <Lock className="w-3.5 h-3.5" aria-hidden="true" />
                                         {t('playbooks.new.approvals_locked', 'The approval flow needs the Enterprise plan — the playbook skips that phase.')}
                                     </p>
@@ -421,11 +421,11 @@ function RecipePreview({ recipe, warnings = [], t }) {
     const synthesized = warnings.includes('table_synthesized') || (Array.isArray(recipe.warnings) && recipe.warnings.includes('table_synthesized'));
     return (
         <div className="mt-3 rounded-xl p-3" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-default)' }} data-testid="playbook-recipe-preview">
-            <div className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-primary)]">
                 <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />{recipe.title}
             </div>
-            {recipe.description && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{recipe.description}</p>}
-            <ol className="mt-2 flex flex-wrap items-center gap-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            {recipe.description && <p className="text-[11px] mt-0.5 text-[var(--text-secondary)]">{recipe.description}</p>}
+            <ol className="mt-2 flex flex-wrap items-center gap-1 text-[11px] text-[var(--text-secondary)]">
                 {(recipe.phases || []).map((p, i) => (
                     <li key={p.key} className="inline-flex items-center gap-1">
                         {i > 0 && <span aria-hidden="true">→</span>}
@@ -434,7 +434,7 @@ function RecipePreview({ recipe, warnings = [], t }) {
                 ))}
             </ol>
             {fields.length > 0 && (
-                <p className="mt-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <p className="mt-2 text-[11px] text-[var(--text-secondary)]">
                     {t('playbooks.new.preview_columns', 'Columns: {list}', { list: fields.map((f) => `${f.name || f.key} (${f.type})`).join(', ') })}
                 </p>
             )}

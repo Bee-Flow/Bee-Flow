@@ -70,73 +70,63 @@ const PolicyBody = bodyOf({
 
 // GET /:orgId — current policy (any member of the org may read it)
 router.get('/:orgId', requireAuth, async (req, res) => {
-    try {
-        const { orgId } = req.params;
-        const orgIds = await resolveUserOrgIds(req);
-        const isMember = orgIds === null || (orgIds && orgIds.has(orgId));
-        if (!isMember) return res.status(403).json({ error: 'Not a member of this organization' });
+    const { orgId } = req.params;
+    const orgIds = await resolveUserOrgIds(req);
+    const isMember = orgIds === null || (orgIds && orgIds.has(orgId));
+    if (!isMember) return res.status(403).json({ error: 'Not a member of this organization' });
 
-        const stored = await configStore.getConfig(`${CONFIG_KEY_PREFIX}${orgId}`);
-        res.json({
-            ...normalizePolicy(stored),
-            // Lets the SPA distinguish "never configured" from "explicitly off".
-            configured: !!stored,
-            // So the screen can show what a percentage means in real tokens
-            // without shipping a second copy of the context-window table.
-            contextWindowExamples: contextWindowExamples(),
-            contextBudgetRange: {
-                min: MIN_CONTEXT_BUDGET_PERCENT,
-                max: MAX_CONTEXT_BUDGET_PERCENT,
-            },
-        });
-    } catch (err) {
-        log.error('[OrgAiContext] GET failed:', err.message);
-        res.status(500).json({ error: 'Failed to load AI context settings' });
-    }
+    const stored = await configStore.getConfig(`${CONFIG_KEY_PREFIX}${orgId}`);
+    res.json({
+        ...normalizePolicy(stored),
+        // Lets the SPA distinguish "never configured" from "explicitly off".
+        configured: !!stored,
+        // So the screen can show what a percentage means in real tokens
+        // without shipping a second copy of the context-window table.
+        contextWindowExamples: contextWindowExamples(),
+        contextBudgetRange: {
+            min: MIN_CONTEXT_BUDGET_PERCENT,
+            max: MAX_CONTEXT_BUDGET_PERCENT,
+        },
+    });
 });
 
 // PUT /:orgId — save (org admin or super admin only)
 router.put('/:orgId', requireAuth, validate({ body: PolicyBody }), async (req, res) => {
-    try {
-        const { orgId } = req.params;
-        if (!(await isOrgAdmin(req, orgId))) {
-            return res.status(403).json({ error: 'Only organization admins can change AI context settings' });
-        }
-
-        const { compactionEnabled, compactionThreshold, recentWindow, contextBudgetPercent } = req.body;
-        // normalizePolicy clamps the numbers and resolves the default of an
-        // absent one, so a hand-rolled body can never write an unusable row.
-        const policy = normalizePolicy({
-            compactionEnabled,
-            compactionThreshold,
-            recentWindow,
-            contextBudgetPercent,
-        });
-
-        await configStore.setConfig(`${CONFIG_KEY_PREFIX}${orgId}`, {
-            ...policy,
-            updatedAt: new Date().toISOString(),
-            updatedBy: req.session?.user?.id || null,
-        });
-        // The runtime memoises the policy for 30 s; drop it so the admin sees
-        // the change take effect on their very next message.
-        invalidateContextPolicy(orgId);
-
-        log.info(`[OrgAiContext] org ${orgId}: compaction ${policy.compactionEnabled ? 'ENABLED' : 'disabled'}`
-            + `, context budget ${policy.contextBudgetPercent}%`);
-        res.json({
-            ...policy,
-            configured: true,
-            contextWindowExamples: contextWindowExamples(),
-            contextBudgetRange: {
-                min: MIN_CONTEXT_BUDGET_PERCENT,
-                max: MAX_CONTEXT_BUDGET_PERCENT,
-            },
-        });
-    } catch (err) {
-        log.error('[OrgAiContext] PUT failed:', err.message);
-        res.status(500).json({ error: 'Failed to save AI context settings' });
+    const { orgId } = req.params;
+    if (!(await isOrgAdmin(req, orgId))) {
+        return res.status(403).json({ error: 'Only organization admins can change AI context settings' });
     }
+
+    const { compactionEnabled, compactionThreshold, recentWindow, contextBudgetPercent } = req.body;
+    // normalizePolicy clamps the numbers and resolves the default of an
+    // absent one, so a hand-rolled body can never write an unusable row.
+    const policy = normalizePolicy({
+        compactionEnabled,
+        compactionThreshold,
+        recentWindow,
+        contextBudgetPercent,
+    });
+
+    await configStore.setConfig(`${CONFIG_KEY_PREFIX}${orgId}`, {
+        ...policy,
+        updatedAt: new Date().toISOString(),
+        updatedBy: req.session?.user?.id || null,
+    });
+    // The runtime memoises the policy for 30 s; drop it so the admin sees
+    // the change take effect on their very next message.
+    invalidateContextPolicy(orgId);
+
+    log.info(`[OrgAiContext] org ${orgId}: compaction ${policy.compactionEnabled ? 'ENABLED' : 'disabled'}`
+        + `, context budget ${policy.contextBudgetPercent}%`);
+    res.json({
+        ...policy,
+        configured: true,
+        contextWindowExamples: contextWindowExamples(),
+        contextBudgetRange: {
+            min: MIN_CONTEXT_BUDGET_PERCENT,
+            max: MAX_CONTEXT_BUDGET_PERCENT,
+        },
+    });
 });
 
 module.exports = router;

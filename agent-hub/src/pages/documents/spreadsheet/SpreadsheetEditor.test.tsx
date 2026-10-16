@@ -15,7 +15,7 @@ import { SAVE_DEBOUNCE_MS } from './useSheet';
  */
 
 const { sheetApi, docApi } = vi.hoisted(() => ({
-    sheetApi: { getSheet: vi.fn(), patchSheet: vi.fn(), downloadSheetCsv: vi.fn() },
+    sheetApi: { getSheet: vi.fn(), patchSheet: vi.fn(), downloadSheetCsv: vi.fn(), downloadSheetXlsx: vi.fn() },
     docApi: { getDocument: vi.fn(), updateDocument: vi.fn() },
 }));
 vi.mock('./sheetApi', async (original) => ({ ...(await original<typeof import('./sheetApi')>()), ...sheetApi }));
@@ -313,6 +313,15 @@ describe('SpreadsheetEditor saving', () => {
         await user.click(screen.getByRole('button', { name: 'Download CSV' }));
         await waitFor(() => expect(sheetApi.downloadSheetCsv).toHaveBeenCalledWith('doc-1', 'Budget'));
         expect(sheetApi.patchSheet).toHaveBeenCalledWith('doc-1', { A1: '1' });
+    });
+
+    it('downloads the whole workbook as Excel after saving', async () => {
+        const { user, cell } = await open();
+        await user.click(cell('A1'));
+        await user.keyboard('2{Enter}');
+        await user.click(screen.getByRole('button', { name: 'Download Excel' }));
+        await waitFor(() => expect(sheetApi.downloadSheetXlsx).toHaveBeenCalledWith('doc-1', 'Budget'));
+        expect(sheetApi.patchSheet).toHaveBeenCalledWith('doc-1', { A1: '2' });
     });
 });
 

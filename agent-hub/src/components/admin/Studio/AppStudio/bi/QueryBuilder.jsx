@@ -161,7 +161,7 @@ async function runPreview(appId, payload, t) {
     if (!res.ok) throw new Error(body?.error || t('studio_apps_bi.query.preview_failed_status', 'Preview failed ({status})', { status: res.status }));
     return { rows: Array.isArray(body?.rows) ? body.rows : [] };
 }
-
+/** @param {import('./QueryBuilder.types').QueryBuilderProps} props */
 export default function QueryBuilder({ open, onClose, appId, componentType = 'chart', onSave, onOpenTables = null }) {
     const { t } = useTranslation();
     const { tables, isLoading: tablesLoading } = useAppTables(open ? appId : null);
@@ -304,8 +304,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
                         type="button"
                         onClick={handleSave}
                         disabled={!valid || saving || previewPending}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold text-white disabled:opacity-40"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold text-white disabled:opacity-40 bg-[var(--accent-primary)]"
                     >
                         {saving || previewPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                         {t('studio_apps_bi.query.use_this', 'Use this')}
@@ -324,8 +323,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
                         <button
                             type="button"
                             onClick={() => { onClose?.(); onOpenTables(); }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold text-white"
-                            style={{ background: 'var(--accent-primary)' }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold text-white bg-[var(--accent-primary)]"
                         >
                             <Table2 className="w-4 h-4" aria-hidden="true" /> {t('studio_apps_bi.query.add_table', 'Add a table')}
                         </button>
@@ -414,7 +412,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
                             <div className="text-xs font-medium text-[var(--text-secondary)] mb-1.5">{t('studio_apps_bi.query.preview', 'Preview')}</div>
                             <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] p-3 min-h-[120px]">
                                 {unknownFields.length ? (
-                                    <p className="text-xs" style={{ color: 'var(--error)' }}>
+                                    <p className="text-xs text-[var(--error)]">
                                         {t('studio_apps_bi.query.unknown_fields', 'This table has no {fields} column any more. Pick another column above (or remove that row).', { fields: unknownFields.map((k) => fieldName(k)).join(', ') })}
                                     </p>
                                 ) : !valid ? (
@@ -422,7 +420,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
                                 ) : preview.isLoading ? (
                                     <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]"><Loader2 className="w-4 h-4 animate-spin" /> {t('studio_apps_bi.query.running', 'Running…')}</div>
                                 ) : preview.isError ? (
-                                    <p className="text-xs" style={{ color: 'var(--error)' }}>{preview.error?.message || t('studio_apps_bi.query.preview_failed', 'Preview failed.')}</p>
+                                    <p className="text-xs text-[var(--error)]">{preview.error?.message || t('studio_apps_bi.query.preview_failed', 'Preview failed.')}</p>
                                 ) : previewRows.length === 0 ? (
                                     <p className="text-xs text-[var(--text-muted)]">{t('studio_apps_bi.query.no_rows', 'No rows match this query.')}</p>
                                 ) : (
@@ -483,8 +481,8 @@ function formatCell(v) {
  * inspector's own updateNodeProps→onCommit committer, so a chart lands in ONE
  * history entry. appId comes from the editor-chrome context; the button renders
  * inert (disabled) outside the editor shell, where no appId is in scope — so the
- * per-type inspector smoke tests stay green. (Inspectors also pass node/
- * definition for symmetry; they're unused here and safely ignored.)
+ * per-type inspector smoke tests stay green.
+ * @param {import('./QueryBuilder.types').ConfigureDataButtonProps} props
  */
 export function ConfigureDataButton({ patch, componentType = 'chart', disabled = false }) {
     const { t } = useTranslation();

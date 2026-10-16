@@ -72,15 +72,14 @@ function WizardFooter({ step, ready, busy, onBack, onNext, onInstall, onDone }) 
     const { t } = useTranslation();
     return (
         <>
-            <span className="mr-auto text-[11px]" style={{ color: 'var(--text-tertiary)' }} data-testid="install-footer-note">
+            <span className="mr-auto text-[11px] text-[var(--text-tertiary)]" data-testid="install-footer-note">
                 {t('solutions.install_footer_draft', 'Everything arrives as a draft.')}
             </span>
             {step > 1 && step < 4 && (
                 <button
                     type="button"
                     onClick={onBack}
-                    className="px-3 py-1.5 rounded-lg text-sm border"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                    className="px-3 py-1.5 rounded-lg text-sm border border-[var(--border-default)] text-[var(--text-secondary)]"
                 >
                     {t('solutions.install_back', 'Back')}
                 </button>
@@ -90,8 +89,7 @@ function WizardFooter({ step, ready, busy, onBack, onNext, onInstall, onDone }) 
                     type="button"
                     onClick={onNext}
                     disabled={!ready}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 bg-[var(--accent-primary)]"
                     data-testid="install-next"
                 >
                     {t('solutions.install_next', 'Next')}
@@ -102,8 +100,7 @@ function WizardFooter({ step, ready, busy, onBack, onNext, onInstall, onDone }) 
                     type="button"
                     onClick={onInstall}
                     disabled={busy || !ready}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium text-white flex items-center gap-1 disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium text-white flex items-center gap-1 disabled:opacity-50 bg-[var(--accent-primary)]"
                     data-testid="install-confirm"
                 >
                     {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Package className="w-3.5 h-3.5" />}
@@ -114,8 +111,7 @@ function WizardFooter({ step, ready, busy, onBack, onNext, onInstall, onDone }) 
                 <button
                     type="button"
                     onClick={onDone}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium text-white"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-[var(--accent-primary)]"
                     data-testid="install-done"
                 >
                     {t('solutions.install_open', 'Open it')}
@@ -306,14 +302,14 @@ export default function InstallBlueprintModal({ open, source, onClose, onInstall
             )}
         >
             {loading && (
-                <p className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="flex items-center gap-2 text-sm text-[var(--text-tertiary)]">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     {t('solutions.install_loading', 'Reading the Blueprint…')}
                 </p>
             )}
 
             {unreadable && (
-                <p className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-primary)' }} data-testid="install-unreadable">
+                <p className="flex items-start gap-2 text-sm text-[var(--text-primary)]" data-testid="install-unreadable">
                     <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
                     {t('solutions.install_unreadable',
                         'That Blueprint could not be read, so there is nothing to describe and nothing has been installed.')}
@@ -321,7 +317,7 @@ export default function InstallBlueprintModal({ open, source, onClose, onInstall
             )}
 
             {error && (
-                <p className="flex items-start gap-2 text-sm mb-3" style={{ color: 'var(--text-primary)' }} data-testid="install-error">
+                <p className="flex items-start gap-2 text-sm mb-3 text-[var(--text-primary)]" data-testid="install-error">
                     <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
                     {error}
                 </p>

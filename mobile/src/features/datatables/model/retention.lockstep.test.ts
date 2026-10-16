@@ -1,5 +1,5 @@
 /**
- * The retention port held to the web's RetentionPanel.jsx and
+ * The retention port held to the web's RetentionPanel.tsx and
  * datatableDisplay.js (agent-hub/src/components/admin/Studio/Datatables).
  * Differential where the web keeps the rule in a pure function (the panel's
  * `defaultField` and `labelOf`, and `expiringSoonCutoffIso`), textual for the
@@ -23,7 +23,7 @@ import {
 import type { Column } from './types';
 
 const DIR = 'components/admin/Studio/Datatables';
-const PANEL = `${DIR}/RetentionPanel.jsx`;
+const PANEL = `${DIR}/RetentionPanel.tsx`;
 const DISPLAY = `${DIR}/datatableDisplay.js`;
 const describeIfWeb = webFileExists(PANEL) && webFileExists(DISPLAY) ? describe : describe.skip;
 

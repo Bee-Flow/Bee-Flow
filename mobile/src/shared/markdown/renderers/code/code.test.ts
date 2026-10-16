@@ -15,7 +15,7 @@ import { htmlToRuns, scopeKey } from './hljsHtml';
 import { GRAMMAR_OF, isCompactSnippet, LANGUAGE_LABELS, languageLabel } from './languages';
 import { highlightDelay, highlightRuns } from './useHighlight';
 
-const WEB = fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/MarkdownRenderer.jsx`, 'utf8');
+const WEB = fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/MarkdownRenderer.tsx`, 'utf8');
 const MOBILE = path.resolve(__dirname, '../../../../..');
 const GITHUB_DARK_CSS = fs.readFileSync(path.join(MOBILE, 'node_modules/highlight.js/styles/github-dark.css'), 'utf8');
 
@@ -27,7 +27,7 @@ describe('lockstep with the web', () => {
     });
 
     it('labels languages as the web’s header does', () => {
-        const table = /const langLabels = \{([\s\S]*?)\};/.exec(WEB)?.[1] ?? '';
+        const table = /const langLabels(?:: [^=]+)? = \{([\s\S]*?)\};/.exec(WEB)?.[1] ?? '';
         const labels = Object.fromEntries([...table.matchAll(/(\w+): '([^']+)'/g)].map((m) => [m[1], m[2]]));
         expect(LANGUAGE_LABELS).toEqual(labels);
     });

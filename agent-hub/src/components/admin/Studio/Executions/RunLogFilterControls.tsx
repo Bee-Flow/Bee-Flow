@@ -1,13 +1,12 @@
 import { ChevronDown, Link2, ListFilter, Search, X } from 'lucide-react';
 import { useRef, useState } from 'react';
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { triggerLabel } from './runLanguage';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import AnchoredMenuJs from '../../../shared/AnchoredMenu';
 
-// A .jsx module whose `= null` defaults would type its props as null-only.
-const AnchoredMenu = AnchoredMenuJs as unknown as ComponentType<Record<string, unknown>>;
+const AnchoredMenu = AnchoredMenuJs;
 
 /** The run log's filters, as useExecutions holds them. */
 export interface RunLogFilters {

@@ -111,42 +111,42 @@ export function RelationsStep({ t, tables, locked = [], lockedLabel = '', sugges
 
     return (
         <div className="space-y-3">
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{intro}</p>
+            <p className="text-sm text-[var(--text-secondary)]">{intro}</p>
             {tables.length < 2 && (
-                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{needTwo}</p>
+                <p className="text-xs text-[var(--text-tertiary)]">{needTwo}</p>
             )}
             {locked.map((r) => (
                 <div key={r.key} className="flex items-center gap-2 p-2.5 text-sm" style={CARD}>
                     <Lock className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
-                    <span className="min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>
+                    <span className="min-w-0 truncate text-[var(--text-primary)]">
                         {r.from.name} · {r.columnTitle} → {r.targetName || t('datatables.nc_rel_unlinked', 'a table not selected')}
                     </span>
-                    <span className="ml-auto text-[11px] shrink-0" style={{ color: 'var(--text-tertiary)' }}>{lockedLabel}</span>
+                    <span className="ml-auto text-[11px] shrink-0 text-[var(--text-tertiary)]">{lockedLabel}</span>
                 </div>
             ))}
             {suggestions.map((sg) => (
                 <label key={relKeyOf(sg)} className="flex items-center gap-2 p-2.5 text-sm cursor-pointer" style={CARD}>
                     <input type="checkbox" checked={hasRel(sg)} onChange={(e) => (e.target.checked ? onAdd(sg) : onRemove(sg))} />
-                    <span className="min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>
+                    <span className="min-w-0 truncate text-[var(--text-primary)]">
                         {sg.from.name} · {sg.localColumn.title} {t('datatables.nc_relation_matches', 'matches')} {sg.to.name} · {sg.targetColumn.title}
                     </span>
-                    <span className="ml-auto text-[11px] shrink-0" style={{ color: 'var(--text-tertiary)' }}>{t('datatables.nc_relation_suggested', 'same title')}</span>
+                    <span className="ml-auto text-[11px] shrink-0 text-[var(--text-tertiary)]">{t('datatables.nc_relation_suggested', 'same title')}</span>
                 </label>
             ))}
             {manual.map((r) => (
                 <div key={relKeyOf(r)} className="flex items-center gap-2 p-2.5 text-sm" style={CARD}>
                     <Link2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
-                    <span className="min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>
+                    <span className="min-w-0 truncate text-[var(--text-primary)]">
                         {r.from.name} · {r.localColumn.title} {t('datatables.nc_relation_matches', 'matches')} {r.to.name} · {r.targetColumn.title}
                     </span>
-                    <button type="button" onClick={() => onRemove(r)} className="ml-auto p-1 rounded" aria-label={t('datatables.nc_relation_remove', 'Remove this relation')} style={{ color: 'var(--text-tertiary)' }}>
+                    <button type="button" onClick={() => onRemove(r)} className="ml-auto p-1 rounded text-[var(--text-tertiary)]" aria-label={t('datatables.nc_relation_remove', 'Remove this relation')}>
                         <X className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
                 </div>
             ))}
             {tables.length >= 2 && (
                 <div className="p-3 space-y-2" style={CARD}>
-                    <span className="block text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{t('datatables.nc_relation_add', 'Add a relation')}</span>
+                    <span className="block text-xs font-medium text-[var(--text-primary)]">{t('datatables.nc_relation_add', 'Add a relation')}</span>
                     <div className="grid gap-2 items-center" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) auto minmax(0,1fr) minmax(0,1fr)' }}>
                         <select value={draft.from} onChange={(e) => setDraft({ ...draft, from: e.target.value, local: '' })} className={SELECT} style={INPUT_STYLE} aria-label={t('datatables.nc_rel_from', 'Table')}>
                             <option value="">{t('datatables.nc_rel_from', 'Table')}</option>
@@ -156,7 +156,7 @@ export function RelationsStep({ t, tables, locked = [], lockedLabel = '', sugges
                             <option value="">{t('datatables.nc_rel_column', 'Column')}</option>
                             {cols(fromSel).map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                         </select>
-                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('datatables.nc_relation_matches', 'matches')}</span>
+                        <span className="text-xs text-[var(--text-secondary)]">{t('datatables.nc_relation_matches', 'matches')}</span>
                         <select value={draft.to} onChange={(e) => setDraft({ ...draft, to: e.target.value, target: '' })} className={SELECT} style={INPUT_STYLE} aria-label={t('datatables.nc_rel_to', 'Other table')}>
                             <option value="">{t('datatables.nc_rel_to', 'Other table')}</option>
                             {tables.filter(s => s.refKey !== draft.from).map(s => <option key={s.refKey} value={s.refKey}>{s.name}</option>)}
@@ -167,13 +167,13 @@ export function RelationsStep({ t, tables, locked = [], lockedLabel = '', sugges
                         </select>
                     </div>
                     {draftRel && (
-                        <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-[11px] text-[var(--text-secondary)]">
                             {t('datatables.nc_relation_sentence', 'Each row of {a} gets a link to the row of {b} whose {y} equals its {x}. The link column will be called {key}.',
                                 { a: fromSel.name, b: toSel.name, x: localCol.title, y: targetCol.title, key: `${toSel.key}_ref` })}
                         </p>
                     )}
                     <button type="button" disabled={!draftRel || hasRel(draftRel)} onClick={() => { onAdd(draftRel); setDraft({ from: '', local: '', to: '', target: '' }); }}
-                        className="text-xs inline-flex items-center gap-1.5 rounded disabled:opacity-50" style={{ color: 'var(--text-secondary)' }}>
+                        className="text-xs inline-flex items-center gap-1.5 rounded disabled:opacity-50 text-[var(--text-secondary)]">
                         <Plus className="w-3.5 h-3.5" aria-hidden="true" /> {t('datatables.nc_relation_use', 'Use this relation')}
                     </button>
                 </div>
@@ -188,12 +188,12 @@ export function ReviewRelations({ t, locked = [], relations }) {
     return (
         <ul className="space-y-1">
             {locked.map(r => (
-                <li key={r.key} className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                <li key={r.key} className="text-xs flex items-center gap-2 text-[var(--text-secondary)]">
                     <Lock className="w-3 h-3" aria-hidden="true" />{r.from.name} · {r.columnTitle} → {r.targetName}
                 </li>
             ))}
             {relations.map(r => (
-                <li key={relKeyOf(r)} className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                <li key={relKeyOf(r)} className="text-xs flex items-center gap-2 text-[var(--text-secondary)]">
                     <Link2 className="w-3 h-3" aria-hidden="true" />{r.from.name} · {r.localColumn.title} {t('datatables.nc_relation_matches', 'matches')} {r.to.name} · {r.targetColumn.title}
                 </li>
             ))}
@@ -204,11 +204,11 @@ export function ReviewRelations({ t, locked = [], relations }) {
 /** Whose the tables will be — with the one word that takes the person back to change it. */
 export function AudienceLine({ t, scope, onChange }) {
     return (
-        <p style={{ color: 'var(--text-secondary)' }}>
+        <p className="text-[var(--text-secondary)]">
             {scope === 'personal'
                 ? t('datatables.nc_review_personal', 'These tables will belong to this account only.')
                 : t('datatables.nc_review_org', 'These tables will belong to your organisation.')}{' '}
-            <button type="button" onClick={onChange} className="underline" style={{ color: 'var(--text-primary)' }}>{t('datatables.nc_review_change', 'Change')}</button>
+            <button type="button" onClick={onChange} className="underline text-[var(--text-primary)]">{t('datatables.nc_review_change', 'Change')}</button>
         </p>
     );
 }

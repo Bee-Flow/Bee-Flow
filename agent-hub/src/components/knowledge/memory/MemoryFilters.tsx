@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react';
-import React, { useId, useState } from 'react';
+import { useId, useState } from 'react';
 
 import useDebouncedCallback from '../../../hooks/useDebouncedCallback';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -10,13 +10,7 @@ import {
     type MemoryScope, type MemorySort, type MemoryType, type MemoryView,
 } from './memoryTypes';
 
-// FilterPills is plain JS whose default props infer as `undefined`; its real contract:
-const FilterPills = FilterPillsJs as unknown as React.ComponentType<{
-    value: string;
-    onChange: (value: string) => void;
-    options: { value: string; label: string; count?: number }[];
-    ariaLabel?: string;
-}>;
+const FilterPills = FilterPillsJs;
 
 interface MemoryFiltersProps {
     view: MemoryView;

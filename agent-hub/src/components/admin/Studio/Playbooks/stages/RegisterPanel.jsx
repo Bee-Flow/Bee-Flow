@@ -151,7 +151,7 @@ export default function RegisterPanel({
                     <h3 className="font-semibold" style={{ fontSize: presenter ? 17 : 14, color: 'var(--text-primary)' }}>
                         {t('playbooks.compliance.register_title', 'Record this processing')}
                     </h3>
-                    <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-[11px] text-[var(--text-secondary)]">
                         {t('playbooks.compliance.register_intro', 'This is the Art. 30 record for "{table}". Registering also switches on the retention clean-up.', { table: table.name })}
                     </p>
                 </div>
@@ -187,7 +187,7 @@ export default function RegisterPanel({
             {/* Every column the review found personal data in — not one of them. */}
             {personal.length > 0 && (
                 <div data-testid="playbook-compliance-categories">
-                    <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="text-[11px] font-medium text-[var(--text-secondary)]">
                         {t('playbooks.compliance.categories', 'Personal data in this table')}
                     </span>
                     <div className="mt-1 flex flex-wrap gap-1.5">
@@ -201,7 +201,7 @@ export default function RegisterPanel({
                                     : t('playbooks.compliance.cat_names', 'assumed from the column name')}
                             >
                                 {c.name}
-                                <span style={{ color: 'var(--text-tertiary)' }}>{facts.personalMethod === 'values' ? '·' : '~'}</span>
+                                <span className="text-[var(--text-tertiary)]">{facts.personalMethod === 'values' ? '·' : '~'}</span>
                             </span>
                         ))}
                     </div>
@@ -252,7 +252,7 @@ export default function RegisterPanel({
                         allowed; saving it while the person thinks it was
                         already there is the half that is not. */}
                     {sources.retentionDays === 'derived' && String(reg.retentionDays) === String(defaults.retentionDays) && (
-                        <span className="mt-0.5 block text-[10px]" style={{ color: 'var(--text-tertiary)' }} data-testid="playbook-compliance-retention-derived">
+                        <span className="mt-0.5 block text-[10px] text-[var(--text-tertiary)]" data-testid="playbook-compliance-retention-derived">
                             {t('playbooks.compliance.retention_derived', 'your organisation’s default — change it if this table is different')}
                         </span>
                     )}
@@ -333,7 +333,7 @@ export default function RegisterPanel({
                     {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <BookOpen className="w-3.5 h-3.5" aria-hidden="true" />}
                     {t('playbooks.compliance.register_go', 'Register it')}
                 </button>
-                <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <span className="text-[11px] text-[var(--text-secondary)]">
                     {t('playbooks.compliance.register_note', 'Nothing else on this screen writes anything.')}
                 </span>
             </div>

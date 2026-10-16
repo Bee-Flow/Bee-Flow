@@ -17,12 +17,12 @@
  */
 
 const express = require('express');
-const log = require('../../../telemetry/log');
 const router = express.Router();
 const { isAdminUser } = require('./shared');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
 const { z, typeError } = require('../../../utils/zod');
+const { requireAdminUser } = require('../requireAdminUser');
 
 // ─── Web-Search Inference Routing ────────────────────────────────
 // Controls how the search-service handles its 3 inference tasks:
@@ -37,10 +37,7 @@ const {
     DEFAULTS: WEB_SEARCH_INFERENCE_DEFAULTS,
 } = require('../../../core/llm/webSearchInferenceResolver');
 
-async function requireAdmin(req, res, next) {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    next();
-}
+const requireAdmin = requireAdminUser(isAdminUser);
 
 // ── What an admin may send ────────────────────────────────────────────────
 
@@ -82,39 +79,24 @@ const WebSearchInferenceBody = z.preprocess((v) => (v === undefined || v === nul
 }).strict());
 
 router.get('/config/web-search-inference', requireAuth, requireAdmin, async (req, res) => {
-    try {
-        const [config, embedSummary] = await Promise.all([
-            readWebSearchInferenceConfig(),
-            readEmbedSummary(),
-        ]);
-        res.json({ config, defaults: WEB_SEARCH_INFERENCE_DEFAULTS, embedSummary });
-    } catch (e) {
-        log.error('Failed to load web-search inference config:', e);
-        res.status(500).json({ error: 'Failed to load config' });
-    }
+    const [config, embedSummary] = await Promise.all([
+        readWebSearchInferenceConfig(),
+        readEmbedSummary(),
+    ]);
+    res.json({ config, defaults: WEB_SEARCH_INFERENCE_DEFAULTS, embedSummary });
 });
 
 router.post('/config/web-search-inference', requireAuth, requireAdmin, validate({ body: WebSearchInferenceBody }), async (req, res) => {
-    try {
-        const saved = await writeWebSearchInferenceConfig(req.body);
-        res.json({ success: true, config: saved });
-    } catch (e) {
-        log.error('Failed to save web-search inference config:', e);
-        res.status(500).json({ error: 'Failed to save config' });
-    }
+    const saved = await writeWebSearchInferenceConfig(req.body);
+    res.json({ success: true, config: saved });
 });
 
 // Read-only debugging view — what backend each task will actually hit.
 // Flags `unresolved` when something the admin selected can't be resolved
 // (e.g. provider deleted after cleanup selection was saved).
 router.get('/config/web-search-inference/effective', requireAuth, requireAdmin, async (req, res) => {
-    try {
-        const resolved = await resolveInferenceTargets();
-        res.json({ resolved });
-    } catch (e) {
-        log.error('Failed to resolve web-search inference targets:', e);
-        res.status(500).json({ error: 'Failed to resolve targets' });
-    }
+    const resolved = await resolveInferenceTargets();
+    res.json({ resolved });
 });
 
 module.exports = router;

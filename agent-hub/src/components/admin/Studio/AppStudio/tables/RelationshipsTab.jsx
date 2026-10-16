@@ -61,30 +61,29 @@ function TableNode({ data }) {
                 className="w-full px-3 py-2 text-left"
                 title={t('studio_apps_tables.rel.open_in_designer', 'Open this table in the designer')}
             >
-                <span className="flex items-center gap-1.5 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--text-primary)]">
                     <Database className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                     <span className="truncate">{table.name || table.key}</span>
                 </span>
-                <span className="mt-0.5 block truncate text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="mt-0.5 block truncate text-[11px] text-[var(--text-tertiary)]">
                     {table.key} · {(table.fields || []).length === 1
                         ? t('studio_apps_tables.rel.column_count_one', '{n} column', { n: 1 })
                         : t('studio_apps_tables.rel.column_count_many', '{n} columns', { n: (table.fields || []).length })}
                 </span>
             </button>
-            <div className="border-t px-3 py-1.5" style={{ borderColor: 'var(--border-default)' }}>
+            <div className="border-t px-3 py-1.5 border-[var(--border-default)]">
                 {columns.slice(0, 4).map((f) => (
-                    <p key={f.id} className="truncate text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                    <p key={f.id} className="truncate text-[11px] text-[var(--text-secondary)]">
                         {f.key}
-                        {f.unique ? <span style={{ color: 'var(--text-tertiary)' }}> {t('studio_apps_tables.rel.unique_suffix', '· unique')}</span> : null}
+                        {f.unique ? <span className="text-[var(--text-tertiary)]"> {t('studio_apps_tables.rel.unique_suffix', '· unique')}</span> : null}
                     </p>
                 ))}
                 {columns.length > 4 ? (
-                    <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_tables.rel.more_columns', '+{n} more', { n: columns.length - 4 })}</p>
+                    <p className="text-[11px] text-[var(--text-tertiary)]">{t('studio_apps_tables.rel.more_columns', '+{n} more', { n: columns.length - 4 })}</p>
                 ) : null}
             </div>
             {fillerName ? (
-                <p className="truncate border-t px-3 py-1 text-[11px]"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-tertiary)' }}>
+                <p className="truncate border-t px-3 py-1 text-[11px] border-[var(--border-default)] text-[var(--text-tertiary)]">
                     {t('studio_apps_tables.rel.filled_by', 'filled by “{name}”', { name: fillerName })}
                 </p>
             ) : null}
@@ -195,7 +194,7 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }) {
 
     if (!(tables || []).length) {
         return (
-            <p className="py-10 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="py-10 text-center text-sm text-[var(--text-tertiary)]">
                 {tr('studio_apps_tables.rel.no_tables', 'No tables yet. Add one on the Tables tab, then come back to link them up.')}
             </p>
         );
@@ -232,18 +231,17 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }) {
 
             <div className="w-64 shrink-0 flex flex-col gap-2">
                 {selected && from && to ? (
-                    <div className="rounded-lg border p-3 flex flex-col gap-2"
-                        style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
-                        <p className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="rounded-lg border p-3 flex flex-col gap-2 border-[var(--border-default)] bg-[var(--bg-secondary)]">
+                        <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
                             <Link2 className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
                             {tr('studio_apps_tables.rel.the_link', 'The link')}
                         </p>
-                        <p className="text-xs" style={{ color: 'var(--text-primary)' }}>
+                        <p className="text-xs text-[var(--text-primary)]">
                             {tr('studio_apps_tables.rel.each_belongs_a', 'Each')} <strong>{from.name || from.key}</strong> {tr('studio_apps_tables.rel.each_belongs_b', 'belongs to one')}{' '}
                             <strong>{to.name || to.key}</strong>.
                         </p>
                         <label className="flex flex-col gap-1">
-                            <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{tr('studio_apps_tables.rel.column_name', 'Column name')}</span>
+                            <span className="text-xs font-medium text-[var(--text-secondary)]">{tr('studio_apps_tables.rel.column_name', 'Column name')}</span>
                             <input
                                 className="w-full rounded-md border px-2 py-1.5 text-sm"
                                 style={{ borderColor: 'var(--border-default)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
@@ -254,12 +252,12 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }) {
                                     tableId: selected.fromTableId, fieldId: selected.fieldId, name: e.target.value,
                                 }))}
                             />
-                            <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="text-[11px] text-[var(--text-tertiary)]">
                                 {tr('studio_apps_tables.rel.stored_in', 'Stored in')} <code>{from.key}.{selected.fieldKey}</code>. {tr('studio_apps_tables.rel.rename_note', 'Renaming the column key is a migration — that stays on the Tables tab.')}
                             </span>
                         </label>
                         <label className="flex flex-col gap-1">
-                            <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{tr('studio_apps_tables.rel.points_at', 'Points at')}</span>
+                            <span className="text-xs font-medium text-[var(--text-secondary)]">{tr('studio_apps_tables.rel.points_at', 'Points at')}</span>
                             <select
                                 className="w-full rounded-md border px-2 py-1.5 text-sm"
                                 style={{ borderColor: 'var(--border-default)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
@@ -279,22 +277,21 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }) {
                             type="button"
                             onClick={deleteSelected}
                             disabled={disabled}
-                            className="inline-flex items-center gap-1.5 self-start text-xs"
-                            style={{ color: 'var(--error)' }}
+                            className="inline-flex items-center gap-1.5 self-start text-xs text-[var(--error)]"
                         >
                             <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> {tr('studio_apps_tables.rel.remove_link', 'Remove this link')}
                         </button>
                     </div>
                 ) : (
-                    <div className="rounded-lg border p-3" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
-                        <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>{tr('studio_apps_tables.rel.link_two', 'Link two tables')}</p>
-                        <p className="mt-1 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="rounded-lg border p-3 border-[var(--border-default)] bg-[var(--bg-secondary)]">
+                        <p className="text-xs font-semibold text-[var(--text-secondary)]">{tr('studio_apps_tables.rel.link_two', 'Link two tables')}</p>
+                        <p className="mt-1 text-xs text-[var(--text-tertiary)]">
                             {tr('studio_apps_tables.rel.drag_help', 'Drag from the bottom of the table that has many, to the top of the one it belongs to — an attachment to its message. That adds a relation column to the first table.')}
                         </p>
-                        <p className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        <p className="mt-2 text-xs text-[var(--text-tertiary)]">
                             {tr('studio_apps_tables.rel.click_help', 'Click a line to rename, repoint or remove it. Connectors with follow-up steps draw their own links and keep them filled.')}
                         </p>
-                        <p className="mt-2 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <p className="mt-2 text-[11px] text-[var(--text-tertiary)]">
                             {tr('studio_apps_tables.rel.layout_note', 'Where the cards sit is not saved — the layout is worked out from the links each time.')}
                         </p>
                     </div>

@@ -1,5 +1,4 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import TriggerProviderPicker from './Builder/flow/TriggerProviderPicker';
@@ -15,15 +14,9 @@ describe('automation builder overlays, once they are dialogs', () => {
     });
 
     it('the app picker is a named dialog: its search field gets the focus and Escape closes it once', () => {
-        // `providers = []` in the JS signature infers as never[]; say what it takes.
-        const Picker = TriggerProviderPicker as unknown as React.ComponentType<{
-            providers: Array<{ id: string; label: string; events: Array<{ id: string; label: string }> }>;
-            onPick: (id: string) => void;
-            onClose: () => void;
-        }>;
         const onClose = vi.fn();
         render(
-            <Picker
+            <TriggerProviderPicker
                 providers={[{ id: 'gmail', label: 'Gmail', events: [{ id: 'new_mail', label: 'New email' }] }]}
                 onPick={vi.fn()}
                 onClose={onClose}

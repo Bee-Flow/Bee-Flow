@@ -37,7 +37,7 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
+const { stubCrudRequires } = require('./crud.testkit');
 
 // ── Fixtures ────────────────────────────────────────────────────────
 // Every store call lands in `touched`. A refused request must leave it empty.
@@ -116,23 +116,10 @@ const MOCKS = {
     '../../core/http/sseHelpers': { setupSSE: noop, sendSSEError: noop, persistAndTitle: async () => {}, getOrCreateAgentConversation: async () => {} },
 };
 
-const MOCK_IDS = {};
-for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:agents-crud-validation:${request}`;
-    MOCK_IDS[request] = mockId;
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
-}
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /agents[\\/]crud\.js$/.test(parent.filename)
-        && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
-        return MOCK_IDS[request];
-    }
-    return originalResolve.call(this, request, parent, ...rest);
-};
+const restoreResolve = stubCrudRequires(MOCKS, 'agents-crud-validation');
 
 const router = require('./crud');
-test.after(() => { Module._resolveFilename = originalResolve; });
+test.after(restoreResolve);
 
 // A schema refusal travels as an error to the terminal handler, so the
 // harness has to answer one the way index.js does.

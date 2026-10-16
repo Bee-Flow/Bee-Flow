@@ -17,7 +17,7 @@
  *
  * Die live-terugval geldt alleen voor de EIGENAAR. De agent van een ander mag
  * hier uitsluitend draaien als hij ook echt een gepubliceerde VERSIE serveert —
- * `automation/agentCatalog.js: servesPublishedConfig`. `is_published` is de
+ * `core/automationModel/agentPublication.js: servesPublishedConfig`. `is_published` is de
  * deel-schakelaar, `published_version > 0` beslist welke config draait, en die
  * twee staan los van elkaar; zonder deze regel draait de onbewaakte automatisering van
  * de één op het levende klad van de ander.
@@ -105,9 +105,16 @@
 
 'use strict';
 
-const toolPolicy = require('../agentRuntime/toolPolicy');
-const { servesPublishedConfig } = require('../../automation/agentCatalog');
+const { servesPublishedConfig } = require('../automationModel/agentPublication');
 const log = require('../../telemetry/log');
+// The unattended-tool deduction (withholdConfirmTools) and its tool readers.
+const {
+    WITHHOLD_REASONS,
+    withholdConfirmTools,
+    _resetAgentContextApps,
+    _startsAutomation,
+    _toolName,
+} = require('./aiStepToolWithhold');
 
 /**
  * De organisatie waaraan de agent-poort meet: het LIDMAATSCHAP van de
@@ -306,279 +313,6 @@ function skillIdsForStep(step, binding) {
             ? clean(binding.config.attachedSkillIds).filter((id) => !disabled.has(id) && !own.has(id))
             : [],
     };
-}
-
-/** Draagt deze tool zijn eigen identiteit, buiten het tool-registry om? */
-function _carriesOwnIdentity(tool) {
-    if (!tool || typeof tool !== 'object') return false;
-    if (tool.__automation && tool.__automation.id) return true;
-    if (tool.__step && tool.__step.id) return true;
-    if (tool._mcp && tool._mcp.serverId) return true;
-    if (tool._custom && (tool._custom.integrationId || tool._custom.id)) return true;
-    return false;
-}
-
-/** Start deze tool een automatisering (een agent-callable automatisering of een Step)? */
-function _startsAutomation(tool) {
-    return !!_automationIdOf(tool);
-}
-
-/**
- * De automation-id achter deze tool, of null.
- *
- * Twee vormen, één antwoord: een agent-aanroepbare automatisering draagt
- * `__automation.id`, een herbruikbare Step `__step.id`. Allebei zijn het rijen
- * uit `automations`, dus allebei kunnen ze tegen de `tools.automations`-grants
- * van de agent-eigenaar worden gehouden — en dat is precies wat
- * `getIntegrationTools` voor de tweede vorm NIET doet.
- */
-function _automationIdOf(tool) {
-    if (!tool || typeof tool !== 'object') return null;
-    const auto = tool.__automation && tool.__automation.id;
-    if (typeof auto === 'string' && auto) return auto;
-    const step = tool.__step && tool.__step.id;
-    if (typeof step === 'string' && step) return step;
-    return null;
-}
-
-function _toolName(tool) {
-    const name = tool && tool.function && tool.function.name;
-    return (typeof name === 'string' && name) ? name : null;
-}
-
-/**
- * De apps waarvan het REGISTRY zegt dat ze niet in een agent-context horen.
- *
- * `availableTo` is de declaratie (`automation/toolRegistry.js`); alles zonder
- * 'agent' erin is een app die de agent-kiezer nooit heeft kunnen tonen, dus een
- * app waarover geen enkele agent-eigenaar ooit iets heeft kunnen opschrijven.
- * `toolPolicy` leest dat zwijgen als de geen-migratieregel ("de eigenaar zag
- * hem en liet hem staan") en dat is hier onwaar: niemand werd gevraagd.
- *
- * Gememoiseerd omdat de declaratie per proces vastligt. Een registry die niet
- * te lezen is levert een LEGE set en dus geen weigering — maar dat kost niets:
- * met de attributie stuk weigert stap 1 van de aftrek élke registry-tool al, en
- * deze tools worden bovendien niet eens gebouwd (`automationStep` staat uit).
- */
-let _nonAgentApps = null;
-function _appsOutsideAgentContext() {
-    if (_nonAgentApps) return _nonAgentApps;
-    const out = new Set();
-    try {
-        const registry = require('../../automation/toolRegistry');
-        // `availabilityFor` is de gedeelde lezer; de rij zelf is de bron. Een
-        // registry zonder die functie wordt op `availableTo` gelezen, want de
-        // DECLARATIE is wat telt en een ontbrekende helper is geen ontbrekende
-        // declaratie. Een rij die niets declareert is beschikbaar in beide
-        // contexten (DEFAULT_AVAILABILITY) en hoort hier dus niet in.
-        const read = typeof registry.availabilityFor === 'function'
-            ? (e) => registry.availabilityFor(e)
-            : (e) => (Array.isArray(e.availableTo) ? e.availableTo : null);
-        for (const entry of registry.ALL_TOOL_APPS || []) {
-            if (!entry || !entry.app) continue;
-            const contexts = read(entry);
-            if (Array.isArray(contexts) && !contexts.includes('agent')) out.add(entry.app);
-        }
-    } catch (e) {
-        log.warn('[AutomationRunner] tool registry unreadable while checking agent context:', e && e.message);
-    }
-    _nonAgentApps = out;
-    return out;
-}
-
-/** Test-naad: vergeet de gememoiseerde registry-declaratie. */
-function _resetAgentContextApps() { _nonAgentApps = null; }
-
-/** Hoort deze tool bij een app die alleen buiten een agent-context bestaat? */
-function _outsideAgentContext(tool) {
-    const apps = _appsOutsideAgentContext();
-    if (apps.size === 0) return false;
-    let appId = null;
-    try { appId = toolPolicy.appIdForToolDef(tool); } catch (_) { return false; }
-    return !!appId && apps.has(appId);
-}
-
-/**
- * Een OPGESLAGEN `confirm: 'ask'` op de app van deze tool, gelezen op de
- * DEFINITIE.
- *
- * `confirmForTool` — en daarmee `buildToolPolicy` — attribueert op de NAAM
- * (`appIdForTool`). Een MCP-tool en een org-custom-integratietool staan in geen
- * registry, dus die naam levert `appId = null` en de functie valt door naar
- * `legacyDefault: 'direct'`. `normaliseToolsConfig` bewaart de `confirm: 'ask'`
- * op `mcp:<serverId>` / `custom:<id>` intussen gewoon in de rij: een
- * opgeslagen, teruggelezen en nergens afgedwongen beslissing — precies wat de
- * modulekop van `toolPolicy` verbiedt, en op een onbewaakt oppervlak een
- * verzendende tool die niemand tegenhoudt.
- *
- * `isToolAllowed` lost dat aan de `actions`-kant al op door op de DEFINITIE te
- * kijken (`appIdForToolDef`); dit is diezelfde lezing voor de `confirm`-kant.
- * Alleen VERSMALLEN: een opgeslagen `direct` verandert hier niets, want die kan
- * de bodemregels van `buildToolPolicy` (sends ⇒ ask) niet verbreden.
- *
- * De echte reparatie hoort in `toolPolicy.confirmForTool` zelf — die module
- * valt buiten dit hek, dus staat de aftrek zolang hier.
- */
-function _storedConfirmAsk(tool, toolsConfig) {
-    if (!toolsConfig) return false;
-    let appId = null;
-    try { appId = toolPolicy.appIdForToolDef(tool); } catch (_) { return false; }
-    if (!appId) return false;
-    const entry = toolsConfig[appId];
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false;
-    return entry.confirm === 'ask';
-}
-
-/**
- * Heeft de eigenaar van deze agent de automation-lijst aangeraakt?
- *
- * De AANWEZIGHEID van de sleutel is de keuze, niet de inhoud — dezelfde lezing
- * als `_curatedAutomations` in `core/integrations/integrationTools.js`. Een
- * lege sectie betekent "ik heb alle automations uitgevinkt".
- */
-function _curatedAutomations(toolsConfig) {
-    return !!(toolsConfig && Object.prototype.hasOwnProperty.call(toolsConfig, 'automations'));
-}
-
-/** De drie redenen die naar buiten reizen. Vager mag, ruimer nooit. */
-const WITHHOLD_REASONS = Object.freeze(['permission', 'confirm', 'unavailable']);
-
-/**
- * De aftrek: houd alleen de tools over die zonder een mens erbij mogen lopen.
- *
- * Puur — geen I/O, geen catalogus — zodat elke tak los te testen is. Geeft de
- * weggehouden namen terug in plaats van ze te laten verdwijnen: dat is wat de
- * stap-editor kan tonen ("wil je dit tóch, zet er een goedkeuringsstap
- * achter") en wat in het runlog terechtkomt.
- *
- * Bij elke naam hoort een REDEN, en die reist mee in plaats van aan de andere
- * kant opnieuw te worden afgeleid. Een naam die hier op de grants sneuvelt en
- * aan de andere kant met `confirmForTool` opnieuw wordt beoordeeld krijgt daar
- * 'ask' zodra hij verzendt — waarna het scherm een goedkeuringsstap adviseert
- * die niets verandert. Alleen de plek die de tool wegnam weet waaróm.
- *
- * @returns {{tools: Array, withheld: string[], reasons: Object<string,string>,
- *            degraded: boolean, policyError: string|null}}
- */
-function withholdConfirmTools(tools, agentConfig) {
-    const list = [];
-    for (const t of Array.isArray(tools) ? tools : []) {
-        if (_toolName(t)) list.push(t);
-    }
-    const withheld = [];
-    const reasons = {};
-    // De eerste reden wint: hij noemt de eerste hindernis, niet een latere.
-    const drop = (name, reason) => {
-        if (!name) return;
-        if (!(name in reasons)) reasons[name] = WITHHOLD_REASONS.includes(reason) ? reason : 'unavailable';
-        withheld.push(name);
-    };
-
-    // Stap 0 — apps die in een agent-context niet bestaan. Zie
-    // `_appsOutsideAgentContext`: over deze apps is geen enkele agent-eigenaar
-    // ooit iets gevraagd, dus hun zwijgen is geen ja.
-    let candidates = [];
-    for (const t of list) {
-        if (_outsideAgentContext(t)) drop(_toolName(t), 'unavailable');
-        else candidates.push(t);
-    }
-
-    // Stap 1 — attributie. Een registry die niet te lezen is kan niet zeggen
-    // welke app een naam bezit, en het antwoord op een onbeantwoordbare vraag
-    // is niet "alles". Alleen tools die hun eigen identiteit dragen blijven.
-    let degraded = false;
-    try {
-        degraded = toolPolicy.isAttributionAvailable() !== true;
-    } catch (_) {
-        degraded = true;               // niet eens te vragen ⇒ als degraded behandelen
-    }
-    if (degraded) {
-        const own = [];
-        for (const t of candidates) {
-            if (_carriesOwnIdentity(t)) own.push(t);
-            else drop(_toolName(t), 'unavailable');
-        }
-        candidates = own;
-    }
-
-    // Stap 2 — de per-actie-grants, nog een keer. `getIntegrationTools` past ze
-    // al toe bij het bouwen van de catalogus, maar het doet dat in een `try`
-    // die bij een onbereikbare policy-module doorloopt ZONDER grants ("per-action
-    // grants not applied"). Dat is daar een bewuste keuze voor de chat; hier zou
-    // het betekenen dat een onbewaakte stap de volledige toolbelt krijgt op de
-    // sterkte van een require die gooide. Dezelfde functie, op de DEFINITIE
-    // (zodat MCP- en custom-tools op hun eigen id worden geattribueerd), en hij
-    // kan alleen versmallen.
-    let toolsConfig = null;
-    try {
-        toolsConfig = toolPolicy.toolsConfigOf(agentConfig);
-    } catch (_) { toolsConfig = null; }
-    if (toolsConfig) {
-        const granted = [];
-        const curated = _curatedAutomations(toolsConfig);
-        let grants = null;
-        if (curated) {
-            try { grants = toolPolicy.automationGrantsOf(toolsConfig); } catch (_) { grants = null; }
-            // Onleesbare grants naast een sectie die er WEL is: de eigenaar
-            // heeft gekozen en wij kunnen zijn keuze niet lezen. Dan geen
-            // automatiseringen — dezelfde afslag die integrationTools maakt.
-            if (!grants) grants = {};
-        }
-        for (const t of candidates) {
-            let ok = false;
-            try { ok = toolPolicy.isToolAllowed(t, toolsConfig) === true; } catch (_) { ok = false; }
-            // De automation-doorsnede, ook voor herbruikbare Steps. `addTools` —
-            // en daarmee `isToolAllowed` — raakt die tools nooit: ze worden in
-            // `getIntegrationTools` rechtstreeks op de lijst geduwd. Zonder dit
-            // levert "alle automatiseringen uitgevinkt" alsnog elke gepubliceerde Step
-            // van de automation-eigenaar op.
-            if (ok && curated) {
-                const autoId = _automationIdOf(t);
-                if (autoId && !Object.prototype.hasOwnProperty.call(grants, autoId)) ok = false;
-            }
-            if (ok) granted.push(t);
-            else drop(_toolName(t), 'unavailable');
-        }
-        candidates = granted;
-    }
-
-    // Stap 3 — de bevestigingsvraag, met de functie van de chat.
-    // `unattended: true` haalt de gegate tools al uit `confirmByTool`; de
-    // ongegate `ask` (een `sends`-tool op een agent die niemand cureerde) staat
-    // er nog wél in, met de waarde 'ask'. Één bewaarregel dekt dus beide:
-    // alleen een uitgesproken 'direct' blijft.
-    let confirmByTool = null;
-    let policyError = null;
-    try {
-        const automationConfirms = toolPolicy.automationConfirmsFor(candidates, agentConfig);
-        const policy = toolPolicy.buildToolPolicy({
-            agentConfig,
-            tools: candidates,
-            unattended: true,
-            automationConfirms,
-        });
-        confirmByTool = policy && policy.confirmByTool;
-    } catch (e) {
-        policyError = e && e.message ? e.message : 'tool policy unavailable';
-    }
-    if (!(confirmByTool instanceof Map)) {
-        // Geen leesbaar oordeel ⇒ geen tools. Een policy die niet gebouwd kan
-        // worden is geen grant, en de stap draait gewoon door als tekststap.
-        for (const t of candidates) drop(_toolName(t), 'unavailable');
-        return { tools: [], withheld, reasons, degraded, policyError: policyError || 'tool policy produced no verdict' };
-    }
-
-    const kept = [];
-    for (const t of candidates) {
-        const name = _toolName(t);
-        // `_storedConfirmAsk` is de tweede lezing die `confirmForTool` niet kan
-        // doen: een MCP-server of een org-custom-integratie wordt op de NAAM
-        // niet geattribueerd, dus de opgeslagen `ask` van de eigenaar bereikt
-        // `confirmByTool` nooit. Alleen versmallend.
-        if (confirmByTool.get(name) === 'direct' && !_storedConfirmAsk(t, toolsConfig)) kept.push(t);
-        else drop(name, 'confirm');
-    }
-    return { tools: kept, withheld, reasons, degraded, policyError };
 }
 
 /**

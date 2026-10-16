@@ -21,25 +21,20 @@ const userStore = require('../../stores/userStore');
 // ── Invitation Token Validation (public route) ────────────
 // ═══════════════════════════════════════════════════════════
 router.get('/invite/:token', async (req, res) => {
-    try {
-        const invitationStore = require('../../stores/invitationStore');
-        const invitation = await invitationStore.getInvitationByToken(req.params.token);
-        if (!invitation) {
-            return res.status(410).json({ valid: false, error: 'Invitation expired or invalid' });
-        }
-        const org = await userStore.getOrganization(invitation.organization_id);
-        res.json({
-            valid: true,
-            email: invitation.email,
-            organizationId: invitation.organization_id,
-            orgName: org?.name || '',
-            orgLogo: org?.logo || null,
-            role: invitation.role,
-        });
-    } catch (err) {
-        log.error('[Invite] Token validation error:', err);
-        res.status(500).json({ valid: false, error: 'Server error' });
+    const invitationStore = require('../../stores/invitationStore');
+    const invitation = await invitationStore.getInvitationByToken(req.params.token);
+    if (!invitation) {
+        return res.status(410).json({ valid: false, error: 'Invitation expired or invalid' });
     }
+    const org = await userStore.getOrganization(invitation.organization_id);
+    res.json({
+        valid: true,
+        email: invitation.email,
+        organizationId: invitation.organization_id,
+        orgName: org?.name || '',
+        orgLogo: org?.logo || null,
+        role: invitation.role,
+    });
 });
 
 // Invitation landing handler. The email link is `/auth/redeem-invite/<token>`
@@ -75,29 +70,24 @@ router.get('/redeem-invite/:token', async (req, res) => {
 // invitation was accepted, revoked or expired: see below), when login
 // regenerates the session (establishSession), or on POST /pending-invite/clear.
 router.get('/pending-invite', async (req, res) => {
-    try {
-        const token = req.session?.pendingInviteToken;
-        if (!token) return res.json({ valid: false });
-        const invitationStore = require('../../stores/invitationStore');
-        const invitation = await invitationStore.getInvitationByToken(token);
-        if (!invitation) {
-            delete req.session.pendingInviteToken;
-            return res.json({ valid: false, error: 'Invitation expired or invalid' });
-        }
-        const org = await userStore.getOrganization(invitation.organization_id);
-        res.json({
-            valid: true,
-            token,
-            email: invitation.email,
-            organizationId: invitation.organization_id,
-            orgName: org?.name || '',
-            orgLogo: org?.logo || null,
-            role: invitation.role,
-        });
-    } catch (err) {
-        log.error('[Invite] pending-invite error:', err);
-        res.status(500).json({ valid: false, error: 'Server error' });
+    const token = req.session?.pendingInviteToken;
+    if (!token) return res.json({ valid: false });
+    const invitationStore = require('../../stores/invitationStore');
+    const invitation = await invitationStore.getInvitationByToken(token);
+    if (!invitation) {
+        delete req.session.pendingInviteToken;
+        return res.json({ valid: false, error: 'Invitation expired or invalid' });
     }
+    const org = await userStore.getOrganization(invitation.organization_id);
+    res.json({
+        valid: true,
+        token,
+        email: invitation.email,
+        organizationId: invitation.organization_id,
+        orgName: org?.name || '',
+        orgLogo: org?.logo || null,
+        role: invitation.role,
+    });
 });
 
 router.post('/pending-invite/clear', async (req, res) => {

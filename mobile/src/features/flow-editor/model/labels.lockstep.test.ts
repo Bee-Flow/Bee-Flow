@@ -11,10 +11,10 @@ import * as wait from './waitDuration';
 
 const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
 /* eslint-disable @typescript-eslint/no-require-imports */
-const webTriggers = require(`${FLOW}/triggerLabels.js`);
-const webNames = require(`${FLOW}/stepDisplayName.js`);
-const webWait = require(`${FLOW}/waitDuration.js`);
-const webSchedule = require(`${FLOW}/scheduleBuilderUtils.js`);
+const webTriggers = require(`${FLOW}/triggerLabels`);
+const webNames = require(`${FLOW}/stepDisplayName`);
+const webWait = require(`${FLOW}/waitDuration`);
+const webSchedule = require(`${FLOW}/scheduleBuilderUtils`);
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 describe('trigger labels', () => {

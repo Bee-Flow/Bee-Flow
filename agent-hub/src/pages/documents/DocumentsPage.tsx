@@ -27,9 +27,9 @@ import EncryptionUnlock, { isKeyUnavailable } from './library/EncryptionUnlock';
 import StarterGallery, { type NewChoice } from './library/StarterGallery';
 import { PAGE_SIZE, isNotebookRow, useLibraryActions, useLibraryFilters, type LibraryKind, type NewDocumentInput } from './library/useLibrary';
 import { notebookIdOf, notebookRef } from './notebookRef';
+import { messageOf } from '../../utils/caughtError';
 
-// The pager is plain JS (untyped props): typed here for what the library passes.
-const Pager = PagerJs as unknown as React.ComponentType<{ offset: number; limit: number; total: number | null; onOffset: (offset: number) => void; testId?: string }>;
+const Pager = PagerJs;
 // The notebook workspace carries the editor, the sources and the chat: loaded
 // only when a notebook is opened.
 const NotebookDetail = lazy(() => import('./notebook/detail/NotebookDetail')) as unknown as React.ComponentType<{
@@ -80,7 +80,7 @@ function useLibraryPage() {
     const me = useSessionUser(true);
     const [selection, setSelection] = useState<string[]>([]);
     const [error, setError] = useState<string | null>(null);
-    const fail = (e: unknown) => setError(projectErrorText(t, e as Error) || (e as Error)?.message || t('documents.library.action_failed', 'That did not work. Please try again.'));
+    const fail = (e: unknown) => setError(projectErrorText(t, e) || messageOf(e, t('documents.library.action_failed', 'That did not work. Please try again.')));
     useEffect(() => { setSelection([]); }, [f.filters]);
     // The assistant made or changed a document in a chat: the list may be stale.
     const qc = useQueryClient();

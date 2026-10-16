@@ -46,3 +46,13 @@ test('caps the listed tokens at 30 and counts the rest', () => {
     assert.ok(!text.includes('`[person_31]`'));
     assert.ok(text.includes('(+3 more)'));
 });
+
+test('opens and closes with: write a token as its value, never talk about tokens', () => {
+    // A fast model answered "In het bestand staan de namen als tokens, zoals
+    // [person_1]" with the old text, whose ban on that sat in rule 6 at the end.
+    const text = buildTokenPreservationAddendum({ '[person_1]': 'Sem' });
+    const lead = text.indexOf('WRITE EVERY TOKEN AS IF IT WERE THE REAL VALUE');
+    assert.ok(lead > 0 && lead < text.indexOf('Tokens currently in scope'), 'the rule leads, before the token list');
+    assert.match(text, /de namen staan als tokens/);
+    assert.match(text.trim(), /no sentence of your reply talks ABOUT tokens or placeholders; each token sits where its value belongs\.$/);
+});

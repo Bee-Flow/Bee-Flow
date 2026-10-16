@@ -73,7 +73,6 @@
  */
 
 const express = require('express');
-const log = require('../telemetry/log');
 const router = express.Router();
 
 const { requirePreviewToken } = require('../auth/webpagePreviewToken');
@@ -82,6 +81,7 @@ const { getBridgeGrants } = require('../stores/webpage/bridgeGrants');
 const { resolveDatatablePrincipalForUser } = require('../auth/datatableAccess');
 const datatableRuntime = require('../core/dataEngine/datatableRuntime');
 const { validate } = require('../core/http/validate');
+const { HttpError } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
 
 /** Een body die óók geen body accepteert: Express 5 laat `req.body` dan undefined. */
@@ -195,8 +195,8 @@ function sendError(res, err, fallback) {
     if (err && err.name === 'CompileError') {
         return res.status(400).json({ error: err.message, code: 'bad_descriptor' });
     }
-    log.error(`[WebpagesPreview/tables] ${fallback}:`, err && err.message);
-    return res.status(500).json({ error: fallback });
+    if (err instanceof HttpError) throw err;
+    throw Object.assign(new Error(fallback), { cause: err });
 }
 
 /** De bezoeker + zijn graad op deze tabel. Gooit als een van beide ontbreekt. */

@@ -28,7 +28,7 @@ import path from 'node:path';
 // folder plus the hub file.
 const SRC = [
     path.join(__dirname, 'index.jsx'),
-    ...fs.readdirSync(path.join(__dirname, 'data')).filter(f => /\.jsx?$/.test(f) && !/\.test\./.test(f)).map(f => path.join(__dirname, 'data', f)),
+    ...fs.readdirSync(path.join(__dirname, 'data')).filter(f => /\.[jt]sx?$/.test(f) && !/\.test\./.test(f)).map(f => path.join(__dirname, 'data', f)),
 ].map(f => fs.readFileSync(f, 'utf8')).join('\n');
 
 /** Every `'compliance.some_key', 'Some English'` pair, whichever call it sits in. */

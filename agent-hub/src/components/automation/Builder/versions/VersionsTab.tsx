@@ -23,7 +23,6 @@ interface Props {
     onRestored?: (automation: Record<string, unknown> | null) => void;
 }
 
-type Confirm = (opts: { title: string; description?: string; confirmLabel?: string; destructive?: boolean }) => Promise<boolean>;
 
 function versionContext(a: AutomationLike | null | undefined) {
     return { liveVersion: a?.liveVersion ?? null, liveAt: a?.liveAt ?? null, currentVersion: a?.version ?? null };
@@ -37,7 +36,7 @@ function pickSelected(rows: VersionRow[], selectedId: string | null): VersionRow
 /** The restore question, then the restore; resets the selection on success. */
 function useRestoreFlow(automation: AutomationLike | null | undefined, onRestored: Props['onRestored'], onDone: () => void) {
     const { t } = useTranslation();
-    const confirmAction = useBuilderConfirm() as unknown as Confirm | null;
+    const confirmAction = useBuilderConfirm();
     const restore = useRestoreVersionMutation(automation?.id ?? '');
     const run = async (target: VersionRow) => {
         const params = { version: target.version };

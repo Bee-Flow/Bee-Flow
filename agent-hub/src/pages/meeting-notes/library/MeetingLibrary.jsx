@@ -6,6 +6,7 @@ import MeetingRow from './MeetingRow';
 import LibraryFilters from './LibraryFilters';
 import LibraryEmptyState from './LibraryEmptyState';
 import ReportModal from './ReportModal';
+import { messageOf } from '../../../utils/caughtError';
 
 const REPORT_MAX_NOTES = 10;
 
@@ -99,15 +100,14 @@ export default function MeetingLibrary({
                             <button
                                 type="button"
                                 onClick={() => setSelectMode(true)}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border transition-colors hover:bg-[var(--bg-tertiary)]"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]"
                             >
                                 <Sparkles className="w-3 h-3" aria-hidden="true" />
                                 {t('meetings.ai_report', 'AI report')}
                             </button>
                         ) : (
                             <>
-                                <span style={{ color: 'var(--text-tertiary)' }}>
+                                <span className="text-[var(--text-tertiary)]">
                                     {t('meetings.report_selected', '{selected}/{max} selected — click meetings to select', { selected: selectedIds.size, max: REPORT_MAX_NOTES })}
                                 </span>
                                 <button
@@ -124,8 +124,7 @@ export default function MeetingLibrary({
                                     type="button"
                                     onClick={exitSelectMode}
                                     aria-label={t('meetings.cancel_selection', 'Cancel selection')}
-                                    className="p-1 rounded-full transition-colors hover:bg-[var(--bg-tertiary)]"
-                                    style={{ color: 'var(--text-tertiary)' }}
+                                    className="p-1 rounded-full transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                                 >
                                     <X className="w-3 h-3" aria-hidden="true" />
                                 </button>
@@ -146,11 +145,11 @@ export default function MeetingLibrary({
                 {!loading && error && meetings.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-4 py-8" role="alert">
                         <AlertTriangle className="w-7 h-7" style={{ color: 'var(--error)' }} aria-hidden="true" />
-                        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">
                             {t('meetings.list_failed', 'Couldn’t load your meetings')}
                         </p>
-                        <p className="text-xs max-w-xs" style={{ color: 'var(--text-tertiary)' }}>
-                            {error.message || t('meetings.something_wrong', 'Something went wrong.')}
+                        <p className="text-xs max-w-xs text-[var(--text-tertiary)]">
+                            {messageOf(error, t('meetings.something_wrong', 'Something went wrong.'))}
                         </p>
                         {onRetry && (
                             <button
@@ -168,7 +167,7 @@ export default function MeetingLibrary({
                     <LibraryEmptyState onCapture={onCapture} />
                 )}
                 {!loading && meetings.length > 0 && filtered.length === 0 && (
-                    <div className="text-center text-xs py-10" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="text-center text-xs py-10 text-[var(--text-tertiary)]">
                         {t('meetings.no_match', 'No meetings match your filters.')}
                     </div>
                 )}

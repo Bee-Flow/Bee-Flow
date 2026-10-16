@@ -789,7 +789,7 @@ function ConnectorBinding({ binding, onChange, appId, definition, node, disabled
     );
 }
 
-// ── main ─────────────────────────────────────────────────────────────────────
+/** @param {import('./BindingField.types').BindingFieldProps} props */
 
 export default function BindingField({
     label,

@@ -411,6 +411,7 @@ async function deleteUser(userId) {
     await initDB();
     // Before anything is dropped: an account that runs a Solution stage stays.
     await assertNotStageRunAs(userId);
+    const { notebooks: notebookPort, teardown: projectTeardown } = require('./erasurePorts').resolveErasurePorts();
     // Capture the org before DELETE so we can sync Stripe seat quantity
     // afterwards. NULL orgId users (consumer accounts) skip the sync.
     let orgIdForSeatSync = null;
@@ -470,11 +471,10 @@ async function deleteUser(userId) {
     //
     // Runs through the cascade (not a bare DELETE) because the bytes live
     // outside Postgres — object storage and the vector index — and only the
-    // cascade knows where. Best-effort: a storage failure must not stop the
-    // rest of the account teardown.
+    // cascade knows where. Best-effort (a storage failure must not stop the
+    // teardown), but the port lookup (top of deleteUser) is outside the try: unregistered refuses.
     try {
-        const { deleteAllNotebooksForUser } = require('../../core/kb/notebookCascade');
-        const { notebooks } = await deleteAllNotebooksForUser(userId);
+        const { notebooks } = await notebookPort.deleteAllForUser(userId);
         if (notebooks) log.info(`[UserStore] Erased ${notebooks} notebook(s) for '${userId}'`);
     } catch (e) { log.error('[UserStore] Notebook erasure failed:', e.message); }
     try { await run('DELETE FROM notebook_conversations WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
@@ -545,7 +545,7 @@ async function deleteUser(userId) {
     // route does (colleagues' co-edits folded back, soft references detached,
     // files base removed; stores/user/projectErasure.js), and remove any
     // shares that target this user directly.
-    const owned = await require('./projectErasure').eraseOwnedProjects(userId);
+    const owned = await require('./projectErasure').eraseOwnedProjects(userId, { teardown: projectTeardown });
     if (owned.deleted || owned.kept || owned.failed) log.info(`[UserStore] Owned projects of '${userId}': ${JSON.stringify(owned)}`);
     try { await run(`DELETE FROM project_shares WHERE shared_with_type = 'user' AND shared_with_id = $1`, [userId]); } catch (e) { /* table may not exist */ }
     // What they wrote and marked in colleagues' projects: team chat messages and

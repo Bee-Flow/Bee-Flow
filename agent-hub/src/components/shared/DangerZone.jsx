@@ -181,8 +181,8 @@ export default function DangerZone({
                     {openLabel || t('usage.delete_open', 'Delete this {kind}', { kind: thing })}
                 </button>
             ) : (
-                <div className="rounded-lg border p-4 space-y-3" style={{ borderColor: 'var(--error)' }} role="group" aria-label={t('usage.delete_group', 'Delete')}>
-                    <p className="text-sm font-medium flex items-start gap-2" style={{ color: 'var(--text-primary)' }}>
+                <div className="rounded-lg border p-4 space-y-3 border-[var(--error)]" role="group" aria-label={t('usage.delete_group', 'Delete')}>
+                    <p className="text-sm font-medium flex items-start gap-2 text-[var(--text-primary)]">
                         <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--error)' }} aria-hidden="true" />
                         {question || t('usage.delete_question', 'Delete “{name}” for good?', { name: entityName })}
                     </p>
@@ -193,7 +193,7 @@ export default function DangerZone({
 
                     {needsName && (
                         <label className="block">
-                            <span className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>
+                            <span className="block text-xs mb-1 text-[var(--text-secondary)]">
                                 {t('usage.delete_type_name', 'Type the name to confirm.')}
                             </span>
                             <input
@@ -212,7 +212,7 @@ export default function DangerZone({
                     )}
 
                     <p aria-live="polite">
-                        {error && <span className="text-xs" style={{ color: 'var(--warning)' }}>{error}</span>}
+                        {error && <span className="text-xs text-[var(--warning)]">{error}</span>}
                     </p>
 
                     <div className="flex gap-2">
@@ -248,7 +248,7 @@ export default function DangerZone({
 function Dependents({ t, dependents, unchecked = [], currentUserId, onNavigate }) {
     if (dependents === null) {
         return (
-            <p className="text-xs flex items-center gap-2" style={{ color: 'var(--text-secondary)' }} data-testid="danger-checking">
+            <p className="text-xs flex items-center gap-2 text-[var(--text-secondary)]" data-testid="danger-checking">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
                 {t('usage.checking', 'Checking who uses this…')}
             </p>
@@ -260,20 +260,20 @@ function Dependents({ t, dependents, unchecked = [], currentUserId, onNavigate }
         // the narrower one — the caller's `notice` names which kinds.
         if (unchecked.length > 0) {
             return (
-                <p className="text-xs" style={{ color: 'var(--warning)' }} data-testid="danger-unchecked">
+                <p className="text-xs text-[var(--warning)]" data-testid="danger-unchecked">
                     {t('usage.delete_nothing_found_incomplete', 'Nothing was found — but not everything could be checked, so this is not the same as “nothing uses this”.')}
                 </p>
             );
         }
         return (
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }} data-testid="danger-unused">
+            <p className="text-xs text-[var(--text-secondary)]" data-testid="danger-unused">
                 {t('usage.delete_nothing_depends', 'Nothing uses this. It can be deleted without breaking anything else.')}
             </p>
         );
     }
     return (
         <div className="space-y-2" data-testid="danger-dependents">
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs text-[var(--text-secondary)]">
                 {dependents.length === 1
                     ? t('usage.delete_dependents_one', 'One thing uses this and will start failing:')
                     : t('usage.delete_dependents', '{n} things use this and will start failing:', { n: dependents.length })}
@@ -285,7 +285,7 @@ function Dependents({ t, dependents, unchecked = [], currentUserId, onNavigate }
               * unanswered — reads as the whole truth.
               */}
             {unchecked.length > 0 && (
-                <p className="text-xs" style={{ color: 'var(--warning)' }} data-testid="danger-dependents-incomplete">
+                <p className="text-xs text-[var(--warning)]" data-testid="danger-dependents-incomplete">
                     {t('usage.delete_dependents_incomplete', 'And this list is not the whole story — not everything could be checked.')}
                 </p>
             )}

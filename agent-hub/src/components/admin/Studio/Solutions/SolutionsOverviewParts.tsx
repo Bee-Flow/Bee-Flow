@@ -268,7 +268,7 @@ export function OverviewFilters({ query, onQuery, scope, onScope }: FiltersProps
                     className="w-full pl-9 pr-3 py-2 min-h-[40px] rounded-[var(--radius-sm)] text-sm border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                 />
             </label>
-            {React.createElement(FilterPills as unknown as React.ComponentType<Record<string, unknown>>, {
+            {React.createElement(FilterPills<string>, {
                 value: scope,
                 onChange: onScope,
                 options: scopes,

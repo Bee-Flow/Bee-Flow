@@ -64,8 +64,7 @@ export default function ExamplesTab({ skillId, examples, rules = [], onChange, r
                             type="button"
                             onClick={add}
                             data-testid="skill-example-add"
-                            className="h-8 px-3 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5"
-                            style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                            className="h-8 px-3 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                         >
                             <Plus size={13} aria-hidden="true" />
                             {t('skills_studio.examples.add', 'Example')}
@@ -99,8 +98,7 @@ export default function ExamplesTab({ skillId, examples, rules = [], onChange, r
                 does not exist anywhere in the app — a hint that sends someone
                 looking for a menu item nobody built is worse than no hint. */}
             <p
-                className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl border border-dashed border-[var(--border-default)] text-xs m-0"
-                style={{ color: 'var(--text-secondary)' }}
+                className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl border border-dashed border-[var(--border-default)] text-xs m-0 text-[var(--text-secondary)]"
                 data-testid="skill-examples-chat-hint"
             >
                 <MessageSquarePlus size={14} aria-hidden="true" className="flex-shrink-0" />
@@ -419,7 +417,7 @@ function FromConversationPicker({ skillId, onClose, onAdded, t }) {
                             'Only your own conversations are listed. The personal-data check is unavailable right now, so nothing here can be copied into an example until it is back.',
                         )}
                 </p>
-                {error && <p className="text-xs m-0" style={{ color: 'var(--error)' }} role="status">{error}</p>}
+                {error && <p className="text-xs m-0 text-[var(--error)]" role="status">{error}</p>}
 
                 {!conversationId && (
                     <ul className="list-none p-0 m-0 flex flex-col gap-1 overflow-y-auto max-h-[22rem]">

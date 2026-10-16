@@ -1,7 +1,7 @@
 import { Code2, Database, Download, Eye, History, Link2, Upload, Users } from 'lucide-react';
 import React from 'react';
 import { visibilityOf } from './webpageVisibility';
-import { managedOf } from '../../components/shared/managedPart';
+import { managedOf } from '../../utils/managedPart';
 import ManagedPartBanner from '../../components/shared/ManagedPartBanner';
 import StatusActionPill from '../../components/shared/StatusActionPill';
 import statusOf from '../../components/shared/statusOf';

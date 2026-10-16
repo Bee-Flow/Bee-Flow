@@ -33,12 +33,16 @@ const { NextcloudSourceError } = require('./errors');
 const MEMO_TTL_MS = 60_000;
 const _memo = new Map();   // linkedByUserId → { at, value }
 
+const { integrationClient } = require('../../../integrations/integrationClients');
+
 function deps() {
     // Lazily required: the pure modules beside this one must stay loadable in
     // suites that stub the database, and these pull in stores at load time.
     return {
         resolveUserSession: require('../../../automationRunner/sessionResolution').resolveUserSession,
-        ncClient: require('../../../../integrations/nextcloudClient'),
+        // Injected by integrations/ (core/integrations/integrationClients.js); a getter,
+        // so only a call that uses it needs the registration.
+        get ncClient() { return integrationClient('nextcloud'); },
         isNcOrg: require('../../../../auth/ncAudience').isNcOrg,
         isIntegrationPermittedForUser: require('../../../integrations/integrationTools').isIntegrationPermittedForUser,
         checkToolCall: require('../../../integrations/ncScopeGuard').checkToolCall,

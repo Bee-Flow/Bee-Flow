@@ -42,6 +42,13 @@ async function readSource(file) {
     return fs.readFileSync(path.join(__dirname, file), 'utf8');
 }
 
+// The header is EditorHeader.tsx plus the parts under header/ (segments,
+// menus, publish pill); the fold is pinned across all of them.
+async function readHeader() {
+    const files = ['EditorHeader.tsx', 'header/HeaderControls.tsx', 'header/HeaderMenus.tsx'];
+    return (await Promise.all(files.map(readSource))).join('\n');
+}
+
 async function readShared(file) {
     const fs = await import('node:fs');
     const path = await import('node:path');
@@ -50,19 +57,19 @@ async function readShared(file) {
 
 describe('EditorHeader — the responsive fold stays wired', () => {
     it('the header is a wrapping named container', async () => {
-        const src = await readSource('EditorHeader.jsx');
+        const src = await readHeader();
         expect(src).toMatch(/@container\/edhead[^"]*flex[^"]*flex-wrap|flex[^"]*flex-wrap[^"]*@container\/edhead/);
     });
 
     it('the segments fold to icons below @6xl without losing their names', async () => {
-        const src = await readSource('EditorHeader.jsx');
+        const src = await readHeader();
         // sr-only, not hidden: the five segment names must survive the fold.
         expect(src).toMatch(/@max-6xl\/edhead:sr-only/);
         expect(src).not.toMatch(/segmentLabel[\s\S]{0,120}@max-6xl\/edhead:hidden/);
     });
 
     it('the View-as capsule folds away below @4xl and the ⋯ menu can still reach it', async () => {
-        const src = await readSource('EditorHeader.jsx');
+        const src = await readHeader();
         expect(src).toMatch(/@max-4xl\/edhead:hidden/);
         // The lead-in word goes one stage earlier; the role name never does.
         expect(src).toMatch(/@max-6xl\/edhead:hidden/);
@@ -73,7 +80,7 @@ describe('EditorHeader — the responsive fold stays wired', () => {
     });
 
     it('the publish pill folds through StatusActionPill, which knows "edhead"', async () => {
-        const src = await readSource('EditorHeader.jsx');
+        const src = await readHeader();
         expect(src).toMatch(/containerName="edhead"/);
         const pill = await readShared('StatusActionPill.jsx');
         expect(pill).toMatch(/edhead:\s*Object\.freeze\(\{[^}]*@max-\[1440px\]\/edhead:hidden/);
@@ -81,14 +88,14 @@ describe('EditorHeader — the responsive fold stays wired', () => {
     });
 
     it('row 2 wraps, so the unfolded ribbon takes its own line', async () => {
-        const row = await readSource('EditorToolRow.jsx');
+        const row = await readSource('EditorToolRow.tsx');
         expect(row).toMatch(/flex-wrap/);
         const ribbon = await readSource('ComponentRibbon.jsx');
         expect(ribbon).toMatch(/basis-full/);
     });
 
     it('the center column clips horizontal overflow (AppEditorShell)', async () => {
-        const src = await readSource('AppEditorShell.jsx');
+        const src = await readSource('AppEditorShell.tsx');
         expect(src).toMatch(/overflow-x-clip/);
     });
 });

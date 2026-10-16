@@ -84,8 +84,7 @@ function register(router) {
             res.json({ ...summary, form });
         } catch (e) {
             if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] answers summary failed:', e.message);
-            res.status(500).json({ error: 'Could not read the answers' });
+            throw e;
         }
     });
 
@@ -110,8 +109,7 @@ function register(router) {
             res.json(out);
         } catch (e) {
             if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] aggregate failed:', e.message);
-            res.status(500).json({ error: 'Could not compute that' });
+            throw e;
         }
     });
 
@@ -145,8 +143,7 @@ function register(router) {
                 res.json({ fields: out.fields, modelVersion: out.modelVersion, source: publicSource(out.table.source, out.table.managedKind) });
             } catch (e) {
                 if (answerDatatableError(res, e, req.datatableScope)) return;
-                log.error('[datatables] answers column delete failed:', e.message);
-                res.status(500).json({ error: 'Could not remove the column' });
+                throw e;
             }
         });
 
@@ -168,8 +165,7 @@ function register(router) {
                 res.json({ datatable: publicTable(t, req.datatableGrade) });
             } catch (e) {
                 if (answerDatatableError(res, e, req.datatableScope)) return;
-                log.error('[datatables] answers release failed:', e.message);
-                res.status(500).json({ error: 'Could not release the table' });
+                throw e;
             }
         });
 }

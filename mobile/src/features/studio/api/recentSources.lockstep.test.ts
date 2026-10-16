@@ -1,6 +1,6 @@
 /**
  * RECENT_SOURCES held to the web's STUDIO_RECENT_SOURCES
- * (agent-hub/src/utils/studioRecentSources.js) — a differential test: the web
+ * (agent-hub/src/utils/studioRecentSources.ts) — a differential test: the web
  * module is pure, so it runs here next to the port, section by section, on
  * the same bodies and rows. A renamed URL, envelope, name or time field, or a
  * status rule that moved, fails here rather than in a list that quietly
@@ -14,7 +14,7 @@ import path from 'node:path';
 
 import { RECENT_SOURCES } from './recentSources';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/utils/studioRecentSources.js');
+const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/utils/studioRecentSources.ts');
 
 type Row = Record<string, unknown>;
 

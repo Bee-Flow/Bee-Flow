@@ -7,6 +7,7 @@ import { useCallback, useRef, type ChangeEvent, type MutableRefObject } from 're
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import useTranslation from '../../../../hooks/useTranslation';
 import type { NotebookEditorHandle } from './editorHandle';
+import { errorMessage } from '../../../../utils/caughtError';
 
 export function useImportFile(notebookId: string, editorRef: MutableRefObject<NotebookEditorHandle | null>, onError: (message: string) => void) {
     const { t } = useTranslation();
@@ -24,7 +25,7 @@ export function useImportFile(notebookId: string, editorRef: MutableRefObject<No
             if (!res.ok) throw new Error(data.error || t('notebooks.import_failed', 'The file could not be read.'));
             if (data.text) editorRef.current?.insertContent?.(data.text);
         } catch (err) {
-            onError(t('notebooks.import_error', 'Import failed: {message}', { message: (err as Error).message }));
+            onError(t('notebooks.import_error', 'Import failed: {message}', { message: errorMessage(err) }));
         }
     }, [editorRef, notebookId, onError, t]);
     return { inputRef, open, onChange };

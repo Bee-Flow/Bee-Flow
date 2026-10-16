@@ -43,8 +43,8 @@ mock('../execution', { executeAutomation: async (a, opts) => { calls.exec.push({
 mock('../cancellation', { ACTIVE_RUNS: new Map() });
 // partsInTz stays real: the holiday check (schedule.skipHolidays) reads the
 // slot's local date through it.
-const { partsInTz } = require('../../../automation/cron');
-mock('../../../automation/cron', { nextRunAt: () => NEXT, partsInTz });
+const { partsInTz } = require('../../scheduling/cron');
+mock('../../scheduling/cron', { nextRunAt: () => NEXT, partsInTz });
 mock('./reapers', {
     reapStuckAutomations: async () => {},
     reapOrphanFormUploads: async () => {},

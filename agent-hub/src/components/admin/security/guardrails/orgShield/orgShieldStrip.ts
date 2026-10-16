@@ -34,7 +34,7 @@ export interface StripItem {
     inPipeline: boolean;
 }
 
-/** The shield fields the read-outs look at. `useOrgShield` is untyped JS. */
+/** The shield fields the read-outs look at (a slice of `useOrgShield().fields`). */
 export interface StripFields {
     enabled?: boolean;
     piiCategories?: readonly string[];

@@ -61,75 +61,7 @@ const FEEDBACK_WINDOW_HOURS = 24;
 /** The advisory lock every claim takes in turn (see "Many servers"). */
 const CLAIM_LOCK = 'beeflow:ai-watch-claim';
 
-const DDL = `
-    CREATE TABLE IF NOT EXISTS project_ai_watch (
-        id             TEXT PRIMARY KEY,
-        project_id     TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-        surface        TEXT NOT NULL CHECK (surface IN ('chat', 'comment')),
-        container_id   TEXT NOT NULL,
-        message_id     TEXT NOT NULL,
-        author_user_id TEXT NOT NULL,
-        org_id         TEXT,
-        limit_org_id   TEXT,
-        kind           TEXT NOT NULL CHECK (kind IN ('quiet', 'unanswered')),
-        due_at         TIMESTAMPTZ NOT NULL,
-        first_seen_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        state          TEXT NOT NULL DEFAULT 'pending'
-                       CHECK (state IN ('pending', 'claimed', 'done', 'cancelled')),
-        claim_id       TEXT,
-        claimed_at     TIMESTAMPTZ,
-        attempts       INTEGER NOT NULL DEFAULT 0,
-        created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_project_ai_watch_pending
-        ON project_ai_watch(surface, container_id, kind) WHERE state = 'pending';
-    CREATE INDEX IF NOT EXISTS idx_project_ai_watch_due
-        ON project_ai_watch(due_at) WHERE state = 'pending';
-    CREATE INDEX IF NOT EXISTS idx_project_ai_watch_claimed
-        ON project_ai_watch(container_id) WHERE state = 'claimed';
-
-    CREATE TABLE IF NOT EXISTS project_ai_decisions (
-        id                 TEXT PRIMARY KEY,
-        project_id         TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-        org_id             TEXT,
-        surface            TEXT NOT NULL CHECK (surface IN ('chat', 'comment')),
-        container_id       TEXT NOT NULL,
-        trigger_message_id TEXT,
-        trigger_kind       TEXT NOT NULL CHECK (trigger_kind IN ('quiet', 'unanswered', 'explicit', 'always')),
-        decision           TEXT NOT NULL CHECK (decision IN ('pending', 'replied', 'silent', 'deferred', 'skipped')),
-        skip_reason        TEXT,
-        reason_code        TEXT,
-        confidence         REAL,
-        model              TEXT,
-        gate_called        BOOLEAN NOT NULL DEFAULT FALSE,
-        last_seq           BIGINT,
-        reply_message_id   TEXT,
-        created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        decided_at         TIMESTAMPTZ
-    );
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_project_ai_decisions_gate
-        ON project_ai_decisions(surface, container_id, last_seq, trigger_kind) WHERE gate_called;
-    CREATE INDEX IF NOT EXISTS idx_project_ai_decisions_container
-        ON project_ai_decisions(container_id, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_project_ai_decisions_project
-        ON project_ai_decisions(project_id, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_project_ai_decisions_org_gate
-        ON project_ai_decisions(org_id, created_at DESC) WHERE gate_called;
-
-    CREATE TABLE IF NOT EXISTS project_ai_feedback (
-        message_id   TEXT NOT NULL,
-        user_id      TEXT NOT NULL,
-        project_id   TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-        surface      TEXT NOT NULL CHECK (surface IN ('chat', 'comment')),
-        container_id TEXT NOT NULL,
-        helpful      BOOLEAN NOT NULL,
-        created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        PRIMARY KEY (message_id, user_id)
-    );
-    CREATE INDEX IF NOT EXISTS idx_project_ai_feedback_container
-        ON project_ai_feedback(container_id, created_at DESC);
-`;
+const { DDL } = require('./projectAiParticipationDdl');
 
 const toIso = (v) => (v ? new Date(v).toISOString() : null);
 const toInt = (v) => (v === null || v === undefined ? 0 : Number(v));
@@ -182,13 +114,19 @@ function rowToDecision(r) {
 const code = (v) => (typeof v === 'string' && /^[a-z0-9_]{1,64}$/.test(v) ? v : null);
 
 /**
- * @param {{
+ * @typedef {{
  *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }>,
  *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }) => Promise<T>) => Promise<T>,
- * }} db
- * @param {{ ready?: () => Promise<void>, newId?: () => string }} [opts]
+ * }} StoreDb
  */
-function makeProjectAiParticipationStore(db, { ready = async () => {}, newId = () => crypto.randomUUID() } = {}) {
+
+/**
+ * Watches: upsert, postpone, claim, finish, reap.
+ * @param {StoreDb} db
+ * @param {() => Promise<void>} ready
+ * @param {() => string} newId
+ */
+function makeWatches(db, ready, newId) {
     // ── Watches ────────────────────────────────────────────────────────────
 
     /**
@@ -350,6 +288,16 @@ function makeProjectAiParticipationStore(db, { ready = async () => {}, newId = (
         return r.rowCount || 0;
     }
 
+    return { upsertWatch, postponeWatch, getPendingWatch, cancelPending, claimDue, finishWatch, reapStuck };
+}
+
+/**
+ * Decisions: the gate, the record and the per-project summary.
+ * @param {StoreDb} db
+ * @param {() => Promise<void>} ready
+ * @param {() => string} newId
+ */
+function makeDecisions(db, ready, newId) {
     // ── Decisions ──────────────────────────────────────────────────────────
 
     function decisionParams(d) {
@@ -487,6 +435,15 @@ function makeProjectAiParticipationStore(db, { ready = async () => {}, newId = (
         return r.rows.map((row) => ({ decision: row.decision, triggerKind: row.trigger_kind, count: toInt(row.n) }));
     }
 
+    return { recordDecision, reserveGate, completeDecision, capsFor, listDecisions, summarizeProject };
+}
+
+/**
+ * Feedback, housekeeping and the data subject.
+ * @param {StoreDb} db
+ * @param {() => Promise<void>} ready
+ */
+function makeFeedback(db, ready) {
     // ── Feedback ───────────────────────────────────────────────────────────
 
     /**
@@ -555,24 +512,27 @@ function makeProjectAiParticipationStore(db, { ready = async () => {}, newId = (
         return { feedback: f.rowCount || 0, watches: w.rowCount || 0 };
     }
 
+    return { recordFeedback, feedbackFor, prune, eraseUser };
+}
+
+/**
+ * @param {StoreDb} db
+ * @param {{ ready?: () => Promise<void>, newId?: () => string }} [opts]
+ */
+function makeProjectAiParticipationStore(db, { ready = async () => {}, newId = () => crypto.randomUUID() } = {}) {
+    const w = makeWatches(db, ready, newId);
+    const d = makeDecisions(db, ready, newId);
+    const f = makeFeedback(db, ready);
     return {
-        upsertWatch,
-        postponeWatch,
-        getPendingWatch,
-        cancelPending,
-        claimDue,
-        finishWatch,
-        reapStuck,
-        recordDecision,
-        reserveGate,
-        completeDecision,
-        capsFor,
-        listDecisions,
-        summarizeProject,
-        recordFeedback,
-        feedbackFor,
-        prune,
-        eraseUser,
+        upsertWatch: w.upsertWatch,
+        postponeWatch: w.postponeWatch,
+        getPendingWatch: w.getPendingWatch,
+        cancelPending: w.cancelPending,
+        claimDue: w.claimDue,
+        finishWatch: w.finishWatch,
+        reapStuck: w.reapStuck,
+        ...d,
+        ...f,
     };
 }
 

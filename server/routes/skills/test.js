@@ -60,6 +60,7 @@ const {
 const { buildSandboxTools, executeSandboxTool } = require('../../core/skills/skillSandbox');
 const log = require('../../telemetry/log');
 const { openSse } = require('../../core/http/sseHelpers');
+const { HttpError } = require('../../core/http/errors');
 
 /** One test run is two model calls. Six a minute is a person pressing Run, not a script. */
 const limiter = perUserRateLimit({ windowMs: 60_000, max: 6 });
@@ -116,21 +117,16 @@ async function testableAgents(req) {
 
 // ── GET /api/skills/test-agents ──────────────────────────────────────
 async function listAgents(req, res) {
-    try {
-        const agents = await testableAgents(req);
-        return res.json({
-            agents: agents.map(a => ({
-                id: a.id,
-                name: a.name || a.id,
-                description: a.description || '',
-            })),
-        });
-    } catch (err) {
-        log.error('[Skills] GET /test-agents error:', err);
-        // Not `{ agents: [] }`: an empty picker would read as "you have no
-        // agents", which is a claim this read cannot make.
-        return res.status(500).json({ error: 'Could not load the agents you can test with' });
-    }
+    // A failed read rejects to a 500, never `{ agents: [] }`: an empty picker
+    // would read as "you have no agents", which is a claim this read cannot make.
+    const agents = await testableAgents(req);
+    return res.json({
+        agents: agents.map(a => ({
+            id: a.id,
+            name: a.name || a.id,
+            description: a.description || '',
+        })),
+    });
 }
 
 /**
@@ -273,7 +269,7 @@ async function run(req, res) {
                 permitted = await testableAgents(req);
             } catch (err) {
                 log.error('[Skills/test] could not resolve testable agents:', err.message);
-                return res.status(503).json({ error: 'Could not check which agents you may use. Try again.', code: 'agent_check_failed' });
+                throw new HttpError(503, 'agent_check_failed', 'Could not check which agents you may use. Try again.');
             }
             // "Not yours" and "not there" answer the same: a 403 would confirm
             // that an id exists in somebody else's account.
@@ -287,7 +283,7 @@ async function run(req, res) {
 
         const modelId = await resolveModel(agent?.model, { userId, userOrgId: orgId });
         if (!modelId) {
-            return res.status(503).json({ error: 'No AI model is configured for this workspace.', code: 'no_model' });
+            throw new HttpError(503, 'no_model', 'No AI model is configured for this workspace.');
         }
         const gradeModelId = await resolveModel('tier:fast', { userId, userOrgId: orgId });
 
@@ -302,10 +298,8 @@ async function run(req, res) {
             // as the verdict the overview shows — a claim about the SKILL
             // built out of a failure of the check. Same shape as
             // `agent_check_failed`, and no row is written.
-            return res.status(503).json({
-                error: 'Could not check which knowledge bases this skill may use. Try again.',
-                code: 'kb_check_failed',
-            });
+            throw new HttpError(503, 'kb_check_failed',
+                'Could not check which knowledge bases this skill may use. Try again.');
         }
 
         // ── Stream ──────────────────────────────────────────────────
@@ -412,14 +406,14 @@ async function run(req, res) {
         send('done', { run: stored });
         return res.end();
     } catch (err) {
+        // Before the stream starts, the terminal error handler answers: a
+        // refusal with its own status and code, anything else a logged 500.
+        if (!sse) throw err;
         log.error('[Skills] POST /:id/test error:', err.message);
-        if (sse) {
-            // The headers are out; a 500 is no longer available, so the error
-            // travels as an event or the client waits for ever.
-            send('error', { error: err.message, code: 'test_failed' });
-            return res.end();
-        }
-        return res.status(500).json({ error: 'Could not run this test' });
+        // The headers are out; a 500 is no longer available, so the error
+        // travels as an event or the client waits for ever.
+        send('error', { error: err.message, code: 'test_failed' });
+        return res.end();
     }
 }
 

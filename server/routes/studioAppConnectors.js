@@ -152,8 +152,10 @@ function appRef(app) {
 }
 
 // Map a connector/sync failure onto a response. connectors.js and
-// connectorSync.js both throw structured errors carrying status/code.
-function sendConnectorError(res, err, logLabel) {
+// connectorSync.js both throw structured errors carrying status/code; those
+// are answered here. Anything else is rethrown to the terminal error handler,
+// which logs it and answers a generic 500.
+function sendConnectorError(res, err) {
     const status = Number.isInteger(err.status) ? err.status : 500;
     if (status >= 400 && status < 600 && status !== 500) {
         return res.status(status).json({
@@ -162,22 +164,16 @@ function sendConnectorError(res, err, logLabel) {
             ...(typeof err.provider === 'string' && err.provider ? { provider: err.provider } : {}),
         });
     }
-    log.error(`[StudioAppConnectors/${logLabel}] ${err.message}`);
-    return res.status(500).json({ error: 'Connector failed to run' });
+    throw err;
 }
 
 // ── GET /:id/data/connectors ────────────────────────────────────────
 // Safe projection for any reader — never fixedArgs / url / credentials.
 router.get('/:id/data/connectors', requireAuth, async (req, res) => {
-    try {
-        const app = await loadVisibleApp(req, res);
-        if (!app) return;
-        const model = await loadOwnerModel(app);
-        res.json({ connectors: connectors.listConnectors(model) });
-    } catch (err) {
-        log.error(`[StudioAppConnectors/list] ${err.message}`);
-        res.status(500).json({ error: 'Failed to list connectors' });
-    }
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
+    const model = await loadOwnerModel(app);
+    res.json({ connectors: connectors.listConnectors(model) });
 });
 
 // ── POST /:id/data/connectors/:connectorId/run ──────────────────────
@@ -221,8 +217,7 @@ router.post('/:id/data/connectors/:connectorId/run', requireAuth, connectorRunLi
                 ...(typeof err.provider === 'string' && err.provider ? { provider: err.provider } : {}),
             });
         }
-        log.error(`[StudioAppConnectors/run] ${err.message}`);
-        return res.status(500).json({ error: 'Connector failed to run' });
+        throw err;
     }
 });
 
@@ -355,7 +350,7 @@ router.post('/:id/data/connectors/:connectorId/inspect', requireAuth, connectorS
             ...(result?.partial ? { partial: true } : {}),
         });
     } catch (err) {
-        return sendConnectorError(res, err, 'inspect');
+        return sendConnectorError(res, err);
     }
 });
 
@@ -374,7 +369,7 @@ router.post('/:id/data/connectors/:connectorId/sync', requireAuth, connectorSync
         }
         return res.json(result);
     } catch (err) {
-        return sendConnectorError(res, err, 'sync');
+        return sendConnectorError(res, err);
     }
 });
 
@@ -448,7 +443,7 @@ router.post('/:id/data/connectors/:connectorId/verify', requireAuth, connectorSy
             hint: probe.reason ? (HINTS[probe.reason] || null) : null,
         });
     } catch (err) {
-        return sendConnectorError(res, err, 'verify');
+        return sendConnectorError(res, err);
     }
 });
 
@@ -526,43 +521,38 @@ async function probeConnected(app, connector, viewerId) {
 }
 
 router.get('/:id/runtime/connectors/status', requireAuth, async (req, res) => {
-    try {
-        const app = await loadMemberApp(req, res);
-        if (!app) return;
-        const model = await loadOwnerModel(app);
-        const list = connectors.listConnectors(model) || [];
-        const states = await studioAppDataStore.listSyncStates(app.id);
-        const byId = new Map(states.map((s) => [s.connectorId, s]));
+    const app = await loadMemberApp(req, res);
+    if (!app) return;
+    const model = await loadOwnerModel(app);
+    const list = connectors.listConnectors(model) || [];
+    const states = await studioAppDataStore.listSyncStates(app.id);
+    const byId = new Map(states.map((s) => [s.connectorId, s]));
 
-        const out = [];
-        for (const c of list) {
-            const full = connectors.findConnector(model, c.id);
-            const state = byId.get(c.id) || null;
-            out.push({
-                id: c.id,
-                name: c.name || null,
-                kind: c.kind || null,
-                provider: full?.provider || null,
-                mode: full?.mode || null,
-                // A shared mailbox names its address in the model; a personal one
-                // is whatever account the token belongs to, which we do not open
-                // a connection to discover.
-                address: full?.mode === 'shared' ? (full.address || null) : null,
-                runAs: full?.runAs || 'owner',
-                connected: await probeConnected(app, full || {}, req.session.user.id),
-                syncable: !!full?.sync,
-                status: state?.status || 'idle',
-                lastRunAt: state?.lastRunAt || null,
-                nextRunAt: state?.nextRunAt || null,
-                // Whether, not what.
-                hasError: !!(state?.lastError),
-            });
-        }
-        return res.json({ connectors: out });
-    } catch (err) {
-        log.error(`[StudioAppConnectors/runtime-status] ${err.message}`);
-        return res.status(500).json({ error: 'Failed to read connection status' });
+    const out = [];
+    for (const c of list) {
+        const full = connectors.findConnector(model, c.id);
+        const state = byId.get(c.id) || null;
+        out.push({
+            id: c.id,
+            name: c.name || null,
+            kind: c.kind || null,
+            provider: full?.provider || null,
+            mode: full?.mode || null,
+            // A shared mailbox names its address in the model; a personal one
+            // is whatever account the token belongs to, which we do not open
+            // a connection to discover.
+            address: full?.mode === 'shared' ? (full.address || null) : null,
+            runAs: full?.runAs || 'owner',
+            connected: await probeConnected(app, full || {}, req.session.user.id),
+            syncable: !!full?.sync,
+            status: state?.status || 'idle',
+            lastRunAt: state?.lastRunAt || null,
+            nextRunAt: state?.nextRunAt || null,
+            // Whether, not what.
+            hasError: !!(state?.lastError),
+        });
     }
+    return res.json({ connectors: out });
 });
 
 router.post('/:id/runtime/connectors/:connectorId/refresh', requireAuth, connectorSyncLimiter, async (req, res) => {
@@ -586,7 +576,7 @@ router.post('/:id/runtime/connectors/:connectorId/refresh', requireAuth, connect
         }
         return res.json({ ok: !result.error, rowsWritten: result.rowsWritten || 0 });
     } catch (err) {
-        return sendConnectorError(res, err, 'runtime-refresh');
+        return sendConnectorError(res, err);
     }
 });
 
@@ -594,15 +584,10 @@ router.post('/:id/runtime/connectors/:connectorId/refresh', requireAuth, connect
 // Last run, next run, rows written and the last error per connector — what the
 // editor shows next to "Refresh now" so a silently failing sync is visible.
 router.get('/:id/data/connectors/sync-status', requireAuth, async (req, res) => {
-    try {
-        const app = await loadOwnedApp(req, res);
-        if (!app) return;
-        const states = await studioAppDataStore.listSyncStates(app.id);
-        return res.json({ syncs: states });
-    } catch (err) {
-        log.error(`[StudioAppConnectors/sync-status] ${err.message}`);
-        return res.status(500).json({ error: 'Failed to read sync status' });
-    }
+    const app = await loadOwnedApp(req, res);
+    if (!app) return;
+    const states = await studioAppDataStore.listSyncStates(app.id);
+    return res.json({ syncs: states });
 });
 
 // Map body-parser failures to JSON (default handler answers HTML).

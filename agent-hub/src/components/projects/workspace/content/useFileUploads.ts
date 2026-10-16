@@ -6,6 +6,12 @@ import { useRef, useState } from 'react';
 import { MAX_PROJECT_FILE_BYTES, useUploadProjectFile } from '../../../../api/queries/projectContent';
 import useTranslation from '../../../../hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
+import { errorStatus } from '../../../../utils/caughtError';
+
+/** True for any object, which is where a `serverMessage` can be read; a primitive has none. */
+function hasServerMessage(v: unknown): v is { serverMessage?: unknown } {
+    return typeof v === 'object' && v !== null;
+}
 
 export interface UploadRow {
     key: string;
@@ -34,7 +40,7 @@ export default function useFileUploads(projectId: string) {
             patch(key, null);
         } catch (e) {
             // A 413 can come from a proxy in front of the server, without a body.
-            const tooLarge = (e as { status?: number | null })?.status === 413 && !(e as { serverMessage?: string | null }).serverMessage;
+            const tooLarge = errorStatus(e) === 413 && !(hasServerMessage(e) ? e.serverMessage : undefined);
             patch(key, {
                 status: 'failed',
                 error: tooLarge

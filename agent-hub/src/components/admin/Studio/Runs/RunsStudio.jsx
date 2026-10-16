@@ -69,8 +69,7 @@ function ScopeButton({ active, onClick, icon, label, testId }) {
 function ScopeSwitch({ t, scope, setScope }) {
     return (
         <div
-            className="shrink-0 inline-flex items-center gap-1 p-0.5 rounded-lg border"
-            style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
+            className="shrink-0 inline-flex items-center gap-1 p-0.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)]"
             role="group"
             aria-label={t('runs.scope_label', 'Whose runs')}
         >
@@ -121,11 +120,11 @@ function RunsHeader({ t, scope, setScope, error }) {
         <>
             <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
-                    <h2 className="text-base font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                    <h2 className="text-base font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                         <ScrollText className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
                         {t('runs.title', 'Runs & log')}
                     </h2>
-                    <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-sm mt-1 text-[var(--text-secondary)]">
                         {t('runs.intro', 'Every time an automation fired: what started it, what it did, and what went wrong. Opening a run shows it step by step.')}
                     </p>
                 </div>
@@ -135,7 +134,7 @@ function RunsHeader({ t, scope, setScope, error }) {
             {error && <ScopeError t={t} message={error} onBackToMine={() => setScope('mine')} />}
 
             {scope === 'org' && !error && (
-                <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }} data-testid="runs-org-not-live">
+                <div className="text-[11px] text-[var(--text-tertiary)]" data-testid="runs-org-not-live">
                     {/* Said out loud because the personal scope IS live and
                         nothing else on the screen changes. The run stream only
                         carries the subscriber's own events, so an organisation
@@ -199,7 +198,7 @@ export default function RunsStudio({
     }, [onNavigate]);
 
     return (
-        <div className="h-full min-h-0 flex flex-col" style={{ background: 'var(--bg-primary)' }}>
+        <div className="h-full min-h-0 flex flex-col bg-[var(--bg-primary)]">
             {/* The same centred 110rem column as the log below, so on an
                 ultrawide screen the heading, the strip and the table line up. */}
             <div className="flex-shrink-0 w-full mx-auto max-w-[110rem] px-4 pt-5 pb-4 space-y-3">

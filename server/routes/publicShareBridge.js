@@ -45,6 +45,7 @@
 
 const express = require('express');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const { usageLogFields } = require('../core/providers/usageNormalizer');
 const router = express.Router();
 
@@ -170,7 +171,7 @@ router.post('/ai/chat', requireShareBridgeToken, publicAiLimiter, publicIpLimite
     const messages = await buildAiMessages(ctx, req.body || {}, { groundGrantKey: 'publicGroundOnPage' });
     const resolved = await resolveModelForTier(`tier:${clamp.tierName}`, { userOrgId: ctx.authorOrgId, userId: ctx.authorUserId });
     const modelId = resolved?.modelId || resolved?.model || resolved;
-    if (!modelId) return res.status(500).json({ error: `No model configured for tier "${clamp.tierName}"` });
+    if (!modelId) throw new HttpError(500, 'no_model', `No model configured for tier "${clamp.tierName}"`);
 
     const tierDefaults = TIER_DEFAULTS[clamp.tierName] || TIER_DEFAULTS['fast'];
     const maxTokens = Math.min(parseInt(req.body?.maxTokens, 10) || tierDefaults.maxTokens, PUBLIC_MAX_TOKENS);
@@ -210,7 +211,7 @@ router.post('/ai/chat', requireShareBridgeToken, publicAiLimiter, publicIpLimite
             } catch (_) { structured = null; }
         }
         if (structured === null) {
-            return res.status(502).json({ error: 'Model did not return valid structured output' });
+            throw new HttpError(502, 'ai_unusable', 'Model did not return valid structured output');
         }
     } else {
         result = await llmClient.chat(modelId, messages, baseOptions);

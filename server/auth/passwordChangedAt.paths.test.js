@@ -243,8 +243,9 @@ test('the OPAQUE account registration dates itself; the SSO encryption PIN does 
 test('nothing outside the store and that one exception sets the date by hand', () => {
     const offenders = [...sources]
         .filter(([rel, src]) => !MAY_SET_THE_DATE.has(rel) && /passwordChangedAt|password_changed_at/.test(src))
-        // The schema declares the column; that is not a write.
-        .filter(([rel]) => rel !== 'stores/user/schema.js')
+        // The schema declares the column (its DDL lists live beside
+        // stores/user/schema.js); that is not a write.
+        .filter(([rel]) => rel !== 'stores/user/schema.js' && rel !== 'stores/user/planMigrations.js')
         .map(([rel]) => rel);
 
     assert.deepEqual(offenders, [],

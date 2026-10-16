@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { looksLikeSideEffect } from './IntegrationActionNode.jsx';
+import { looksLikeSideEffect } from './IntegrationActionNode';
 
 describe('looksLikeSideEffect (fallback heuristic)', () => {
     it('does NOT flag gmail_read_attachment (token "attachment" ≠ verb "attach")', () => {

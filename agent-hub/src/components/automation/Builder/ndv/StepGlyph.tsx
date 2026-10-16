@@ -4,12 +4,10 @@ import {
     ShieldCheck, Sparkles, Split, Table2, VenetianMask, Workflow, Wrench, Zap, ClipboardList,
     type LucideIcon,
 } from 'lucide-react';
-import type { ComponentType } from 'react';
 import IntegrationLogoJs from '../flow/nodes/IntegrationLogo';
 import type { FlowStep } from '../flow/types';
 
-// Untyped JS component; its props are checked there.
-const IntegrationLogo = IntegrationLogoJs as unknown as ComponentType<Record<string, unknown>>;
+const IntegrationLogo = IntegrationLogoJs;
 
 /**
  * The glyph the canvas card of this step carries, for the drawer header's

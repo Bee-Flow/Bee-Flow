@@ -7,6 +7,8 @@ const express = require('express');
 // Core modules
 const componentManager = require('./core/cms/componentManager');
 require('./core/executionEngine');
+// Fills core's registries with what the features provide (tools, runner ports).
+require('./boot/featureRegistrations');
 
 // Route modules
 const authRouter = require('./auth/router');
@@ -24,7 +26,6 @@ const appsRouter = require('./routes/apps');
 // before the route section further down.
 const { requireModule } = require('./modules');
 const log = require('./telemetry/log');
-
 
 const app = express();
 // Trust proxy: how many reverse-proxy hops sit in front of us. Default `1`
@@ -235,7 +236,6 @@ storageStore.init().then(ok => {
 require('./legal/legalStore').refresh()
     .then(() => log.info('[Server] Consent overrides loaded'))
     .catch(err => log.warn('[Server] Consent overrides init error:', err.message));
-
 
 // ── Mount routes ──────────────────────────────────────────────────────────────
 app.use('/auth', authRouter);

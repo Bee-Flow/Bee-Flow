@@ -74,6 +74,7 @@ const { extractSection, insertSection } = require('../core/documents/documentSec
 const { houseStyleCssFor: houseStyleCssForDocument } = require('../core/documents/renderFilledDocument');
 const { isDeckDocument, renderDeckDocument } = require('../core/documents/deckDocument');
 const { validate } = require('../core/http/validate');
+const { HttpError } = require('../core/http/errors');
 const { z, worded, bodyOf, queryOf, choice, wholeNumber, typeError } = require('../core/http/schemaParts');
 const { forCompose } = require('../core/documents/pageDocument');
 const { mergeBodies } = require('../core/documents/sectionMerge');
@@ -219,8 +220,8 @@ function refuseReadOnly(res, doc) {
 
 function sendStoreError(res, err, fallback) {
     if (err && err.status) return res.status(err.status).json({ error: err.message, code: err.errorClass || (typeof err.code === 'string' ? err.code : undefined), details: err.details, issues: err.issues, conflict: err.conflict });
-    log.error(`[StudioDocuments] ${fallback}:`, err && err.message);
-    return res.status(500).json({ error: fallback });
+    log.error('[StudioDocuments] request failed:', err);
+    throw new HttpError(500, 'document_request_failed', fallback);
 }
 
 /**
@@ -316,11 +317,9 @@ router.post('/house-style/deck-template', requireAuth, validate({ body: bodies.d
         const status = err && err.errorClass === 'template_too_large' ? 413 : (err && /^template_/.test(err.errorClass || '') ? 422 : 500);
         // Only the template's own refusals are worded for the caller; anything
         // else is an internal failure whose text stays in the log.
-        if (status === 500) {
-            log.error('[StudioDocuments] deck template failed:', err && err.message);
-            return res.status(500).json({ error: 'The template deck could not be read.', code: 'template_failed' });
-        }
-        res.status(status).json({ error: err.message, code: err.errorClass || 'template_failed' });
+        if (status !== 500) return res.status(status).json({ error: err.message, code: err.errorClass || 'template_failed' });
+        log.error('[StudioDocuments] deck template failed:', err && err.message);
+        throw new HttpError(500, 'template_failed', 'The template deck could not be read.');
     }
 });
 

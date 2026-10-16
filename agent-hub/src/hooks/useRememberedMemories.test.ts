@@ -1,9 +1,9 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchRecentMemories } from '../components/chat/memory/memoryApi';
+import { fetchRecentMemories } from '../api/memoryApi';
 import useRememberedMemories from './useRememberedMemories';
 
-vi.mock('../components/chat/memory/memoryApi', () => ({ fetchRecentMemories: vi.fn() }));
+vi.mock('../api/memoryApi', () => ({ fetchRecentMemories: vi.fn() }));
 
 const fetchRecent = vi.mocked(fetchRecentMemories);
 const SINCE = '2026-10-10T10:00:00.000Z';

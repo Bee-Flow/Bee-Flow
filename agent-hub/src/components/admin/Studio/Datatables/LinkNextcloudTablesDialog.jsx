@@ -241,7 +241,7 @@ export default function LinkNextcloudTablesDialog({ scope, linkable, onBack, onC
                     <ReviewStep t={t} scope={scope} selected={selected} relations={relations} locked={locked.filter(r => r.targetName)} onChangeScope={onBack} />
                 )}
                 {error && (
-                    <p role="alert" className="text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--bg-primary)', color: 'var(--warning)' }}>{error}</p>
+                    <p role="alert" className="text-xs px-3 py-2 rounded-lg bg-[var(--bg-primary)] text-[var(--warning)]">{error}</p>
                 )}
             </div>
         </Modal>
@@ -250,11 +250,11 @@ export default function LinkNextcloudTablesDialog({ scope, linkable, onBack, onC
 
 function TablesStep({ t, tables, query, onQuery, selection, onToggle, marks, total }) {
     if (!total) {
-        return <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{t('datatables.nc_none', 'Nextcloud has no tables this account can read.')}</p>;
+        return <p className="text-sm text-[var(--text-secondary)]">{t('datatables.nc_none', 'Nextcloud has no tables this account can read.')}</p>;
     }
     return (
         <div className="space-y-2">
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-sm text-[var(--text-secondary)]">
                 {t('datatables.nc_tables_intro', 'Tick the tables to link. A view is a filtered look at a table — it can be linked on its own.')}
             </p>
             {total > 8 && (
@@ -293,20 +293,20 @@ function TableRow({ t, row, checked, onToggle, mark, isView = false }) {
             <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2 flex-wrap">
                     {row.emoji && <span aria-hidden="true">{row.emoji}</span>}
-                    {isView && <span className="text-[11px] px-1.5 rounded" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>{t('datatables.nc_view_word', 'view')}</span>}
-                    <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{row.title}</span>
+                    {isView && <span className="text-[11px] px-1.5 rounded bg-[var(--bg-secondary)] text-[var(--text-secondary)]">{t('datatables.nc_view_word', 'view')}</span>}
+                    <span className="text-sm font-medium truncate text-[var(--text-primary)]">{row.title}</span>
                     {already && (
-                        <span className="text-[11px] inline-flex items-center gap-1" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="text-[11px] inline-flex items-center gap-1 text-[var(--text-tertiary)]">
                             <Link2 className="w-3 h-3" aria-hidden="true" />{t('datatables.nc_already_linked', 'already linked')}
                         </span>
                     )}
                 </span>
                 {!isView && (
-                    <span className="block text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="block text-[11px] text-[var(--text-tertiary)]">
                         {t('datatables.nc_table_meta', '{rows} rows · {cols} columns', { rows: row.rowsCount ?? '?', cols: row.columnsCount ?? '?' })}
                     </span>
                 )}
-                {mark && <span className="block text-[11px] mt-1" style={{ color: 'var(--warning)' }}>{mark}</span>}
+                {mark && <span className="block text-[11px] mt-1 text-[var(--warning)]">{mark}</span>}
             </span>
         </label>
     );
@@ -322,49 +322,49 @@ function NamesStep({ t, selected, describes, onChange, keyDup, marks, onSelectTa
                     <section key={s.refKey} className="p-3 space-y-2" style={CARD} aria-label={s.title}>
                         <div className="grid gap-2" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)' }}>
                             <label className="block">
-                                <span className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>{t('datatables.field_name', 'Name')}</span>
+                                <span className="block text-xs mb-1 text-[var(--text-secondary)]">{t('datatables.field_name', 'Name')}</span>
                                 <input value={s.name} onChange={(e) => onChange(s.refKey, { name: e.target.value, ...(s.keyTouched ? {} : { key: keyFromName(e.target.value) }) })}
                                     className={INPUT} style={INPUT_STYLE} aria-label={`${t('datatables.field_name', 'Name')} — ${s.title}`} />
                             </label>
                             <label className="block">
-                                <span className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>{t('datatables.field_key', 'Technical name')}</span>
+                                <span className="block text-xs mb-1 text-[var(--text-secondary)]">{t('datatables.field_key', 'Technical name')}</span>
                                 <input value={s.key} onChange={(e) => onChange(s.refKey, { key: e.target.value, keyTouched: true })}
                                     className={`${INPUT} font-mono`} style={{ ...INPUT_STYLE, borderColor: dup ? 'var(--warning)' : INPUT_STYLE.borderColor }}
                                     aria-label={`${t('datatables.field_key', 'Technical name')} — ${s.title}`} />
                             </label>
                         </div>
-                        {dup && <p className="text-[11px]" style={{ color: 'var(--warning)' }}>{t('datatables.nc_key_dup', 'Two tables would get the technical name “{key}”.', { key: s.key })}</p>}
-                        {marks.get(s.refKey) && <p className="text-[11px]" style={{ color: 'var(--warning)' }}>{marks.get(s.refKey)}</p>}
+                        {dup && <p className="text-[11px] text-[var(--warning)]">{t('datatables.nc_key_dup', 'Two tables would get the technical name “{key}”.', { key: s.key })}</p>}
+                        {marks.get(s.refKey) && <p className="text-[11px] text-[var(--warning)]">{marks.get(s.refKey)}</p>}
                         <label className="block">
-                            <span className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>{t('datatables.field_purpose', 'What is it for?')}</span>
+                            <span className="block text-xs mb-1 text-[var(--text-secondary)]">{t('datatables.field_purpose', 'What is it for?')}</span>
                             <textarea value={s.description} onChange={(e) => onChange(s.refKey, { description: e.target.value })} rows={1}
                                 className={INPUT} style={INPUT_STYLE} aria-label={`${t('datatables.field_purpose', 'What is it for?')} — ${s.title}`} />
-                            <span className="block text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="block text-[11px] mt-1 text-[var(--text-tertiary)]">
                                 {t('datatables.field_purpose_managed', 'Optional here — left empty, this kind of table brings its own sentence for the processing record.')}
                             </span>
                         </label>
                         <div>
-                            <span className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>{t('datatables.nc_columns_preview', 'Columns, as they will arrive')}</span>
-                            {d.loading && <span className="inline-flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}><Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />{t('datatables.nc_reading', 'Reading the columns…')}</span>}
-                            {d.error && <p className="text-[11px]" style={{ color: 'var(--warning)' }}>{d.error}</p>}
+                            <span className="block text-xs mb-1 text-[var(--text-secondary)]">{t('datatables.nc_columns_preview', 'Columns, as they will arrive')}</span>
+                            {d.loading && <span className="inline-flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]"><Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />{t('datatables.nc_reading', 'Reading the columns…')}</span>}
+                            {d.error && <p className="text-[11px] text-[var(--warning)]">{d.error}</p>}
                             {!d.loading && !d.error && (
                                 <ul className="grid gap-1" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
                                     {d.columns.map((c) => {
                                         const kind = columnTypeKind(c.mappedType);
                                         const missingTarget = c.type === 'relation' && c.relationTarget && c.relationTarget.ncTableId && !selectedTableIds.has(c.relationTarget.ncTableId);
                                         return (
-                                            <li key={c.ncColumnId} className="text-xs flex flex-col gap-0.5 px-2 py-1 rounded" style={{ background: 'var(--bg-secondary)' }}>
+                                            <li key={c.ncColumnId} className="text-xs flex flex-col gap-0.5 px-2 py-1 rounded bg-[var(--bg-secondary)]">
                                                 <span className="inline-flex items-center gap-1.5 min-w-0">
                                                     <ColumnKindIcon kind={kind} size={12} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
-                                                    <span className="truncate" style={{ color: 'var(--text-primary)' }}>{c.title}</span>
-                                                    <span className="ml-auto shrink-0" style={{ color: 'var(--text-tertiary)' }}>{c.type}{c.subtype ? `/${c.subtype}` : ''}</span>
+                                                    <span className="truncate text-[var(--text-primary)]">{c.title}</span>
+                                                    <span className="ml-auto shrink-0 text-[var(--text-tertiary)]">{c.type}{c.subtype ? `/${c.subtype}` : ''}</span>
                                                     {c.mandatory && <Lock className="w-3 h-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-label={t('datatables.nc_required', 'required in Nextcloud')} />}
                                                 </span>
                                                 {missingTarget && (
-                                                    <span className="inline-flex items-center gap-1 flex-wrap" style={{ color: 'var(--warning)' }}>
+                                                    <span className="inline-flex items-center gap-1 flex-wrap text-[var(--warning)]">
                                                         <AlertTriangle className="w-3 h-3 shrink-0" aria-hidden="true" />
                                                         {t('datatables.nc_rel_target_missing', 'Points at a table that is not selected — this column arrives as a plain number.')}
-                                                        <button type="button" onClick={() => onSelectTarget(c.relationTarget.ncTableId)} className="underline" style={{ color: 'var(--text-primary)' }}>
+                                                        <button type="button" onClick={() => onSelectTarget(c.relationTarget.ncTableId)} className="underline text-[var(--text-primary)]">
                                                             {t('datatables.nc_select_too', 'Select it too')}
                                                         </button>
                                                     </span>
@@ -384,19 +384,19 @@ function NamesStep({ t, selected, describes, onChange, keyDup, marks, onSelectTa
 
 function ReviewStep({ t, scope, selected, relations, locked, onChangeScope }) {
     return (
-        <div className="space-y-3 text-sm" style={{ color: 'var(--text-primary)' }}>
+        <div className="space-y-3 text-sm text-[var(--text-primary)]">
             <AudienceLine t={t} scope={scope} onChange={onChangeScope} />
             <ul className="space-y-1">
                 {selected.map(s => (
                     <li key={s.refKey} className="flex items-center gap-2 p-2.5" style={CARD}>
                         <Cloud className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--type-data)' }} aria-hidden="true" />
                         <span className="truncate">{s.name}</span>
-                        <code className="ml-auto text-[11px] font-mono shrink-0" style={{ color: 'var(--text-tertiary)' }}>{s.key}</code>
+                        <code className="ml-auto text-[11px] font-mono shrink-0 text-[var(--text-tertiary)]">{s.key}</code>
                     </li>
                 ))}
             </ul>
             <ReviewRelations t={t} locked={locked} relations={relations} />
-            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-xs text-[var(--text-tertiary)]">
                 {t('datatables.nc_review_note', 'The rows are copied from Nextcloud in the background and kept in step with it. Rows you change here are changed in Nextcloud.')}
             </p>
         </div>

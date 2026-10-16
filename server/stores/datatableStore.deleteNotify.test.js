@@ -85,6 +85,8 @@ mockModule(path.join(__dirname, '..', 'jobs', 'kbSourceRefresh'), {
 });
 
 const datatableStore = require('./datatableStore');
+// The tap knows no consumer; the jobs-side registrar wires the two listeners.
+require('../jobs/datatableChangePorts');
 
 const SCOPE = { kind: 'org', id: 'org-1' };
 

@@ -102,7 +102,25 @@ Module._resolveFilename = function (request, parent, ...rest) {
     return originalResolve.call(this, request, parent, ...rest);
 };
 
-const examples = require('./examples');
+const exampleRoutes = require('./examples');
+const { createTerminalErrorHandler } = require('../../core/http/terminalErrorHandler');
+
+// As in the app: a handler that throws ends at the terminal error handler,
+// which answers a refusal with its own status and code and anything else 500.
+const answerError = createTerminalErrorHandler({ log: { error() {}, warn() {} } });
+const viaApp = (handler) => async (req, res) => {
+    try {
+        await handler(req, res);
+    } catch (err) {
+        answerError(err, req, res, () => { throw err; });
+    }
+};
+const examples = {
+    ...exampleRoutes,
+    listConversations: viaApp(exampleRoutes.listConversations),
+    listMessages: viaApp(exampleRoutes.listMessages),
+    fromMessage: viaApp(exampleRoutes.fromMessage),
+};
 test.after(() => { Module._resolveFilename = originalResolve; });
 
 // ── Minimal req/res ─────────────────────────────────────────────────

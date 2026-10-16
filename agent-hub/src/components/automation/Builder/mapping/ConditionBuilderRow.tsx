@@ -145,7 +145,7 @@ export default function ConditionBuilderRow(props: Props) {
     const ops = operatorsForType(type, row.op, { topics: quantified ? null : topics, quantified, t });
     const shape = row.quantifier ? fieldShape(fieldText(row)) as { list?: string } | null : null;
     const hints = rowHints({ row, type, previewSample, fieldOptions, context }, t);
-    const pickField = (field: Binding) => onReplace(rowForField(row, field, rowType({ field }, previewSample, walkPath)));
+    const pickField = (field: Binding) => onReplace(rowForField(row, field, rowType({ field }, previewSample, walkPath)) as RuleRow);
     return (
         // Below ~480px of room (a phone, a narrow pane) the three cells stack
         // instead of squeezing to "an" / "a…": small screens fold, never squeeze.

@@ -4,7 +4,7 @@
  */
 
 const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
-const { impliedListMode } = require('../../automation/datetimeListMode');
+const { impliedListMode } = require('../automationModel/datetimeListMode');
 
 /**
  * Apply ONE date/time operation. We accept ISO strings and JS-parseable

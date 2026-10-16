@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { dpiaPill, EMPTY_FORM, formFromRecord, formReady, isExpired, mitigationList, questionnaireBody } from './DpiaDrawer';
 
-const t: TranslateFn = (key, fallback, params) => {
+const t: TranslateFn = (key: string, fallback, params) => {
     let out = typeof fallback === 'string' ? fallback : key;
     for (const [k, v] of Object.entries(params || {})) out = out.split(`{${k}}`).join(String(v));
     return out;

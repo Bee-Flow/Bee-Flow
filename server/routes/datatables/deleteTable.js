@@ -64,8 +64,7 @@ function register(router) {
                 res.json({ ok: true });
             } catch (e) {
                 if (answerDatatableError(res, e, req.datatableScope)) return;
-                log.error('[datatables] delete failed:', e.message);
-                res.status(500).json({ error: 'Could not delete the datatable' });
+                throw e;
             }
         });
 }

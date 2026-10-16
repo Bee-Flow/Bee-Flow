@@ -100,7 +100,7 @@ Module._resolveFilename = function (request, parent, ...rest) {
     const from = parent && parent.filename;
     // Both files: crud.js requires ./usage at call time, and usage.js reaches
     // for the same store — one fake, two readers, exactly as in production.
-    if (from && /agents[\\/](crud|usage)\.js$/.test(from) && MOCK_IDS[request]) return MOCK_IDS[request];
+    if (from && /agents[\\/](crud|usage|crudSchemas|agentPersonaWrite|agentUpdate)\.js$/.test(from) && MOCK_IDS[request]) return MOCK_IDS[request];
     return originalResolve.call(this, request, parent, ...rest);
 };
 

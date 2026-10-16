@@ -356,22 +356,20 @@ export default function AppRunPage({ appId, draft = false }) {
     if (state.status === 'loading') {
         return (
             <div
-                className="h-full min-h-0 flex flex-col animate-pulse"
-                style={{ background: 'var(--bg-primary)' }}
+                className="h-full min-h-0 flex flex-col animate-pulse bg-[var(--bg-primary)]"
                 role="status"
                 aria-label={t('apps.run.loading_label', 'Loading app')}
             >
                 <div
-                    className="shrink-0 flex items-center gap-3 border-b px-4 py-2.5"
-                    style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}
+                    className="shrink-0 flex items-center gap-3 border-b px-4 py-2.5 border-[var(--border-default)] bg-[var(--bg-card)]"
                 >
-                    <div className="h-7 w-7 rounded-md" style={{ background: 'var(--bg-secondary)' }} />
-                    <div className="h-3.5 w-36 rounded" style={{ background: 'var(--bg-secondary)' }} />
+                    <div className="h-7 w-7 rounded-md bg-[var(--bg-secondary)]" />
+                    <div className="h-3.5 w-36 rounded bg-[var(--bg-secondary)]" />
                 </div>
                 <div className="flex-1 w-full max-w-[960px] mx-auto p-4 space-y-3">
-                    <div className="h-6 w-1/3 rounded" style={{ background: 'var(--bg-secondary)' }} />
-                    <div className="h-24 w-full rounded-lg" style={{ background: 'var(--bg-secondary)' }} />
-                    <div className="h-40 w-full rounded-lg" style={{ background: 'var(--bg-secondary)' }} />
+                    <div className="h-6 w-1/3 rounded bg-[var(--bg-secondary)]" />
+                    <div className="h-24 w-full rounded-lg bg-[var(--bg-secondary)]" />
+                    <div className="h-40 w-full rounded-lg bg-[var(--bg-secondary)]" />
                 </div>
                 <span className="sr-only">{t('apps.loading_short', 'Loading…')}</span>
             </div>
@@ -399,7 +397,7 @@ export default function AppRunPage({ appId, draft = false }) {
             description = state.error?.message || t('apps.run.load_failed_body', 'Something went wrong while loading the app.');
         }
         return (
-            <div className="h-full" style={{ background: 'var(--bg-primary)' }}>
+            <div className="h-full bg-[var(--bg-primary)]">
                 <EmptyState
                     icon={restricted ? <Users className="w-12 h-12" /> : <CircleSlash className="w-12 h-12" />}
                     title={title}

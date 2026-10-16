@@ -25,7 +25,7 @@ import CoworkModeToggle from './CoworkModeToggle';
  * read the module that produced it.
  */
 const SWITCH_SOURCE = fs.readFileSync(
-    path.join(path.dirname(fileURLToPath(import.meta.url)), 'CoworkModeSwitch.jsx'),
+    path.join(path.dirname(fileURLToPath(import.meta.url)), 'CoworkModeSwitch.tsx'),
     'utf8',
 );
 

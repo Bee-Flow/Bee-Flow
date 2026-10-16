@@ -23,7 +23,6 @@
  */
 
 const express = require('express');
-const log = require('../../telemetry/log');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -153,32 +152,27 @@ const NO_SCOPE = {
 // ── The view ────────────────────────────────────────────────────────
 
 router.get('/access-audit', requireAuth, requirePermission('admin_compliance'), validate({ query: AuditQuery }), async (req, res) => {
-    try {
-        const scope = await scopeFor(req);
-        if (!scope) return res.status(403).json(NO_SCOPE);
+    const scope = await scopeFor(req);
+    if (!scope) return res.status(403).json(NO_SCOPE);
 
-        const limit = Math.max(1, Math.min(MAX_PAGE, parseInt(req.query.limit, 10) || DEFAULT_PAGE));
-        const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
-        const filter = filterFrom(req, scope);
+    const limit = Math.max(1, Math.min(MAX_PAGE, parseInt(req.query.limit, 10) || DEFAULT_PAGE));
+    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    const filter = filterFrom(req, scope);
 
-        // Count under the SAME filter as the rows, so the total a reader sees
-        // is the total of what they are looking at.
-        const [entries, total] = await Promise.all([
-            userStore.getAccessAuditLog({ ...filter, limit, offset }),
-            userStore.countAccessAuditLog(filter),
-        ]);
+    // Count under the SAME filter as the rows, so the total a reader sees
+    // is the total of what they are looking at.
+    const [entries, total] = await Promise.all([
+        userStore.getAccessAuditLog({ ...filter, limit, offset }),
+        userStore.countAccessAuditLog(filter),
+    ]);
 
-        res.json({
-            entries,
-            total,
-            limit,
-            offset,
-            scope: scope.globalOnly ? 'platform' : scope.organizationId,
-        });
-    } catch (e) {
-        log.error('[Compliance] access-audit read failed:', e.message);
-        res.status(500).json({ error: 'Could not read the access audit trail' });
-    }
+    res.json({
+        entries,
+        total,
+        limit,
+        offset,
+        scope: scope.globalOnly ? 'platform' : scope.organizationId,
+    });
 });
 
 /**
@@ -190,14 +184,9 @@ router.get('/access-audit', requireAuth, requirePermission('admin_compliance'), 
  * a filter that returns nothing.
  */
 router.get('/access-audit/actions', requireAuth, requirePermission('admin_compliance'), validate({ query: AuditQuery }), async (req, res) => {
-    try {
-        const scope = await scopeFor(req);
-        if (!scope) return res.status(403).json(NO_SCOPE);
-        res.json({ actions: await userStore.listAccessAuditActions(scope) });
-    } catch (e) {
-        log.error('[Compliance] access-audit actions failed:', e.message);
-        res.status(500).json({ error: 'Could not read the access audit trail' });
-    }
+    const scope = await scopeFor(req);
+    if (!scope) return res.status(403).json(NO_SCOPE);
+    res.json({ actions: await userStore.listAccessAuditActions(scope) });
 });
 
 /**
@@ -211,73 +200,68 @@ router.get('/access-audit/actions', requireAuth, requirePermission('admin_compli
  * does not show, so a reader can reproduce the file from the screen.
  */
 router.get('/access-audit/export', requireAuth, requirePermission('admin_compliance'), exportLimiter, validate({ query: AuditQuery }), async (req, res) => {
-    try {
-        const scope = await scopeFor(req);
-        if (!scope) return res.status(403).json(NO_SCOPE);
+    const scope = await scopeFor(req);
+    if (!scope) return res.status(403).json(NO_SCOPE);
 
-        const filter = filterFrom(req, scope);
-        const total = await userStore.countAccessAuditLog(filter);
-        if (total > MAX_EXPORT) {
-            return res.status(413).json({
-                error: `That range holds ${total} events, over the ${MAX_EXPORT} an export carries. Narrow the dates or the actions.`,
-                code: 'export_too_large',
-                total,
-                max: MAX_EXPORT,
-            });
-        }
+    const filter = filterFrom(req, scope);
+    const total = await userStore.countAccessAuditLog(filter);
+    if (total > MAX_EXPORT) {
+        return res.status(413).json({
+            error: `That range holds ${total} events, over the ${MAX_EXPORT} an export carries. Narrow the dates or the actions.`,
+            code: 'export_too_large',
+            total,
+            max: MAX_EXPORT,
+        });
+    }
 
-        const entries = await userStore.getAccessAuditLog({ ...filter, limit: MAX_EXPORT, offset: 0 });
-        const scopeLabel = scope.globalOnly ? 'platform' : scope.organizationId;
-        const filename = `access-audit-${scopeLabel}-${new Date().toISOString().slice(0, 10)}.json`;
+    const entries = await userStore.getAccessAuditLog({ ...filter, limit: MAX_EXPORT, offset: 0 });
+    const scopeLabel = scope.globalOnly ? 'platform' : scope.organizationId;
+    const filename = `access-audit-${scopeLabel}-${new Date().toISOString().slice(0, 10)}.json`;
 
-        // Reading the audit trail is itself an auditable event. A.8.15 asks for
-        // logs to be PROTECTED, and "who took a copy of everyone's sign-in
-        // times and addresses" is exactly the question that gets asked after an
-        // account turns out to have been compromised. Written before the file
-        // goes out, so a failure to record it is a failure to export.
-        await userStore.logAccessAudit(
-            'access_audit_exported',
-            'access_audit_log',
-            scopeLabel,
-            req.session.user.id,
-            null,
-            {
-                rows: total,
-                filter: {
-                    actions: filter.actions ?? null,
-                    actor: filter.changedBy ?? null,
-                    since: filter.since,
-                    until: filter.until,
-                },
-                ip: req.headers?.['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || null,
-            },
-            scope.globalOnly ? null : scope.organizationId,
-        );
-
-        res.setHeader('Content-Type', 'application/json; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        res.send(JSON.stringify({
-            // The header says what this file IS, so a copy that has travelled
-            // away from the screen still states its own scope and filter — an
-            // export whose scope has to be remembered is not evidence either.
-            generatedAt: new Date().toISOString(),
-            generatedBy: req.session.user.id,
-            scope: scopeLabel,
+    // Reading the audit trail is itself an auditable event. A.8.15 asks for
+    // logs to be PROTECTED, and "who took a copy of everyone's sign-in
+    // times and addresses" is exactly the question that gets asked after an
+    // account turns out to have been compromised. Written before the file
+    // goes out, so a failure to record it is a failure to export.
+    await userStore.logAccessAudit(
+        'access_audit_exported',
+        'access_audit_log',
+        scopeLabel,
+        req.session.user.id,
+        null,
+        {
+            rows: total,
             filter: {
                 actions: filter.actions ?? null,
                 actor: filter.changedBy ?? null,
-                targetType: filter.targetType ?? null,
-                targetId: filter.targetId ?? null,
                 since: filter.since,
                 until: filter.until,
             },
-            total,
-            entries,
-        }, null, 2));
-    } catch (e) {
-        log.error('[Compliance] access-audit export failed:', e.message);
-        res.status(500).json({ error: 'Could not export the access audit trail' });
-    }
+            ip: req.headers?.['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || null,
+        },
+        scope.globalOnly ? null : scope.organizationId,
+    );
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(JSON.stringify({
+        // The header says what this file IS, so a copy that has travelled
+        // away from the screen still states its own scope and filter — an
+        // export whose scope has to be remembered is not evidence either.
+        generatedAt: new Date().toISOString(),
+        generatedBy: req.session.user.id,
+        scope: scopeLabel,
+        filter: {
+            actions: filter.actions ?? null,
+            actor: filter.changedBy ?? null,
+            targetType: filter.targetType ?? null,
+            targetId: filter.targetId ?? null,
+            since: filter.since,
+            until: filter.until,
+        },
+        total,
+        entries,
+    }, null, 2));
 });
 
 module.exports = router;

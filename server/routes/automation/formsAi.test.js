@@ -128,18 +128,14 @@ describe('POST /api/automation/forms/ai/draft', () => {
 
     test('no model → 503 no_model', async () => {
         fx.model = null;
-        const res = makeRes();
-        await formsAi.draft(makeReq({ mode: 'create', brief: 'anything' }), res);
-        assert.strictEqual(res.statusCode, 503);
-        assert.strictEqual(res.body.code, 'no_model');
+        await assert.rejects(formsAi.draft(makeReq({ mode: 'create', brief: 'anything' }), makeRes()),
+            (err) => err.status === 503 && err.code === 'no_model');
     });
 
     test('an unusable answer → 502 ai_unusable', async () => {
         fx.structured = { title: 'x', fields: [] };
-        const res = makeRes();
-        await formsAi.draft(makeReq({ mode: 'create', brief: 'anything' }), res);
-        assert.strictEqual(res.statusCode, 502);
-        assert.strictEqual(res.body.code, 'ai_unusable');
+        await assert.rejects(formsAi.draft(makeReq({ mode: 'create', brief: 'anything' }), makeRes()),
+            (err) => err.status === 502 && err.code === 'ai_unusable');
         // still counted: the tokens were spent
         assert.ok(lastCall('logUsage'));
     });

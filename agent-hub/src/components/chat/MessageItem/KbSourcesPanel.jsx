@@ -27,7 +27,7 @@ const KbSourcesPanel = ({ msg, t: tProp }) => {
     const chunkCount = msg.kbSources.length;
     return (
         <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wider mb-2 px-1" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="text-[10px] font-semibold uppercase tracking-wider mb-2 px-1 text-[var(--text-tertiary)]">
                 {nOf(t, 'chat.msg.kb_chunks_from_docs', chunkCount,
                     '1 source from {docs}', '{count} sources from {docs}',
                     { docs: nOf(t, 'chat.msg.kb_doc_count', docCount, '1 document', '{count} documents') })}
@@ -37,13 +37,13 @@ const KbSourcesPanel = ({ msg, t: tProp }) => {
                     const docTitle = chunks[0]?.title || unknownTitle;
                     const when = whenLabel(chunks[0]);
                     return (
-                        <details key={key} className="group/doc rounded-lg border transition-colors" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-                            <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden text-xs" style={{ color: 'var(--text-primary)' }}>
+                        <details key={key} className="group/doc rounded-lg border transition-colors border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+                            <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden text-xs text-[var(--text-primary)]">
                                 <span className="font-medium truncate max-w-[250px]">{docTitle}</span>
                                 {when && (
                                     <span className="text-[10px] flex-shrink-0 text-[var(--text-tertiary)]" data-testid="kb-doc-when">{when}</span>
                                 )}
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                                     📦 {nOf(t, 'chat.msg.kb_chunks', chunks.length, 'KB · 1 chunk', 'KB · {count} chunks')}
                                 </span>
                                 <svg className="w-3 h-3 transition-transform group-open/doc:rotate-90 ml-auto opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -55,13 +55,13 @@ const KbSourcesPanel = ({ msg, t: tProp }) => {
                                     const page = Number.isInteger(source.page) && source.page > 0 ? source.page : null;
                                     const best = chunks[0]?.score || 0;
                                     return (
-                                        <details key={ci} className="group/src rounded-lg border transition-colors mt-1" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
-                                            <summary className="flex items-start gap-2 px-3 py-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden text-xs" style={{ color: 'var(--text-primary)' }}>
+                                        <details key={ci} className="group/src rounded-lg border transition-colors mt-1 border-[var(--border-subtle)] bg-[var(--bg-primary)]">
+                                            <summary className="flex items-start gap-2 px-3 py-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden text-xs text-[var(--text-primary)]">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                         <span className="font-medium text-[11px]">{sectionLabel}</span>
                                                         {page && (
-                                                            <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>{t('chat.msg.kb_page', 'p. {page}', { page })}</span>
+                                                            <span className="text-[10px] text-[var(--text-tertiary)]">{t('chat.msg.kb_page', 'p. {page}', { page })}</span>
                                                         )}
                                                     </div>
                                                     <RelevanceBar score={source.score} best={best} className="mt-1" />

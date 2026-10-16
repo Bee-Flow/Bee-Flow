@@ -168,10 +168,10 @@ export default function TranscriptLineMenu({
             className="py-1"
         >
             {error && (
-                <div className="px-3 py-2 text-xs" style={{ color: 'var(--error-ink)' }} role="alert">{error}</div>
+                <div className="px-3 py-2 text-xs text-[var(--error-ink)]" role="alert">{error}</div>
             )}
             {busy && (
-                <div className="px-3 py-2 text-xs flex items-center gap-2" style={{ color: 'var(--text-tertiary)' }}>
+                <div className="px-3 py-2 text-xs flex items-center gap-2 text-[var(--text-tertiary)]">
                     <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
                     {t('meetings.dest_sending', 'Sending…')}
                 </div>
@@ -228,8 +228,7 @@ function AlreadyRow({ icon: Icon, tone, kind, label }) {
     return (
         <div
             data-testid={`line-already-${kind}`}
-            className="w-full px-3 py-1.5 text-sm flex items-center gap-2"
-            style={{ color: 'var(--text-tertiary)' }}
+            className="w-full px-3 py-1.5 text-sm flex items-center gap-2 text-[var(--text-tertiary)]"
         >
             <Icon className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" style={{ color: tone, opacity: 0.5 }} />
             <span className="min-w-0 flex-1 truncate">{label}</span>

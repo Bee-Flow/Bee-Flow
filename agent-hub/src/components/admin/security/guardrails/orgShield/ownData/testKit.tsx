@@ -15,7 +15,7 @@ import OwnDataTab from './OwnDataTab';
  * test can read back exactly what the tab wrote into the form.
  */
 
-export const t: TranslateFn = (key, fallbackOrParams, paramsArg) => {
+export const t: TranslateFn = (key: string, fallbackOrParams, paramsArg) => {
     const hasFallback = typeof fallbackOrParams === 'string';
     const params = hasFallback ? paramsArg : fallbackOrParams;
     let out = hasFallback ? (fallbackOrParams as string) : key;

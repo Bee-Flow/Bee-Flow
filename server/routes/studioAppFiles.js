@@ -48,6 +48,7 @@ const crypto = require('crypto');
 const { z } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const { validate } = require('../core/http/validate');
 const router = express.Router();
 
@@ -178,74 +179,69 @@ function attachmentKey(ownerId, appId, sha256) {
 // ── POST /:id/data/attachments ──────────────────────────────────────
 router.post('/:id/data/attachments', requireAuth, uploadLimiter, validate({ params: AppParams, query: NoQuery }), guard,
     validate({ body: UploadFields }), async (req, res) => {
-    try {
-        const app = await loadVisibleApp(req, res);
-        if (!app) return;
-        if (!(await viewerMayUpload(req, app))) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
-        const file = req.file; // guard guarantees a validated, in-memory buffer
-        if (!file) return res.status(400).json({ error: 'No file uploaded' });
-
-        if (!storageStore.isAvailable()) {
-            return res.status(503).json({ error: 'File storage is not available' });
-        }
-
-        // Quota BEFORE we persist any bytes.
-        try {
-            await studioAppQuota.assertAttachmentQuota(app, file.size);
-            await assertAttachmentTotalBytes(app, file.size);
-        } catch (err) {
-            if (err && err.status === 409) {
-                return res.status(409).json({ error: err.message, code: err.code, limit: err.limit, used: err.used });
-            }
-            throw err;
-        }
-
-        const recordId = req.body.recordId || null;
-        const fieldKey = req.body.fieldKey || null;
-
-        const sha = crypto.createHash('sha256').update(file.buffer).digest('hex');
-        const key = attachmentKey(app.userId, app.id, sha);
-
-        // Put the blob, THEN scan. A dirty verdict deletes it and 422s — the
-        // ledger row is only written on a clean scan, so the bytes are never
-        // linked to a record.
-        await storageStore.uploadFile(key, file.buffer, file.mimetype, file.sanitized ? { sanitized: 'true' } : null);
-
-        const scan = await scanBuffer(file.buffer);
-        if (!scan.clean) {
-            try { await storageStore.deleteFile(key); } catch (_) { /* best-effort cleanup */ }
-            return res.status(422).json({ error: 'File failed a malware scan', signature: scan.signature || null });
-        }
-
-        const attachment = await studioAppDataStore.addAttachment(app.id, app.userId, {
-            recordId,
-            fieldKey,
-            mimeType: file.mimetype,
-            sha256: sha,
-            size: file.size,
-        });
-        // scanned:true — the row exists only because the scan passed.
-        await studioAppDataStore.setAttachmentScan(attachment.id, app.id, app.userId, { scanned: true, quarantined: false })
-            .catch(() => { /* advisory */ });
-
-        res.json({
-            success: true,
-            attachment: {
-                id: attachment.id,
-                recordId: attachment.recordId,
-                fieldKey: attachment.fieldKey,
-                mime: attachment.mimeType,
-                size: attachment.size,
-                sha: attachment.sha256,
-                scanned: true,
-            },
-        });
-    } catch (err) {
-        log.error(`[StudioAppFiles/upload] ${err.message}`);
-        res.status(500).json({ error: 'Upload failed' });
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
+    if (!(await viewerMayUpload(req, app))) {
+        return res.status(403).json({ error: 'Forbidden' });
     }
+    const file = req.file; // guard guarantees a validated, in-memory buffer
+    if (!file) return res.status(400).json({ error: 'No file uploaded' });
+
+    if (!storageStore.isAvailable()) {
+        throw new HttpError(503, 'storage_unavailable', 'File storage is not available');
+    }
+
+    // Quota BEFORE we persist any bytes.
+    try {
+        await studioAppQuota.assertAttachmentQuota(app, file.size);
+        await assertAttachmentTotalBytes(app, file.size);
+    } catch (err) {
+        if (err && err.status === 409) {
+            return res.status(409).json({ error: err.message, code: err.code, limit: err.limit, used: err.used });
+        }
+        throw err;
+    }
+
+    const recordId = req.body.recordId || null;
+    const fieldKey = req.body.fieldKey || null;
+
+    const sha = crypto.createHash('sha256').update(file.buffer).digest('hex');
+    const key = attachmentKey(app.userId, app.id, sha);
+
+    // Put the blob, THEN scan. A dirty verdict deletes it and 422s — the
+    // ledger row is only written on a clean scan, so the bytes are never
+    // linked to a record.
+    await storageStore.uploadFile(key, file.buffer, file.mimetype, file.sanitized ? { sanitized: 'true' } : null);
+
+    const scan = await scanBuffer(file.buffer);
+    if (!scan.clean) {
+        try { await storageStore.deleteFile(key); } catch (_) { /* best-effort cleanup */ }
+        return res.status(422).json({ error: 'File failed a malware scan', signature: scan.signature || null });
+    }
+
+    const attachment = await studioAppDataStore.addAttachment(app.id, app.userId, {
+        recordId,
+        fieldKey,
+        mimeType: file.mimetype,
+        sha256: sha,
+        size: file.size,
+    });
+    // scanned:true — the row exists only because the scan passed.
+    await studioAppDataStore.setAttachmentScan(attachment.id, app.id, app.userId, { scanned: true, quarantined: false })
+        .catch(() => { /* advisory */ });
+
+    res.json({
+        success: true,
+        attachment: {
+            id: attachment.id,
+            recordId: attachment.recordId,
+            fieldKey: attachment.fieldKey,
+            mime: attachment.mimeType,
+            size: attachment.size,
+            sha: attachment.sha256,
+            scanned: true,
+        },
+    });
 });
 
 // Can this viewer read a record the attachment hangs off? The rule itself lives
@@ -264,50 +260,41 @@ async function viewerMayReadAttachment(req, app, attachment) {
 }
 
 // ── GET /:id/data/attachments/:fileId ───────────────────────────────
-router.get('/:id/data/attachments/:fileId', requireAuth, readLimiter, validate({ params: FileParams, query: NoQuery }), async (req, res) => {
-    try {
-        const app = await loadVisibleApp(req, res);
-        if (!app) return;
+router.get('/:id/data/attachments/:fileId', requireAuth, readLimiter, validate({ params: FileParams, query: NoQuery }), async (req, res, next) => {
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
 
-        // Owner-scoped fetch: a fileId from another app (or owner) → null → 404.
-        const attachment = await studioAppDataStore.getAttachment(req.params.fileId, app.id, app.userId);
-        if (!attachment || attachment.quarantined) {
+    // Owner-scoped fetch: a fileId from another app (or owner) → null → 404.
+    const attachment = await studioAppDataStore.getAttachment(req.params.fileId, app.id, app.userId);
+    if (!attachment || attachment.quarantined) {
+        return res.status(404).json({ error: 'Attachment not found' });
+    }
+
+    const allowed = await viewerMayReadAttachment(req, app, attachment);
+    if (!allowed) return res.status(404).json({ error: 'Attachment not found' });
+
+    const key = attachmentKey(app.userId, app.id, attachment.sha256);
+    let obj;
+    try {
+        obj = await storageStore.streamFile(key);
+    } catch (err) {
+        if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
             return res.status(404).json({ error: 'Attachment not found' });
         }
-
-        const allowed = await viewerMayReadAttachment(req, app, attachment);
-        if (!allowed) return res.status(404).json({ error: 'Attachment not found' });
-
-        const key = attachmentKey(app.userId, app.id, attachment.sha256);
-        let obj;
-        try {
-            obj = await storageStore.streamFile(key);
-        } catch (err) {
-            if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
-                return res.status(404).json({ error: 'Attachment not found' });
-            }
-            throw err;
-        }
-
-        const mime = attachment.mimeType || obj.contentType || 'application/octet-stream';
-        res.setHeader('Content-Type', mime);
-        res.setHeader('X-Content-Type-Options', 'nosniff');
-        // Inline only for types that are safe to render (SVG was sanitized at
-        // upload); everything else is forced to download.
-        const inline = /^image\//.test(mime) || mime === 'application/pdf';
-        res.setHeader('Content-Disposition', inline ? 'inline' : 'attachment');
-        if (obj.contentLength) res.setHeader('Content-Length', obj.contentLength);
-
-        obj.stream.on('error', (e) => {
-            log.error(`[StudioAppFiles/stream] ${e.message}`);
-            if (!res.headersSent) res.status(500).json({ error: 'Stream failed' });
-            else res.destroy();
-        });
-        obj.stream.pipe(res);
-    } catch (err) {
-        log.error(`[StudioAppFiles/get] ${err.message}`);
-        if (!res.headersSent) res.status(500).json({ error: 'Failed to load attachment' });
+        throw err;
     }
+
+    const mime = attachment.mimeType || obj.contentType || 'application/octet-stream';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    // Inline only for types that are safe to render (SVG was sanitized at
+    // upload); everything else is forced to download.
+    const inline = /^image\//.test(mime) || mime === 'application/pdf';
+    res.setHeader('Content-Disposition', inline ? 'inline' : 'attachment');
+    if (obj.contentLength) res.setHeader('Content-Length', obj.contentLength);
+
+    obj.stream.on('error', next);
+    obj.stream.pipe(res);
 });
 
 // ── GET /:id/data/attachments/:fileId/preview ───────────────────────
@@ -330,108 +317,102 @@ const CAD_VIEW_VERSION = 'v2';
 // invalidate the other's cached sheets.
 const DXF_VIEW_VERSION = 'v1';
 
-router.get('/:id/data/attachments/:fileId/preview', requireAuth, readLimiter, validate({ params: FileParams, query: NoQuery }), async (req, res) => {
-    try {
-        const app = await loadVisibleApp(req, res);
-        if (!app) return;
+router.get('/:id/data/attachments/:fileId/preview', requireAuth, readLimiter, validate({ params: FileParams, query: NoQuery }), async (req, res, next) => {
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
 
-        // Same three gates as the raw stream, in the same order: a rendered
-        // picture of a file is still the file, so it may not be reachable by
-        // anyone who could not have downloaded it.
-        const attachment = await studioAppDataStore.getAttachment(req.params.fileId, app.id, app.userId);
-        if (!attachment || attachment.quarantined) return res.status(404).json({ error: 'Attachment not found' });
-        if (!(await viewerMayReadAttachment(req, app, attachment))) return res.status(404).json({ error: 'Attachment not found' });
+    // Same three gates as the raw stream, in the same order: a rendered
+    // picture of a file is still the file, so it may not be reachable by
+    // anyone who could not have downloaded it.
+    const attachment = await studioAppDataStore.getAttachment(req.params.fileId, app.id, app.userId);
+    if (!attachment || attachment.quarantined) return res.status(404).json({ error: 'Attachment not found' });
+    if (!(await viewerMayReadAttachment(req, app, attachment))) return res.status(404).json({ error: 'Attachment not found' });
 
-        // The ledger row IS the answer: every path that stores a file
-        // canonicalises the type on the way in (mailboxAttachments derives it
-        // with cadMimeForName before it ever writes a row), so a second guess
-        // here has nothing left to add.
-        //
-        // It also never ran. The fallback read `attachment.fileName`, and there
-        // is no such column and no such field on mapAttachmentRow — so it was
-        // always `cadMimeForName('')`, always null, for as long as it has
-        // existed. Dead code that LOOKS like a safety net is worse than no net:
-        // it is why nobody noticed that an octet-stream CAD file has only ever
-        // been answered by the honest 415 below.
-        const mime = canonicalCadMime(attachment.mimeType || '');
-        // Two renderers behind one endpoint. A .step is a solid and gets four
-        // shaded views; a .dxf is flat cutting geometry and gets one drawing.
-        // Both come back as a PNG, so the caller needs to know neither.
-        const format = mime === 'model/iges' ? 'iges'
-            : (mime === 'model/step' ? 'step'
-                : (mime === 'image/vnd.dxf' ? 'dxf' : null));
-        if (!format) {
-            // Honest 415 rather than a broken image: the preview component
-            // shows the reason and still offers the download.
-            return res.status(415).json({ error: 'No preview for this file type' });
-        }
+    // The ledger row IS the answer: every path that stores a file
+    // canonicalises the type on the way in (mailboxAttachments derives it
+    // with cadMimeForName before it ever writes a row), so a second guess
+    // here has nothing left to add.
+    //
+    // It also never ran. The fallback read `attachment.fileName`, and there
+    // is no such column and no such field on mapAttachmentRow — so it was
+    // always `cadMimeForName('')`, always null, for as long as it has
+    // existed. Dead code that LOOKS like a safety net is worse than no net:
+    // it is why nobody noticed that an octet-stream CAD file has only ever
+    // been answered by the honest 415 below.
+    const mime = canonicalCadMime(attachment.mimeType || '');
+    // Two renderers behind one endpoint. A .step is a solid and gets four
+    // shaded views; a .dxf is flat cutting geometry and gets one drawing.
+    // Both come back as a PNG, so the caller needs to know neither.
+    const format = mime === 'model/iges' ? 'iges'
+        : (mime === 'model/step' ? 'step'
+            : (mime === 'image/vnd.dxf' ? 'dxf' : null));
+    if (!format) {
+        // Honest 415 rather than a broken image: the preview component
+        // shows the reason and still offers the download.
+        return res.status(415).json({ error: 'No preview for this file type' });
+    }
 
-        const viewKey = format === 'dxf'
-            ? `${attachmentKey(app.userId, app.id, attachment.sha256)}.dxfview-${DXF_VIEW_VERSION}.png`
-            : `${attachmentKey(app.userId, app.id, attachment.sha256)}.cadview-${CAD_VIEW_VERSION}.png`;
+    const viewKey = format === 'dxf'
+        ? `${attachmentKey(app.userId, app.id, attachment.sha256)}.dxfview-${DXF_VIEW_VERSION}.png`
+        : `${attachmentKey(app.userId, app.id, attachment.sha256)}.cadview-${CAD_VIEW_VERSION}.png`;
 
-        const sendPng = (obj) => {
-            res.setHeader('Content-Type', 'image/png');
-            res.setHeader('X-Content-Type-Options', 'nosniff');
-            res.setHeader('Content-Disposition', 'inline');
-            // Immutable: the key already contains the file's hash AND the
-            // renderer version, so these bytes can never change meaning.
-            res.setHeader('Cache-Control', 'private, max-age=86400, immutable');
-            obj.stream.on('error', () => { if (!res.headersSent) res.status(500).end(); else res.destroy(); });
-            obj.stream.pipe(res);
-        };
-
-        try {
-            return sendPng(await storageStore.streamFile(viewKey));
-        } catch (err) {
-            if (err?.name !== 'NoSuchKey' && err?.$metadata?.httpStatusCode !== 404) throw err;
-        }
-
-        // Cache miss — render it now.
-        let source;
-        try {
-            source = await storageStore.streamFile(attachmentKey(app.userId, app.id, attachment.sha256));
-        } catch (err) {
-            if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
-                return res.status(404).json({ error: 'Attachment not found' });
-            }
-            throw err;
-        }
-        const chunks = [];
-        for await (const chunk of source.stream) chunks.push(chunk);
-        const buffer = Buffer.concat(chunks);
-
-        let png;
-        try {
-            ({ png } = format === 'dxf'
-                ? await renderDxfSheet(buffer, { name: attachment.fileName || '' })
-                : await renderCadSheet(buffer, { format }));
-        } catch (err) {
-            // A renderer refusing a file is a normal outcome, not a server
-            // fault — some STEP files carry no solid geometry at all, and a
-            // binary DXF has no group codes to read.
-            log.warn(`[StudioAppFiles/cadPreview] ${attachment.fileName}: ${err.message}`);
-            return res.status(415).json({ error: 'This file could not be drawn' });
-        }
-
-        // Best-effort cache: a storage hiccup must not turn a working preview
-        // into an error, it should only make the next viewer render again.
-        try {
-            await storageStore.uploadFile(viewKey, png, 'image/png');
-        } catch (err) {
-            log.warn(`[StudioAppFiles/cadPreview] could not cache ${viewKey}: ${err.message}`);
-        }
-
+    const sendPng = (obj) => {
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('Content-Disposition', 'inline');
+        // Immutable: the key already contains the file's hash AND the
+        // renderer version, so these bytes can never change meaning.
         res.setHeader('Cache-Control', 'private, max-age=86400, immutable');
-        return res.send(png);
+        obj.stream.on('error', next);
+        obj.stream.pipe(res);
+    };
+
+    try {
+        return sendPng(await storageStore.streamFile(viewKey));
     } catch (err) {
-        log.error(`[StudioAppFiles/cadPreview] ${err.message}`);
-        if (!res.headersSent) res.status(500).json({ error: 'Failed to render this file' });
-        return undefined;
+        if (err?.name !== 'NoSuchKey' && err?.$metadata?.httpStatusCode !== 404) throw err;
     }
+
+    // Cache miss — render it now.
+    let source;
+    try {
+        source = await storageStore.streamFile(attachmentKey(app.userId, app.id, attachment.sha256));
+    } catch (err) {
+        if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
+            return res.status(404).json({ error: 'Attachment not found' });
+        }
+        throw err;
+    }
+    const chunks = [];
+    for await (const chunk of source.stream) chunks.push(chunk);
+    const buffer = Buffer.concat(chunks);
+
+    let png;
+    try {
+        ({ png } = format === 'dxf'
+            ? await renderDxfSheet(buffer, { name: attachment.fileName || '' })
+            : await renderCadSheet(buffer, { format }));
+    } catch (err) {
+        // A renderer refusing a file is a normal outcome, not a server
+        // fault — some STEP files carry no solid geometry at all, and a
+        // binary DXF has no group codes to read.
+        log.warn(`[StudioAppFiles/cadPreview] ${attachment.fileName}: ${err.message}`);
+        return res.status(415).json({ error: 'This file could not be drawn' });
+    }
+
+    // Best-effort cache: a storage hiccup must not turn a working preview
+    // into an error, it should only make the next viewer render again.
+    try {
+        await storageStore.uploadFile(viewKey, png, 'image/png');
+    } catch (err) {
+        log.warn(`[StudioAppFiles/cadPreview] could not cache ${viewKey}: ${err.message}`);
+    }
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Disposition', 'inline');
+    res.setHeader('Cache-Control', 'private, max-age=86400, immutable');
+    return res.send(png);
 });
 
 // ── DELETE /:id/data/attachments/:fileId ────────────────────────────
@@ -451,37 +432,32 @@ router.get('/:id/data/attachments/:fileId/preview', requireAuth, readLimiter, va
 //   • The blob only goes when it was the last ledger row for those bytes:
 //     storage is content-addressed, so identical files share one object.
 router.delete('/:id/data/attachments/:fileId', requireAuth, uploadLimiter, validate({ params: FileParams, query: NoQuery }), async (req, res) => {
-    try {
-        const app = await loadVisibleApp(req, res);
-        if (!app) return;
-        if (!(await viewerMayUpload(req, app))) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
-
-        const attachment = await studioAppDataStore.getAttachment(req.params.fileId, app.id, app.userId);
-        if (!attachment) return res.status(404).json({ error: 'Attachment not found' });
-        if (attachment.recordId) {
-            return res.status(409).json({
-                error: 'This file is attached to a record — remove it from the record instead.',
-                code: 'attachment_linked',
-            });
-        }
-
-        await studioAppDataStore.deleteAttachment(attachment.id, app.id, app.userId);
-
-        const stillUsed = await studioAppDataStore.countAttachmentsBySha(app.id, app.userId, attachment.sha256);
-        if (stillUsed === 0 && attachment.sha256 && storageStore.isAvailable()) {
-            // Best-effort: the ledger row is already gone, so the bytes no
-            // longer count as used space either way — an orphan object is a
-            // storage-sweep problem, not a correctness one.
-            try { await storageStore.deleteFile(attachmentKey(app.userId, app.id, attachment.sha256)); } catch (_) { /* swept later */ }
-        }
-
-        res.json({ success: true });
-    } catch (err) {
-        log.error(`[StudioAppFiles/delete] ${err.message}`);
-        res.status(500).json({ error: 'Failed to remove the file' });
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
+    if (!(await viewerMayUpload(req, app))) {
+        return res.status(403).json({ error: 'Forbidden' });
     }
+
+    const attachment = await studioAppDataStore.getAttachment(req.params.fileId, app.id, app.userId);
+    if (!attachment) return res.status(404).json({ error: 'Attachment not found' });
+    if (attachment.recordId) {
+        return res.status(409).json({
+            error: 'This file is attached to a record — remove it from the record instead.',
+            code: 'attachment_linked',
+        });
+    }
+
+    await studioAppDataStore.deleteAttachment(attachment.id, app.id, app.userId);
+
+    const stillUsed = await studioAppDataStore.countAttachmentsBySha(app.id, app.userId, attachment.sha256);
+    if (stillUsed === 0 && attachment.sha256 && storageStore.isAvailable()) {
+        // Best-effort: the ledger row is already gone, so the bytes no
+        // longer count as used space either way — an orphan object is a
+        // storage-sweep problem, not a correctness one.
+        try { await storageStore.deleteFile(attachmentKey(app.userId, app.id, attachment.sha256)); } catch (_) { /* swept later */ }
+    }
+
+    res.json({ success: true });
 });
 
 // ── POST /:id/data/attachments/materialize ──────────────────────────

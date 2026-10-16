@@ -15,6 +15,7 @@ const configStore = require('../../../stores/configStore');
 const { isAdminUser } = require('./shared');
 const { VALID_PII_ACTIONS } = require('../../../core/privacy/signupShield');
 const { validate } = require('../../../core/http/validate');
+const { HttpError } = require('../../../core/http/errors');
 const { z, worded, bodyOf, flag } = require('../../../core/http/schemaParts');
 
 // ── What POST /config accepts ────────────────────────────────────────
@@ -496,7 +497,7 @@ router.post('/config', requireAuth, validate({ body: ConfigBody }), async (req, 
         }
         res.json({ success: true, ...(embeddingChanged ? { reembedding: true } : {}) });
     } else {
-        res.status(500).json({ error: 'Failed to save configuration' });
+        throw new Error('Failed to save configuration');
     }
 });
 
@@ -516,23 +517,18 @@ const DELETABLE_KEYS = [
 ];
 
 router.delete('/config/key/:keyName', requireAuth, async (req, res) => {
-    try {
-        if (!(await isAdminUser(req))) {
-            return res.status(403).json({ error: 'Admin access required' });
-        }
-
-        const { keyName } = req.params;
-        if (!DELETABLE_KEYS.includes(keyName)) {
-            return res.status(400).json({ error: `Key "${keyName}" cannot be deleted via this endpoint` });
-        }
-
-        await configStore.deleteConfig(keyName);
-        log.info(`[Config] Admin deleted key: ${keyName}`);
-        res.json({ success: true, deleted: keyName });
-    } catch (err) {
-        log.error('[Config] Delete key error:', err);
-        res.status(500).json({ error: 'Failed to delete key' });
+    if (!(await isAdminUser(req))) {
+        return res.status(403).json({ error: 'Admin access required' });
     }
+
+    const { keyName } = req.params;
+    if (!DELETABLE_KEYS.includes(keyName)) {
+        return res.status(400).json({ error: `Key "${keyName}" cannot be deleted via this endpoint` });
+    }
+
+    await configStore.deleteConfig(keyName);
+    log.info(`[Config] Admin deleted key: ${keyName}`);
+    res.json({ success: true, deleted: keyName });
 });
 
 // Also support deleting non-secret config keys (like vertex project/location)
@@ -548,23 +544,18 @@ const DELETABLE_CONFIG_KEYS = [
 ];
 
 router.delete('/config/setting/:keyName', requireAuth, async (req, res) => {
-    try {
-        if (!(await isAdminUser(req))) {
-            return res.status(403).json({ error: 'Admin access required' });
-        }
-
-        const { keyName } = req.params;
-        if (!DELETABLE_CONFIG_KEYS.includes(keyName)) {
-            return res.status(400).json({ error: `Setting "${keyName}" cannot be deleted via this endpoint` });
-        }
-
-        await configStore.deleteConfig(keyName);
-        log.info(`[Config] Admin deleted setting: ${keyName}`);
-        res.json({ success: true, deleted: keyName });
-    } catch (err) {
-        log.error('[Config] Delete setting error:', err);
-        res.status(500).json({ error: 'Failed to delete setting' });
+    if (!(await isAdminUser(req))) {
+        return res.status(403).json({ error: 'Admin access required' });
     }
+
+    const { keyName } = req.params;
+    if (!DELETABLE_CONFIG_KEYS.includes(keyName)) {
+        return res.status(400).json({ error: `Setting "${keyName}" cannot be deleted via this endpoint` });
+    }
+
+    await configStore.deleteConfig(keyName);
+    log.info(`[Config] Admin deleted setting: ${keyName}`);
+    res.json({ success: true, deleted: keyName });
 });
 
 // ─── Test Service Email ──────────────────────────────────────────
@@ -597,7 +588,7 @@ router.post('/config/test-service-email', requireAuth, validate({ body: TestEmai
     if (result.success) {
         res.json({ success: true, messageId: result.messageId });
     } else {
-        res.status(500).json({ error: result.error || 'Failed to send test email' });
+        throw new HttpError(500, 'test_email_failed', result.error || 'Failed to send test email');
     }
 });
 
@@ -698,10 +689,10 @@ router.post('/config/test-reranker', requireAuth, async (req, res) => {
         }
         lastError = await rerankerRes.text().catch(() => '');
         if (rerankerRes.status === 401 || rerankerRes.status === 403) {
-            return res.status(502).json({ error: `Auth failed (${rerankerRes.status}): ${lastError.slice(0, 300)}` });
+            throw new HttpError(502, 'reranker_auth_failed', `Auth failed (${rerankerRes.status}): ${lastError.slice(0, 300)}`);
         }
     }
-    res.status(502).json({ error: `All paths failed. Last: ${lastError.slice(0, 300)}` });
+    throw new HttpError(502, 'reranker_unreachable', `All paths failed. Last: ${lastError.slice(0, 300)}`);
 });
 
 module.exports = router;

@@ -57,6 +57,7 @@ const { validateCustomIntegration, deriveOpenAiTools } = require('../../core/cus
 const { isCustomIntegrationsEnabled } = require('../../core/customIntegrations/featureFlag');
 const { executeCustomIntegrationTool } = require('../../integrations/customIntegrationRunner');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 
 const router = express.Router({ mergeParams: true });
 
@@ -355,39 +356,34 @@ router.post('/:id/validate', validate({ body: ValidateBody }), (req, res) => {
 // is upserted into integration_connections under provider 'custom:<id>'.
 // The response and the audit row carry field NAMES only — never values.
 router.put('/:id/credentials', validate({ body: CredentialsBody }), async (req, res) => {
-    try {
-        const row = req.customIntegration;
-        const spec = credentialSpecFor(row.kind, row.definition);
-        if (spec.error) return res.status(400).json({ error: spec.error });
+    const row = req.customIntegration;
+    const spec = credentialSpecFor(row.kind, row.definition);
+    if (spec.error) return res.status(400).json({ error: spec.error });
 
-        const { values } = req.body;
-        const check = checkCredentialValues(values, spec.fields);
-        if (!check.ok) return res.status(400).json({ error: check.errors.join(' ') });
+    const { values } = req.body;
+    const check = checkCredentialValues(values, spec.fields);
+    if (!check.ok) return res.status(400).json({ error: check.errors.join(' ') });
 
-        const cs = connStore();
-        const provider = `custom:${row.id}`;
-        const secretMeta = { boundOrigin: spec.boundOrigin, fields: Object.keys(values) };
-        const existing = await getAdminConnection(req, row.id);
-        if (existing) {
-            await cs.updateConnectionSecret(existing.id, values, secretMeta);
-        } else {
-            await cs.createConnection({
-                ownerUserId: req.session.user.id,
-                orgId: row.orgId,
-                provider,
-                label: row.name,
-                kind: spec.connectionKind,
-                secretObject: values,
-                secretMeta,
-                makeDefault: true,
-            });
-        }
-        await audit(req, 'credential_set', row.id, null, { fields: Object.keys(values) });
-        res.json({ configured: Object.keys(values) });
-    } catch (err) {
-        log.error('[CustomIntegrationsAPI] credentials error:', err.message);
-        res.status(500).json({ error: 'Failed to store credentials' });
+    const cs = connStore();
+    const provider = `custom:${row.id}`;
+    const secretMeta = { boundOrigin: spec.boundOrigin, fields: Object.keys(values) };
+    const existing = await getAdminConnection(req, row.id);
+    if (existing) {
+        await cs.updateConnectionSecret(existing.id, values, secretMeta);
+    } else {
+        await cs.createConnection({
+            ownerUserId: req.session.user.id,
+            orgId: row.orgId,
+            provider,
+            label: row.name,
+            kind: spec.connectionKind,
+            secretObject: values,
+            secretMeta,
+            makeDefault: true,
+        });
     }
+    await audit(req, 'credential_set', row.id, null, { fields: Object.keys(values) });
+    res.json({ configured: Object.keys(values) });
 });
 
 // Test-call a draft tool. Rate-limited, kill-switch re-checked, strict-valid
@@ -395,34 +391,29 @@ router.put('/:id/credentials', validate({ body: CredentialsBody }), async (req, 
 // match, origin pin, SSRF, method gate, schema rejection, secret scrub).
 const testCallLimiter = perUserRateLimit({ windowMs: 60_000, max: 10 });
 router.post('/:id/test-call', testCallLimiter, validate({ body: TestCallBody }), async (req, res) => {
-    try {
-        // Kill-switch re-check: mount-level gate already 404s, but this is the
-        // one endpoint that fires real credentialed HTTP calls — re-assert.
-        if (!(await isCustomIntegrationsEnabled())) {
-            return res.status(404).json({ error: 'not_found' });
-        }
-        const row = req.customIntegration;
-        const { toolName, args } = req.body;
-        const validation = validateCustomIntegration(row.definition, { kind: row.kind, strict: true, slug: row.slug });
-        if (!validation.ok) {
-            return res.status(422).json({ error: 'validation_failed', validation });
-        }
-        const started = Date.now();
-        const result = await executeCustomIntegrationTool(`cint_${row.slug}_${toolName}`, args, {
-            userId: req.session.user.id,
-            draftIntegration: row,
-        });
-        const durationMs = Date.now() - started;
-        const ok = !result.error;
-        // Audit outcome metadata only — never args or the response body.
-        await audit(req, 'test_call', row.id, null, {
-            toolName, status: result.status ?? null, ok, durationMs,
-        });
-        res.json({ ok, durationMs, ...result });
-    } catch (err) {
-        log.error('[CustomIntegrationsAPI] test-call error:', err.message);
-        res.status(500).json({ error: 'Test call failed' });
+    // Kill-switch re-check: mount-level gate already 404s, but this is the
+    // one endpoint that fires real credentialed HTTP calls — re-assert.
+    if (!(await isCustomIntegrationsEnabled())) {
+        return res.status(404).json({ error: 'not_found' });
     }
+    const row = req.customIntegration;
+    const { toolName, args } = req.body;
+    const validation = validateCustomIntegration(row.definition, { kind: row.kind, strict: true, slug: row.slug });
+    if (!validation.ok) {
+        return res.status(422).json({ error: 'validation_failed', validation });
+    }
+    const started = Date.now();
+    const result = await executeCustomIntegrationTool(`cint_${row.slug}_${toolName}`, args, {
+        userId: req.session.user.id,
+        draftIntegration: row,
+    });
+    const durationMs = Date.now() - started;
+    const ok = !result.error;
+    // Audit outcome metadata only — never args or the response body.
+    await audit(req, 'test_call', row.id, null, {
+        toolName, status: result.status ?? null, ok, durationMs,
+    });
+    res.json({ ok, durationMs, ...result });
 });
 
 // Activate: freeze the strict-validated draft, build the tools cache, grant
@@ -449,7 +440,7 @@ router.post('/:id/activate', validate({ body: ActivateBody }), async (req, res) 
             discovered = await client.discoverTools(row, { secretObject });
         } catch (e) {
             log.warn('[OrgIntegrations] tool discovery failed:', e.message);
-            return res.status(502).json({ error: 'Tool discovery failed' });
+            throw new HttpError(502, 'tool_discovery_failed', 'Tool discovery failed');
         }
         warnings.push(...(discovered.warnings || []));
         toolsCache = buildMcpToolsCache(discovered.tools, row.slug);
@@ -532,7 +523,7 @@ router.post('/:id/refresh-tools', validate({ body: NoBody }), async (req, res) =
         discovered = await client.discoverTools(row, { secretObject });
     } catch (e) {
         log.warn('[OrgIntegrations] tool refresh failed:', e.message);
-        return res.status(502).json({ error: 'Tool discovery failed' });
+        throw new HttpError(502, 'tool_discovery_failed', 'Tool discovery failed');
     }
     const def = { ...row.definition, mcp: { ...row.definition.mcp, discoveredTools: discovered.tools } };
     const updated = await store().saveDefinition(row.id, def, req.session.user.id);

@@ -1,20 +1,17 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { registerStream, releaseStream, detachStream } from './streamRegistry';
-import { createContentFlusher, type ContentFlusher } from './useChatEngine/contentFlusher';
-import { toHistoryAttachment } from './useChatEngine/historyAttachment';
-import { dispatchSSEEvent } from './useChatEngine/sseEvents';
-import { chatSignalsSurfaceFor, resolveTurnEndpoint, type ChatSignalsTurnSurface } from './useChatEngine/turnEndpoint';
-import { WORK_EVENT_KINDS, extractMdHeading, summarizeWorkItem, type WorkItem } from './useChatEngine/workSummary';
+import type { ContentFlusher } from './useChatEngine/contentFlusher';
 import type { ChatAttachment } from './useChatEngine/historyAttachment';
+import { dispatchSSEEvent } from './useChatEngine/sseEvents';
+import type { ChatSignalsTurnSurface } from './useChatEngine/turnEndpoint';
+import { finishPermissionDenied, finishStreamEnd, finishWithError, type TurnEndDeps } from './useChatEngine/turnEnd';
+import { buildTurnRequest } from './useChatEngine/turnRequest';
+import { noteServerClock, openTurn, turnTarget } from './useChatEngine/turnStart';
+import { readTurnStream } from './useChatEngine/turnStream';
 import type { ChatMessage, SseDispatchIds, SseEventData } from './useChatEngine/types';
 import useTranslation from './useTranslation';
-import { API_BASE, generateMessageId, authFetch } from '../utils/helpers';
-import { logger } from '../utils/logger';
-import scopedStorage from '../utils/scopedStorage';
+import { authFetch } from '../utils/helpers';
 import { readStoredMemoryFlags, type MemoryLock } from '../utils/memoryMode';
-
-/** Slack before a turn's start when the chip asks what the turn saved. */
-const MEMORY_SINCE_SLACK_MS = 3000;
 
 // Re-exported so the module's public surface is unchanged — the colocated unit
 // tests (and any other consumer) keep importing these from './useChatEngine'.
@@ -330,6 +327,9 @@ export default function useChatEngine({
     useEffect(() => { handleSSEEventRef.current = handleSSEEvent; }, [handleSSEEvent]);
 
     // --- Core send ---
+    // The phases live in ./useChatEngine/: turnStart (messages on screen),
+    // turnRequest (URL and body), turnStream (read and dispatch the SSE),
+    // turnEnd (completed, refused, interrupted, recovered).
 
     const sendMessage = useCallback(async (
         text: string,
@@ -338,304 +338,49 @@ export default function useChatEngine({
         historyOverride: ChatMessage[] | null = null,
         overrideTier: string | null = null,
     ) => {
-        const isDirectMode = directMode?.enabled;
+        const isDirectMode = !!directMode?.enabled;
         if (!isDirectMode && !selectedAgent) return;
         if (isLoading) return;
         if (!text && attachments.length === 0) return;
 
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-            abortControllerRef.current = null;
-        }
+        abortControllerRef.current?.abort();
         const controller = new AbortController();
         abortControllerRef.current = controller;
-        // A chat that belongs to a project uses that project, however it was opened:
-        // the project the person is in, else the one the conversation is filed in.
-        const filed = currentConversation as { project_id?: string | null; projectId?: string | null } | null | undefined;
-        const chatProjectId = activeProject?.id || filed?.project_id || filed?.projectId || null;
-        // Track it so navigating away detaches instead of killing the answer —
-        // see hooks/streamRegistry.js. Keyed by conversation so a remount finds
-        // its own stream and a second send supersedes the first.
-        const streamKey = currentConversation?.id || directMode?.conversationId || `pending:${generateMessageId()}`;
+        const { streamKey, chatProjectId, conversationId } = turnTarget(currentConversation, directMode, activeProject);
         streamKeyRef.current = streamKey;
         registerStream(streamKey, controller);
         setIsLoading(true);
 
-        // The memory chip asks the server for what this turn saved "since" a moment.
-        // Three seconds of slack cover clock skew between this browser and the
-        // server; once the response arrives its `Date` header (whole seconds)
-        // corrects the skew, so a badly set clock cannot shift the window.
-        const turnStartMs = Date.now();
-        let turnStartedAt = new Date(turnStartMs - MEMORY_SINCE_SLACK_MS).toISOString();
-        let turnConversationId: string | undefined = currentConversation?.id || directMode?.conversationId;
-
-        const msgId = generateMessageId();
-        const newMessage = {
-            id: msgId,
-            role: 'user',
-            content: text,
-            attachments,
-            timestamp: new Date().toISOString(),
-            isHidden
-        };
-
-        // A new turn closes the previous turn's chip window: its polling stops and
-        // whatever the server saves from now on belongs to this turn.
-        {
-            const until = new Date(turnStartMs + serverSkewMsRef.current).toISOString();
-            setMessages(prev => [...prev.map(m => (m.memoryWatch && !m.memoryWatch.until
-                ? { ...m, memoryWatch: { ...m.memoryWatch, until } }
-                : m)), newMessage]);
-        }
-
-        const assistantMsgId = generateMessageId();
-        const placeholder = {
-            id: assistantMsgId,
-            role: 'assistant',
-            content: '',
-            isStreaming: true,
-            respondingAgentId: isDirectMode ? 'direct' : selectedAgent?.id,
-            respondingAgentName: isDirectMode ? null : selectedAgent?.name,
-            respondingAgentAvatar: isDirectMode ? '💬' : selectedAgent?.avatar
-        };
-        setMessages(prev => [...prev, placeholder]);
-
-        // Mutable refs for active agent tracking
-        const activeIdRef = { current: assistantMsgId };
-        const contentRef = { current: '' };
-        // Per-stream rAF coalescer for 'content' tokens (see createContentFlusher).
-        const flusher = createContentFlusher(setMessages, activeIdRef, contentRef);
-        activeFlusherRef.current = flusher;
-        // Tracks whether the stream produced any real work (content/tool/build
-        // events) before it ended. Used so a stream that drops AFTER work was
-        // already in flight (e.g. a long webpage/notebook build that tripped a
-        // proxy idle-timeout) isn't misreported as a hard failure (BFSF-221).
-        let producedWork = false;
-        // The server sent its terminal `done` event: the turn completed and was
-        // persisted. Anything that fails after this is teardown noise (a socket
-        // the server never closed cleanly, a proxy reset) and must NOT be shown
-        // as "interrupted" — the answer on screen is the whole answer.
-        let sawDone = false;
-        // Last work item ({ kind, title }) seen on this stream, so the
-        // interrupted/error notices can say WHAT was produced (BFSF-221).
-        const workRef: { current: WorkItem | null } = { current: null };
-
-        // The stream ended without completing the turn — either it threw, or it
-        // reached EOF with no terminal `done`. Both mean the same thing to the
-        // user, so they get the same treatment. Shared by the reader's normal
-        // exit and the catch below so a truncated stream can never be finalised
-        // as if it had succeeded.
-        const finishAbnormally = () => {
-            // If the stream already produced content/tool/build activity, it
-            // most likely dropped after the work was underway (e.g. a long
-            // webpage/notebook build that tripped a proxy idle-timeout) — the
-            // result may well have been saved. Surface a non-fatal "interrupted"
-            // notice instead of masquerading it as a hard failure (BFSF-221).
-            const interrupted = producedWork || !!contentRef.current?.trim();
-            setMessages(prev => prev.map(m => {
-                if (m.id !== assistantMsgId) return m;
-                // An explicit terminal event already told the user what
-                // happened — a server `error`, or a privacy-shield block. Those
-                // carry a specific, actionable reason; replacing it with a
-                // generic "interrupted"/"Error generating response." would be
-                // strictly less true. Just close the message out.
-                if (m.isError) return { ...m, isStreaming: false };
-                if (interrupted) {
-                    const prior = (m.content && m.content.trim()) ? m.content.trimEnd() + '\n\n' : '';
-                    // When we know WHAT was produced, lead with an explicit
-                    // success confirmation so users don't retry and duplicate.
-                    const wi = workRef.current;
-                    const summary = summarizeWorkItem(tRef.current, wi);
-                    const notice = summary
-                        ? tRef.current('chat.interrupted_with_work', { workSummary: summary })
-                        : tRef.current('chat.interrupted_generic');
-                    return {
-                        ...m,
-                        isStreaming: false,
-                        isInterrupted: true,
-                        workItem: wi || null,
-                        content: prior + notice,
-                    };
-                }
-                return { ...m, isStreaming: false, isError: true, content: 'Error generating response.' };
-            }));
-            setIsLoading(false);
-
-            // Auto-recover: the server persists the finished reply even when
-            // the SSE connection drops mid/post-stream (confirmed — the saved
-            // message appears on a manual refresh). Poll the persisted
-            // conversation and swap the real reply in so the user doesn't have
-            // to refresh. Bounded (~60s); bails if the user moved on; the
-            // interrupted notice stays if recovery never yields a saved reply.
-            const _reload = reloadConversationRef.current;
-            if (interrupted && typeof _reload === 'function') {
-                (async () => {
-                    const stillOurs = () => {
-                        const c = messagesRef.current;
-                        const l = c[c.length - 1];
-                        return !!(l && l.id === assistantMsgId && l.isInterrupted);
-                    };
-                    // Quick first attempt, then every 4s up to ~60s total.
-                    const delays = [1200, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000];
-                    for (const d of delays) {
-                        await new Promise(r => setTimeout(r, d));
-                        if (!stillOurs()) return;
-                        let reloaded;
-                        try { reloaded = await _reload(); } catch { continue; }
-                        if (!Array.isArray(reloaded) || reloaded.length === 0) continue;
-                        const lastReload = reloaded[reloaded.length - 1];
-                        if (lastReload && lastReload.role === 'assistant' && String(lastReload.content || '').trim()) {
-                            if (stillOurs()) setMessages(reloaded);
-                            return;
-                        }
-                    }
-                })();
-            }
+        const turn = openTurn({
+            text, attachments, isHidden, isDirectMode,
+            agent: selectedAgent,
+            conversationId,
+            serverSkewMs: serverSkewMsRef.current,
+            setMessages,
+        });
+        activeFlusherRef.current = turn.flusher;
+        const endDeps: TurnEndDeps = {
+            setMessages,
+            setIsLoading,
+            t: () => tRef.current,
+            messages: () => messagesRef.current,
+            reloadConversation: () => reloadConversationRef.current,
         };
 
         try {
-            // Thinking-effort override from composer (persisted in scopedStorage
-            // so user A's choice doesn't follow user B after account switch).
-            // Valid values: 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'.
-            // When unset, the server falls back to the tier default.
-            const reasoningEffort = scopedStorage.getItem('reasoningEffort') || null;
-
-            let payload;
-            // One path for the request and for the chat-signals marker below.
-            const turnPath = resolveTurnEndpoint({
-                isDirectMode: !!isDirectMode,
-                customEndpoint: directMode?.customEndpoint,
+            const testChat = testChatRef.current?.enabled ? testChatRef.current : null;
+            const { url, payload } = buildTurnRequest({
+                text, attachments, isHidden, historyOverride, overrideTier, isDirectMode, directMode, chatProjectId, activeSkillIds,
+                messages: messagesRef.current,
                 agentId: selectedAgent?.id,
+                conversationId: currentConversation?.id,
+                getNotebookPayload,
+                testChat: testChat && { asGroup: testChat.asGroup, sessionId: testSessionIdRef.current, toolDecisions: toolDecisionsRef.current },
+                getChatSignalsPayload: getChatSignalsPayloadRef.current,
             });
-            const url = `${API_BASE}${turnPath}`;
-
-            if (isDirectMode) {
-                // Direct chat mode — post to custom endpoint or /ai/chat/direct/stream
-                // History rule:
-                //   - Edit/retry flow: send `historyOverride` so the server can
-                //     truncate the conversation to the edit point.
-                //   - Brand-new conversation (no conversationId): send the
-                //     current in-memory history so the very first turn has it.
-                //   - Persisted conversation, no override: send NO history.
-                //     The server loads from `conversation_messages` instead,
-                //     which is the durable source of truth and avoids drift
-                //     (stripped tool messages, page-reload gaps, etc).
-                let history;
-                if (historyOverride) {
-                    history = historyOverride.filter(m => (m.role === 'user' || m.role === 'assistant') && m.content?.trim()).map(m => ({
-                        role: m.role,
-                        content: m.content,
-                        ...(m.attachments && m.attachments.length > 0 ? { attachments: (m.attachments as ChatAttachment[]).map(toHistoryAttachment) } : {})
-                    }));
-                } else if (!currentConversation?.id) {
-                    history = messagesRef.current.filter(m => (m.role === 'user' || m.role === 'assistant') && m.content?.trim()).map(m => ({
-                        role: m.role,
-                        content: m.content,
-                        ...(m.attachments && m.attachments.length > 0 ? { attachments: (m.attachments as ChatAttachment[]).map(toHistoryAttachment) } : {})
-                    }));
-                } else {
-                    history = undefined;
-                }
-                payload = {
-                    message: text,
-                    conversationId: currentConversation?.id,
-                    modelTier: overrideTier || directMode.modelTier || 'fast',
-                    attachments,
-                    ...(history !== undefined ? { history } : {}),
-                    ...getNotebookPayload?.(),
-                    ...(directMode.systemPrompt ? { systemPrompt: directMode.systemPrompt } : {}),
-                    imageGenSettings: scopedStorage.getJSON('imageGenSettings', {}),
-                    nanoBananaSettings: scopedStorage.getJSON('nanoBananaSettings', {}),
-                    disabledMedia: scopedStorage.getJSON('disabledMedia', {}),
-                    webSearchEnabled: (() => {
-                        const v = scopedStorage.getItem('webSearchEnabled');
-                        return v === null ? true : v === 'true';
-                    })(),
-                    ...readStoredMemoryFlags(),
-                    ...(chatProjectId ? { projectId: chatProjectId } : {}),
-                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    ...(typeof directMode.getExtraPayload === 'function' ? directMode.getExtraPayload() : {}),
-                    ...(Array.isArray(activeSkillIds) && activeSkillIds.length > 0 ? { activeSkillIds } : {}),
-                    ...(reasoningEffort ? { reasoningEffort } : {}),
-                };
-            } else {
-                // Agent chat mode — post to /agents/:id/chat/stream
-                const wsPayload = getNotebookPayload?.() || {};
-                payload = {
-                    message: text,
-                    agentId: selectedAgent?.id,
-                    conversationId: currentConversation?.id,
-                    attachments,
-                    isHidden,
-                    stream: true,
-                    ...readStoredMemoryFlags(),
-                    webSearchEnabled: (() => {
-                        const v = scopedStorage.getItem('webSearchEnabled');
-                        return v === null ? true : v === 'true';
-                    })(),
-                    ...wsPayload,
-                    ...(chatProjectId ? { projectId: chatProjectId } : {}),
-                    ...(overrideTier ? { modelTier: overrideTier } : {}),
-                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    // History rule, agent path:
-                    //   - Edit/retry: send `historyOverride` so the server can
-                    //     truncate the conversation to the edit point.
-                    //   - TESTCHAT: send the in-memory history. Een testchat is
-                    //     EFEMEER — de server schrijft geen rij en bouwt de
-                    //     conversatie als `{ …, messages: [] }`, dus zonder deze
-                    //     regel begint elke testbeurt vanaf nul: beurt 3 kan niet
-                    //     naar beurt 1 verwijzen, een vastgehouden actie wordt
-                    //     nooit opnieuw voorgesteld en de goedkeuring wordt dus
-                    //     nooit verbruikt. EmbedChat — de andere efemere surface
-                    //     — doet dit al om exact deze reden.
-                    //   - Anders: geen history; de server leest de durable rij.
-                    ...(historyOverride || testChatRef.current?.enabled ? {
-                        history: (historyOverride || messagesRef.current)
-                            .filter(m => (m.role === 'user' || m.role === 'assistant') && m.content?.trim())
-                            .map(m => ({
-                                role: m.role,
-                                content: m.content,
-                                ...(m.attachments && m.attachments.length > 0 ? { attachments: (m.attachments as ChatAttachment[]).map(toHistoryAttachment) } : {})
-                            }))
-                    } : {}),
-                    ...(reasoningEffort ? { reasoningEffort } : {}),
-                    // ── Testchat (A4) ───────────────────────────────────
-                    // `test: true` draait deze beurt op het CONCEPT en houdt
-                    // hem uit de historie; `asGroup` is het bestaande A1c-pad
-                    // en rijdt mee in dezelfde body.
-                    //
-                    // `testSessionId` is de sleutel waarmee de server zijn
-                    // efemere conversatie-id STABIEL houdt over de beurten van
-                    // één testgesprek. Zonder die sleutel mint hij per REQUEST
-                    // een nieuwe id, en dan telt `COUNT(DISTINCT
-                    // conversation_id)` beurten in plaats van gesprekken:
-                    // "6 testgesprekken" voor één gesprek van zes berichten.
-                    //
-                    // De beslissingen gaan ÉÉN keer mee — hieronder wordt de
-                    // outbox meteen geleegd, want de server verbruikt ze per
-                    // actie en een client die ze blijft herhalen koopt met één
-                    // klik elke volgende beurt.
-                    ...(testChatRef.current?.enabled ? {
-                        test: true,
-                        testSessionId: testSessionIdRef.current,
-                        ...(testChatRef.current.asGroup ? { asGroup: testChatRef.current.asGroup } : {}),
-                        ...(Object.keys(toolDecisionsRef.current).length > 0 ? {
-                            toolDecisions: Object.entries(toolDecisionsRef.current)
-                                .map(([argsKey, decision]) => ({ argsKey, decision })),
-                        } : {}),
-                    } : {}),
-                };
-                // De outbox is nu in de body geschreven. Legen — verzonden is
-                // verbruikt. De LEDGER blijft staan, zodat de kaart waarop
-                // geklikt is zijn kleur houdt.
-                if (testChatRef.current?.enabled) toolDecisionsRef.current = {};
-            }
-
-            // Chat signals: only a counted endpoint asks for the marker, and a
-            // test chat is never counted, so it carries none.
-            const signalsSurface = testChatRef.current?.enabled ? null : chatSignalsSurfaceFor(turnPath);
-            const signalsExtra = signalsSurface ? getChatSignalsPayloadRef.current?.(signalsSurface) ?? null : null;
-            if (signalsExtra) Object.assign(payload, signalsExtra);
+            // The outbox is now in the body. Empty it: sent is consumed. The
+            // LEDGER stays, so the card that was clicked keeps its colour.
+            if (testChat && !isDirectMode) toolDecisionsRef.current = {};
 
             const response = await authFetch(url, {
                 method: 'POST',
@@ -643,195 +388,40 @@ export default function useChatEngine({
                 body: JSON.stringify(payload),
                 signal: controller.signal
             });
-
-            const serverNow = Date.parse(response.headers?.get?.('Date') ?? '');
-            if (Number.isFinite(serverNow)) {
-                // The header has whole-second resolution, so it is at most 1 s behind.
-                serverSkewMsRef.current = serverNow - Date.now();
-                turnStartedAt = new Date(serverNow - MEMORY_SINCE_SLACK_MS).toISOString();
-            }
+            const skew = noteServerClock(response, turn);
+            if (skew !== null) serverSkewMsRef.current = skew;
 
             if (response.status === 403 || response.status === 401) {
-                // Permissions were revoked while the user had the agent open.
-                // Show a clear message rather than a generic error.
-                setMessages(prev => prev.map(m =>
-                    m.id === assistantMsgId ? {
-                        ...m,
-                        isStreaming: false,
-                        isError: true,
-                        isPermissionDenied: true,
-                        content: "⚠️ **Access denied** — you no longer have permission to use this agent. Please refresh the page."
-                    } : m
-                ));
-                setIsLoading(false);
+                finishPermissionDenied(turn, endDeps);
                 return;
             }
-
             if (!response.ok) throw new Error('Failed to send message');
 
-            const reader = response.body!.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-            let currentEvent = '';
-
-            const processLine = (rawLine: string) => {
-                // Per the SSE spec the space after the colon is OPTIONAL, and a
-                // proxy may re-frame the stream with CRLF. Matching only the
-                // literal 'event: '/'data: ' with LF meant a spec-legal
-                // 'data:{…}' or a CR-terminated line parsed as zero events —
-                // the same blank-bubble failure as a truncated stream, with no
-                // error to explain it. Normalise before dispatching.
-                const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
-                if (line.startsWith('event:')) {
-                    currentEvent = line.slice(6).trim();
-                } else if (line.startsWith('data:')) {
-                    try {
-                        const data = JSON.parse(line.slice(5).replace(/^ /, ''));
-
-                        // Note any event that represents real progress, so a
-                        // later stream drop can be reported as "interrupted"
-                        // rather than a blanket failure (BFSF-221).
-                        if ([
-                            'content', 'content_replace', 'tool_start', 'tool_end',
-                            'webpage_doc_update', 'webpage_doc_partial', 'webpage_extra_update',
-                            'workspace_update', 'notebook_doc_update', 'slides_deck_update',
-                            'sheet_update', 'image', 'calendar_draft', 'linkedin_draft',
-                            'document_update',
-                        ].includes(currentEvent)) {
-                            producedWork = true;
-                        }
-                        if (currentEvent === 'done') sawDone = true;
-                        if ((currentEvent === 'done' || currentEvent === 'conversation_created') && typeof data.conversationId === 'string') {
-                            turnConversationId = data.conversationId;
-                        }
-
-                        // Capture WHAT was produced (kind + best-known title) so the
-                        // interrupted/error notices can name it. Latest event wins; a
-                        // titleless follow-up of the same kind keeps the earlier title.
-                        const kind = WORK_EVENT_KINDS[currentEvent];
-                        if (kind) {
-                            const prev = workRef.current;
-                            const title = data.title
-                                || (currentEvent === 'workspace_update' ? extractMdHeading(data.content) : null)
-                                || (prev?.kind === kind ? prev.title : null);
-                            workRef.current = { kind, title };
-                        }
-
-                        // Handle direct-chat specific events
-                        if (isDirectMode) {
-                            if (currentEvent === 'conversation_created' && data.conversationId) {
-                                onDirectConversationCreated?.({ conversationId: data.conversationId });
-                            } else if (currentEvent === 'title' && data.title) {
-                                onDirectConversationCreated?.({ conversationId: data.conversationId, title: data.title });
-                            }
-                        }
-
-                        handleSSEEventRef.current(currentEvent, data, {
-                            assistantMsgId,
-                            userMsgId: msgId,
-                            activeIdRef,
-                            contentRef,
-                            flusher,
-                            workRef
-                        });
-                    } catch (e) {
-                        logger.debug('[useChatEngine] SSE event parse skipped', currentEvent, e);
-                    }
-                }
-            };
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                for (const line of lines) processLine(line);
-            }
-
-            // Drain the decoder and process any final event left in the buffer.
-            // The server's terminal `done` event can arrive in the last chunk
-            // without a trailing newline; breaking on `done` without flushing left
-            // the message stuck in isStreaming:true so the notebook edit was never
-            // applied and the chat never finalized (BFSF-177).
-            buffer += decoder.decode();
-            if (buffer) {
-                for (const line of buffer.split('\n')) processLine(line);
-            }
-
-            // Commit any final buffered tokens if the stream ended without a
-            // terminal 'done' event (it preserves m.content otherwise).
-            flusher.flushNow();
-
-            // A stream that ends without the server's terminal `done` was CUT,
-            // not completed — and reader.read() cannot tell us that.
-            //
-            // The connector frames SSE responses with `Connection: close` and
-            // no Content-Length (nextcloud-connector/src/proxy.js), because
-            // Nextcloud's AppAPI proxy mangles chunked encoding. Close-framing
-            // has no wire-level completeness signal, so a stream truncated at
-            // byte 0 arrives here as a perfectly successful 200 with an empty
-            // body. Finalising that silently is what left a blank assistant
-            // bubble with the action row and no error anywhere on screen.
-            //
-            // `done` is the only end-of-turn marker we actually control, so
-            // treat its absence as an abnormal end and run the same
-            // interrupted/error handling a thrown stream gets — including the
-            // recovery poll, since the server persists the finished reply even
-            // when the connection dies.
-            if (!sawDone) {
-                console.warn('[useChatEngine] stream ended without a terminal `done` event — treating as interrupted');
-                finishAbnormally();
-            } else {
-                setIsLoading(false);
-                // Watch for memories this turn saved, unless it could not have
-                // saved any: writing was off, memory is locked, or it is a test chat.
-                const canWatch = !!getMemoryLockRef.current && !testChatRef.current?.enabled
-                    && !directMode?.customEndpoint
-                    && !!turnConversationId
-                    && readStoredMemoryFlags().memoryWriteEnabled
-                    && getMemoryLockRef.current() === null;
-                const memoryWatch = canWatch ? { conversationId: turnConversationId as string, since: turnStartedAt } : null;
-                setMessages(prev => prev.map(m =>
-                    m.id === assistantMsgId ? { ...m, isStreaming: false, ...(memoryWatch ? { memoryWatch } : {}) } : m
-                ));
-            }
-
+            await readTurnStream(response, controller.signal, turn, {
+                dispatch: (event, data, ids) => handleSSEEventRef.current(event, data, ids),
+                isDirectMode,
+                onDirectConversation: onDirectConversationCreated,
+            });
+            finishStreamEnd(turn, endDeps, {
+                getMemoryLock: getMemoryLockRef.current,
+                isTestChat: !!testChatRef.current?.enabled,
+                customEndpoint: directMode?.customEndpoint,
+                memoryWriteEnabled: () => readStoredMemoryFlags().memoryWriteEnabled,
+            });
         } catch (e) {
-            const err = e instanceof Error ? e : new Error(String(e));
-            // Commit buffered tokens before the interrupt/error branch reads
-            // m.content, so the prior content prepended to the notice is complete.
-            flusher.flushNow();
-            if (err.name !== 'AbortError' && sawDone) {
-                // The turn already finished on the server. Close the message out
-                // quietly rather than appending a notice to a complete answer.
-                logger.debug('[useChatEngine] stream teardown after done', err);
-                setMessages(prev => prev.map(m =>
-                    m.id === assistantMsgId ? { ...m, isStreaming: false } : m
-                ));
-                setIsLoading(false);
-            } else if (err.name !== 'AbortError') {
-                console.error("Chat error", err);
-                finishAbnormally();
-            }
+            finishWithError(e, turn, endDeps);
         } finally {
             // Release the controller once the stream is done (success, error, or
             // abort). Leaving it set means the next send would needlessly call
             // .abort() on an already-finished controller.
-            if (abortControllerRef.current === controller) {
-                abortControllerRef.current = null;
-            }
+            if (abortControllerRef.current === controller) abortControllerRef.current = null;
             // The stream is over (success, error or abort), so it no longer
             // needs to survive an unmount.
             releaseStream(streamKey);
             // Drop the flusher reference (guard against a newer concurrent stream
             // having replaced it) so stopGenerating can't act on a dead stream.
-            flusher.cancel();
-            if (activeFlusherRef.current === flusher) {
-                activeFlusherRef.current = null;
-            }
+            turn.flusher.cancel();
+            if (activeFlusherRef.current === turn.flusher) activeFlusherRef.current = null;
         }
         // Deliberately NOT in deps: `messages` (read via messagesRef), `handleSSEEvent`
         // (invoked via handleSSEEventRef). Keeping them here would recreate

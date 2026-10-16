@@ -37,7 +37,6 @@
  */
 
 const express = require('express');
-const log = require('../telemetry/log');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
@@ -117,76 +116,61 @@ async function resolveCtx(req) {
 
 // ── List (Regenerate menu) ─────────────────────────────────────────
 router.get('/', requireAuth, async (req, res) => {
-    try {
-        const ctx = await resolveCtx(req);
-        const custom = await store.listVisible({ userId: ctx.userId, orgIds: ctx.orgIds, groupIds: ctx.groupIds });
-        const def = pickDefaultTemplate(custom, ctx);
-        const canManageOrg = ctx.primaryOrgId ? await isOrgAdminForOrg(req, ctx.primaryOrgId) : false;
-        res.json({
-            builtins: BUILTIN_TEMPLATES.map(t => ({ id: t.id, name: t.name, nameKey: t.nameKey, prompt: t.prompt })),
-            custom,
-            defaultTemplateId: def ? def.id : null,
-            canManageOrg,
-            primaryOrgId: ctx.primaryOrgId,
-        });
-    } catch (e) {
-        log.error('[summaryTemplates] list failed:', e.message);
-        res.status(500).json({ error: 'Failed to list templates' });
-    }
+    const ctx = await resolveCtx(req);
+    const custom = await store.listVisible({ userId: ctx.userId, orgIds: ctx.orgIds, groupIds: ctx.groupIds });
+    const def = pickDefaultTemplate(custom, ctx);
+    const canManageOrg = ctx.primaryOrgId ? await isOrgAdminForOrg(req, ctx.primaryOrgId) : false;
+    res.json({
+        builtins: BUILTIN_TEMPLATES.map(t => ({ id: t.id, name: t.name, nameKey: t.nameKey, prompt: t.prompt })),
+        custom,
+        defaultTemplateId: def ? def.id : null,
+        canManageOrg,
+        primaryOrgId: ctx.primaryOrgId,
+    });
 });
 
 // ── List for org admin panel (all org + group templates in the org) ──
 router.get('/org', requireAuth, async (req, res) => {
-    try {
-        const ctx = await resolveCtx(req);
-        const orgId = ctx.primaryOrgId;
-        if (!orgId) return res.status(400).json({ error: 'No organisation' });
-        if (!(await isOrgAdminForOrg(req, orgId))) return res.status(403).json({ error: 'Org admin required' });
-        const templates = await store.listForOrg(orgId);
-        const allGroups = await userStore.getAllGroups();
-        const groups = allGroups
-            .filter(g => g.organizationId === orgId)
-            .map(g => ({ id: g.id, name: g.name, description: g.description || '' }));
-        res.json({ orgId, templates, groups });
-    } catch (e) {
-        log.error('[summaryTemplates] org list failed:', e.message);
-        res.status(500).json({ error: 'Failed to list org templates' });
-    }
+    const ctx = await resolveCtx(req);
+    const orgId = ctx.primaryOrgId;
+    if (!orgId) return res.status(400).json({ error: 'No organisation' });
+    if (!(await isOrgAdminForOrg(req, orgId))) return res.status(403).json({ error: 'Org admin required' });
+    const templates = await store.listForOrg(orgId);
+    const allGroups = await userStore.getAllGroups();
+    const groups = allGroups
+        .filter(g => g.organizationId === orgId)
+        .map(g => ({ id: g.id, name: g.name, description: g.description || '' }));
+    res.json({ orgId, templates, groups });
 });
 
 // ── Create ─────────────────────────────────────────────────────────
 router.post('/', requireAuth, validate({ body: CreateBody }), async (req, res) => {
-    try {
-        const ctx = await resolveCtx(req);
-        const { scope, name, prompt } = req.body;
-        const isDefault = req.body.isDefault === true;
+    const ctx = await resolveCtx(req);
+    const { scope, name, prompt } = req.body;
+    const isDefault = req.body.isDefault === true;
 
-        if (scope === 'user') {
-            const created = await store.create({ scope: 'user', name, prompt, userId: ctx.userId, isDefault, createdBy: ctx.userId });
-            return res.status(201).json(created);
-        }
-
-        // org / group → org admin of the caller's own org
-        const orgId = ctx.primaryOrgId;
-        if (!orgId) return res.status(400).json({ error: 'You are not part of an organisation' });
-        if (!(await isOrgAdminForOrg(req, orgId))) return res.status(403).json({ error: 'Org admin required' });
-
-        let groupId = null;
-        if (scope === 'group') {
-            groupId = req.body.groupId;
-            try {
-                await validateSharedGroupsForOrg(orgId, [groupId]);
-            } catch (err) {
-                return res.status(err.status || 400).json({ error: err.message });
-            }
-        }
-
-        const created = await store.create({ scope, name, prompt, organizationId: orgId, groupId, isDefault, createdBy: ctx.userId });
+    if (scope === 'user') {
+        const created = await store.create({ scope: 'user', name, prompt, userId: ctx.userId, isDefault, createdBy: ctx.userId });
         return res.status(201).json(created);
-    } catch (e) {
-        log.error('[summaryTemplates] create failed:', e.message);
-        res.status(500).json({ error: 'Failed to create template' });
     }
+
+    // org / group → org admin of the caller's own org
+    const orgId = ctx.primaryOrgId;
+    if (!orgId) return res.status(400).json({ error: 'You are not part of an organisation' });
+    if (!(await isOrgAdminForOrg(req, orgId))) return res.status(403).json({ error: 'Org admin required' });
+
+    let groupId = null;
+    if (scope === 'group') {
+        groupId = req.body.groupId;
+        try {
+            await validateSharedGroupsForOrg(orgId, [groupId]);
+        } catch (err) {
+            return res.status(err.status || 400).json({ error: err.message });
+        }
+    }
+
+    const created = await store.create({ scope, name, prompt, organizationId: orgId, groupId, isDefault, createdBy: ctx.userId });
+    return res.status(201).json(created);
 });
 
 /** Owner (user-scope) or org admin (org/group-scope) may write. */
@@ -198,35 +182,25 @@ async function authorizeWrite(req, tpl) {
 
 // ── Update ─────────────────────────────────────────────────────────
 router.patch('/:id', requireAuth, validate({ body: PatchBody }), async (req, res) => {
-    try {
-        const tpl = await store.getById(req.params.id);
-        if (!tpl) return res.status(404).json({ error: 'Not found' });
-        if (!(await authorizeWrite(req, tpl))) return res.status(403).json({ error: 'Not allowed' });
+    const tpl = await store.getById(req.params.id);
+    if (!tpl) return res.status(404).json({ error: 'Not found' });
+    if (!(await authorizeWrite(req, tpl))) return res.status(403).json({ error: 'Not allowed' });
 
-        // The schema trimmed, bounded and refused empties; only what was sent moves.
-        const updates = {};
-        for (const f of ['name', 'prompt', 'isDefault']) if (req.body[f] !== undefined) updates[f] = req.body[f];
+    // The schema trimmed, bounded and refused empties; only what was sent moves.
+    const updates = {};
+    for (const f of ['name', 'prompt', 'isDefault']) if (req.body[f] !== undefined) updates[f] = req.body[f];
 
-        const updated = await store.update(req.params.id, updates);
-        res.json(updated);
-    } catch (e) {
-        log.error('[summaryTemplates] update failed:', e.message);
-        res.status(500).json({ error: 'Failed to update template' });
-    }
+    const updated = await store.update(req.params.id, updates);
+    res.json(updated);
 });
 
 // ── Delete ─────────────────────────────────────────────────────────
 router.delete('/:id', requireAuth, async (req, res) => {
-    try {
-        const tpl = await store.getById(req.params.id);
-        if (!tpl) return res.status(404).json({ error: 'Not found' });
-        if (!(await authorizeWrite(req, tpl))) return res.status(403).json({ error: 'Not allowed' });
-        await store.remove(req.params.id);
-        res.json({ ok: true });
-    } catch (e) {
-        log.error('[summaryTemplates] delete failed:', e.message);
-        res.status(500).json({ error: 'Failed to delete template' });
-    }
+    const tpl = await store.getById(req.params.id);
+    if (!tpl) return res.status(404).json({ error: 'Not found' });
+    if (!(await authorizeWrite(req, tpl))) return res.status(403).json({ error: 'Not allowed' });
+    await store.remove(req.params.id);
+    res.json({ ok: true });
 });
 
 module.exports = router;

@@ -19,6 +19,32 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
  * but the runtime must never crash over it.
  */
 
+/**
+ * What an input registers: AppForm keeps it per field name for validation.
+ *
+ * @typedef {object} FormFieldMeta
+ * @property {boolean} required
+ * @property {string} label
+ * @property {unknown} defaultValue
+ * @property {boolean} disabled
+ * @property {boolean} invalid
+ * @property {string | null} invalidMessage
+ */
+
+/**
+ * The value AppForm provides. Field values are whatever an input or an action
+ * step put there, so they stay `unknown`.
+ *
+ * @typedef {object} FormContextValue
+ * @property {Record<string, unknown>} values
+ * @property {(name: string, value: unknown) => void} setValue
+ * @property {Record<string, string | undefined>} errors
+ * @property {(name: string, meta: FormFieldMeta) => void} register
+ * @property {(name: string) => void} unregister
+ * @property {boolean} pending
+ */
+
+/** @type {import('react').Context<FormContextValue | null>} */
 export const FormContext = createContext(null);
 
 // ── reset_form bus ──────────────────────────────────────────────────────────
@@ -29,7 +55,13 @@ export const FormContext = createContext(null);
 // app "switch context" had no way to empty a half-typed composer.
 const resetters = new Map();
 
-/** AppForm calls this on mount; returns the unregister cleanup. */
+/**
+ * AppForm calls this on mount; returns the unregister cleanup.
+ *
+ * @param {string | null | undefined} name
+ * @param {() => void} fn
+ * @returns {() => void}
+ */
 export function registerFormReset(name, fn) {
     if (!name || typeof fn !== 'function') return () => {};
     let set = resetters.get(name);
@@ -41,7 +73,11 @@ export function registerFormReset(name, fn) {
     };
 }
 
-/** Clear every mounted form registered under this name back to its defaults. */
+/**
+ * Clear every mounted form registered under this name back to its defaults.
+ *
+ * @param {string} name
+ */
 export function resetAppForm(name) {
     (resetters.get(name) || []).forEach((fn) => fn());
 }
@@ -54,9 +90,12 @@ export function resetAppForm(name) {
  * as required, so a required field the user could not reach blocked submit with
  * an error they could not clear. The wrapper publishes the state here and the
  * field carries it into its registration, where AppForm skips its rules.
+ *
+ * @type {import('react').Context<boolean>}
  */
 export const FieldDisabledContext = createContext(false);
 
+/** @returns {FormContextValue | null} */
 export function useFormContext() {
     return useContext(FormContext);
 }
@@ -64,6 +103,9 @@ export function useFormContext() {
 /**
  * useFormField({ name, defaultValue, required, label })
  *   → { value, setValue, error, pending }
+ *
+ * @param {{ name?: string | null, defaultValue?: unknown, required?: boolean, label?: string, invalid?: boolean, invalidMessage?: string | null }} field
+ * @returns {{ value: unknown, setValue: (value: unknown) => void, error: string | null, pending: boolean }}
  */
 export function useFormField({
     name, defaultValue = null, required = false, label = '',

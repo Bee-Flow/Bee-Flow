@@ -40,7 +40,6 @@
  */
 
 const express = require('express');
-const log = require('../telemetry/log');
 const router = express.Router();
 const terminationStore = require('../stores/terminationStore');
 const { resolveUserOrgIds, isOrgAdminRole, requirePermission } = require('../auth');
@@ -144,45 +143,25 @@ async function requireOwnOrgAdminScope(req, res, next) {
 }
 
 router.get('/org', requireOwnOrgAdminScope, readQuery, async (req, res) => {
-    try {
-        const limit = Math.min(req.query.limit || 100, 500);
-        const rows = await terminationStore.getList(termFilters(req), limit);
-        res.json({ rows });
-    } catch (e) {
-        log.error('[Terminations] org list error:', e.message);
-        res.status(500).json({ error: 'Failed to load terminations' });
-    }
+    const limit = Math.min(req.query.limit || 100, 500);
+    const rows = await terminationStore.getList(termFilters(req), limit);
+    res.json({ rows });
 });
 
 router.get('/org/summary', requireOwnOrgAdminScope, readQuery, async (req, res) => {
-    try {
-        const summary = await terminationStore.getSummary(termFilters(req));
-        res.json(summary);
-    } catch (e) {
-        log.error('[Terminations] org summary error:', e.message);
-        res.status(500).json({ error: 'Failed to load summary' });
-    }
+    const summary = await terminationStore.getSummary(termFilters(req));
+    res.json(summary);
 });
 
 router.get('/org/timeline', requireOwnOrgAdminScope, readQuery, async (req, res) => {
-    try {
-        const interval = req.query.interval || 'day';
-        const rows = await terminationStore.getTimeline(termFilters(req), interval);
-        res.json({ rows, interval });
-    } catch (e) {
-        log.error('[Terminations] org timeline error:', e.message);
-        res.status(500).json({ error: 'Failed to load timeline' });
-    }
+    const interval = req.query.interval || 'day';
+    const rows = await terminationStore.getTimeline(termFilters(req), interval);
+    res.json({ rows, interval });
 });
 
 router.get('/org/by-agent', requireOwnOrgAdminScope, readQuery, async (req, res) => {
-    try {
-        const rows = await terminationStore.getByAgent(termFilters(req));
-        res.json({ rows });
-    } catch (e) {
-        log.error('[Terminations] org by-agent error:', e.message);
-        res.status(500).json({ error: 'Failed to load by-agent' });
-    }
+    const rows = await terminationStore.getByAgent(termFilters(req));
+    res.json({ rows });
 });
 
 // ── Default routes (admin / generic org-scoped) ────────────────────────────
@@ -191,45 +170,25 @@ router.get('/org/by-agent', requireOwnOrgAdminScope, readQuery, async (req, res)
 router.use(requirePermission('admin_monitoring'), attachOrgFilter);
 
 router.get('/', readQuery, async (req, res) => {
-    try {
-        const limit = Math.min(req.query.limit || 100, 500);
-        const rows = await terminationStore.getList(termFilters(req), limit);
-        res.json({ rows });
-    } catch (e) {
-        log.error('[Terminations] list error:', e.message);
-        res.status(500).json({ error: 'Failed to load terminations' });
-    }
+    const limit = Math.min(req.query.limit || 100, 500);
+    const rows = await terminationStore.getList(termFilters(req), limit);
+    res.json({ rows });
 });
 
 router.get('/summary', readQuery, async (req, res) => {
-    try {
-        const summary = await terminationStore.getSummary(termFilters(req));
-        res.json(summary);
-    } catch (e) {
-        log.error('[Terminations] summary error:', e.message);
-        res.status(500).json({ error: 'Failed to load summary' });
-    }
+    const summary = await terminationStore.getSummary(termFilters(req));
+    res.json(summary);
 });
 
 router.get('/timeline', readQuery, async (req, res) => {
-    try {
-        const interval = req.query.interval || 'day';
-        const rows = await terminationStore.getTimeline(termFilters(req), interval);
-        res.json({ rows, interval });
-    } catch (e) {
-        log.error('[Terminations] timeline error:', e.message);
-        res.status(500).json({ error: 'Failed to load timeline' });
-    }
+    const interval = req.query.interval || 'day';
+    const rows = await terminationStore.getTimeline(termFilters(req), interval);
+    res.json({ rows, interval });
 });
 
 router.get('/by-agent', readQuery, async (req, res) => {
-    try {
-        const rows = await terminationStore.getByAgent(termFilters(req));
-        res.json({ rows });
-    } catch (e) {
-        log.error('[Terminations] by-agent error:', e.message);
-        res.status(500).json({ error: 'Failed to load by-agent' });
-    }
+    const rows = await terminationStore.getByAgent(termFilters(req));
+    res.json({ rows });
 });
 
 module.exports = router;

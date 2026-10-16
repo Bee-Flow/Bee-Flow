@@ -17,6 +17,14 @@
  * here where it can be tested without a table around it.
  */
 
+/**
+ * @typedef {'text' | 'number' | 'date' | 'boolean' | 'select'} FilterKind
+ * @typedef {{ min?: unknown, max?: unknown }} NumberRange A number filter value; either end may be empty.
+ * @typedef {{ from?: unknown, to?: unknown }} DateRange A date filter value; either end may be empty.
+ * @typedef {{ value: string, label: string }} FacetOption
+ * @typedef {((row: { getValue: (columnId: string) => unknown }, columnId: string, filterValue: unknown) => boolean) & { autoRemove: (value: unknown) => boolean }} GridFilterFn
+ */
+
 export const FILTER_KIND = Object.freeze({
     text: 'text', number: 'number', date: 'date', boolean: 'boolean', select: 'select',
 });
@@ -32,6 +40,11 @@ const BOOLEAN_FORMATS = new Set(['boolean', 'check']);
 const FACET_FORMATS = new Set(['badge', 'tags', 'relation']);
 
 /** Which control (and matcher) a column of this format gets. */
+/**
+ * @param {string | null} [format] A column format; empty means 'text'.
+ * @param {{ hasOptions?: boolean }} [opts]
+ * @returns {FilterKind}
+ */
 export function filterKindFor(format, { hasOptions = false } = {}) {
     const f = format || 'text';
     if (NUMBER_FORMATS.has(f)) return FILTER_KIND.number;
@@ -42,6 +55,10 @@ export function filterKindFor(format, { hasOptions = false } = {}) {
 }
 
 /** Whether a column of this format may offer its distinct values as a pick list. */
+/**
+ * @param {string | null} [format]
+ * @returns {boolean}
+ */
 export function canFacet(format) {
     return FACET_FORMATS.has(format || 'text');
 }
@@ -50,6 +67,12 @@ export function canFacet(format) {
  * The distinct values of one column, as { value, label } options — or null
  * when there are none or too many to be a dropdown. A `tags` cell holds an
  * array; every tag counts on its own.
+ */
+/**
+ * @param {ReadonlyArray<Record<string, unknown> | null | undefined> | null | undefined} rows
+ * @param {string} key The column key read from each row.
+ * @param {number} [limit] Defaults to FACET_LIMIT.
+ * @returns {FacetOption[] | null}
  */
 export function facetValues(rows, key, limit = FACET_LIMIT) {
     const seen = new Map();
@@ -72,6 +95,10 @@ export function facetValues(rows, key, limit = FACET_LIMIT) {
 }
 
 /** True when a filter value narrows anything (a range with both ends empty does not). */
+/**
+ * @param {unknown} value A filter value of any kind (string, range object, or empty).
+ * @returns {boolean}
+ */
 export function isActiveFilter(value) {
     if (value == null) return false;
     if (typeof value === 'string') return value !== '';
@@ -157,6 +184,10 @@ const MATCHERS = {
  * A TanStack filterFn for this kind. `autoRemove` is what lets a half-cleared
  * range drop out of the filter list instead of matching nothing forever.
  */
+/**
+ * @param {string} [kind] A FilterKind; anything else gets the 'text' matcher.
+ * @returns {GridFilterFn}
+ */
 export function makeFilterFn(kind) {
     const match = MATCHERS[kind] || MATCHERS[FILTER_KIND.text];
     const fn = (row, columnId, filterValue) => {
@@ -170,6 +201,14 @@ export function makeFilterFn(kind) {
 /**
  * The chip text for an active filter: what is narrowed and to what, in the
  * reader's words — "Amount 500 – 2,000", "Date from 1 Sep", "Paid: yes".
+ */
+/**
+ * @param {string | null | undefined} kind A FilterKind. Decides the shape `value` must have; anything else is quoted as text.
+ * @param {string | NumberRange | DateRange | null | undefined} value 'number' takes a NumberRange, 'date' a DateRange,
+ *   'boolean' the string 'true' or 'false', 'select' and 'text' a string.
+ * @param {{ options?: ReadonlyArray<{ value: unknown, label?: string | null }> | null, locale?: string, t?: import('../../../../../../hooks/useTranslation').TranslateFn | null }} [opts]
+ *   A 'select' chip shows the matching option's `label` as is, so it must be text.
+ * @returns {string} Empty when the filter is not active.
  */
 export function describeFilter(kind, value, { options = null, locale = undefined, t = null } = {}) {
     if (!isActiveFilter(value)) return '';

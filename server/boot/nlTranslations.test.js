@@ -27,7 +27,8 @@ const fs = require('fs');
 const path = require('path');
 
 const LADDER = fs.readFileSync(path.join(__dirname, 'bootMigrations.js'), 'utf8');
-const STARTUP = fs.readFileSync(path.join(__dirname, 'startupTasks.js'), 'utf8');
+// runStartupTasks() calls its one-shot phase from startupOneShots.js.
+const STARTUP = fs.readFileSync(path.join(__dirname, 'startupOneShots.js'), 'utf8');
 const { NL_TRANSLATIONS, LOOSE_MIGRATIONS } = require('./bootMigrations');
 
 test('the list is found and non-trivial', () => {
@@ -72,8 +73,8 @@ test('they are awaited in one loop, not fired as parallel setImmediates', () => 
     // is strictly stronger evidence than a unit test could give without
     // reimplementing that same integration harness. What THIS test guards
     // that the integration suite cannot is the regression itself: someone
-    // reintroducing a per-migration `setImmediate` in startupTasks.js — a 740-
-    // line function that fires every other boot scheduler in the process, so
+    // reintroducing a per-migration `setImmediate` in startupOneShots.js — one
+    // phase of runStartupTasks(), which fires every other boot scheduler, so
     // calling it for real here (even with bootMigrations stubbed) would mean
     // stubbing the rest of boot too, for a check the integration suite already
     // makes redundant for runList's own correctness.

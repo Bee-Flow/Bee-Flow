@@ -71,8 +71,8 @@ mock(path.join(SERVER, 'core/entitlements/entitlements'), { requireCapability: p
 mock(path.join(SERVER, 'utils/perUserRateLimit'), { perUserRateLimit: pass });
 mock(path.join(SERVER, 'core/integrations/integrationTools'), { isIntegrationPermittedForUser: async () => true });
 mock(path.join(SERVER, 'integrations/nextcloudClient'), { resolveAuth: async () => null, isConnected: async () => false });
-mock(path.join(SERVER, 'jobs/kbSourceRefresh'), { onDatatableChanged: () => {} });
-mock(path.join(SERVER, 'core/webpages/webpageShareReconciler'), { onDatatableChanged: () => {} });
+// The sources reach nextcloudClient (mocked above) through the client registry boot fills.
+require('../integrations/integrationClients');
 mock(path.join(SERVER, 'telemetry/metrics'), { recordJobRun: () => {}, recordAuthEvent: () => {} });
 
 // ── The fake storage: real bytes, a version counter, a call log ───────────

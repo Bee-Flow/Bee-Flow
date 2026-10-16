@@ -12,6 +12,7 @@
  */
 import { useCallback, useEffect, useRef } from 'react';
 import { activeHeadingIndex, collectHeadings, tocItems, tocSignature, type TocItem } from './toc';
+import { errorName } from '../../utils/caughtError';
 
 export interface ChromeCallbacks {
     viewRef: { current: any };
@@ -78,7 +79,7 @@ export default function useEditorChrome(cb: ChromeCallbacks) {
                 sendToc();
             } catch (e) {
                 // The editor keeps working; the host's save path reports its own failure.
-                console.error('[BeeEditor] could not refresh the document summary', (e as Error)?.name || 'Error');
+                console.error('[BeeEditor] could not refresh the document summary', errorName(e) || 'Error');
             }
         }
         onRender();

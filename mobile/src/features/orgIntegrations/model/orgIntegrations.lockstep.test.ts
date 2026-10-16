@@ -27,7 +27,7 @@ interface WebAzure {
 }
 
 describe('Azure lockstep', () => {
-    const web = loadWebModule<WebAzure>('components/integrations/azure/constants.js', { Cloud: 'Cloud', Shield: 'Shield', Layers: 'Layers', FileText: 'FileText' });
+    const web = loadWebModule<WebAzure>('components/integrations/azure/constants.ts', { Cloud: 'Cloud', Shield: 'Shield', Layers: 'Layers', FileText: 'FileText' });
 
     it('lists the web’s sections and tiers, with its keys and defaults', () => {
         expect(AZURE_SECTIONS.map(({ id, labelKey, descKey, color }) => ({ id, labelKey, descKey, color }))).toEqual(
@@ -53,8 +53,13 @@ describe('Azure lockstep', () => {
     });
 });
 
-describe('n8n lockstep (pages/settings/N8nSection.jsx)', () => {
-    const src = readWeb('pages/settings/N8nSection.jsx');
+describe('n8n lockstep (pages/settings/n8n/)', () => {
+    // N8nSection is split: the slug, defaults and search live in n8nModel.ts,
+    // the slug field's own filter in N8nWorkflowEditor.tsx.
+    const src = [
+        readWeb('pages/settings/n8n/n8nModel.ts'),
+        readWeb('pages/settings/n8n/N8nWorkflowEditor.tsx'),
+    ].join('\n');
 
     it('slugs, configures and searches as addWorkflow and the filters do', () => {
         expect(src).toContain(".toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').substring(0, 50)");
@@ -68,7 +73,7 @@ describe('n8n lockstep (pages/settings/N8nSection.jsx)', () => {
 
 describe('Nextcloud lockstep (components/integrations/nextcloud/*)', () => {
     it('counts down, calls a sync fresh and writes the occ commands as the web does', () => {
-        const pairing = readWeb('components/integrations/nextcloud/OrgNcPairingPanel.jsx');
+        const pairing = readWeb('components/integrations/nextcloud/OrgNcPairingPanel.tsx');
         expect(pairing).toContain("`${min}m ${sec.toString().padStart(2, '0')}s remaining`");
         expect(pairing).toContain('occ app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <CODE>\nocc app_api:app:disable bee_flow\nocc app_api:app:enable bee_flow');
         const sync = readWeb('components/integrations/nextcloud/NextcloudSyncPanel.jsx');

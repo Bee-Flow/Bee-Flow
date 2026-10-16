@@ -1,0 +1,7 @@
+src/demo/fixtures/compliance.js
+src/demo/fixtures/complianceCatalog.js
+src/demo/fixtures/knowledge.js
+src/demo/fixtures/meetingNotes.js
+src/demo/fixtures/monitoring.js
+src/demo/fixtures/notebooks.js
+src/demo/fixtures/privacyShield.js

@@ -4,6 +4,18 @@ import type { SseHandlerMap } from '../handlerTypes';
  * Editor surfaces fed through the notebook callbacks (notebook, slides,
  * sheets, proposals) and the Documents DOM broadcasts.
  */
+/** A chip of the user's message for this upload that has no document yet. */
+function isUnlinkedUpload(a: unknown, fileName: string): a is Record<string, unknown> {
+    return typeof a === 'object' && a !== null && 'name' in a && a.name === fileName && !('documentId' in a && a.documentId);
+}
+
+/** The attachments with `documentId` on the FIRST unlinked chip of that name: two uploads may share one. */
+function linkFirst(attachments: unknown[], fileName: string, documentId: string): unknown[] {
+    const at = attachments.findIndex((a) => isUnlinkedUpload(a, fileName));
+    if (at === -1) return attachments;
+    return attachments.map((a, i) => (i === at && isUnlinkedUpload(a, fileName) ? { ...a, documentId } : a));
+}
+
 export const notebookHandlers: SseHandlerMap = {
     workspace_update(ctx, data) {
         const { onNotebookUpdate } = ctx;
@@ -65,6 +77,24 @@ export const notebookHandlers: SseHandlerMap = {
                 detail: { documentId: data.documentId, name: data.name, url: data.url },
             }));
         } catch (_) {}
+    },
+
+    // An uploaded Excel was imported as a spreadsheet document: open it in the
+    // right side panel (useSidePanelState listens; it skips phones itself),
+    // and give the upload's chip its Open button now (`filename` is the
+    // upload's name), not only after a reload brings the stored attachment.
+    document_open(ctx, data, ids) {
+        if (typeof data?.documentId !== 'string' || !data.documentId) return;
+        const documentId = data.documentId;
+        window.dispatchEvent(new CustomEvent('beeflow:open-document-side', {
+            detail: { id: documentId, href: `/app/studio/documents/${documentId}` },
+            cancelable: true,
+        }));
+        const fileName = data.filename;
+        if (typeof fileName !== 'string' || !fileName) return;
+        ctx.setMessages((prev) => prev.map((m) => (m.id === ids.userMsgId && Array.isArray(m.attachments)
+            ? { ...m, attachments: linkFirst(m.attachments, fileName, documentId) }
+            : m)));
     },
 
     // The AI proposed changes to a page instead of writing them: tell the

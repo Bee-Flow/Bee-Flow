@@ -149,9 +149,8 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
 
     return (
         <div
-            className="flex w-full flex-col gap-3 rounded-xl border p-3 text-xs"
+            className="flex w-full flex-col gap-3 rounded-xl border p-3 text-xs border-[var(--accent-primary)] bg-[var(--bg-secondary)]"
             data-plan-card=""
-            style={{ borderColor: 'var(--accent-primary)', background: 'var(--bg-secondary)' }}
         >
             {/* Title + summary */}
             <div className="flex flex-col gap-1.5">
@@ -166,7 +165,7 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
                     style={{ color: 'var(--text-primary)' }}
                 />
                 {draft.summary ? (
-                    <p className="leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>{draft.summary}</p>
+                    <p className="leading-relaxed text-[var(--text-tertiary)]">{draft.summary}</p>
                 ) : null}
             </div>
 
@@ -203,7 +202,7 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
             {/* Data — tables with their fields */}
             <Section icon={Database} title={t('studio_apps_edit.plan_card.data', 'Data')}>
                 {draft.tables.map((tbl, ti) => (
-                    <div key={rowKey(tbl, ti)} className="rounded-lg border p-2" style={{ borderColor: 'var(--border-default)' }}>
+                    <div key={rowKey(tbl, ti)} className="rounded-lg border p-2 border-[var(--border-default)]">
                         <Row
                             value={labelOf(tbl, 'name', 'key')}
                             placeholder={t('studio_apps_edit.plan_card.table_name', 'Table name')}
@@ -277,8 +276,7 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
                     type="button"
                     disabled={disabled}
                     onClick={() => onDiscuss?.()}
-                    className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-opacity hover:bg-[var(--bg-tertiary)] disabled:opacity-40"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                    className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-opacity hover:bg-[var(--bg-tertiary)] disabled:opacity-40 border-[var(--border-default)] text-[var(--text-secondary)]"
                 >
                     {t('studio_apps_edit.plan_card.discuss', 'Discuss')}
                 </button>
@@ -286,8 +284,7 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
                     type="button"
                     disabled={disabled}
                     onClick={build}
-                    className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-opacity disabled:opacity-40"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-opacity disabled:opacity-40 bg-[var(--accent-primary)]"
                 >
                     {t('studio_apps_edit.plan_card.build_it', 'Build it')}
                 </button>
@@ -300,7 +297,7 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
 function Section({ icon: Icon, title, children }) {
     return (
         <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1.5 font-semibold" style={{ color: 'var(--text-secondary)' }}>
+            <div className="flex items-center gap-1.5 font-semibold text-[var(--text-secondary)]">
                 {Icon ? <Icon className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" /> : null}
                 {title}
             </div>
@@ -325,7 +322,7 @@ function Row({ value, placeholder, ariaLabel, subtitle, small = false, disabled,
                 style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
             />
             {subtitle ? (
-                <span className="shrink-0 truncate text-[10px]" style={{ color: 'var(--text-tertiary)' }} title={subtitle}>{subtitle}</span>
+                <span className="shrink-0 truncate text-[10px] text-[var(--text-secondary)]" title={subtitle}>{subtitle}</span>
             ) : null}
             <button
                 type="button"
@@ -367,8 +364,7 @@ function AddRow({ label, small = false, disabled, onAdd }) {
                 disabled={disabled || !value.trim()}
                 onClick={submit}
                 aria-label={label}
-                className="shrink-0 rounded p-1 transition-opacity hover:bg-[var(--bg-tertiary)] disabled:opacity-30"
-                style={{ color: 'var(--accent-primary)' }}
+                className="shrink-0 rounded p-1 transition-opacity hover:bg-[var(--bg-tertiary)] disabled:opacity-30 text-[var(--accent-primary)]"
             >
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
             </button>

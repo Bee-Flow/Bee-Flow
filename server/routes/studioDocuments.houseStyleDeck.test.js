@@ -30,6 +30,10 @@ const restore = installResolveStub({
 });
 test.after(restore);
 const router = require('./studioDocuments');
+const { createTerminalErrorHandler } = require('../core/http/terminalErrorHandler');
+
+// Behind the router, as in index.js: an error it hands on is answered here.
+const terminalErrorHandler = createTerminalErrorHandler({ log: { error() {}, warn() {} } });
 
 function dispatch(method, url, { body = {}, query = {}, user = 'owner', orgId = 'org-1' } = {}) {
     return new Promise((resolve, reject) => {
@@ -41,7 +45,9 @@ function dispatch(method, url, { body = {}, query = {}, user = 'owner', orgId = 
             json(data) { this.body = data; resolve(this); return this; },
             send(data) { this.body = data; resolve(this); return this; },
         };
-        router(req, res, (e) => reject(e || new Error('Route not found')));
+        router(req, res, (e) => (e
+            ? terminalErrorHandler(e, req, res, reject)
+            : reject(new Error('Route not found'))));
     });
 }
 

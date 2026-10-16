@@ -1,7 +1,7 @@
 /**
  * Summary templates: the saved styles Meeting Notes' Regenerate offers, and
  * the default a new meeting's summary is written in. The phone's copy of the
- * web's settings section (agent-hub SummaryTemplatesSection.jsx) and, for an
+ * web's settings section (agent-hub SummaryTemplatesSection.tsx) and, for an
  * org admin, its org and group scopes (SummaryTemplatesAdminPanel.jsx) in one
  * list. Only what this person may write opens the editor; an org or group
  * template they merely see is listed read-only (see templateRows).

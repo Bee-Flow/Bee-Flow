@@ -164,7 +164,7 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
         invitedBy: userId,
         role: role || 'user',
     });
-    if (!invitation) return res.status(500).json({ error: 'Failed to create invitation' });
+    if (!invitation) throw new Error(`Failed to create an invitation for organisation '${orgId}'`);
 
     // Build invite URL. Use the path-style redeem endpoint instead of
     // `/login?invite=TOKEN` so the token never appears in the SPA URL

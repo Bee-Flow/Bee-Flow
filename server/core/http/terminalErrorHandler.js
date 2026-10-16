@@ -22,6 +22,23 @@ const { randomUUID } = require('node:crypto');
 const { safeForLog } = require('../../utils/safeForLog');
 const defaultLog = require('../../telemetry/log');
 
+/** A path segment that looks like a token or key rather than a name: long and opaque. */
+const OPAQUE_SEGMENT = /^[A-Za-z0-9_\-.~%=+]{24,}$/;
+
+/**
+ * The path the log line names. Every unhandled route error lands here, and
+ * links carry their token in the query (`?token=`) or the path
+ * (`/auth/invite/:token`), so neither may reach the log: the matched route's
+ * pattern when Express knows it, otherwise the path with its query dropped and
+ * long opaque segments masked.
+ * @param {any} req
+ */
+function loggedPath(req) {
+    if (typeof req?.route?.path === 'string') return `${req.baseUrl || ''}${req.route.path}`;
+    const path = String(req?.originalUrl || req?.path || '').split('?')[0];
+    return path.split('/').map((seg) => (OPAQUE_SEGMENT.test(seg) ? ':opaque' : seg)).join('/');
+}
+
 function createTerminalErrorHandler({ log = defaultLog, now = Date.now } = {}) {
     // A malformed or oversized body costs an attacker nothing to produce, so one
     // log line per rejection would hand any anonymous client a write primitive
@@ -60,7 +77,7 @@ function createTerminalErrorHandler({ log = defaultLog, now = Date.now } = {}) {
         const declared = Number(err?.status || err?.statusCode) || 500;
         const status = declared >= 400 && declared <= 599 ? declared : 500;
         const correlationId = req?.id || randomUUID();
-        const where = `${safeForLog(req?.method, 10)} ${safeForLog(req?.originalUrl || req?.path, 200)}`;
+        const where = `${safeForLog(req?.method, 10)} ${safeForLog(loggedPath(req), 200)}`;
 
         if (status >= 500 && err?.expose !== true) {
             log.error(`[HTTP] ${status} ${where} correlationId=${correlationId}`, err);

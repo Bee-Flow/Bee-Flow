@@ -71,10 +71,10 @@ function PersonalNotice() {
         <div className="px-4 py-4 flex items-start gap-3" style={CARD}>
             <Lock className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
             <div className="min-w-0">
-                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                <p className="text-sm font-medium text-[var(--text-primary)]">
                     {t('datatables.share_personal_title', 'This table cannot be shared')}
                 </p>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm mt-1 text-[var(--text-secondary)]">
                     {t('datatables.share_personal_body', 'It belongs to this account alone. Nobody else can read or change its rows — not colleagues, not administrators — and there is no setting that would change that. To share data with the rest of your organisation, make an organisation table.')}
                 </p>
             </div>
@@ -202,7 +202,7 @@ function OrgSharing({ table, canEdit, onChanged }) {
               mean together is ONE line at the foot of the audience card. */}
           <div className="grid gap-3 md:grid-cols-2 items-start">
             <div className="overflow-hidden" style={CARD}>
-                <h4 className="flex items-center gap-2 text-sm font-semibold px-4 pt-3 pb-1 m-0" style={{ color: 'var(--text-primary)' }}>
+                <h4 className="flex items-center gap-2 text-sm font-semibold px-4 pt-3 pb-1 m-0 text-[var(--text-primary)]">
                     <Eye className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
                     {t('datatables.share_read_title', 'Who can read the rows')}
                 </h4>
@@ -237,13 +237,13 @@ function OrgSharing({ table, canEdit, onChanged }) {
                         <div className="px-4 py-3 space-y-1.5"
                             style={{ borderBottom: audience === PRIVATE ? 'none' : '1px solid var(--border-default)', background: 'var(--bg-secondary)' }}>
                             {audienceDraft === GROUPS && (
-                                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                                <p className="text-xs text-[var(--text-secondary)]">
                                     {t('datatables.share_groups_pending', 'Nothing has changed yet — picking a group is what shares the table.')}
                                 </p>
                             )}
-                            {directory.isLoading && <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('datatables.loading_groups', 'Loading groups…')}</p>}
+                            {directory.isLoading && <p className="text-xs text-[var(--text-tertiary)]">{t('datatables.loading_groups', 'Loading groups…')}</p>}
                             {!directory.available && !directory.isLoading && (
-                                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                <p className="text-xs text-[var(--text-tertiary)]">
                                     {t('datatables.share_no_directory', 'You cannot see the organisation’s group list, so the groups are shown by id.')}
                                 </p>
                             )}
@@ -255,12 +255,12 @@ function OrgSharing({ table, canEdit, onChanged }) {
                                         checked={(table.sharedGroups || []).includes(g.id)}
                                         onChange={() => toggleGroup(g.id)}
                                     />
-                                    <span style={{ color: 'var(--text-primary)' }}>{g.name || g.id}</span>
+                                    <span className="text-[var(--text-primary)]">{g.name || g.id}</span>
                                     {/* Only when the directory actually answers it —
                                         an invented "0 people" beside a group is worse
                                         than no number at all. */}
                                     {Number.isFinite(g.memberCount) && (
-                                        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                                        <span className="text-[11px] text-[var(--text-tertiary)]">
                                             {t('datatables.group_members', '{n} people', { n: g.memberCount })}
                                         </span>
                                     )}
@@ -279,10 +279,10 @@ function OrgSharing({ table, canEdit, onChanged }) {
                                 onChange={(e) => setWriteMode(e.target.checked)}
                             />
                             <span>
-                                <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                                <span className="font-medium text-[var(--text-primary)]">
                                     {t('datatables.share_write_toggle', 'Let everyone who can read it change it too')}
                                 </span>
-                                <span className="block text-xs" style={{ color: 'var(--text-secondary)' }}>
+                                <span className="block text-xs text-[var(--text-secondary)]">
                                     {t('datatables.share_write_help', 'Off by default. With this off, only the people you invite below can add, change or delete rows.')}
                                 </span>
                             </span>
@@ -306,11 +306,11 @@ function OrgSharing({ table, canEdit, onChanged }) {
                 focus, so without it the only feedback is visual. */}
             <div aria-live="polite">
                 {paywalled && (
-                    <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                    <p className="text-xs px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                         {t('datatables.share_paywalled', 'Sharing a datatable with colleagues is part of a paid plan. Your own tables, and every table already shared with you, keep working exactly as they do now.')}
                     </p>
                 )}
-                {error && <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--bg-secondary)', color: 'var(--warning)' }}>{error}</p>}
+                {error && <p className="text-xs px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--warning)]">{error}</p>}
             </div>
 
             <ConfirmDialog
@@ -350,8 +350,8 @@ function AudienceRow({ icon, title, description, checked, onSelect, last = false
                 {icon}
             </span>
             <span className="flex-1 min-w-0">
-                <span className="block text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{title}</span>
-                <span className="block text-xs" style={{ color: 'var(--text-tertiary)' }}>{description}</span>
+                <span className="block text-sm font-medium text-[var(--text-primary)]">{title}</span>
+                <span className="block text-xs text-[var(--text-tertiary)]">{description}</span>
             </span>
         </label>
     );
@@ -371,7 +371,7 @@ function ConsequenceLine({ t, access }) {
                 background: access.broad ? 'color-mix(in srgb, var(--warning) 8%, transparent)' : 'var(--bg-secondary)',
             }} data-testid="sharing-consequence">
             <Icon className="w-4 h-4 mt-0.5 shrink-0" style={{ color: access.broad ? 'var(--warning)' : 'var(--text-tertiary)' }} aria-hidden="true" />
-            <div className="text-xs space-y-1" style={{ color: 'var(--text-secondary)' }}>
+            <div className="text-xs space-y-1 text-[var(--text-secondary)]">
                 <p><strong>{access.readers}</strong> {t('datatables.can_read_every_row', 'can read every row.')}</p>
                 <p>{t('datatables.rows_changed_by', 'Rows can be added, changed and deleted by')} <strong>{access.writers}</strong>.</p>
                 {access.broad && (
@@ -455,7 +455,7 @@ function GrantList({ table, grants, canEdit, directory, onChanged, onPaywalled }
                 <h4 className="flex items-center gap-2 text-sm font-semibold px-4 py-3 m-0" style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border-default)' }}>
                     <UserPlus className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
                     {t('datatables.grants_title', 'People and teams')}
-                    <span className="ml-auto text-[11px] font-medium" style={{ color: 'var(--text-tertiary)' }}>{t('datatables.grants_caption', 'invited by name')}</span>
+                    <span className="ml-auto text-[11px] font-medium text-[var(--text-tertiary)]">{t('datatables.grants_caption', 'invited by name')}</span>
                 </h4>
                 {grants.map(g => (
                     <div key={g.id} className="grid items-center gap-3 px-4 py-3"
@@ -463,8 +463,8 @@ function GrantList({ table, grants, canEdit, directory, onChanged, onPaywalled }
                         <span className="flex items-center gap-2.5 min-w-0">
                             <Avatar name={nameOf(g)} group={g.granteeType === 'group'} />
                             <span className="min-w-0">
-                                <span className="block text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{nameOf(g)}</span>
-                                <span className="block text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                                <span className="block text-sm font-medium truncate text-[var(--text-primary)]">{nameOf(g)}</span>
+                                <span className="block text-[11px] text-[var(--text-tertiary)]">
                                     {g.granteeType === 'group'
                                         ? t('datatables.grantee_group', 'A group')
                                         : t('datatables.grantee_person', 'A person')}
@@ -498,15 +498,15 @@ function GrantList({ table, grants, canEdit, directory, onChanged, onPaywalled }
                     <span className="flex items-center gap-2.5 min-w-0">
                         <Avatar name={owner?.name || owner?.email || table.ownerUserId || '?'} />
                         <span className="min-w-0">
-                            <span className="block text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                            <span className="block text-sm font-medium truncate text-[var(--text-primary)]">
                                 {owner?.name || owner?.email || t('datatables.owner_unknown', 'The owner')}
                             </span>
-                            <span className="block text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="block text-[11px] text-[var(--text-tertiary)]">
                                 {t('datatables.owner_row', 'owner')}
                             </span>
                         </span>
                     </span>
-                    <span className="text-xs px-2.5" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="text-xs px-2.5 text-[var(--text-tertiary)]">
                         {t('datatables.owner_grade', 'Owner')}
                     </span>
                     <span />
@@ -557,7 +557,7 @@ function GrantList({ table, grants, canEdit, directory, onChanged, onPaywalled }
             </div>
 
             <p aria-live="polite">
-                {error && <span className="text-xs" style={{ color: 'var(--warning)' }}>{error}</span>}
+                {error && <span className="text-xs text-[var(--warning)]">{error}</span>}
             </p>
         </div>
     );

@@ -16,10 +16,10 @@ import type { FlowDefinition, FlowStep } from './types';
 const BUILDER = '../../../../../agent-hub/src/components/automation/Builder';
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webRoute = require(`${BUILDER}/flow/routeModel.js`);
-const webRouteEdges = require(`${BUILDER}/flow/routeEdges.js`);
-const webSwitch = require(`${BUILDER}/flow/switchCaseOps.js`);
-const webCond = require(`${BUILDER}/utils/conditionModel.js`);
-const webBinding = require('../../../../../agent-hub/src/utils/bindingHelpers.js');
+const webRouteEdges = require(`${BUILDER}/flow/routeEdges.ts`);
+const webSwitch = require(`${BUILDER}/flow/switchCaseOps.ts`);
+const webCond = require(`${BUILDER}/utils/conditionModel.ts`);
+const webBinding = require('../../../../../agent-hub/src/utils/bindingHelpers.ts');
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const ROUTE_STEPS: Record<string, unknown>[] = [

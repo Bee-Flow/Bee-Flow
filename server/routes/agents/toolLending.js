@@ -161,34 +161,30 @@ async function lendableAppsFor(agent) {
     return { apps, readable: true };
 }
 
+// A failed read is a 500 from the terminal handler, never an empty answer with
+// `readable: true`: the card reads a failure as "cannot be checked" and then
+// offers no lending choice.
 router.get('/:id/tool-lending', validate({ query: NoQuery }), async (req, res) => {
-    try {
-        const userId = getEffectiveUserId(req);
-        const agent = await agentStore.getAgent(req.params.id);
-        if (!agent) return res.status(404).json({ error: 'Agent not found' });
-        // Zelfde 404 als GET /:id voor wie de agent niet mag zien — "je mag
-        // niet" en "hij bestaat niet" horen niet uit elkaar te houden zijn.
-        if (!(await canReadAgent(agent, userId, req))) {
-            return res.status(404).json({ error: 'Agent not found' });
-        }
-        if (!(await canModifyAgent(agent, userId, req))) {
-            return res.status(403).json({
-                error: 'You do not have permission to edit this agent.',
-                code: 'agent_not_editable',
-            });
-        }
-
-        const [lending, runtimeCurated] = await Promise.all([
-            lendableAppsFor(agent),
-            runtimeCuratedOf(agent.id),
-        ]);
-        res.json({ ...lending, runtimeCurated });
-    } catch (e) {
-        log.error('[agents/tool-lending] failed:', e.message);
-        // 500, niet een leeg antwoord met `readable: true`: de kaart leest een
-        // mislukte lezing als "niet na te gaan" en biedt dan geen leenkeuze.
-        res.status(500).json({ error: 'Could not check lent connections' });
+    const userId = getEffectiveUserId(req);
+    const agent = await agentStore.getAgent(req.params.id);
+    if (!agent) return res.status(404).json({ error: 'Agent not found' });
+    // Zelfde 404 als GET /:id voor wie de agent niet mag zien — "je mag
+    // niet" en "hij bestaat niet" horen niet uit elkaar te houden zijn.
+    if (!(await canReadAgent(agent, userId, req))) {
+        return res.status(404).json({ error: 'Agent not found' });
     }
+    if (!(await canModifyAgent(agent, userId, req))) {
+        return res.status(403).json({
+            error: 'You do not have permission to edit this agent.',
+            code: 'agent_not_editable',
+        });
+    }
+
+    const [lending, runtimeCurated] = await Promise.all([
+        lendableAppsFor(agent),
+        runtimeCuratedOf(agent.id),
+    ]);
+    res.json({ ...lending, runtimeCurated });
 });
 
 module.exports = router;

@@ -1,0 +1,85 @@
+// Global default-integrations logic of the IntegrationsAdminPanel — the
+// combined integrations list, the default toggles and the save call, moved
+// verbatim from IntegrationsAdminPanel.jsx.
+import { useMemo } from 'react';
+import { ALL_INTEGRATIONS } from './sections';
+import { orderCategories } from '../../../config/integrationCatalog';
+import { API_BASE } from '../../../utils/helpers';
+import { mutate } from '../../../api/mutate';
+import type { DefaultIntegration, SetMessage } from './adminPanel.types';
+
+interface McpServerRow {
+    id: string;
+    name: string;
+    description?: string;
+    tools_cache?: unknown[];
+    icon?: string;
+}
+
+interface UseIntegrationDefaultsArgs {
+    defaults: string[] | null;
+    setDefaults: (defaults: string[] | null) => void;
+    setSaving: (saving: boolean) => void;
+    setMessage: SetMessage;
+    mcpServers: McpServerRow[];
+}
+
+export default function useIntegrationDefaults({ defaults, setDefaults, setSaving, setMessage, mcpServers }: UseIntegrationDefaultsArgs) {
+    const saveDefaults = async (newDefaults: string[] | null) => {
+        setDefaults(newDefaults);
+        setSaving(true);
+        try {
+            await mutate(`${API_BASE}/auth/default-integrations`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ defaults: newDefaults }),
+            });
+            setMessage({ type: 'success', text: 'Default integrations updated' });
+        } catch (e) {
+            setMessage({ type: 'error', text: 'Failed to save' });
+        }
+        setSaving(false);
+        setTimeout(() => setMessage(null), 3000);
+    };
+
+    // Build combined integrations list: built-in + installed MCP servers
+    const allIntegrations = useMemo(() => {
+        const mcpIntegrations: DefaultIntegration[] = mcpServers.map(s => ({
+            id: `mcp:${s.id}`,
+            label: s.name,
+            description: s.description || `${(s.tools_cache || []).length} tool(s)`,
+            category: 'MCP',
+            icon: s.icon || '🔌',
+        }));
+        return [...ALL_INTEGRATIONS, ...mcpIntegrations];
+    }, [mcpServers]);
+
+    const isDefaultEnabled = (id: string) => !defaults || defaults.includes(id);
+    const toggleDefault = (id: string) => {
+        if (defaults === null) {
+            // Switch from "all enabled" to custom — enable all except this one
+            saveDefaults(allIntegrations.map(i => i.id).filter(x => x !== id));
+        } else {
+            const newDefaults = defaults.includes(id)
+                ? defaults.filter(x => x !== id)
+                : [...defaults, id];
+            // If all are enabled, switch back to null
+            saveDefaults(newDefaults.length === allIntegrations.length ? null : newDefaults);
+        }
+    };
+
+    const enableAllDefaults = () => saveDefaults(null);
+    const disableAllDefaults = () => saveDefaults([]);
+
+    const categories = orderCategories([...new Set(allIntegrations.map(i => i.category))]);
+
+    return {
+        saveDefaults,
+        allIntegrations,
+        isDefaultEnabled,
+        toggleDefault,
+        enableAllDefaults,
+        disableAllDefaults,
+        categories,
+    };
+}

@@ -31,8 +31,10 @@ const CALL_RE = /executeNextcloud[A-Za-z]*Tool\s*\(/;
 const SKIP_DIRS = new Set(['node_modules', '.git', 'data', 'coverage', 'dist', 'uploads']);
 
 const EXEMPT = new Map([
-    // The guard's home: it IS the check.
-    ['core/tools/toolDispatcher.js', 'the single dispatcher the guard was written for'],
+    // Hands the UNGUARDED family chain (integrations/nextcloudToolFamily.js,
+    // where the dispatcher's guarded entry also lives) to routes/ncScope.js
+    // below; tool calls reach that chain through the guard.
+    ['core/tools/toolDispatcher.js', 'the registry pass-through for the scope picker in routes/ncScope.js'],
     // The picker behind "What Bee Flow may access" must show what you may ADD,
     // so it cannot be filtered by the selection it exists to edit. Documented
     // at the top of that route.

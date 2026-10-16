@@ -98,14 +98,14 @@ describe('no hand-rolled control styles in the builder', () => {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
             const p = path.join(dir, entry.name);
             if (entry.isDirectory()) walk(p, out);
-            else if (/\.jsx?$/.test(p) && !/\.test\./.test(p)) out.push(p);
+            else if (/\.[jt]sx?$/.test(p) && !/\.test\./.test(p)) out.push(p);
         }
         return out;
     };
 
     it('nothing re-implements the legacy focus ring', () => {
         const offenders = walk(BUILDER)
-            .filter(p => !p.endsWith('formStyles.js'))
+            .filter(p => !p.endsWith('formStyles.ts'))
             .filter(p => fs.readFileSync(p, 'utf8').includes('focus:ring-1 focus:ring-[var(--accent)]'))
             .map(p => path.relative(BUILDER, p));
         expect(offenders, `Use the helpers in flow/settings/formStyles.js instead:\n${offenders.join('\n')}`).toEqual([]);
@@ -144,7 +144,7 @@ describe('no hand-rolled control styles in the builder', () => {
         // it is the correct surface for popovers and floating panels.
         const DECL = /(?:const|function)\s+\w*(?:[iI]nputClass|[tT]extareaClass)\w*\s*[=(]/;
         const offenders = [];
-        for (const p of walk(BUILDER).filter(f => !f.endsWith('formStyles.js'))) {
+        for (const p of walk(BUILDER).filter(f => !f.endsWith('formStyles.ts'))) {
             const lines = fs.readFileSync(p, 'utf8').split('\n');
             lines.forEach((line, i) => {
                 if (!DECL.test(line)) return;

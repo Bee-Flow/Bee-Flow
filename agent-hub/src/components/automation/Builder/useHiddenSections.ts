@@ -1,18 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { FlowStep } from './flow/types';
-
-/** How BIG the drawer is (flow/settings/formDensity.js). */
-export type FormDensity = 'quick' | 'full';
-/** How MUCH of the form exists; null = the user never chose, so the gesture decides. */
-export type FormMode = 'simple' | 'advanced' | null;
-
-/** What every section reads off FormDensityContext. */
-export interface FormDensityValue {
-    density: FormDensity;
-    mode: FormMode;
-    onHiddenSection: (sectionKey: string) => void;
-    onShownSection: (sectionKey: string) => void;
-}
+import type { FormDensity, FormDensityValue, FormMode } from './flow/settings/formDensity';
 
 export interface HiddenSections {
     hiddenCount: number;
@@ -22,7 +10,7 @@ export interface HiddenSections {
 export interface UseHiddenSectionsOptions {
     step: FlowStep | null | undefined;
     density: FormDensity;
-    mode: FormMode;
+    mode: FormMode | null;
 }
 
 /**

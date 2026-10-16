@@ -18,7 +18,7 @@ const MusicGenSettings = ({ isOpen, onClose }) => {
             title={t('chat.media.lyria_panel_title', 'Google Music (Lyria)')}
             bodyClassName="p-4 space-y-3 max-h-[360px] overflow-y-auto"
         >
-            <p className="text-[10px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">
                 {t('chat.media.lyria_intro', 'Instrumental music via Google Lyria. These defaults apply when generating music.')}
             </p>
             <Slider label="BPM" value={settings.bpm} min={60} max={200} step={1} defaultVal={90} onChange={v => update('bpm', v)} accent={ACCENT} />

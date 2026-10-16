@@ -65,8 +65,8 @@ const GoogleMapsRow = () => {
                     </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>Google Maps</p>
-                    <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[13px] font-medium text-[var(--text-primary)]">Google Maps</p>
+                    <p className="text-[11px] truncate text-[var(--text-muted)]">
                         {hasKey ? t('org.integ_maps_configured') : t('org.integ_maps_desc')}
                     </p>
                 </div>
@@ -89,15 +89,14 @@ const GoogleMapsRow = () => {
                             onKeyDown={e => e.key === 'Enter' && save()}
                         />
                         <button onClick={save} disabled={saving || !key.trim()}
-                            className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40"
-                            style={{ background: 'var(--accent-primary)' }}>
+                            className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40 bg-[var(--accent-primary)]">
                             {saving ? '…' : t('org.save_changes')}
                         </button>
                     </div>
-                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[11px] text-[var(--text-muted)]">
                         {t('settings.org_integrations.maps_enable', 'Enable')} <strong>Directions API</strong>, <strong>Places API</strong> &amp; <strong>Maps Embed API</strong> {t('settings.org_integrations.maps_in', 'in')}{' '}
                         <a href="https://console.cloud.google.com/apis/library" target="_blank" rel="noopener noreferrer"
-                            className="underline" style={{ color: 'var(--accent-primary)' }}>Google Cloud Console</a>
+                            className="underline text-[var(--accent-primary)]">Google Cloud Console</a>
                     </p>
                 </div>
             )}
@@ -233,7 +232,7 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
                                 <svg className="flex-shrink-0 mt-0.5" style={{ width: 16, height: 16, color: '#3b82f6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                                <p className="text-[12px] text-[var(--text-muted)]">
                                     {t('settings.org_integrations.settings_intro', 'Configure the integrations themselves — credentials, instance URLs and workflows.')}
                                 </p>
                             </div>
@@ -255,14 +254,14 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
                                     <div className="rounded-xl overflow-hidden border border-[var(--border-subtle)]">
                                         {showN8n && (
                                             <div style={{ borderBottom: showGoogleMaps ? '1px solid var(--border-subtle)' : 'none' }}>
-                                                <div className="flex items-center gap-3 px-5 py-3.5" style={{ background: 'var(--bg-secondary)' }}>
+                                                <div className="flex items-center gap-3 px-5 py-3.5 bg-[var(--bg-secondary)]">
                                                     <img src="/n8n-color.png" alt="n8n" style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0 }} />
                                                     <div className="flex-1">
-                                                        <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>n8n</p>
-                                                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{t('org.integ_n8n_desc')}</p>
+                                                        <p className="text-[13px] font-medium text-[var(--text-primary)]">n8n</p>
+                                                        <p className="text-[11px] text-[var(--text-muted)]">{t('org.integ_n8n_desc')}</p>
                                                     </div>
                                                 </div>
-                                                <div className="px-5 pb-4" style={{ background: 'var(--bg-secondary)' }}>
+                                                <div className="px-5 pb-4 bg-[var(--bg-secondary)]">
                                                     <N8nSection />
                                                 </div>
                                             </div>

@@ -192,9 +192,9 @@ export default function SupportAIConfig() {
     }, [previewInput, previewing]);
 
     return (
-        <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
+        <div className="h-full flex flex-col bg-[var(--bg-primary)]">
             {/* Sub-tab bar */}
-            <div className="px-4 pt-2 border-b flex items-center gap-1 overflow-x-auto" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
+            <div className="px-4 pt-2 border-b flex items-center gap-1 overflow-x-auto border-[var(--border-default)] bg-[var(--bg-secondary)]">
                 {CONFIG_TABS.map(t => (
                     <button key={t.id} onClick={() => setTab(t.id)}
                         className="px-3 py-1.5 text-sm font-medium rounded-t-md whitespace-nowrap"
@@ -214,19 +214,18 @@ export default function SupportAIConfig() {
             {tab === 'insights' && <div className="flex-1 overflow-auto"><SupportInsightsTab /></div>}
 
             {tab === 'agent' && loading && (
-                <div className="p-8 text-sm" style={{ color: 'var(--text-muted)' }}>{t('support.support_aiconfig_loading_bee_flow_support_agent', 'Loading Bee Flow Support agent…')}</div>
+                <div className="p-8 text-sm text-[var(--text-muted)]">{t('support.support_aiconfig_loading_bee_flow_support_agent', 'Loading Bee Flow Support agent…')}</div>
             )}
             {tab === 'agent' && !loading && !data && (
-                <div className="p-8 text-sm" style={{ color: 'var(--text-muted)' }}>
+                <div className="p-8 text-sm text-[var(--text-muted)]">
                     {saveError || 'Bee Flow Support agent is not seeded yet. Restart the server.'}
                 </div>
             )}
             {tab === 'agent' && !loading && data && (
             <>
             {/* Sticky save bar */}
-            <div className="px-4 py-2 border-b flex items-center justify-between"
-                style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
-                <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+            <div className="px-4 py-2 border-b flex items-center justify-between border-[var(--border-default)] bg-[var(--bg-secondary)]">
+                <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
                     <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} />
                     <span>{t('support.support_aiconfig_singleton_agent_same_editor_as_agent', 'Singleton agent · same editor as Agent Studio')}</span>
                 </div>
@@ -237,7 +236,7 @@ export default function SupportAIConfig() {
                         </span>
                     )}
                     {dirty && !saveError && (
-                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('support.support_aiconfig_unsaved_changes', 'Unsaved changes')}</span>
+                        <span className="text-xs text-[var(--text-muted)]">{t('support.support_aiconfig_unsaved_changes', 'Unsaved changes')}</span>
                     )}
                     <button
                         onClick={handleSave}
@@ -262,7 +261,7 @@ export default function SupportAIConfig() {
                     const tier = tiers[tierKey];
                     if (tier && tier.modelId) {
                         return (
-                            <div className="max-w-2xl mx-auto px-4 pt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+                            <div className="max-w-2xl mx-auto px-4 pt-3 text-xs text-[var(--text-muted)]">
                                 {t('support.support_aiconfig_current_tier', 'Current tier')} <strong>{tierKey}</strong> {t('support.support_aiconfig_resolves_to_model', 'resolves to model')} <code>{tier.modelId}</code>.
                             </div>
                         );
@@ -298,9 +297,8 @@ export default function SupportAIConfig() {
                     look in the real chat, using MarkdownRenderer (same
                     component MessageItem uses internally). */}
                 <div className="max-w-2xl mx-auto p-4 pt-2 mb-6">
-                    <div className="rounded-xl border" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
-                        <div className="px-4 py-2 border-b text-xs font-semibold uppercase tracking-wide"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}>
+                    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)]">
+                        <div className="px-4 py-2 border-b text-xs font-semibold uppercase tracking-wide border-[var(--border-default)] text-[var(--text-muted)]">
                             {t('support.support_aiconfig_preview', 'Preview')}
                         </div>
                         <div className="p-4 space-y-3">
@@ -339,11 +337,10 @@ export default function SupportAIConfig() {
                                         borderColor: 'var(--border-default)',
                                         color: 'var(--text-primary)',
                                     }}>
-                                    <div className="flex items-center gap-2 mb-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                                    <div className="flex items-center gap-2 mb-2 text-xs text-[var(--text-muted)]">
                                         <span className="font-medium">{t('support.support_aiconfig_bee_flow_support_ai', 'Bee Flow Support (AI)')}</span>
                                         {previewReply.modelTier && (
-                                            <span className="px-1.5 py-0.5 rounded"
-                                                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                                            <span className="px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                                                 {tierLabel(previewReply.modelTier.replace(/^tier:/, '')) || previewReply.modelTier}
                                             </span>
                                         )}
@@ -357,8 +354,7 @@ export default function SupportAIConfig() {
                                     {/* Reuse the same Markdown renderer the chat surface uses */}
                                     <MarkdownRenderer content={previewReply.content || ''} />
                                     {Array.isArray(previewReply.citations) && previewReply.citations.length > 0 && (
-                                        <div className="mt-2 pt-2 border-t text-xs"
-                                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}>
+                                        <div className="mt-2 pt-2 border-t text-xs border-[var(--border-default)] text-[var(--text-muted)]">
                                             Cited: {previewReply.citations.map(c => c.title).filter(Boolean).join(' · ')}
                                         </div>
                                     )}

@@ -54,11 +54,10 @@ router.post('/settings', requireSuperAdmin, validate({ body: SettingsBody }), as
         config.oauth.clientSecret = clientSecret;
     }
 
-    if (await saveConfig({ oauth: req.body })) {
-        res.json({ success: true });
-    } else {
-        res.status(500).json({ error: 'Failed to save settings' });
+    if (!(await saveConfig({ oauth: req.body }))) {
+        throw new Error('Failed to save the instance OAuth settings');
     }
+    res.json({ success: true });
 });
 
 module.exports = router;

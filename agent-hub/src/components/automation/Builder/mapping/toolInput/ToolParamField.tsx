@@ -8,10 +8,10 @@ import { expectedShapeFor } from '../listShape';
 import { isEmptyBinding } from '../partitionInputs';
 import ValueBuilderJs from '../ValueBuilder';
 
-// The value editors and the label row are untyped JS; their props are checked there.
+// The value editors are untyped JS; their props are checked there.
 const BindingField = BindingFieldJs as unknown as ComponentType<Record<string, unknown>>;
 const ValueBuilder = ValueBuilderJs as unknown as ComponentType<Record<string, unknown>>;
-const FieldLabelRow = FieldLabelRowJs as unknown as ComponentType<Record<string, unknown>>;
+const FieldLabelRow = FieldLabelRowJs;
 const isEmpty = isEmptyBinding as (b: unknown) => boolean;
 const kindOf = expectedKindFor as (p: unknown) => string;
 const shapeOf = expectedShapeFor as (p: unknown) => string;

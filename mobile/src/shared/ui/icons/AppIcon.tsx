@@ -1,6 +1,6 @@
 /**
  * An icon somebody chose — `app.icon`, `project.icon`, a webpage's or an MCP
- * server's — drawn the way the web's AppIcon.jsx draws it.
+ * server's — drawn the way the web's AppIcon.tsx draws it.
  *
  * Those fields are free text written by the web app's pickers: a Lucide name
  * ("LayoutGrid") from the icon picker, or an emoji ("📁") where the web offers

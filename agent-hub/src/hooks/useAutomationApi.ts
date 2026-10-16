@@ -1,8 +1,8 @@
 import { useCallback, useMemo } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { readEventStream } from '../utils/sseStream';
-import { fromError, type ManagedBannerInfo } from '../components/shared/managedPart';
-
+import { fromError, type ManagedBannerInfo } from '../utils/managedPart';
+import type { HttpConnection } from './useAutomationApi.types';
 /**
  * REST helpers for the automation builder. Thin wrapper over authFetch so
  * components don't have to repeat the URL prefix and JSON handshake.
@@ -214,18 +214,18 @@ export default function useAutomationApi() {
                 signal,
             );
         },
-        previewSchedule: (cron: string, tz: string, count = 3) => send('POST', '/_schedule/preview', { cron, tz, count }),
+        previewSchedule: <T = unknown>(cron: string, tz: string, count = 3) => send<T>('POST', '/_schedule/preview', { cron, tz, count }),
         // Cross-route helpers: reusable HTTP credentials (org vault) for the
         // http_request step's Authentication picker. Live under
         // /api/integrations/connections; includeShared adds credentials lent
         // to this user (marked access:'lent'). Responses never contain the
         // secret — write-only by API contract.
-        listHttpConnections: async (): Promise<unknown> => {
+        listHttpConnections: async (): Promise<{ connections?: HttpConnection[] }> => {
             const r = await authFetch(`${API_BASE}/api/integrations/connections?provider=http&includeShared=1`);
             if (!r.ok) throw new Error((await safeText(r)) || 'GET /integrations/connections failed');
             return r.json();
         },
-        createHttpConnection: async (body?: unknown): Promise<unknown> => {
+        createHttpConnection: async (body?: unknown): Promise<{ connection: HttpConnection }> => {
             const r = await authFetch(`${API_BASE}/api/integrations/connections`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

@@ -89,7 +89,7 @@ export const IdentitySection = ({
                                                             return (
                                                                 <div ref={emojiPickerRef} className="absolute top-full left-0 mt-2 rounded-xl border bg-[var(--bg-card)] shadow-xl z-50" style={{ borderColor: 'var(--border-default)', width: '400px' }}>
                                                                     {/* Category Tabs */}
-                                                                    <div className="flex items-center gap-0.5 px-2 py-1.5 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                                                                    <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-[var(--border-subtle)]">
                                                                         {Object.entries(categories).map(([key, cat]) => (
                                                                             <button
                                                                                 key={key}
@@ -119,7 +119,7 @@ export const IdentitySection = ({
                                                                         </div>
                                                                     </div>
                                                                     {/* Custom Input + Image Upload */}
-                                                                    <div className="flex items-center gap-2 px-3 py-2 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                                                                    <div className="flex items-center gap-2 px-3 py-2 border-t border-[var(--border-subtle)]">
                                                                         <input
                                                                             type="text"
                                                                             value={isImageAvatar(avatar) ? '' : avatar}
@@ -159,7 +159,7 @@ export const IdentitySection = ({
                                                                         </button>
                                                                         <button
                                                                             onClick={() => setShowEmojiPicker(false)}
-                                                                            className="px-3 py-1 text-xs font-medium rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors" style={{ color: 'var(--text-secondary)' }}
+                                                                            className="px-3 py-1 text-xs font-medium rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)]"
                                                                         >
                                                                             {t('agent_studio.identity_done', 'Done')}
                                                                         </button>
@@ -212,8 +212,7 @@ export const IdentitySection = ({
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => setShowNewCategory(true)}
-                                                                            className="p-2 rounded-lg border hover:bg-[var(--bg-tertiary)] transition-colors"
-                                                                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                                                                            className="p-2 rounded-lg border hover:bg-[var(--bg-tertiary)] transition-colors border-[var(--border-default)] text-[var(--text-secondary)]"
                                                                             title={t('agent_studio.identity_create_new_category', 'Create new category')}
                                                                         >
                                                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,8 +242,7 @@ export const IdentitySection = ({
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }}
-                                                                            className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
-                                                                            style={{ color: 'var(--text-muted)' }}
+                                                                            className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-muted)]"
                                                                         >
                                                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -271,7 +269,7 @@ export const IdentitySection = ({
                                                     )}
 
                                                     {/* Intelligence & Instructions (merged) */}
-                                                    <div className="mt-5 pt-5 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                                                    <div className="mt-5 pt-5 border-t border-[var(--border-subtle)]">
                                                         <h3 className="text-xs font-medium text-muted mb-4">{t('agent_studio.identity_intelligence_instructions', 'Intelligence & Instructions')}</h3>
 
                                                         <div className="space-y-5">

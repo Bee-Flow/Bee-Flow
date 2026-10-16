@@ -21,8 +21,8 @@ import type { Catalog, FlowDefinition, VariableField, VariableGroup } from '../t
 import * as up from './index';
 
 const web = {
-    up: requireWeb(`${BUILDER}/mapping/upstream/index.js`),
-    real: requireWeb(`${BUILDER}/mapping/realOutputs.js`),
+    up: requireWeb(`${BUILDER}/mapping/upstream/index`),
+    real: requireWeb(`${BUILDER}/mapping/realOutputs`),
 };
 
 const paths = (fields: VariableField[] | undefined): string[] => {

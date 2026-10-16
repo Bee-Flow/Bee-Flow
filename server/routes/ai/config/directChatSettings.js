@@ -27,7 +27,6 @@
  */
 
 const express = require('express');
-const log = require('../../../telemetry/log');
 const router = express.Router();
 const configStore = require('../../../stores/configStore');
 const { isAdminUser } = require('./shared');
@@ -35,11 +34,9 @@ const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
 const { z, typeError } = require('../../../utils/zod');
 const { orEmpty: bodyOf } = require('../../../core/http/schemaParts');
+const { requireAdminUser } = require('../requireAdminUser');
 
-async function requireAdmin(req, res, next) {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    next();
-}
+const requireAdmin = requireAdminUser(isAdminUser);
 
 // ── What an admin may send ────────────────────────────────────────────────
 
@@ -70,64 +67,37 @@ const TierToolParamsBody = bodyOf(z.record(
 // ─── Direct Chat System Prompt ───────────────────────────────────
 
 router.get('/config/direct-chat', requireAuth, async (req, res) => {
-    try {
-        const prompt = await configStore.getConfig('direct_chat_system_prompt') || '';
-        res.json({ systemPrompt: prompt });
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to fetch config' });
-    }
+    const prompt = await configStore.getConfig('direct_chat_system_prompt') || '';
+    res.json({ systemPrompt: prompt });
 });
 
 router.post('/config/direct-chat', requireAuth, requireAdmin, validate({ body: SystemPromptBody }), async (req, res) => {
-    try {
-        await configStore.setConfig('direct_chat_system_prompt', req.body.systemPrompt);
-        res.json({ success: true });
-    } catch (e) {
-        log.error('Failed to save direct chat config:', e);
-        res.status(500).json({ error: 'Failed to save config' });
-    }
+    await configStore.setConfig('direct_chat_system_prompt', req.body.systemPrompt);
+    res.json({ success: true });
 });
 
 // ─── Per-Tier Tool Enablement ────────────────────────────────────
 
 router.get('/config/direct-chat-tools', requireAuth, async (req, res) => {
-    try {
-        const tierTools = await configStore.getConfig('direct_chat_tier_tools') || {};
-        res.json(tierTools);
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to fetch config' });
-    }
+    const tierTools = await configStore.getConfig('direct_chat_tier_tools') || {};
+    res.json(tierTools);
 });
 
 router.post('/config/direct-chat-tools', requireAuth, requireAdmin, validate({ body: TierToolsBody }), async (req, res) => {
-    try {
-        await configStore.setConfig('direct_chat_tier_tools', req.body);
-        res.json({ success: true });
-    } catch (e) {
-        log.error('Failed to save direct chat tools config:', e);
-        res.status(500).json({ error: 'Failed to save config' });
-    }
+    await configStore.setConfig('direct_chat_tier_tools', req.body);
+    res.json({ success: true });
 });
 
 // ─── Per-Tier Tool Parameter Overrides ───────────────────────────
 
 router.get('/config/direct-chat-tool-params', requireAuth, requireAdmin, async (req, res) => {
-    try {
-        const params = await configStore.getConfig('direct_chat_tier_tool_params') || {};
-        res.json(params);
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to fetch config' });
-    }
+    const params = await configStore.getConfig('direct_chat_tier_tool_params') || {};
+    res.json(params);
 });
 
 router.post('/config/direct-chat-tool-params', requireAuth, requireAdmin, validate({ body: TierToolParamsBody }), async (req, res) => {
-    try {
-        await configStore.setConfig('direct_chat_tier_tool_params', req.body);
-        res.json({ success: true });
-    } catch (e) {
-        log.error('Failed to save direct chat tool params config:', e);
-        res.status(500).json({ error: 'Failed to save config' });
-    }
+    await configStore.setConfig('direct_chat_tier_tool_params', req.body);
+    res.json({ success: true });
 });
 
 module.exports = router;

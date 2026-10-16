@@ -98,9 +98,9 @@ const inputStyle = { borderColor: 'var(--border-default)', background: 'var(--bg
 
 const Field = ({ label, children, hint }) => (
     <div>
-        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{label}</label>
+        <label className="block text-xs font-medium mb-1 text-[var(--text-secondary)]">{label}</label>
         {children}
-        {hint && <div className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>{hint}</div>}
+        {hint && <div className="text-[11px] mt-1 text-[var(--text-muted)]">{hint}</div>}
     </div>
 );
 
@@ -126,8 +126,7 @@ const GhostBtn = ({ children, ...props }) => (
 
 const IconBtn = ({ title, disabled, onClick, children }) => (
     <button type="button" title={title} aria-label={title} disabled={disabled} onClick={onClick}
-        className="w-7 h-7 rounded-md border flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-30"
-        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
+        className="w-7 h-7 rounded-md border flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-30 border-[var(--border-default)] text-[var(--text-secondary)]">
         {children}
     </button>
 );
@@ -154,8 +153,7 @@ const StatusChip = ({ status, t }) => (
             {t('org.academy.content.published', 'Published')}
         </span>
     ) : (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
-            style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
             {t('org.academy.content.draft', 'Draft')}
         </span>
     )
@@ -176,7 +174,7 @@ function SlideForm({ step, onChange, t }) {
             </Field>
             {step.bodyMd.trim() && (
                 <Field label={t('org.academy.content.preview', 'Preview')}>
-                    <div className="rounded-lg border p-3 text-sm" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                    <div className="rounded-lg border p-3 text-sm border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                         <MarkdownRenderer content={step.bodyMd} />
                     </div>
                 </Field>
@@ -224,13 +222,13 @@ function QuizForm({ step, onChange, t }) {
                     ))}
                 </div>
                 {step.choices.length < MAX_CHOICES && (
-                    <button type="button" className="mt-1.5 text-xs font-medium hover:underline" style={{ color: 'var(--accent-primary)' }}
+                    <button type="button" className="mt-1.5 text-xs font-medium hover:underline text-[var(--accent-primary)]"
                         onClick={() => onChange({ choices: [...step.choices, { id: mintLocalId('c'), label: '', correct: false }] })}>
                         + {t('org.academy.content.add_choice', 'Add choice')}
                     </button>
                 )}
             </Field>
-            <label className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                 <input type="checkbox" checked={step.multi} className="accent-[#059669]"
                     onChange={(e) => onChange({ multi: e.target.checked })} />
                 {t('org.academy.content.quiz_multi', 'Multiple answers can be correct')}
@@ -281,7 +279,7 @@ function ExerciseForm({ step, onChange, t }) {
                     ))}
                 </div>
                 {step.criteria.length < MAX_CRITERIA && (
-                    <button type="button" className="mt-1.5 text-xs font-medium hover:underline" style={{ color: 'var(--accent-primary)' }}
+                    <button type="button" className="mt-1.5 text-xs font-medium hover:underline text-[var(--accent-primary)]"
                         onClick={() => onChange({ criteria: [...step.criteria, ''] })}>
                         + {t('org.academy.content.add_criterion', 'Add criterion')}
                     </button>
@@ -314,10 +312,10 @@ const STEP_META = {
 function StepEditor({ step, index, count, onChange, onMove, onDelete, t }) {
     const meta = STEP_META[step.type];
     return (
-        <div className="rounded-xl border p-4" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+        <div className="rounded-xl border p-4 border-[var(--border-default)] bg-[var(--bg-card)]">
             <div className="flex items-center gap-2 mb-3">
                 <span className="text-base" aria-hidden="true">{meta.icon}</span>
-                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                <span className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                     {index + 1}. {t(meta.labelKey, meta.labelFallback)}
                 </span>
                 <div className="ml-auto flex items-center gap-1">
@@ -373,7 +371,7 @@ function LessonEditor({ lesson, onChange, onSave, onBack, busy, error, notice, t
                 </div>
             </div>
 
-            <div className="rounded-xl border p-4 mb-4 space-y-3" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+            <div className="rounded-xl border p-4 mb-4 space-y-3 border-[var(--border-default)] bg-[var(--bg-card)]">
                 <div className="grid md:grid-cols-2 gap-3">
                     <Field label={t('org.academy.content.lesson_title', 'Lesson title')}>
                         <input className={inputClass} style={inputStyle} value={lesson.title}
@@ -394,7 +392,7 @@ function LessonEditor({ lesson, onChange, onSave, onBack, busy, error, notice, t
             </div>
 
             <div className="flex items-center gap-2 mb-3 flex-wrap">
-                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-sm font-semibold text-[var(--text-primary)]">
                     {t('org.academy.content.steps', 'Steps')}
                 </span>
                 {lesson.steps.length < MAX_STEPS && (
@@ -410,7 +408,7 @@ function LessonEditor({ lesson, onChange, onSave, onBack, busy, error, notice, t
             </div>
 
             {lesson.steps.length === 0 ? (
-                <div className="rounded-xl border p-6 text-sm text-center" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-muted)' }}>
+                <div className="rounded-xl border p-6 text-sm text-center border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-muted)]">
                     {t('org.academy.content.no_steps', 'No steps yet — add a slide, quiz or exercise above.')}
                 </div>
             ) : (
@@ -682,7 +680,7 @@ export default function AcademyContentEditor() {
                     </div>
                 </div>
 
-                <div className="rounded-xl border p-4 mb-4 space-y-3" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+                <div className="rounded-xl border p-4 mb-4 space-y-3 border-[var(--border-default)] bg-[var(--bg-card)]">
                     <div className="grid md:grid-cols-2 gap-3">
                         <Field label={t('org.academy.content.course_title', 'Course title')}>
                             <input className={inputClass} style={inputStyle} value={course.title}
@@ -717,7 +715,7 @@ export default function AcademyContentEditor() {
                 </div>
 
                 <div className="flex items-center gap-2 mb-3">
-                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    <span className="text-sm font-semibold text-[var(--text-primary)]">
                         {t('org.academy.content.lessons', 'Lessons')}
                     </span>
                     {course.lessonIds.length < MAX_LESSONS && (
@@ -730,9 +728,9 @@ export default function AcademyContentEditor() {
                     )}
                 </div>
 
-                <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+                <div className="rounded-xl border overflow-hidden border-[var(--border-default)] bg-[var(--bg-card)]">
                     {course.lessonIds.length === 0 ? (
-                        <div className="p-6 text-sm text-center" style={{ color: 'var(--text-muted)' }}>
+                        <div className="p-6 text-sm text-center text-[var(--text-muted)]">
                             {t('org.academy.content.no_lessons', 'No lessons yet — a course needs at least one lesson before publishing.')}
                         </div>
                     ) : (
@@ -744,10 +742,10 @@ export default function AcademyContentEditor() {
                                         <span className="text-lg" aria-hidden="true">{lesson?.icon || '📘'}</span>
                                         <button type="button" className="flex-1 min-w-0 text-left"
                                             onClick={() => { setActiveLessonId(lessonId); setError(null); }}>
-                                            <span className="text-sm font-medium block truncate" style={{ color: 'var(--text-primary)' }}>
+                                            <span className="text-sm font-medium block truncate text-[var(--text-primary)]">
                                                 {lesson?.title || t('org.academy.content.untitled_lesson', 'Untitled lesson')}
                                             </span>
-                                            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                            <span className="text-[11px] text-[var(--text-muted)]">
                                                 {isTempId(lessonId)
                                                     ? t('org.academy.content.not_saved', 'Not saved yet')
                                                     : `${lesson?.steps?.length ?? 0} ${t('org.academy.content.steps_count', 'steps')} · ${lesson?.estMinutes ?? '—'} ${t('org.academy.content.minutes_short', 'min')}`}
@@ -794,15 +792,15 @@ export default function AcademyContentEditor() {
                 </PrimaryBtn>
             </div>
 
-            <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}>
+            <div className="rounded-xl border overflow-hidden border-[var(--border-default)] bg-[var(--bg-card)]">
                 {loadingList ? (
                     <div className="animate-pulse space-y-2 p-5">
                         {[...Array(3)].map((_, i) => (
-                            <div key={i} className="h-10 rounded-lg" style={{ background: 'var(--bg-tertiary)' }} />
+                            <div key={i} className="h-10 rounded-lg bg-[var(--bg-tertiary)]" />
                         ))}
                     </div>
                 ) : !courses || courses.length === 0 ? (
-                    <div className="p-8 text-sm text-center" style={{ color: 'var(--text-muted)' }}>
+                    <div className="p-8 text-sm text-center text-[var(--text-muted)]">
                         {t('org.academy.content.empty', 'No custom courses yet — create your first one.')}
                     </div>
                 ) : (
@@ -810,11 +808,11 @@ export default function AcademyContentEditor() {
                         {courses.map((entry) => (
                             <button key={entry.courseId} type="button" onClick={() => openCourse(entry)} disabled={busy}
                                 className="w-full px-5 py-3 flex items-center gap-3 text-left hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-60">
-                                <span className="text-sm font-medium flex-1 min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>
+                                <span className="text-sm font-medium flex-1 min-w-0 truncate text-[var(--text-primary)]">
                                     {entry.title}
                                 </span>
                                 <StatusChip status={entry.status} t={t} />
-                                <span className="text-[11px] w-24 text-right flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                                <span className="text-[11px] w-24 text-right flex-shrink-0 text-[var(--text-muted)]">
                                     {entry.updatedAt ? new Date(entry.updatedAt).toLocaleDateString() : '—'}
                                 </span>
                             </button>

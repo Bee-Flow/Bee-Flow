@@ -39,7 +39,7 @@ import { fileURLToPath } from 'node:url';
 // authoring-time version, run before generate.mjs.
 import {
     NAV_SURFACE_GATES, ENDPOINT_SURFACE_GATES, PERMISSION_IMPLIES, endpointGate,
-} from '../../../agent-hub/src/components/onboarding/surfaceGates.js';
+} from '../../../agent-hub/src/components/onboarding/surfaceGates.ts';
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const SG = { nav: NAV_SURFACE_GATES, endpoint: ENDPOINT_SURFACE_GATES };

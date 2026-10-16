@@ -1,14 +1,14 @@
 /**
  * PHONE_WEB_PAGES, held to the web: the pages the web draws on a phone
- * (agent-hub/src/authedApp/appRoutes.js MOBILE_ALLOWED_PAGES, plus the
- * approvals slice of Studio that guards.jsx lets through), and the addresses
+ * (agent-hub/src/authedApp/appRoutes.ts MOBILE_ALLOWED_PAGES, plus the
+ * approvals slice of Studio that guards.tsx lets through), and the addresses
  * its pageFromPath maps onto each.
  *
- * Differential: appRoutes.js has no imports, so its own pageFromPath runs
+ * Differential: appRoutes.ts has no imports, so its own pageFromPath runs
  * beside servedOnPhoneWeb on the same addresses. A page the web adds to its
  * phone list, or an address it moves, fails here until the port follows.
  * So does a Settings section it adds to, or takes off, its desktop-only list
- * (pages/settings/settingsNavItems.jsx): those are PHONE_WEB_HIDDEN here.
+ * (pages/settings/settingsNavItems.tsx): those are PHONE_WEB_HIDDEN here.
  */
 
 import fs from 'node:fs';
@@ -16,9 +16,9 @@ import path from 'node:path';
 
 import { PHONE_WEB_HIDDEN, PHONE_WEB_PAGES, servedOnPhoneWeb } from './links';
 
-const WEB = path.resolve(__dirname, '../../../../agent-hub/src/authedApp/appRoutes.js');
+const WEB = path.resolve(__dirname, '../../../../agent-hub/src/authedApp/appRoutes.ts');
 /** Where the web decides which Settings sections a phone does not get. JSX, so read as text. */
-const SETTINGS_NAV = path.resolve(__dirname, '../../../../agent-hub/src/pages/settings/settingsNavItems.jsx');
+const SETTINGS_NAV = path.resolve(__dirname, '../../../../agent-hub/src/pages/settings/settingsNavItems.tsx');
 const describeIfWeb = fs.existsSync(WEB) ? describe : describe.skip;
 
 interface WebRoutes {

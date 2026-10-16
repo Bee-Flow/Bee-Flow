@@ -334,6 +334,15 @@ function Build-One {
                 if ($Env -eq "prd") { throw "FAST_DEV=1 skips the Nextcloud embed build; refusing to produce a prd agent-hub image. Unset FAST_DEV and rebuild." }
                 $extra += @("--build-arg", "BUILD_EMBED=false")
             }
+            # The image runs only `vite build`, which strips types without
+            # checking them. CI gates the GHCR images on frontend-typecheck; a
+            # local prd image gets the same gate (as in build-images.sh).
+            if ($Env -eq "prd") {
+                Write-Host "==> Typechecking agent-hub before the prd image ..."
+                Push-Location (Join-Path $RepoRoot "agent-hub")
+                try { npm run -s typecheck } finally { Pop-Location }
+                if ($LASTEXITCODE -ne 0) { throw "agent-hub typecheck failed; refusing to build a prd agent-hub image." }
+            }
         }
         "license-server" {
             # Private source, checked out beside this repo (see $LicenseServerSrc

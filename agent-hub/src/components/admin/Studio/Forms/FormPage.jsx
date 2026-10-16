@@ -129,17 +129,17 @@ export default function FormPage({ form, tab = null, onTab, onBack, onNavigate, 
                 extras={(
                     <>
                         {path && (
-                            <a href={`${origin}${path}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs border hover:bg-[var(--bg-tertiary)]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }} title={t('forms.page.open_new_tab', 'Open in a new tab')}>
+                            <a href={`${origin}${path}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs border hover:bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-secondary)]" title={t('forms.page.open_new_tab', 'Open in a new tab')}>
                                 <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
                             </a>
                         )}
                         {mine && (
-                            <button type="button" onClick={() => onNavigate && onNavigate(`studio/automations/${form.automationId}`)} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border hover:bg-[var(--bg-tertiary)]" style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }} data-testid="form-page-open-automation">
+                            <button type="button" onClick={() => onNavigate && onNavigate(`studio/automations/${form.automationId}`)} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border hover:bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-secondary)]" data-testid="form-page-open-automation">
                                 <Workflow className="w-3.5 h-3.5" aria-hidden="true" />{t('forms.studio.open_automation', 'Open the automation')}
                             </button>
                         )}
                         {!mine && (
-                            <span className="text-[11px] hidden md:inline" style={{ color: 'var(--text-tertiary)' }} title={t('forms.page.readonly_hint', 'Shared with this account through its answers table — the questions and settings belong to the form’s owner.')}>
+                            <span className="text-[11px] hidden md:inline text-[var(--text-tertiary)]" title={t('forms.page.readonly_hint', 'Shared with this account through its answers table — the questions and settings belong to the form’s owner.')}>
                                 {t('forms.page.readonly_chip', 'shared with you')}
                             </span>
                         )}
@@ -151,12 +151,12 @@ export default function FormPage({ form, tab = null, onTab, onBack, onNavigate, 
                     {detailState.managed && <ManagedPartBanner managed={detailState.managed} onNavigate={onNavigate} className="mb-5" />}
                     <Tabs value={active} onChange={switchTab} items={tabs} size="sm" ariaLabel={t('forms.page.tabs_label', 'This form')} className="mb-5" />
                     {loading && !detail && (
-                        <div className="flex items-center gap-2 py-8 text-xs" style={{ color: 'var(--text-tertiary)' }} role="status">
+                        <div className="flex items-center gap-2 py-8 text-xs text-[var(--text-tertiary)]" role="status">
                             <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />{t('forms.page.loading', 'Loading the form…')}
                         </div>
                     )}
                     {error && !detail && (
-                        <p role="alert" className="text-xs" style={{ color: 'var(--error)' }}>{t('forms.page.load_failed', 'Could not load the form.')}</p>
+                        <p role="alert" className="text-xs text-[var(--error)]">{t('forms.page.load_failed', 'Could not load the form.')}</p>
                     )}
                     {active === 'questions' && detail && (
                         <QuestionsTab
@@ -187,9 +187,9 @@ export default function FormPage({ form, tab = null, onTab, onBack, onNavigate, 
                                 testId="form-answers"
                             />
                         ) : (
-                            <div className="rounded-xl border p-6 text-center" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }} data-testid="form-answers-none">
-                                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('forms.answers.no_table_title', 'No answers table')}</p>
-                                <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{t('forms.answers.no_table_body', 'This form starts an automation and does not collect answers in a table.')}</p>
+                            <div className="rounded-xl border p-6 text-center border-[var(--border-default)] bg-[var(--bg-card)]" data-testid="form-answers-none">
+                                <p className="text-sm font-semibold text-[var(--text-primary)]">{t('forms.answers.no_table_title', 'No answers table')}</p>
+                                <p className="text-xs mt-1 text-[var(--text-secondary)]">{t('forms.answers.no_table_body', 'This form starts an automation and does not collect answers in a table.')}</p>
                             </div>
                         )
                     )}

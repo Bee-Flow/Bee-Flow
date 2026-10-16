@@ -384,20 +384,12 @@ function createSearchRouter(deps = null) {
             // there is nothing to find.
             return res.json({ query: q, tooShort: true, results: {}, errors: [] });
         }
-        try {
-            const { results, errors } = await runSearch(req, d, q);
-            return res.json({ query: q, tooShort: false, results, errors });
-        } catch (err) {
-            // Defensive only: runSearch catches per KIND (gate and search
-            // alike), so even a total outage comes back 200 with all nine
-            // kinds in `errors` — which is the honest answer, and the one
-            // search.test.js pins. This net is here for a failure BEFORE the
-            // per-kind loop, and it 500s rather than returning an empty
-            // `results`, because an empty result set is exactly the sentence
-            // this endpoint must never say by accident.
-            log.error('[StudioSearch] failed:', err?.message || err);
-            return res.status(500).json({ error: 'Could not search' });
-        }
+        // runSearch catches per KIND, so even a total outage is a 200 with every
+        // kind in `errors`. A failure before that loop rejects to a 500 (the
+        // terminal handler), never an empty `results`: that is exactly the
+        // sentence this endpoint must never say by accident.
+        const { results, errors } = await runSearch(req, d, q);
+        return res.json({ query: q, tooShort: false, results, errors });
     });
 
     return router;

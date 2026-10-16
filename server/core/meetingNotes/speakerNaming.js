@@ -4,13 +4,14 @@
  *
  * Split out of `summaryHelpers.js`, which re-exports `identifySpeakerNames`.
  * Holds the generic-label detector, the guard-free introduced-name pass and
- * the naming call itself; the model tier and name coercion come from
+ * the naming call itself (its prompt is ./speakerNamingPrompt.js); the model tier and name coercion come from
  * `summaryLlm.js`, so naming and the artifact pass agree on both.
  */
 
 const llmClient = require('../llm/llmClient');
 const { formatTime } = require('./transcriptArtifacts');
-const { renderTranscript, buildSpeakerNamingExcerpt, GAP_MARKER } = require('./transcriptExcerpt');
+const { renderTranscript, buildSpeakerNamingExcerpt } = require('./transcriptExcerpt');
+const { speakerListOf, hintsOf, rosterHintOf, rulesOf, namingSystemPrompt } = require('./speakerNamingPrompt');
 const { extractSpeakerEvidence } = require('./speakerEvidence');
 const { parseJsonArray, parseJsonObject } = require('./llmJson');
 const { MEETING_LLM_TIMEOUT_MS, resolveSmartModel, coerceName } = require('./summaryLlm');
@@ -66,6 +67,79 @@ Return ONLY a JSON array of first names, e.g. ["Tom","Gerard"]. No explanation, 
 }
 
 /**
+ * Roster precedence: caller-supplied attendees (authoritative closed set)
+ * ▸ guard-detected names ▸ an LLM extraction of who introduced themselves.
+ * The last is the guard-free substitute that keeps naming working on boxes
+ * without GLiNER — the exact case that left everyone as SPEAKER_0N.
+ * @returns {Promise<{ callerRoster: string[], detectedRoster: string[], extractedRoster: string[], candidateRoster: string[] }>}
+ */
+async function rostersFor({ participantNames, lockedNames, evidence, excerpt, language, modelId, userName }) {
+    const suppliedRoster = Array.isArray(participantNames) ? participantNames.filter(Boolean) : [];
+    const lockedList = lockedNames ? [...new Set(Object.values(lockedNames))] : [];
+    // Voiceprint names join the CLOSED set only when the caller already
+    // supplied one. On their own they prove who IS present, never that
+    // nobody else is — so without an attendee list they go in as candidate
+    // names, which makes no completeness claim the model could over-apply.
+    const callerRoster = suppliedRoster.length
+        ? [...new Set([...suppliedRoster, ...lockedList])]
+        : [];
+    const detectedRoster = evidence?.roster || [];
+    let extractedRoster = [];
+    if (!callerRoster.length && !detectedRoster.length && !lockedList.length) {
+        extractedRoster = await extractIntroducedNames(excerpt, language, modelId, userName);
+    }
+    const candidateRoster = [...new Set([
+        ...lockedList,
+        ...(detectedRoster.length ? detectedRoster : extractedRoster),
+    ])];
+    return { callerRoster, detectedRoster, extractedRoster, candidateRoster };
+}
+
+/**
+ * The model's mapping, cleaned in place: hedges and any generic or
+ * self-referential label are dropped, and so is a name the voiceprints ruled
+ * out for that id. Those IDs are left unmapped on purpose so the caller's
+ * fillGenericSpeakerLabels floor gives them clean sequential labels rather
+ * than persisting a hallucinated or raw name.
+ * @param {Object<string, any>} mapping
+ * @param {Object<string,string[]>|null} ruledOutNames
+ */
+function sanitizeMapping(mapping, ruledOutNames) {
+    /** Is `name` acoustically excluded for `id`? Trimmed, case-insensitive. */
+    const isRuledOut = (id, name) => {
+        const banned = ruledOutNames && ruledOutNames[id];
+        if (!banned || !banned.length) return false;
+        const v = String(name || '').trim().toLowerCase();
+        return banned.some(b => String(b).trim().toLowerCase() === v);
+    };
+    for (const [key, rawValue] of Object.entries(mapping)) {
+        // Same coercion the action-item assignee gets. A `{name:'Tom'}`
+        // reply used to become the literal speaker label
+        // "[object Object]" on every one of that speaker's segments —
+        // and, because it is a stable string, it survived rename,
+        // reprocess and the report.
+        const value = coerceName(rawValue);
+        if (!value) { delete mapping[key]; continue; }
+        mapping[key] = value;
+        if (looksGenericSpeakerName(value) || value === key) {
+            delete mapping[key];
+            continue;
+        }
+        // The rule, not the request. The prompt asks the model to
+        // respect the voiceprint exclusions; this enforces it. A model
+        // that ignores the NOT lines would otherwise merge a separate
+        // participant into an enrolled colleague — which is exactly how
+        // a two-person meeting once came out as one speaker. The id is
+        // left unmapped so fillGenericSpeakerLabels floors it.
+        if (isRuledOut(key, value)) {
+            log.warn(`[Transcriptions] Dropped "${value}" for ${key} — ruled out by voiceprint`);
+            delete mapping[key];
+        }
+    }
+    return mapping;
+}
+
+/**
  * Map diarizer speaker IDs to real names — hybrid NER + LLM.
  *
  * Two jobs, split by what each tool is actually good at:
@@ -110,14 +184,6 @@ async function identifySpeakerNames(segments, speakerIds, language, userName, us
     const ruledOutNames = opts && opts.ruledOutNames && Object.keys(opts.ruledOutNames).length ? opts.ruledOutNames : null;
     const expectedSpeakers = Number(opts?.expectedSpeakers) >= 1 ? Math.round(Number(opts.expectedSpeakers)) : null;
 
-    /** Is `name` acoustically excluded for `id`? Trimmed, case-insensitive. */
-    const isRuledOut = (id, name) => {
-        const banned = ruledOutNames && ruledOutNames[id];
-        if (!banned || !banned.length) return false;
-        const v = String(name || '').trim().toLowerCase();
-        return banned.some(b => String(b).trim().toLowerCase() === v);
-    };
-
     try {
         // Naming is Dutch identity-resolution, not a cheap classification — it
         // ran on the fast tier and hedged. Use the smart tier (the summary tier).
@@ -153,129 +219,26 @@ async function identifySpeakerNames(segments, speakerIds, language, userName, us
             return { ...lockedNames };
         }
 
-        // Per-ID: how long it speaks, and which names appear in its OWN turns.
-        // The second part is the raw material for "this ID might be this person".
-        const speakerList = rows
-            .map((r) => {
-                const parts = [r.id];
-                if (typeof r.speakingSeconds === 'number') {
-                    parts.push(`(speaks ${formatTime(r.speakingSeconds)}${r.segments ? `, ${r.segments} turns` : ''})`);
-                }
-                const names = evidence?.namesBySpeaker?.[r.id];
-                if (names?.length) parts.push(`— names occurring in its own turns: ${names.join(', ')}`);
-                return parts.join(' ');
-            })
-            .join('\n');
-
-        const userHint = userName
-            ? `\n\nSTRONG HINT: The person who recorded this meeting is named "${userName}". They are almost certainly one of the speakers.`
-            : '';
-
-        // Facts, not hints: these came from a voice match, not from the text.
-        const lockedHint = lockedNames
-            ? `\n\nALREADY IDENTIFIED BY VOICEPRINT — these are certain, do not re-assign them:\n`
-                + Object.entries(lockedNames).map(([id, name]) => `- ${id} = ${name}`).join('\n')
-                + `\nThose people are definitely in the room; use that when working out who the remaining IDs are.`
-            : '';
-
-        // The negative half of the same evidence. Enforced after the reply too
-        // (see below) — this only helps the model get it right first time.
-        const ruledOutHint = ruledOutNames
-            ? `\n\nRULED OUT BY VOICEPRINT — their voice was compared and does NOT match:\n`
-                + Object.entries(ruledOutNames)
-                    .filter(([id]) => rows.some(r => r.id === id))
-                    .map(([id, names]) => `- ${id} is NOT ${names.join(', and NOT ')}`)
-                    .join('\n')
-                + `\nThese are different people. Never assign them one of those names, however much the dialogue seems to suggest it.`
-            : '';
-
-        // The user told us how many people are in the room. Say so plainly —
-        // otherwise the only count-related pressure in this prompt is the
-        // "diarization is noisy, expect FEWER people than ids" warning below,
-        // which on its own encourages collapsing distinct participants.
-        const countHint = expectedSpeakers
-            ? `\n\nSPEAKER COUNT: there are exactly ${expectedSpeakers} distinct ${expectedSpeakers === 1 ? 'person' : 'people'} in this meeting — no more, no fewer.`
-            : '';
-
         // The excerpt is assembled (not a blind prefix) so the introduction round
         // is present even in long meetings. Build it before naming so the
         // guard-free extraction pass reads the same text.
         const { excerpt, stats } = buildSpeakerNamingExcerpt(segments, rendered.lines, {
             nameLines: evidence?.nameLines,
         });
-
-        // Roster precedence: caller-supplied attendees (authoritative closed set)
-        // ▸ guard-detected names ▸ an LLM extraction of who introduced themselves.
-        // The last is the guard-free substitute that keeps naming working on
-        // boxes without GLiNER — the exact case that left everyone as SPEAKER_0N.
-        const suppliedRoster = Array.isArray(participantNames) ? participantNames.filter(Boolean) : [];
-        const lockedList = lockedNames ? [...new Set(Object.values(lockedNames))] : [];
-        // Voiceprint names join the CLOSED set only when the caller already
-        // supplied one. On their own they prove who IS present, never that
-        // nobody else is — so without an attendee list they go in as candidate
-        // names, which makes no completeness claim the model could over-apply.
-        const callerRoster = suppliedRoster.length
-            ? [...new Set([...suppliedRoster, ...lockedList])]
-            : [];
-        const detectedRoster = evidence?.roster || [];
-        let extractedRoster = [];
-        if (!callerRoster.length && !detectedRoster.length && !lockedList.length) {
-            extractedRoster = await extractIntroducedNames(excerpt, language, modelId, userName);
-        }
-        const candidateRoster = [...new Set([
-            ...lockedList,
-            ...(detectedRoster.length ? detectedRoster : extractedRoster),
-        ])];
-
-        const rosterHint = callerRoster.length
-            ? `\n\nATTENDEE LIST — THIS IS THE COMPLETE SET OF PEOPLE IN THE ROOM: ${callerRoster.join(', ')}.
-Every speaker ID belongs to one of these ${callerRoster.length} people. There are no others.`
-            : (candidateRoster.length
-                ? `\n\nNAMES PEOPLE USED IN THIS MEETING: ${candidateRoster.join(', ')}. Some may be people who were only talked ABOUT and never spoke — use a name only where the dialogue shows that person is actually speaking.`
-                : '');
-
-        // Rules depend on whether we have a closed attendee set. With one, assign
-        // every ID. Without one, name only the IDs the dialogue clearly
-        // identifies and OMIT the rest — the caller's floor gives those clean
-        // generic labels, so "nobody introduced themselves" degrades to tidy
-        // "Spreker N" instead of a hallucinated name.
-        const sameNameRule = ruledOutNames
-            ? ' — EXCEPT where a "RULED OUT" line above forbids that pairing, which always wins'
-            : '';
-        const rules = callerRoster.length
-            ? `Rules:
-1. Every speaker_ID belongs to one of the attendees above — assign each ID to the most likely attendee using the dialogue.
-2. Multiple IDs mapping to the SAME attendee is normal and expected (the diarizer splits one voice across IDs)${sameNameRule}.
-3. Do not invent names outside the attendee list. If an ID is ambiguous, pick the most plausible attendee anyway.`
-            : `Rules:
-1. Map a speaker_ID to a person's real first name ONLY when the dialogue clearly identifies them: they introduce themselves ("Ik ben Ewald", "Mijn naam is Tom") or are addressed by name and answer.
-2. Multiple IDs mapping to the SAME name is normal and expected (the diarizer splits one voice across IDs)${sameNameRule}.
-3. If you cannot confidently name an ID, OMIT it from the JSON entirely. NEVER invent a name, and NEVER output a generic label like "Speaker A" or "Spreker 1" — omission is the correct answer for an unidentified speaker.`;
-
-        // Lines separated by the gap marker are NOT adjacent — don't infer
-        // identity from their adjacency.
-        const excerptHint = `\n\nThe transcript below may be an EXCERPT of a longer meeting. Lines separated by "${GAP_MARKER}" are NOT adjacent turns — passages between them were omitted, so never infer identity from their adjacency.`;
-
-        const systemPrompt = `You are a transcript analyst. Work out which real person each diarized speaker ID belongs to.
-
-CRITICAL — Speaking vs. Being Mentioned:
-- A person SPEAKS if they introduce themselves, or answer when addressed ("Tom, wat denk jij?" → the next turn is likely Tom).
-- A person is merely MENTIONED when others talk ABOUT them in the third person. Being mentioned does NOT make someone a speaker.
-- Judge introductions from meaning, not phrasing: "Ik ben Ewald" introduces Ewald, "Ik ben benieuwd" introduces nobody, "Dit is Ewald" introduces someone else.
-
-DIARIZATION IS NOISY:
-The diarizer splits ONE person across MANY IDs, so several IDs mapping to the same name is normal — a ${rows.length}-ID transcript is not a ${rows.length}-person meeting. An ID that speaks only a few seconds is usually a fragment of a neighbouring turn.
-
-${rules}${userHint}${lockedHint}${ruledOutHint}${countHint}${rosterHint}${excerptHint}
-
-Return ONLY a JSON object mapping speaker IDs to real names, e.g. {"SPEAKER_00": "Tom", "SPEAKER_02": "Gerard"}. Omit IDs you cannot name. No explanation, no markdown, ONLY valid JSON.`;
+        const roster = await rostersFor({ participantNames, lockedNames, evidence, excerpt, language, modelId, userName });
+        const systemPrompt = namingSystemPrompt({
+            idCount: rows.length,
+            rules: rulesOf(roster.callerRoster, ruledOutNames),
+            hints: hintsOf({ userName, lockedNames, ruledOutNames, rows, expectedSpeakers }),
+            rosterHint: rosterHintOf(roster.callerRoster, roster.candidateRoster),
+        });
 
         log.info(
             `[Transcriptions] naming excerpt: ${stats.kept}/${stats.total} chars`
             + (stats.truncated
                 ? `, ${stats.lines}/${stats.totalLines} lines, ${stats.speakersCovered}/${stats.speakersTotal} ids`
                 : ' (full)')
-            + `, roster: ${callerRoster.length ? `${callerRoster.length} (attendees)` : (detectedRoster.length ? `${detectedRoster.length} (detected)` : `${extractedRoster.length} (extracted)`)}`
+            + `, roster: ${roster.callerRoster.length ? `${roster.callerRoster.length} (attendees)` : (roster.detectedRoster.length ? `${roster.detectedRoster.length} (detected)` : `${roster.extractedRoster.length} (extracted)`)}`
             + (lockedNames ? `, ${Object.keys(lockedNames).length} id(s) pinned by voiceprint` : '')
         );
 
@@ -283,7 +246,7 @@ Return ONLY a JSON object mapping speaker IDs to real names, e.g. {"SPEAKER_00":
             { role: 'system', content: systemPrompt },
             {
                 role: 'user',
-                content: `Speaker IDs (${rows.length}) and how long each one speaks:\n${speakerList}\n\n`
+                content: `Speaker IDs (${rows.length}) and how long each one speaks:\n${speakerListOf(rows, evidence)}\n\n`
                     + `Language: ${language}\n\nTranscript:\n${excerpt}`,
             },
             // The reply is one JSON entry per ID. A truncated reply fails to
@@ -293,35 +256,7 @@ Return ONLY a JSON object mapping speaker IDs to real names, e.g. {"SPEAKER_00":
 
         const parsed = parseJsonObject((result.content || '').trim());
         if (parsed) {
-            const mapping = parsed.value;
-            // Drop hedges and any generic / self-referential label the model may
-            // still emit. Those IDs are left unmapped on purpose so the caller's
-            // fillGenericSpeakerLabels floor gives them clean sequential labels
-            // rather than persisting a hallucinated or raw name.
-            for (const [key, rawValue] of Object.entries(mapping)) {
-                // Same coercion the action-item assignee gets. A `{name:'Tom'}`
-                // reply used to become the literal speaker label
-                // "[object Object]" on every one of that speaker's segments —
-                // and, because it is a stable string, it survived rename,
-                // reprocess and the report.
-                const value = coerceName(rawValue);
-                if (!value) { delete mapping[key]; continue; }
-                mapping[key] = value;
-                if (looksGenericSpeakerName(value) || value === key) {
-                    delete mapping[key];
-                    continue;
-                }
-                // The rule, not the request. The prompt asks the model to
-                // respect the voiceprint exclusions; this enforces it. A model
-                // that ignores the NOT lines would otherwise merge a separate
-                // participant into an enrolled colleague — which is exactly how
-                // a two-person meeting once came out as one speaker. The id is
-                // left unmapped so fillGenericSpeakerLabels floors it.
-                if (isRuledOut(key, value)) {
-                    log.warn(`[Transcriptions] Dropped "${value}" for ${key} — ruled out by voiceprint`);
-                    delete mapping[key];
-                }
-            }
+            const mapping = sanitizeMapping(parsed.value, ruledOutNames);
             if (parsed.salvaged) {
                 log.warn(`[Transcriptions] speaker mapping reply was truncated — salvaged ${Object.keys(mapping).length} of ${rows.length} IDs`);
             }

@@ -33,7 +33,7 @@ stub('../stores/configStore', {
     getConfig: async () => null, // → /events/github answers 503 "not configured"
     getSecret: async () => null,
 });
-stub('../automation/cron', {});
+stub('../core/scheduling/cron', {});
 stub('../automation/validate', {});
 stub('../automation/summarise', {});
 stub('../automation/deliverableEvents', {});
@@ -56,6 +56,7 @@ stub('../core/entitlements/entitlements', {
 });
 
 const router = require('./automation');
+const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
 
 /**
  * Find a route layer by (method, path). routes/automation.js is a FACADE that
@@ -94,7 +95,7 @@ function dispatch({ method = 'POST', url, ip = '203.0.113.1', query = {} }) {
             send(b) { this.body = b; resolve(this); return this; },
             end() { resolve(this); return this; },
         };
-        router(req, res, (err) => reject(err || new Error(`fell through router: ${method} ${url}`)));
+        router(req, res, (err) => (err ? terminalErrorHandler(err, req, res, reject) : reject(new Error(`fell through router: ${method} ${url}`))));
     });
 }
 

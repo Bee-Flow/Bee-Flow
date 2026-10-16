@@ -27,6 +27,7 @@ const { LOCAL_RUNTIMES, isLocalProviderType } = require('../../core/providers/lo
 const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { openSse } = require('../../core/http/sseHelpers');
+const { requireAdminUser } = require('./requireAdminUser');
 
 async function isAdminUser(req) {
     if (req.session?.isAdmin || req.session?.user?.role === 'admin') return true;
@@ -35,10 +36,7 @@ async function isAdminUser(req) {
     return hasPermission(userId, 'admin_ai_config', req.session);
 }
 
-async function requireAdmin(req, res, next) {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
-    next();
-}
+const requireAdmin = requireAdminUser(isAdminUser);
 
 // ── What a caller may send ───────────────────────────────────────────────────
 // The endpoint is the one field that decides where the server makes an

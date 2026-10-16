@@ -19,9 +19,9 @@
 
 'use strict';
 
-const { analyzeCode, blockingFindings } = require('../../automation/codeSafety');
-const { applyParamValues } = require('../../automation/codeSafety/paramValues');
-const { cleanHostList, hostListed, normaliseHost } = require('../../automation/codeSafety/hosts');
+const { analyzeCode, blockingFindings } = require('../automationModel/codeSafety');
+const { applyParamValues } = require('../automationModel/codeSafety/paramValues');
+const { cleanHostList, hostListed, normaliseHost } = require('../automationModel/codeSafety/hosts');
 const defaultLog = require('../../telemetry/log');
 
 const CACHE_MAX = 200;

@@ -1,0 +1,312 @@
+import { Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { cardClass, inputClass, FormRow } from './formPrimitives';
+import { SET_OP_DEFS, SET_OP_TITLES, columnsAfterOps } from '../setOperations';
+import type { SetOpDef, SetOperation } from '../setOperations';
+import { humanizeFieldKey } from '../displayHelpers';
+import FieldKeyCombobox from '../../mapping/FieldKeyCombobox';
+import type { FieldKeyOption } from '../../mapping/FieldKeyCombobox';
+import type { OnFocusField } from '../../mapping/focusField.types';
+import AnchoredMenu from '../../../../shared/AnchoredMenu';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+
+/** An operation as the editor holds it: `start` belongs to the row-number op and may be mid-edit. */
+type EditableOp = SetOperation & { start?: number | '' };
+
+interface SetOperationsEditorProps {
+    ops?: EditableOp[];
+    onChange: (next: EditableOp[]) => void;
+    baseColumns?: string[];
+    columnSamples?: Record<string, unknown>;
+    onFocusField?: OnFocusField | null;
+}
+
+/**
+ * The "Table tools" editor for the Edit data (set) step — one card per
+ * whole-table operation, applied top to bottom AFTER the per-row fields.
+ *
+ * Ordering is semantic (rename-before-keep, sort-before-number), so cards
+ * reorder with ▲▼ chevrons instead of delete-and-re-add. Each card's column
+ * pickers offer the columns that exist AT THAT POINT in the pipeline
+ * (source columns + computed fields + everything earlier ops added/renamed) —
+ * which makes the top-to-bottom execution order tangible.
+ *
+ * Props:
+ *   ops           — draft.operations (already-sanitised shapes are fine;
+ *                   half-configured rows are legal and survive autosave)
+ *   onChange(next)— replace the whole array
+ *   baseColumns   — column names BEFORE any operation (source element keys +
+ *                   the Fields section's keys)
+ *   columnSamples — {col: sampleValue} for the pickers' preview column
+ */
+export default function SetOperationsEditor({ ops = [], onChange, baseColumns = [], columnSamples = {}, onFocusField = null }: SetOperationsEditorProps) {
+    const { t } = useTranslation();
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const closeMenu = useCallback(() => setMenuOpen(false), []);
+
+    const update = (i: number, patch: Partial<EditableOp>) => onChange(ops.map((o, j) => (j === i ? { ...o, ...patch } : o)));
+    const remove = (i: number) => onChange(ops.filter((_, j) => j !== i));
+    const move = (i: number, dir: number) => {
+        const j = i + dir;
+        if (j < 0 || j >= ops.length) return;
+        const next = ops.slice();
+        [next[i], next[j]] = [next[j], next[i]];
+        onChange(next);
+    };
+    const add = (def: SetOpDef) => { onChange([...ops, def.makeDefault()]); setMenuOpen(false); };
+
+    const optionsAt = (i: number): FieldKeyOption[] => columnsAfterOps(baseColumns, ops, i)
+        .map(k => ({ key: k, sample: columnSamples[k] }));
+
+    return (
+        <div className="space-y-2">
+            {ops.length === 0 && (
+                <div className="text-[11px] text-[var(--text-tertiary)] italic">
+                    {t('automations.set_operations_editor.nothing_yet_number_the_rows_give', 'Nothing yet — number the rows, give matching rows a shared ID, rename, keep/remove or sort.')}
+                </div>
+            )}
+            {ops.map((o, i) => (
+                <OpCard
+                    key={i}
+                    op={o}
+                    index={i}
+                    count={ops.length}
+                    options={optionsAt(i)}
+                    onChange={(patch) => update(i, patch)}
+                    onRemove={() => remove(i)}
+                    onMove={(dir) => move(i, dir)}
+                    onFocusField={onFocusField}
+                />
+            ))}
+            <div className="relative" ref={menuRef}>
+                <button
+                    type="button"
+                    onClick={() => setMenuOpen(o => !o)}
+                    className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
+                >
+                    <Plus size={12} /> {t('automations.set_operations_editor.add_a_table_tool', 'Add a table tool')}
+                </button>
+                {/* Portalled + height-capped: this menu had neither a max-height
+                    nor an escape from the modal's clip chain, so the last table
+                    tools were unreachable near the bottom of the form. */}
+                <AnchoredMenu open={menuOpen} onClose={closeMenu} anchorRef={menuRef} align="left" width={288} role="menu" className="py-1">
+                    {SET_OP_DEFS.map(def => (
+                        <button
+                            key={def.op}
+                            type="button"
+                            onClick={() => add(def)}
+                            className="w-full px-3 py-1.5 text-left hover:bg-[var(--bg-tertiary)] transition"
+                        >
+                            <div className="text-xs text-[var(--text-primary)]">{def.title}</div>
+                            <div className="text-[10px] text-[var(--text-tertiary)]">{def.hint}</div>
+                        </button>
+                    ))}
+                </AnchoredMenu>
+            </div>
+        </div>
+    );
+}
+
+interface OpCardProps {
+    op: EditableOp;
+    index: number;
+    count: number;
+    options: FieldKeyOption[];
+    onChange: (patch: Partial<EditableOp>) => void;
+    onRemove: () => void;
+    onMove: (dir: number) => void;
+    onFocusField?: OnFocusField | null;
+}
+
+function OpCard({ op, index, count, options, onChange, onRemove, onMove, onFocusField }: OpCardProps) {
+    const { t } = useTranslation();
+    const existing = options.map(o => o.key);
+    // Writing into a column that already exists replaces its values — legal
+    // and sometimes wanted, but never silently.
+    const collision = (name?: string) => (name && existing.includes(name)
+        ? `Replaces the existing “${humanizeFieldKey(name)}” values on every row.`
+        : null);
+
+    return (
+        <div className={cardClass()}>
+            <div className="flex items-center gap-1">
+                <span className="flex-1 text-xs font-medium text-[var(--text-primary)]">{SET_OP_TITLES[op.op] || op.op}</span>
+                <button
+                    type="button" onClick={() => onMove(-1)} disabled={index === 0}
+                    title={t('automations.set_operations_editor.run_earlier', 'Run earlier')} aria-label={t('automations.set_operations_editor.move_operation_up', 'Move operation up')}
+                    className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30"
+                >
+                    <ChevronUp size={12} />
+                </button>
+                <button
+                    type="button" onClick={() => onMove(1)} disabled={index === count - 1}
+                    title={t('automations.set_operations_editor.run_later', 'Run later')} aria-label={t('automations.set_operations_editor.move_operation_down', 'Move operation down')}
+                    className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30"
+                >
+                    <ChevronDown size={12} />
+                </button>
+                <button
+                    type="button" onClick={onRemove}
+                    title={t('automations.set_operations_editor.remove_this_operation', 'Remove this operation')} aria-label={t('automations.set_operations_editor.remove_operation', 'Remove operation')}
+                    className="p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10"
+                >
+                    <Trash2 size={12} />
+                </button>
+            </div>
+
+            {op.op === 'rowId' && (
+                <>
+                    <MiniRow label={t('automations.set_operations_editor.put_the_number_in', 'Put the number in')}>
+                        <NameInput value={op.target || ''} onCommit={(v) => onChange({ target: v })} placeholder={t('automations.set_operations_editor.id', 'id')} warning={collision(op.target)} />
+                    </MiniRow>
+                    <MiniRow label={t('automations.set_operations_editor.start_at', 'Start at')}>
+                        <input
+                            type="number"
+                            value={op.start ?? 1}
+                            onChange={(e) => onChange({ start: e.target.value === '' ? '' : Number(e.target.value) })}
+                            className={inputClass()}
+                        />
+                    </MiniRow>
+                </>
+            )}
+
+            {op.op === 'groupId' && (
+                <>
+                    <MiniRow label={t('automations.set_operations_editor.rows_match_when_these_are_equal', 'Rows match when these are equal')}>
+                        <KeyList keys={op.keys || []} options={options} onChange={(keys) => onChange({ keys })} onFocusField={onFocusField} addLabel="Add another column" />
+                    </MiniRow>
+                    <MiniRow label={t('automations.set_operations_editor.put_the_shared_id_in', 'Put the shared ID in')}>
+                        <NameInput value={op.target || ''} onCommit={(v) => onChange({ target: v })} placeholder={t('automations.set_operations_editor.group_id', 'groupId')} warning={collision(op.target)} />
+                    </MiniRow>
+                    <p className="text-[10px] text-[var(--text-tertiary)]">
+                        {t('automations.set_operations_editor.rows_with_the_same_value_s', 'Rows with the same value(s) get the same number, in order of first appearance. Text matches ignore upper/lower case.')}
+                    </p>
+                </>
+            )}
+
+            {op.op === 'rename' && (
+                <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                        <FieldKeyCombobox value={op.from || ''} onChange={(v) => onChange({ from: v })} options={options} placeholder={t('automations.set_operations_editor.current_name', 'current name')} label={t('automations.set_operations_editor.rename', 'Rename')} onFocusField={onFocusField} />
+                    </div>
+                    <span className="text-[var(--text-tertiary)] text-xs shrink-0">→</span>
+                    <div className="flex-1 min-w-0">
+                        <NameInput value={op.to || ''} onCommit={(v) => onChange({ to: v })} placeholder={t('automations.set_operations_editor.new_name', 'new name')} warning={op.to !== op.from ? collision(op.to) : null} />
+                    </div>
+                </div>
+            )}
+
+            {(op.op === 'keep' || op.op === 'remove') && (
+                <MiniRow label={op.op === 'keep' ? 'Keep only these fields' : 'Remove these fields'}>
+                    <KeyList keys={op.keys || []} options={options} onChange={(keys) => onChange({ keys })} onFocusField={onFocusField} addLabel="Add a column" />
+                </MiniRow>
+            )}
+
+            {op.op === 'sort' && (
+                <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                        <FieldKeyCombobox value={op.key || ''} onChange={(v) => onChange({ key: v })} options={options} placeholder={t('automations.set_operations_editor.column_to_sort_by', 'column to sort by')} label={t('automations.set_operations_editor.sort_by', 'Sort by')} onFocusField={onFocusField} />
+                    </div>
+                    <select
+                        value={op.direction === 'desc' ? 'desc' : 'asc'}
+                        onChange={(e) => onChange({ direction: e.target.value })}
+                        className={`${inputClass()} !w-auto shrink-0`}
+                    >
+                        <option value="asc">{t('automations.set_operations_editor.a_z_low_high', 'A → Z / low → high')}</option>
+                        <option value="desc">{t('automations.set_operations_editor.z_a_high_low', 'Z → A / high → low')}</option>
+                    </select>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function MiniRow({ label, children }: { label: string; children?: React.ReactNode }) {
+    return (
+        <div className="space-y-0.5">
+            <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{label}</div>
+            {children}
+        </div>
+    );
+}
+
+interface NameInputProps {
+    value?: string;
+    onCommit: (next: string) => void;
+    placeholder?: string;
+    warning?: string | null;
+}
+
+/**
+ * Column-name input that commits on blur/Enter — the CaseNameInput pattern.
+ * Live-controlled names would feed the 600 ms autosave half-typed states;
+ * committing whole names keeps every flushed patch clean. Incomplete ('') is
+ * fine — the validator marks it as a completeness problem, never a lost row.
+ */
+function NameInput({ value, onCommit, placeholder, warning = null }: NameInputProps) {
+    const [text, setText] = useState(value || '');
+    useEffect(() => { setText(value || ''); }, [value]);
+    const commit = () => { const v = text.trim(); if (v !== (value || '')) onCommit(v); };
+    return (
+        <div className="min-w-0">
+            <input
+                type="text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onBlur={commit}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } }}
+                placeholder={placeholder}
+                className={inputClass()}
+            />
+            {warning && <div className="mt-0.5 text-[10px] text-amber-600 dark:text-amber-400">{warning}</div>}
+        </div>
+    );
+}
+
+interface KeyListProps {
+    keys: string[];
+    options: FieldKeyOption[];
+    onChange: (next: string[]) => void;
+    onFocusField?: OnFocusField | null;
+    addLabel: string;
+}
+
+/** One combobox per key + add/remove — composite keys and keep/remove lists. */
+function KeyList({ keys, options, onChange, onFocusField, addLabel }: KeyListProps) {
+    const { t } = useTranslation();
+    const rows = keys.length ? keys : [''];
+    const setAt = (i: number, v: string) => {
+        const next = rows.slice();
+        next[i] = v;
+        onChange(next.filter((k, j) => k || j === i)); // keep the row being edited
+    };
+    const removeAt = (i: number) => onChange(rows.filter((_, j) => j !== i));
+    return (
+        <div className="space-y-1">
+            {rows.map((k, i) => (
+                <div key={i} className="flex items-center gap-1">
+                    <div className="flex-1 min-w-0">
+                        <FieldKeyCombobox value={k} onChange={(v) => setAt(i, v)} options={options} placeholder={t('automations.set_operations_editor.column', 'column')} label={t('automations.set_operations_editor.column_2', 'Column')} onFocusField={onFocusField} />
+                    </div>
+                    {rows.length > 1 && (
+                        <button
+                            type="button" onClick={() => removeAt(i)}
+                            className="p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10"
+                            aria-label={t('automations.set_operations_editor.remove_column', 'Remove column')}
+                        >
+                            <Trash2 size={12} />
+                        </button>
+                    )}
+                </div>
+            ))}
+            <button
+                type="button"
+                onClick={() => onChange([...rows, ''])}
+                className="flex items-center gap-1 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] px-1 py-0.5 rounded transition"
+            >
+                <Plus size={10} /> {addLabel}
+            </button>
+        </div>
+    );
+}

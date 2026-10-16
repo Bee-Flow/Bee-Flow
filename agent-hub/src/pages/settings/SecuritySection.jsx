@@ -71,7 +71,7 @@ const ChangePassword = () => {
                 </div>
                 {err && <p className="text-sm text-[var(--error-ink)] flex items-center gap-1.5"><AlertCircle className="w-4 h-4 shrink-0" /> {err}</p>}
                 {ok && <p className="text-sm text-[var(--success-ink)] flex items-center gap-1.5"><Check className="w-4 h-4 shrink-0" /> {t('changepw.success', 'Password changed successfully.')}</p>}
-                <button type="submit" disabled={busy} className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 flex items-center gap-2" style={{ background: 'var(--accent-primary)' }}>
+                <button type="submit" disabled={busy} className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 flex items-center gap-2 bg-[var(--accent-primary)]">
                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : null} {t('changepw.update', 'Update password')}
                 </button>
             </form>
@@ -253,7 +253,7 @@ export default function SecuritySection() {
                         <button onClick={() => { setSetupData(null); setCode(''); setEnableProof(''); setError(''); }} className="flex-1 py-2.5 rounded-lg border border-[var(--border-default)] text-sm font-medium text-[var(--text-secondary)]">
                             {t('common.cancel', 'Cancel')}
                         </button>
-                        <button onClick={confirmEnable} disabled={busy || code.trim().length < 6 || (status.enabled && !keyHere && !enableProof.trim())} className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2" style={{ background: 'var(--accent-primary)' }}>
+                        <button onClick={confirmEnable} disabled={busy || code.trim().length < 6 || (status.enabled && !keyHere && !enableProof.trim())} className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2 bg-[var(--accent-primary)]">
                             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />} {t('mfa.enable', 'Enable')}
                         </button>
                     </div>
@@ -346,7 +346,7 @@ export default function SecuritySection() {
                             <div className="text-xs text-[var(--text-muted)]">{t('mfa.disabled_desc', 'Use an authenticator app for an extra layer of security.')}</div>
                         </div>
                     </div>
-                    <button onClick={beginSetup} disabled={busy} className="shrink-0 px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 flex items-center gap-2" style={{ background: 'var(--accent-primary)' }}>
+                    <button onClick={beginSetup} disabled={busy} className="shrink-0 px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 flex items-center gap-2 bg-[var(--accent-primary)]">
                         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />} {t('mfa.enable', 'Enable')}
                     </button>
                 </div>

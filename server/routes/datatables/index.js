@@ -81,7 +81,9 @@
  *   schema.js         the column list and its optimistic lock
  *   drift.js          model-versus-Postgres, and the repair button
  *   rowDescriptor.js  the closed `?filters/?sort/?q` descriptor
- *   rows.js           the rows: read, write, import, export, delete
+ *   rowHandlers.js    the row handlers: a page, one row, a write, a delete
+ *   rowTransfer.js    the rows in bulk: the spreadsheet import, the CSV export
+ *   rows.js           the rows' route table: read, write, import, export, delete
  *   sharing.js        audience, grants, and who else uses this table
  *   source.js         a table that mirrors an external source
  *   answers.js        a form's answers table and its dashboard

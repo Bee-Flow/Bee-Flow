@@ -85,13 +85,11 @@ export default function ConnectorPicker({ connectors = [], onApply, onClose }) {
                 </p>
                 <div className="mt-4 flex items-center gap-2">
                     {!loading && (
-                        <button type="button" onClick={refresh} className="rounded-md border px-2.5 py-1.5 text-xs font-medium"
-                            style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>
+                        <button type="button" onClick={refresh} className="rounded-md border px-2.5 py-1.5 text-xs font-medium border-[var(--border-default)] text-[var(--text-primary)]">
                             {t('studio_apps_bi.picker.check_again', 'Check again')}
                         </button>
                     )}
-                    <button type="button" onClick={onClose} className="rounded-md px-2.5 py-1.5 text-xs"
-                        style={{ color: 'var(--text-secondary)' }}>
+                    <button type="button" onClick={onClose} className="rounded-md px-2.5 py-1.5 text-xs text-[var(--text-secondary)]">
                         {t('studio_apps_bi.picker.close', 'Close')}
                     </button>
                 </div>
@@ -115,12 +113,11 @@ export default function ConnectorPicker({ connectors = [], onApply, onClose }) {
                         type="button"
                         onClick={apply}
                         disabled={!dirty}
-                        className="rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-                        style={{ background: 'var(--accent-primary)' }}
+                        className="rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 bg-[var(--accent-primary)]"
                     >
                         {dirty ? t('studio_apps_bi.picker.apply', 'Apply') : t('studio_apps_bi.picker.nothing_to_change', 'Nothing to change')}
                     </button>
-                    <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="text-xs text-[var(--text-tertiary)]">
                         {dirty
                             ? [
                                 addedCount ? (addedCount === 1 ? t('studio_apps_bi.picker.added_one', '1 connector added') : t('studio_apps_bi.picker.added_many', '{n} connectors added', { n: addedCount })) : null,

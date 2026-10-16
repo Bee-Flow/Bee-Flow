@@ -1,5 +1,5 @@
 import { Check, ChevronDown, Wrench } from 'lucide-react';
-import { useRef, useState, type ComponentType } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
 import AnchoredMenuJs from '../../../../../shared/AnchoredMenu';
 import { humanizeToolName } from '../../displayHelpers';
@@ -16,9 +16,8 @@ import IntegrationLogoJs from '../../nodes/IntegrationLogo';
 export interface ActionOption { name: string; label?: string; description?: string }
 
 const humanize = humanizeToolName as (name: string) => string;
-// Untyped JS components; their props are checked there.
-const AnchoredMenu = AnchoredMenuJs as unknown as ComponentType<Record<string, unknown>>;
-const IntegrationLogo = IntegrationLogoJs as unknown as ComponentType<Record<string, unknown>>;
+const AnchoredMenu = AnchoredMenuJs;
+const IntegrationLogo = IntegrationLogoJs;
 
 export default function ActionCard({ tool, appLabel, action, siblings, onSwitch, problem = null }: {
     tool: string | null;

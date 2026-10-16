@@ -2,11 +2,12 @@ import {
     ArrowLeft, Bot, Box, ClipboardList, Clock, FolderOpen, Layers, List, Mail, MousePointerClick,
     PanelLeftClose, PanelLeftOpen, Redo2, Sparkles, Stethoscope, Undo2, Webhook,
 } from 'lucide-react';
-import type { ComponentType, ReactNode, RefObject } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import useTranslation from '../../../hooks/useTranslation';
 import { setStudioMenuHidden, useStudioMenuHidden } from '../../../hooks/useStudioChrome';
 import { useAutomationCounts } from '../../../api/queries/automation/meta';
 import { IconPicker as IconPickerJsx } from './flow/stepIcons';
+import type { OrgGroup } from '../../shared/VisibilityCapsule.types';
 import type { BuilderTab } from './useBuilderTabUrl';
 import LiveActions, { SavingPill, type SavingState } from './header/LiveActions';
 import LiveStatusPill from './header/LiveStatusPill';
@@ -19,8 +20,7 @@ import WorkflowMenu from './header/WorkflowMenu';
 
 type Fn = (() => void) | null | undefined;
 
-// A .jsx component: its prop types are inferred from defaults (`placeholder = null`).
-const IconPicker = IconPickerJsx as unknown as ComponentType<Record<string, unknown>>;
+const IconPicker = IconPickerJsx;
 
 export interface BuilderHeaderProps {
     title?: string;
@@ -66,7 +66,7 @@ export interface BuilderHeaderProps {
     /** 'step' = a reusable Step (kind='block'): Publish replaces Activate / Test. */
     mode?: 'automation' | 'step';
     step?: StepRow | null;
-    orgGroups?: unknown[];
+    orgGroups?: readonly OrgGroup[];
     onPublishStep?: Fn;
     onSetStepSharing?: ((s: StepSharing) => void) | null;
     onSetStepExpose?: ((on: boolean) => void) | null;

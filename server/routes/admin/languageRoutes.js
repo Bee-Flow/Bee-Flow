@@ -24,6 +24,7 @@ const { hasPermission } = require('../../auth/permissions');
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth, getUserPermissions } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
+const { HttpError } = require('../../core/http/errors');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 
@@ -297,7 +298,7 @@ router.post('/:code/email-templates/:templateId/test', requireAdmin, validate({ 
         ? await sendVerificationEmail({ ...common, verifyUrl: `${clientHost}/auth/verify-email/preview` })
         : await sendWelcomeEmail({ ...common, loginUrl: clientHost });
     if (result.success) return res.json({ success: true, messageId: result.messageId });
-    return res.status(500).json({ error: result.error || 'Failed to send test email' });
+    throw new HttpError(500, 'test_email_failed', result.error || 'Failed to send test email');
 });
 
 // POST /admin/languages/:code/ai-translate-emails — AI-translate the email
@@ -698,14 +699,9 @@ async function requireOrgAdmin(req, res, next) {
     if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
     // Platform admin can always manage
     if (req.session.isAdmin || req.session.user?.role === 'admin') return next();
-    try {
-        const perms = await getUserPermissions(req.session.user.id, req.session);
-        if (perms.includes('all') || perms.includes('org_admin') || perms.some(p => p.startsWith('admin_'))) {
-            return next();
-        }
-    } catch (err) {
-        log.error('[Languages] org admin check failed:', err.message);
-        return res.status(500).json({ error: 'Authorization check failed' });
+    const perms = await getUserPermissions(req.session.user.id, req.session);
+    if (perms.includes('all') || perms.includes('org_admin') || perms.some(p => p.startsWith('admin_'))) {
+        return next();
     }
     res.status(403).json({ error: 'Organisation admin access required' });
 }

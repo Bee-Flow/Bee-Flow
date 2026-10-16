@@ -12,6 +12,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 const automationStore = require('../../stores/automationStore');
 const configStore = require('../../stores/configStore');
@@ -149,19 +150,14 @@ router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, express.json
 // together: (1) OIDC JWT verification here, and (2) an emailAddress→userId
 // resolution so dispatch is scoped to the one owning subscriber.
 router.post('/events/gmail', eventsLimiter, express.json({ limit: '128kb' }), async (req, res) => {
-    try {
-        const data = req.body?.message?.data;
-        if (!data) return res.status(204).end();
-        let decoded = {};
-        try { decoded = JSON.parse(Buffer.from(data, 'base64').toString('utf8')); } catch {}
-        // userId intentionally null until an emailAddress→userId mapping + OIDC
-        // verification exist; dispatchEvent drops null-userId gmail events.
-        await triggerBus.dispatchEvent({ provider: 'gmail', event: 'mail.new', payload: decoded, userId: null });
-        return res.status(204).end();
-    } catch (e) {
-        log.error('[automation/events/gmail] error:', e.message);
-        res.status(500).end();
-    }
+    const data = req.body?.message?.data;
+    if (!data) return res.status(204).end();
+    let decoded = {};
+    try { decoded = JSON.parse(Buffer.from(data, 'base64').toString('utf8')); } catch {}
+    // userId intentionally null until an emailAddress→userId mapping + OIDC
+    // verification exist; dispatchEvent drops null-userId gmail events.
+    await triggerBus.dispatchEvent({ provider: 'gmail', event: 'mail.new', payload: decoded, userId: null });
+    return res.status(204).end();
 });
 
 // Nextcloud events forwarded by the connector (Phase 1 push pipeline).
@@ -291,67 +287,62 @@ router.post('/events/msgraph', eventsLimiter, express.json({ limit: '128kb' }), 
         res.set('Content-Type', 'text/plain');
         return res.status(200).send(String(req.query.validationToken));
     }
-    try {
-        const notifications = req.body?.value || [];
-        for (const n of notifications) {
-            // Validate clientState. Each notification carries the value the
-            // subscription was created with; we look up the matching row and
-            // reject mismatches so a leaked notificationUrl can't be used to
-            // forge events on behalf of another tenant.
-            //
-            // We can't do this for every event upfront (subscriptions are
-            // keyed by externalRef which only the provisioning step has), so
-            // we fan out per-notification.
-            try {
-                const sub = n.subscriptionId
-                    ? await automationStore.getSubscriptionByExternalRef('msgraph', n.subscriptionId).catch(() => null)
-                    : null;
-                if (sub && sub.clientState && sub.clientState !== n.clientState) {
-                    log.warn(`[automation/events/msgraph] clientState mismatch for sub ${sub.id} — dropping`);
-                    continue;
-                }
-                // The event name subscriptions are stored/matched under is the
-                // friendly `sub.eventType` (e.g. 'mail.new') set at provisioning
-                // time via MSGRAPH_RESOURCE_MAP — NOT derivable from the
-                // notification's own `resource` field, whose canonical path
-                // shape (e.g. "Users/{id}/Messages/{id}") doesn't match the
-                // subscription-time resource string. Without a resolved `sub`
-                // there is no subscription to match against anyway (dropped
-                // below by the user-scoped fail-closed check), so fall back to
-                // a diagnostic-only label.
-                await triggerBus.dispatchEvent({
-                    provider: 'msgraph',
-                    event: sub?.eventType || 'change',
-                    payload: n,
-                    userId: sub?.userId,
-                });
-                // A OneDrive drive subscription (a `file.*` automation trigger of
-                // this user) is also the only push a spreadsheet mirror in that
-                // drive gets (core/dataEngine/sources/spreadsheetFile/events).
-                // The notification names no file, so every mirror that user
-                // linked at OneDrive is probed. Best effort, behind the ack,
-                // guarded like the Nextcloud hooks; the 5 s pulse and the
-                // 1-minute ticker are the guarantees.
-                if (sub?.userId && /^file\.(changed|new)$/.test(String(sub.eventType || ''))) {
-                    setImmediate(() => {
-                        try {
-                            require('../../core/dataEngine/sources/spreadsheetFile/events')
-                                .onProviderHint({ provider: 'onedrive', userId: sub.userId })
-                                .catch(e => log.warn(`[automation/events/msgraph] spreadsheet mirror hint failed: ${e.message}`));
-                        } catch (e) {
-                            log.warn(`[automation/events/msgraph] spreadsheet mirror hint dispatch failed: ${e.message}`);
-                        }
-                    });
-                }
-            } catch (perItemErr) {
-                log.warn('[automation/events/msgraph] dispatch item error:', perItemErr.message);
+    const notifications = req.body?.value || [];
+    for (const n of notifications) {
+        // Validate clientState. Each notification carries the value the
+        // subscription was created with; we look up the matching row and
+        // reject mismatches so a leaked notificationUrl can't be used to
+        // forge events on behalf of another tenant.
+        //
+        // We can't do this for every event upfront (subscriptions are
+        // keyed by externalRef which only the provisioning step has), so
+        // we fan out per-notification.
+        try {
+            const sub = n.subscriptionId
+                ? await automationStore.getSubscriptionByExternalRef('msgraph', n.subscriptionId).catch(() => null)
+                : null;
+            if (sub && sub.clientState && sub.clientState !== n.clientState) {
+                log.warn(`[automation/events/msgraph] clientState mismatch for sub ${sub.id} — dropping`);
+                continue;
             }
+            // The event name subscriptions are stored/matched under is the
+            // friendly `sub.eventType` (e.g. 'mail.new') set at provisioning
+            // time via MSGRAPH_RESOURCE_MAP — NOT derivable from the
+            // notification's own `resource` field, whose canonical path
+            // shape (e.g. "Users/{id}/Messages/{id}") doesn't match the
+            // subscription-time resource string. Without a resolved `sub`
+            // there is no subscription to match against anyway (dropped
+            // below by the user-scoped fail-closed check), so fall back to
+            // a diagnostic-only label.
+            await triggerBus.dispatchEvent({
+                provider: 'msgraph',
+                event: sub?.eventType || 'change',
+                payload: n,
+                userId: sub?.userId,
+            });
+            // A OneDrive drive subscription (a `file.*` automation trigger of
+            // this user) is also the only push a spreadsheet mirror in that
+            // drive gets (core/dataEngine/sources/spreadsheetFile/events).
+            // The notification names no file, so every mirror that user
+            // linked at OneDrive is probed. Best effort, behind the ack,
+            // guarded like the Nextcloud hooks; the 5 s pulse and the
+            // 1-minute ticker are the guarantees.
+            if (sub?.userId && /^file\.(changed|new)$/.test(String(sub.eventType || ''))) {
+                setImmediate(() => {
+                    try {
+                        require('../../core/dataEngine/sources/spreadsheetFile/events')
+                            .onProviderHint({ provider: 'onedrive', userId: sub.userId })
+                            .catch(e => log.warn(`[automation/events/msgraph] spreadsheet mirror hint failed: ${e.message}`));
+                    } catch (e) {
+                        log.warn(`[automation/events/msgraph] spreadsheet mirror hint dispatch failed: ${e.message}`);
+                    }
+                });
+            }
+        } catch (perItemErr) {
+            log.warn('[automation/events/msgraph] dispatch item error:', perItemErr.message);
         }
-        return res.status(202).end();
-    } catch (e) {
-        log.error('[automation/events/msgraph] error:', e.message);
-        res.status(500).end();
     }
+    return res.status(202).end();
 });
 
 // GitHub webhook — signature in X-Hub-Signature-256.
@@ -369,21 +360,16 @@ const captureRawJson = (limit) => express.json({
     verify: (req, _res, buf) => { req.rawBody = buf; },
 });
 router.post('/events/github', eventsLimiter, captureRawJson('256kb'), async (req, res) => {
-    try {
-        const sig = req.get('X-Hub-Signature-256') || '';
-        const event = req.get('X-GitHub-Event') || 'unknown';
-        const secret = await configStore.getConfig('automation_github_webhook_secret');
-        if (!secret) return res.status(503).json({ error: 'GitHub webhooks not configured' });
-        const raw = Buffer.isBuffer(req.rawBody) ? req.rawBody : Buffer.from(JSON.stringify(req.body || {}), 'utf8');
-        const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(raw).digest('hex');
-        const ok = sig.length === expected.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
-        if (!ok) return res.status(401).json({ error: 'Bad signature' });
-        await triggerBus.dispatchEvent({ provider: 'github', event, payload: req.body || {} });
-        return res.status(202).end();
-    } catch (e) {
-        log.error('[automation/events/github] error:', e.message);
-        res.status(500).end();
-    }
+    const sig = req.get('X-Hub-Signature-256') || '';
+    const event = req.get('X-GitHub-Event') || 'unknown';
+    const secret = await configStore.getConfig('automation_github_webhook_secret');
+    if (!secret) throw new HttpError(503, 'github_webhooks_unconfigured', 'GitHub webhooks not configured');
+    const raw = Buffer.isBuffer(req.rawBody) ? req.rawBody : Buffer.from(JSON.stringify(req.body || {}), 'utf8');
+    const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(raw).digest('hex');
+    const ok = sig.length === expected.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+    if (!ok) return res.status(401).json({ error: 'Bad signature' });
+    await triggerBus.dispatchEvent({ provider: 'github', event, payload: req.body || {} });
+    return res.status(202).end();
 });
 
 module.exports = router;

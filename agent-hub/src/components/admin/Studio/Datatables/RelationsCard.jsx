@@ -72,29 +72,29 @@ export default function RelationsCard({ t, table, mirror, canEdit, onRefresh }) 
 
     return (
         <section className="p-4 space-y-3" style={CARD} aria-label={t('datatables.nc_relations_title', 'Relations')}>
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('datatables.nc_relations_title', 'Relations')}</h3>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('datatables.nc_relations_title', 'Relations')}</h3>
             {!relations.length && (
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-xs text-[var(--text-secondary)]">
                     {t('datatables.src_relations_empty', 'No relations yet. Link a second table from {source}, or another source, and match a column of each.', { source: sourceNameOf(table, source) })}
                 </p>
             )}
             <ul className="space-y-1.5">
                 {relations.map((r) => (
-                    <li key={r.fieldId} className="flex items-center gap-2 text-sm p-2.5 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                    <li key={r.fieldId} className="flex items-center gap-2 text-sm p-2.5 rounded-lg bg-[var(--bg-secondary)]">
                         {r.kind === 'nc'
                             ? <Lock className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
                             : <Link2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />}
-                        <span className="min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>
+                        <span className="min-w-0 truncate text-[var(--text-primary)]">
                             {fieldName(schema, r.fieldId)} → {siblingName(r.targetDatatableId)}
                         </span>
-                        <span className="ml-auto text-[11px] shrink-0" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="ml-auto text-[11px] shrink-0 text-[var(--text-tertiary)]">
                             {r.kind === 'nc'
                                 ? t('datatables.nc_relation_from_nc', 'from Nextcloud')
                                 : t('datatables.nc_relation_matched_on', 'matched on {local} = {target}', { local: fieldName(schema, r.localFieldId), target: fieldName(targetSchemas.get(r.targetDatatableId), r.targetFieldId) })}
                         </span>
                         {canEdit && r.kind === 'match' && (
                             <button type="button" disabled={busy} onClick={() => save(declared.filter(x => x.fieldId !== r.fieldId))}
-                                className="p-1 rounded shrink-0" aria-label={t('datatables.nc_relation_remove', 'Remove this relation')} style={{ color: 'var(--text-tertiary)' }}>
+                                className="p-1 rounded shrink-0 text-[var(--text-tertiary)]" aria-label={t('datatables.nc_relation_remove', 'Remove this relation')}>
                                 <X className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
                         )}
@@ -103,13 +103,13 @@ export default function RelationsCard({ t, table, mirror, canEdit, onRefresh }) 
             </ul>
             {canEdit && siblings.length > 0 && (
                 <div className="space-y-2">
-                    <span className="block text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{t('datatables.nc_relation_add', 'Add a relation')}</span>
+                    <span className="block text-xs font-medium text-[var(--text-primary)]">{t('datatables.nc_relation_add', 'Add a relation')}</span>
                     <div className="grid gap-2 items-center" style={{ gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr) minmax(0,1fr)' }}>
                         <select value={draft.localFieldId} onChange={(e) => setDraft({ ...draft, localFieldId: e.target.value })} className={SELECT} style={INPUT_STYLE} aria-label={t('datatables.nc_rel_column', 'Column')}>
                             <option value="">{t('datatables.nc_rel_column', 'Column')}</option>
                             {own.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                         </select>
-                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{t('datatables.nc_relation_matches', 'matches')}</span>
+                        <span className="text-xs text-[var(--text-secondary)]">{t('datatables.nc_relation_matches', 'matches')}</span>
                         <select value={draft.targetDatatableId} onChange={(e) => setDraft({ ...draft, targetDatatableId: e.target.value, targetFieldId: '' })} className={SELECT} style={INPUT_STYLE} aria-label={t('datatables.nc_rel_to', 'Other table')}>
                             <option value="">{t('datatables.nc_rel_to', 'Other table')}</option>
                             {siblings.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -120,7 +120,7 @@ export default function RelationsCard({ t, table, mirror, canEdit, onRefresh }) 
                         </select>
                     </div>
                     <button type="button" disabled={!complete || busy} onClick={() => save([...declared, draft])}
-                        className="text-xs inline-flex items-center gap-1.5 rounded disabled:opacity-50" style={{ color: 'var(--text-secondary)' }}>
+                        className="text-xs inline-flex items-center gap-1.5 rounded disabled:opacity-50 text-[var(--text-secondary)]">
                         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <Plus className="w-3.5 h-3.5" aria-hidden="true" />}
                         {t('datatables.nc_relation_use', 'Use this relation')}
                     </button>
@@ -130,7 +130,7 @@ export default function RelationsCard({ t, table, mirror, canEdit, onRefresh }) 
                 {error || (saved ? (
                     <>
                         {t('datatables.nc_relations_saved', 'Saved. The link column is filled in on the next refresh.')}{' '}
-                        <button type="button" onClick={onRefresh} className="underline" style={{ color: 'var(--text-primary)' }}>{t('datatables.nc_refresh_now', 'Refresh now')}</button>
+                        <button type="button" onClick={onRefresh} className="underline text-[var(--text-primary)]">{t('datatables.nc_refresh_now', 'Refresh now')}</button>
                     </>
                 ) : null)}
             </p>

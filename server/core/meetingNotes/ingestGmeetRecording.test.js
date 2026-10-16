@@ -1,7 +1,7 @@
 /**
  * ingestGmeetRecording tests — the Google Meet ingest entry point.
  *
- * Covers: dedup pre-check before any download, provider pinning + payload
+ * Covers: dedup pre-check before any download, no provider pin (follows the workspace engine) + payload
  * wiring into the shared core, video cleanup on success AND failure,
  * classified Drive errors propagating untouched, and the attendee-email →
  * connected-user sharedWith mapping.
@@ -155,7 +155,7 @@ function baseOpts(overrides = {}) {
     };
 }
 
-test('happy path: pins whisperx and wires source/sourceUri/meetMeetingCode into the core', async (t) => {
+test('happy path: leaves the provider to the workspace setting and wires source/sourceUri/meetMeetingCode into the core', async (t) => {
     t.after(cleanupTempFiles);
     resetFx();
     fx.participantNames = ['Sanne Jansen', 'Externe Gast'];
@@ -183,7 +183,7 @@ test('happy path: pins whisperx and wires source/sourceUri/meetMeetingCode into 
     // Core payload.
     assert.strictEqual(fx.ingestCalls.length, 1);
     const call = fx.ingestCalls[0];
-    assert.strictEqual(call.provider, 'whisperx');
+    assert.strictEqual(call.provider, undefined, 'no pin: the core follows the workspace engine');
     assert.strictEqual(call.source, 'gmeet');
     assert.strictEqual(call.sourceUri, 'gmeet://orgA/conferenceRecords/cr1');
     assert.strictEqual(call.titleHint, 'Weekly sync');

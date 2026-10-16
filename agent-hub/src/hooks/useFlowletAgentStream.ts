@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { readEventStream } from '../api/readEventStream';
 import { API_BASE, authFetch } from '../utils/helpers';
 
 /**
@@ -26,6 +27,15 @@ export interface LayerToolCall {
 
 /** An automation definition, applied by the caller — never read here. */
 export type AutomationDraft = Record<string, unknown>;
+
+/** The fields this hook reads off the layer agent's SSE events. */
+interface LayerAgentEventData {
+    layerKey?: string;
+    summary?: string;
+    outputFields?: unknown[];
+    definition?: AutomationDraft;
+    error?: string;
+}
 
 export type FlowletAgentMode = 'create' | 'refine';
 
@@ -107,44 +117,30 @@ export default function useFlowletAgentStream(): UseFlowletAgentStreamReturn {
                 setState(s => ({ ...s, running: false, error: errMsg }));
                 return { draft: null, layerKey: finalKey, error: errMsg };
             }
-            const reader = resp.body.getReader();
-            const decoder = new TextDecoder();
-            let buf = '';
-            let ev = 'message';
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                buf += decoder.decode(value, { stream: true });
-                const lines = buf.split('\n');
-                buf = lines.pop() ?? '';
-                for (const line of lines) {
-                    if (line.startsWith('event: ')) { ev = line.slice(7).trim(); continue; }
-                    if (!line.startsWith('data: ')) continue;
-                    let data; try { data = JSON.parse(line.slice(6)); } catch { continue; }
-                    switch (ev) {
-                        case 'layer_agent_start':
-                            setState(s => ({ ...s, activeKey: data.layerKey || s.activeKey }));
-                            break;
-                        case 'tool_call':
-                            setState(s => ({ ...s, toolCalls: [...s.toolCalls, data] }));
-                            break;
-                        case 'layer_agent_done':
-                            setState(s => ({ ...s, summary: data.summary || '', outputFields: data.outputFields || [], activeKey: data.layerKey || s.activeKey }));
-                            break;
-                        case 'draft':
-                            finalDraft = data.definition || finalDraft;
-                            setState(s => ({ ...s, draft: data.definition || s.draft }));
-                            break;
-                        case 'done':
-                            finalKey = data.layerKey || finalKey;
-                            break;
-                        case 'error':
-                            errMsg = data.error || 'Layer build failed';
-                            setState(s => ({ ...s, error: errMsg }));
-                            break;
-                        default:
-                            break;
-                    }
+            for await (const { event, data } of readEventStream<LayerAgentEventData>(resp, { signal: ac.signal })) {
+                switch (event) {
+                    case 'layer_agent_start':
+                        setState(s => ({ ...s, activeKey: data.layerKey || s.activeKey }));
+                        break;
+                    case 'tool_call':
+                        setState(s => ({ ...s, toolCalls: [...s.toolCalls, data as LayerToolCall] }));
+                        break;
+                    case 'layer_agent_done':
+                        setState(s => ({ ...s, summary: data.summary || '', outputFields: data.outputFields || [], activeKey: data.layerKey || s.activeKey }));
+                        break;
+                    case 'draft':
+                        finalDraft = data.definition || finalDraft;
+                        setState(s => ({ ...s, draft: data.definition || s.draft }));
+                        break;
+                    case 'done':
+                        finalKey = data.layerKey || finalKey;
+                        break;
+                    case 'error':
+                        errMsg = data.error || 'Layer build failed';
+                        setState(s => ({ ...s, error: errMsg }));
+                        break;
+                    default:
+                        break;
                 }
             }
         } catch (e) {

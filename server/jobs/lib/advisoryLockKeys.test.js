@@ -10,7 +10,7 @@
  * plus the lock holders outside it, and fails on a repeat.
  *
  * Module-private keys are NOT covered (they are not reachable without a
- * source-text test): the six in core/automationRunner/scheduler/ticks.js
+ * source-text test): the six in core/automationRunner/scheduler/passes.js
  * (0xBEEF105-0xBEEF107, 0xBEEF10E, 0xBEEF112, 0xBEEF113), and those of
  * usageOpenObservePush, opsMetricsPush, projectTaskDueNotifier,
  * monitoringRetention, memoryEmbeddingBackfill, isoEvidenceCollector,

@@ -13,24 +13,13 @@
 
 'use strict';
 
-const datatableStore = require('../../stores/datatableStore');
-const datatableDbStore = require('../../stores/datatableDbStore');
 const queryCompiler = require('../../core/dataEngine/queryCompiler');
-const accessFilter = require('../../core/dataEngine/accessFilter');
-const dataModel = require('../../core/dataEngine/dataModel/vocabulary');
-const sources = require('../../core/dataEngine/sources');
-const {
-    PG, ROWS_PAGE_MAX, EXPORT_MAX_ROWS, BULK_MAX_ROWS, BULK_CHUNK,
-    BULK_DELETE_MAX_IDS, MIRROR_BULK_MAX_ROWS,
-} = require('./engine');
-const { requireDatatableGrade, metaAndFilter, metaFor } = require('./grade');
-const { assertQuota, answerDatatableError } = require('./refusals');
-const { readListDescriptor } = require('./rowDescriptor');
-const { mirrorCtx, mirrorWrites } = require('./source');
+const { requireDatatableGrade } = require('./grade');
+const H = require('./rowHandlers');
+const T = require('./rowTransfer');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice, idText } = require('./schemas');
-const log = require('../../telemetry/log');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -102,110 +91,20 @@ const NOTHING = bodyOf({});
  */
 const ExportQuery = z.object({}).strict();
 
+/**
+ * The route table. Handler bodies live in rowHandlers.js (one row, a page, a
+ * selection) and rowTransfer.js (the bulk import and the CSV export).
+ */
 function register(router) {
-    router.get('/:id/rows', requireDatatableGrade('viewer'), validate({ query: ListQuery }), async (req, res) => {
-        try {
-            const { meta, filter } = await metaAndFilter(req, 'read');
-            const compiled = queryCompiler.compileRecordList(meta, {
-                ...readListDescriptor(meta, req.query),
-                // Clamped by the compiler's OWN rule. The route used to derive its
-                // own — `Math.min(Number(limit) || 50, MAX)` — which let `?limit=-5`
-                // through as -5: the SQL then ran at the compiler's default of 50
-                // and `rows.slice(0, -5)` returned 46 of them while reporting more.
-                limit: req.query.limit, maxLimit: ROWS_PAGE_MAX,
-                cursor: req.query.cursor ?? null, dialect: 'pg',
-            }, filter);
-            const out = await datatableDbStore.query(
-                req.datatableScopeKey, req.datatableScopeKey, compiled.sql, compiled.params);
-            // compileRecordList deliberately asks for limit+1 as a cursor probe.
-            // stepDataSource documents the bug where that extra row leaked out.
-            const limit = compiled.limit;
-            const all = out.rows || [];
-            const rows = all.slice(0, limit);
-            const hasMore = all.length > limit;
-            const last = rows[rows.length - 1];
-            res.json({
-                rows,
-                hasMore,
-                count: rows.length,
-                // The cursor the NEXT page is asked for with. It was accepted on the
-                // way in and never produced on the way out, so page 2 was
-                // unreachable through this API.
-                nextCursor: (hasMore && last)
-                    ? queryCompiler.encodeCursor(last[compiled.primaryField], last.id)
-                    : null,
-                // What "the 50 most recent of N" needs. row_count is arithmetic, so
-                // it is approximate between retention sweeps — the surface says so.
-                total: req.datatable.rowCount,
-            });
-            // Somebody is LOOKING at a mirror: refresh it behind the answer when
-            // the copy is older than its schedule (stale-while-serve). Guarded
-            // and debounced inside; never affects the response above.
-            if (sources.isSourceMirror(req.datatable)) {
-                sources.kickStale(req.datatable, { reason: 'view' });
-            }
-        } catch (e) {
-            if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] row read failed:', e.message);
-            res.status(500).json({ error: 'Could not read the rows' });
-        }
-    });
+    router.get('/:id/rows', requireDatatableGrade('viewer'), validate({ query: ListQuery }), H.listRows);
 
     /**
      * ONE row. The access filter is ANDed in, so a row the caller may not see
      * returns 0 rows and reads as 404 — the same rule the whole surface follows.
      */
-    router.get('/:id/rows/:rowId', requireDatatableGrade('viewer'), validate({ query: NO_QUERY }), async (req, res) => {
-        try {
-            const { meta, filter } = await metaAndFilter(req, 'read');
-            const { sql, params } = queryCompiler.compileGetById(meta, req.params.rowId, filter, PG);
-            const out = await datatableDbStore.query(
-                req.datatableScopeKey, req.datatableScopeKey, sql, params);
-            const row = (out.rows || [])[0];
-            if (!row) return res.status(404).json({ error: 'Not found' });
-            res.json({ row });
-        } catch (e) {
-            if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] row read failed:', e.message);
-            res.status(500).json({ error: 'Could not read the row' });
-        }
-    });
+    router.get('/:id/rows/:rowId', requireDatatableGrade('viewer'), validate({ query: NO_QUERY }), H.getRow);
 
-    router.post('/:id/rows', requireDatatableGrade('editor'), validate({ body: InsertBody, query: NO_QUERY }), async (req, res) => {
-        try {
-            const meta = await metaFor(req);
-            accessFilter.assertCanWrite(meta, req.datatableGrade, 'create');
-            // A locked reference table refuses before the quota is read: "the
-            // rows are the release's" is the answer, not "the table is full".
-            // Also covers a mirror, which never reaches compileInsert below.
-            queryCompiler.assertRowsWritable(meta);
-            await assertQuota(req, { addRows: 1 });
-            // A mirror's row goes to the source first; the copy is written from
-            // what the source answered (core/dataEngine/sources).
-            if (sources.isSourceMirror(req.datatable)) {
-                const r = await mirrorWrites().insertRow(mirrorCtx(req, meta), req.body.values);
-                return res.json({ ok: true, id: r.id });
-            }
-            const { sql, params, id } = queryCompiler.compileInsert(meta, req.body.values, {
-                createdBy: req.datatablePrincipal.userId,
-                // NULL on a personal table, and correct: `org_id` records which
-                // organisation the row belongs to, and a personal row belongs to
-                // none. Inventing one here would make the row look shared.
-                orgId: req.datatable.organizationId,
-                dialect: 'pg',
-            });
-            await datatableDbStore.exec(
-                req.datatableScopeKey, req.datatableScopeKey, sql, params);
-            await datatableStore.bumpAfterWrite(req.datatable.id, req.datatableScope, 1);
-            // The id compileInsert minted, so the caller can address the row it
-            // just added without re-reading the page to find it.
-            res.json({ ok: true, id });
-        } catch (e) {
-            if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] row write failed:', e.message);
-            res.status(500).json({ error: 'Could not add the row' });
-        }
-    });
+    router.post('/:id/rows', requireDatatableGrade('editor'), validate({ body: InsertBody, query: NO_QUERY }), H.insertRow);
 
     /**
      * EDIT a row.
@@ -221,58 +120,7 @@ function register(router) {
      * `row_conflict` when it is stale, and the two are told apart by re-reading the
      * row: "changed under you" and "gone / not yours" need different answers.
      */
-    router.put('/:id/rows/:rowId', requireDatatableGrade('editor'), validate({ body: UpdateBody, query: NO_QUERY }), async (req, res) => {
-        try {
-            const { meta, filter } = await metaAndFilter(req, 'update');
-            accessFilter.assertCanWrite(meta, req.datatableGrade, 'update');
-
-            const { values, expectedUpdatedAt } = req.body;
-
-            // Same three answers as below — 404, 409 row_conflict, {row} — with
-            // the source asked in between.
-            if (sources.isSourceMirror(req.datatable)) {
-                const r = await mirrorWrites().updateRow(mirrorCtx(req, meta), req.params.rowId, values, { expectedUpdatedAt });
-                if (!r.changes) {
-                    if (!r.row) return res.status(404).json({ error: 'Not found' });
-                    return res.status(409).json({
-                        error: 'Someone else changed this row while you had it open',
-                        code: 'row_conflict',
-                        row: r.row,
-                    });
-                }
-                return res.json({ row: r.row });
-            }
-
-            const upd = queryCompiler.compileUpdate(meta, req.params.rowId, values, filter,
-                { expectedUpdatedAt, dialect: 'pg' });
-            const out = await datatableDbStore.exec(
-                req.datatableScopeKey, req.datatableScopeKey, upd.sql, upd.params);
-
-            // Read it back either way: on success the caller needs the new
-            // updated_at for its NEXT edit, and on failure the row itself is the
-            // difference between "somebody else changed it" and "it is not there".
-            const probe = queryCompiler.compileGetById(meta, req.params.rowId, filter, PG);
-            const found = await datatableDbStore.query(
-                req.datatableScopeKey, req.datatableScopeKey, probe.sql, probe.params);
-            const row = (found.rows || [])[0] || null;
-
-            if (!out?.changes) {
-                if (!row) return res.status(404).json({ error: 'Not found' });
-                return res.status(409).json({
-                    error: 'Someone else changed this row while you had it open',
-                    code: 'row_conflict',
-                    row,
-                });
-            }
-            // data_version moves, row_count does not — an edit adds no rows.
-            await datatableStore.bumpAfterWrite(req.datatable.id, req.datatableScope, 0);
-            res.json({ row });
-        } catch (e) {
-            if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] row edit failed:', e.message);
-            res.status(500).json({ error: 'Could not save the row' });
-        }
-    });
+    router.put('/:id/rows/:rowId', requireDatatableGrade('editor'), validate({ body: UpdateBody, query: NO_QUERY }), H.updateRow);
 
     /**
      * BULK IMPORT — a spreadsheet, in one request.
@@ -287,128 +135,7 @@ function register(router) {
      * chunk, so a failure part-way leaves the chunk unapplied instead of half of
      * it, and row_count is bumped by what actually landed.
      */
-    router.post('/:id/rows/bulk', requireDatatableGrade('editor'), validate({ body: BulkBody, query: NO_QUERY }), async (req, res) => {
-        try {
-            const meta = await metaFor(req);
-            accessFilter.assertCanWrite(meta, req.datatableGrade, 'create');
-            // Refused whole, before the size cap and the quota (see the single insert).
-            queryCompiler.assertRowsWritable(meta);
-
-            const { rows } = req.body;
-            if (!rows.length) return res.json({ inserted: 0, errors: [] });
-            if (rows.length > BULK_MAX_ROWS) {
-                return res.status(413).json({
-                    error: `An import carries at most ${BULK_MAX_ROWS} rows — split the file`,
-                    code: 'too_many_rows', limit: BULK_MAX_ROWS, used: rows.length,
-                });
-            }
-
-            // The whole file is compiled first. A row that cannot be compiled is
-            // reported with its line and simply not written; nothing is written at
-            // all until every row has been looked at, so the error list is complete
-            // rather than "everything up to the first bad line".
-            const statements = [];
-            const errors = [];
-            rows.forEach((values, i) => {
-                try {
-                    if (!values || typeof values !== 'object' || Array.isArray(values)) {
-                        throw new Error('a row is a map of column → value');
-                    }
-                    statements.push(queryCompiler.compileInsert(meta, values, {
-                        createdBy: req.datatablePrincipal.userId,
-                        orgId: req.datatable.organizationId,
-                        dialect: 'pg',
-                    }));
-                } catch (e) {
-                    // A Solution stage's reference table refuses EVERY row
-                    // (queryCompiler RowsLockedError): that is the request's
-                    // answer, a 409 managed_part, not a bad line per row.
-                    if (e && e.code === 'managed_part') throw e;
-                    // +1 because a person counts the first row as row 1, and a
-                    // header line is the caller's to account for.
-                    errors.push({ line: i + 1, error: e.message });
-                }
-            });
-            if (!statements.length) return res.status(422).json({ inserted: 0, errors });
-
-            await assertQuota(req, { addRows: statements.length });
-
-            // A mirror's rows go to the source, capped, and a row the source
-            // refuses is reported with its line while the rest go on — the same
-            // per-row contract as a local import, at the source's pace. The
-            // engine's batch form does it in ONE source write where the source
-            // has one (a file rewritten once), row by row where it has not.
-            if (sources.isSourceMirror(req.datatable)) {
-                if (rows.length > MIRROR_BULK_MAX_ROWS) {
-                    return res.status(413).json({
-                        error: `A linked table takes at most ${MIRROR_BULK_MAX_ROWS} rows per import — split the file`,
-                        code: 'too_many_rows', limit: MIRROR_BULK_MAX_ROWS, used: rows.length,
-                    });
-                }
-                const wt = sources.writeThrough(req.datatable);
-                const ctx = mirrorCtx(req, meta);
-                const pending = rows.map((values, i) => ({ line: i + 1, values })).filter(p => !errors.some(e => e.line === p.line));
-                let done = 0;
-                if (typeof wt.insertRows === 'function') {
-                    const out = await wt.insertRows(ctx, pending.map(p => p.values), { collect: true });
-                    done = out.inserted.length;
-                    for (const { index, error: e } of out.errors) {
-                        errors.push({ line: pending[index].line, error: e.message, ...(typeof e.code === 'string' ? { code: e.code } : {}) });
-                    }
-                } else {
-                    for (const p of pending) {
-                        try {
-                            await wt.insertRow(ctx, p.values);
-                            done += 1;
-                        } catch (e) {
-                            errors.push({ line: p.line, error: e.message, ...(typeof e.code === 'string' ? { code: e.code } : {}) });
-                            // The source unreachable: stop rather than report N copies of it.
-                            if (e && e.errorClass === 'datatable_source_unavailable') break;
-                        }
-                    }
-                }
-                return res.status(errors.length && !done ? 422 : 200).json({ inserted: done, errors });
-            }
-
-            let inserted = 0;
-            try {
-                for (let i = 0; i < statements.length; i += BULK_CHUNK) {
-                    const chunk = statements.slice(i, i + BULK_CHUNK);
-                    await datatableDbStore.batch(req.datatableScopeKey, req.datatableScopeKey,
-                        chunk.map(c => ({ sql: c.sql, params: c.params })));
-                    inserted += chunk.length;
-                    // Bumped per chunk, not once at the end: a later chunk failing
-                    // must not leave the counter denying rows that are really there.
-                    await datatableStore.bumpAfterWrite(req.datatable.id, req.datatableScope, chunk.length);
-                }
-            } catch (e) {
-                // A chunk is one transaction, so nothing from it landed. Report what
-                // did, and why the rest did not.
-                return res.status(422).json({
-                    inserted,
-                    errors: [...errors, { line: inserted + errors.length + 1, error: e.message }],
-                    code: e.code || 'import_failed',
-                });
-            }
-            res.json({ inserted, errors });
-        } catch (e) {
-            if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] bulk import failed:', e.message);
-            res.status(500).json({ error: 'Could not import the rows' });
-        }
-    });
-
-    /** One CSV cell. */
-    function csvCell(v) {
-        if (v === null || v === undefined) return '';
-        let text = typeof v === 'object' ? JSON.stringify(v) : String(v);
-        // A leading =, +, - or @ makes Excel and Sheets treat the cell as a
-        // FORMULA when the export is opened, which is how a datatable column turns
-        // into code running on a colleague's machine. Prefixed with a quote, it is
-        // text again.
-        if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
-        return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-    }
+    router.post('/:id/rows/bulk', requireDatatableGrade('editor'), validate({ body: BulkBody, query: NO_QUERY }), T.bulkImport);
 
     /**
      * CSV EXPORT — the whole table, in ONE response.
@@ -420,78 +147,9 @@ function register(router) {
      * already see on screen.
      */
     router.get('/:id/rows.csv', requireDatatableGrade('viewer'), validate({ query: ExportQuery }),
-        require('../../compliance/dataPortability/stampExport')('datatables'), async (req, res) => {
-        try {
-            const { meta, filter } = await metaAndFilter(req, 'read');
-            const columns = [
-                ...dataModel.SYSTEM_COLUMNS,
-                ...(meta.fields || []).map(f => f && f.key).filter(Boolean),
-            ];
-            const safeName = String(req.datatable.key || 'datatable').replace(/[^a-z0-9_-]/gi, '') || 'datatable';
-            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-            res.setHeader('Content-Disposition', `attachment; filename="${safeName}.csv"`);
-            // A CSV Excel opens as UTF-8 rather than as the local code page.
-            res.write('﻿' + columns.map(csvCell).join(',') + '\n');
+        require('../../compliance/dataPortability/stampExport')('datatables'), T.exportCsv);
 
-            let cursor = null;
-            let written = 0;
-            for (;;) {
-                const compiled = queryCompiler.compileRecordList(meta, {
-                    limit: ROWS_PAGE_MAX, maxLimit: ROWS_PAGE_MAX, cursor, dialect: 'pg',
-                }, filter);
-                const out = await datatableDbStore.query(
-                    req.datatableScopeKey, req.datatableScopeKey, compiled.sql, compiled.params);
-                const all = out.rows || [];
-                const page = all.slice(0, compiled.limit);
-                for (const row of page) res.write(columns.map(c => csvCell(row[c])).join(',') + '\n');
-                written += page.length;
-                const last = page[page.length - 1];
-                if (all.length <= compiled.limit || !last || written >= EXPORT_MAX_ROWS) break;
-                cursor = queryCompiler.encodeCursor(last[compiled.primaryField], last.id);
-                // A cursor that cannot be built would restart the same page for
-                // ever. Stop instead of looping.
-                if (!cursor) break;
-            }
-            res.end();
-        } catch (e) {
-            // Headers may already be out — a half-written CSV cannot become a JSON
-            // error, so the only honest end is to stop the stream.
-            if (res.headersSent) { try { res.end(); } catch { /* client gone */ } return; }
-            if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] export failed:', e.message);
-            res.status(500).json({ error: 'Could not export the rows' });
-        }
-    });
-
-    router.delete('/:id/rows/:rowId', requireDatatableGrade('editor'), validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
-        try {
-            const { meta, filter } = await metaAndFilter(req, 'delete');
-            accessFilter.assertCanWrite(meta, req.datatableGrade, 'delete');
-            if (sources.isSourceMirror(req.datatable)) {
-                const r = await mirrorWrites().deleteRow(mirrorCtx(req, meta), req.params.rowId);
-                if (!r.changes) return res.status(404).json({ error: 'Not found' });
-                // A row-number mirror renumbers every row below the one that went;
-                // the client reloads on this flag instead of trusting its list.
-                return res.json({ ok: true, ...(r.renumbered ? { renumbered: true } : {}) });
-            }
-            const { sql, params } = queryCompiler.compileDelete(meta, req.params.rowId, filter, PG);
-            const out = await datatableDbStore.exec(
-                req.datatableScopeKey, req.datatableScopeKey, sql, params);
-            // The access filter is ANDed into the statement, so "nothing changed"
-            // covers both a row that never existed and one this caller may not see —
-            // 404 either way, and no counter move. Decrementing unconditionally is
-            // what let N deletes of nothing walk row_count down to 0 on a full
-            // table: GREATEST(0, …) hides the underflow and the quota then passes
-            // forever.
-            if (!out?.changes) return res.status(404).json({ error: 'Not found' });
-            await datatableStore.bumpAfterWrite(req.datatable.id, req.datatableScope, -1);
-            res.json({ ok: true });
-        } catch (e) {
-            if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] row delete failed:', e.message);
-            res.status(500).json({ error: 'Could not delete the row' });
-        }
-    });
+    router.delete('/:id/rows/:rowId', requireDatatableGrade('editor'), validate({ body: NOTHING, query: NO_QUERY }), H.deleteRow);
 
     /**
      * POST /:id/rows/bulk-delete { ids } — a selection, deleted in ONE transaction.
@@ -507,53 +165,8 @@ function register(router) {
      * a set of guesses about the current page; "none of them applied" is a result,
      * not a missing resource.
      */
-    router.post('/:id/rows/bulk-delete', requireDatatableGrade('editor'), validate({ body: BulkDeleteBody, query: NO_QUERY }), async (req, res) => {
-        try {
-            const { meta, filter } = await metaAndFilter(req, 'delete');
-            accessFilter.assertCanWrite(meta, req.datatableGrade, 'delete');
-
-            const ids = [...new Set(req.body.ids)];
-            if (!ids.length) return res.json({ deleted: 0, requested: 0 });
-            if (ids.length > BULK_DELETE_MAX_IDS) {
-                return res.status(413).json({
-                    error: `At most ${BULK_DELETE_MAX_IDS} rows can be deleted at once`,
-                    code: 'too_many_ids', limit: BULK_DELETE_MAX_IDS, used: ids.length,
-                });
-            }
-
-            if (sources.isSourceMirror(req.datatable)) {
-                const wt = sources.writeThrough(req.datatable);
-                const ctx = mirrorCtx(req, meta);
-                let gone = 0;
-                let renumbered = false;
-                if (typeof wt.deleteRows === 'function') {
-                    const r = await wt.deleteRows(ctx, ids);
-                    gone = r.changed;
-                    renumbered = !!r.renumbered;
-                } else {
-                    for (const id of ids) {
-                        const r = await wt.deleteRow(ctx, id);
-                        gone += r.changes;
-                        renumbered = renumbered || !!r.renumbered;
-                    }
-                }
-                return res.json({ deleted: gone, requested: ids.length, ...(renumbered ? { renumbered: true } : {}) });
-            }
-
-            const statements = ids.map(id => queryCompiler.compileDelete(meta, id, filter, PG));
-            const results = await datatableDbStore.batch(req.datatableScopeKey, req.datatableScopeKey,
-                statements.map(c => ({ sql: c.sql, params: c.params })));
-            const deleted = results.reduce((n, r) => n + (Number(r?.changes) || 0), 0);
-            // Same rule as the single delete: the counter moves by what really
-            // went, never by what was asked, or N deletes of nothing walk it to 0.
-            if (deleted > 0) await datatableStore.bumpAfterWrite(req.datatable.id, req.datatableScope, -deleted);
-            res.json({ deleted, requested: ids.length });
-        } catch (e) {
-            if (answerDatatableError(res, e, req.datatableScope)) return;
-            log.error('[datatables] bulk delete failed:', e.message);
-            res.status(500).json({ error: 'Could not delete the rows' });
-        }
-    });
+    router.post('/:id/rows/bulk-delete', requireDatatableGrade('editor'), validate({ body: BulkDeleteBody, query: NO_QUERY }), H.bulkDelete);
 }
 
 module.exports = { register };
+

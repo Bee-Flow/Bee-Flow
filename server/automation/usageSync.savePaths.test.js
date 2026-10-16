@@ -148,7 +148,8 @@ const SAVE_PATHS = {
      * purge is deleting the whole knowledge base.
      */
     kb: {
-        sync: { call: /reconcileUsage\(/, files: ['routes/knowledgeBases/sources.js'] },
+        // Removing a source (sources.js) and adding one (sourceCreate.js).
+        sync: { call: /reconcileUsage\(/, files: ['routes/knowledgeBases/sources.js', 'routes/knowledgeBases/sourceCreate.js'] },
         purge: { call: /purgeUsageFor\(\s*'kb'/, files: ['routes/knowledgeBases/detail.js'] },
     },
 };

@@ -18,7 +18,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import type {
     CustomDataType, Method, Sentence, SentenceOrigin, Span, Summary, WordsSpec,
-} from '../../components/admin/security/guardrails/orgShield/ownData/ownDataModel';
+} from '../../utils/ownDataModel';
 import { API_BASE, authFetch } from '../../utils/helpers';
 
 export type CustomDataErrorCode =

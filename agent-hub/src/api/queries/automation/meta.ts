@@ -10,6 +10,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { errorBody } from '../../../hooks/useAutomationApi';
+import { errorCode } from '../../../utils/caughtError';
 
 /** GET /:id/counts, normalised. A count the server did not send is null, never 0. */
 interface AutomationCounts {
@@ -98,6 +99,6 @@ const AI_ACT_REFUSALS = new Set(['ai_act_check_required', 'ai_act_prohibited']);
 
 /** True for a refusal that sends the person to Settings → AI Act. */
 export function isAiActRefusal(e: unknown): boolean {
-    const code = !!e && typeof e === 'object' ? (e as { code?: unknown }).code : null;
+    const code = !!e && typeof e === 'object' ? errorCode(e) : null;
     return typeof code === 'string' && AI_ACT_REFUSALS.has(code);
 }

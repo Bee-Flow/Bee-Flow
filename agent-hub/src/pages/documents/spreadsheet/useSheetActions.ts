@@ -1,12 +1,13 @@
-// What the page does besides editing cells: rename, download as CSV, leave
+// What the page does besides editing cells: rename, download as CSV or Excel, leave
 // (after the queued cells were sent).
 
 import { useState } from 'react';
 import useTranslation from '../../../hooks/useTranslation';
 import type { StudioDocument } from '../documentQueries';
 import { getDocument, updateDocument } from '../documentsApi';
-import { downloadSheetCsv } from './sheetApi';
+import { downloadSheetCsv, downloadSheetXlsx } from './sheetApi';
 import type { SheetState } from './useSheet';
+import { messageOf } from '../../../utils/caughtError';
 
 export default function useSheetActions({ initial, sheet, onBack, onRenamed }: {
     initial: StudioDocument; sheet: SheetState; onBack?: () => void; onRenamed?: (doc: StudioDocument) => void;
@@ -26,17 +27,22 @@ export default function useSheetActions({ initial, sheet, onBack, onRenamed }: {
             const saved = await updateDocument(initial.id, { name: trimmed, expectedVersionId: latest.versionId }) as StudioDocument;
             setName(saved.name || trimmed);
             onRenamed?.(saved);
-        } catch (e) { setNotice((e as Error).message || t('spreadsheet.rename_failed', 'Could not rename the spreadsheet.')); }
+        } catch (e) { setNotice(messageOf(e, t('spreadsheet.rename_failed', 'Could not rename the spreadsheet.'))); }
     };
-    const download = async () => {
+    const download = async (format: 'csv' | 'xlsx' = 'csv') => {
         setDownloading(true);
         setNotice(null);
         try {
             await sheet.flush();
-            await (sheet.activeTab
+            if (format === 'xlsx') await downloadSheetXlsx(initial.id, name);
+            else await (sheet.activeTab
                 ? downloadSheetCsv(initial.id, name, sheet.activeTab)
                 : downloadSheetCsv(initial.id, name));
-        } catch (e) { setNotice((e as Error).message || t('spreadsheet.download_failed', 'Could not download the CSV.')); } finally { setDownloading(false); }
+        } catch (e) {
+            setNotice(messageOf(e, format === 'xlsx'
+                ? t('spreadsheet.download_xlsx_failed', 'Could not download the Excel file.')
+                : t('spreadsheet.download_failed', 'Could not download the CSV.')));
+        } finally { setDownloading(false); }
     };
     const leave = async () => {
         await sheet.flush();

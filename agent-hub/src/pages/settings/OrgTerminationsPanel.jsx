@@ -279,7 +279,7 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true })
                                 <div key={r.id}>
                                     <div onClick={() => setExpanded(isOpen ? null : r.id)} style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '10px 8px', borderTop: '1px solid var(--border-subtle)', fontSize: 12, color: 'var(--text-primary)', alignItems: 'center', cursor: 'pointer' }}>
                                         <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{fmtTime(r.timestamp)}</span>
-                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.agent_name || r.agent_id || <span style={{ color: 'var(--text-muted)' }}>—</span>}</span>
+                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.agent_name || r.agent_id || <span className="text-[var(--text-muted)]">—</span>}</span>
                                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>{shortModel(r.model)}</span>
                                         <span style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
                                             <TypeBadge type={r.termination_type} t={t} />

@@ -1,7 +1,7 @@
 /**
  * Pinned to the web and the server: the Customer Portal predicate runs beside
  * agent-hub's own (differential), its status list matches the server's gate
- * (textual), and the currency glyphs match orgInfoShared.jsx.
+ * (textual), and the currency glyphs match orgInfoShared.tsx.
  */
 
 import fs from 'node:fs';
@@ -14,7 +14,7 @@ import { currencySymbol, hasPaidBillingRelationship, PORTAL_ELIGIBLE_PAYMENT_STA
 const web = loadWebModule<{
     hasPaidBillingRelationship: (sub: unknown) => boolean;
     PORTAL_ELIGIBLE_PAYMENT_STATUSES: string[];
-}>('utils/billing.js');
+}>('utils/billing.ts');
 
 describe('billing lockstep', () => {
     it('asks the web’s question about the Customer Portal', () => {
@@ -39,8 +39,8 @@ describe('billing lockstep', () => {
         expect(portal).toContain(`const PORTAL_ELIGIBLE_PAYMENT_STATUSES = [${list}];`);
     });
 
-    it('writes currencies with orgInfoShared.jsx’s glyphs', () => {
-        const shared = fs.readFileSync(`${AGENT_HUB_SRC}/components/admin/org/orgInfo/orgInfoShared.jsx`, 'utf8');
+    it('writes currencies with orgInfoShared.tsx’s glyphs', () => {
+        const shared = fs.readFileSync(`${AGENT_HUB_SRC}/components/admin/org/orgInfo/orgInfoShared.tsx`, 'utf8');
         expect(shared).toContain("{ EUR: '€', USD: '$', GBP: '£' }[String(c || 'EUR').toUpperCase()] || (c || '€')");
         expect([currencySymbol('EUR'), currencySymbol('USD'), currencySymbol('GBP')]).toEqual(['€', '$', '£']);
     });

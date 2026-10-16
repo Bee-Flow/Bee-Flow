@@ -29,7 +29,7 @@ const { lazyDeps } = require('./lazyDeps');
 
 /** Collaborators; tests swap them through init(). */
 const { deps, init } = lazyDeps({
-    graphRequest: () => require('../../integrations/msGraphClient').graphRequest,
+    graphRequest: () => require('../integrations/integrationClients').integrationClient('msGraph').graphRequest,
 });
 
 /** ffmpeg audio extraction, shared with the Meet path (loaded on first use). */

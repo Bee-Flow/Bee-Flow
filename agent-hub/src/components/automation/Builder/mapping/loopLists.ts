@@ -4,11 +4,11 @@
  */
 import { getPath } from '@shared/expr/path.mjs';
 import { groupListSources, mergeElementSamples } from './deepFields';
-import type { UpstreamGroup } from './deepFields';
 import { rebaseForEach } from './deepenForEach';
 import type { ForEachParent } from './deepenForEach';
 import { collectArrayPaths } from './upstream';
 import { lastPathKey } from './upstream/loops';
+import type { Group } from './upstream/upstream.types';
 
 export interface LoopListChoice { key: string; path: string; sample: unknown }
 
@@ -19,12 +19,11 @@ export interface LoopListChoice { key: string; path: string; sample: unknown }
  * that does not exist yet when the list is read, so a forEach over it always
  * ran zero times.
  */
-export function loopListChoices(groups: UpstreamGroup[] | null | undefined, previewSample: unknown): LoopListChoice[] {
+export function loopListChoices(groups: Group[] | null | undefined, previewSample: unknown): LoopListChoice[] {
     const usable = (groups || []).filter(g => !g.ownItem);
     const out: LoopListChoice[] = [];
     const seen = new Set<string>();
-    // A JS module: its parameters type from their defaults (`previewSample = null`).
-    const collect = collectArrayPaths as unknown as (groups: unknown, previewSample: unknown) => LoopListChoice[];
+    const collect = collectArrayPaths;
     for (const f of collect(usable, previewSample)) {
         if (seen.has(f.path)) continue;
         seen.add(f.path);

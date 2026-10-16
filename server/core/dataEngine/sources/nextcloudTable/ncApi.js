@@ -3,8 +3,9 @@
  * `fetch`.
  *
  * Thin on purpose: the prefix, the header set and the row-data wire shape are
- * the agent tools' own (integrations/nextcloudTablesTools.js), so the two
- * cannot drift into talking to two different APIs. What is NOT reused is the
+ * the agent tools' own (integrations/nextcloudTablesTools.js, injected as the
+ * `nextcloudTables` integration client), so the two cannot drift into talking
+ * to two different APIs. What is NOT reused is the
  * tools' `handle()`: it folds every failure into `{ error: <sentence> }` for a
  * model to read, and drops the HTTP status on the way. A mirror needs the
  * status — 403 and 404 and 422 are three different things to do next — so
@@ -17,11 +18,14 @@
 
 'use strict';
 
-const { TABLES_API, HEADERS, toWireData, readJsonSafe, describeColumn, mapTable } = require('../../../../integrations/nextcloudTablesTools');
+const { integrationClient } = require('../../../integrations/integrationClients');
 const { fromNcResponse } = require('./errors');
 
 // The API's own page ceiling (the agent tool caps at the same number).
 const PAGE = 500;
+
+/** The agent tools' wire helpers (TABLES_API, HEADERS, toWireData, ...). */
+const tablesWire = () => integrationClient('nextcloudTables');
 
 function enc(v) { return encodeURIComponent(String(v)); }
 
@@ -40,6 +44,7 @@ function forLinker(auth) {
     if (!auth || !auth.baseUrl || typeof auth.fetch !== 'function') {
         throw new Error('ncApi.forLinker needs a resolved Nextcloud auth ({baseUrl, fetch})');
     }
+    const { TABLES_API, HEADERS, toWireData, readJsonSafe, describeColumn } = tablesWire();
     const api = `${auth.baseUrl}${TABLES_API}`;
 
     async function call(method, path, { body, what, ncTableId } = {}) {
@@ -102,4 +107,4 @@ function forLinker(auth) {
     };
 }
 
-module.exports = { forLinker, mapTable, PAGE };
+module.exports = { forLinker, mapTable: (t) => tablesWire().mapTable(t), PAGE };

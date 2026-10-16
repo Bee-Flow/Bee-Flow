@@ -85,7 +85,7 @@ function attentionMeta(item, t) {
 function Head({ children, right }) {
     return (
         <div className="flex items-center gap-2 px-0.5">
-            <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{children}</span>
+            <span className="text-[13px] font-semibold text-[var(--text-primary)]">{children}</span>
             {right}
         </div>
     );
@@ -137,7 +137,7 @@ export default function MobileHomeOverview({ data, navigate, onTab = undefined }
                             style={{ borderColor: 'var(--border-default)' }}>
                             <ScoreRing score={score} size={36} tone={tone} label={t(s.labelKey, s.labelFallback)} testId={`mobile-fw-ring-${s.id}`} />
                             <span className="flex-1 min-w-0">
-                                <span className="block text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                                <span className="block text-[13px] font-semibold truncate text-[var(--text-primary)]">
                                     {t(s.labelKey, s.labelFallback)}
                                 </span>
                                 <span className="block text-[11px] truncate" style={{ color: ink }}>
@@ -173,8 +173,8 @@ export default function MobileHomeOverview({ data, navigate, onTab = undefined }
                             className={`${MOBILE_ROW_CLASS} border-b last:border-b-0`} style={{ borderColor: 'var(--border-default)' }}>
                             <Glyph size={16} aria-hidden="true" className="flex-shrink-0" style={{ color: TONES[tone].ink }} />
                             <span className="flex-1 min-w-0">
-                                <span className="block text-[13px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>{item.title}</span>
-                                {meta && <span className="block text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>{meta}</span>}
+                                <span className="block text-[13px] font-medium truncate text-[var(--text-primary)]">{item.title}</span>
+                                {meta && <span className="block text-[11px] truncate text-[var(--text-tertiary)]">{meta}</span>}
                             </span>
                             <ChevronRight size={16} aria-hidden="true" className="flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
                         </button>
@@ -199,7 +199,7 @@ export default function MobileHomeOverview({ data, navigate, onTab = undefined }
 
             {/* ── Deadlines ── */}
             <Head right={runningDeadlines ? (
-                <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-[11px] text-[var(--text-tertiary)]">
                     {t('compliance.mob_deadlines_running', '{n} running', { n: runningDeadlines.length })}
                 </span>
             ) : null}>
@@ -224,8 +224,8 @@ export default function MobileHomeOverview({ data, navigate, onTab = undefined }
                             onClick={() => { if (target?.section) navigate(target.section, target.id || undefined, target.tab); }}
                             className={`${MOBILE_ROW_CLASS} border-b last:border-b-0`} style={{ borderColor: 'var(--border-default)' }}>
                             <span className="flex-1 min-w-0">
-                                <span className="block text-[13px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>{title}</span>
-                                {meta && <span className="block text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>{meta}</span>}
+                                <span className="block text-[13px] font-medium truncate text-[var(--text-primary)]">{title}</span>
+                                {meta && <span className="block text-[11px] truncate text-[var(--text-tertiary)]">{meta}</span>}
                             </span>
                             <DeadlineClock variant="row" dueAt={d.due_at} startedAt={d.started_at} state={d.state} pct={d.pct}
                                 className="w-[104px] flex-shrink-0" testId={`mobile-deadline-clock-${d.id}`} />

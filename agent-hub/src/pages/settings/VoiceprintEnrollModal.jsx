@@ -149,13 +149,13 @@ export default function VoiceprintEnrollModal({ open, onClose, limits, onEnrolle
                     </div>
 
                     <div className="w-full max-w-sm">
-                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border-subtle)' }}>
+                        <div className="h-1.5 rounded-full overflow-hidden bg-[var(--border-subtle)]">
                             <div
                                 className="h-full transition-[width] duration-300"
                                 style={{ width: `${progress}%`, background: canStop ? 'var(--accent-primary)' : 'var(--warning)' }}
                             />
                         </div>
-                        <div className="flex items-center justify-between mt-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        <div className="flex items-center justify-between mt-1.5 text-[11px] text-[var(--text-muted)]">
                             <span className="font-mono tabular-nums">
                                 {String(Math.floor(elapsed / 60))}:{String(elapsed % 60).padStart(2, '0')} / {String(Math.floor(TARGET / 60))}:{String(TARGET % 60).padStart(2, '0')}
                             </span>
@@ -171,7 +171,7 @@ export default function VoiceprintEnrollModal({ open, onClose, limits, onEnrolle
                 </div>
 
                 {!recording && !uploading && (
-                    <label className="flex items-start gap-3 text-[12px] cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
+                    <label className="flex items-start gap-3 text-[12px] cursor-pointer text-[var(--text-secondary)]">
                         <input
                             type="checkbox"
                             checked={consent}
@@ -180,7 +180,7 @@ export default function VoiceprintEnrollModal({ open, onClose, limits, onEnrolle
                         />
                         <span>
                             {t('voiceprint.consent_label', 'I agree that a voice profile of my voice is created and stored.')}{' '}
-                            <span style={{ color: 'var(--text-muted)' }}>
+                            <span className="text-[var(--text-muted)]">
                                 {t('voiceprint.consent_detail', 'This is biometric data. It is used only to recognise me in my own organisation’s meeting notes, the recording itself is not kept, and I can delete my voice profile at any time.')}
                             </span>
                         </span>
@@ -201,8 +201,7 @@ export default function VoiceprintEnrollModal({ open, onClose, limits, onEnrolle
                         type="button"
                         onClick={close}
                         disabled={uploading}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] border disabled:opacity-40"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[13px] border disabled:opacity-40 border-[var(--border-default)] text-[var(--text-secondary)]"
                     >
                         <X className="w-4 h-4" />
                         {recording ? t('voiceprint.discard', 'Discard') : t('voiceprint.cancel', 'Cancel')}

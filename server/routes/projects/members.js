@@ -70,94 +70,79 @@ function makeMembersRouter(deps) {
     // while the project allows it (editorsCanInvite), only as viewer or editor, and
     // never over someone already on the project (that is a role change: owner only).
     router.post('/:id/share', memberMutationLimiter, requireRole('editor'), validate({ body: S.ShareBody }), async (req, res) => {
-        try {
-            const userId = getUserId(req);
-            const { sharedWithType, sharedWithId, permission } = req.body;
-            if (!sharedWithType || !sharedWithId) return res.status(400).json({ error: 'sharedWithType and sharedWithId required' });
-            if (!['user', 'group'].includes(sharedWithType)) return res.status(400).json({ error: 'sharedWithType must be user or group' });
+        const userId = getUserId(req);
+        const { sharedWithType, sharedWithId, permission } = req.body;
+        if (!sharedWithType || !sharedWithId) return res.status(400).json({ error: 'sharedWithType and sharedWithId required' });
+        if (!['user', 'group'].includes(sharedWithType)) return res.status(400).json({ error: 'sharedWithType must be user or group' });
 
-            const role = projectStore.normalizePermission(permission || 'viewer');
-            if (!['viewer', 'editor'].includes(role)) return res.status(400).json({ error: 'permission must be viewer or editor' });
+        const role = projectStore.normalizePermission(permission || 'viewer');
+        if (!['viewer', 'editor'].includes(role)) return res.status(400).json({ error: 'permission must be viewer or editor' });
 
-            // Cross-tenant guard: an owner could otherwise share their project
-            // with a foreign-org group/user ID and leak project content + KB IDs
-            // to members of another tenant. Match the target's org against the
-            // project's org before persisting.
-            // The guards used to be conditional on both org ids being truthy, which
-            // meant they never ran for an org-less project — and projects.organization_id
-            // DEFAULTS TO '' (self-host, consumer and admin-created projects all land
-            // there). An owner could then share with any user or group id in any tenant.
-            // Compare normalised values instead: '' is a real bucket, and only an
-            // equally org-less counterpart matches it.
-            const project = await projectStore.getProject(req.params.id);
-            if (!project) throw notFound();
-            if (req.projectRole !== 'owner') {
-                if (!project.editorsCanInvite) {
-                    throw new HttpError(403, 'invite_not_allowed', 'The owner has not allowed editors to invite people.');
-                }
-                const existing = (await projectStore.getProjectShares(req.params.id))
-                    .some(s => s.sharedWithType === sharedWithType && s.sharedWithId === sharedWithId);
-                if (existing) throw new HttpError(403, 'owner_only_role_change', 'Only the owner can change the role of someone already on the project.');
+        // Cross-tenant guard: an owner could otherwise share their project
+        // with a foreign-org group/user ID and leak project content + KB IDs
+        // to members of another tenant. Match the target's org against the
+        // project's org before persisting.
+        // The guards used to be conditional on both org ids being truthy, which
+        // meant they never ran for an org-less project — and projects.organization_id
+        // DEFAULTS TO '' (self-host, consumer and admin-created projects all land
+        // there). An owner could then share with any user or group id in any tenant.
+        // Compare normalised values instead: '' is a real bucket, and only an
+        // equally org-less counterpart matches it.
+        const project = await projectStore.getProject(req.params.id);
+        if (!project) throw notFound();
+        if (req.projectRole !== 'owner') {
+            if (!project.editorsCanInvite) {
+                throw new HttpError(403, 'invite_not_allowed', 'The owner has not allowed editors to invite people.');
             }
-            const projectOrg = await projectOrgOf(project);
-            if (sharedWithType === 'group') {
-                const targetGroup = await userStore.getGroup(sharedWithId);
-                if (!targetGroup || targetGroup.id !== sharedWithId) return res.status(400).json({ error: 'Unknown group' });
-                if ((targetGroup.organizationId || '') !== projectOrg) {
-                    return res.status(400).json({ error: 'Group does not belong to this project\'s organisation' });
-                }
-            } else if (sharedWithType === 'user') {
-                const targetUser = await userStore.getUser(sharedWithId);
-                if (!targetUser) return res.status(400).json({ error: 'Unknown user' });
-                if (!await belongsToProjectOrg(targetUser.id, projectOrg)) {
-                    return res.status(400).json({ error: 'User does not belong to this project\'s organisation' });
-                }
-            }
-
-            const shareId = await projectStore.shareProject(req.params.id, sharedWithType, sharedWithId, role, userId);
-            await recordProjectChange(req.params.id, userId, 'member_added', {
-                targetType: sharedWithType, targetId: sharedWithId, role,
-            });
-            signalProjectChanged(project, 'members');
-            await tellCollab('share', (n) => n.added({ project, actorId: userId, sharedWithType, sharedWithId, role }));
-            const shares = await projectStore.getProjectShares(req.params.id);
-            res.json({ shareId, shares });
-        } catch (err) {
-            if (err instanceof HttpError) throw err;
-            log.error('[Projects] Share error:', err.message);
-            // Raw err.message can carry SQL text, column names and constraint names.
-            // The console.error above keeps the detail for operators.
-            res.status(500).json({ error: 'Request failed' });
+            const existing = (await projectStore.getProjectShares(req.params.id))
+                .some(s => s.sharedWithType === sharedWithType && s.sharedWithId === sharedWithId);
+            if (existing) throw new HttpError(403, 'owner_only_role_change', 'Only the owner can change the role of someone already on the project.');
         }
+        const projectOrg = await projectOrgOf(project);
+        if (sharedWithType === 'group') {
+            const targetGroup = await userStore.getGroup(sharedWithId);
+            if (!targetGroup || targetGroup.id !== sharedWithId) return res.status(400).json({ error: 'Unknown group' });
+            if ((targetGroup.organizationId || '') !== projectOrg) {
+                return res.status(400).json({ error: 'Group does not belong to this project\'s organisation' });
+            }
+        } else if (sharedWithType === 'user') {
+            const targetUser = await userStore.getUser(sharedWithId);
+            if (!targetUser) return res.status(400).json({ error: 'Unknown user' });
+            if (!await belongsToProjectOrg(targetUser.id, projectOrg)) {
+                return res.status(400).json({ error: 'User does not belong to this project\'s organisation' });
+            }
+        }
+
+        const shareId = await projectStore.shareProject(req.params.id, sharedWithType, sharedWithId, role, userId);
+        await recordProjectChange(req.params.id, userId, 'member_added', {
+            targetType: sharedWithType, targetId: sharedWithId, role,
+        });
+        signalProjectChanged(project, 'members');
+        await tellCollab('share', (n) => n.added({ project, actorId: userId, sharedWithType, sharedWithId, role }));
+        const shares = await projectStore.getProjectShares(req.params.id);
+        res.json({ shareId, shares });
     });
 
     // DELETE /:id/share/:shareId — remove share (owner only)
     router.delete('/:id/share/:shareId', memberMutationLimiter, requireRole('owner'), async (req, res) => {
-        try {
-            const userId = getUserId(req);
-            const share = await projectStore.getShareById(req.params.shareId);
-            // Guard against IDOR: confirm the share actually belongs to this project,
-            // otherwise an owner of project A could delete shares from project B.
-            if (!share || share.projectId !== req.params.id) {
-                return res.status(404).json({ error: 'Member not found' });
-            }
-            const ok = await projectStore.unshareProject(req.params.shareId);
-            await recordProjectChange(req.params.id, userId, 'member_removed', {
-                targetType: share.sharedWithType, targetId: share.sharedWithId,
-            });
-            const projectNow = await projectStore.getProject(req.params.id);
-            if (ok) signalProjectChanged(projectNow, 'members');
-            if (ok && projectNow && share.sharedWithType === 'user') {
-                await tellCollab('removal', (n) => n.removed({ project: projectNow, actorId: userId, userId: share.sharedWithId }));
-            }
-            const shares = await projectStore.getProjectShares(req.params.id);
-            res.json({ success: ok, shares });
-        } catch (err) {
-            log.error('[Projects] Unshare error:', err.message);
-            // Raw err.message can carry SQL text, column names and constraint names.
-            // The console.error above keeps the detail for operators.
-            res.status(500).json({ error: 'Request failed' });
+        const userId = getUserId(req);
+        const share = await projectStore.getShareById(req.params.shareId);
+        // Guard against IDOR: confirm the share actually belongs to this project,
+        // otherwise an owner of project A could delete shares from project B.
+        if (!share || share.projectId !== req.params.id) {
+            return res.status(404).json({ error: 'Member not found' });
         }
+        const ok = await projectStore.unshareProject(req.params.shareId);
+        await recordProjectChange(req.params.id, userId, 'member_removed', {
+            targetType: share.sharedWithType, targetId: share.sharedWithId,
+        });
+        const projectNow = await projectStore.getProject(req.params.id);
+        if (ok) signalProjectChanged(projectNow, 'members');
+        if (ok && projectNow && share.sharedWithType === 'user') {
+            await tellCollab('removal', (n) => n.removed({ project: projectNow, actorId: userId, userId: share.sharedWithId }));
+        }
+        const shares = await projectStore.getProjectShares(req.params.id);
+        res.json({ success: ok, shares });
     });
 
     // ── Members API ──────────────────────────────────────────
@@ -232,34 +217,27 @@ function makeMembersRouter(deps) {
 
     // PUT /:id/members/:memberId — change role (owner only)
     router.put('/:id/members/:memberId', memberMutationLimiter, requireRole('owner'), validate({ body: S.MemberRoleBody }), async (req, res) => {
-        try {
-            const userId = getUserId(req);
-            const { role } = req.body;
-            const normalized = projectStore.normalizePermission(role);
-            if (!['viewer', 'editor'].includes(normalized)) return res.status(400).json({ error: 'role must be viewer or editor' });
+        const userId = getUserId(req);
+        const { role } = req.body;
+        const normalized = projectStore.normalizePermission(role);
+        if (!['viewer', 'editor'].includes(normalized)) return res.status(400).json({ error: 'role must be viewer or editor' });
 
-            const before = await projectStore.getShareById(req.params.memberId);
-            if (!before || before.projectId !== req.params.id) return res.status(404).json({ error: 'Member not found' });
+        const before = await projectStore.getShareById(req.params.memberId);
+        if (!before || before.projectId !== req.params.id) return res.status(404).json({ error: 'Member not found' });
 
-            const ok = await projectStore.updateMemberRole(req.params.memberId, normalized);
-            if (!ok) return res.status(404).json({ error: 'Member not found' });
+        const ok = await projectStore.updateMemberRole(req.params.memberId, normalized);
+        if (!ok) return res.status(404).json({ error: 'Member not found' });
 
-            await recordProjectChange(req.params.id, userId, 'member_role_changed', {
-                targetType: before.sharedWithType, targetId: before.sharedWithId,
-                from: before.permission, to: normalized,
-            });
-            const projectNow = await projectStore.getProject(req.params.id);
-            signalProjectChanged(projectNow, 'members');
-            if (projectNow && before.sharedWithType === 'user') {
-                await tellCollab('role change', (n) => n.roleChanged({ project: projectNow, actorId: userId, userId: before.sharedWithId, from: before.permission, to: normalized }));
-            }
-            res.json({ success: true });
-        } catch (err) {
-            log.error('[Projects] Update member error:', err.message);
-            // Raw err.message can carry SQL text, column names and constraint names.
-            // The console.error above keeps the detail for operators.
-            res.status(500).json({ error: 'Request failed' });
+        await recordProjectChange(req.params.id, userId, 'member_role_changed', {
+            targetType: before.sharedWithType, targetId: before.sharedWithId,
+            from: before.permission, to: normalized,
+        });
+        const projectNow = await projectStore.getProject(req.params.id);
+        signalProjectChanged(projectNow, 'members');
+        if (projectNow && before.sharedWithType === 'user') {
+            await tellCollab('role change', (n) => n.roleChanged({ project: projectNow, actorId: userId, userId: before.sharedWithId, from: before.permission, to: normalized }));
         }
+        res.json({ success: true });
     });
 
     // POST /:id/transfer-owner — hand the project to another member. The owner chooses what they stay as
@@ -308,49 +286,41 @@ function makeMembersRouter(deps) {
 
     // DELETE /:id/members/:memberId — owner removes OR member self-leaves
     router.delete('/:id/members/:memberId', memberMutationLimiter, async (req, res) => {
-        try {
-            const userId = getUserId(req);
-            if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+        const userId = getUserId(req);
+        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
-            const project = await projectStore.getProject(req.params.id);
-            if (!project) return res.status(404).json({ error: 'Not found' });
-            const share = await projectStore.getShareById(req.params.memberId);
-            if (!share || share.projectId !== req.params.id) return res.status(404).json({ error: 'Member not found' });
+        const project = await projectStore.getProject(req.params.id);
+        if (!project) return res.status(404).json({ error: 'Not found' });
+        const share = await projectStore.getShareById(req.params.memberId);
+        if (!share || share.projectId !== req.params.id) return res.status(404).json({ error: 'Member not found' });
 
-            const isOwner = project.ownerId === userId;
-            const isSelf = share.sharedWithType === 'user' && share.sharedWithId === userId;
-            if (!isOwner && !isSelf) return res.status(403).json({ error: 'Forbidden' });
-            // The owner cannot walk away from their own project: hand it over first.
-            if (isOwner && isSelf) {
-                throw new HttpError(409, 'transfer_first', 'Transfer the project to someone else before leaving it.');
-            }
-
-            const ok = await projectStore.unshareProject(req.params.memberId);
-            await recordProjectChange(req.params.id, userId, 'member_removed', {
-                targetType: share.sharedWithType, targetId: share.sharedWithId,
-                selfLeave: isSelf && !isOwner,
-            });
-            if (ok) signalProjectChanged(project, 'members');
-            if (ok && share.sharedWithType === 'user') {
-                await tellCollab(isSelf ? 'leave' : 'removal', (n) => (isSelf
-                    ? n.left({ project, userId })
-                    : n.removed({ project, actorId: userId, userId: share.sharedWithId })));
-                // Someone who left holds no tasks here any more; best-effort, the removal stands.
-                try { await require('../../stores/projectMemberColorStore').clearFor(req.params.id, share.sharedWithId); } catch (err) {
-                    log.warn('[Projects] could not clear a removed member\'s colour:', err.message);
-                }
-                try { await require('../../stores/projectTaskStore').unassignUser(req.params.id, share.sharedWithId); } catch (err) {
-                    log.warn('[Projects] could not unassign a removed member from tasks:', err.message);
-                }
-            }
-            res.json({ success: ok });
-        } catch (err) {
-            if (err instanceof HttpError) throw err;
-            log.error('[Projects] Remove member error:', err.message);
-            // Raw err.message can carry SQL text, column names and constraint names.
-            // The console.error above keeps the detail for operators.
-            res.status(500).json({ error: 'Request failed' });
+        const isOwner = project.ownerId === userId;
+        const isSelf = share.sharedWithType === 'user' && share.sharedWithId === userId;
+        if (!isOwner && !isSelf) return res.status(403).json({ error: 'Forbidden' });
+        // The owner cannot walk away from their own project: hand it over first.
+        if (isOwner && isSelf) {
+            throw new HttpError(409, 'transfer_first', 'Transfer the project to someone else before leaving it.');
         }
+
+        const ok = await projectStore.unshareProject(req.params.memberId);
+        await recordProjectChange(req.params.id, userId, 'member_removed', {
+            targetType: share.sharedWithType, targetId: share.sharedWithId,
+            selfLeave: isSelf && !isOwner,
+        });
+        if (ok) signalProjectChanged(project, 'members');
+        if (ok && share.sharedWithType === 'user') {
+            await tellCollab(isSelf ? 'leave' : 'removal', (n) => (isSelf
+                ? n.left({ project, userId })
+                : n.removed({ project, actorId: userId, userId: share.sharedWithId })));
+            // Someone who left holds no tasks here any more; best-effort, the removal stands.
+            try { await require('../../stores/projectMemberColorStore').clearFor(req.params.id, share.sharedWithId); } catch (err) {
+                log.warn('[Projects] could not clear a removed member\'s colour:', err.message);
+            }
+            try { await require('../../stores/projectTaskStore').unassignUser(req.params.id, share.sharedWithId); } catch (err) {
+                log.warn('[Projects] could not unassign a removed member from tasks:', err.message);
+            }
+        }
+        res.json({ success: ok });
     });
 
     // GET /:id/avatars/:userId — the picture an owner or member uploaded, as an image (viewer+). Only for a person

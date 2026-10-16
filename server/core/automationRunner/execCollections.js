@@ -4,7 +4,7 @@
  * resolution and "unresolved list" skip stub the list-mode steps build on.
  */
 
-const { evaluate, flattenRows, flattenSentenceParts, normalizeFlattenRoute, defaultParents } = require('../../automation/expr');
+const { evaluate, flattenRows, flattenSentenceParts, normalizeFlattenRoute, defaultParents } = require('./expr');
 const { COLLECTION_OP_MAX_ITEMS } = require('./shared');
 const { parseTopicExpr, prepareTopics } = require('./topicHost');
 const { createRuleMissCounter } = require('./ruleMisses');

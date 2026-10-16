@@ -21,6 +21,7 @@ const { deactivateCore, editedPinRefusal, capturedPinWarnings } = require('../..
 const automationStore = require('../../stores/automationStore');
 const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
+const { HttpError } = require('../../core/http/errors');
 const cron = require('../../automation/cron');
 const { validateDefinition } = require('../../automation/validate');
 const { topicClassifierFor } = require('../../core/classify/classifierClient');
@@ -96,7 +97,6 @@ async function appRefOwnerGate(definition, actorUserId) {
     return appRefOwnerVerdict({ app, actorUserId });
 }
 
-
 /**
  * The automations wired to one app-event provider (M2).
  *
@@ -125,13 +125,11 @@ function appEventTriggersOf(definition) {
     return all.filter(t => t && t.kind === 'app_event' && t.appEvent?.provider);
 }
 
-
 // ── What a caller may send ──────────────────────────────────────────
 //
 // Every schema is `.strict()`: a key this router does not read is a client
 // bug, and answering 200 to it means the person watches a setting they typed
 // fail to stick with nothing on screen to explain it.
-
 
 const PROVIDER_TEXT = 'triggerProvider is the id of a trigger source.';
 const EVENT_TEXT = 'triggerEvent is the id of one of that provider\'s events.';
@@ -231,7 +229,7 @@ router.get('/', validate({ query: ListQuery }), async (req, res) => {
         // The registry itself is unavailable. Refusing is the only honest
         // answer: an unfiltered list here is the exact failure above.
         log.warn('[automation list] trigger-source registry unavailable:', e.message);
-        return res.status(503).json({ error: 'Trigger sources are unavailable' });
+        throw new HttpError(503, 'trigger_sources_unavailable', 'Trigger sources are unavailable');
     }
     if (!known) return res.status(400).json({ error: `Unknown trigger provider "${triggerProvider}"` });
     if (triggerEvent !== undefined && !(known.events || []).some(ev => ev.id === triggerEvent)) {
@@ -332,7 +330,6 @@ router.post('/', validate({ body: CreateAutomationBody }), async (req, res) => {
 registerFolderRoutes(router);
 registerFormRoutes(router);
 registerTemplateAndImportRoutes(router);
-
 
 // The caller's trash (handoff 5). A literal, so it sits above GET /:id.
 router.get('/_trash', (req, res) => trashHandlers.listTrash(req, res));
@@ -445,7 +442,7 @@ router.get('/:id/usage', async (req, res) => {
         if (e?.expose === true && Number(e?.status) >= 400 && Number(e?.status) < 500) throw e;
         // Regel 1: zeggen dat het niet kon, niet doen alsof er niets is.
         log.warn('[automation usage] read failed:', e.message);
-        res.status(500).json({ error: 'usage_unavailable' });
+        throw new HttpError(500, 'usage_unavailable', 'usage_unavailable');
     }
 });
 
@@ -725,7 +722,6 @@ router.post('/:id/deactivate', async (req, res) => {
     res.json({ automation: projectForViewer(u, access) });
 });
 
-
 /**
  * Did this PUT actually CONFIGURE a schedule, as opposed to merely carrying a
  * schedule trigger nobody has set up yet?
@@ -746,6 +742,5 @@ function scheduleWasConfigured(body, updates) {
     if (body?.triggerType === 'schedule') return true;
     return updates.definition?.trigger?.schedule !== undefined;
 }
-
 
 module.exports = router;

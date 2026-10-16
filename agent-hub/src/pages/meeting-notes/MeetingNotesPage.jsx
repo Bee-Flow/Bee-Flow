@@ -167,7 +167,7 @@ function MeetingNotesInner({ user, onBack, initialMeetingId = null, onNavigate =
         <span className="flex items-center gap-2 min-w-0">
             <span className="truncate">{t('meetings.title', 'Meeting notes')}</span>
             {!loading && (
-                <span className="text-xs font-normal tabular-nums" style={{ color: 'var(--text-tertiary)' }} data-testid="meetings-count">{items.length}</span>
+                <span className="text-xs font-normal tabular-nums text-[var(--text-tertiary)]" data-testid="meetings-count">{items.length}</span>
             )}
         </span>
     );
@@ -218,15 +218,15 @@ function MeetingNotesInner({ user, onBack, initialMeetingId = null, onNavigate =
     // own way back (MeetingHeader's back arrow).
     if (isMobile) {
         return (
-            <div className="h-full flex flex-col relative" style={{ background: 'var(--bg-primary)' }}>
+            <div className="h-full flex flex-col relative bg-[var(--bg-primary)]">
                 {notice}
-                <div className="flex items-center gap-2 h-12 px-3 border-b flex-shrink-0" style={{ borderColor: 'var(--border-default)' }}>
+                <div className="flex items-center gap-2 h-12 px-3 border-b flex-shrink-0 border-[var(--border-default)]">
                     {onBack && (
-                        <button type="button" onClick={onBack} aria-label={t('studio.header.back', 'Back')} className="grid place-items-center w-8 h-8 rounded-lg" style={{ color: 'var(--text-secondary)' }}>
+                        <button type="button" onClick={onBack} aria-label={t('studio.header.back', 'Back')} className="grid place-items-center w-8 h-8 rounded-lg text-[var(--text-secondary)]">
                             <ArrowLeft size={16} aria-hidden="true" />
                         </button>
                     )}
-                    <span className="text-sm font-semibold flex-1 min-w-0" style={{ color: 'var(--text-primary)' }}>{railHead}</span>
+                    <span className="text-sm font-semibold flex-1 min-w-0 text-[var(--text-primary)]">{railHead}</span>
                     {recordButton}
                 </div>
                 {!selectedId ? (
@@ -239,7 +239,7 @@ function MeetingNotesInner({ user, onBack, initialMeetingId = null, onNavigate =
     }
 
     return (
-        <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
+        <div className="h-full flex flex-col bg-[var(--bg-primary)]">
             {notice}
             <div className="flex-1 min-h-0">
                 <StudioShell

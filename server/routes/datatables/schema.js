@@ -24,7 +24,6 @@ const { quota, answerDatatableError, confirmedBreaking, breakingColumnUsage } = 
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { bodyOf, flag, CONFIRM_TEXT } = require('./schemas');
-const log = require('../../telemetry/log');
 
 // ── What a save may carry ───────────────────────────────────────────
 //
@@ -56,14 +55,9 @@ const SchemaQuery = z.object({ confirmBreaking: flag(CONFIRM_TEXT) }).strict();
 
 function register(router) {
     router.get('/:id/schema', requireDatatableGrade('viewer'), async (req, res) => {
-        try {
-            const meta = await datatableStore.getTableMeta(req.datatableScope, req.datatable.id);
-            const { modelVersion } = await datatableStore.getModel(req.datatableScope);
-            res.json({ fields: meta?.fields || [], modelVersion });
-        } catch (e) {
-            log.error('[datatables] schema read failed:', e.message);
-            res.status(500).json({ error: 'Could not load the columns' });
-        }
+        const meta = await datatableStore.getTableMeta(req.datatableScope, req.datatable.id);
+        const { modelVersion } = await datatableStore.getModel(req.datatableScope);
+        res.json({ fields: meta?.fields || [], modelVersion });
     });
 
     router.put('/:id/schema',
@@ -187,8 +181,7 @@ function register(router) {
                 res.json({ fields: norm.fields, modelVersion: saved.modelVersion });
             } catch (e) {
                 if (answerDatatableError(res, e, req.datatableScope)) return;
-                log.error('[datatables] schema write failed:', e.message);
-                res.status(500).json({ error: 'Could not save the columns' });
+                throw e;
             }
         });
 }

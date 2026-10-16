@@ -460,6 +460,8 @@ test('een losse share die niet herschreven kan worden is een 500, geen stille be
         const body = await res.json();
         assert.strictEqual(body.columnGate, undefined,
             'het antwoord mag geen smallere stand beweren dan er geserveerd wordt');
+        assert.strictEqual(body.code, 'links_not_narrowed');
+        assert.match(body.error, /Column choice saved/);
     }));
 });
 
@@ -508,6 +510,7 @@ test('een ONLEESBARE canonieke share publiceert niet — geen tweede levende lin
             'er wordt geen tweede link aangemaakt naast de oude, die anders met het OUDE wachtwoord blijft leven');
         const body = await res.json();
         assert.strictEqual(body.rawToken, undefined, 'en er gaat geen nieuw token terug');
+        assert.strictEqual(body.code, 'public_link_unreadable');
     }));
 });
 

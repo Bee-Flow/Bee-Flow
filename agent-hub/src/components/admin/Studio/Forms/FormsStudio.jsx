@@ -188,8 +188,7 @@ function CopyLinkButton({ form, t, onError }) {
         <button
             type="button"
             onClick={copy}
-            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium border transition-colors hover:bg-[var(--bg-tertiary)]"
-            style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium border transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-secondary)]"
             data-testid="form-copy-link"
         >
             {copied ? <Check className="w-3 h-3" style={{ color: 'var(--success)' }} /> : <Link2 className="w-3 h-3" />}
@@ -224,8 +223,7 @@ function FormRow({ form, onNavigate, onOpen, onError }) {
 
     return (
         <li
-            className="rounded-xl border p-3.5"
-            style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-card)' }}
+            className="rounded-xl border p-3.5 border-[var(--border-subtle)] bg-[var(--bg-card)]"
             data-testid="form-row"
         >
             <div className="flex items-start gap-2.5">
@@ -241,36 +239,35 @@ function FormRow({ form, onNavigate, onOpen, onError }) {
                             <button
                                 type="button"
                                 onClick={() => onOpen && onOpen(form.automationId, null)}
-                                className="text-sm font-semibold truncate text-left hover:underline underline-offset-2"
-                                style={{ color: 'var(--text-primary)' }}
+                                className="text-sm font-semibold truncate text-left hover:underline underline-offset-2 text-[var(--text-primary)]"
                                 aria-label={t('forms.studio.open_named', 'Open {title}', { title: form?.title || t('forms.studio.untitled', 'Untitled form') })}
                                 data-testid="form-open"
                             >
                                 {form?.title || t('forms.studio.untitled', 'Untitled form')}
                             </button>
                         ) : (
-                            <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                            <span className="text-sm font-semibold truncate text-[var(--text-primary)]">
                                 {form?.title || t('forms.studio.untitled', 'Untitled form')}
                             </span>
                         )}
                         <StatusPill form={form} t={t} />
                         {answers?.collecting && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full border shrink-0" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-subtle)' }} data-testid="form-collects">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full border shrink-0 text-[var(--text-tertiary)] border-[var(--border-subtle)]" data-testid="form-collects">
                                 {t('forms.studio.collects_chip', 'collects answers')}
                             </span>
                         )}
                         {mine && form?.audience && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full border shrink-0" style={{ color: 'var(--text-tertiary)', borderColor: 'var(--border-subtle)' }} data-testid="form-audience-chip">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full border shrink-0 text-[var(--text-tertiary)] border-[var(--border-subtle)]" data-testid="form-audience-chip">
                                 {audienceChip(t, form.audience)}
                             </span>
                         )}
                     </div>
                     {form?.description ? (
-                        <div className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                        <div className="text-xs mt-0.5 line-clamp-2 text-[var(--text-secondary)]">
                             {form.description}
                         </div>
                     ) : null}
-                    <div className="text-[11px] mt-1" style={{ color: 'var(--text-tertiary)' }} data-testid="form-meta">
+                    <div className="text-[11px] mt-1 text-[var(--text-tertiary)]" data-testid="form-meta">
                         {/* Absent, not zero, when the row carries no number —
                             the same rule the rail's counts follow. */}
                         {submissions === null
@@ -285,8 +282,7 @@ function FormRow({ form, onNavigate, onOpen, onError }) {
                             <button
                                 type="button"
                                 onClick={() => onOpen && onOpen(form.automationId, 'answers')}
-                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium border transition-colors hover:bg-[var(--bg-tertiary)]"
-                                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium border transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-secondary)]"
                                 data-testid="form-answers"
                             >
                                 <BarChart3 className="w-3 h-3" aria-hidden="true" />
@@ -299,8 +295,7 @@ function FormRow({ form, onNavigate, onOpen, onError }) {
                             <button
                                 type="button"
                                 onClick={() => onNavigate && onNavigate(`studio/automations/${form.automationId}`)}
-                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium border transition-colors hover:bg-[var(--bg-tertiary)]"
-                                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium border transition-colors hover:bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-secondary)]"
                                 data-testid="form-open-automation"
                             >
                                 <Workflow className="w-3 h-3" />
@@ -311,7 +306,7 @@ function FormRow({ form, onNavigate, onOpen, onError }) {
                                /api/automation/:id is scoped to its owner, so the
                                door does not exist for this caller and saying so
                                beats a control that 403s. */
-                            <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }} data-testid="form-not-mine">
+                            <span className="text-[11px] text-[var(--text-tertiary)]" data-testid="form-not-mine">
                                 {t('forms.studio.not_yours', 'Built by a colleague — only they can open the automation behind it')}
                             </span>
                         )}
@@ -335,8 +330,7 @@ function FormsBody({ t, forms, loading, isEmpty, onNavigate, onOpen, onError }) 
     if (loading && !loaded) {
         return (
             <div
-                className="flex items-center justify-center py-12"
-                style={{ color: 'var(--text-tertiary)' }}
+                className="flex items-center justify-center py-12 text-[var(--text-tertiary)]"
                 role="status"
                 aria-label={t('forms.studio.loading', 'Loading forms…')}
                 data-testid="forms-loading"
@@ -379,16 +373,16 @@ function FormsHeader({ t, count, loading, creating, onRefresh, onCreate }) {
     return (
         <div className="flex items-start gap-3">
             <div className="flex-1 min-w-0">
-                <h2 className="text-base font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                <h2 className="text-base font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                     <ClipboardList className="w-4 h-4" style={{ color: kindColorVar('form') }} aria-hidden="true" />
                     {t('sidebar.forms', 'Forms')}
                     {typeof count === 'number' && (
-                        <span className="text-xs font-normal" style={{ color: 'var(--text-tertiary)' }} data-testid="forms-count">
+                        <span className="text-xs font-normal text-[var(--text-tertiary)]" data-testid="forms-count">
                             {nOf(t, 'forms.studio.count', count, '{count} form', '{count} forms')}
                         </span>
                     )}
                 </h2>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm mt-1 text-[var(--text-secondary)]">
                     {t('forms.studio.intro', 'A form is the front of an automation: whoever fills it in starts it. A published form has an address anyone in your organisation can open once signed in, so it belongs to the organisation rather than to one person.')}
                 </p>
             </div>
@@ -403,8 +397,7 @@ function FormsHeader({ t, count, loading, creating, onRefresh, onCreate }) {
                 disabled={loading}
                 title={t('forms.studio.refresh', 'Refresh the list')}
                 aria-label={t('forms.studio.refresh', 'Refresh the list')}
-                className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
-                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                className="shrink-0 inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-subtle)] text-[var(--text-secondary)]"
                 data-testid="forms-refresh"
             >
                 <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
@@ -413,8 +406,7 @@ function FormsHeader({ t, count, loading, creating, onRefresh, onCreate }) {
                 type="button"
                 onClick={onCreate}
                 disabled={creating}
-                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
-                style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                 data-testid="forms-new"
             >
                 {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
@@ -530,7 +522,7 @@ export default function FormsStudio({ user = null, onNavigate = null, initialFor
     }
     if (openId && openId !== 'new' && !settled) {
         return (
-            <div className="flex items-center justify-center py-12" style={{ color: 'var(--text-tertiary)' }} role="status" data-testid="forms-loading">
+            <div className="flex items-center justify-center py-12 text-[var(--text-tertiary)]" role="status" data-testid="forms-loading">
                 <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
             </div>
         );

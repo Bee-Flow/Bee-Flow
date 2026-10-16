@@ -78,153 +78,123 @@ function asAudienceEntity(app) {
 
 // GET /apps — list apps the current user is allowed to see
 router.get('/', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const orgIds = await resolveUserOrgIds(req);
-        const userGroups = await resolveUserGroups(userId);
-        const apps = await appStore.getPublishedAppsForUser(orgIds, userGroups, userId);
-        res.json(apps);
-    } catch (err) {
-        log.error('[Apps] Error fetching apps:', err);
-        res.status(500).json({ error: 'Failed to fetch apps' });
-    }
+    const userId = req.session.user.id;
+    const orgIds = await resolveUserOrgIds(req);
+    const userGroups = await resolveUserGroups(userId);
+    const apps = await appStore.getPublishedAppsForUser(orgIds, userGroups, userId);
+    res.json(apps);
 });
 
 // GET /apps/mine — list apps created by current user (drafts included)
 router.get('/mine', requireAuth, async (req, res) => {
-    try {
-        const apps = await appStore.getAppsByUser(req.session.user.id);
-        res.json(apps);
-    } catch (err) {
-        log.error('[Apps] Error fetching user apps:', err);
-        res.status(500).json({ error: 'Failed to fetch apps' });
-    }
+    const apps = await appStore.getAppsByUser(req.session.user.id);
+    res.json(apps);
 });
 
 // GET /apps/:id — single-app read, audience-gated
 router.get('/:id', requireAuth, async (req, res) => {
-    try {
-        const app = await appStore.getApp(req.params.id);
-        if (!app) {
-            return res.status(404).json({ error: 'App not found' });
-        }
-        const userId = req.session.user.id;
-        const orgIds = await resolveUserOrgIds(req);
-        const userGroups = await resolveUserGroups(userId);
-        if (!canSeePublished(asAudienceEntity(app), { userId, orgIds, userGroups })) {
-            return res.status(404).json({ error: 'App not found' });
-        }
-        res.json(app);
-    } catch (err) {
-        log.error('[Apps] Error fetching app:', err);
-        res.status(500).json({ error: 'Failed to fetch app' });
+    const app = await appStore.getApp(req.params.id);
+    if (!app) {
+        return res.status(404).json({ error: 'App not found' });
     }
+    const userId = req.session.user.id;
+    const orgIds = await resolveUserOrgIds(req);
+    const userGroups = await resolveUserGroups(userId);
+    if (!canSeePublished(asAudienceEntity(app), { userId, orgIds, userGroups })) {
+        return res.status(404).json({ error: 'App not found' });
+    }
+    res.json(app);
 });
 
 // POST /apps — create/publish a new app, scoped to the caller's org
 router.post('/', requireAuth, validate({ body: CreateAppBody }), async (req, res) => {
-    try {
-        const { name, description, code, thumbnail, sharedGroups, isPublished } = req.body;
-        const userId = req.session.user.id;
-        const username = req.session.user.username || userId;
+    const { name, description, code, thumbnail, sharedGroups, isPublished } = req.body;
+    const userId = req.session.user.id;
+    const username = req.session.user.username || userId;
 
-        // Auto-assign the user's first organization. Apps without an org are
-        // only visible to super admins, so the marketplace would feel broken
-        // for the creator if we left it null.
-        const orgIds = await resolveUserOrgIds(req);
-        let assignOrgId = null;
-        if (orgIds === null) {
-            const user = await userStore.getUser(userId);
-            assignOrgId = user?.organizationId || null;
-        } else if (orgIds.size > 0) {
-            assignOrgId = Array.from(orgIds)[0];
-        }
-
-        // Published unless the body says otherwise — the default this route
-        // always had; a draft (`isPublished: false`) now stays one.
-        const app = await appStore.createApp(
-            name, description, code, userId, username, thumbnail ?? null, isPublished ?? true,
-            assignOrgId,
-            sharedGroups ?? []
-        );
-        log.info(`[Apps] Created app: ${name} by user ${username} in org ${assignOrgId || 'none'}`);
-        res.status(201).json(app);
-    } catch (err) {
-        log.error('[Apps] Error creating app:', err);
-        res.status(500).json({ error: 'Failed to create app' });
+    // Auto-assign the user's first organization. Apps without an org are
+    // only visible to super admins, so the marketplace would feel broken
+    // for the creator if we left it null.
+    const orgIds = await resolveUserOrgIds(req);
+    let assignOrgId = null;
+    if (orgIds === null) {
+        const user = await userStore.getUser(userId);
+        assignOrgId = user?.organizationId || null;
+    } else if (orgIds.size > 0) {
+        assignOrgId = Array.from(orgIds)[0];
     }
+
+    // Published unless the body says otherwise — the default this route
+    // always had; a draft (`isPublished: false`) now stays one.
+    const app = await appStore.createApp(
+        name, description, code, userId, username, thumbnail ?? null, isPublished ?? true,
+        assignOrgId,
+        sharedGroups ?? []
+    );
+    log.info(`[Apps] Created app: ${name} by user ${username} in org ${assignOrgId || 'none'}`);
+    res.status(201).json(app);
 });
 
 // PUT /apps/:id — update an app (owner only, must stay in same org)
 router.put('/:id', requireAuth, validate({ body: UpdateAppBody }), async (req, res) => {
-    try {
-        const { name, description, code, thumbnail, isPublished, sharedGroups } = req.body;
-        const appId = req.params.id;
-        const userId = req.session.user.id;
+    const { name, description, code, thumbnail, isPublished, sharedGroups } = req.body;
+    const appId = req.params.id;
+    const userId = req.session.user.id;
 
-        const existing = await appStore.getApp(appId);
-        if (!existing) {
-            return res.status(404).json({ error: 'App not found' });
-        }
-        if (existing.created_by !== userId) {
-            return res.status(403).json({ error: 'Not authorized to update this app' });
-        }
+    const existing = await appStore.getApp(appId);
+    if (!existing) {
+        return res.status(404).json({ error: 'App not found' });
+    }
+    if (existing.created_by !== userId) {
+        return res.status(403).json({ error: 'Not authorized to update this app' });
+    }
 
-        // Defensive cross-org check: even if the owner moves orgs, they
-        // shouldn't be able to keep editing apps that no longer belong to
-        // any org they're a member of.
-        const orgIds = await resolveUserOrgIds(req);
-        if (orgIds !== null && existing.organization_id) {
-            if (!(orgIds instanceof Set) || !orgIds.has(existing.organization_id)) {
-                return res.status(403).json({ error: 'App belongs to an organisation you are no longer a member of' });
-            }
+    // Defensive cross-org check: even if the owner moves orgs, they
+    // shouldn't be able to keep editing apps that no longer belong to
+    // any org they're a member of.
+    const orgIds = await resolveUserOrgIds(req);
+    if (orgIds !== null && existing.organization_id) {
+        if (!(orgIds instanceof Set) || !orgIds.has(existing.organization_id)) {
+            return res.status(403).json({ error: 'App belongs to an organisation you are no longer a member of' });
         }
+    }
 
-        // A field the body leaves out keeps its value; `null` clears the two
-        // that may be empty. sharedGroups left out is preserved by the store.
-        const keep = (value, current) => (value === undefined ? current : value);
-        const success = await appStore.updateApp(
-            appId,
-            keep(name, existing.name),
-            keep(description, existing.description),
-            keep(code, existing.code),
-            keep(thumbnail, existing.thumbnail),
-            keep(isPublished, existing.is_published),
-            sharedGroups
-        );
-        if (success) {
-            res.json({ success: true });
-        } else {
-            res.status(500).json({ error: 'Failed to update app' });
-        }
-    } catch (err) {
-        log.error('[Apps] Error updating app:', err);
-        res.status(500).json({ error: 'Failed to update app' });
+    // A field the body leaves out keeps its value; `null` clears the two
+    // that may be empty. sharedGroups left out is preserved by the store.
+    const keep = (value, current) => (value === undefined ? current : value);
+    const success = await appStore.updateApp(
+        appId,
+        keep(name, existing.name),
+        keep(description, existing.description),
+        keep(code, existing.code),
+        keep(thumbnail, existing.thumbnail),
+        keep(isPublished, existing.is_published),
+        sharedGroups
+    );
+    if (success) {
+        res.json({ success: true });
+    } else {
+        throw new Error('Failed to update app');
     }
 });
 
 // DELETE /apps/:id — delete an app (owner only)
 router.delete('/:id', requireAuth, async (req, res) => {
-    try {
-        const appId = req.params.id;
-        const existing = await appStore.getApp(appId);
-        if (!existing) {
-            return res.status(404).json({ error: 'App not found' });
-        }
-        if (existing.created_by !== req.session.user.id) {
-            return res.status(403).json({ error: 'Not authorized to delete this app' });
-        }
+    const appId = req.params.id;
+    const existing = await appStore.getApp(appId);
+    if (!existing) {
+        return res.status(404).json({ error: 'App not found' });
+    }
+    if (existing.created_by !== req.session.user.id) {
+        return res.status(403).json({ error: 'Not authorized to delete this app' });
+    }
 
-        const success = await appStore.deleteApp(appId);
-        if (success) {
-            log.info(`[Apps] Deleted app: ${appId}`);
-            res.json({ success: true });
-        } else {
-            res.status(500).json({ error: 'Failed to delete app' });
-        }
-    } catch (err) {
-        log.error('[Apps] Error deleting app:', err);
-        res.status(500).json({ error: 'Failed to delete app' });
+    const success = await appStore.deleteApp(appId);
+    if (success) {
+        log.info(`[Apps] Deleted app: ${appId}`);
+        res.json({ success: true });
+    } else {
+        throw new Error('Failed to delete app');
     }
 });
 

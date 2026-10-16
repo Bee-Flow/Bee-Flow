@@ -405,8 +405,8 @@ router.post('/from-gmeet', requireAuth, validate({ body: FromGmeetBody, query: N
         }
         res.json(out.transcription);
     } catch (err) {
-        log.error('[Transcriptions] from-gmeet failed:', err.message);
-        const status = err.status || GMEET_ERROR_STATUS[err.code] || 500;
+        const status = err.status || GMEET_ERROR_STATUS[err.code];
+        if (!status || status >= 500) throw err; // unclassified: the terminal handler logs it and answers generically
         res.status(status).json({ error: err.message, ...(err.code ? { code: err.code } : {}) });
     }
 });

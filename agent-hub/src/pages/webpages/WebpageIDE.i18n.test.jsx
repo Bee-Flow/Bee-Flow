@@ -36,6 +36,14 @@ vi.mock('./WebpageCodeStrip', () => ({
     fileDecorations: () => [],
     useBfMarks: () => ({ marks: [], state: 'idle' }),
 }));
+// WebpageIDE takes the hook from its own module: unmocked, it fetches and its
+// late setState lands after the test environment is gone (an unhandled error).
+vi.mock('./useBfMarks', () => ({
+    useBfMarks: () => ({
+        loading: false, error: null, available: false, marks: [],
+        counts: { total: 0, known: 0, unknown: 0 }, unknownTags: [], truncated: 0, reload: () => {},
+    }),
+}));
 
 import WebpageIDE from './WebpageIDE';
 

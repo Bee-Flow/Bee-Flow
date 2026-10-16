@@ -34,7 +34,7 @@ export default function LearningHeader({ onBack, backLabel, tile, title, chips, 
                 </button>
             )}
             {tile}
-            <h1 className="m-0 text-[14px] font-semibold whitespace-nowrap flex-shrink-0" style={{ color: 'var(--text-primary)' }}>{title}</h1>
+            <h1 className="m-0 text-[14px] font-semibold whitespace-nowrap flex-shrink-0 text-[var(--text-primary)]">{title}</h1>
             {chips}
             <div className="flex-1 min-w-0" aria-hidden="true" />
             {options.length > 0 && (
@@ -81,7 +81,7 @@ export function PathChip({ t, path, onPick }) {
                 <ChevronDown style={{ width: 11, height: 11, color: 'var(--text-tertiary)' }} aria-hidden="true" />
             </button>
             <AnchoredMenu open={open} onClose={() => setOpen(false)} anchorRef={ref} align="left" width={320} role="menu" aria-label={t('learn.path.q', 'What do you want to get good at?')} className="py-1">
-                <div className="px-3 pt-1.5 pb-1 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('learn.path.q_sub', 'Your pick reorders the courses below — everything stays available.')}</div>
+                <div className="px-3 pt-1.5 pb-1 text-[11px] text-[var(--text-tertiary)]">{t('learn.path.q_sub', 'Your pick reorders the courses below — everything stays available.')}</div>
                 {LEARNING_PATHS.map((p) => {
                     const on = p.id === path;
                     return (
@@ -90,8 +90,8 @@ export function PathChip({ t, path, onPick }) {
                             className={`w-full text-left px-3 py-2 flex items-start gap-2.5 transition ${on ? 'bg-[var(--bg-secondary)]' : 'hover:bg-[var(--bg-secondary)]'}`}>
                             <span className="text-[16px] leading-5" aria-hidden="true">{p.icon}</span>
                             <span className="min-w-0 flex-1">
-                                <span className="block text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{t(p.titleKey, p.titleFallback)}</span>
-                                <span className="block text-[11.5px] leading-[15px]" style={{ color: 'var(--text-tertiary)' }}>{t(p.descKey, p.descFallback)}</span>
+                                <span className="block text-[13px] font-semibold text-[var(--text-primary)]">{t(p.titleKey, p.titleFallback)}</span>
+                                <span className="block text-[11.5px] leading-[15px] text-[var(--text-tertiary)]">{t(p.descKey, p.descFallback)}</span>
                             </span>
                             <Check size={13} aria-hidden="true" className={`mt-1 ${on ? 'opacity-100' : 'opacity-0'}`} />
                         </button>
@@ -99,7 +99,7 @@ export function PathChip({ t, path, onPick }) {
                 })}
                 {!current && (
                     <button type="button" role="menuitem" onClick={() => { onPick('skipped'); setOpen(false); }}
-                        className="w-full text-left px-3 py-1.5 text-[12px] hover:bg-[var(--bg-secondary)]" style={{ color: 'var(--text-tertiary)' }}>
+                        className="w-full text-left px-3 py-1.5 text-[12px] hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)]">
                         {t('learn.path.skip', 'Skip for now')}
                     </button>
                 )}

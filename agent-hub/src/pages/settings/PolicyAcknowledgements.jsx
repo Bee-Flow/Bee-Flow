@@ -90,8 +90,7 @@ export default function PolicyAcknowledgements() {
                                 )}
                                 {!d.acknowledged && (
                                     <button onClick={() => confirm(d.slug)} disabled={busySlug === d.slug}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50"
-                                        style={{ background: 'var(--accent-primary)' }}>
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50 bg-[var(--accent-primary)]">
                                         <Check className="w-3.5 h-3.5" /> {t('settings.policy_ack_confirm')}
                                     </button>
                                 )}

@@ -10,7 +10,6 @@
 
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
 
 // Route logic lives in focused sub-modules under routes/transcriptions/,
 // mounted here in the exact order the routes were registered before the split.
@@ -42,17 +41,9 @@ router.use('/', require('./transcriptions/nextcloud'));
 router.use('/', require('./transcriptions/gmeet'));
 router.use('/', require('./transcriptions/teams'));
 
-// ── Multer error handling ────────────────────────────────
-
-router.use((err, req, res, next) => {
-    if (err instanceof multer.MulterError) {
-        if (err.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({ error: 'File too large. Maximum size is 500 MB.' });
-        }
-        return res.status(400).json({ error: err.message });
-    }
-    if (err) return res.status(400).json({ error: err.message });
-    next();
-});
+// ── Upload error handling ────────────────────────────────
+// Answers only multer's and the format filter's refusals; the rest goes on to
+// the terminal handler. See ./transcriptions/audioUpload.js.
+router.use(require('./transcriptions/audioUpload').uploadErrorHandler);
 
 module.exports = router;

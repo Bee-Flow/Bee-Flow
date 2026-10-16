@@ -58,35 +58,30 @@ router.post('/sso-encryption-setup', validate({ body: SetupBody }), async (req, 
         return res.status(401).json({ error: 'Not authenticated' });
     }
     const { pin } = req.body;
-    try {
-        const userId = req.session.user.id;
+    const userId = req.session.user.id;
 
-        // Check if session already has a legacy DEK (from master-key unlock)
-        let existingDEK = null;
-        if (req.session.encryptionKey) {
-            existingDEK = Buffer.from(req.session.encryptionKey, 'base64');
-            log.info(`[Auth] SSO migration: re-wrapping existing DEK for user ${userId} with new PIN`);
-        } else {
-            log.info(`[Auth] SSO setup: creating new DEK for user ${userId}`);
-        }
-
-        const { dek, recoveryKey } = await setupSSOUserDEK(userId, pin, existingDEK);
-        req.session.encryptionKey = dek.toString('base64');
-        req.session.needsEncryptionSetup = false;
-        req.session.needsEncryptionPin = false;
-        secureClear(dek);
-        if (existingDEK) secureClear(existingDEK);
-
-        log.info(`[Auth] SSO encryption setup complete for user ${userId} (migration: ${!!existingDEK})`);
-
-        req.session.save((err) => {
-            if (err) log.error('Session save error:', err);
-            res.json({ success: true, recoveryKey });
-        });
-    } catch (err) {
-        log.error('[Auth] SSO encryption setup failed:', err.message);
-        res.status(500).json({ error: 'Encryption setup failed' });
+    // Check if session already has a legacy DEK (from master-key unlock)
+    let existingDEK = null;
+    if (req.session.encryptionKey) {
+        existingDEK = Buffer.from(req.session.encryptionKey, 'base64');
+        log.info(`[Auth] SSO migration: re-wrapping existing DEK for user ${userId} with new PIN`);
+    } else {
+        log.info(`[Auth] SSO setup: creating new DEK for user ${userId}`);
     }
+
+    const { dek, recoveryKey } = await setupSSOUserDEK(userId, pin, existingDEK);
+    req.session.encryptionKey = dek.toString('base64');
+    req.session.needsEncryptionSetup = false;
+    req.session.needsEncryptionPin = false;
+    secureClear(dek);
+    if (existingDEK) secureClear(existingDEK);
+
+    log.info(`[Auth] SSO encryption setup complete for user ${userId} (migration: ${!!existingDEK})`);
+
+    req.session.save((err) => {
+        if (err) log.error('Session save error:', err);
+        res.json({ success: true, recoveryKey });
+    });
 });
 
 // SSO Encryption PIN Unlock — returning SSO user enters their PIN
@@ -95,27 +90,22 @@ router.post('/sso-encryption-unlock', validate({ body: UnlockBody }), async (req
         return res.status(401).json({ error: 'Not authenticated' });
     }
     const { pin } = req.body;
-    try {
-        const result = await unlockSSOUserDEK(req.session.user.id, pin);
-        if (result.needsSetup) {
-            return res.json({ needsSetup: true });
-        }
-        if (result.wrongPin) {
-            return res.status(401).json({ error: 'Incorrect PIN' });
-        }
-        req.session.encryptionKey = result.dek.toString('base64');
-        req.session.needsEncryptionPin = false;
-        req.session.needsEncryptionSetup = false;
-        secureClear(result.dek);
-        log.info(`[Auth] SSO encryption unlocked for user ${req.session.user.id}`);
-        req.session.save((err) => {
-            if (err) log.error('Session save error:', err);
-            res.json({ success: true });
-        });
-    } catch (err) {
-        log.error('[Auth] SSO encryption unlock failed:', err.message);
-        res.status(500).json({ error: 'Encryption unlock failed' });
+    const result = await unlockSSOUserDEK(req.session.user.id, pin);
+    if (result.needsSetup) {
+        return res.json({ needsSetup: true });
     }
+    if (result.wrongPin) {
+        return res.status(401).json({ error: 'Incorrect PIN' });
+    }
+    req.session.encryptionKey = result.dek.toString('base64');
+    req.session.needsEncryptionPin = false;
+    req.session.needsEncryptionSetup = false;
+    secureClear(result.dek);
+    log.info(`[Auth] SSO encryption unlocked for user ${req.session.user.id}`);
+    req.session.save((err) => {
+        if (err) log.error('Session save error:', err);
+        res.json({ success: true });
+    });
 });
 
 // SSO Encryption PIN Change — re-wrap DEK with new PIN
@@ -124,36 +114,31 @@ router.post('/sso-change-pin', validate({ body: ChangePinBody }), async (req, re
         return res.status(401).json({ error: 'Not authenticated' });
     }
     const { oldPin, newPin } = req.body;
-    try {
-        const userId = req.session.user.id;
+    const userId = req.session.user.id;
 
-        // Unlock DEK with old PIN
-        const unlockResult = await unlockSSOUserDEK(userId, oldPin);
-        if (unlockResult.wrongPin) {
-            return res.status(401).json({ error: 'Current PIN is incorrect' });
-        }
-        if (unlockResult.needsSetup) {
-            return res.status(400).json({ error: 'Encryption not set up yet' });
-        }
-
-        // Re-wrap DEK with new PIN
-        log.info(`[Auth] SSO PIN change: re-wrapping DEK for user ${userId}`);
-        const { dek, recoveryKey } = await setupSSOUserDEK(userId, newPin, unlockResult.dek);
-        secureClear(unlockResult.dek);
-
-        // Update session with new key
-        req.session.encryptionKey = dek.toString('base64');
-        secureClear(dek);
-
-        log.info(`[Auth] SSO PIN change complete for user ${userId}`);
-        req.session.save((err) => {
-            if (err) log.error('Session save error:', err);
-            res.json({ success: true, recoveryKey });
-        });
-    } catch (err) {
-        log.error('[Auth] SSO PIN change failed:', err.message);
-        res.status(500).json({ error: 'PIN change failed' });
+    // Unlock DEK with old PIN
+    const unlockResult = await unlockSSOUserDEK(userId, oldPin);
+    if (unlockResult.wrongPin) {
+        return res.status(401).json({ error: 'Current PIN is incorrect' });
     }
+    if (unlockResult.needsSetup) {
+        return res.status(400).json({ error: 'Encryption not set up yet' });
+    }
+
+    // Re-wrap DEK with new PIN
+    log.info(`[Auth] SSO PIN change: re-wrapping DEK for user ${userId}`);
+    const { dek, recoveryKey } = await setupSSOUserDEK(userId, newPin, unlockResult.dek);
+    secureClear(unlockResult.dek);
+
+    // Update session with new key
+    req.session.encryptionKey = dek.toString('base64');
+    secureClear(dek);
+
+    log.info(`[Auth] SSO PIN change complete for user ${userId}`);
+    req.session.save((err) => {
+        if (err) log.error('Session save error:', err);
+        res.json({ success: true, recoveryKey });
+    });
 });
 
 // SSO Recovery — unlock with recovery key and set new PIN
@@ -162,35 +147,30 @@ router.post('/sso-recovery', validate({ body: RecoveryBody }), async (req, res) 
         return res.status(401).json({ error: 'Not authenticated' });
     }
     const { recoveryKey, newPin } = req.body;
-    try {
-        const userId = req.session.user.id;
+    const userId = req.session.user.id;
 
-        // Unlock DEK with recovery key
-        const dek = await unlockWithRecoveryKey(userId, recoveryKey);
-        if (!dek) {
-            return res.status(401).json({ error: 'Invalid recovery key' });
-        }
-
-        // Re-wrap DEK with new PIN
-        log.info(`[Auth] SSO recovery: re-wrapping DEK for user ${userId}`);
-        const result = await setupSSOUserDEK(userId, newPin, dek);
-        secureClear(dek);
-
-        // Update session with new key
-        req.session.encryptionKey = result.dek.toString('base64');
-        req.session.needsEncryptionSetup = false;
-        req.session.needsEncryptionPin = false;
-        secureClear(result.dek);
-
-        log.info(`[Auth] SSO recovery complete for user ${userId}`);
-        req.session.save((err) => {
-            if (err) log.error('Session save error:', err);
-            res.json({ success: true, recoveryKey: result.recoveryKey });
-        });
-    } catch (err) {
-        log.error('[Auth] SSO recovery failed:', err.message);
-        res.status(500).json({ error: 'Recovery failed' });
+    // Unlock DEK with recovery key
+    const dek = await unlockWithRecoveryKey(userId, recoveryKey);
+    if (!dek) {
+        return res.status(401).json({ error: 'Invalid recovery key' });
     }
+
+    // Re-wrap DEK with new PIN
+    log.info(`[Auth] SSO recovery: re-wrapping DEK for user ${userId}`);
+    const result = await setupSSOUserDEK(userId, newPin, dek);
+    secureClear(dek);
+
+    // Update session with new key
+    req.session.encryptionKey = result.dek.toString('base64');
+    req.session.needsEncryptionSetup = false;
+    req.session.needsEncryptionPin = false;
+    secureClear(result.dek);
+
+    log.info(`[Auth] SSO recovery complete for user ${userId}`);
+    req.session.save((err) => {
+        if (err) log.error('Session save error:', err);
+        res.json({ success: true, recoveryKey: result.recoveryKey });
+    });
 });
 
 module.exports = router;

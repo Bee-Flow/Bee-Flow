@@ -14,6 +14,11 @@
  */
 
 const { test } = require('node:test');
+// The runner reaches automation/, integrations/ and services/ through
+// core/automationRunner/featurePorts.js; boot registers these for the server.
+require('../../automation/runnerPorts');
+require('../../integrations/runnerPorts');
+require('../../services/runnerPorts');
 const assert = require('node:assert/strict');
 const Module = require('module');
 
@@ -62,7 +67,7 @@ const EXEC_AI_MOCKS = {
     '../llm/modelResolver': { getUserTierMap: async () => fx.tiers },
     '../entitlements/userTiers': { getPermittedTierKeys: async () => null },
     '../integrations/integrationTools': { getIntegrationTools: async () => ({ tools: fx.catalogTools }) },
-    '../tools/toolDispatcher': { executeTool: async () => fx.toolResult },
+    '../tools/toolDispatcher': { executeTool: async (name, args) => (typeof fx.toolResult === 'function' ? fx.toolResult(name, args) : fx.toolResult) },
     '../integrations/integrationToolMap': { resolveIntegration: () => null },
     '../../stores/usageStore': { recordUsage: async () => {}, logUsage: async () => {} },
     '../../stores/terminationStore': { isTerminated: async () => false },
@@ -83,8 +88,10 @@ function install(tag, ownerRe, mocks) {
     }
     return { ownerRe, ids };
 }
+// execAiStep's tool resolution and tool loop live in sibling modules, which
+// make some of these requires themselves.
 const INSTALLED = [
-    install('ai-step-exec', /automationRunner[\\/](?:execAi|execIntegrationAction|integrationActionGates|aiStepGrounding)\.js$/, EXEC_AI_MOCKS),
+    install('ai-step-exec', /automationRunner[\\/](?:execAi|execIntegrationAction|integrationActionGates|aiStepGrounding|aiStepTools|aiStepToolLoop)\.js$/, EXEC_AI_MOCKS),
     install('ai-step-route', /config[\\/]modelTiers\.js$/, ROUTE_MOCKS),
 ];
 const originalResolve = Module._resolveFilename;
@@ -304,6 +311,97 @@ test('a LIVE run fails on either kind — the carve-out is the dry run\'s alone'
         fx.toolResult = { error };
         await assert.rejects(() => runIntegrationStep('live'), (e) => e.toolError === true, error);
     }
+});
+
+// ═══ 4b. Reads of files a simulated step would have created (#175) ═══
+
+/** One shared ctx/runState per run, like the real runner; steps run in order. */
+function chain() {
+    const ctx = { userId: 'u1', orgId: null, session: {}, definition: { steps: [] }, allowedToolNames: new Set(), _simulatedPaths: new Set() };
+    const runState = {};
+    const run = (tool, inputs, ctxFor = ctx) => {
+        const step = { id: `s${ctx.definition.steps.length}`, type: 'integration_action', tool, inputs };
+        ctx.definition.steps.push(step);
+        ctx.allowedToolNames.add(tool);
+        return execIntegrationAction(step, ctxFor, runState, 'dry_run');
+    };
+    run.ctx = ctx;
+    return run;
+}
+const ncFilesExist = (existing) => (name, args) => (
+    existing.includes(args.path) ? { content: 'real' } : { error: `File not found: ${args.path}` }
+);
+
+test('a dry run reads back a file its simulated steps created, moved and put in a created folder', async () => {
+    reset();
+    fx.toolResult = ncFilesExist([]);
+    const run = chain();
+    await run('nextcloud_create_folder', { path: '/X' });
+    await run('nextcloud_upload_file', { path: '/X/a.txt', content: 'hi' });
+    await run('nextcloud_move', { source: '/X/a.txt', destination: '/X/b.txt' });
+    const moved = await run('nextcloud_read_file', { path: 'X/b.txt/' });
+    assert.equal(moved.dryRunSynthesised, true);
+    assert.equal(moved.dryRunFallback, 'simulated_upstream');
+    // a created folder covers whatever is below it
+    const below = await run('nextcloud_read_file', { path: '/X/sub/deep.txt' });
+    assert.equal(below.dryRunFallback, 'simulated_upstream');
+    const listed = await run('nextcloud_list_files', { path: '/X' });
+    assert.equal(listed.dryRunFallback, 'simulated_upstream');
+});
+
+test('a copy destination counts as produced', async () => {
+    reset();
+    fx.toolResult = ncFilesExist([]);
+    const run = chain();
+    await run('nextcloud_copy', { source: '/in/a.txt', destination: '/out/a.txt' });
+    const out = await run('nextcloud_read_file', { path: '/out/a.txt' });
+    assert.equal(out.dryRunFallback, 'simulated_upstream');
+});
+
+test('a typo in a path no earlier step touched still fails the dry run', async () => {
+    reset();
+    fx.toolResult = ncFilesExist([]);
+    const run = chain();
+    await run('nextcloud_create_folder', { path: '/X' });
+    await run('nextcloud_upload_file', { path: '/Z/a', content: 'hi' });
+    await assert.rejects(() => run('nextcloud_read_file', { path: '/Y/a.txt' }), (e) => e.toolError === true);
+    // a sibling that merely shares a prefix is not below
+    await assert.rejects(() => run('nextcloud_read_file', { path: '/Z/ab' }), (e) => e.toolError === true);
+    await assert.rejects(() => run('nextcloud_read_file', { path: '/Xa/a.txt' }), (e) => e.toolError === true);
+});
+
+test('a write inside a container (shallow ctx copy) is visible to a read after it', async () => {
+    reset();
+    fx.toolResult = ncFilesExist([]);
+    const run = chain();
+    await run('nextcloud_upload_file', { path: '/loop/a.txt', content: 'hi' }, { ...run.ctx });
+    const out = await run('nextcloud_read_file', { path: '/loop/a.txt' });
+    assert.equal(out.dryRunFallback, 'simulated_upstream');
+});
+
+test('convert, restore and mail-attachment writes count as produced', async () => {
+    reset();
+    fx.toolResult = ncFilesExist([]);
+    const run = chain();
+    await run('nextcloud_convert_file', { fileId: 1, destination: '/c/out.pdf' });
+    await run('nextcloud_restore_from_trash', { trashPath: '/t/x', originalPath: '/r/back.txt' });
+    await run('nextcloud_mail_save_attachment', { messageId: 1, attachmentId: 2, targetPath: '/m' });
+    await run('nextcloud_create_presentation', { path: '/p/deck', title: 't' });
+    for (const path of ['/c/out.pdf', '/r/back.txt', '/m/file.pdf', '/p/deck.pptx']) {
+        const out = await run('nextcloud_read_file', { path });
+        assert.equal(out.dryRunFallback, 'simulated_upstream', path);
+    }
+});
+
+test('a LIVE run never falls back, even on a recorded path', async () => {
+    reset();
+    fx.toolResult = ncFilesExist([]);
+    const step = { id: 'r', type: 'integration_action', tool: 'nextcloud_read_file', inputs: { path: '/X/a.txt' } };
+    const ctx = {
+        userId: 'u1', orgId: null, session: {}, definition: { steps: [step] },
+        allowedToolNames: new Set(['nextcloud_read_file']), _simulatedPaths: new Set(['/X']),
+    };
+    await assert.rejects(() => execIntegrationAction(step, ctx, {}, 'live'), (e) => e.toolError === true);
 });
 
 // ═══ 5. The admin route the override is set from ═════════════════

@@ -19,13 +19,13 @@ function idsOf(src: string, marker: string): string[] {
 
 describe('the theme choices', () => {
     it('lists the web presets and fonts in the same order', () => {
-        const src = read('ThemeContext.jsx');
+        const src = read('ThemeContext.tsx');
         expect([...THEME_PRESET_IDS]).toEqual(idsOf(src, 'export const THEME_PRESETS'));
         expect([...FONT_IDS]).toEqual(idsOf(src, 'export const FONT_OPTIONS'));
     });
 
     it('offers the web accent swatches', () => {
-        const src = read('studio/look/sections/AccentSection.jsx');
+        const src = read('studio/look/sections/AccentSection.tsx');
         const body = src.slice(src.indexOf('ACCENT_PRESETS'), src.indexOf('];'));
         expect([...ACCENT_PRESETS]).toEqual([...body.matchAll(/'(#[0-9a-f]{6})'/g)].map((m) => m[1]));
     });

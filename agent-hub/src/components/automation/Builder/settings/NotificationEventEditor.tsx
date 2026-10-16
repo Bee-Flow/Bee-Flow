@@ -61,7 +61,7 @@ export function recipientLabel(r: Recipient, t: T, ownerName: string, names: Map
 }
 
 /** Resolve people and groups picked by id to names (only fetches when needed). */
-export function useRecipientNames(recipients: Recipient[], automationId: string | null | undefined): Map<string, string> {
+export function useRecipientNames(recipients: readonly Recipient[], automationId: string | null | undefined): Map<string, string> {
     const needed = recipients.some(r => r.type === 'user' || r.type === 'group');
     const directory = usePeopleDirectory(automationId, { enabled: needed });
     return useMemo(() => new Map((directory.data || []).map(p => [`${p.type}:${p.id}`, p.name])), [directory.data]);

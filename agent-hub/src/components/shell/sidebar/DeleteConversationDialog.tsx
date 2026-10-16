@@ -3,13 +3,14 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { deleteMemoriesByConversation } from '../../chat/memory/memoryApi';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import { toast } from '../../shared/Toast';
+import type { DeleteResult } from './sidebarConversations';
 
 export interface DeleteConversationDialogProps {
     open: boolean;
     conversationId: string;
     onCancel: () => void;
     /** Deletes the conversation; resolves true when it is gone. */
-    onDelete: () => Promise<boolean | void>;
+    onDelete: () => DeleteResult;
 }
 
 /**

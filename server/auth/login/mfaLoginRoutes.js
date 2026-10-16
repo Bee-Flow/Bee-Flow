@@ -57,70 +57,65 @@ router.post('/mfa/verify-login', mfaLoginLimiter, validate({ body: VerifyLoginBo
     const startedAt = Date.now();
     const pending = req.session.mfaPending;
     if (!pending) return res.status(401).json({ error: 'No pending MFA login', code: 'no_pending_login' });
-    try {
-        const userRow = await userStore.getUser(pending.userId);
-        if (!userRow || !userRow.mfa_enabled) {
-            delete req.session.mfaPending;
-            return res.status(400).json({ error: 'MFA is not enabled for this account' });
-        }
-        const { code } = req.body;
-        const secret = mfa.decryptSecret(userRow.mfa_secret);
-        // An account with only security keys has no secret at all: its codes
-        // are recovery codes. Only a secret that is there and does not decrypt
-        // is "unreadable".
-        const unreadable = !!userRow.mfa_secret && !secret;
-        let ok = mfa.verifyTotp(secret, code);
-        if (!ok) {
-            // Fall back to a one-time recovery code (consumes it).
-            const updated = await mfa.consumeRecoveryCode(userRow.mfa_recovery_codes, code);
-            if (updated) {
-                await userStore.updateUser(pending.userId, { mfaRecoveryCodes: JSON.stringify(updated) });
-                ok = true;
-            }
-        }
-        if (!ok) {
-            recordAuthEvent({ kind: 'mfa', status: 'fail' });
-            // The account is known here — the password already passed — so this
-            // row names it. A run of these against one user is the clearest
-            // signal in the log that somebody holds a working password and not
-            // the second factor.
-            await auditLoginFailure(req, {
-                userId: pending.userId, method: 'mfa',
-                organizationId: userRow.organizationId || null,
-                reason: unreadable ? 'mfa_secret_unreadable' : 'mfa_invalid_code',
-            });
-            pending.attempts = (pending.attempts || 0) + 1;
-            if (pending.attempts >= MFA_LOGIN_MAX_ATTEMPTS) {
-                // mfaPending also carries the password used for DEK derivation —
-                // destroying it forces a clean re-entry of credentials.
-                delete req.session.mfaPending;
-                return res.status(401).json({
-                    error: 'Too many incorrect codes. Sign in again with your password.',
-                    code: 'mfa_attempts_exhausted',
-                });
-            }
-            // Distinguish an undecryptable stored secret (key rotation without
-            // re-encryption / corrupted row) from a typo — a generic "Invalid
-            // code" sends the user into a retry loop that burns their recovery
-            // codes (the exact BFSF-274 symptom cluster).
-            if (unreadable) {
-                log.error(`[MFA] mfa_secret for user ${pending.userId} is undecryptable during login — MASTER_ENCRYPTION_KEY mismatch? Run scripts/rotate-master-key.js or reset the user's 2FA via the admin panel.`);
-                return res.status(401).json({
-                    error: 'Your authenticator can no longer be verified on this server. Use a recovery code, or ask your administrator to reset two-factor authentication.',
-                    code: 'mfa_secret_unreadable',
-                });
-            }
-            return res.status(401).json({ error: 'Invalid code', code: 'invalid_code' });
-        }
-        recordAuthEvent({ kind: 'mfa', status: 'ok' });
-
-        const { user, isAdmin, password } = pending;
+    const userRow = await userStore.getUser(pending.userId);
+    if (!userRow || !userRow.mfa_enabled) {
         delete req.session.mfaPending;
-        return finalizeLogin(req, res, { user, isAdmin, storedUser: userRow, password, startedAt });
-    } catch (err) {
-        log.error('[Auth] MFA verify-login error:', err.message);
-        return res.status(500).json({ error: 'MFA verification failed' });
+        return res.status(400).json({ error: 'MFA is not enabled for this account' });
     }
+    const { code } = req.body;
+    const secret = mfa.decryptSecret(userRow.mfa_secret);
+    // An account with only security keys has no secret at all: its codes
+    // are recovery codes. Only a secret that is there and does not decrypt
+    // is "unreadable".
+    const unreadable = !!userRow.mfa_secret && !secret;
+    let ok = mfa.verifyTotp(secret, code);
+    if (!ok) {
+        // Fall back to a one-time recovery code (consumes it).
+        const updated = await mfa.consumeRecoveryCode(userRow.mfa_recovery_codes, code);
+        if (updated) {
+            await userStore.updateUser(pending.userId, { mfaRecoveryCodes: JSON.stringify(updated) });
+            ok = true;
+        }
+    }
+    if (!ok) {
+        recordAuthEvent({ kind: 'mfa', status: 'fail' });
+        // The account is known here — the password already passed — so this
+        // row names it. A run of these against one user is the clearest
+        // signal in the log that somebody holds a working password and not
+        // the second factor.
+        await auditLoginFailure(req, {
+            userId: pending.userId, method: 'mfa',
+            organizationId: userRow.organizationId || null,
+            reason: unreadable ? 'mfa_secret_unreadable' : 'mfa_invalid_code',
+        });
+        pending.attempts = (pending.attempts || 0) + 1;
+        if (pending.attempts >= MFA_LOGIN_MAX_ATTEMPTS) {
+            // mfaPending also carries the password used for DEK derivation —
+            // destroying it forces a clean re-entry of credentials.
+            delete req.session.mfaPending;
+            return res.status(401).json({
+                error: 'Too many incorrect codes. Sign in again with your password.',
+                code: 'mfa_attempts_exhausted',
+            });
+        }
+        // Distinguish an undecryptable stored secret (key rotation without
+        // re-encryption / corrupted row) from a typo — a generic "Invalid
+        // code" sends the user into a retry loop that burns their recovery
+        // codes (the exact BFSF-274 symptom cluster).
+        if (unreadable) {
+            log.error(`[MFA] mfa_secret for user ${pending.userId} is undecryptable during login — MASTER_ENCRYPTION_KEY mismatch? Run scripts/rotate-master-key.js or reset the user's 2FA via the admin panel.`);
+            return res.status(401).json({
+                error: 'Your authenticator can no longer be verified on this server. Use a recovery code, or ask your administrator to reset two-factor authentication.',
+                code: 'mfa_secret_unreadable',
+            });
+        }
+        return res.status(401).json({ error: 'Invalid code', code: 'invalid_code' });
+    }
+    recordAuthEvent({ kind: 'mfa', status: 'ok' });
+
+    const { user, isAdmin, password } = pending;
+    delete req.session.mfaPending;
+    return finalizeLogin(req, res, { user, isAdmin, storedUser: userRow, password, startedAt });
 });
 
 module.exports = router;

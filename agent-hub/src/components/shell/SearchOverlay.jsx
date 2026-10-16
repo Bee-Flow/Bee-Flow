@@ -397,7 +397,7 @@ const FilterPill = ({ icon: Icon, value, onChange, options, disabled }) => {
                 className="bg-transparent border-none text-[12px] font-medium focus:ring-0 focus:outline-none cursor-pointer pr-4 appearance-none"
                 style={{ color: 'inherit' }}
             >
-                {options.map(o => <option key={o.value} value={o.value} style={{ color: 'var(--text-primary)', background: 'var(--bg-card)' }}>{o.label}</option>)}
+                {options.map(o => <option key={o.value} value={o.value} className="text-[var(--text-primary)] bg-[var(--bg-card)]">{o.label}</option>)}
             </select>
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="absolute right-2.5 pointer-events-none opacity-60">
                 <path d="M2 4L5 7L8 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

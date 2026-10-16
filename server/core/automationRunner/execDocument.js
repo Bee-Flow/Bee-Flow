@@ -7,7 +7,9 @@
 const crypto = require('crypto');
 const automationStore = require('../../stores/automationStore');
 const { interpolateTemplate } = require('../automationModel/bind');
-const automationGraph = require('../../automation/automationGraph');
+const { runnerPort } = require('./featurePorts');
+// automation/automationGraph (a feature), through ./featurePorts.js.
+const automationGraph = () => runnerPort('automationGraph');
 const { deckThemeFor } = require('../documents/documentHouseStyle');
 const log = require('../../telemetry/log');
 
@@ -63,12 +65,12 @@ async function resolveAiUpstream(step, ctx, runState) {
     const def = await definitionFor(ctx);
     if (!def) return null;
     const aiById = new Map();
-    automationGraph.walkSteps(def, (s) => { if (automationGraph.isAiStep(s) && s.id) aiById.set(s.id, s); });
+    automationGraph().walkSteps(def, (s) => { if (automationGraph().isAiStep(s) && s.id) aiById.set(s.id, s); });
     if (!aiById.size) return null;
 
     const ids = [];
     // 1. Template references — the graph helper's 'reference' signal for THIS step.
-    for (const g of automationGraph.generatingStepsDownstreamOfAi(def)) {
+    for (const g of automationGraph().generatingStepsDownstreamOfAi(def)) {
         if (g.step && g.step.id === step.id && g.signal === 'reference') {
             for (const id of g.aiStepIds) if (!ids.includes(id)) ids.push(id);
         }

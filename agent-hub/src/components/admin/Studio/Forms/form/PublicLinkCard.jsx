@@ -62,14 +62,14 @@ export default function PublicLinkCard({ form, canEdit, onChanged = null }) {
 
     return (
         <DashCard title={t('forms.share.link_title', 'Link to the form')} testId="form-link-card">
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs text-[var(--text-secondary)]">
                 {form?.audience?.mode === 'restricted'
                     ? t('forms.share.link_blurb_restricted', 'Only the people and groups listed under “Who can fill it in” can open this link, after signing in. It only works while the form is live.')
                     : t('forms.share.link_blurb', 'Colleagues in your organisation can open this link after signing in. It only works while the form is live.')}
             </p>
             {href ? (
                 <div className="flex flex-wrap items-center gap-2">
-                    <code className="text-xs px-2 py-1.5 rounded-lg truncate max-w-full" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} data-testid="form-link" aria-label={t('forms.share.link_label', 'Form address')}>
+                    <code className="text-xs px-2 py-1.5 rounded-lg truncate max-w-full bg-[var(--bg-secondary)] text-[var(--text-primary)]" data-testid="form-link" aria-label={t('forms.share.link_label', 'Form address')}>
                         {href}
                     </code>
                     <button type="button" onClick={copy} className={BTN} style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }} data-testid="form-link-copy">
@@ -88,9 +88,9 @@ export default function PublicLinkCard({ form, canEdit, onChanged = null }) {
                     )}
                 </div>
             ) : (
-                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{t('forms.share.link_generating', 'The link is being created — save the form once and it appears here.')}</p>
+                <p className="text-xs text-[var(--text-tertiary)]">{t('forms.share.link_generating', 'The link is being created — save the form once and it appears here.')}</p>
             )}
-            {error && <p role="alert" className="text-xs" style={{ color: 'var(--error)' }}>{error}</p>}
+            {error && <p role="alert" className="text-xs text-[var(--error)]">{error}</p>}
             {confirmDialog}
         </DashCard>
     );

@@ -41,8 +41,8 @@
 const { getProviderForModel } = require('../aiAgent');
 const { getAdapter } = require('../providers');
 const { resolveValue, interpolateTemplate } = require('../automationModel/bind');
-const { hasPlaceholder, isBareRefString } = require('../../automation/validate/refPaths');
-const { parseJsonish, stripFence } = require('../../automation/jsonRepair');
+const { hasPlaceholder, isBareRefString } = require('../automationModel/refPaths');
+const { parseJsonish, stripFence } = require('../automationModel/jsonRepair');
 const {
     DATA_EXTRACTION_FIELD_TYPES, DATA_EXTRACTION_FIELD_NAME_RE, DATA_EXTRACTION_MAX_SOURCE_CHARS,
 } = require('../automationModel/constants');

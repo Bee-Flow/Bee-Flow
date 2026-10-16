@@ -2,12 +2,11 @@
 // modal, the section heading of the document column, and the class recipes of
 // the property sidebar. Shared by TaskDialog, its sections and the meeting dialog.
 
-import React, { useEffect, useLayoutEffect, useRef, type ComponentType } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import AnchoredMenuJs from '../../../shared/AnchoredMenu';
 import { MENU_ITEM_CLASS, MENU_PANEL_CLASS } from './tasksMenu';
 
-// The menu is untyped JavaScript: props are passed by name, as its other users do.
-const AnchoredMenu = AnchoredMenuJs as unknown as ComponentType<Record<string, unknown>>;
+const AnchoredMenu = AnchoredMenuJs;
 
 export const MENU_ITEM = MENU_ITEM_CLASS;
 export const MENU_LABEL = 'px-2.5 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]';

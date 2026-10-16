@@ -63,20 +63,15 @@ const { requireAuth } = require('../auth/permissions');
  * is what ties an export to a real, owned document.
  */
 async function requireNotebookOwner(req, res, next) {
-    try {
-        const userId = req.session?.user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-        const nb = await notebookStore.getNotebook(req.params.id, userId);
-        if (!nb) {
-            log.warn('[Export] refused export for a notebook the caller does not own:', { notebookId: req.params.id, userId });
-            return res.status(404).json({ error: 'Notebook not found' });
-        }
-        req.notebook = nb;
-        next();
-    } catch (err) {
-        log.error('[Export] ownership check failed:', err);
-        res.status(500).json({ error: 'Export failed' });
+    const userId = req.session?.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const nb = await notebookStore.getNotebook(req.params.id, userId);
+    if (!nb) {
+        log.warn('[Export] refused export for a notebook the caller does not own:', { notebookId: req.params.id, userId });
+        return res.status(404).json({ error: 'Notebook not found' });
     }
+    req.notebook = nb;
+    next();
 }
 
 // ── Request schemas (see the header) ────────────────────────────────
@@ -237,7 +232,7 @@ router.post('/:id/export/docx', requireAuth, requireNotebookOwner, validate({ bo
             // Handle both default and named exports
             if (HTMLtoDOCX.default) HTMLtoDOCX = HTMLtoDOCX.default;
         } catch (e) {
-            return res.status(500).json({ error: 'html-to-docx not installed. Run: npm install html-to-docx' });
+            throw new HttpError(500, 'docx_converter_missing', 'html-to-docx not installed. Run: npm install html-to-docx');
         }
 
         // Resolve which house style to apply (explicit id, org default, or none).
@@ -411,7 +406,7 @@ router.post('/:id/export/nextcloud', requireAuth, requireNotebookOwner, validate
                 headers: { 'Authorization': auth },
                 signal: AbortSignal.timeout(15000),
             });
-            if (mkRes.status === 401) return res.status(502).json({ error: 'Nextcloud rejected credentials. Re-save your app password.' });
+            if (mkRes.status === 401) throw new HttpError(502, 'nextcloud_auth_rejected', 'Nextcloud rejected credentials. Re-save your app password.');
             if (mkRes.status !== 201 && mkRes.status !== 405 /* already exists */) {
                 const text = await mkRes.text().catch(() => '');
                 log.warn(`[Export/Nextcloud] MKCOL ${walked} returned ${mkRes.status}: ${text.slice(0, 200)}`);
@@ -440,10 +435,10 @@ router.post('/:id/export/nextcloud', requireAuth, requireNotebookOwner, validate
             signal: AbortSignal.timeout(60000),
         });
 
-        if (putRes.status === 401) return res.status(502).json({ error: 'Nextcloud rejected credentials.' });
+        if (putRes.status === 401) throw new HttpError(502, 'nextcloud_auth_rejected', 'Nextcloud rejected credentials.');
         if (putRes.status !== 201 && putRes.status !== 204) {
             const text = await putRes.text().catch(() => '');
-            return res.status(502).json({ error: `Upload failed (${putRes.status}): ${text.slice(0, 200)}` });
+            throw new HttpError(502, 'nextcloud_upload_failed', `Upload failed (${putRes.status}): ${text.slice(0, 200)}`);
         }
 
         const relativePath = `/${targetFolderRaw}/${finalName}`;

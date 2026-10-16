@@ -25,9 +25,7 @@ const { resolveModelForTier } = require('../llm/modelResolver');
 const { getProviderForModel } = require('../aiAgent');
 const { getAdapter } = require('../providers');
 const { buildDirectChatToolStack } = require('../tools/directChatToolStack');
-const { executeTool: dispatchTool } = require('../tools/toolDispatcher');
-const usageStore = require('../../stores/usageStore');
-const { usageLogFields } = require('../providers/usageNormalizer');
+const { streamWorkerRound, runWorkerToolCalls } = require('./swarmWorkerRound');
 const dlpRunner = require('../dlp/dlpRunner');
 const { buildTokenPreservationAddendum } = require('../dlp/tokenPreservationPrompt');
 
@@ -83,7 +81,6 @@ function renderHiveMindForPrompt(hive, { excludeByWorker = null } = {}) {
 // ─── Worker execution ────────────────────────────────────────────────────
 
 const MAX_TOOL_ROUNDS_PER_WORKER = 8;
-const WORKER_DEFAULT_MAX_TOKENS = 6000;
 
 /**
  * Resolve the model + adapter the worker should use for this run.
@@ -109,6 +106,77 @@ async function resolveWorkerModel({ worker, fallbackModelId, userOrgId, userId }
         apiUrl: (config.url || '').replace(/\/+$/, ''),
         config,
     };
+}
+
+/** Seed / update a worker's card on the live run snapshot (no-op without one). */
+function setWorkerCard(runSnapshot, workerId, fields) {
+    if (runSnapshot?.workers?.[workerId]) Object.assign(runSnapshot.workers[workerId], fields);
+}
+
+/** A worker that ended in failure: its card, its event, its outcome. */
+function failWorker({ worker, workerId, send, runSnapshot, startedAt }, error) {
+    const durationMs = Date.now() - startedAt;
+    setWorkerCard(runSnapshot, workerId, { status: 'failed', error, durationMs });
+    send('swarm_worker_completed', { workerId, role: worker.role, status: 'failed', error, durationMs });
+}
+
+/**
+ * The worker's opening messages: its system prompt with the Hive Mind
+ * written by its siblings and the token-preservation addendum, then the
+ * user's request.
+ */
+function workerMessages({ worker, workerId, hive, userMessage, conversationId }) {
+    const hiveBlock = renderHiveMindForPrompt(hive, { excludeByWorker: workerId });
+    const baseSystemPrompt = [
+        worker.systemPrompt || '',
+        '',
+        '── HIVE MIND (shared scratchpad written by sibling workers) ──',
+        hiveBlock,
+        '',
+        '── User request ──',
+        '(Reply by completing your specific role. Use the tools available — they are the same integrations the user has in direct chat. When you have enough material to deliver your role\'s output, stop calling tools and write your final response.)',
+    ].join('\n');
+    const _convTokenMap = dlpRunner.getConversationTokenMap(conversationId);
+    const systemPrompt = baseSystemPrompt + buildTokenPreservationAddendum(_convTokenMap);
+    return [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+    ];
+}
+
+/**
+ * The tool-call loop with real token streaming: adapter.stream() pipes
+ * deltas through the round callback (./swarmWorkerRound); tool calls are
+ * accumulated and, once the stream ends, dispatched in parallel; the loop
+ * continues until the model produces a tool-call-free response, whose text
+ * is the worker's output. A stream error throws.
+ */
+async function runWorkerLoop(w, messages, toolHistory) {
+    for (let round = 0; round < MAX_TOOL_ROUNDS_PER_WORKER; round++) {
+        const r = await streamWorkerRound(w, messages);
+        if (r.error) {
+            log.error(`[Swarm/${w.workerId}] stream error round ${round}: ${r.error}`);
+            throw new Error(r.error);
+        }
+        log.info(`[Swarm/${w.workerId}] round ${round}: ${r.text.length} text chars, ${r.toolCalls.length} tool calls`);
+
+        if (r.toolCalls.length === 0) {
+            // No more tools — this round's text IS the final output. The
+            // tokens already streamed live via the callback; we just
+            // record the buffer so persistence + Hive Mind have it.
+            return r.text;
+        }
+
+        // Echo the assistant message (including any text emitted alongside
+        // tool calls) so the model has full conversational history.
+        messages.push({
+            role: 'assistant',
+            content: r.text || null,
+            tool_calls: r.toolCalls,
+        });
+        await runWorkerToolCalls(w, r.toolCalls, messages, toolHistory);
+    }
+    return '';
 }
 
 /**
@@ -152,28 +220,17 @@ async function runWorker({
             error: null,
         };
     }
+    const card = { worker, workerId, send, runSnapshot, startedAt };
 
     let model;
     try {
         model = await resolveWorkerModel({ worker, fallbackModelId, userOrgId, userId });
     } catch (err) {
-        const durationMs = Date.now() - startedAt;
-        if (runSnapshot?.workers?.[workerId]) {
-            runSnapshot.workers[workerId].status = 'failed';
-            runSnapshot.workers[workerId].error = `Model resolution failed: ${err.message}`;
-            runSnapshot.workers[workerId].durationMs = durationMs;
-        }
-        send('swarm_worker_completed', {
-            workerId, role: worker.role, status: 'failed',
-            error: `Model resolution failed: ${err.message}`,
-            durationMs,
-        });
+        failWorker(card, `Model resolution failed: ${err.message}`);
         return { workerId, role: worker.role, status: 'failed', error: err.message };
     }
 
-    if (runSnapshot?.workers?.[workerId]) {
-        runSnapshot.workers[workerId].modelId = model.modelId;
-    }
+    setWorkerCard(runSnapshot, workerId, { modelId: model.modelId });
 
     send('swarm_worker_started', {
         workerId, role: worker.role, name: worker.name,
@@ -189,37 +246,7 @@ async function runWorker({
         ? tools.filter(t => allowed.has(t.function.name))
         : tools;
 
-    // Build messages: per-worker system prompt + Hive Mind context + user request.
-    const hiveBlock = renderHiveMindForPrompt(hive, { excludeByWorker: workerId });
-    const baseSystemPrompt = [
-        worker.systemPrompt || '',
-        '',
-        '── HIVE MIND (shared scratchpad written by sibling workers) ──',
-        hiveBlock,
-        '',
-        '── User request ──',
-        '(Reply by completing your specific role. Use the tools available — they are the same integrations the user has in direct chat. When you have enough material to deliver your role\'s output, stop calling tools and write your final response.)',
-    ].join('\n');
-    const _convTokenMap = dlpRunner.getConversationTokenMap(conversationId);
-    const systemPrompt = baseSystemPrompt + buildTokenPreservationAddendum(_convTokenMap);
-
-    const messages = [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-    ];
-
-    // ── Tool-call loop with real token streaming ────────────────────
-    // adapter.stream() pipes deltas through a streamCallback. We forward
-    // text deltas to either `content` (synthesiser → goes straight to the
-    // chat bubble) or `swarm_worker_content` (researcher → goes to its
-    // own card). Tool calls are accumulated and, once the stream ends,
-    // dispatched in parallel; the loop continues until the model produces
-    // a tool-call-free response.
-    let collectedToolHistory = [];
-    let finalText = '';
-    let lastError = null;
-    // Accumulate per-round usage so we log one row per worker stream call.
-    let workerTotalUsage = null;
+    const messages = workerMessages({ worker, workerId, hive, userMessage, conversationId });
 
     // The Privacy Shield's tool block lists apply to a worker's tools as they
     // do in the agent loop (BFSF-354); rules in core/privacy/toolPiiGate.js.
@@ -235,188 +262,20 @@ async function runWorker({
             model: model.modelId,
         }).catch(() => {});
     };
+    const w = {
+        ...card, model, isSynthesiser, userId, swarmRunId, organizationId, conversationId,
+        workerTools, toolContext, shield, logShieldEvent, toolPiiGate,
+        // Per-round usage, accumulated so one row per worker stream call is logged.
+        totals: { usage: null },
+    };
 
+    const collectedToolHistory = [];
+    let finalText = '';
     try {
-        outer: for (let round = 0; round < MAX_TOOL_ROUNDS_PER_WORKER; round++) {
-            let roundText = '';
-            const roundToolCalls = [];
-
-            let streamErrorMessage = null;
-            const streamCallback = async (type, data) => {
-                if (type === 'text' && typeof data?.text === 'string') {
-                    roundText += data.text;
-                    if (runSnapshot?.workers?.[workerId]) {
-                        runSnapshot.workers[workerId].content += data.text;
-                    }
-                    if (isSynthesiser) {
-                        send('content', { text: data.text });
-                    } else {
-                        send('swarm_worker_content', { workerId, delta: data.text });
-                    }
-                } else if (type === 'tool_use' && data) {
-                    // Providers emit { id, name, input } — `input` is the
-                    // parsed args object. Echo back into OpenAI-shape so
-                    // adapters (incl. the Claude one which converts internally)
-                    // get a consistent assistant tool_calls history.
-                    roundToolCalls.push({
-                        id: data.id || `call_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
-                        type: 'function',
-                        function: {
-                            name: data.name,
-                            arguments: typeof data.input === 'string'
-                                ? data.input
-                                : JSON.stringify(data.input || {}),
-                        },
-                    });
-                } else if (type === 'error') {
-                    streamErrorMessage = data?.error || 'Stream error';
-                } else if (type === 'done' && data) {
-                    // Adapters emit final usage on `done`. Log per worker per
-                    // round so swarm dashboards see real token counts (workers
-                    // were previously invisible because the runtime ignored
-                    // this event).
-                    try {
-                        await usageStore.logUsage({
-                            user_id: userId,
-                            agent_id: workerId,
-                            agent_name: worker.name || workerId,
-                            agent_type: 'swarm',
-                            model: model.modelId,
-                            ...usageLogFields(data),
-                            stop_reason: data.stop_reason || null,
-                            swarm_run_id: swarmRunId,
-                            parent_call_id: swarmRunId,  // worker's parent is the swarm run itself
-                            source: 'swarm_orchestrator',
-                            organization_id: organizationId,
-                            conversation_id: conversationId,
-                            duration_ms: Date.now() - startedAt,
-                        });
-                    } catch (e) { /* ignore logging errors */ }
-                    // Track totals for snapshot
-                    workerTotalUsage = workerTotalUsage || { prompt: 0, completion: 0, reasoning: 0 };
-                    workerTotalUsage.prompt += data.prompt_tokens || 0;
-                    workerTotalUsage.completion += data.completion_tokens || 0;
-                    workerTotalUsage.reasoning += data.reasoning_tokens || 0;
-                }
-                // thinking_* and image events are intentionally ignored for
-                // workers — the synthesiser's reasoning surfaces in its
-                // streamed text either way.
-            };
-
-            try {
-                // Outbound-prompt guard — re-tokenise any real values that
-                // may have crept into the worker's context (memory, KB,
-                // hive block, …) before the LLM sees them. Idempotent.
-                const { applyTokenMapToMessages } = require('../dlp/applyTokenMapToOutbound');
-                const _guardedMessages = applyTokenMapToMessages({ conversationId, messages });
-                await model.adapter.stream(model.apiKey, model.apiUrl, model.modelId, _guardedMessages, {
-                    maxTokens: WORKER_DEFAULT_MAX_TOKENS,
-                    temperature: isSynthesiser ? 0.4 : 0.3,
-                    tools: workerTools.length > 0 ? workerTools : undefined,
-                    toolChoice: workerTools.length > 0 ? 'auto' : undefined,
-                    // Stable per-(run, worker) prompt-cache routing key: the
-                    // worker's system prompt + initial message prefix is identical
-                    // across tool-call rounds, so this lifts the OpenAI prefix
-                    // cache hit-rate across rounds. Ignored by non-OpenAI adapters.
-                    // Account-scoped routing hint — cannot leak across tenants.
-                    promptCacheKey: swarmRunId ? `swarm-${swarmRunId}-${workerId}` : undefined,
-                    userId,
-                }, streamCallback);
-            } catch (streamErr) {
-                streamErrorMessage = streamErr?.error?.message || streamErr?.message || 'Stream failed';
-            }
-
-            if (streamErrorMessage) {
-                log.error(`[Swarm/${workerId}] stream error round ${round}: ${streamErrorMessage}`);
-                throw new Error(streamErrorMessage);
-            }
-            log.info(`[Swarm/${workerId}] round ${round}: ${roundText.length} text chars, ${roundToolCalls.length} tool calls`);
-
-            if (roundToolCalls.length === 0) {
-                // No more tools — this round's text IS the final output. The
-                // tokens already streamed live via the callback; we just
-                // record the buffer so persistence + Hive Mind have it.
-                finalText = roundText;
-                break outer;
-            }
-
-            // Echo the assistant message (including any text emitted alongside
-            // tool calls) so the model has full conversational history.
-            messages.push({
-                role: 'assistant',
-                content: roundText || null,
-                tool_calls: roundToolCalls,
-            });
-
-            // Execute the round's tool calls in parallel.
-            const results = await Promise.all(roundToolCalls.map(async (tc) => {
-                const name = tc.function.name;
-                let args = {};
-                try { args = JSON.parse(tc.function.arguments || '{}'); } catch (_) { /* default to {} */ }
-                const toolEntry = { name, status: 'running', at: Date.now() };
-                if (runSnapshot?.workers?.[workerId]) runSnapshot.workers[workerId].tools.push(toolEntry);
-                send('swarm_worker_tool', { workerId, role: worker.role, toolName: name, status: 'start' });
-                let toolResult;
-                try {
-                    // Privacy Shield tool block lists (BFSF-354): a call whose
-                    // arguments carry a forbidden category is never dispatched.
-                    const refusal = await toolPiiGate.refuseToolCall({
-                        toolName: name, args, shield, logEvent: logShieldEvent, tag: `Swarm/${workerId} ToolPiiGuard`,
-                    });
-                    // A worker has no capture context of its own: the
-                    // dispatcher's chokepoint writes the egress row, and these
-                    // ids put it on this swarm run's worker.
-                    toolResult = refusal ? { error: refusal.modelError } : await dispatchTool(name, args, {
-                        ...toolContext,
-                        egress: {
-                            source: 'swarm',
-                            model: model.modelId,
-                            ids: {
-                                organization_id: organizationId || null,
-                                user_id: userId || null,
-                                agent_id: workerId,
-                                agent_name: worker.name || workerId,
-                                conversation_id: conversationId || null,
-                            },
-                        },
-                    });
-                } catch (err) {
-                    toolResult = { error: err.message };
-                }
-                const finalStatus = toolResult?.error ? 'error' : 'done';
-                toolEntry.status = finalStatus;
-                collectedToolHistory.push({ name, status: finalStatus });
-                send('swarm_worker_tool', { workerId, role: worker.role, toolName: name, status: finalStatus });
-                return { tc, toolResult };
-            }));
-
-            for (const { tc, toolResult } of results) {
-                messages.push({
-                    role: 'tool',
-                    tool_call_id: tc.id,
-                    name: tc.function.name,
-                    // What the worker's model reads, with the categories this
-                    // tool's class forbids stripped out (BFSF-354).
-                    content: await toolPiiGate.stripToolResultForModel(
-                        typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult || ''),
-                        { toolName: tc.function.name, shield, logEvent: logShieldEvent, tag: `Swarm/${workerId} ToolResultDlp` },
-                    ),
-                });
-            }
-        }
+        finalText = await runWorkerLoop(w, messages, collectedToolHistory);
     } catch (err) {
-        lastError = err.message;
-    }
-
-    const durationMs = Date.now() - startedAt;
-    if (lastError) {
-        if (runSnapshot?.workers?.[workerId]) {
-            runSnapshot.workers[workerId].status = 'failed';
-            runSnapshot.workers[workerId].error = lastError;
-            runSnapshot.workers[workerId].durationMs = durationMs;
-        }
-        send('swarm_worker_completed', { workerId, role: worker.role, status: 'failed', error: lastError, durationMs });
-        return { workerId, role: worker.role, status: 'failed', error: lastError, content: finalText };
+        failWorker(card, err.message);
+        return { workerId, role: worker.role, status: 'failed', error: err.message, content: finalText };
     }
 
     // Researchers append a Hive Mind entry. The synthesiser doesn't (its
@@ -430,10 +289,8 @@ async function runWorker({
         });
     }
 
-    if (runSnapshot?.workers?.[workerId]) {
-        runSnapshot.workers[workerId].status = 'done';
-        runSnapshot.workers[workerId].durationMs = durationMs;
-    }
+    const durationMs = Date.now() - startedAt;
+    setWorkerCard(runSnapshot, workerId, { status: 'done', durationMs });
     send('swarm_worker_completed', {
         workerId, role: worker.role, status: 'done',
         durationMs,

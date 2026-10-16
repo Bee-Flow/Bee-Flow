@@ -78,7 +78,7 @@ const TOOL_REGISTRY = [
     // Automation evolution (automation-only, self-scoped): an automation reads its own run
     // history and proposes/applies changes to its own definition after human
     // approval. See integrations/automationEvolutionTools.js + automation/evolution.js.
-    { app: 'automation-evolution',       label: 'Automation evolution',      module: '../integrations/automationEvolutionTools',     arrayName: 'AUTOMATION_EVOLUTION_TOOLS',    enabledKey: 'automation-evolution',  availableTo: ['automation_step'] },
+    { app: 'automation-evolution',       label: 'Automation evolution',      module: '../integrations/automationEvolutionToolDefs',     arrayName: 'AUTOMATION_EVOLUTION_TOOLS',    enabledKey: 'automation-evolution',  availableTo: ['automation_step'] },
     { app: 'kb-ingest',               label: 'Knowledge Base Ingest',  module: '../integrations/kbIngestTools',             enabledKey: 'kb-ingest',          arrayName: 'KB_INGEST_TOOLS',            availableTo: ['automation_step'] },
     { app: 'nextcloud',               label: 'Nextcloud',              module: '../integrations/nextcloudTools',            arrayName: 'NEXTCLOUD_TOOLS',            enabledKey: 'nextcloud' },
     { app: 'nextcloud-calendar',      label: 'Nextcloud Calendar',     module: '../integrations/nextcloudCalendarTools',    arrayName: 'NEXTCLOUD_CALENDAR_TOOLS',   enabledKey: 'nextcloud-calendar' },
@@ -175,6 +175,8 @@ const INLINE_TOOL_APPS = [
     { app: 'presentations',   label: 'Presentations', module: '../integrations/presentationTools',  arrayName: 'PRESENTATION_TOOLS',     enabledKey: null,            availableTo: ['agent', 'automation_step'], availability: 'installation', grantsRequireEntry: true },
     // The .docx sibling of create_presentation, injected next to it.
     { app: 'word-documents',  label: 'Word documents', module: '../integrations/wordDocumentTools', arrayName: 'WORD_DOCUMENT_TOOLS',    enabledKey: null,            availableTo: ['agent', 'automation_step'], availability: 'installation', grantsRequireEntry: true },
+    // The .xlsx sibling, injected next to it.
+    { app: 'spreadsheets',   label: 'Spreadsheets', module: '../integrations/spreadsheetTools', arrayName: 'SPREADSHEET_TOOLS',       enabledKey: null,            availableTo: ['agent', 'automation_step'], availability: 'installation', grantsRequireEntry: true },
 ];
 
 /**

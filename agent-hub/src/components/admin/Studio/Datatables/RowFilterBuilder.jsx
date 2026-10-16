@@ -40,7 +40,7 @@ export default function RowFilterBuilder({
             borderRadius: 12, background: 'var(--bg-card)',
             border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)',
         }}>
-            <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                 <span>{t('datatables.filter_rows_that', 'Show rows that match')}</span>
                 <select
                     value={match}
@@ -55,7 +55,7 @@ export default function RowFilterBuilder({
             </div>
 
             {rows.length === 0 && (
-                <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-xs text-[var(--text-tertiary)]">
                     {t('datatables.filter_empty', 'No conditions yet.')}
                 </p>
             )}

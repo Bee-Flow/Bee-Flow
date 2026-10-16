@@ -46,12 +46,15 @@
     "agent-hub/public/module-shims/**",
     "e2e/tests/generated/**",
     "mobile/src/features/flow-editor/bindings/mirror/**",
+    "mobile/src/features/forms/mirror/**",
+    "mobile/src/features/runs/mirror/**",
+    "mobile/src/shared/ui/mirror/**",
+    "mobile/src/features/app-studio/mirror/**",
     "**/*.generated.mjs",
     "components/*/ssrfGuard.js",
     "components/webpage-to-markdown/htmlToMarkdown.js",
     "components/website-sitemap-fetcher/safeGet.js",
     "deploy/**",
-    "docs_old/**",
-    ".quality-round/**"
+    "docs_old/**"
   ]
 }

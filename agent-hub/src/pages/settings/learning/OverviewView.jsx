@@ -74,11 +74,11 @@ export default function OverviewView({
                                     <span className="font-semibold truncate">
                                         {pathDef ? t(pathDef.titleKey, pathDef.titleFallback) : t('learn.rail.other_courses', 'Your organisation')}
                                     </span>
-                                    <span className="text-[11px] leading-[15px] line-clamp-2" style={{ color: 'var(--text-tertiary)' }}>
+                                    <span className="text-[11px] leading-[15px] line-clamp-2 text-[var(--text-tertiary)]">
                                         {pathDef ? t(pathDef.descKey, pathDef.descFallback) : t('learn.curriculum.n_of_m_done', '{a} of {b} complete').replace('{a}', String(done)).replace('{b}', String(col.courses.length))}
                                     </span>
                                     {pathDef && (
-                                        <span className="text-[11px] whitespace-nowrap" style={{ color: 'var(--text-tertiary)' }}>
+                                        <span className="text-[11px] whitespace-nowrap text-[var(--text-tertiary)]">
                                             {t('learn.curriculum.n_of_m_done', '{a} of {b} complete').replace('{a}', String(done)).replace('{b}', String(col.courses.length))}
                                         </span>
                                     )}
@@ -129,9 +129,9 @@ function ContinueHero({ t, target, reviewDue, reviewBuilding, onStartLesson, onS
             <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
                 {target ? (
                     <>
-                        <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('learn.continue.label', 'Continue learning')}</div>
+                        <div className="text-[11px] text-[var(--text-tertiary)]">{t('learn.continue.label', 'Continue learning')}</div>
                         <div className="text-[16px] font-semibold leading-5 truncate">{t(target.lesson.titleKey, target.lesson.titleFallback)}</div>
-                        <div className="text-[12px] truncate" style={{ color: 'var(--text-secondary)' }}>
+                        <div className="text-[12px] truncate text-[var(--text-secondary)]">
                             {t(target.course.titleKey, target.course.titleFallback)}
                             {' · '}{t('learn.hero.lesson_n_of', 'lesson {n} of {total}').replace('{n}', String(target.index)).replace('{total}', String(target.total))}
                             {' · '}{t('learn.minutes', '{n} min').replace('{n}', String(target.lesson.estMinutes || 1))}
@@ -139,9 +139,9 @@ function ContinueHero({ t, target, reviewDue, reviewBuilding, onStartLesson, onS
                     </>
                 ) : (
                     <>
-                        <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('learn.continue.label', 'Continue learning')}</div>
+                        <div className="text-[11px] text-[var(--text-tertiary)]">{t('learn.continue.label', 'Continue learning')}</div>
                         <div className="text-[16px] font-semibold leading-5">{t('learn.hero.all_done', 'Everything you can see is complete')}</div>
-                        <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{t('learn.hero.all_done_sub', 'Keep it fresh with a review, or open any course again.')}</div>
+                        <div className="text-[12px] text-[var(--text-secondary)]">{t('learn.hero.all_done_sub', 'Keep it fresh with a review, or open any course again.')}</div>
                     </>
                 )}
             </div>
@@ -192,7 +192,7 @@ export function CourseRow({ t, course, lessons, completedMap, locked, complete, 
             }}>
             <CourseIcon courseId={course.id} size={16} style={{ color: locked ? 'var(--text-tertiary)' : 'var(--text-secondary)' }} />
             <span className="flex-1 min-w-0 truncate font-medium">{title}</span>
-            <span className="flex items-center gap-2 text-[11px] whitespace-nowrap flex-shrink-0" style={{ color: 'var(--text-tertiary)' }}>
+            <span className="flex items-center gap-2 text-[11px] whitespace-nowrap flex-shrink-0 text-[var(--text-tertiary)]">
                 {complete ? (
                     <Check style={{ width: 15, height: 15, color: 'var(--learn-complete)' }} aria-label={t('learn.state.complete', 'complete')} />
                 ) : locked ? (
@@ -245,7 +245,7 @@ function CapstoneRow({ t, user, hasFeature, course, isComplete, locked, lockedRe
                 background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)',
             }}>
                 <Crown style={{ width: 16, height: 16, flexShrink: 0 }} aria-hidden="true" />
-                <span className="font-medium flex-shrink-0" style={{ color: 'var(--text-primary)' }}>{title}</span>
+                <span className="font-medium flex-shrink-0 text-[var(--text-primary)]">{title}</span>
                 <span className="text-[12px] truncate">{t('learn.capstone.short', 'No lessons — prove it in your own workspace.')}</span>
                 <span className="ml-auto flex items-center gap-2 text-[11px] whitespace-nowrap flex-shrink-0">
                     {complete ? (

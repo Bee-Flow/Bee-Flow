@@ -107,8 +107,7 @@ export default function ColorPicker({
                     />
                     {customColor && (
                         <code
-                            className="text-xs font-mono"
-                            style={{ color: 'var(--text-secondary)' }}
+                            className="text-xs font-mono text-[var(--text-secondary)]"
                         >
                             {customColor}
                         </code>

@@ -81,7 +81,7 @@ export default function FollowUpTab({ model, onSeek, t }) {
                     </TabHeading>
                     {f.openQuestions.map((q) => (
                         <div key={q.id} className="flex items-baseline gap-2 text-xs">
-                            <span className="flex-1 min-w-0 truncate" style={{ color: 'var(--text-secondary)' }} title={q.text}>
+                            <span className="flex-1 min-w-0 truncate text-[var(--text-secondary)]" title={q.text}>
                                 {q.text}
                             </span>
                             {q.seconds != null && onSeek ? (
@@ -95,7 +95,7 @@ export default function FollowUpTab({ model, onSeek, t }) {
                                     {formatDuration(q.seconds)}
                                 </button>
                             ) : (
-                                <span className="shrink-0" style={{ color: 'var(--text-muted)' }}>—</span>
+                                <span className="shrink-0 text-[var(--text-muted)]">—</span>
                             )}
                         </div>
                     ))}

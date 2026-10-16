@@ -1,6 +1,6 @@
 /**
  * DIFFERENTIAL lockstep for the item describers, auto-map and the list-path
- * words: agent-hub `upstream/loops.js`, `autoMapInputs.js` and
+ * words: agent-hub `upstream/loops.ts`, `autoMapInputs.js` and
  * `listPathLabel.ts` (whose humanizeFieldKey is the phone's own) against the
  * phone, on payloads as they come: JSON text inside JSON text, name/value
  * lists, keys that are not identifiers, lists inside lists. The TypeScript
@@ -19,8 +19,8 @@ import type { Catalog, FlowDefinition, VariableGroup } from './types';
 import * as loops from './upstream/loops';
 
 const web = {
-    am: requireWeb(`${BUILDER}/mapping/autoMapInputs.js`),
-    loops: requireWeb(`${BUILDER}/mapping/upstream/loops.js`),
+    am: requireWeb(`${BUILDER}/mapping/autoMapInputs`),
+    loops: requireWeb(`${BUILDER}/mapping/upstream/loops`),
 };
 
 beforeAll(() => {

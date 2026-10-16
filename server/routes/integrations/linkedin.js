@@ -12,6 +12,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 const configStore = require('../../stores/configStore');
 const { validate } = require('../../core/http/validate');
@@ -177,48 +178,43 @@ router.post('/post', requireSessionUser, validate({ body: PostBody }), async (re
 
     const { text } = req.body;
 
-    try {
-        const postRes = await fetch('https://api.linkedin.com/rest/posts', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-                'X-Restli-Protocol-Version': '2.0.0',
-                'LinkedIn-Version': '202501'
+    const postRes = await fetch('https://api.linkedin.com/rest/posts', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'X-Restli-Protocol-Version': '2.0.0',
+            'LinkedIn-Version': '202501'
+        },
+        body: JSON.stringify({
+            author: `urn:li:person:${personId}`,
+            commentary: text,
+            visibility: 'PUBLIC',
+            distribution: {
+                feedDistribution: 'MAIN_FEED',
+                targetEntities: [],
+                thirdPartyDistributionChannels: []
             },
-            body: JSON.stringify({
-                author: `urn:li:person:${personId}`,
-                commentary: text,
-                visibility: 'PUBLIC',
-                distribution: {
-                    feedDistribution: 'MAIN_FEED',
-                    targetEntities: [],
-                    thirdPartyDistributionChannels: []
-                },
-                lifecycleState: 'PUBLISHED',
-                isReshareDisabledByAuthor: false
-            })
-        });
+            lifecycleState: 'PUBLISHED',
+            isReshareDisabledByAuthor: false
+        })
+    });
 
-        if (!postRes.ok) {
-            const errBody = await postRes.text();
-            log.error('[LinkedIn] Post error:', postRes.status, errBody);
-            if (postRes.status === 401) {
-                // Token expired — clear stored tokens
-                await configStore.deleteConfig(`linkedin_access_token_user_${userId}`);
-                await configStore.deleteConfig(`linkedin_person_id_user_${userId}`);
-                await configStore.deleteConfig(`linkedin_name_user_${userId}`);
-                return res.status(401).json({ error: 'LinkedIn token expired. Please reconnect via Settings.' });
-            }
-            return res.status(500).json({ error: 'Failed to post to LinkedIn' });
+    if (!postRes.ok) {
+        const errBody = await postRes.text();
+        log.error('[LinkedIn] Post error:', postRes.status, errBody);
+        if (postRes.status === 401) {
+            // Token expired — clear stored tokens
+            await configStore.deleteConfig(`linkedin_access_token_user_${userId}`);
+            await configStore.deleteConfig(`linkedin_person_id_user_${userId}`);
+            await configStore.deleteConfig(`linkedin_name_user_${userId}`);
+            return res.status(401).json({ error: 'LinkedIn token expired. Please reconnect via Settings.' });
         }
-
-        log.info(`[LinkedIn] Post published for user ${userId}`);
-        res.json({ success: true, message: 'Post published on LinkedIn!' });
-    } catch (err) {
-        log.error('[LinkedIn] Post error:', err.message);
-        res.status(500).json({ error: 'Failed to post to LinkedIn' });
+        throw new HttpError(500, 'linkedin_post_failed', 'Failed to post to LinkedIn');
     }
+
+    log.info(`[LinkedIn] Post published for user ${userId}`);
+    res.json({ success: true, message: 'Post published on LinkedIn!' });
 });
 
 // ─── Connection Status ───────────────────────────────────────────

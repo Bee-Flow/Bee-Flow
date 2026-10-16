@@ -244,7 +244,7 @@ router.post('/connector/bootstrap/pending/:id/verify', pendingPollLimiter, async
         case 'too_many': return res.status(429).json({ error: 'Too many incorrect attempts. Request a new code.', code: 'too_many_attempts' });
         case 'invalid': return res.status(400).json({ error: 'That code is not correct.', code: 'invalid_code', attemptsLeft: result.attemptsLeft });
         case 'ok': break;
-        default: return res.status(500).json({ error: 'Verification failed' });
+        default: throw new Error(`Unexpected verification status '${result.status}'`);
     }
 
     const row = result.row;

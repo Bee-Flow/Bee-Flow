@@ -10,7 +10,9 @@
 // reaching for `authFetch` directly. The old direct-fetch call sites can
 // migrate file-by-file.
 
+import type { AuthFetchOptions } from '../utils/helpers';
 import { API_BASE, authFetch } from '../utils/helpers';
+import { errorStatus, isAbortError } from '../utils/caughtError';
 
 export interface ApiErrorInit {
     status?: number;
@@ -79,7 +81,7 @@ interface AttemptOptions extends RequestOptions {
 async function attempt<T>(method: string, path: string, opts: AttemptOptions = {}): Promise<T | null> {
     const { signal, body, query, headers } = opts;
     const url = buildUrl(path, query);
-    const init: RequestInit = { method, signal };
+    const init: AuthFetchOptions = { method, signal };
     if (body !== undefined && body !== null) {
         init.headers = { 'Content-Type': 'application/json', ...(headers || {}) };
         init.body = JSON.stringify(body);
@@ -107,7 +109,7 @@ async function request<T>(method: string, path: string, opts: AttemptOptions = {
             return await attempt<T>(method, path, opts);
         } catch (e) {
             // Don't retry user-cancelled or 4xx (except 408/429).
-            if ((e as Error)?.name === 'AbortError') throw e;
+            if (isAbortError(e)) throw e;
             if (e instanceof ApiError && e.status && e.status < 500 && e.status !== 408 && e.status !== 429) throw e;
             lastErr = e;
             if (!retry || i === retry.attempts) break;
@@ -199,9 +201,9 @@ export function createJsonResource(base = '', options: JsonResourceOptions = {})
         retry = false,
     } = options;
 
-    function toFetchInit(init: JsonResourceInit): RequestInit {
+    function toFetchInit(init: JsonResourceInit): AuthFetchOptions {
         const { body: rawBody, headers: callerHeaders, ...rest } = init;
-        const fetchInit: RequestInit = { ...rest };
+        const fetchInit: AuthFetchOptions = { ...rest };
         const hasBody = rawBody !== undefined;
         const form = isFormData(rawBody);
         const wantsJson = (contentType === 'json' && !form) || (contentType === 'body' && hasBody);
@@ -235,8 +237,8 @@ export function createJsonResource(base = '', options: JsonResourceOptions = {})
             try {
                 return await once<T>(url, init);
             } catch (e) {
-                if ((e as Error)?.name === 'AbortError') throw e;
-                const status = (e as JsonResourceError)?.status;
+                if (isAbortError(e)) throw e;
+                const status = errorStatus(e);
                 if (status && status < 500 && status !== 408 && status !== 429) throw e;
                 lastErr = e;
                 if (i === r.attempts) break;

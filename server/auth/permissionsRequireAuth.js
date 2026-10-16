@@ -11,6 +11,7 @@ const { dep } = require('./permissionsDeps');
 const userStore = dep('userStore');
 const { tagGate } = require('./gateMeta');
 const log = require('../telemetry/log');
+const { HttpError } = require('../shared/httpErrors');
 const { getRedis } = require('../db');
 const { buildKey } = require('../utils/buildInfo');
 const { USER_CHECK_TTL, _makeBoundedMap, _userExistsCache } = require('./permissionsCache');
@@ -75,8 +76,12 @@ const requireAuth = async (req, res, next) => {
         return res.status(401).json({ error: 'Not authenticated' });
     }
 
+    // The gate reports a refusal as next(err) (e.g. 503 auth_unavailable), so the
+    // continuation must read its argument: ignoring it would fail OPEN.
     let microsoftSessionAccepted = false;
-    await dep('microsoftSession').validateMicrosoftSession(req, res, () => { microsoftSessionAccepted = true; });
+    let msErr = null;
+    await dep('microsoftSession').validateMicrosoftSession(req, res, (e) => { if (e) msErr = e; else microsoftSessionAccepted = true; });
+    if (msErr) return next(msErr);
     if (!microsoftSessionAccepted) return;
 
     // Verify user still exists in DB (cached for 5s to avoid DB spam)
@@ -115,7 +120,7 @@ const requireAuth = async (req, res, next) => {
                 // exists; letting it through would keep a deleted user signed in
                 // for the length of the outage.
                 log.error('[Auth] user existence check failed:', e.message);
-                return res.status(503).json({ error: 'auth_unavailable' });
+                return next(new HttpError(503, 'auth_unavailable', 'auth_unavailable'));
             }
         }
 

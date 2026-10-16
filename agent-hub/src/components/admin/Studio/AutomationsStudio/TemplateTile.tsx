@@ -7,8 +7,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import AppIconJs from '../../../icons/AppIcon';
 
-// A .jsx module; its inferred props do not know `size`/`className`.
-const AppIcon = AppIconJs as unknown as ComponentType<Record<string, unknown>>;
+const AppIcon = AppIconJs;
 
 // Template icon names route through AppIcon, which resolves registry icons
 // synchronously and lazy-loads the full Lucide set for the rest (a wildcard

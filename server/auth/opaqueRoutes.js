@@ -338,20 +338,15 @@ const PinLoginStartBody = z.object({
 router.post('/register/start', ensureReady, requireAuth, opaqueRegisterLimiter, validate({ body: RegisterStartBody }), async (req, res) => {
     const { registrationRequest } = req.body;
 
-    try {
-        const username = req.session.user.id;
-        const serverSetup = getServerSetup();
-        const { registrationResponse } = opaque.server.createRegistrationResponse({
-            serverSetup,
-            userIdentifier: username,
-            registrationRequest
-        });
+    const username = req.session.user.id;
+    const serverSetup = getServerSetup();
+    const { registrationResponse } = opaque.server.createRegistrationResponse({
+        serverSetup,
+        userIdentifier: username,
+        registrationRequest
+    });
 
-        res.json({ registrationResponse });
-    } catch (err) {
-        log.error('[OPAQUE] Registration start failed:', err.message);
-        res.status(500).json({ error: 'OPAQUE registration failed' });
-    }
+    res.json({ registrationResponse });
 });
 
 /**
@@ -365,86 +360,81 @@ router.post('/register/start', ensureReady, requireAuth, opaqueRegisterLimiter, 
 router.post('/register/finish', requireAuth, opaqueRegisterLimiter, validate({ body: RegisterFinishBody }), async (req, res) => {
     const { registrationRecord, wrappedDEK, recoveryWrappedDEK, kekSalt } = req.body;
 
-    try {
-        // The account being migrated is the CALLER'S, taken from the session
-        // and never from the body. Both were missing: the route had no
-        // requireAuth and trusted `username`, so an unauthenticated request
-        // could overwrite any account's OPAQUE record and wrapped DEK and
-        // then be handed a session as that user — account takeover by
-        // username, plus destruction of their key wrapping. /pin/register/
-        // finish below always did this correctly; this one did not.
-        const username = req.session.user.id;
-        // Migration path: the account exists (created by /auth/signup, which
-        // establishes the session this route now requires).
-        const user = await userStore.getUser(username);
-        if (!user) {
-            return res.status(404).json({ error: 'User not found — create account first via /auth/signup' });
-        }
+    // The account being migrated is the CALLER'S, taken from the session
+    // and never from the body. Both were missing: the route had no
+    // requireAuth and trusted `username`, so an unauthenticated request
+    // could overwrite any account's OPAQUE record and wrapped DEK and
+    // then be handed a session as that user — account takeover by
+    // username, plus destruction of their key wrapping. /pin/register/
+    // finish below always did this correctly; this one did not.
+    const username = req.session.user.id;
+    // Migration path: the account exists (created by /auth/signup, which
+    // establishes the session this route now requires).
+    const user = await userStore.getUser(username);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found — create account first via /auth/signup' });
+    }
 
-        // Re-running registration replaces the DEK wrapping. If the caller
-        // re-wrapped the SAME DEK (the legacy→OPAQUE migration) that is
-        // correct; if they generated a fresh one, every existing encrypted
-        // row becomes permanently unreadable. The server cannot tell the two
-        // apart, so make it a deliberate act instead of a silent one.
-        if (user.wrappedDEK && req.body.confirmReplace !== true) {
-            log.warn(`[OPAQUE] Refused to replace existing wrapped DEK for ${username} without confirmReplace`);
-            return res.status(409).json({
-                error: 'This account already has an encryption key. Replacing it makes existing encrypted data unreadable unless you re-wrapped the same DEK. Retry with confirmReplace: true.',
-                code: 'dek_already_exists',
-            });
-        }
-
-        // Store OPAQUE record and wrapped keys
-        //
-        // password_changed_at is set by hand here. The store stamps it whenever
-        // a new bcrypt hash is written, but an opaque_v1 account has no hash:
-        // `opaqueRecord` IS its login credential, so this write is exactly as
-        // much of a password change as a bcrypt one, and the security screen
-        // would otherwise show "unknown" for the accounts on the newer scheme.
-        // Note that the PIN registration further down does NOT do this — see
-        // the note there.
-        await userStore.updateUser(username, {
-            opaqueRecord: registrationRecord,
-            kdfMode: 'opaque_v1',
-            wrappedDEK: JSON.stringify(wrappedDEK),
-            recoveryWrappedDEK: recoveryWrappedDEK ? JSON.stringify(recoveryWrappedDEK) : user.recoveryWrappedDEK,
-            kekSalt: kekSalt || user.kekSalt,
-            passwordChangedAt: new Date(),
+    // Re-running registration replaces the DEK wrapping. If the caller
+    // re-wrapped the SAME DEK (the legacy→OPAQUE migration) that is
+    // correct; if they generated a fresh one, every existing encrypted
+    // row becomes permanently unreadable. The server cannot tell the two
+    // apart, so make it a deliberate act instead of a silent one.
+    if (user.wrappedDEK && req.body.confirmReplace !== true) {
+        log.warn(`[OPAQUE] Refused to replace existing wrapped DEK for ${username} without confirmReplace`);
+        return res.status(409).json({
+            error: 'This account already has an encryption key. Replacing it makes existing encrypted data unreadable unless you re-wrapped the same DEK. Retry with confirmReplace: true.',
+            code: 'dek_already_exists',
         });
+    }
 
-        log.info(`[OPAQUE] Registration complete for user ${username} (mode: opaque_v1)`);
+    // Store OPAQUE record and wrapped keys
+    //
+    // password_changed_at is set by hand here. The store stamps it whenever
+    // a new bcrypt hash is written, but an opaque_v1 account has no hash:
+    // `opaqueRecord` IS its login credential, so this write is exactly as
+    // much of a password change as a bcrypt one, and the security screen
+    // would otherwise show "unknown" for the accounts on the newer scheme.
+    // Note that the PIN registration further down does NOT do this — see
+    // the note there.
+    await userStore.updateUser(username, {
+        opaqueRecord: registrationRecord,
+        kdfMode: 'opaque_v1',
+        wrappedDEK: JSON.stringify(wrappedDEK),
+        recoveryWrappedDEK: recoveryWrappedDEK ? JSON.stringify(recoveryWrappedDEK) : user.recoveryWrappedDEK,
+        kekSalt: kekSalt || user.kekSalt,
+        passwordChangedAt: new Date(),
+    });
 
-        // Set session — H11: rotate the session id on establishment
-        // (session fixation). Note: NO encryptionKey in session — client
-        // holds it.
-        const sessionUser = {
-            id: user.id,
-            displayName: user.displayName,
-            role: user.role || 'user',
-            avatar: user.avatar || null,
-            avatarType: user.avatarType || null
-        };
-        try {
-            await establishSession(req, {
-                user: sessionUser,
-                isAdmin: user.role === 'admin',
-                // Registration, not a sign-in: this is /register/finish, which
-                // re-establishes the session after the OPAQUE record is stored.
-                // Labelling it 'opaque' would file it among the logins.
-                audit: { method: 'opaque_register', organizationId: user.organizationId || null },
-                extra: { opaqueMode: true },
-            });
-        } catch (err) {
-            log.error('Session save error:', err);
-        }
-        res.json({
-            success: true,
-            user: sessionUser
+    log.info(`[OPAQUE] Registration complete for user ${username} (mode: opaque_v1)`);
+
+    // Set session — H11: rotate the session id on establishment
+    // (session fixation). Note: NO encryptionKey in session — client
+    // holds it.
+    const sessionUser = {
+        id: user.id,
+        displayName: user.displayName,
+        role: user.role || 'user',
+        avatar: user.avatar || null,
+        avatarType: user.avatarType || null
+    };
+    try {
+        await establishSession(req, {
+            user: sessionUser,
+            isAdmin: user.role === 'admin',
+            // Registration, not a sign-in: this is /register/finish, which
+            // re-establishes the session after the OPAQUE record is stored.
+            // Labelling it 'opaque' would file it among the logins.
+            audit: { method: 'opaque_register', organizationId: user.organizationId || null },
+            extra: { opaqueMode: true },
         });
     } catch (err) {
-        log.error('[OPAQUE] Registration finish failed:', err.message);
-        res.status(500).json({ error: 'OPAQUE registration finalization failed' });
+        log.error('Session save error:', err);
     }
+    res.json({
+        success: true,
+        user: sessionUser
+    });
 });
 
 // ============================================================
@@ -681,20 +671,15 @@ router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBod
 router.post('/pin/register/start', ensureReady, requireAuth, opaqueRegisterLimiter, validate({ body: RegisterStartBody }), async (req, res) => {
     const { registrationRequest } = req.body;
 
-    try {
-        const userId = req.session.user.id;
-        const serverSetup = getServerSetup();
-        const { registrationResponse } = opaque.server.createRegistrationResponse({
-            serverSetup,
-            userIdentifier: `${userId}:pin`,
-            registrationRequest
-        });
+    const userId = req.session.user.id;
+    const serverSetup = getServerSetup();
+    const { registrationResponse } = opaque.server.createRegistrationResponse({
+        serverSetup,
+        userIdentifier: `${userId}:pin`,
+        registrationRequest
+    });
 
-        res.json({ registrationResponse });
-    } catch (err) {
-        log.error('[OPAQUE] PIN registration start failed:', err.message);
-        res.status(500).json({ error: 'PIN registration failed' });
-    }
+    res.json({ registrationResponse });
 });
 
 /**
@@ -703,49 +688,44 @@ router.post('/pin/register/start', ensureReady, requireAuth, opaqueRegisterLimit
 router.post('/pin/register/finish', requireAuth, opaqueRegisterLimiter, validate({ body: PinRegisterFinishBody }), async (req, res) => {
     const { registrationRecord, wrappedDEK, recoveryWrappedDEK } = req.body;
 
-    try {
-        const userId = req.session.user.id;
+    const userId = req.session.user.id;
 
-        // Same hazard as /register/finish: this route is reachable whenever a
-        // session exists, and it overwrites wrappedDEK unconditionally. A
-        // re-run of the setup screen (or a CSRF, given sameSite:'lax' and no
-        // CSRF token) would orphan every encrypted row. Require an explicit
-        // acknowledgement once a key is already in place.
-        const existing = await userStore.getUser(userId);
-        if (existing?.wrappedDEK && req.body.confirmReplace !== true) {
-            log.warn(`[OPAQUE] Refused to replace existing wrapped DEK for SSO user ${userId} without confirmReplace`);
-            return res.status(409).json({
-                error: 'Encryption is already set up for this account. Replacing the key makes existing encrypted data unreadable. Retry with confirmReplace: true.',
-                code: 'dek_already_exists',
-            });
-        }
-
-        // No password_changed_at here, unlike /register/finish above: this PIN
-        // protects the encryption key of an account that signs in through SSO
-        // and has no password at all. Dating it would put "password changed
-        // today" on the security screen of someone who has never had one.
-        await userStore.updateUser(userId, {
-            opaqueRecord: registrationRecord,
-            kdfMode: 'opaque_v1',
-            wrappedDEK: JSON.stringify(wrappedDEK),
-            recoveryWrappedDEK: recoveryWrappedDEK ? JSON.stringify(recoveryWrappedDEK) : undefined,
-            ssoEncryptionSetup: 1
+    // Same hazard as /register/finish: this route is reachable whenever a
+    // session exists, and it overwrites wrappedDEK unconditionally. A
+    // re-run of the setup screen (or a CSRF, given sameSite:'lax' and no
+    // CSRF token) would orphan every encrypted row. Require an explicit
+    // acknowledgement once a key is already in place.
+    const existing = await userStore.getUser(userId);
+    if (existing?.wrappedDEK && req.body.confirmReplace !== true) {
+        log.warn(`[OPAQUE] Refused to replace existing wrapped DEK for SSO user ${userId} without confirmReplace`);
+        return res.status(409).json({
+            error: 'Encryption is already set up for this account. Replacing the key makes existing encrypted data unreadable. Retry with confirmReplace: true.',
+            code: 'dek_already_exists',
         });
-
-        req.session.needsEncryptionSetup = false;
-        req.session.needsEncryptionPin = false;
-        req.session.opaqueMode = true;
-
-        log.info(`[OPAQUE] PIN registration complete for SSO user ${userId}`);
-
-        req.session.save((err) => {
-            if (err) log.error('Session save error:', err);
-            res.json({ success: true });
-        });
-    } catch (err) {
-        log.error('[OPAQUE] PIN registration finish failed:', err.message);
-        res.status(500).json({ error: 'PIN registration finalization failed' });
     }
+
+    // No password_changed_at here, unlike /register/finish above: this PIN
+    // protects the encryption key of an account that signs in through SSO
+    // and has no password at all. Dating it would put "password changed
+    // today" on the security screen of someone who has never had one.
+    await userStore.updateUser(userId, {
+        opaqueRecord: registrationRecord,
+        kdfMode: 'opaque_v1',
+        wrappedDEK: JSON.stringify(wrappedDEK),
+        recoveryWrappedDEK: recoveryWrappedDEK ? JSON.stringify(recoveryWrappedDEK) : undefined,
+        ssoEncryptionSetup: 1
+    });
+
+    req.session.needsEncryptionSetup = false;
+    req.session.needsEncryptionPin = false;
+    req.session.opaqueMode = true;
+
+    log.info(`[OPAQUE] PIN registration complete for SSO user ${userId}`);
+
+    req.session.save((err) => {
+        if (err) log.error('Session save error:', err);
+        res.json({ success: true });
+    });
 });
 
 /**
@@ -754,36 +734,31 @@ router.post('/pin/register/finish', requireAuth, opaqueRegisterLimiter, validate
 router.post('/pin/login/start', ensureReady, requireAuth, opaqueLoginLimiter, validate({ body: PinLoginStartBody }), async (req, res) => {
     const { startLoginRequest } = req.body;
 
-    try {
-        const userId = req.session.user.id;
-        const user = await userStore.getUser(userId);
+    const userId = req.session.user.id;
+    const user = await userStore.getUser(userId);
 
-        if (!user || !user.opaqueRecord) {
-            return res.json({ needsSetup: true });
-        }
-
-        const serverSetup = getServerSetup();
-        const { serverLoginState, loginResponse } = opaque.server.startLogin({
-            serverSetup,
-            userIdentifier: `${userId}:pin`,
-            registrationRecord: user.opaqueRecord,
-            startLoginRequest
-        });
-
-        const loginId = require('crypto').randomUUID();
-        await setPendingLogin(loginId, {
-            serverLoginState,
-            username: userId,
-            isPinLogin: true,
-        });
-
-        const wrappedDEK = readEnvelope(user.wrappedDEK);
-
-        res.json({ loginResponse, loginId, wrappedDEK });
-    } catch (err) {
-        log.error('[OPAQUE] PIN login start failed:', err.message);
-        res.status(500).json({ error: 'PIN login failed' });
+    if (!user || !user.opaqueRecord) {
+        return res.json({ needsSetup: true });
     }
+
+    const serverSetup = getServerSetup();
+    const { serverLoginState, loginResponse } = opaque.server.startLogin({
+        serverSetup,
+        userIdentifier: `${userId}:pin`,
+        registrationRecord: user.opaqueRecord,
+        startLoginRequest
+    });
+
+    const loginId = require('crypto').randomUUID();
+    await setPendingLogin(loginId, {
+        serverLoginState,
+        username: userId,
+        isPinLogin: true,
+    });
+
+    const wrappedDEK = readEnvelope(user.wrappedDEK);
+
+    res.json({ loginResponse, loginId, wrappedDEK });
 });
 
 /**

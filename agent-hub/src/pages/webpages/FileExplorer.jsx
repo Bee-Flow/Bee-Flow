@@ -3,6 +3,7 @@ import {
     FilePlus, FolderPlus, Upload, Pencil, Trash2, Copy, Check,
 } from 'lucide-react';
 import React, { useState, useMemo, useRef } from 'react';
+import { buildTree } from './fileExplorerTree';
 import { PRIMARY_SLOTS, PRIMARY_SLOT_NAMES } from './webpageCodeFiles';
 import useConfirm from '../../components/shared/useConfirm';
 import useTranslation from '../../hooks/useTranslation';
@@ -72,58 +73,6 @@ function validatePath(path, t) {
     }
     if (RESERVED.has(path)) return t('webpages.explorer.err_primary_slot', '"{path}" is a primary slot', { path });
     return null;
-}
-
-/**
- * Build a nested folder tree from a flat list of {path, ...meta} entries plus
- * any client-only pending (empty) folder paths. Folders sort first, then files.
- */
-function buildTree(entries, pendingFolders) {
-    const root = { type: 'folder', name: '', path: '', children: [] };
-    const folderIndex = new Map();
-    folderIndex.set('', root);
-
-    const ensureFolder = (acc, name, parent) => {
-        let folder = folderIndex.get(acc);
-        if (!folder) {
-            folder = { type: 'folder', name, path: acc, children: [] };
-            parent.children.push(folder);
-            folderIndex.set(acc, folder);
-        }
-        return folder;
-    };
-
-    for (const entry of entries) {
-        const segs = entry.path.split('/').filter(Boolean);
-        let parent = root;
-        let acc = '';
-        for (let i = 0; i < segs.length - 1; i++) {
-            acc = acc ? `${acc}/${segs[i]}` : segs[i];
-            parent = ensureFolder(acc, segs[i], parent);
-        }
-        parent.children.push({ type: 'file', name: segs[segs.length - 1], path: entry.path, meta: entry });
-    }
-
-    // Materialise pending (empty) folders so the user can target them.
-    for (const fp of pendingFolders) {
-        const segs = fp.split('/').filter(Boolean);
-        let parent = root;
-        let acc = '';
-        for (let i = 0; i < segs.length; i++) {
-            acc = acc ? `${acc}/${segs[i]}` : segs[i];
-            parent = ensureFolder(acc, segs[i], parent);
-        }
-    }
-
-    const sortChildren = (node) => {
-        node.children.sort((a, b) => {
-            if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
-            return a.name.localeCompare(b.name);
-        });
-        for (const c of node.children) if (c.type === 'folder') sortChildren(c);
-    };
-    sortChildren(root);
-    return root.children;
 }
 
 /** Inline text input used for new-file / new-folder / rename. */
@@ -237,6 +186,21 @@ function FileNode({ node, depth, activePath, onFileSelect, actions }) {
     );
 }
 
+/**
+ * @typedef {object} FileExplorerProps
+ * @property {string | { path: string } | null} [activeFile]
+ * @property {(file: string | { path: string }) => void} [onFileSelect]
+ * @property {Record<string, boolean>} [dirtyFiles]
+ * @property {Array<import('./webpageEditorTypes').ExtraFileMeta>} [extraFiles]
+ * @property {string} [framework]
+ * @property {(path: string) => unknown} [onCreateFile]
+ * @property {(oldPath: string, newPath: string) => unknown} [onRename]
+ * @property {(path: string) => unknown} [onDelete]
+ * @property {(file: File, folder?: string) => unknown} [onUploadAsset]
+ * @property {boolean} [readOnly]
+ *
+ * @param {FileExplorerProps} props
+ */
 export default function FileExplorer({
     activeFile,
     onFileSelect,
@@ -358,8 +322,7 @@ export default function FileExplorer({
 
     return (
         <div
-            className="flex flex-col h-full select-none overflow-y-auto relative"
-            style={{ background: 'var(--vsc-sidebar-bg)', color: 'var(--vsc-fg)' }}
+            className="flex flex-col h-full select-none overflow-y-auto relative bg-[var(--vsc-sidebar-bg)] text-[var(--vsc-fg)]"
             onDragOver={(e) => { if (interactive && onUploadAsset) { e.preventDefault(); setIsDragOver(true); } }}
             onDragLeave={(e) => { if (e.currentTarget === e.target) setIsDragOver(false); }}
             onDrop={onDrop}
@@ -398,7 +361,7 @@ export default function FileExplorer({
                     >
                         <Icon size={13} />
                         <span className="flex-1 truncate">{label}</span>
-                        {isDirty && <span title={t('webpages.code.unsaved', 'Unsaved changes')} className="w-2 h-2 rounded-full shrink-0 mr-1" style={{ background: 'var(--vsc-fg-muted)' }} />}
+                        {isDirty && <span title={t('webpages.code.unsaved', 'Unsaved changes')} className="w-2 h-2 rounded-full shrink-0 mr-1 bg-[var(--vsc-fg-muted)]" />}
                     </div>
                 );
             })}
@@ -433,7 +396,7 @@ export default function FileExplorer({
             {isDragOver && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none"
                      style={{ background: 'color-mix(in srgb, var(--vsc-accent) 12%, transparent)', border: '2px dashed var(--vsc-accent)' }}>
-                    <span className="text-[12px] font-medium" style={{ color: 'var(--vsc-accent)' }}>{t('webpages.explorer.drop_hint', 'Drop images to upload')}</span>
+                    <span className="text-[12px] font-medium text-[var(--vsc-accent)]">{t('webpages.explorer.drop_hint', 'Drop images to upload')}</span>
                 </div>
             )}
 

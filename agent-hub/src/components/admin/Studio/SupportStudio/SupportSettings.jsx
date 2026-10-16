@@ -53,11 +53,11 @@ export default function SupportSettings({ inboxes = [], onChanged, user, onOpenT
     const needsInbox = activeTab.scope === 'inbox' && activeTab.id !== 'inboxes';
 
     return (
-        <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)' }}>
+        <div className="h-full flex flex-col bg-[var(--bg-primary)]">
             {/* Pill-tab bar — identical treatment to Organisation Settings. */}
             <div className="h-14 flex items-center justify-between px-4 border-b shrink-0" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
                 <h2 className="text-base font-semibold text-[var(--text-primary)]">{t('support.settings.heading', 'Support settings')}</h2>
-                <div className="flex gap-1 p-1 rounded-lg overflow-x-auto" style={{ background: 'var(--bg-tertiary)' }}>
+                <div className="flex gap-1 p-1 rounded-lg overflow-x-auto bg-[var(--bg-tertiary)]">
                     {TABS.map((tb) => (
                         <button
                             key={tb.id}

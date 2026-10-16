@@ -28,7 +28,7 @@ const MOBILE = path.join(REPO, 'mobile');
 const read = (...parts: string[]) => fs.readFileSync(path.join(REPO, ...parts), 'utf8');
 
 const ROUTE = read('server/routes/studio/aiRoute.js');
-const WEB_API = read('agent-hub/src/components/admin/Studio/studioAi/routeApi.js');
+const WEB_API = read('agent-hub/src/components/admin/Studio/studioAi/routeApi.ts');
 const WEB_PANEL = read('agent-hub/src/components/admin/Studio/studioAi/DescribeItPanel.jsx');
 
 /** The text between `start` and the first `end` after it. */
@@ -52,7 +52,10 @@ describe('the route (server/routes/studio/aiRoute.js)', () => {
     });
 
     it('refuses with the statuses and codes the phone reads', () => {
-        const refusals = [...ROUTE.matchAll(/status\((\d{3})\)\.json\(\{[^}]*?code: '(\w+)'/g)].map((m) => [Number(m[1]), m[2]]);
+        // A refusal is a hand-written `res.status(4xx).json({ ..., code })` or a thrown
+        // `HttpError(5xx, code, ...)`, which the terminal handler answers with the same body.
+        const refusals = [...ROUTE.matchAll(/status\((\d{3})\)\.json\(\{[^}]*?code: '(\w+)'|new HttpError\((\d{3}), '(\w+)'/g)]
+            .map((m) => (m[1] ? [Number(m[1]), m[2]] : [Number(m[3]), m[4]]));
         expect(refusals).toEqual([
             [400, 'no_text'],
             [503, 'no_model'],

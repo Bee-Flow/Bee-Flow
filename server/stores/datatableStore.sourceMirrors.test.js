@@ -22,23 +22,9 @@
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const path = require('node:path');
-const Module = require('node:module');
 
-const SERVER = path.resolve(__dirname, '..');
 const { usePglitePool } = require('../testUtils/pglitePool');
 const { pg, query: rawQuery, close: closePg } = usePglitePool();
-
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
-
-mock(path.join(SERVER, 'jobs/kbSourceRefresh'), { onDatatableChanged: () => {} });
-mock(path.join(SERVER, 'core/webpages/webpageShareReconciler'), { onDatatableChanged: () => {} });
 
 const store = require('./datatableStore');
 const SC = store.orgScope('org_a');

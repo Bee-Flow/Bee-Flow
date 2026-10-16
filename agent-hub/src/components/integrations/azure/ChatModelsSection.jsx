@@ -29,13 +29,13 @@ export default function ChatModelsSection({ chatModelTiers, setChatModelTiers, a
             : (tierConfig.modelId || t('azure.not_configured_option'));
 
         return (
-            <div key={tier.key} className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)' }}>
+            <div key={tier.key} className="rounded-xl border overflow-hidden bg-[var(--bg-primary)] border-[var(--border-default)]">
                 <div className="p-4">
                     <div className="flex items-center gap-3 mb-3">
                         <span className="text-xl">{tier.icon}</span>
                         <div className="flex-1">
-                            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t(tier.labelKey)}</span>
-                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t(tier.descKey)}</p>
+                            <span className="text-sm font-semibold text-[var(--text-primary)]">{t(tier.labelKey)}</span>
+                            <p className="text-xs text-[var(--text-muted)]">{t(tier.descKey)}</p>
                         </div>
                         <button
                             onClick={() => setExpandedTier(isExpanded ? null : tier.key)}
@@ -55,10 +55,10 @@ export default function ChatModelsSection({ chatModelTiers, setChatModelTiers, a
                     />
                 </div>
                 {isExpanded && (
-                    <div className="px-4 pb-4 pt-1 border-t flex flex-wrap gap-4" style={{ borderColor: 'var(--border-default)' }}>
+                    <div className="px-4 pb-4 pt-1 border-t flex flex-wrap gap-4 border-[var(--border-default)]">
                         {/* Max Tokens */}
                         <div className="flex-1" style={{ minWidth: '140px' }}>
-                            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('azure.max_tokens')}</label>
+                            <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">{t('azure.max_tokens')}</label>
                             <input
                                 type="number"
                                 value={tierConfig.maxTokens !== undefined ? tierConfig.maxTokens : defaults.maxTokens}
@@ -67,13 +67,13 @@ export default function ChatModelsSection({ chatModelTiers, setChatModelTiers, a
                                 className="w-full px-3 py-2 rounded-lg border outline-none text-sm"
                                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                             />
-                            <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-[10px] mt-1 text-[var(--text-muted)]">
                                 Default: {defaults.maxTokens.toLocaleString()}
                             </p>
                         </div>
                         {/* Temperature */}
                         <div className="flex-1" style={{ minWidth: '140px' }}>
-                            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>{t('azure.temperature')}</label>
+                            <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">{t('azure.temperature')}</label>
                             <input
                                 type="number"
                                 value={tierConfig.temperature !== undefined ? tierConfig.temperature : defaults.temperature}
@@ -82,7 +82,7 @@ export default function ChatModelsSection({ chatModelTiers, setChatModelTiers, a
                                 className="w-full px-3 py-2 rounded-lg border outline-none text-sm"
                                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
                             />
-                            <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-[10px] mt-1 text-[var(--text-muted)]">
                                 {t('azure.temperature_help').replace('{value}', defaults.temperature)}
                             </p>
                         </div>
@@ -90,7 +90,7 @@ export default function ChatModelsSection({ chatModelTiers, setChatModelTiers, a
                         {isReasoningCapable(tierConfig.modelId) && (
                             <>
                                 <div className="flex-1" style={{ minWidth: '140px' }}>
-                                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>🧠 {isClaudeReasoning(tierConfig.modelId) ? t('azure.thinking_budget') : t('azure.reasoning_effort')}</label>
+                                    <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">🧠 {isClaudeReasoning(tierConfig.modelId) ? t('azure.thinking_budget') : t('azure.reasoning_effort')}</label>
                                     <select
                                         value={tierConfig.reasoningEffort || (isClaudeReasoning(tierConfig.modelId) ? 'medium' : 'none')}
                                         onChange={e => updateTier(tier.key, 'reasoningEffort', e.target.value)}
@@ -103,7 +103,7 @@ export default function ChatModelsSection({ chatModelTiers, setChatModelTiers, a
                                         <option value="high">{t('azure.reasoning_high')}</option>
                                         <option value="xhigh">{t('azure.reasoning_xhigh')}</option>
                                     </select>
-                                    <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                                    <p className="text-[10px] mt-1 text-[var(--text-muted)]">
                                         {isClaudeReasoning(tierConfig.modelId)
                                             ? 'Adaptive thinking — Claude decides how deep to reason. Default: Medium.'
                                             : t('azure.reasoning_effort_help')}
@@ -111,20 +111,19 @@ export default function ChatModelsSection({ chatModelTiers, setChatModelTiers, a
                                 </div>
                                 {!isClaudeReasoning(tierConfig.modelId) && (
                                     <div className="flex-1" style={{ minWidth: '140px' }}>
-                                        <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-primary)' }}>📝 {t('azure.reasoning_summary')}</label>
+                                        <label className="block text-xs font-medium mb-1 text-[var(--text-primary)]">📝 {t('azure.reasoning_summary')}</label>
                                         <div
-                                            className="flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer"
-                                            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+                                            className="flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer bg-[var(--bg-secondary)] border-[var(--border-default)]"
                                             onClick={() => updateTier(tier.key, 'reasoningSummary', !tierConfig.reasoningSummary)}
                                         >
                                             <div className={`w-9 h-5 rounded-full relative transition-colors ${tierConfig.reasoningSummary ? 'bg-green-500' : 'bg-gray-600'}`}>
                                                 <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${tierConfig.reasoningSummary ? 'translate-x-4' : 'translate-x-0.5'}`} />
                                             </div>
-                                            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                                            <span className="text-sm text-[var(--text-primary)]">
                                                 {tierConfig.reasoningSummary ? t('azure.enabled') : t('azure.disabled')}
                                             </span>
                                         </div>
-                                        <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>{t('azure.reasoning_summary_help')}</p>
+                                        <p className="text-[10px] mt-1 text-[var(--text-muted)]">{t('azure.reasoning_summary_help')}</p>
                                     </div>
                                 )}
                             </>

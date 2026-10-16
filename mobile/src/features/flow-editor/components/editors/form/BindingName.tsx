@@ -1,6 +1,6 @@
 /**
  * A question's binding name — `<base>.<name>`, what later steps read — in its
- * Advanced fold, the web's BindingNameField (fieldDesigner.jsx). Where the
+ * Advanced fold, the web's BindingNameField (fieldDesigner.tsx). Where the
  * editor can rewrite the automation (`rename`), the name is editable and the
  * rename carries every step that binds it, in the same edit, saying how many
  * moved; where it cannot, the name is shown and said to be fixed here.

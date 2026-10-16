@@ -8,7 +8,7 @@ import {
 } from './patternView';
 
 // The English fallback, interpolated: what the page shows without a catalogue.
-const t: TranslateFn = (_key, fb, params) => interpolate(typeof fb === 'string' ? fb : _key, typeof fb === 'string' ? params : fb);
+const t: TranslateFn = (_key: string, fb, params) => interpolate(typeof fb === 'string' ? fb : _key, typeof fb === 'string' ? params : fb);
 const labelFor = makeLabelFor([
     { id: 'mail', kind: 'live', connected: true, apps: [{ id: 'gmail', label: 'Gmail', connected: true }] },
 ], t);

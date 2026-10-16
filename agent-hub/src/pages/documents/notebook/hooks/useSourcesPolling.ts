@@ -18,6 +18,7 @@ import {
     reorderSourcesApi, bulkDeleteSourcesApi,
 } from './notebookApi';
 import useTranslation from '../../../../hooks/useTranslation';
+import { errorMessage } from '../../../../utils/caughtError';
 
 export interface NotebookSource {
     id: string;
@@ -40,7 +41,7 @@ const DONE_ROW_MS = 4000;
 
 interface Options {
     entityId?: string | null;
-    onError?: (message: string) => void;
+    onError?: (message: string | undefined) => void;
     onChanged?: () => void;
 }
 
@@ -86,7 +87,7 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
             const pending = pendingDeleteRef.current?.source.id;
             setSources((data.sources || []).filter((s: NotebookSource) => s.id !== pending));
             setSourcesKnown(true);
-        } catch (e) { onErrorRef.current?.((e as Error).message); }
+        } catch (e) { onErrorRef.current?.(errorMessage(e)); }
     }, [entityId, setSources]);
 
     /** The list the notebook read already carried: it counts as an answer. */
@@ -219,7 +220,7 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
             await notebookApi(`/${entityId}${path}`, { method: 'POST', body: JSON.stringify(payload) });
             await refreshSources();
             onChangedRef.current?.();
-        } catch (e) { onErrorRef.current?.((e as Error).message); }
+        } catch (e) { onErrorRef.current?.(errorMessage(e)); }
     }, [entityId, refreshSources]);
 
     const handleAddUrl = useCallback((url: string) => (url?.trim() ? post('/sources/url', { url: url.trim() }) : undefined), [post]);
@@ -234,7 +235,7 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
         try {
             await notebookApi(`/${entityId}/sources/${sid}/retry`, { method: 'POST' });
             setSources((prev) => prev.map((s) => (s.id === sid ? { ...s, status: 'processing', error: null } : s)));
-        } catch (e) { onErrorRef.current?.((e as Error).message); }
+        } catch (e) { onErrorRef.current?.(errorMessage(e)); }
     }, [entityId]);
 
     const handleCancelSource = useCallback(async (sid: string) => {
@@ -242,7 +243,7 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
         try {
             await notebookApi(`/${entityId}/sources/${sid}/cancel`, { method: 'POST' });
             setSources((prev) => prev.map((s) => (s.id === sid ? { ...s, status: 'error', error: t('notebooks.cancelled_by_you', 'Cancelled') } : s)));
-        } catch (e) { onErrorRef.current?.((e as Error).message); }
+        } catch (e) { onErrorRef.current?.(errorMessage(e)); }
     }, [entityId, t]);
 
     const handleRenameSource = useCallback(async (sid: string, name: string) => {
@@ -250,14 +251,14 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
         const clean = name.trim();
         setSources((prev) => prev.map((s) => (s.id === sid ? { ...s, name: clean } : s)));
         try { await renameSourceApi(entityId, sid, clean); }
-        catch (e) { onErrorRef.current?.((e as Error).message); await refreshSources(); }
+        catch (e) { onErrorRef.current?.(errorMessage(e)); await refreshSources(); }
     }, [entityId, refreshSources]);
 
     const handleReorderSources = useCallback(async (ordered: NotebookSource[]) => {
         if (!entityId || !Array.isArray(ordered)) return;
         setSources(ordered);
         try { await reorderSourcesApi(entityId, ordered.map((s) => s.id)); }
-        catch (e) { onErrorRef.current?.((e as Error).message); await refreshSources(); }
+        catch (e) { onErrorRef.current?.(errorMessage(e)); await refreshSources(); }
     }, [entityId, refreshSources]);
 
     const handleBulkDelete = useCallback(async (ids: string[]) => {
@@ -265,7 +266,7 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
         const set = new Set(ids);
         setSources((prev) => prev.filter((s) => !set.has(s.id)));
         try { await bulkDeleteSourcesApi(entityId, ids); onChangedRef.current?.(); }
-        catch (e) { onErrorRef.current?.((e as Error).message); await refreshSources(); }
+        catch (e) { onErrorRef.current?.(errorMessage(e)); await refreshSources(); }
     }, [entityId, refreshSources]);
 
     const fetchSourceContent = useCallback((sid: string) => getSourceContent(entityId, sid), [entityId]);

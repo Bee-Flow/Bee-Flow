@@ -409,7 +409,7 @@ router.post('/groups/:id/members', requireAuth, validate({ body: GroupMemberBody
     const groups = Array.isArray(target.groups) ? target.groups : [];
     if (groups.includes(id)) return res.json({ success: true, alreadyMember: true });
     if (!await userStore.updateUser(targetUserId, { groups: [...groups, id] })) {
-        return res.status(500).json({ error: 'Failed to add member' });
+        throw new Error(`Failed to add '${targetUserId}' to group '${id}'`);
     }
     await userStore.logAccessAudit('group.member.add', 'group', id, ctx.adminId || null, null, { userId: targetUserId }, ctx.group.organizationId || null);
     try { await invalidateAllPermissionCaches(); } catch (_) { /* best-effort */ }
@@ -425,7 +425,7 @@ router.delete('/groups/:id/members/:userId', requireAuth, async (req, res) => {
     const groups = Array.isArray(target.groups) ? target.groups : [];
     if (!groups.includes(id)) return res.json({ success: true, notMember: true });
     if (!await userStore.updateUser(targetUserId, { groups: groups.filter(g => g !== id) })) {
-        return res.status(500).json({ error: 'Failed to remove member' });
+        throw new Error(`Failed to remove '${targetUserId}' from group '${id}'`);
     }
     await userStore.logAccessAudit('group.member.remove', 'group', id, ctx.adminId || null, { userId: targetUserId }, null, ctx.group.organizationId || null);
     try { await invalidateAllPermissionCaches(); } catch (_) { /* best-effort */ }
@@ -672,24 +672,19 @@ router.put('/org-roles/:roleId', requirePrimaryOrgAdmin(), validate({ body: OrgR
     if (!Object.prototype.hasOwnProperty.call(known, roleId)) {
         return res.status(404).json({ error: 'Unknown organisation role' });
     }
-    try {
-        const stored = await orgRolePolicy.setOrgRolePermissions(
-            req.primaryOrgId, roleId, req.body.permissions,
-        );
-        // Every member of this org may have just gained or lost a section.
-        // Their resolved permissions are cached per user, so the whole cache
-        // goes rather than trying to enumerate who holds the role.
-        invalidateAllPermissionCaches();
-        log.info(`[Audit] ${req.session.user?.id || 'system'} set org ${req.primaryOrgId} role '${roleId}' permissions: ${stored.join(', ') || '(none)'}`);
-        await userStore.logAccessAudit(
-            'org_role.permissions.update', 'org_role', `${req.primaryOrgId}:${roleId}`,
-            req.session.user?.id || null, null, { permissions: stored }, null,
-        ).catch(() => { });
-        res.json({ id: roleId, permissions: stored });
-    } catch (e) {
-        log.error('[OrgRoles] update failed:', e.message);
-        res.status(500).json({ error: 'Failed to save role permissions' });
-    }
+    const stored = await orgRolePolicy.setOrgRolePermissions(
+        req.primaryOrgId, roleId, req.body.permissions,
+    );
+    // Every member of this org may have just gained or lost a section.
+    // Their resolved permissions are cached per user, so the whole cache
+    // goes rather than trying to enumerate who holds the role.
+    invalidateAllPermissionCaches();
+    log.info(`[Audit] ${req.session.user?.id || 'system'} set org ${req.primaryOrgId} role '${roleId}' permissions: ${stored.join(', ') || '(none)'}`);
+    await userStore.logAccessAudit(
+        'org_role.permissions.update', 'org_role', `${req.primaryOrgId}:${roleId}`,
+        req.session.user?.id || null, null, { permissions: stored }, null,
+    ).catch(() => { });
+    res.json({ id: roleId, permissions: stored });
 });
 
 // === Permissions API ===

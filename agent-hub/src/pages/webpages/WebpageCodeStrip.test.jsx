@@ -22,7 +22,8 @@ vi.mock('./webpagesApi', () => ({
     default: (...args) => api(...args),
 }));
 
-const { default: WebpageCodeStrip, fileDecorations, useBfMarks } = await import('./WebpageCodeStrip');
+const { default: WebpageCodeStrip, fileDecorations } = await import('./WebpageCodeStrip');
+const { useBfMarks } = await import('./useBfMarks');
 
 const MARK = {
     source: 'index.html', slot: 'html', line: 3, tag: 'bf-table',

@@ -13,6 +13,7 @@
 
 const express = require('express');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 
 const notebookStore = require('../stores/notebookStore');
@@ -232,7 +233,7 @@ ${shield.units[0]}${shield.addendum}`;
         try {
             res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
             res.end();
-        } catch { res.status(500).json({ error: 'Generation failed' }); }
+        } catch { throw new HttpError(500, 'generation_failed', 'Generation failed'); }
     }
 });
 
@@ -354,7 +355,7 @@ ${shieldedSources}${shield.addendum}`;
     } catch (err) {
         log.error('[Notebooks] AI Fill failed:', err);
         if (!res.headersSent) {
-            res.status(500).json({ error: 'AI Fill failed' });
+            throw new HttpError(500, 'ai_fill_failed', 'AI Fill failed');
         } else {
             res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
             res.end();

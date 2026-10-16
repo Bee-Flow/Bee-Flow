@@ -1,10 +1,11 @@
 /**
  * DIFFERENTIAL lockstep: the activity rows against the web's
- * chatToolCallDisplay.js, getToolLabel and TOOL_NAME_MAP (utils/helpers.js)
+ * chatToolCallDisplay.js, getToolLabel and TOOL_NAME_MAP (utils/helpers.ts)
  * and formatDurationMs (timelineParts.jsx), on the same calls.
  */
 
 import fs from 'node:fs';
+import ts from 'typescript';
 
 import { AGENT_HUB_SRC, loadWebFunctions, loadWebModule } from '@/shared/testing/webModule';
 
@@ -12,12 +13,13 @@ import { describeTool, detailOf, errorOf, formatDurationMs, TOOL_NAME_MAP, toolL
 import type { ToolActivity } from './types';
 
 /**
- * helpers.js as a whole cannot run here (it reads `import.meta`), so the two
+ * helpers.ts as a whole cannot run here (it reads `import.meta`), so the two
  * declarations are cut out of it as text — the map and the function, verbatim —
  * and evaluated together.
  */
 function loadToolLabels(): { TOOL_NAME_MAP: Record<string, string>; getToolLabel: (n?: string) => string } {
-    const src = fs.readFileSync(`${AGENT_HUB_SRC}/utils/helpers.js`, 'utf8');
+    const typed = fs.readFileSync(`${AGENT_HUB_SRC}/utils/helpers.ts`, 'utf8');
+    const src = ts.transpileModule(typed, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
     const cut = (start: string) => {
         const at = src.indexOf(start);
         if (at < 0) throw new Error(`${start} not found`);
@@ -34,7 +36,7 @@ const web = loadWebModule<{
     describeChatTool: (e: unknown, ctx: unknown) => { title: string; detail: string; status: string; error: string | null; durationMs: number | null };
     detailPayload: (e: unknown, r: unknown) => { args: unknown; result: unknown };
     visibleToolHistory: (m: unknown) => unknown[];
-}>('components/chat/MessageItem/chatToolCallDisplay.js', { getToolLabel: helpers.getToolLabel });
+}>('components/chat/MessageItem/chatToolCallDisplay.ts', { getToolLabel: helpers.getToolLabel });
 const timeline = loadWebFunctions<{ formatDurationMs: (ms: unknown) => string | null }>(
     'components/chat/MessageItem/timelineParts.jsx',
     ['formatDurationMs'],

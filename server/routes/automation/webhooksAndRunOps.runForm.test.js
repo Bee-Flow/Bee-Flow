@@ -89,7 +89,7 @@ mock(path.join(SERVER, 'automation/formPickRecord'), {
 mock(path.join(SERVER, 'routes/transcriptions/shared'), {
     resolveAccessContext: async () => ({ orgIds: ['org1'], userGroupIds: ['g1'], isSuperAdmin: false }),
 });
-mock(path.join(SERVER, 'automation/publicUrl'), {
+mock(path.join(SERVER, 'utils/publicUrl'), {
     webhookUrlForSlug: (slug) => `https://example.test/wh/${slug}`,
     formUrlForToken: (t) => `https://example.test/f/${t}`,
 });

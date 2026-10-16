@@ -37,8 +37,8 @@ const IntegrationTile = ({ entry, enabled, onToggle }) => {
                 {icon}
             </div>
             <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-medium truncate" style={{ color: 'var(--text-primary)' }}>{entry.label}</p>
-                <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{entry.description}</p>
+                <p className="text-[13px] font-medium truncate text-[var(--text-primary)]">{entry.label}</p>
+                <p className="text-[11px] truncate text-[var(--text-muted)]">{entry.description}</p>
             </div>
             {/* The switch is a picture of the tile's state, not a control of
                 its own: a label + checkbox inside the button re-dispatched the
@@ -151,7 +151,7 @@ const ConsumerIntegrationsSection = () => {
                         {t('settings.consumer_integrations.subtitle', 'Choose which third-party tools your AI assistants can use')}
                     </p>
                 </div>
-                <div className="text-xs flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                <div className="text-xs flex items-center gap-1.5 text-[var(--text-muted)]">
                     {saveState === 'saving' && (<><Loader2 className="w-3 h-3 animate-spin" /> {t('settings.consumer_integrations.saving', 'Saving…')}</>)}
                     {saveState === 'saved' && (<><Check className="w-3 h-3 text-emerald-500" /> {t('settings.consumer_integrations.saved', 'Saved')}</>)}
                 </div>
@@ -159,7 +159,7 @@ const ConsumerIntegrationsSection = () => {
 
             {Array.from(grouped.entries()).filter(([, list]) => list.length > 0).map(([cat, list]) => (
                 <div key={cat}>
-                    <p className="text-[11px] font-semibold uppercase tracking-widest mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[11px] font-semibold uppercase tracking-widest mb-2 px-1 text-[var(--text-muted)]">
                         {cat}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">

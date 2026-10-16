@@ -102,7 +102,7 @@ function useExpiry(ttl: number, setPeers: React.Dispatch<React.SetStateAction<Pe
 }
 
 export default function useSectionPresence({ documentId, enabled, editing, caretSection, currentUserId }: SectionPresenceOptions) {
-    const clientId = useMemo(newClientId, []);
+    const clientId = useMemo(() => newClientId(), []);
     const [peers, setPeers] = useState<PeerMap>({});
     const [people, setPeople] = useState<People>({});
     const [ttl, setTtl] = useState(DEFAULT_TTL_MS);

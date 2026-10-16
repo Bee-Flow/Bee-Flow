@@ -1,7 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
-import type { BuilderSnapshot, BuilderValidation } from './builderStream';
+import type { BuilderSnapshot, BuilderStreamData, BuilderValidation } from './builderStream';
 import { openTurn } from './builderStream';
 import { isBlankDefinition } from '../components/automation/Builder/flow/normalizeDefinition';
+import { readEventStream } from '../api/readEventStream';
 import { API_BASE, authFetch } from '../utils/helpers';
 import type { AutomationBuilderInitial, AutomationBuilderSendOptions, AutomationBuilderState } from './automationBuilder/types';
 import { handle } from './automationBuilder/reducer';
@@ -219,24 +220,8 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
                 setState(s => ({ ...s, running: false, error, toolDraft: null, messages: finalizeStreaming(s.messages) }));
                 return;
             }
-            const reader = resp.body.getReader();
-            const decoder = new TextDecoder();
-            let buf = '';
-            let currentEvent = 'message';
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                buf += decoder.decode(value, { stream: true });
-                const lines = buf.split('\n');
-                buf = lines.pop() ?? '';
-                for (const line of lines) {
-                    if (line.startsWith('event: ')) {
-                        currentEvent = line.slice(7).trim();
-                    } else if (line.startsWith('data: ')) {
-                        let data; try { data = JSON.parse(line.slice(6)); } catch { continue; }
-                        handle(setState, currentEvent, data);
-                    }
-                }
+            for await (const { event, data } of readEventStream<BuilderStreamData>(resp, { signal: ac.signal })) {
+                handle(setState, event, data);
             }
         } catch (e) {
             const failure = e instanceof Error ? e : new Error(String(e));

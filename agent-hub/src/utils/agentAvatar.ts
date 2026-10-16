@@ -1,0 +1,41 @@
+import { API_BASE } from './helpers';
+
+// Agent avatars are stored as a single string that can be:
+//   - an emoji ("🤖")
+//   - a base64 data-URL ("data:image/png;base64,...")
+//   - an absolute http(s) URL
+//   - a server-relative upload path ("/uploads/agents/<id>.png")
+// All consumers in the app must agree on detection and src resolution, so
+// these helpers are the single source of truth.
+
+export const DEFAULT_AGENT_EMOJI = '🤖';
+
+/** The fields `pickAgentAvatar` reads off an agent. */
+export interface AgentAvatarSource {
+    avatar?: string | null;
+    /** A row that came in raw may still carry the stored JSON string; it has no avatar to read. */
+    config?: { avatar?: string | null } | string | null;
+}
+
+export function isImageAvatar(value?: unknown): boolean {
+    return !!value
+        && typeof value === 'string'
+        && (value.startsWith('data:') || value.startsWith('http') || value.startsWith('/'));
+}
+
+// For server-relative paths we prefix API_BASE so dev (Vite on a different
+// port than the API server) and embed iframes resolve the same as production
+// nginx. data: and http(s) URLs are returned unchanged.
+export function resolveAvatarSrc(value?: string | null): string {
+    if (!value) return '';
+    if (value.startsWith('/')) return `${API_BASE}${value}`;
+    return value;
+}
+
+// During the migration window an older agent may only have its avatar in
+// `config.avatar`. New writes go to the top-level column; reads fall through
+// to config so existing pictures don't disappear.
+export function pickAgentAvatar(agent?: AgentAvatarSource | null): string | null {
+    if (!agent) return null;
+    return agent.avatar || (typeof agent.config === 'object' ? agent.config?.avatar : undefined) || null;
+}

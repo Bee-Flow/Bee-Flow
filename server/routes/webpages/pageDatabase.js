@@ -12,7 +12,6 @@ const { requireAuth } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, NOTHING, NO_QUERY } = require('./schemas');
-const log = require('../../telemetry/log');
 
 // ── Wat de DB-viewer mag sturen ─────────────────────────────────────
 //
@@ -39,16 +38,11 @@ function register(router) {
     // preview endpoints can write rows but can't reset the whole DB — that's a
     // destructive admin action that lives behind the session.
     router.delete('/:id/db', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
-        try {
-            const userId = req.session.user.id;
-            const wp = await webpageStore.getWebpage(req.params.id, userId);
-            if (!wp) return res.status(404).json({ error: 'Webpage not found' });
-            await webpageDbStore.reset(userId, wp.id);
-            res.json({ success: true });
-        } catch (err) {
-            log.error('[Webpages] DB reset failed:', err);
-            res.status(500).json({ error: 'Failed to reset database' });
-        }
+        const userId = req.session.user.id;
+        const wp = await webpageStore.getWebpage(req.params.id, userId);
+        if (!wp) return res.status(404).json({ error: 'Webpage not found' });
+        await webpageDbStore.reset(userId, wp.id);
+        res.json({ success: true });
     });
 
     // ── DB viewer endpoints (session-auth) ──────────────────────────────
@@ -58,16 +52,11 @@ function register(router) {
     // instead of the LLM, so the auth boundary is the same as DB reset above.
 
     router.get('/:id/db/schema', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
-        try {
-            const userId = req.session.user.id;
-            const wp = await webpageStore.getWebpage(req.params.id, userId);
-            if (!wp) return res.status(404).json({ error: 'Webpage not found' });
-            const result = await webpageDbStore.schema(userId, wp.id);
-            res.json(result);
-        } catch (err) {
-            log.error('[Webpages] DB schema failed:', err);
-            res.status(500).json({ error: 'Schema lookup failed' });
-        }
+        const userId = req.session.user.id;
+        const wp = await webpageStore.getWebpage(req.params.id, userId);
+        if (!wp) return res.status(404).json({ error: 'Webpage not found' });
+        const result = await webpageDbStore.schema(userId, wp.id);
+        res.json(result);
     });
 
     router.post('/:id/db/query', requireAuth, validate({ body: DbBody, query: NO_QUERY }), async (req, res) => {

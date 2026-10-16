@@ -71,19 +71,14 @@ router.post('/admin/connector/tenants/:orgId/key', requireAuth, validate({ body:
 
     // 32 random bytes, base64url-encoded — long enough for HS256 with comfortable margin.
     const key = crypto.randomBytes(32).toString('base64url');
-    try {
-        await configStore.setSecret(TENANT_KEY_PREFIX + orgId, key);
-        invalidateTenantKeyCache(orgId);
-        log.info(`[ConnectorAdmin] Tenant key issued for org=${orgId} by user=${req.session.user.id}`);
-        res.json({
-            orgId,
-            tenantKey: key,
-            instructions: 'Have your Nextcloud admin run: occ app_api:app:setenv bee_flow BEEFLOW_TENANT_KEY <tenantKey>',
-        });
-    } catch (err) {
-        log.error(`[ConnectorAdmin] Failed to mint tenant key: ${err.message}`);
-        res.status(500).json({ error: 'Failed to mint tenant key' });
-    }
+    await configStore.setSecret(TENANT_KEY_PREFIX + orgId, key);
+    invalidateTenantKeyCache(orgId);
+    log.info(`[ConnectorAdmin] Tenant key issued for org=${orgId} by user=${req.session.user.id}`);
+    res.json({
+        orgId,
+        tenantKey: key,
+        instructions: 'Have your Nextcloud admin run: occ app_api:app:setenv bee_flow BEEFLOW_TENANT_KEY <tenantKey>',
+    });
 });
 
 // Whether a key currently exists for this org. Never returns the key
@@ -94,13 +89,8 @@ router.get('/admin/connector/tenants/:orgId/key', requireAuth, async (req, res) 
     if (!await isOrgAdminForOrg(req, orgId)) {
         return res.status(403).json({ error: 'Organization admin access required' });
     }
-    try {
-        const existing = await configStore.getSecret(TENANT_KEY_PREFIX + orgId);
-        res.json({ orgId, configured: !!existing });
-    } catch (err) {
-        log.error(`[ConnectorAdmin] Failed to read tenant key state: ${err.message}`);
-        res.status(500).json({ error: 'Failed to read tenant key state' });
-    }
+    const existing = await configStore.getSecret(TENANT_KEY_PREFIX + orgId);
+    res.json({ orgId, configured: !!existing });
 });
 
 router.delete('/admin/connector/tenants/:orgId/key', requireAuth, async (req, res) => {
@@ -109,22 +99,17 @@ router.delete('/admin/connector/tenants/:orgId/key', requireAuth, async (req, re
     if (!await isOrgAdminForOrg(req, orgId)) {
         return res.status(403).json({ error: 'Organization admin access required' });
     }
-    try {
-        // Nothing to revoke is a 404, not `revoked: true`: under a typo'd org
-        // id that answer left the real key alive behind a success.
-        if (!await configStore.getSecret(TENANT_KEY_PREFIX + orgId)) {
-            return res.status(404).json({ error: 'No tenant key is configured for this organization' });
-        }
-        // setSecret('') effectively clears since configStore stores empty as
-        // null; deleteConfig would also work if available.
-        await configStore.setSecret(TENANT_KEY_PREFIX + orgId, '');
-        invalidateTenantKeyCache(orgId);
-        log.info(`[ConnectorAdmin] Tenant key revoked for org=${orgId} by user=${req.session.user.id}`);
-        res.json({ orgId, revoked: true });
-    } catch (err) {
-        log.error(`[ConnectorAdmin] Failed to revoke tenant key: ${err.message}`);
-        res.status(500).json({ error: 'Failed to revoke tenant key' });
+    // Nothing to revoke is a 404, not `revoked: true`: under a typo'd org
+    // id that answer left the real key alive behind a success.
+    if (!await configStore.getSecret(TENANT_KEY_PREFIX + orgId)) {
+        return res.status(404).json({ error: 'No tenant key is configured for this organization' });
     }
+    // setSecret('') effectively clears since configStore stores empty as
+    // null; deleteConfig would also work if available.
+    await configStore.setSecret(TENANT_KEY_PREFIX + orgId, '');
+    invalidateTenantKeyCache(orgId);
+    log.info(`[ConnectorAdmin] Tenant key revoked for org=${orgId} by user=${req.session.user.id}`);
+    res.json({ orgId, revoked: true });
 });
 
 module.exports = router;

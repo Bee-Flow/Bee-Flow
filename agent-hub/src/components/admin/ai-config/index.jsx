@@ -128,9 +128,9 @@ const AIConfigPanel = () => {
     ];
 
     return (
-        <div className="flex h-full border rounded-xl overflow-hidden shadow-sm" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
+        <div className="flex h-full border rounded-xl overflow-hidden shadow-sm border-[var(--border-default)] bg-[var(--bg-secondary)]">
             {/* Left Sidebar */}
-            <div className="w-64 flex flex-col p-2 border-r" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}>
+            <div className="w-64 flex flex-col p-2 border-r border-[var(--border-default)] bg-[var(--bg-secondary)]">
                 <div className="p-4 mb-2">
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{t('admin_ai_config.index_title', 'AI Configuration')}</h3>
                 </div>
@@ -175,8 +175,7 @@ const AIConfigPanel = () => {
                                         <div className="-mt-3 mb-6 mx-0">
                                             <button
                                                 onClick={() => toggleProviderModels(name)}
-                                                className="flex items-center gap-2 text-xs px-5 py-1.5 rounded-b-lg transition-colors hover:bg-white/5 w-full text-left"
-                                                style={{ color: 'var(--text-muted)' }}
+                                                className="flex items-center gap-2 text-xs px-5 py-1.5 rounded-b-lg transition-colors hover:bg-white/5 w-full text-left text-[var(--text-muted)]"
                                             >
                                                 <svg className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -191,10 +190,9 @@ const AIConfigPanel = () => {
                                                             return (
                                                                 <div
                                                                     key={model.id}
-                                                                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
-                                                                    style={{ background: 'var(--bg-tertiary)' }}
+                                                                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs bg-[var(--bg-tertiary)]"
                                                                 >
-                                                                    <span className="font-medium truncate flex-1" style={{ color: 'var(--text-primary)' }}>
+                                                                    <span className="font-medium truncate flex-1 text-[var(--text-primary)]">
                                                                         {meta?.name || model.name || model.id}
                                                                     </span>
                                                                     {meta?.cat && (
@@ -232,7 +230,7 @@ const AIConfigPanel = () => {
 
                         {/* Models loading indicator */}
                         {loadingModels && (
-                            <p className="text-xs text-center py-2" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-xs text-center py-2 text-[var(--text-muted)]">
                                 {t('admin_ai_config.index_loading_models', 'Loading available models...')}
                             </p>
                         )}

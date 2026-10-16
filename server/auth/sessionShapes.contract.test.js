@@ -73,7 +73,7 @@ beforeEach(() => {
 const REGISTRY = [
     {
         name: 'connector JWT (embedded iframe)',
-        writerFile: 'connectorJwt.js',
+        writerFile: 'connectorJwtPhases.js',
         build: () => ({
             isAuthenticated: true,
             user: {

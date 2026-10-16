@@ -165,28 +165,23 @@ function requireProjectRole(minRole, options = 'id') {
     const allowArchived = opts.allowArchived === true;
     const checksArchive = !allowArchived && ROLE_ORDER[minRole] >= ROLE_ORDER.editor;
     return async function requireProjectRoleMw(req, res, next) {
-        try {
-            const userId = req.session?.user?.id;
-            if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-            const projectId = req.params?.[paramName];
-            const role = await getProjectRole(userId, projectId);
-            if (!role) return res.status(404).json({ error: 'Not found' });
-            if (ROLE_ORDER[role] < ROLE_ORDER[minRole]) {
-                return res.status(403).json({ error: 'Insufficient permissions' });
-            }
-            if (checksArchive || allowArchived) {
-                const project = await projectStore.getProject(projectId);
-                if (project) req.project = project;
-                if (checksArchive && project?.archivedAt) {
-                    return res.status(409).json({ error: ARCHIVED_MESSAGE, code: 'project_archived' });
-                }
-            }
-            req.projectRole = role;
-            next();
-        } catch (err) {
-            log.error('[ProjectAccess] role check failed:', err.message);
-            res.status(500).json({ error: 'Access check failed' });
+        const userId = req.session?.user?.id;
+        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+        const projectId = req.params?.[paramName];
+        const role = await getProjectRole(userId, projectId);
+        if (!role) return res.status(404).json({ error: 'Not found' });
+        if (ROLE_ORDER[role] < ROLE_ORDER[minRole]) {
+            return res.status(403).json({ error: 'Insufficient permissions' });
         }
+        if (checksArchive || allowArchived) {
+            const project = await projectStore.getProject(projectId);
+            if (project) req.project = project;
+            if (checksArchive && project?.archivedAt) {
+                return res.status(409).json({ error: ARCHIVED_MESSAGE, code: 'project_archived' });
+            }
+        }
+        req.projectRole = role;
+        next();
     };
 }
 

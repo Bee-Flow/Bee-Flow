@@ -86,6 +86,10 @@ stub('../stores/summaryTemplateStore', { getById: async () => null, resolveDefau
 
 const router = require('./transcriptions');
 
+// Errors are answered the way index.js answers them: by the terminal handler.
+const answerError = require('../core/http/terminalErrorHandler')
+    .createTerminalErrorHandler({ log: { error() {}, warn() {} } });
+
 function dispatch({ method = 'POST', url = '/report', user = 'u-1', body }) {
     return new Promise((resolve, reject) => {
         const req = {
@@ -105,7 +109,9 @@ function dispatch({ method = 'POST', url = '/report', user = 'u-1', body }) {
             end() { resolve(this); return this; },
             setTimeout() {},
         };
-        router(req, res, (err) => reject(err || new Error(`fell through router: ${method} ${url}`)));
+        router(req, res, (err) => (err
+            ? answerError(err, req, res, reject)
+            : reject(new Error(`fell through router: ${method} ${url}`))));
     });
 }
 

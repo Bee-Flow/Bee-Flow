@@ -83,7 +83,7 @@ export default function TestQuestionCard({ kbId = null, disabled = false }) {
             style={{ borderRadius: 12, background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)' }}
             data-testid="kb-test-question"
         >
-            <div className="flex items-center gap-2 font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <div className="flex items-center gap-2 font-semibold text-[var(--text-primary)]">
                 <MessageCircleQuestion className="w-3.5 h-3.5" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />
                 {t('knowledge.ask.title', 'Test question')}
             </div>

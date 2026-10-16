@@ -32,7 +32,7 @@ export function ListStatus({ status, testId }) {
     const { t } = useTranslation();
     if (status !== 'error') return null;
     return (
-        <p className="flex items-start gap-1.5 text-[11px]" style={{ color: 'var(--warning)' }} data-testid={testId}>
+        <p className="flex items-start gap-1.5 text-[11px] text-[var(--warning)]" data-testid={testId}>
             <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
             {t('solutions.install_list_failed', 'That list could not be loaded, so what you can choose from here is not the whole picture.')}
         </p>
@@ -41,7 +41,7 @@ export function ListStatus({ status, testId }) {
 
 export function Row({ children, testId }) {
     return (
-        <div className="px-3 py-2.5 rounded-lg space-y-1.5" style={{ background: 'var(--bg-secondary)' }} data-testid={testId}>
+        <div className="px-3 py-2.5 rounded-lg space-y-1.5 bg-[var(--bg-secondary)]" data-testid={testId}>
             {children}
         </div>
     );
@@ -88,8 +88,7 @@ function SourceClaim({ source }) {
     const name = source?.orgName;
     if (!name) return null;
     return (
-        <p className="flex items-start gap-2 px-3 py-2 rounded-lg text-[12px]"
-            style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}
+        <p className="flex items-start gap-2 px-3 py-2 rounded-lg text-[12px] bg-[var(--bg-secondary)] text-[var(--text-tertiary)]"
             data-testid="install-source-claim">
             <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />
             <span>
@@ -115,7 +114,7 @@ export function ContentsStep({ read, name, onName }) {
         <div className="space-y-4">
             <SourceClaim source={read.source} />
             <label className="block">
-                <span className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>
+                <span className="block text-xs mb-1 text-[var(--text-secondary)]">
                     {t('solutions.install_name', 'Name for this Solution')}
                 </span>
                 <input
@@ -128,18 +127,17 @@ export function ContentsStep({ read, name, onName }) {
             </label>
 
             <div>
-                <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+                <h3 className="text-sm font-medium mb-2 text-[var(--text-primary)]">
                     {t('solutions.install_contains', 'What it brings')}
                 </h3>
                 {kinds.length === 0 ? (
-                    <p className="px-3 py-2 rounded-lg text-sm" style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>
+                    <p className="px-3 py-2 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--text-tertiary)]">
                         {t('solutions.install_nothing_in_it', 'This Blueprint carries nothing at all.')}
                     </p>
                 ) : (
                     <ul className="flex flex-wrap gap-1.5" data-testid="install-contents">
                         {kinds.map(kind => (
-                            <li key={kind} className="px-2.5 py-1 rounded-lg text-xs"
-                                style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                            <li key={kind} className="px-2.5 py-1 rounded-lg text-xs bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                                 {countPhrase(t, kind, read.counts[kind])}
                             </li>
                         ))}
@@ -151,13 +149,12 @@ export function ContentsStep({ read, name, onName }) {
                 thing on the export screen and worth exactly as much here. */}
             {read.notCarried.length > 0 && (
                 <div>
-                    <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+                    <h3 className="text-sm font-medium mb-2 text-[var(--text-primary)]">
                         {t('projects.blueprint_left_behind', 'What this Blueprint does not carry')}
                     </h3>
                     <ul className="space-y-1" data-testid="install-not-carried">
                         {read.notCarried.map((w, i) => (
-                            <li key={i} className="flex items-start gap-2 px-3 py-2 rounded-lg text-sm"
-                                style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                            <li key={i} className="flex items-start gap-2 px-3 py-2 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                                 <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
                                 {w}
                             </li>
@@ -176,10 +173,10 @@ export function TableRows({ rows, catalog, choice, onChoice }) {
     const tables = catalog.status === 'ok' ? (catalog.data?.datatables || []) : [];
     return rows.map(row => (
         <Row key={`tbl-${row.key}`} testId="install-require-table">
-            <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+            <p className="text-sm text-[var(--text-primary)]">
                 {t('solutions.install_table_for', 'A table for "{key}"', { key: row.key })}
             </p>
-            <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-[11px] text-[var(--text-tertiary)]">
                 {nOf(t, 'solutions.install_used_by_steps', row.steps.length,
                     'Used by {count} step', 'Used by {count} steps')}
             </p>
@@ -210,10 +207,10 @@ export function ConnectionRows({ rows, connections, choice, onChoice }) {
         const address = addressOf(row.ref, row.stepId, row.layerKey);
         return (
             <Row key={`conn-${address}`} testId="install-require-connection">
-                <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                <p className="text-sm text-[var(--text-primary)]">
                     {t('solutions.install_connection_for', 'A credential for this request')}
                 </p>
-                <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{stepWhere(row, t)}</p>
+                <p className="text-[11px] text-[var(--text-tertiary)]">{stepWhere(row, t)}</p>
                 <select
                     className={selectCls}
                     style={selectStyle}
@@ -240,10 +237,10 @@ export function ApproverRows({ rows, people, groups, choice, onChoice }) {
         const address = addressOf(row.ref, row.stepId, row.layerKey);
         return (
             <Row key={`appr-${address}`} testId="install-require-approver">
-                <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                <p className="text-sm text-[var(--text-primary)]">
                     {t('solutions.install_approver_for', 'Who approves here')}
                 </p>
-                <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{stepWhere(row, t)}</p>
+                <p className="text-[11px] text-[var(--text-tertiary)]">{stepWhere(row, t)}</p>
                 <select
                     className={selectCls}
                     style={selectStyle}
@@ -292,7 +289,7 @@ export function GrantRows({ rows, catalog, ticked, onTick }) {
             const key = `${row.ref}|${row.tool}`;
             return (
                 <Row key={`grant-${i}`} testId="install-grant-integration">
-                    <label className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-primary)' }}>
+                    <label className="flex items-start gap-2 text-sm text-[var(--text-primary)]">
                         <input
                             type="checkbox"
                             className="mt-0.5"
@@ -319,11 +316,11 @@ export function GrantRows({ rows, catalog, ticked, onTick }) {
             const cap = row.flags?.publicSpendCapUsd;
             return (
                 <Row key={`grant-${i}`} testId="install-grant-public-ai">
-                    <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                    <p className="text-sm text-[var(--text-primary)]">
                         {t('solutions.install_grant_public_ai',
                             '"{page}" asks to let anonymous visitors spend your AI budget.', { page: row.name })}
                     </p>
-                    <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="text-[11px] text-[var(--text-tertiary)]">
                         {typeof cap === 'number'
                             ? t('solutions.install_grant_public_ai_cap',
                                 'It asks for up to ${cap} a day. Installing never switches this on — open the page and decide there.',
@@ -336,11 +333,11 @@ export function GrantRows({ rows, catalog, ticked, onTick }) {
         }
         return (
             <Row key={`grant-${i}`} testId="install-grant-automation">
-                <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                <p className="text-sm text-[var(--text-primary)]">
                     {t('solutions.install_grant_foreign_automation',
                         '"{page}" wants to run an automation that is not in this file.', { page: row.name })}
                 </p>
-                <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-[11px] text-[var(--text-tertiary)]">
                     {t('solutions.install_grant_foreign_automation_hint',
                         'It named one on the instance the file came from, so there is nothing here to point it at. Open the page and grant one of yours.')}
                 </p>
@@ -361,12 +358,12 @@ export function ConnectStep({ read, catalog, connections, people, groups, choice
 
     return (
         <div className="space-y-3">
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs text-[var(--text-secondary)]">
                 {t('solutions.install_connect_intro',
                     'None of this travelled with the file. Answer what you can here; anything you leave can be set in the Solution afterwards.')}
             </p>
             {nothing && (
-                <p className="px-3 py-2 rounded-lg text-sm" style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>
+                <p className="px-3 py-2 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--text-tertiary)]">
                     {t('solutions.install_connect_none', 'Nothing here needs connecting.')}
                 </p>
             )}
@@ -377,10 +374,10 @@ export function ConnectStep({ read, catalog, connections, people, groups, choice
 
             {read.grants.length > 0 && (
                 <div className="space-y-2 pt-2">
-                    <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                    <h3 className="text-sm font-medium text-[var(--text-primary)]">
                         {t('solutions.install_grants_title', 'What the file asks its pages to be allowed to do')}
                     </h3>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-xs text-[var(--text-secondary)]">
                         {t('solutions.install_grants_intro',
                             'A page’s tools run as whoever installed it, so installing grants none of these. Tick the ones you want to hand over yourself.')}
                     </p>
@@ -441,8 +438,7 @@ function AccessAdder({ users, groups, onAdd }) {
                     type="button"
                     onClick={() => { if (id) { onAdd({ type, id, permission }); setId(''); } }}
                     disabled={!id}
-                    className="px-2.5 py-1.5 rounded-lg text-xs border flex items-center gap-1 disabled:opacity-50"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                    className="px-2.5 py-1.5 rounded-lg text-xs border flex items-center gap-1 disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
                     data-testid="install-access-add"
                 >
                     <Plus className="w-3 h-3" />
@@ -464,7 +460,7 @@ export function AccessStep({ people, groups, access, setAccess }) {
 
     return (
         <div className="space-y-3">
-            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs text-[var(--text-secondary)]">
                 {t('solutions.install_access_intro',
                     'Who else can reach this Solution. You install as its owner either way, and you can change this later on the project page.')}
             </p>
@@ -481,18 +477,17 @@ export function AccessStep({ people, groups, access, setAccess }) {
             <ListStatus status={people.status === 'error' ? 'error' : groups.status} testId="install-access-unavailable" />
 
             {access.length === 0 ? (
-                <p className="px-3 py-2 rounded-lg text-sm" style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>
+                <p className="px-3 py-2 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--text-tertiary)]">
                     {t('solutions.install_access_none', 'Nobody else, for now.')}
                 </p>
             ) : (
                 <ul className="space-y-1" data-testid="install-access-list">
                     {access.map(entry => (
                         <li key={`${entry.type}:${entry.id}`}
-                            className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm"
-                            style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                            className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                             <span className="truncate">{labelFor(entry)}</span>
                             <span className="flex items-center gap-2 flex-shrink-0">
-                                <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                                <span className="text-[11px] text-[var(--text-tertiary)]">
                                     {entry.permission === 'editor'
                                         ? t('solutions.install_role_editor', 'Can edit')
                                         : t('solutions.install_role_viewer', 'Can view')}
@@ -528,7 +523,7 @@ export function ResultStep({ result, failures }) {
     const report = result?.report || {};
     return (
         <div className="space-y-3">
-            <p className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-primary)' }}>
+            <p className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
                 <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--success, #10b981)' }} />
                 {t('solutions.install_installed', 'Installed.')}
             </p>
@@ -536,7 +531,7 @@ export function ResultStep({ result, failures }) {
             {(report.skipped || []).length > 0 && (
                 <ul className="space-y-1" data-testid="install-result-skipped">
                     {report.skipped.map((s, i) => (
-                        <li key={i} className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        <li key={i} className="text-xs text-[var(--text-tertiary)]">
                             {t('projects.blueprint_skipped', 'Not installed')}: {s.kind} — {s.why}
                         </li>
                     ))}
@@ -546,19 +541,19 @@ export function ResultStep({ result, failures }) {
             {(report.warnings || []).length > 0 && (
                 <ul className="space-y-1" data-testid="install-result-warnings">
                     {report.warnings.map((w, i) => (
-                        <li key={i} className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{w}</li>
+                        <li key={i} className="text-xs text-[var(--text-tertiary)]">{w}</li>
                     ))}
                 </ul>
             )}
 
             {(report.grantRequires || []).length > 0 && (
                 <div data-testid="install-result-grants">
-                    <h3 className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                    <h3 className="text-sm font-medium mb-1 text-[var(--text-primary)]">
                         {t('solutions.install_result_grants', 'Still to grant, on the pages themselves')}
                     </h3>
                     <ul className="space-y-1">
                         {report.grantRequires.map((row, i) => (
-                            <li key={i} className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                            <li key={i} className="text-xs text-[var(--text-tertiary)]">
                                 {row.name || row.ref} — {row.tool || row.kind}
                             </li>
                         ))}
@@ -569,7 +564,7 @@ export function ResultStep({ result, failures }) {
             {failures.length > 0 && (
                 <ul className="space-y-1" data-testid="install-result-failures">
                     {failures.map((f, i) => (
-                        <li key={i} className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-primary)' }}>
+                        <li key={i} className="flex items-start gap-2 text-xs text-[var(--text-primary)]">
                             <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--warning)' }} />
                             {f}
                         </li>

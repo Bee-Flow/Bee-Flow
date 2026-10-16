@@ -109,14 +109,14 @@ test('both search projections return page_start, not just one of them', async ()
     // A column returned by the vector query and left out of the full-text one
     // means the page appears or vanishes depending on which retriever won —
     // which reads as flakiness, not as a missing column.
-    // The search SQL lives in localSearch.js since the localKBIngest split.
-    const src = require('node:fs').readFileSync(require.resolve('./localSearch'), 'utf8');
-    // THREE, not two: the full-text search has an AND-join and an OR-join
-    // fallback, and the fallback is the one that was missed. A page that
-    // appears or vanishes depending on which retriever won reads as
-    // flakiness, not as a missing column.
+    // The search SQL lives in localSearchSteps.js since the localSearch split.
+    const src = require('node:fs').readFileSync(require.resolve('./localSearchSteps'), 'utf8');
+    // TWO projections: the vector query, and ONE full-text query (FTS_SQL)
+    // that the AND-join and its OR-join fallback both run. The fallback is
+    // the one that was missed while it carried its own copy of the SQL; a
+    // third projection here means a path grew its own copy again.
     const selects = src.match(/SELECT id, title, content, source_uri, document_id, chunk_id[^`]*/g) || [];
-    assert.strictEqual(selects.length, 3, 'vector, full-text AND-join, full-text OR-join');
+    assert.strictEqual(selects.length, 2, 'vector, full-text (shared by the AND-join and the OR-join)');
     for (const s of selects) {
         assert.match(s, /page_start/, 'every retrieval path must carry the page');
     }

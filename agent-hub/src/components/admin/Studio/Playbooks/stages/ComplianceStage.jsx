@@ -295,7 +295,7 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
                 )}
 
                 {landed && findings.length === 0 && (
-                    <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }} data-testid="playbook-compliance-clean">
+                    <p className="text-[11px] text-[var(--text-secondary)]" data-testid="playbook-compliance-clean">
                         {t('playbooks.compliance.clean', 'Nothing came up. What was built does not touch the rules you have switched on.')}
                     </p>
                 )}
@@ -348,7 +348,7 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
                 )}
 
                 {landed && (
-                    <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-[11px] text-[var(--text-secondary)]">
                         {t('playbooks.compliance.disclaimer', 'A reading of what was built, not legal advice — and the review itself changed nothing.')}
                     </p>
                 )}

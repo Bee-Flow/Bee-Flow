@@ -1,5 +1,5 @@
 /**
- * DIFFERENTIAL lockstep: agent-hub `Builder/mapping/valueParts.js` and
+ * DIFFERENTIAL lockstep: agent-hub `Builder/mapping/valueParts.ts` and
  * `refTokens.js` beside their ports. When this fails the web side changed —
  * update the port, don't loosen the test.
  */
@@ -9,8 +9,8 @@ import { BUILDER, requireWeb, webValue } from './testing/web';
 import * as vp from './valueParts';
 import * as vt from './valueTransforms';
 
-const webVp = requireWeb(`${BUILDER}/mapping/valueParts.js`);
-const webRt = requireWeb(`${BUILDER}/mapping/refTokens.js`);
+const webVp = requireWeb(`${BUILDER}/mapping/valueParts`);
+const webRt = requireWeb(`${BUILDER}/mapping/refTokens`);
 
 const BINDINGS: unknown[] = [
     null, undefined, '', 'plain', 12, false,

@@ -10,12 +10,20 @@ import Illustration from '../../../../shared/illustrations';
 
 export const EM_DASH = '—';
 
-/** Shimmering placeholder block shown while a bound action is running. */
+/**
+ * Shimmering placeholder block shown while a bound action is running.
+ *
+ * @param {{ className?: string, style?: import('react').CSSProperties }} props
+ */
 export function Skeleton({ className = '', style }) {
     return <div className={`app-skeleton ${className}`} style={style} aria-hidden="true" data-app-skeleton="true" />;
 }
 
-/** A stack of skeleton lines (data components while loading). */
+/**
+ * A stack of skeleton lines (data components while loading).
+ *
+ * @param {{ lines?: number }} props
+ */
 export function SkeletonLines({ lines = 3 }) {
     return (
         <div className="flex flex-col gap-2" data-app-loading="true">
@@ -35,6 +43,8 @@ export function SkeletonLines({ lines = 3 }) {
  * left of a tall empty box and the screen read as broken rather than as empty.
  * With no height around it (a grid cell) h-full is inert and this looks exactly
  * as it did.
+ *
+ * @param {{ text?: string | null, icon?: import('react').ComponentType<{ className?: string }> | null, title?: string | null, art?: string | null }} props
  */
 export function EmptyText({ text, icon: Icon = null, title = null, art = null }) {
     const { t } = useTranslation();
@@ -77,7 +87,11 @@ export function EmptyText({ text, icon: Icon = null, title = null, art = null })
     );
 }
 
-/** Label + control + inline error frame shared by all input components. */
+/**
+ * Label + control + inline error frame shared by all input components.
+ *
+ * @param {{ id?: string, label?: import('react').ReactNode, required?: boolean, error?: import('react').ReactNode, children?: import('react').ReactNode }} props
+ */
 export function Field({ id, label, required, error, children }) {
     return (
         <div className="flex flex-col gap-1 text-left">
@@ -105,6 +119,7 @@ const FOCUS_OUTLINE = 'focus:outline-none focus-visible:outline focus-visible:ou
 
 export const INPUT_CLASS = `w-full border px-2.5 py-1.5 text-sm ${FOCUS_OUTLINE}`;
 
+/** @param {unknown} [error] */
 export function inputStyle(error) {
     return {
         background: 'var(--bg-primary)',
@@ -139,7 +154,12 @@ function summarize(value) {
     return count ? `${count.toLocaleString()} fields` : EM_DASH;
 }
 
-/** Format a leaf value for display; null/undefined render as an em-dash. */
+/**
+ * Format a leaf value for display; null/undefined render as an em-dash.
+ *
+ * @param {unknown} [value]
+ * @returns {string}
+ */
 export function displayValue(value) {
     if (value == null || value === '') return EM_DASH;
     if (typeof value === 'number') return Number.isFinite(value) ? value.toLocaleString() : EM_DASH;
@@ -176,6 +196,9 @@ export function displayValue(value) {
  *   - a freshly allocated array/object — `split(…)`, `concat(…)`, `parseJson(…)`
  *     return a new reference every evaluation, so no NaN is needed at all.
  * A ref write cannot schedule a render, so no value shape can loop here again.
+ *
+ * @param {{ value: unknown, isLoading: boolean, error?: unknown, errorCode?: string | null }} binding a resolveBinding result
+ * @returns {{ value: unknown, isLoading: boolean, error: unknown, errorCode: string | null | undefined }}
  */
 export function useStickyBinding({ value, isLoading, error = null, errorCode = null }) {
     // Written during render on purpose: the sticky value has to be readable on
@@ -204,6 +227,8 @@ export function useStickyBinding({ value, isLoading, error = null, errorCode = n
  * whose connector is not linked, or whose request 500s, was told their mailbox
  * was empty. This says what happened, and — when the fix is theirs to make —
  * what to do about it.
+ *
+ * @param {{ error?: unknown, errorCode?: string | null, onRetry?: (() => void) | null }} props
  */
 export function ErrorText({ error, errorCode = null, onRetry = null }) {
     const { t } = useTranslation();
@@ -254,6 +279,9 @@ export function ErrorText({ error, errorCode = null, onRetry = null }) {
  * actually holds is `components/boundErrorState.test.jsx`, which walks every
  * bound component and requires the error state. A test enforces; a comment
  * only hopes.
+ *
+ * @param {{ error?: unknown, errorCode?: string | null, isLoading?: boolean, value?: unknown, emptyText?: string | null, lines?: number, onRetry?: (() => void) | null }} props
+ * @returns {import('react').ReactElement | null}
  */
 export function bindingFallback({ error, errorCode, isLoading, value, emptyText, lines = 3, onRetry = null }) {
     if (error) return <ErrorText error={error} errorCode={errorCode} onRetry={onRetry} />;

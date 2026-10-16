@@ -170,8 +170,7 @@ function makeResourcesRouter(deps) {
             if (Number.isInteger(status) && status >= 400 && status < 500) {
                 return res.status(status).json({ error: err.message, code: err.code || undefined });
             }
-            log.error('[Projects] Resource update error:', err.message);
-            res.status(500).json({ error: 'Request failed' });
+            throw err;
         }
     });
 
@@ -236,13 +235,8 @@ function makeResourcesRouter(deps) {
      *     agent's instructions or its tool grants.
      */
     router.get('/:id/graph', requireRole('viewer'), async (req, res) => {
-        try {
-            const { graph } = await buildGraphForProject(req.params.id);
-            res.json({ ...graph, role: req.projectRole });
-        } catch (err) {
-            log.error('[Projects] Graph build error:', err.message);
-            res.status(500).json({ error: 'Request failed' });
-        }
+        const { graph } = await buildGraphForProject(req.params.id);
+        res.json({ ...graph, role: req.projectRole });
     });
 
     /**
@@ -267,8 +261,7 @@ function makeResourcesRouter(deps) {
             res.json({ ...result, role: req.projectRole });
         } catch (err) {
             log.error('[Projects] Completeness error:', err.message);
-            res.status(500).json({
-                error: 'Request failed',
+            throw new HttpError(500, 'completeness_failed', 'Request failed', {
                 blocked: true, complete: false, findings: [], unavailable: ['all'],
             });
         }

@@ -135,7 +135,8 @@ test('a failing query is a 500 that leaks no SQL', async () => {
     dbAnswer = new Error('relation "transcriptions" does not exist');
     const res = await get();
     assert.equal(res.status, 500);
-    assert.deepEqual(res.json, { error: 'Failed to list tags' });
+    assert.equal(res.json.error, 'Internal server error');
+    assert.ok(!JSON.stringify(res.json).includes('does not exist'), 'no SQL in the answer');
 });
 
 // ── The ACL: this is the security surface ───────────────────────────

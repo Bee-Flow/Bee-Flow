@@ -59,8 +59,6 @@ mock(path.join(SERVER, 'auth'), {
 mock(path.join(SERVER, 'core/entitlements/betaFeatures'), { requireBetaFeature: pass });
 mock(path.join(SERVER, 'core/entitlements/entitlements'), { requireCapability: pass });
 mock(path.join(SERVER, 'utils/perUserRateLimit'), { perUserRateLimit: pass });
-mock(path.join(SERVER, 'jobs/kbSourceRefresh'), { onDatatableChanged: () => {} });
-mock(path.join(SERVER, 'core/webpages/webpageShareReconciler'), { onDatatableChanged: () => {} });
 // The form-answers routes look the automation up to name the form; the answers
 // engine itself never touches the automation store.
 const AUTOMATIONS = new Map();

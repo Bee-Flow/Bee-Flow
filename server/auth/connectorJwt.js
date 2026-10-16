@@ -30,10 +30,12 @@
 const crypto = require('crypto');
 const userStore = require('../stores/userStore');
 const configStore = require('../stores/configStore');
-const encryption = require('./encryption');
-const { suppressSessionPersistence } = require('./establishSession');
-const orgRolesConfig = require('../config/orgRoles.json');
-const { checkConnectorSignupAllowed } = require('./signupGuards');
+// Phases that run after the tenant key verified the token live in
+// connectorJwtPhases.js / connectorJwtProvision.js (outcome contract
+// documented in the former).
+const phases = require('./connectorJwtPhases');
+const { provisionConnectorUser } = require('./connectorJwtProvision');
+const { reject } = phases;
 // Org-health capture. Every call below is fire-and-forget (never awaited on
 // the request path, never throws) — this middleware runs on EVERY connector
 // request and must not gain latency or new failure modes. Gate exits are
@@ -42,41 +44,7 @@ const { checkConnectorSignupAllowed } = require('./signupGuards');
 const orgHealth = require('../services/orgHealth');
 const log = require('../telemetry/log');
 
-// True iff the request's Nextcloud uid is THIS org's recorded NC admin. Used to
-// let the org admin past the NC_ONBOARDING_PENDING gate so onboarding can never
-// deadlock. Match is an exact equality on the stable nc_admin_uid. reqNcUid
-// comes from _resolveRequesterNcUid: the tenant-key-signed JWT `sub` wins; the
-// unsigned X-Beeflow-NC-Uid header is only a last-resort fallback (BFSF-377).
-function _isOrgAdminRequester(org, reqNcUid) {
-    return !!(org && org.nc_admin_uid && reqNcUid && reqNcUid === org.nc_admin_uid);
-}
-
-// The signed `sub` claim always wins over the unsigned header.
-function _resolveRequesterNcUid(req, payload) {
-    return String(payload?.sub || req?.headers?.['x-beeflow-nc-uid'] || '').trim();
-}
-
-// The NC identity stored on the session: the user row's own nc_uid, then the
-// signed `sub`, and only last the unsigned header (BFSF-377).
-function _resolveSessionNcUid(user, req, payload) {
-    return user?.nc_uid || _resolveRequesterNcUid(req, payload) || null;
-}
-
 const TENANT_KEY_PREFIX = 'connector_tenant_key_';
-
-// Default org-role for NC users auto-provisioned through the connector.
-// `agent_editor` gives them what they expect coming from the embedded SPA:
-// view + author agents/skills/knowledge, use notebooks — but no
-// org-administration powers. An org-admin can override the default via
-// org.nc_new_user_default_org_role and promote individual users later.
-const VALID_ORG_ROLES = new Set(Object.keys(orgRolesConfig));
-const DEFAULT_NC_USER_ORG_ROLE = 'agent_editor';
-
-function resolveDefaultNcUserOrgRole(org) {
-    const requested = String(org?.nc_new_user_default_org_role || '').trim();
-    if (requested && VALID_ORG_ROLES.has(requested)) return requested;
-    return DEFAULT_NC_USER_ORG_ROLE;
-}
 
 // In-memory cache of (orgId → tenant key) — avoids hitting configStore on
 // every request. Invalidated on key rotation by the admin endpoint via
@@ -84,12 +52,6 @@ function resolveDefaultNcUserOrgRole(org) {
 const _keyCache = new Map();
 const KEY_CACHE_TTL_MS = 60_000;
 
-// Cache derived encryption keys per userId. The fallback key uses PBKDF2 with
-// 210k iterations (~50-100ms each) — running that on every request is
-// noticeable in chat latency. The derived key is fully determined by
-// userId + MASTER_ENCRYPTION_KEY, both stable, so we cache forever (process
-// lifetime). Cleared on server restart.
-const _encKeyCache = new Map();
 
 function _cacheGet(orgId) {
     const entry = _keyCache.get(orgId);
@@ -265,7 +227,6 @@ async function _listOrgIdsFallback() {
         .map(k => k.slice(TENANT_KEY_PREFIX.length));
 }
 
-
 /**
  * Best-effort email-DOMAIN extraction from an UNVERIFIED JWT payload. Used
  * only to attribute 'no matching tenant key' failures to a customer bucket
@@ -284,40 +245,12 @@ function _unverifiedEmailDomain(token) {
 }
 
 /**
- * Fire-and-forget: tell the org's admins a Nextcloud user was auto-created
- * as `pending` and is waiting for approval (Fase 1.2 — without this the
- * pending pileup is invisible until someone opens the users panel). Metadata
- * only: display name / email of the new user, never message content. Also
- * writes the access-audit seed row for the pending-approval story. Never
- * throws; callers invoke via setImmediate so the 403 response is never
- * delayed.
+ * Cookie-session precheck (runs OUTSIDE the main try block: a throw here
+ * rejects the returned promise, as before). Returns true when a still-valid
+ * cookie session exists; the caller then calls next(). Returns false to
+ * continue with header (JWT) auth, after a stale session has been replaced.
  */
-async function _notifyOrgAdminsOfPendingUser(orgId, newUser) {
-    try {
-        const notificationStore = require('../stores/notificationStore');
-        const { getAll } = require('../db');
-        // 'org_admin' is canonical; legacy 'admin' orgRole kept for orgs that
-        // pre-date the rename (same predicate as compliance/events.js).
-        const admins = await getAll(
-            `SELECT id FROM users WHERE "organizationId" = $1 AND "orgRole" IN ('org_admin', 'admin') LIMIT 20`,
-            [orgId],
-        );
-        const who = newUser?.displayName || newUser?.email || newUser?.id || 'A new user';
-        for (const a of admins || []) {
-            await notificationStore.createNotification({
-                userId: a.id,
-                category: 'heads_up',
-                title: 'New user awaiting approval',
-                message: `${who}${newUser?.email ? ` (${newUser.email})` : ''} was created from Nextcloud and needs approval before they can use Bee Flow AI.`,
-                link: require('../utils/appPaths').adminSecurityUsersPath(),
-            }).catch(() => { });
-        }
-    } catch (e) {
-        log.warn(`[ConnectorJWT] pending-user admin notification failed for org ${orgId}: ${e.message}`);
-    }
-}
-
-async function connectorJwtMiddleware(req, res, next) {
+async function _reuseCookieSession(req) {
     // Skip if the cookie session is already authenticated — let session take
     // precedence so users who log in normally aren't surprised.
     // BUT: if the session claims a user that no longer exists in the DB
@@ -356,7 +289,7 @@ async function connectorJwtMiddleware(req, res, next) {
                     req.session.isAdmin = nextIsAdmin;
                 }
             }
-            return next();
+            return true;
         }
         // Stale session — invalidate it and fall through to header-based (JWT)
         // auth. We REGENERATE rather than destroy(): destroy() nulls req.session
@@ -367,338 +300,94 @@ async function connectorJwtMiddleware(req, res, next) {
         log.info(`[ConnectorJWT] Dropping stale session for missing user ${req.session.user.id}`);
         await new Promise(resolve => req.session.regenerate(() => resolve()));
     }
+    return false;
+}
 
+/**
+ * The connector's bearer token, or null when this request is not a connector
+ * request / carries no JWT-shaped bearer (the caller then falls through to
+ * the rest of the chain with next()).
+ */
+function _connectorBearerToken(req) {
     // Connector requests are tagged with this header. Without it, fall through
     // to the rest of the chain.
     if (req.headers['x-beeflow-source'] !== 'nextcloud-connector') {
-        return next();
+        return null;
     }
 
     const authHeader = req.headers['authorization'] || req.headers['Authorization'];
     if (!authHeader || !authHeader.toLowerCase().startsWith('bearer ')) {
-        return next();
+        return null;
     }
 
     const token = authHeader.slice(7).trim();
     // Reject anything that isn't a JWT-shaped string before we hash-walk
     // tenant keys.
     if (!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token)) {
-        return next();
+        return null;
+    }
+    return token;
+}
+
+/**
+ * Everything after the token shape check: verify against the tenant keys,
+ * find or provision the user, gate, reconcile, populate the session. Returns
+ * an outcome ({kind:'reject'|'error'|'ok'}, see connectorJwtPhases.js) and
+ * NEVER touches res/next itself. Throws are answered 401 by the caller.
+ */
+async function _authenticateConnectorToken(req, token) {
+    const resolved = await _resolveTenant(token);
+    if (!resolved) {
+        // Tenant-key divergence smoking gun: attribute to the (unverified)
+        // email domain so the operator can see WHICH customer's connector
+        // is signing with a stale key.
+        const emailDomain = _unverifiedEmailDomain(token);
+        orgHealth.problem('auth.no_matching_tenant_key', {
+            subjectKey: emailDomain ? `domain:${emailDomain}` : 'unknown',
+            source: 'connectorJwt', req,
+            meta: { emailDomain: emailDomain || null, unverified: true, reason: 'no_matching_tenant_key' },
+        });
+        return reject(401, { error: 'Connector token rejected: no matching tenant key' });
+    }
+    const { orgId, payload } = resolved;
+    if (!payload.email) {
+        orgHealth.problem('auth.missing_email', {
+            orgId, source: 'connectorJwt', req,
+            meta: { sub: payload.sub || null, reason: 'jwt_missing_email_claim' },
+        });
+        return reject(400, { error: 'Connector token missing email claim' });
     }
 
+    let user = await userStore.getUserByEmail(payload.email);
+    if (!user) {
+        const provisioned = await provisionConnectorUser(req, orgId, payload);
+        if (provisioned.kind !== 'ok') return provisioned;
+        user = provisioned.user;
+    } else {
+        const mismatch = phases.crossTenantGate(req, user, orgId);
+        if (mismatch) return mismatch;
+    }
+    const pending = phases.pendingApprovalGate(req, user, orgId);
+    if (pending) return pending;
+    await phases.reconcileUserRecord(user, orgId, payload);
+    return phases.establishConnectorSession(req, user, orgId, payload);
+}
+
+async function connectorJwtMiddleware(req, res, next) {
+    if (await _reuseCookieSession(req)) return next();
+
+    const token = _connectorBearerToken(req);
+    if (!token) return next();
+
     try {
-        const resolved = await _resolveTenant(token);
-        if (!resolved) {
-            // Tenant-key divergence smoking gun: attribute to the (unverified)
-            // email domain so the operator can see WHICH customer's connector
-            // is signing with a stale key.
-            const emailDomain = _unverifiedEmailDomain(token);
-            orgHealth.problem('auth.no_matching_tenant_key', {
-                subjectKey: emailDomain ? `domain:${emailDomain}` : 'unknown',
-                source: 'connectorJwt', req,
-                meta: { emailDomain: emailDomain || null, unverified: true, reason: 'no_matching_tenant_key' },
-            });
-            return res.status(401).json({ error: 'Connector token rejected: no matching tenant key' });
+        const outcome = await _authenticateConnectorToken(req, token);
+        if (outcome.kind === 'reject') return res.status(outcome.status).json(outcome.body);
+        if (outcome.kind === 'error') return next(outcome.error);
+        // Fail closed: only an explicit 'ok' WITH an authenticated session
+        // (what establishConnectorSession writes) continues the chain.
+        if (outcome.kind !== 'ok' || req.session?.isAuthenticated !== true) {
+            throw new Error('unexpected connector auth outcome');
         }
-        const { orgId, payload } = resolved;
-        if (!payload.email) {
-            orgHealth.problem('auth.missing_email', {
-                orgId, source: 'connectorJwt', req,
-                meta: { sub: payload.sub || null, reason: 'jwt_missing_email_claim' },
-            });
-            return res.status(400).json({ error: 'Connector token missing email claim' });
-        }
-
-        let user = await userStore.getUserByEmail(payload.email);
-        if (!user) {
-            // Auto-provision: org's sync_mode determines whether we silently
-            // create the user (active vs pending) or reject. This is the path
-            // every NC user takes on their first click of the Bee Flow icon
-            // after the org is bootstrapped — see plan/connector docs.
-            const org = await userStore.getOrganization(orgId);
-            if (!org) {
-                return res.status(403).json({ error: 'Connector tenant has no organization' });
-            }
-            // Admin carve-out — ANY Nextcloud admin must always be able to reach
-            // the onboarding wizard and act, even before onboarding completes and
-            // even if their Bee Flow user row was lost (e.g. an org delete/recreate
-            // race) or their NC email changed since bootstrap. Without this they
-            // fall into the NC_ONBOARDING_PENDING gate below and can never finish
-            // onboarding — a permanent 403 lockout for the whole org.
-            //
-            // Two signals: (1) the
-            // tenant-key-signed `nc_admin` JWT claim, set by the connector from the
-            // user's real Nextcloud `admin`-group membership — this is what lets
-            // EVERY NC admin onboard, not just the one captured at bootstrap; and
-            // (2) an exact match on the org's recorded nc_admin_uid (the bootstrap
-            // admin) as a fallback for connectors that predate the claim (matched against the
-            // SIGNED `sub`; the unsigned header is only used when `sub` is absent). Either
-            // way we re-establish their org_admin row idempotently and continue.
-            const reqNcUid = _resolveRequesterNcUid(req, payload);
-            if (payload.nc_admin === true || _isOrgAdminRequester(org, reqNcUid)) {
-                try {
-                    const { ensureOrgAdminUser } = require('./connectorBootstrap').helpers;
-                    const adminUser = await ensureOrgAdminUser(org, {
-                        ncAdminEmail: payload.email,
-                        ncAdminUid: reqNcUid,
-                        ncAdminDisplayName: payload.name || reqNcUid,
-                    });
-                    if (adminUser) {
-                        user = adminUser;
-                        log.info(`[ConnectorJWT] Re-ensured org-admin ${adminUser.id} for org ${orgId} (onboarding-gate bypass)`);
-                    }
-                } catch (e) {
-                    log.warn(`[ConnectorJWT] ensureOrgAdminUser failed for org ${orgId}: ${e.message}`);
-                }
-            }
-            if (!user) {
-                // Hold auto-provision until the org-admin has finished the App
-                // Store onboarding wizard. Otherwise users would land here with
-                // pre-wizard defaults (mirror_all + active) which the admin may
-                // be about to switch to pending-approval / selective_groups.
-                // The SPA-side render gate translates this 403 into a friendly
-                // "Setup in progress" screen.
-                if (org.nc_instance_id && !org.nc_onboarding_completed_at) {
-                    orgHealth.problem('auth.blocked_onboarding_pending', {
-                        orgId, source: 'connectorJwt', req,
-                        meta: { reason: 'nc_onboarding_not_completed' },
-                    });
-                    return res.status(403).json({
-                        error: 'Setup in progress — your organization administrator is finalising the Bee Flow setup. Please refresh in a few minutes.',
-                        code: 'NC_ONBOARDING_PENDING',
-                    });
-                }
-                const mode = org.nc_sync_mode || 'mirror_all';
-                if (mode === 'manual') {
-                    orgHealth.problem('auth.blocked_manual_mode', {
-                        orgId, source: 'connectorJwt', req,
-                        meta: { reason: 'nc_sync_mode_manual' },
-                    });
-                    return res.status(403).json({
-                        error: 'Your Nextcloud account is not provisioned in Bee Flow yet. Ask your Bee Flow administrator to invite you.',
-                    });
-                }
-                // Geo-blocking for connector signups — evaluated against the
-                // connecting Nextcloud server's location (req.ip). Gates only the
-                // creation of a NEW user; existing users and the admin carve-out
-                // above are never geo-checked. Fail-open and never throws so the
-                // connector can't break on a geo hiccup. See signupGuards.js.
-                const geoGate = await checkConnectorSignupAllowed(req);
-                if (!geoGate.ok) {
-                    log.info(`[ConnectorJWT] Geo-blocked auto-provision for ${payload.email} (org=${orgId}, country=${geoGate.country || 'unknown'})`);
-                    orgHealth.problem('auth.blocked_geo', {
-                        orgId, source: 'connectorJwt', req,
-                        meta: { country: geoGate.country || null, reason: 'geo_policy' },
-                    });
-                    return res.status(geoGate.status).json({ error: geoGate.error, code: geoGate.code });
-                }
-                const ncUid = reqNcUid;
-                const status = (org.nc_new_user_default_status === 'pending') ? 'pending' : 'active';
-                const userId = `nc_${orgId}_${(ncUid || payload.email).replace(/[^a-zA-Z0-9]+/g, '-').slice(0, 40)}`;
-                const defaultOrgRole = resolveDefaultNcUserOrgRole(org);
-                const r = await userStore.createUserWithSeatCheck({
-                    id: userId,
-                    username: payload.email,
-                    email: payload.email,
-                    displayName: payload.name || ncUid || payload.email,
-                    role: 'user',
-                    orgRole: defaultOrgRole,
-                    organizationId: orgId,
-                    ncUid: ncUid || null,
-                    provider: 'nextcloud_connector',
-                    autoProvisioned: true,
-                    status,
-                }, { strict: false });
-                if (!r.created) {
-                    if (r.reason === 'seat_cap') {
-                        orgHealth.problem('auth.blocked_seat_cap', {
-                            orgId, source: 'connectorJwt', req,
-                            meta: { reason: 'seat_cap_exceeded' },
-                        });
-                        return res.status(403).json({
-                            error: 'Your organization has reached its user seat limit. Ask your Bee Flow administrator to upgrade.',
-                            code: 'seat_cap_exceeded',
-                        });
-                    }
-                    log.warn(`[ConnectorJWT] auto-provision failed userId=${userId} reason=${r.reason}`);
-                    orgHealth.problem('auth.provision_failed', {
-                        orgId, source: 'connectorJwt', req,
-                        meta: { reason: r.reason || 'unknown' },
-                    });
-                    return res.status(500).json({ error: 'Failed to provision user' });
-                }
-                user = await userStore.getUser(userId);
-                log.info(`[ConnectorJWT] Auto-provisioned user ${userId} (org=${orgId}, status=${status})`);
-                orgHealth.event('auth.user_auto_provisioned', {
-                    orgId, source: 'connectorJwt', req, actorKind: 'connector',
-                    meta: { userId, status },
-                });
-                if (status === 'pending') {
-                    orgHealth.problem('auth.blocked_pending_approval', {
-                        orgId, source: 'connectorJwt', req,
-                        meta: { lastUserId: userId, reason: 'auto_provisioned_pending' },
-                    });
-                    // Fase 1.2 — point the org admins at the approval queue +
-                    // audit-trail seed. Fire-and-forget: the 403 below must not
-                    // wait on notification/audit writes.
-                    const pendingUser = user;
-                    setImmediate(() => {
-                        try {
-                            _notifyOrgAdminsOfPendingUser(orgId, pendingUser).catch(() => { });
-                            userStore.logAccessAudit('nc_user_autoprovisioned_pending', 'user', userId,
-                                'system:connector_jwt', null, { orgId, status: 'pending' }, orgId).catch(() => { });
-                        } catch (_) { /* never break the auth path */ }
-                    });
-                    return res.status(403).json({
-                        error: 'Your account has been created in Bee Flow but requires admin approval. Please contact your organization administrator.',
-                    });
-                }
-            }
-        } else if (user.organizationId && user.organizationId !== orgId) {
-            // Defence in depth: the JWT was signed with org X's key, so the user
-            // it identifies must belong to org X. Refusing here prevents a stolen
-            // tenant key from being used to act on users in other tenants.
-            log.warn(`[ConnectorJWT] Cross-tenant rejection: user ${user.id} (org=${user.organizationId}) presented org=${orgId}'s key`);
-            orgHealth.problem('auth.blocked_org_mismatch', {
-                orgId, source: 'connectorJwt', req,
-                meta: { userOrgId: user.organizationId, reason: 'user_bound_to_other_org' },
-            });
-            return res.status(403).json({
-                error: 'This Nextcloud is connected to a different Bee Flow organisation than your account. Ask an admin of your organisation to generate a pairing code (Settings → Organisation → Nextcloud Sync → "Pair a new Nextcloud") and re-pair this Nextcloud with it.',
-                code: 'NC_ORG_MISMATCH',
-            });
-        }
-        if (user.status === 'pending') {
-            orgHealth.problem('auth.blocked_pending_approval', {
-                orgId, source: 'connectorJwt', req,
-                meta: { lastUserId: user.id, reason: 'existing_user_pending' },
-            });
-            return res.status(403).json({ error: 'Account is pending admin approval' });
-        }
-
-        // Reconcile a missing org pointer. We reach here only when the user
-        // either already belongs to `orgId` or has no org at all (the
-        // cross-tenant guard above rejects a user bound to a *different* org).
-        // The session below would otherwise fall back to `orgId` while the DB
-        // row keeps a falsy organizationId — so embedded (session-org) and
-        // standalone (`/auth/user` reads the DB row) would resolve different
-        // orgs for the same person, and org-scoped queries that read the DB
-        // (resolveUserOrgIds) would exclude them. Persist the org so DB and
-        // session agree everywhere. Idempotent.
-        if (!user.organizationId && orgId) {
-            try {
-                await userStore.updateUser(user.id, { organizationId: orgId });
-                user.organizationId = orgId;
-                log.info(`[ConnectorJWT] Backfilled organizationId=${orgId} for user ${user.id}`);
-            } catch (e) {
-                log.warn(`[ConnectorJWT] Failed to backfill organizationId for ${user.id}: ${e.message}`);
-            }
-        }
-
-        // Observability: surface data-corruption — a user marked as connector-
-        // sourced should always live under an NC-bound org. If we ever see
-        // provider=nextcloud_connector under an org without nc_instance_id,
-        // that's a sign of broken state (manual edit, failed migration, or a
-        // standalone-tenant data leak). Pure log; behaviour unchanged. Only
-        // resolves the org for connector-sourced users so non-NC traffic
-        // doesn't pay an extra DB roundtrip.
-        if (user.provider === 'nextcloud_connector') {
-            const orgForCheck = await userStore.getOrganization(user.organizationId || orgId).catch(() => null);
-            if (orgForCheck && !orgForCheck.nc_instance_id) {
-                log.warn(`[ConnectorJWT] Data anomaly: user ${user.id} has provider=nextcloud_connector but org ${orgForCheck.id} has no nc_instance_id`);
-            }
-        }
-
-        // Self-heal a wrong stored nc_uid. Historical bug: connectorBootstrap's
-        // `if (!user.ncUid)` guard checked the camelCase spelling on a raw
-        // snake_case row, so EVERY bootstrap overwrote nc_uid with admins[0] —
-        // and since the stored uid wins below, an affected user's WebDAV calls
-        // impersonated the wrong NC account. payload.sub is signed with this
-        // org's tenant key (verified above), so when the requester's own uid
-        // disagrees with the stored one AND the email matches, the row is
-        // stale — repair it. Email must match so a shared/recycled Bee Flow
-        // account can never be rebound to a different person's NC identity.
-        if (user.nc_uid && payload.sub && user.nc_uid !== payload.sub
-            && user.email && payload.email && user.email === payload.email) {
-            try {
-                await userStore.updateUser(user.id, { ncUid: payload.sub });
-                log.warn(`[ConnectorJWT] Repaired stale nc_uid for user ${user.id}: ${user.nc_uid} → ${payload.sub}`);
-                user.nc_uid = payload.sub;
-            } catch (e) {
-                log.warn(`[ConnectorJWT] Failed to repair nc_uid for ${user.id}: ${e.message}`);
-            }
-        }
-
-        const ncUid = _resolveSessionNcUid(user, req, payload);
-        const sessionUser = {
-            id: user.id,
-            email: user.email,
-            displayName: user.displayName || user.id,
-            role: user.role || 'user',
-            orgRole: user.orgRole || '',
-            organizationId: user.organizationId || orgId,
-            ncUid,
-            provider: user.provider || 'nextcloud_connector',
-        };
-        req.connectorAuth = { orgId, ncUid };
-
-        // Inject encryptionKey for endpoints that read encrypted user state
-        // (chat history, agent conversations). The connector path acts like
-        // an SSO provider — we trust the upstream Nextcloud session, so we
-        // try SSO-recovery first (matches oauthRoutes.js:262 / adminRoutes.js:366),
-        // and fall back to the deterministic master-key derivation. Without
-        // this, chat.js:239 reads `req.session?.encryptionKey === undefined`
-        // and fails on encrypted-conversation lookup.
-        //
-        // Cached: PBKDF2 with 210k iterations is too expensive to do on
-        // every request. Both the SSO-recovery DEK and the deterministic
-        // fallback are stable for the user's lifetime (until they explicitly
-        // rotate via the encryption-pin flow), so first computation wins.
-        let cachedEnc = null;
-        try {
-            cachedEnc = _encKeyCache.get(user.id);
-            if (!cachedEnc) {
-                const sso = await encryption.getOrCreateSSOUserDEKCompat(user.id, true);
-                if (sso?.encryptionKey) {
-                    cachedEnc = sso.encryptionKey;
-                } else if (process.env.MASTER_ENCRYPTION_KEY) {
-                    cachedEnc = encryption.getFallbackEncryptionKey(user.id);
-                }
-                if (cachedEnc) _encKeyCache.set(user.id, cachedEnc);
-            }
-        } catch (e) {
-            log.warn(`[ConnectorJWT] EncryptionKey derivation failed for user ${user.id}: ${e.message}`);
-            orgHealth.problem('auth.encryption_key_failed', {
-                orgId, source: 'connectorJwt', req,
-                meta: { userId: user.id, reason: 'derivation_failed' },
-            });
-        }
-
-        // In-memory session only — deliberately NOT establishSession. The
-        // connector strips the request cookie (nextcloud-connector/
-        // src/proxy.js), so a persisted row can never be read back: every
-        // embedded request re-enters this middleware with a fresh JWT. The
-        // old establishSession call here regenerated + INSERTed a
-        // user_sessions row per API call (~15 per embedded page load) —
-        // write-only garbage that grew the session table and slowed every
-        // embedded request. Session fixation is moot without a cookie, so
-        // the canonical shape is applied directly and persistence is
-        // neutralised for this request — the Set-Cookie too, which AppAPI
-        // would otherwise hand to the browser (see suppressSessionPersistence).
-        // connectorOrgId/connectorNcUid feed
-        // server/integrations/nextcloudClient.js resolveConnectorAuth().
-        Object.assign(req.session, {
-            isAuthenticated: true,
-            user: sessionUser,
-            isAdmin: user.role === 'admin',
-            connectorOrgId: orgId,
-            connectorNcUid: ncUid,
-            ...(cachedEnc ? { encryptionKey: cachedEnc } : {}),
-        });
-        suppressSessionPersistence(req);
-        // Fully authenticated — record org liveness. The emitter throttles
-        // in-memory (1 write / org / 15 min), so this stays off the hot path.
-        orgHealth.touchLiveness(orgId, 'authOk');
         next();
         return;
     } catch (err) {
@@ -710,8 +399,8 @@ async function connectorJwtMiddleware(req, res, next) {
 module.exports = connectorJwtMiddleware;
 module.exports.invalidateTenantKeyCache = invalidateTenantKeyCache;
 module.exports._verifyHs256 = _verifyHs256; // exported for tests
-module.exports._isOrgAdminRequester = _isOrgAdminRequester; // exported for tests
-module.exports._resolveRequesterNcUid = _resolveRequesterNcUid; // exported for tests
-module.exports._resolveSessionNcUid = _resolveSessionNcUid; // exported for tests
+module.exports._isOrgAdminRequester = phases._isOrgAdminRequester; // exported for tests
+module.exports._resolveRequesterNcUid = phases._resolveRequesterNcUid; // exported for tests
+module.exports._resolveSessionNcUid = phases._resolveSessionNcUid; // exported for tests
 module.exports._resolveTenant = _resolveTenant; // shared with /connector/status (phone-home) — single two-pass key resolver
 module.exports._unverifiedEmailDomain = _unverifiedEmailDomain; // exported for tests

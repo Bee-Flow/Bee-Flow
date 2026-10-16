@@ -18,7 +18,6 @@
 'use strict';
 
 const express = require('express');
-const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const S = require('./schemas');
 const CollabS = require('./collabSchemas');
@@ -54,26 +53,19 @@ function makeActivityRouter(deps) {
     // ── Activity feed ────────────────────────────────────────
 
     router.get('/:id/activity', requireRole('viewer'), validate({ query: S.PageQuery }), async (req, res) => {
-        try {
-            const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
-            const offset = parseInt(req.query.offset, 10) || 0;
-            // Fetch one extra row to cheaply detect "more available" without a
-            // second COUNT(*) query against the activity table.
-            const items = await projectStore.listActivity(req.params.id, limit + 1, offset);
-            const hasMore = items.length > limit;
-            const page = hasMore ? items.slice(0, limit) : items;
-            // File rows carry an id, never the name; it is read now, while the
-            // file is still in the project (projects/projectFiles.js). Without the
-            // project there is nothing to name from, and any stored name is dropped.
-            const project = await projectStore.getProject(req.params.id);
-            const named = await projectFiles().nameFileActivity(project || { id: req.params.id }, page);
-            res.json({ items: named, hasMore });
-        } catch (err) {
-            log.error('[Projects] Activity error:', err.message);
-            // Raw err.message can carry SQL text, column names and constraint names.
-            // The console.error above keeps the detail for operators.
-            res.status(500).json({ error: 'Request failed' });
-        }
+        const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+        const offset = parseInt(req.query.offset, 10) || 0;
+        // Fetch one extra row to cheaply detect "more available" without a
+        // second COUNT(*) query against the activity table.
+        const items = await projectStore.listActivity(req.params.id, limit + 1, offset);
+        const hasMore = items.length > limit;
+        const page = hasMore ? items.slice(0, limit) : items;
+        // File rows carry an id, never the name; it is read now, while the
+        // file is still in the project (projects/projectFiles.js). Without the
+        // project there is nothing to name from, and any stored name is dropped.
+        const project = await projectStore.getProject(req.params.id);
+        const named = await projectFiles().nameFileActivity(project || { id: req.params.id }, page);
+        res.json({ items: named, hasMore });
     });
 
     // ── Live stream ──────────────────────────────────────────

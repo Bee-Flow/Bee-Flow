@@ -25,15 +25,11 @@ require('../privacy/errorSanitizer');
 require('../automationErrors');
 require('../automationModel/bind');
 require('../../utils/ssrfGuard');
-require('../../automation/expr');
+require('./expr');
 require('../automationModel/approvalStages');
 require('../automationModel/sideEffectMap');
-require('../../automation/outputSchemas');
-require('../../automation/shapeCache');
-require('../../automation/summarise');
-require('../../automation/cron');
-require('../../automation/codeSandbox');
-require('../../automation/notificationDefaults');
+require('../scheduling/cron');
+require('../automationModel/notificationDefaults');
 require('../runEventBus');
 // Feature C — http_request credential injection. MASK_VALUES is the Symbol-
 // keyed mask array on runState: unreachable from templates/exprs/code steps

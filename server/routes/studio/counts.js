@@ -410,25 +410,20 @@ function createCountsRouter(deps = null) {
         res.set('Cache-Control', 'private, no-store');
         const cached = cacheGet(key);
         if (cached) return res.json(cached);
-        try {
-            // `partial` never reaches the client: an absent key already means
-            // "not for you", and the next poll (30s) recounts a partial body.
-            const { partial, ...body } = await computeCounts(req, d);
-            // …but `makers` is a SET SIZE, and a set built from kinds that
-            // partly failed reports a smaller workplace rather than an unknown
-            // one. Studio Home turns 0 into "Nothing built here yet", so a
-            // single store having a bad day would become a statement about the
-            // organisation. An ABSENT key is the answer this response already
-            // has for "not known" (the counts use it), so makers uses it too.
-            if (partial) delete body.makers;
-            if (!partial) cacheSet(key, body);
-            return res.json(body);
-        } catch (err) {
-            // computeCounts swallows per-kind failures; this is the "cannot
-            // even start" case.
-            log.error('[StudioCounts] failed:', err?.message || err);
-            return res.status(500).json({ error: 'Could not count' });
-        }
+        // computeCounts swallows per-kind failures; one that cannot even start
+        // rejects to a 500 (the terminal handler).
+        // `partial` never reaches the client: an absent key already means
+        // "not for you", and the next poll (30s) recounts a partial body.
+        const { partial, ...body } = await computeCounts(req, d);
+        // …but `makers` is a SET SIZE, and a set built from kinds that
+        // partly failed reports a smaller workplace rather than an unknown
+        // one. Studio Home turns 0 into "Nothing built here yet", so a
+        // single store having a bad day would become a statement about the
+        // organisation. An ABSENT key is the answer this response already
+        // has for "not known" (the counts use it), so makers uses it too.
+        if (partial) delete body.makers;
+        if (!partial) cacheSet(key, body);
+        return res.json(body);
     });
 
     router.__clearCacheForTests = () => cache.clear();

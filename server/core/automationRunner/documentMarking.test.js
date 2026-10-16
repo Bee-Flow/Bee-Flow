@@ -20,6 +20,11 @@
  * Run: cd server && node --test --test-force-exit core/automationRunner/documentMarking.test.js
  */
 const { test } = require('node:test');
+// The runner reaches automation/, integrations/ and services/ through
+// core/automationRunner/featurePorts.js; boot registers these for the server.
+require('../../automation/runnerPorts');
+require('../../integrations/runnerPorts');
+require('../../services/runnerPorts');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
@@ -135,9 +140,11 @@ test('boot wires the compliance resolver into the port', () => {
     // Genuinely textual — see the file header: no seam exists to call
     // runStartupTasks() for real without starting a dozen other background
     // jobs and opening the DB.
-    const src = fs.readFileSync(path.join(__dirname, '..', '..', 'boot', 'startupTasks.js'), 'utf8');
-    assert.ok(/documentMarking'\)\s*\n?\s*\.setMarkingResolver/.test(src),
-        'boot/startupTasks.js must call setMarkingResolver — without it every generated document is unmarked');
-    assert.ok(/compliance\/marking'\)\.resolveMarking/.test(src),
-        'the resolver boot registers must be compliance/marking.resolveMarking');
+    // The compliance block is runStartupTasks()'s startRetentionAndComplianceJobs phase.
+    const src = fs.readFileSync(path.join(__dirname, '..', '..', 'boot', 'ports.js'), 'utf8');
+    assert.ok(/documentMarking'\)\s*\n?\s*\.setMarkingResolver/.test(src) && /compliance\/marking'\)\.resolveMarking/.test(src),
+        'boot/ports.js must call setMarkingResolver with compliance/marking.resolveMarking — without it every generated document is unmarked');
+    const jobs = fs.readFileSync(path.join(__dirname, '..', '..', 'boot', 'startupJobs.js'), 'utf8');
+    assert.ok(/require\('\.\/ports'\)\.wirePorts\(\{ compliance: isModuleAvailable\('compliance'\) \}\)/.test(jobs),
+        'boot/startupJobs.js must wire the ports with the compliance availability');
 });

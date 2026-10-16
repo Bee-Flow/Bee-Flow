@@ -156,9 +156,313 @@ When others are editing the notebook live, the answer carries a "revision": pass
     }
 ];
 
-const { wordCount, parseSections, readNotebookContent } = require('./notebookReadModes');
+const { wordCount, readNotebookContent } = require('./notebookReadModes');
+const { insertIntoContent, replaceInContent } = require('./notebookTextEdits');
 
 // ─── Tool execution ─────────────────────────────────────────────────────────
+
+// Helper: get notebook content from either agent or direct conversations.
+// Returns user_id alongside content so callers can cross-check ownership
+// against the tool's execution context. When the conversation row has a
+// `workspace_notebook_id` link, we resolve content from the standalone
+// `notebooks` table — that is the source of truth the UI reads, so the
+// tool must read/write there too. Otherwise we fall back to the legacy
+// per-conversation `workspace_content` column.
+async function getWorkspace(convId) {
+    // Lazy-load DB helpers to avoid circular deps
+    const { getOne } = require('../db');
+    const notebookStore = require('../stores/notebookStore');
+    let row = await getOne('SELECT workspace_content, workspace_notebook_id, user_id FROM agent_conversations WHERE id = $1', [convId]);
+    let source = 'agent';
+    if (!row) {
+        row = await getOne('SELECT workspace_content, workspace_notebook_id, user_id FROM direct_conversations WHERE id = $1', [convId]);
+        source = 'direct';
+    }
+    if (!row) return null;
+    if (row.workspace_notebook_id) {
+        // The link is only an id the conversation's owner sent: it grants
+        // nothing. The notebook is used with the owner's OWN role on it.
+        const notebook = await notebookStore.getNotebook(row.workspace_notebook_id, row.user_id);
+        if (!notebook) return { content: '', user_id: row.user_id, source, notebookId: null, notebookUnavailable: true };
+        const role = notebook.role || (notebook.userId === row.user_id ? 'owner' : null);
+        // While the notebook is co-edited the live document is the one to
+        // read (and edit): the row is a mirror that lags typing by up to
+        // minutes. These tools speak Markdown, so prefer the Markdown
+        // rendering, and for the row the canonical Markdown mirror over
+        // document_content (older rows have only the HTML).
+        const { readCurrentContent } = require('../agents/notebooks/notebookCollab');
+        const current = await readCurrentContent(notebook, seams.collab());
+        const { htmlToMarkdown } = require('../core/markdown');
+        const content = current.live
+            ? (current.markdown != null ? current.markdown : htmlToMarkdown(current.html))
+            : (notebook.documentMd != null ? notebook.documentMd : notebook.documentContent);
+        return {
+            content: content || '',
+            user_id: row.user_id,
+            source,
+            notebookId: row.workspace_notebook_id,
+            notebookRole: role,
+            // Co-edited, and the live update this content was read at.
+            coEdited: current.active,
+            liveSeq: current.live && Number.isInteger(current.seq) ? current.seq : null,
+        };
+    }
+    return { content: row.workspace_content || '', user_id: row.user_id, source };
+}
+
+// Fails CLOSED. `conversationId` is client-supplied and getWorkspace resolves
+// it by id alone, so this is the only thing standing between a caller and
+// another user's notebook. A missing callerUserId used to short-circuit the
+// comparison and wave everything through — treat it as a denial instead.
+function denyIfCrossUser({ conversationId, callerUserId }, workspace) {
+    if (!workspace) return null;
+    if (!callerUserId) {
+        log.warn('[NotebookTool] refused: no caller identity in tool context', { conversationId });
+        return { error: 'This notebook belongs to a different user.' };
+    }
+    if (workspace.user_id && workspace.user_id !== callerUserId) {
+        log.warn('[NotebookTool] cross-user access blocked:', { conversationId, caller: callerUserId, owner: workspace.user_id });
+        return { error: 'This notebook belongs to a different user.' };
+    }
+    if (workspace.notebookUnavailable) {
+        log.warn('[NotebookTool] refused: the linked notebook is not readable for this user', { conversationId });
+        return { error: NOTEBOOK_UNAVAILABLE };
+    }
+    return null;
+}
+
+// Every write tool: the conversation's owner, and edit rights on a linked notebook.
+function denyWrite(c, workspace) {
+    const { conversationId } = c;
+    const denied = denyIfCrossUser(c, workspace);
+    if (denied) return denied;
+    if (workspace?.notebookId && !canEditNotebook(workspace.notebookRole)) {
+        log.info('[NotebookTool] refused a write for a viewer of the linked notebook', { conversationId, notebookId: workspace.notebookId });
+        return { error: NOTEBOOK_READ_ONLY };
+    }
+    return null;
+}
+
+// What a write tool answers when setWorkspace did not persist.
+const FAILED_WRITE = { conflict: NOTEBOOK_CONFLICT, forbidden: NOTEBOOK_READ_ONLY, stale: NOTEBOOK_LIVE_STALE, 'read-first': NOTEBOOK_LIVE_READ_FIRST };
+function failedWrite({ conversationId }, result, workspace, what) {
+    const refusedLive = result === 'stale' || result === 'read-first';
+    log[refusedLive ? 'info' : 'error'](`[NotebookTool] ${what} not persisted:`, { conversationId, notebookId: workspace?.notebookId || null, reason: result || 'no-rows' });
+    const error = FAILED_WRITE[result] || NOTEBOOK_SAVE_FAILED;
+    return { error, _nbWriteFailed: true, _revertContent: workspace?.content || '' };
+}
+
+// Helper: persist notebook content. Writes to the linked standalone
+// notebook when the conversation has one (via notebookStore so version
+// tracking and owner gating stay consistent), otherwise to the legacy
+// per-conversation column.
+// Answers true, or why not: 'forbidden', 'conflict', 'stale' or false.
+// `expectSeq`: `content` is a whole document the model composed from the
+// live notebook as it was at that update (notebook_write's revision).
+async function setWorkspace(convId, content, workspace, { expectSeq = null } = {}) {
+    const { run } = require('../db');
+    const notebookStore = require('../stores/notebookStore');
+    if (workspace?.notebookId) {
+        // Edit rights on the notebook itself, checked again right here: the
+        // co-editing engine below is a trusted server facade that checks no
+        // one, and the conversation link grants nothing.
+        const nb = await notebookStore.getNotebook(workspace.notebookId, workspace.user_id);
+        const role = nb && (nb.role || (nb.userId === workspace.user_id ? 'owner' : null));
+        if (!canEditNotebook(role)) {
+            log.warn('[NotebookTool] refused: no edit rights on the linked notebook', { conversationId: convId, notebookId: workspace.notebookId });
+            return 'forbidden';
+        }
+        // `content` is Markdown. Store it as the canonical mirror and keep
+        // document_content as the HTML rendering, so the notebook UI and the
+        // PDF/DOCX export path (both of which expect HTML) stay correct
+        // while these tools keep reading Markdown back out.
+        const { markdownToHtml } = require('../core/markdown');
+        let html = content;
+        try { html = markdownToHtml(content); } catch (_) { /* fall back to raw */ }
+        // While the notebook is co-edited, the live document is the
+        // co-editing state: the edit goes in there (everyone's editor
+        // follows) instead of onto the row, where the next materialisation
+        // would silently undo it. An insert or a replace was computed in
+        // this call from what it read, `workspace.content`: only that
+        // change is carried onto the live document, so typing since the
+        // read survives, and a change to the same blocks is a conflict. A
+        // whole document (notebook_write) was composed from an EARLIER
+        // read, so it goes in only while nothing was typed since that
+        // read's update (`expectSeq`), and is refused ('stale') otherwise.
+        // A failing engine refuses rather than writing the row behind
+        // everyone's back.
+        try {
+            const { applyEdit } = require('../agents/notebooks/notebookCollab');
+            const edit = Number.isInteger(expectSeq)
+                ? { html, markdown: content, expectSeq }
+                : { html, markdown: content, base: { markdown: workspace.content || '' } };
+            // The engine records the versions around it (this path keeps no history of its own).
+            const live = await applyEdit(workspace.notebookId, { origin: 'ai', actorId: workspace.user_id, recordVersions: true },
+                edit, seams.collab());
+            if (live.conflict) return 'conflict';
+            if (live.stale) return 'stale';
+            // The live update it made: the revision a next whole write goes from.
+            if (live.applied) { workspace.liveSeqAfter = Number.isInteger(live.seq) ? live.seq : null; return true; }
+        } catch (e) {
+            log.warn('[NotebookTool] co-edited notebook write failed', { notebookId: workspace.notebookId, error: e.message });
+            return false;
+        }
+        return notebookStore.updateNotebook(workspace.notebookId, workspace.user_id, {
+            documentContent: html,
+            documentMd: content,
+            documentFormat: 'markdown',
+        });
+    }
+    // The owner predicate is defence in depth: every caller already runs
+    // denyIfCrossUser(workspace) first, so a cross-user write cannot reach
+    // here today. Keeping the scope in the statement means a future caller
+    // that forgets the guard writes nothing rather than writing to someone
+    // else's conversation — the same rule the notebook branch above gets for
+    // free from updateNotebook(id, user_id, ...).
+    const ownerId = workspace?.user_id;
+    if (!ownerId) return false;
+    const agentResult = await run('UPDATE agent_conversations SET workspace_content = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3', [content, convId, ownerId]);
+    if (agentResult.rowCount > 0) return true;
+    const directResult = await run('UPDATE direct_conversations SET workspace_content = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3', [content, convId, ownerId]);
+    return directResult.rowCount > 0;
+}
+
+async function notebookRead(args, c) {
+    const { conversationId } = c;
+    try {
+        const workspace = await getWorkspace(conversationId);
+        const denied = denyIfCrossUser(c, workspace);
+        if (denied) return denied;
+        const content = workspace?.content || '';
+        // Read live: the update it was read at, for a later notebook_write.
+        const revision = workspace?.liveSeq != null ? { revision: liveRevision(workspace.liveSeq) } : {};
+        if (!content.trim()) {
+            return { content: '', message: 'The notebook is currently empty.', ...revision };
+        }
+
+        const result = readNotebookContent(content, args);
+        return result.error ? result : { ...result, ...revision };
+    } catch (err) {
+        log.error('[NotebookTool] Read failed:', err.message);
+        return { error: 'Failed to read notebook content.' };
+    }
+}
+
+async function notebookWrite(args, c) {
+    const { conversationId } = c;
+    const content = typeof args.content === 'string' ? args.content : '';
+    const title = args.title || 'Notebook';
+
+    if (!content.trim()) {
+        return {
+            error: 'content is required for notebook_write. Generate the full Markdown document first, then call notebook_write with it. Do not call notebook_write with empty or placeholder content.'
+        };
+    }
+
+    try {
+        const existing = await getWorkspace(conversationId);
+        const denied = denyWrite(c, existing);
+        if (denied) return denied;
+        // Others are editing it live: the whole document goes in only from
+        // the update the model read (its revision), never over typing since.
+        const expectSeq = existing?.coEdited ? parseRevision(args.revision) : null;
+        if (existing?.coEdited && expectSeq === null) return failedWrite(c, 'read-first', existing, 'Write');
+        const saved = await setWorkspace(conversationId, content, existing, { expectSeq });
+        if (saved !== true) return failedWrite(c, saved, existing, 'Write');
+        const words = wordCount(content);
+        return {
+            _action: 'workspace_update',
+            content, // Full content → sent via SSE to frontend
+            title,
+            ...(existing?.liveSeqAfter != null ? { revision: liveRevision(existing.liveSeqAfter) } : {}),
+            // Compact message for LLM context (the LLM just wrote it, doesn't need it back)
+            message: `Notebook updated: "${title}" (${words} words, ${content.split('\n').length} lines). Content is now visible in the notebook panel.`
+        };
+    } catch (err) {
+        log.error('[NotebookTool] Write failed:', err.message);
+        return { error: 'Failed to write to notebook.' };
+    }
+}
+
+async function notebookInsert(args, c) {
+    const { conversationId } = c;
+    const insertContent = args.content || '';
+    const position = args.position || 'end';
+    const afterText = args.after_text || '';
+
+    if (!insertContent.trim()) {
+        return { error: 'content is required for notebook_insert.' };
+    }
+
+    try {
+        const workspace = await getWorkspace(conversationId);
+        const denied = denyWrite(c, workspace);
+        if (denied) return denied;
+        const currentContent = workspace?.content || '';
+        const edit = insertIntoContent(currentContent, { position, afterText, insertContent });
+        if (edit.error) return edit;
+        const { newContent } = edit;
+
+        const saved = await setWorkspace(conversationId, newContent, workspace);
+        if (saved !== true) return failedWrite(c, saved, workspace, 'Insert');
+        const words = wordCount(insertContent);
+        return {
+            _action: 'workspace_update',
+            content: newContent, // Full content → SSE to frontend
+            // Compact message for LLM
+            message: `Inserted ${words} words at ${position}${position === 'after' ? ` "${afterText.substring(0, 50)}"` : ''}. Notebook now has ${wordCount(newContent)} words total.`
+        };
+    } catch (err) {
+        log.error('[NotebookTool] Insert failed:', err.message);
+        return { error: 'Failed to insert into notebook.' };
+    }
+}
+
+async function notebookReplace(args, c) {
+    const { conversationId } = c;
+    const findText = args.find_text;
+    const replaceText = args.replace_text ?? '';
+    const sectionHeading = args.section_heading;
+
+    if (!findText) {
+        return { error: 'find_text is required for notebook_replace.' };
+    }
+
+    try {
+        const workspace = await getWorkspace(conversationId);
+        const denied = denyWrite(c, workspace);
+        if (denied) return denied;
+        const currentContent = workspace?.content || '';
+
+        if (!currentContent.trim()) {
+            return { error: 'The notebook is empty — nothing to replace. Use notebook_write to create the initial content (only when the user has explicitly asked).' };
+        }
+
+        const edit = replaceInContent(currentContent, { findText, replaceText, sectionHeading });
+        if (edit.error) return edit;
+        const { newContent } = edit;
+
+        const saved = await setWorkspace(conversationId, newContent, workspace);
+        if (saved !== true) return failedWrite(c, saved, workspace, 'Replace');
+        const action = replaceText ? 'replaced' : 'removed';
+        return {
+            _action: 'workspace_update',
+            content: newContent, // Full content → SSE to frontend
+            // Compact message for LLM (it already knows what it replaced)
+            message: `Text ${action} successfully. Notebook now has ${wordCount(newContent)} words.`
+        };
+    } catch (err) {
+        log.error('[NotebookTool] Replace failed:', err.message);
+        return { error: 'Failed to replace notebook content.' };
+    }
+}
+
+const NOTEBOOK_HANDLERS = {
+    notebook_read: notebookRead,
+    notebook_write: notebookWrite,
+    notebook_insert: notebookInsert,
+    notebook_replace: notebookReplace,
+};
 
 /**
  * Execute a notebook tool call.
@@ -176,446 +480,9 @@ async function executeWorkspaceTool(toolName, args, context) {
         return { error: 'Notebook requires an active conversation. Send a message first.' };
     }
 
-    // Lazy-load DB helpers to avoid circular deps
-    const { getOne, run } = require('../db');
-    const notebookStore = require('../stores/notebookStore');
-
-    // Helper: get notebook content from either agent or direct conversations.
-    // Returns user_id alongside content so callers can cross-check ownership
-    // against the tool's execution context. When the conversation row has a
-    // `workspace_notebook_id` link, we resolve content from the standalone
-    // `notebooks` table — that is the source of truth the UI reads, so the
-    // tool must read/write there too. Otherwise we fall back to the legacy
-    // per-conversation `workspace_content` column.
-    async function getWorkspace(convId) {
-        let row = await getOne('SELECT workspace_content, workspace_notebook_id, user_id FROM agent_conversations WHERE id = $1', [convId]);
-        let source = 'agent';
-        if (!row) {
-            row = await getOne('SELECT workspace_content, workspace_notebook_id, user_id FROM direct_conversations WHERE id = $1', [convId]);
-            source = 'direct';
-        }
-        if (!row) return null;
-        if (row.workspace_notebook_id) {
-            // The link is only an id the conversation's owner sent: it grants
-            // nothing. The notebook is used with the owner's OWN role on it.
-            const notebook = await notebookStore.getNotebook(row.workspace_notebook_id, row.user_id);
-            if (!notebook) return { content: '', user_id: row.user_id, source, notebookId: null, notebookUnavailable: true };
-            const role = notebook.role || (notebook.userId === row.user_id ? 'owner' : null);
-            // While the notebook is co-edited the live document is the one to
-            // read (and edit): the row is a mirror that lags typing by up to
-            // minutes. These tools speak Markdown, so prefer the Markdown
-            // rendering, and for the row the canonical Markdown mirror over
-            // document_content (older rows have only the HTML).
-            const { readCurrentContent } = require('../agents/notebooks/notebookCollab');
-            const current = await readCurrentContent(notebook, seams.collab());
-            const { htmlToMarkdown } = require('../core/markdown');
-            const content = current.live
-                ? (current.markdown != null ? current.markdown : htmlToMarkdown(current.html))
-                : (notebook.documentMd != null ? notebook.documentMd : notebook.documentContent);
-            return {
-                content: content || '',
-                user_id: row.user_id,
-                source,
-                notebookId: row.workspace_notebook_id,
-                notebookRole: role,
-                // Co-edited, and the live update this content was read at.
-                coEdited: current.active,
-                liveSeq: current.live && Number.isInteger(current.seq) ? current.seq : null,
-            };
-        }
-        return { content: row.workspace_content || '', user_id: row.user_id, source };
-    }
-
-    // Fails CLOSED. `conversationId` is client-supplied and getWorkspace resolves
-    // it by id alone, so this is the only thing standing between a caller and
-    // another user's notebook. A missing callerUserId used to short-circuit the
-    // comparison and wave everything through — treat it as a denial instead.
-    function denyIfCrossUser(workspace) {
-        if (!workspace) return null;
-        if (!callerUserId) {
-            log.warn('[NotebookTool] refused: no caller identity in tool context', { conversationId });
-            return { error: 'This notebook belongs to a different user.' };
-        }
-        if (workspace.user_id && workspace.user_id !== callerUserId) {
-            log.warn('[NotebookTool] cross-user access blocked:', { conversationId, caller: callerUserId, owner: workspace.user_id });
-            return { error: 'This notebook belongs to a different user.' };
-        }
-        if (workspace.notebookUnavailable) {
-            log.warn('[NotebookTool] refused: the linked notebook is not readable for this user', { conversationId });
-            return { error: NOTEBOOK_UNAVAILABLE };
-        }
-        return null;
-    }
-
-    // Every write tool: the conversation's owner, and edit rights on a linked notebook.
-    function denyWrite(workspace) {
-        const denied = denyIfCrossUser(workspace);
-        if (denied) return denied;
-        if (workspace?.notebookId && !canEditNotebook(workspace.notebookRole)) {
-            log.info('[NotebookTool] refused a write for a viewer of the linked notebook', { conversationId, notebookId: workspace.notebookId });
-            return { error: NOTEBOOK_READ_ONLY };
-        }
-        return null;
-    }
-
-    // What a write tool answers when setWorkspace did not persist.
-    const FAILED_WRITE = { conflict: NOTEBOOK_CONFLICT, forbidden: NOTEBOOK_READ_ONLY, stale: NOTEBOOK_LIVE_STALE, 'read-first': NOTEBOOK_LIVE_READ_FIRST };
-    function failedWrite(result, workspace, what) {
-        const refusedLive = result === 'stale' || result === 'read-first';
-        log[refusedLive ? 'info' : 'error'](`[NotebookTool] ${what} not persisted:`, { conversationId, notebookId: workspace?.notebookId || null, reason: result || 'no-rows' });
-        const error = FAILED_WRITE[result] || NOTEBOOK_SAVE_FAILED;
-        return { error, _nbWriteFailed: true, _revertContent: workspace?.content || '' };
-    }
-
-    // Helper: persist notebook content. Writes to the linked standalone
-    // notebook when the conversation has one (via notebookStore so version
-    // tracking and owner gating stay consistent), otherwise to the legacy
-    // per-conversation column.
-    // Answers true, or why not: 'forbidden', 'conflict', 'stale' or false.
-    // `expectSeq`: `content` is a whole document the model composed from the
-    // live notebook as it was at that update (notebook_write's revision).
-    async function setWorkspace(convId, content, workspace, { expectSeq = null } = {}) {
-        if (workspace?.notebookId) {
-            // Edit rights on the notebook itself, checked again right here: the
-            // co-editing engine below is a trusted server facade that checks no
-            // one, and the conversation link grants nothing.
-            const nb = await notebookStore.getNotebook(workspace.notebookId, workspace.user_id);
-            const role = nb && (nb.role || (nb.userId === workspace.user_id ? 'owner' : null));
-            if (!canEditNotebook(role)) {
-                log.warn('[NotebookTool] refused: no edit rights on the linked notebook', { conversationId: convId, notebookId: workspace.notebookId });
-                return 'forbidden';
-            }
-            // `content` is Markdown. Store it as the canonical mirror and keep
-            // document_content as the HTML rendering, so the notebook UI and the
-            // PDF/DOCX export path (both of which expect HTML) stay correct
-            // while these tools keep reading Markdown back out.
-            const { markdownToHtml } = require('../core/markdown');
-            let html = content;
-            try { html = markdownToHtml(content); } catch (_) { /* fall back to raw */ }
-            // While the notebook is co-edited, the live document is the
-            // co-editing state: the edit goes in there (everyone's editor
-            // follows) instead of onto the row, where the next materialisation
-            // would silently undo it. An insert or a replace was computed in
-            // this call from what it read, `workspace.content`: only that
-            // change is carried onto the live document, so typing since the
-            // read survives, and a change to the same blocks is a conflict. A
-            // whole document (notebook_write) was composed from an EARLIER
-            // read, so it goes in only while nothing was typed since that
-            // read's update (`expectSeq`), and is refused ('stale') otherwise.
-            // A failing engine refuses rather than writing the row behind
-            // everyone's back.
-            try {
-                const { applyEdit } = require('../agents/notebooks/notebookCollab');
-                const edit = Number.isInteger(expectSeq)
-                    ? { html, markdown: content, expectSeq }
-                    : { html, markdown: content, base: { markdown: workspace.content || '' } };
-                // The engine records the versions around it (this path keeps no history of its own).
-                const live = await applyEdit(workspace.notebookId, { origin: 'ai', actorId: workspace.user_id, recordVersions: true },
-                    edit, seams.collab());
-                if (live.conflict) return 'conflict';
-                if (live.stale) return 'stale';
-                // The live update it made: the revision a next whole write goes from.
-                if (live.applied) { workspace.liveSeqAfter = Number.isInteger(live.seq) ? live.seq : null; return true; }
-            } catch (e) {
-                log.warn('[NotebookTool] co-edited notebook write failed', { notebookId: workspace.notebookId, error: e.message });
-                return false;
-            }
-            return notebookStore.updateNotebook(workspace.notebookId, workspace.user_id, {
-                documentContent: html,
-                documentMd: content,
-                documentFormat: 'markdown',
-            });
-        }
-        // The owner predicate is defence in depth: every caller already runs
-        // denyIfCrossUser(workspace) first, so a cross-user write cannot reach
-        // here today. Keeping the scope in the statement means a future caller
-        // that forgets the guard writes nothing rather than writing to someone
-        // else's conversation — the same rule the notebook branch above gets for
-        // free from updateNotebook(id, user_id, ...).
-        const ownerId = workspace?.user_id;
-        if (!ownerId) return false;
-        const agentResult = await run('UPDATE agent_conversations SET workspace_content = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3', [content, convId, ownerId]);
-        if (agentResult.rowCount > 0) return true;
-        const directResult = await run('UPDATE direct_conversations SET workspace_content = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3', [content, convId, ownerId]);
-        return directResult.rowCount > 0;
-    }
-
-    // ─── notebook_read ──────────────────────────────────────────────
-    if (normalizedName === 'notebook_read') {
-        try {
-            const workspace = await getWorkspace(conversationId);
-            const denied = denyIfCrossUser(workspace);
-            if (denied) return denied;
-            const content = workspace?.content || '';
-            // Read live: the update it was read at, for a later notebook_write.
-            const revision = workspace?.liveSeq != null ? { revision: liveRevision(workspace.liveSeq) } : {};
-            if (!content.trim()) {
-                return { content: '', message: 'The notebook is currently empty.', ...revision };
-            }
-
-            const result = readNotebookContent(content, args);
-            return result.error ? result : { ...result, ...revision };
-        } catch (err) {
-            log.error('[NotebookTool] Read failed:', err.message);
-            return { error: 'Failed to read notebook content.' };
-        }
-    }
-
-    // ─── notebook_write ─────────────────────────────────────────────
-    if (normalizedName === 'notebook_write') {
-        const content = typeof args.content === 'string' ? args.content : '';
-        const title = args.title || 'Notebook';
-
-        if (!content.trim()) {
-            return {
-                error: 'content is required for notebook_write. Generate the full Markdown document first, then call notebook_write with it. Do not call notebook_write with empty or placeholder content.'
-            };
-        }
-
-        try {
-            const existing = await getWorkspace(conversationId);
-            const denied = denyWrite(existing);
-            if (denied) return denied;
-            // Others are editing it live: the whole document goes in only from
-            // the update the model read (its revision), never over typing since.
-            const expectSeq = existing?.coEdited ? parseRevision(args.revision) : null;
-            if (existing?.coEdited && expectSeq === null) return failedWrite('read-first', existing, 'Write');
-            const saved = await setWorkspace(conversationId, content, existing, { expectSeq });
-            if (saved !== true) return failedWrite(saved, existing, 'Write');
-            const words = wordCount(content);
-            return {
-                _action: 'workspace_update',
-                content, // Full content → sent via SSE to frontend
-                title,
-                ...(existing?.liveSeqAfter != null ? { revision: liveRevision(existing.liveSeqAfter) } : {}),
-                // Compact message for LLM context (the LLM just wrote it, doesn't need it back)
-                message: `Notebook updated: "${title}" (${words} words, ${content.split('\n').length} lines). Content is now visible in the notebook panel.`
-            };
-        } catch (err) {
-            log.error('[NotebookTool] Write failed:', err.message);
-            return { error: 'Failed to write to notebook.' };
-        }
-    }
-
-    // ─── notebook_insert ────────────────────────────────────────────
-    if (normalizedName === 'notebook_insert') {
-        const insertContent = args.content || '';
-        const position = args.position || 'end';
-        const afterText = args.after_text || '';
-
-        if (!insertContent.trim()) {
-            return { error: 'content is required for notebook_insert.' };
-        }
-
-        try {
-            const workspace = await getWorkspace(conversationId);
-            const denied = denyWrite(workspace);
-            if (denied) return denied;
-            const currentContent = workspace?.content || '';
-            let newContent;
-
-            if (position === 'start') {
-                newContent = insertContent + '\n\n' + currentContent;
-            } else if (position === 'end') {
-                newContent = currentContent + (currentContent.trim() ? '\n\n' : '') + insertContent;
-            } else if (position === 'after') {
-                if (!afterText) {
-                    return { error: 'after_text is required when position is "after".' };
-                }
-                // Try exact match first
-                if (currentContent.includes(afterText)) {
-                    const idx = currentContent.indexOf(afterText) + afterText.length;
-                    newContent = currentContent.slice(0, idx) + '\n\n' + insertContent + currentContent.slice(idx);
-                } else {
-                    // Try whitespace-normalized match
-                    const normalizeWs = (t) => t.replace(/\r\n/g, '\n').replace(/[ \t]+/g, ' ').trim();
-                    const afterNorm = normalizeWs(afterText);
-                    const lines = currentContent.split('\n');
-                    let matchEnd = -1;
-
-                    for (let i = 0; i < lines.length; i++) {
-                        if (normalizeWs(lines[i]).includes(afterNorm) || afterNorm.includes(normalizeWs(lines[i]))) {
-                            matchEnd = i;
-                            break;
-                        }
-                    }
-
-                    if (matchEnd !== -1) {
-                        const before = lines.slice(0, matchEnd + 1).join('\n');
-                        const after = lines.slice(matchEnd + 1).join('\n');
-                        newContent = before + '\n\n' + insertContent + (after ? '\n' + after : '');
-                    } else {
-                        // Fallback: append at end
-                        newContent = currentContent + '\n\n' + insertContent;
-                    }
-                }
-            } else {
-                return { error: `Invalid position: ${position}. Use "start", "end", or "after".` };
-            }
-
-            const saved = await setWorkspace(conversationId, newContent, workspace);
-            if (saved !== true) return failedWrite(saved, workspace, 'Insert');
-            const words = wordCount(insertContent);
-            return {
-                _action: 'workspace_update',
-                content: newContent, // Full content → SSE to frontend
-                // Compact message for LLM
-                message: `Inserted ${words} words at ${position}${position === 'after' ? ` "${afterText.substring(0, 50)}"` : ''}. Notebook now has ${wordCount(newContent)} words total.`
-            };
-        } catch (err) {
-            log.error('[NotebookTool] Insert failed:', err.message);
-            return { error: 'Failed to insert into notebook.' };
-        }
-    }
-
-    // ─── notebook_replace ───────────────────────────────────────────
-    if (normalizedName === 'notebook_replace') {
-        const findText = args.find_text;
-        const replaceText = args.replace_text ?? '';
-        const sectionHeading = args.section_heading;
-
-        if (!findText) {
-            return { error: 'find_text is required for notebook_replace.' };
-        }
-
-        try {
-            const workspace = await getWorkspace(conversationId);
-            const denied = denyWrite(workspace);
-            if (denied) return denied;
-            const currentContent = workspace?.content || '';
-
-            if (!currentContent.trim()) {
-                return { error: 'The notebook is empty — nothing to replace. Use notebook_write to create the initial content (only when the user has explicitly asked).' };
-            }
-
-            let searchContent = currentContent;
-
-            // If section_heading is specified, narrow the search scope
-            if (sectionHeading) {
-                const sections = parseSections(currentContent);
-                const headingLower = sectionHeading.toLowerCase().trim();
-                const section = sections.find(s =>
-                    s.heading.toLowerCase().includes(headingLower) ||
-                    headingLower.includes(s.heading.toLowerCase())
-                );
-                if (section) {
-                    searchContent = section.content;
-                }
-            }
-
-            let newContent;
-
-            // Strategy 1: Exact match
-            if (searchContent.includes(findText)) {
-                // Apply to full content (even if we narrowed search scope)
-                if (currentContent.includes(findText)) {
-                    newContent = currentContent.replace(findText, replaceText);
-                } else {
-                    newContent = currentContent;
-                }
-            } else {
-                // Strategy 2: Whitespace-normalized match
-                const normalizeWs = (t) => t.replace(/\r\n/g, '\n').replace(/[ \t]+/g, ' ').trim();
-                const findNorm = normalizeWs(findText);
-
-                const lines = currentContent.split('\n');
-                let wsMatchStart = -1, wsMatchEnd = -1;
-                const findNormLines = findNorm.split('\n').map(l => l.trim()).filter(Boolean);
-
-                if (findNormLines.length > 0) {
-                    for (let i = 0; i < lines.length; i++) {
-                        const lineNorm = normalizeWs(lines[i]);
-                        if (lineNorm === findNormLines[0] || lineNorm.includes(findNormLines[0]) || findNormLines[0].includes(lineNorm)) {
-                            wsMatchStart = i;
-                            wsMatchEnd = i;
-                            let fi = 1;
-                            for (let j = i + 1; j < lines.length && fi < findNormLines.length; j++) {
-                                const ls = normalizeWs(lines[j]);
-                                if (!ls) { wsMatchEnd = j; continue; }
-                                if (ls === findNormLines[fi] || ls.includes(findNormLines[fi]) || findNormLines[fi].includes(ls)) {
-                                    wsMatchEnd = j;
-                                    fi++;
-                                }
-                            }
-                            if (fi >= findNormLines.length) break;
-                            wsMatchStart = -1;
-                        }
-                    }
-                }
-
-                if (wsMatchStart !== -1) {
-                    const before = lines.slice(0, wsMatchStart).join('\n');
-                    const after = lines.slice(wsMatchEnd + 1).join('\n');
-                    newContent = [before, replaceText, after].filter(p => p !== '').join('\n');
-                } else {
-                    // Strategy 3: Strip-markdown matching
-                    const stripMd = (t) => t
-                        .replace(/\*\*(.+?)\*\*/g, '$1')
-                        .replace(/__(.+?)__/g, '$1')
-                        .replace(/\*(.+?)\*/g, '$1')
-                        .replace(/_(.+?)_/g, '$1')
-                        .replace(/~~(.+?)~~/g, '$1')
-                        .replace(/`(.+?)`/g, '$1')
-                        .replace(/^#{1,6}\s+/gm, '')
-                        .replace(/^\s*[-*+]\s+/gm, '')
-                        .replace(/^\s*\d+\.\s+/gm, '')
-                        .replace(/^\s*>\s*/gm, '')
-                        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-                        .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1');
-
-                    const findStripped = stripMd(findText).trim();
-                    let mdMatchStart = -1, mdMatchEnd = -1;
-                    const findMdLines = findStripped.split('\n').map(l => l.trim()).filter(Boolean);
-
-                    if (findMdLines.length > 0) {
-                        for (let i = 0; i < lines.length; i++) {
-                            const lineStripped = stripMd(lines[i]).trim();
-                            if (lineStripped && (lineStripped.includes(findMdLines[0]) || findMdLines[0].includes(lineStripped))) {
-                                mdMatchStart = i;
-                                mdMatchEnd = i;
-                                let fi = 1;
-                                for (let j = i + 1; j < lines.length && fi < findMdLines.length; j++) {
-                                    const ls = stripMd(lines[j]).trim();
-                                    if (!ls) { mdMatchEnd = j; continue; }
-                                    if (ls.includes(findMdLines[fi]) || findMdLines[fi].includes(ls)) {
-                                        mdMatchEnd = j;
-                                        fi++;
-                                    }
-                                }
-                                if (fi >= findMdLines.length) break;
-                                mdMatchStart = -1;
-                            }
-                        }
-                    }
-
-                    if (mdMatchStart !== -1) {
-                        const before = lines.slice(0, mdMatchStart).join('\n');
-                        const after = lines.slice(mdMatchEnd + 1).join('\n');
-                        newContent = [before, replaceText, after].filter(p => p !== '').join('\n');
-                    } else {
-                        log.warn('[NotebookTool] Replace match failed. find_text:', JSON.stringify(findText.substring(0, 200)));
-                        log.warn('[NotebookTool] Current content starts with:', JSON.stringify(currentContent.substring(0, 200)));
-                        return { error: `Could not find the specified text in the notebook. Try using notebook_read with mode="search" to find the exact text, then retry.` };
-                    }
-                }
-            }
-
-            const saved = await setWorkspace(conversationId, newContent, workspace);
-            if (saved !== true) return failedWrite(saved, workspace, 'Replace');
-            const action = replaceText ? 'replaced' : 'removed';
-            return {
-                _action: 'workspace_update',
-                content: newContent, // Full content → SSE to frontend
-                // Compact message for LLM (it already knows what it replaced)
-                message: `Text ${action} successfully. Notebook now has ${wordCount(newContent)} words.`
-            };
-        } catch (err) {
-            log.error('[NotebookTool] Replace failed:', err.message);
-            return { error: 'Failed to replace notebook content.' };
-        }
-    }
-
-    return { error: `Unknown notebook tool: ${toolName}` };
+    const handler = Object.hasOwn(NOTEBOOK_HANDLERS, normalizedName) ? NOTEBOOK_HANDLERS[normalizedName] : null;
+    if (!handler) return { error: `Unknown notebook tool: ${toolName}` };
+    return handler(args, { conversationId, callerUserId });
 }
 
 /**

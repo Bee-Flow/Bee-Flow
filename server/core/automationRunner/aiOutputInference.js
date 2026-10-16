@@ -41,7 +41,7 @@
  */
 'use strict';
 
-const { parsePath, readPath, scanTemplate, parseExpr, formatPath } = require('../../automation/expr');
+const { parsePath, readPath, scanTemplate, parseExpr, formatPath } = require('./expr');
 
 // Keys whose path names a LIST the step iterates or splits.
 const LIST_KEYS = new Set(['overRef', 'arrayRef']);

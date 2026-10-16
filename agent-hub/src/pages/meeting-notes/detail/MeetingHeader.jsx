@@ -74,7 +74,7 @@ export default function MeetingHeader({
     ].filter(Boolean);
 
     const meta = (
-        <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] whitespace-nowrap min-w-0" style={{ color: 'var(--text-tertiary)' }} data-testid="meeting-meta">
+        <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] whitespace-nowrap min-w-0 text-[var(--text-tertiary)]" data-testid="meeting-meta">
             <span className="truncate">{metaParts.join(' · ')}</span>
             {sourceMeta && (
                 <span
@@ -181,8 +181,7 @@ function OverflowMenu({ t, canEdit, busy, audioGone, onCopyTranscript, onEditSpe
                 aria-expanded={open}
                 aria-label={t('meetings.more_actions', 'More actions')}
                 data-testid="meeting-more"
-                className="grid place-items-center w-8 h-8 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
-                style={{ color: 'var(--text-secondary)' }}
+                className="grid place-items-center w-8 h-8 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] text-[var(--text-secondary)]"
             >
                 <MoreHorizontal size={16} aria-hidden="true" />
             </button>

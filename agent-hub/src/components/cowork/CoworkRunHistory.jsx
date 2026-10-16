@@ -85,7 +85,7 @@ function RunRow({ run }) {
     const duration = formatDuration(run.durationMs);
 
     return (
-        <div data-testid="cowork-run" className="border-b last:border-b-0" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div data-testid="cowork-run" className="border-b last:border-b-0 border-[var(--border-subtle)]">
             <button
                 type="button"
                 onClick={() => setOpen(v => !v)}
@@ -103,16 +103,15 @@ function RunRow({ run }) {
                     and a colour-blind reader both get nothing from it, so the
                     word stays in the row and is only hidden from sight. */}
                 <span data-status-key={status.labelKey} className="sr-only">{statusLabel(t, status)}</span>
-                <span className="w-[120px] flex-shrink-0 text-[12px] truncate" style={{ color: 'var(--text-primary)' }}>
+                <span className="w-[120px] flex-shrink-0 text-[12px] truncate text-[var(--text-primary)]">
                     {fullTimestamp(run.startedAt, t)}
                 </span>
                 <span
-                    className="w-[64px] flex-shrink-0 text-[11px] tabular-nums"
-                    style={{ color: 'var(--text-tertiary)' }}
+                    className="w-[64px] flex-shrink-0 text-[11px] tabular-nums text-[var(--text-tertiary)]"
                 >
                     {duration}
                 </span>
-                <span className="flex-1 min-w-0 truncate text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+                <span className="flex-1 min-w-0 truncate text-[12px] text-[var(--text-secondary)]">
                     {outcomeLine(run, t)}
                 </span>
                 <ChevronRight
@@ -123,8 +122,7 @@ function RunRow({ run }) {
             </button>
             {open && (
                 <div
-                    className="px-3 pb-3 pt-1 text-[12.5px] break-words"
-                    style={{ color: 'var(--text-secondary)' }}
+                    className="px-3 pb-3 pt-1 text-[12.5px] break-words text-[var(--text-secondary)]"
                 >
                     {/* Who started it moved down here from the summary line.
                         It is the one fact that is about the RUN rather than
@@ -189,7 +187,7 @@ function EmptyBody({ run, t }) {
         : (run.producedOutput === false
             ? 'This run finished and had nothing to report.'
             : 'No output was recorded for this run.');
-    return <span style={{ color: 'var(--text-tertiary)' }}>{t(key, english)}</span>;
+    return <span className="text-[var(--text-tertiary)]">{t(key, english)}</span>;
 }
 
 /** The card frame: the heading belongs to the table, not above it. */
@@ -201,8 +199,7 @@ function HistoryCard({ t, children }) {
             data-testid="cowork-history"
         >
             <div
-                className="flex items-center gap-2.5 px-3.5 py-3 border-b"
-                style={{ borderColor: 'var(--border-subtle)' }}
+                className="flex items-center gap-2.5 px-3.5 py-3 border-b border-[var(--border-subtle)]"
             >
                 <History aria-hidden="true" className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
                 <h3 className="text-[12.5px] font-semibold" style={{ color: 'var(--text-primary)' }}>

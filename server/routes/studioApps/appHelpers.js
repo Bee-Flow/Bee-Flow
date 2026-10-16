@@ -31,17 +31,6 @@ async function managedOf(app) {
     }
 }
 
-/**
- * A deliberate refusal the client may see (409 managed_part, an HttpError:
- * `expose` is set) goes to the terminal handler with its status and code.
- * Anything else, including a library error that merely carries a 4xx
- * `status`, is this route's 500, so its message never reaches the client.
- */
-function rethrowClientError(err) {
-    const status = Number(err?.status);
-    if (err?.expose === true && status >= 400 && status < 500) throw err;
-}
-
 // Ceiling on the directory category (APPS-04). Not a validation of the value —
 // the org's closed list is what decides that, and it does not live here yet —
 // only a ceiling, so a pasted paragraph can never become a filter pill.
@@ -84,7 +73,6 @@ async function loadDataRefs(appId, ownerId) {
 
 module.exports = {
     managedOf,
-    rethrowClientError,
     MAX_CATEGORY_LEN,
     sanitizeAppRow,
     loadOwnedAutomations,

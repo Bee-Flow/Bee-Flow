@@ -234,7 +234,7 @@ export default function LinkSpreadsheetDialog({ scope, providers, onBack, onClos
                         <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
                         {t('datatables.nc_back', 'Back')}
                     </button>
-                    <span className="mr-auto text-[11px] pl-2" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="mr-auto text-[11px] pl-2 text-[var(--text-tertiary)]">
                         {step === 'sheets' && selected.length > MAX_TABLES_PER_LINK
                             ? t('datatables.ss_max_tables', 'At most {n} sheets can be linked in one go.', { n: MAX_TABLES_PER_LINK })
                             : null}
@@ -281,7 +281,7 @@ export default function LinkSpreadsheetDialog({ scope, providers, onBack, onClos
                     <ReviewStep t={t} scope={scope} selected={selected} files={files} describes={describes} relations={liveRelations} onChangeScope={onBack} />
                 )}
                 {error && (
-                    <p role="alert" className="text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--bg-primary)', color: 'var(--warning)' }}>{error}</p>
+                    <p role="alert" className="text-xs px-3 py-2 rounded-lg bg-[var(--bg-primary)] text-[var(--warning)]">{error}</p>
                 )}
             </div>
         </Modal>
@@ -298,7 +298,7 @@ function readOnly(file, describe) {
 function ReviewStep({ t, scope, selected, files, describes, relations, onChangeScope }) {
     const anyReadOnly = selected.some(s => readOnly(files.get(s.fileKey), describes.get(s.fileKey)));
     return (
-        <div className="space-y-3 text-sm" style={{ color: 'var(--text-primary)' }}>
+        <div className="space-y-3 text-sm text-[var(--text-primary)]">
             <AudienceLine t={t} scope={scope} onChange={onChangeScope} />
             <ul className="space-y-1">
                 {selected.map((s) => {
@@ -310,7 +310,7 @@ function ReviewStep({ t, scope, selected, files, describes, relations, onChangeS
                                 ? <span className="shrink-0 inline-flex" aria-hidden="true">{React.createElement(Logo, { size: 14 })}</span>
                                 : <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--type-data)' }} aria-hidden="true" />}
                             <span className="truncate font-medium">{s.name}</span>
-                            <span className="text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="text-[11px] truncate text-[var(--text-tertiary)]">
                                 {/* A csv's only sheet has no name: the file alone, not "file › null". */}
                                 {s.sheet === null || s.sheet === undefined
                                     ? s.fileName
@@ -320,17 +320,17 @@ function ReviewStep({ t, scope, selected, files, describes, relations, onChangeS
                                     ? t('datatables.ss_review_identity_key', 'key: {column}', { column: keyCol.blankHeader ? keyCol.key : keyCol.header })
                                     : t('datatables.ss_review_identity_rownum', 'row number')}
                             </span>
-                            <code className="ml-auto text-[11px] font-mono shrink-0" style={{ color: 'var(--text-tertiary)' }}>{s.key}</code>
+                            <code className="ml-auto text-[11px] font-mono shrink-0 text-[var(--text-tertiary)]">{s.key}</code>
                         </li>
                     );
                 })}
             </ul>
             <ReviewRelations t={t} relations={relations} />
-            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-xs text-[var(--text-tertiary)]">
                 {t('datatables.ss_review_note', 'The rows are copied from the files in the background and kept in step with them. Rows you change here are written to the file.')}
             </p>
             {anyReadOnly && (
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-xs text-[var(--text-secondary)]">
                     {t('datatables.ss_review_readonly_note', 'One or more files are read-only here; their rows cannot be changed from Bee Flow.')}
                 </p>
             )}

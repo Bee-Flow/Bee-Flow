@@ -270,6 +270,30 @@ test('an unexpected 5xx never leaks the message or the stack to the client', () 
     assert.strictEqual(logged, err, 'the full error (with stack) is logged server-side');
 });
 
+test('the logged path drops the query string, where public links carry their token', () => {
+    const { api, logs } = build();
+    const req = { method: 'GET', path: '/api/support/thread', originalUrl: '/api/support/thread?token=s3cr3t-link-token' };
+    api.terminalErrorHandler(new Error('boom'), req, mockRes(), () => assert.fail('next() must not be called'));
+    const [line] = logs.error[0];
+    assert.ok(line.includes('/api/support/thread'), 'log line carries the path');
+    assert.ok(!line.includes('s3cr3t-link-token'), 'the token must not reach the log');
+});
+
+test('a token in the path never reaches the log: the route pattern, or a masked segment', () => {
+    const { api, logs } = build();
+    const token = 'f3a9c1e07b2d4a6e8c0b1d2e3f4a5b6c7d8e9f0a';
+    const matched = { method: 'GET', path: `/invite/${token}`, originalUrl: `/api/auth/invite/${token}`, baseUrl: '/api/auth', route: { path: '/invite/:token' } };
+    api.terminalErrorHandler(new Error('boom'), matched, mockRes(), () => assert.fail('next() must not be called'));
+    const unmatched = { method: 'GET', path: `/api/auth/invite/${token}`, originalUrl: `/api/auth/invite/${token}` };
+    api.terminalErrorHandler(new Error('boom'), unmatched, mockRes(), () => assert.fail('next() must not be called'));
+
+    const [first] = logs.error[0];
+    const [second] = logs.error[1];
+    assert.ok(first.includes('GET /api/auth/invite/:token'), 'the matched route is logged as its pattern');
+    assert.ok(second.includes('GET /api/auth/invite/:opaque'), 'without a route, the opaque segment is masked');
+    assert.ok(!first.includes(token) && !second.includes(token), 'the token must not reach the log');
+});
+
 test('a 5xx that declares its own status still gets a generic body', () => {
     const { api } = build();
     const err = Object.assign(new Error('upstream vault said: token=abcd1234'), { status: 502 });

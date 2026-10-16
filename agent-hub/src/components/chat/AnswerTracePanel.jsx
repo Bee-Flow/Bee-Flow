@@ -145,8 +145,7 @@ function OmittedNote({ omitted, tt }) {
                     key={reason}
                     data-testid="trace-omitted"
                     data-reason={reason}
-                    className="text-[10px] mt-0.5"
-                    style={{ color: 'var(--text-tertiary)' }}
+                    className="text-[10px] mt-0.5 text-[var(--text-tertiary)]"
                 >
                     {tt('agent_studio.test.trace_omitted', 'Not shown: {facts} — {reason}', {
                         facts: facts.join(', '),
@@ -221,7 +220,7 @@ function RowFacts({ row, tt }) {
                                 </span>
                             )}
                         </div>
-                        <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                        <div className="text-[11px] text-[var(--text-secondary)]">
                             {heldText(action, tt)}
                         </div>
                     </div>
@@ -261,14 +260,12 @@ function JudgedFacts({ row, tt }) {
             title={hint}
             data-testid="trace-judged"
         >
-            <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide mb-0.5"
-                style={{ color: 'var(--text-tertiary)' }}>
+            <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide mb-0.5 text-[var(--text-tertiary)]">
                 <Sparkles className="w-2.5 h-2.5 shrink-0" strokeWidth={2} aria-hidden="true" />
                 <span>{tt('agent_studio.answer_chips_judged', 'Judged')}</span>
             </div>
             {row.rules.map(({ rule }) => (
-                <div key={rule} data-testid="trace-rule" className="text-[11px]"
-                    style={{ color: 'var(--text-secondary)' }}>
+                <div key={rule} data-testid="trace-rule" className="text-[11px] text-[var(--text-secondary)]">
                     {tt('agent_studio.chip_rule_followed', 'Rule followed: {rule}', { rule })}
                 </div>
             ))}
@@ -296,11 +293,11 @@ function TraceRow({ row, n, tt }) {
                     </span>
                     {!isMissing && <DurationPill ms={row.ms} />}
                 </div>
-                <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                <div className="text-[11px] mt-0.5 text-[var(--text-secondary)]">
                     {isMissing
                         ? (
                             <span data-testid="trace-missing" data-reason={row.reason}
-                                style={{ color: 'var(--text-tertiary)' }}>
+                                className="text-[var(--text-tertiary)]">
                                 {line(tt, MISSING_TEXT[row.reason])}
                             </span>
                         )
@@ -327,7 +324,7 @@ const AnswerTracePanel = ({ msg = null, toolDecisions = {}, t = null, className 
             aria-label={tt('agent_studio.test.trace_title', 'Trace of the last answer')}
         >
             <div className="flex items-center gap-2 mb-2">
-                <span className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-[11px] font-semibold text-[var(--text-primary)]">
                     {tt('agent_studio.test.trace_title', 'Trace of the last answer')}
                 </span>
                 {trace && (

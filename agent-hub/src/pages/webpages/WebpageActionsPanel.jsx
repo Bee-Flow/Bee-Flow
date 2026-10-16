@@ -123,16 +123,16 @@ function OwnCodeCard({ t, call, onNavigate }) {
                 <Chip label={t('webpages.actions.own_code', 'Does something in its own code')} tone="muted" dashed />
             </div>
 
-            <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[11px] text-[var(--text-secondary)]">
                 {t('webpages.actions.own_code_body',
                     'This page calls {host} straight from its own code. That call does not show up in Runs and has no approval step.',
                     { host: call.host })}
             </p>
 
-            <div className="text-[11px] font-mono break-all" style={{ color: 'var(--text-secondary)' }}>
+            <div className="text-[11px] font-mono break-all text-[var(--text-secondary)]">
                 {call.url}
             </div>
-            <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <div className="text-[11px] text-[var(--text-secondary)]">
                 {`${call.source}:${call.line} · ${call.kind === 'xhr' ? 'XMLHttpRequest' : 'fetch()'}`}
                 {call.method ? ` · ${call.method}` : ''}
                 {call.occurrences > 1
@@ -140,7 +140,7 @@ function OwnCodeCard({ t, call, onNavigate }) {
                     : ''}
             </div>
             {call.dynamic && (
-                <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-[11px] text-[var(--text-secondary)]">
                     {t('webpages.actions.own_code_dynamic',
                         'The page builds the rest of this address while it runs, so only the part shown here is certain.')}
                 </p>
@@ -151,8 +151,7 @@ function OwnCodeCard({ t, call, onNavigate }) {
                     type="button"
                     onClick={make}
                     disabled={busy}
-                    className="self-start inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-dashed disabled:opacity-50"
-                    style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                    className="self-start inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-dashed disabled:opacity-50 border-[var(--border-subtle)] text-[var(--text-primary)]"
                 >
                     <Workflow size={13} aria-hidden="true" />
                     {busy
@@ -171,7 +170,7 @@ function OwnCodeCard({ t, call, onNavigate }) {
                 )}
             </div>
             {error && (
-                <p role="alert" className="text-[11px]" style={{ color: 'var(--warning)' }}>{error}</p>
+                <p role="alert" className="text-[11px] text-[var(--warning)]">{error}</p>
             )}
         </Card>
     );
@@ -189,7 +188,7 @@ function OwnCodeSection({ t, code, onNavigate, onRetry }) {
                         {t('webpages.actions.code_unreadable', 'This page\'s own code could not be read')}
                     </span>
                 </div>
-                <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-[11px] text-[var(--text-secondary)]">
                     {t('webpages.actions.code_unreadable_body',
                         'So what this page does on its own is unknown right now — which is not the same as nothing.')}
                 </p>
@@ -219,7 +218,7 @@ function OwnCodeSection({ t, code, onNavigate, onRetry }) {
             )}
 
             {code.externalCount > calls.length && (
-                <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-[11px] text-[var(--text-secondary)]">
                     {t(code.externalCount - calls.length === 1
                         ? 'webpages.actions.more_calls' : 'webpages.actions.more_calls_plural',
                     code.externalCount - calls.length === 1
@@ -229,7 +228,7 @@ function OwnCodeSection({ t, code, onNavigate, onRetry }) {
             )}
 
             {code.unresolved > 0 && (
-                <p className="text-[11px]" style={{ color: 'var(--warning)' }}>
+                <p className="text-[11px] text-[var(--warning)]">
                     {t(code.unresolved === 1 ? 'webpages.actions.unresolved' : 'webpages.actions.unresolved_plural',
                         code.unresolved === 1
                             ? '{count} call in this page\'s code could not be checked: its address is built while the page runs, or it sits in text this scan cannot read.'
@@ -269,12 +268,12 @@ function FormsCard({ t, forms, uses, elements, onNavigate }) {
                 <span className="text-sm font-medium">{t('webpages.actions.forms', 'Forms and buttons')}</span>
             </div>
             {!scanned ? (
-                <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-[11px] text-[var(--text-secondary)]">
                     {t('webpages.actions.forms_unchecked',
                         'The page\'s own files could not be read, so its forms and buttons could not be listed.')}
                 </p>
             ) : !marks.length ? (
-                <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-[11px] text-[var(--text-secondary)]">
                     {t('webpages.actions.forms_none',
                         'This page has no blocks that start an automation.')}
                 </p>
@@ -296,14 +295,14 @@ function FormsCard({ t, forms, uses, elements, onNavigate }) {
                                     // niets doet leest als een kapotte knop.
                                     <span className="font-mono">{target.id}</span>
                                 )}
-                                <span style={{ color: 'var(--text-secondary)' }}>
+                                <span className="text-[var(--text-secondary)]">
                                     {t('webpages.actions.forms_use_count', 'used {count}x on this page',
                                         { count: target.count })}
                                 </span>
                             </li>
                         ))}
                     </ul>
-                    <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-[11px] text-[var(--text-secondary)]">
                         {t('webpages.actions.forms_inert_when_published',
                             'These blocks only work for signed-in readers. In the published copy of the page they '
                             + 'are shown as switched off.')}
@@ -323,14 +322,14 @@ function AgentCard({ t, agent }) {
                 <span className="text-sm font-medium">{t('webpages.actions.agent', 'Agent on this page')}</span>
                 <Chip label={t('webpages.actions.agent_internal_only', 'Signed-in readers only')} tone="muted" />
             </div>
-            <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[11px] text-[var(--text-secondary)]">
                 {!known
                     ? t('webpages.actions.agent_unknown', 'Whether an agent is linked to this page could not be checked.')
                     : agent.agentId
                         ? t('webpages.actions.agent_linked', 'One agent is linked to this page.')
                         : t('webpages.actions.agent_none', 'No chat block on this page.')}
             </p>
-            <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[11px] text-[var(--text-secondary)]">
                 {t('webpages.actions.agent_internal_only_body',
                     'An agent block only answers readers who are signed in. A public share never runs it, so the Public row says so too.')}
             </p>
@@ -367,7 +366,7 @@ export default function WebpageActionsPanel({ webpageId, readOnly = false, onNav
     // "deze pagina doet niets".
     if (readOnly) {
         return (
-            <div className="p-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <div className="p-4 text-sm text-[var(--text-secondary)]">
                 {t('webpages.actions.owner_only', 'Only the page owner can see what this page sets off.')}
             </div>
         );
@@ -375,12 +374,12 @@ export default function WebpageActionsPanel({ webpageId, readOnly = false, onNav
 
     return (
         <div className="p-3 flex flex-col gap-3">
-            <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[11px] text-[var(--text-secondary)]">
                 {t('webpages.actions.subtitle', 'What this page sets off — through Studio, and on its own.')}
             </p>
 
             {state.loading && (
-                <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                     <Loader2 size={14} className="animate-spin" />
                     {t('webpages.actions.loading', 'Reading what this page does…')}
                 </div>
@@ -412,14 +411,14 @@ export default function WebpageActionsPanel({ webpageId, readOnly = false, onNav
             )}
 
             {/* De grens van de scan hoort in beeld te staan, niet in een tooltip. */}
-            <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[11px] text-[var(--text-secondary)]">
                 {t('webpages.actions.scan_disclaimer',
                     'This check reads the page\'s own files and only sees a fetch() or XMLHttpRequest written out in full. It is a reading aid, not a security check.')}
             </p>
 
             {/* De grants-lijst, gepromoveerd: wat de pagina via Studio mag aanroepen. */}
-            <div className="pt-2 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-secondary)' }}>
+            <div className="pt-2 border-t border-[var(--border-subtle)]">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wider mb-1 text-[var(--text-secondary)]">
                     {t('webpages.actions.through_studio', 'Through Studio')}
                 </h3>
                 <WebpageAppsPanel webpageId={webpageId} readOnly={readOnly} />

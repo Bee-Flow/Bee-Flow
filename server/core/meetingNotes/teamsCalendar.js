@@ -13,7 +13,7 @@ const { lazyDeps } = require('./lazyDeps');
 
 /** Collaborators; tests swap them through init(). */
 const { deps, init } = lazyDeps({
-    graphFetch: () => require('../../integrations/msGraphClient').graphFetch,
+    graphFetch: () => require('../integrations/integrationClients').integrationClient('msGraph').graphFetch,
 });
 
 const TEAMS_JOIN_RE = /^https:\/\/teams\.(microsoft|live)\.com\//i;

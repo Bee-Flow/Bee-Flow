@@ -78,14 +78,14 @@ const SERVER_SITES = [
         fix: 'voeg de soort toe aan ERROR_BRANCH_FORBIDDEN_SOURCES in builderTools/draftGraph.js',
     },
     {
-        what: 'een rand ná de stap wordt gemeld, met een eigen boodschap (validate/graph.js)',
-        check: (type) => new RegExp(`\\['${type}', \\{`).test(read('automation/validate/graph.js')),
-        fix: 'geef de soort een entry in TERMINAL_EDGE_RULES in validate/graph.js (code, severity, message, hint)',
+        what: 'een rand ná de stap wordt gemeld, met een eigen boodschap (validate/graphEdges.js)',
+        check: (type) => require('./graphEdges').TERMINAL_EDGE_RULES.has(type),
+        fix: 'geef de soort een entry in TERMINAL_EDGE_RULES in validate/graphEdges.js (code, severity, message, hint)',
     },
     {
-        what: 'de runner dispatcht de soort (core/automationRunner/stepDispatch.js)',
-        check: (type) => new RegExp(`case '${type}':`).test(read('core/automationRunner/stepDispatch.js')),
-        fix: 'voeg een case toe aan runStepLeaf in core/automationRunner/stepDispatch.js — zonder die case gooit de run "Unknown step type"',
+        what: 'de runner dispatcht de soort (core/automationRunner/stepLeaf.js)',
+        check: (type) => new RegExp(`case '${type}':`).test(read('core/automationRunner/stepLeaf.js')),
+        fix: 'voeg een case toe aan runStepLeaf in core/automationRunner/stepLeaf.js — zonder die case gooit de run "Unknown step type"',
     },
     {
         what: 'het model leest de soort in de typecatalogus (automation/builderPrompt.js)',
@@ -98,7 +98,7 @@ const SERVER_SITES = [
     {
         what: 'het model leest het on_error-verbod (builderPrompt.js + builderTools/schemas.js)',
         check: (type) => {
-            const prompt = read('automation/builderPrompt.js');
+            const prompt = require('../builderPrompt').buildFullSystemPrompt({ catalog: { apps: [] }, codeStepEnabled: false });
             const schemas = read('automation/builderTools/schemas.js');
             // Beide verbodslijsten zijn proza die over meerdere regels mag
             // lopen ("NEVER from trigger / condition / … / <type>"), dus een
@@ -142,11 +142,11 @@ for (const type of TERMINALS) {
  * één soort geldt.
  */
 test('the edge rule is driven by the shared set, not by a type literal', () => {
-    const src = read('automation/validate/graph.js');
+    const src = read('automation/validate/graphEdges.js');
     assert.match(src, /TERMINAL_STEP_TYPES\.has\(stepById\.get\(e\.from\)\?\.type\)/,
-        'validate/graph.js must ask the shared set which steps end a run');
+        'validate/graphEdges.js must ask the shared set which steps end a run');
     assert.match(src, /TERMINAL_STEP_TYPES,?\s*\n?\s*\} = require\('\.\/constants'\)|TERMINAL_STEP_TYPES,/,
-        'validate/graph.js must import TERMINAL_STEP_TYPES rather than restate it');
+        'validate/graphEdges.js must import TERMINAL_STEP_TYPES rather than restate it');
 });
 
 test('the runner ends its walk on the shared set — the only thing that makes a terminal terminal at run time', () => {
@@ -173,8 +173,8 @@ test('the runner re-exports the list instead of keeping a second copy', () => {
  * en falen heeft geen adres nodig.
  */
 test('return_to_app is refused inside a flowlet/Step — a contract scope has no app to answer', () => {
-    assert.match(read('automation/validate/graph.js'), /layer\.return_to_app_forbidden/,
-        'validate/graph.js must refuse a return_to_app inside a layer/block scope');
+    assert.match(read('automation/validate/graphNodes.js'), /layer\.return_to_app_forbidden/,
+        'validate/graphNodes.js must refuse a return_to_app inside a layer/block scope');
 });
 
 /**

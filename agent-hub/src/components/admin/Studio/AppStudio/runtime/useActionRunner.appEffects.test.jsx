@@ -232,7 +232,7 @@ describe('_appEffects — an effect this app cannot do is ignored, but never sil
         const fs = await import('node:fs');
         const path = await import('node:path');
         const src = fs.readFileSync(
-            path.resolve(process.cwd(), 'src/components/admin/Studio/AppStudio/runtime/components/AppForm.jsx'),
+            path.resolve(process.cwd(), 'src/components/admin/Studio/AppStudio/runtime/components/AppForm.tsx'),
             'utf8',
         );
         expect(src).toContain('runAction(node.onSubmit, { formValues: { ...values }, formId: node.id, formName });');

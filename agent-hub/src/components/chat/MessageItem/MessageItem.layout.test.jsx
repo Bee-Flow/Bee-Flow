@@ -148,9 +148,10 @@ describe('C10 — de bubbel schildert met een token', () => {
         // De revisie toont "jouw bericht, geannoteerd". Een eigen kleur daar
         // maakt er een los rapport van.
         const { container } = render(<DlpChatTextRenderer text="Bel j.devries@vandijk.nl" spans={[]} />);
-        const style = container.querySelector('[style]').getAttribute('style');
-        expect(style).toContain('var(--user-bubble-bg)');
-        expect(style).toContain('var(--user-bubble-fg)');
-        expect(style).not.toMatch(/#[0-9a-fA-F]{3,8}/);
+        const bubble = container.querySelector('[class*="--user-bubble-bg"]');
+        expect(bubble.className).toContain('bg-[var(--user-bubble-bg)]');
+        expect(bubble.className).toContain('text-[var(--user-bubble-fg)]');
+        expect(bubble.className).not.toMatch(/#[0-9a-fA-F]{3,8}/);
+        expect(bubble.getAttribute('style')).toBeNull();
     });
 });

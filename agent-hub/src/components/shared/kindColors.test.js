@@ -21,7 +21,7 @@ import { KIND_KEYS, kindOf, kindColorVar, kindTint, kindTileStyle, cardRadius, k
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const INDEX_CSS = fs.readFileSync(path.resolve(HERE, '../../index.css'), 'utf8');
-const SELF = fs.readFileSync(path.join(HERE, 'kindColors.js'), 'utf8');
+const SELF = fs.readFileSync(path.join(HERE, 'kindColors.ts'), 'utf8');
 
 const THEMES = ['dark', 'light', 'glass', 'glass-dark', 'high-contrast', 'paper', 'obsidian', 'sepia'];
 const NO_COMMENTS = INDEX_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -159,9 +159,9 @@ describe('kindColors — every variable it emits is declared in EVERY theme bloc
         expect(SELF).not.toMatch(/var\(--accent-primary\)/);
     });
 
-    it('is a leaf: imports lucide-react and nothing else', () => {
-        const imports = [...SELF.matchAll(/^import .* from '([^']+)';/gm)].map(m => m[1]);
-        expect(imports).toEqual(['lucide-react']);
+    it('is a leaf: imports its kind table and lucide-react, nothing else (type-only imports leave no import)', () => {
+        const imports = [...SELF.matchAll(/^import (?!type\b).* from '([^']+)';/gm)].map(m => m[1]);
+        expect(imports).toEqual(['lucide-react', './kindKeys']);
     });
 });
 

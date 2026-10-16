@@ -9,7 +9,7 @@
 
 const multer = require('multer');
 const path = require('path');
-const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const storageStore = require('../stores/storageStore');
 const { sanitizeSvg } = require('../utils/svgSanitizer');
 const cmsMedia = require('./cmsMedia');
@@ -56,7 +56,7 @@ function uploadFile(req, res, next) {
 
 async function handleUpload(req, res) {
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
-    if (!storageStore.isAvailable()) return res.status(503).json({ error: 'Storage unavailable' });
+    if (!storageStore.isAvailable()) throw new HttpError(503, 'storage_unavailable', 'Storage unavailable');
 
     const ext = path.extname(req.file.originalname || '').toLowerCase() || '';
     const safeBase = (req.file.originalname || 'upload')
@@ -141,7 +141,7 @@ async function serveAsset(req, res) {
     try {
         const key = req.params[0];
         if (!key.startsWith('cms/')) return res.status(404).json({ error: 'Not found' });
-        if (!storageStore.isAvailable()) return res.status(503).json({ error: 'Storage unavailable' });
+        if (!storageStore.isAvailable()) throw new HttpError(503, 'storage_unavailable', 'Storage unavailable');
 
         // Byte ranges: <video> seeking needs them and Safari/iOS will not start
         // a media resource that does not advertise them. The total size is
@@ -199,8 +199,7 @@ async function serveAsset(req, res) {
         if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
             return res.status(404).json({ error: 'Asset not found' });
         }
-        log.error('[CMS] /asset error:', err.message);
-        res.status(500).json({ error: 'Failed to load asset' });
+        throw err;
     }
 }
 

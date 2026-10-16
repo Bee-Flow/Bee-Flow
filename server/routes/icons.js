@@ -65,6 +65,7 @@
 
 const express = require('express');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
@@ -230,118 +231,83 @@ router.get('/catalog', (req, res) => {
 // ── List + active pack ──────────────────────────────────────────
 
 router.get('/', async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const packs = await iconStore.getIconPacks(userId);
-        const user = await userStore.getUser(userId);
-        res.json({
-            packs,
-            activeIconPackId: user ? user.activeIconPackId : null,
-            categories: EMOJI_CATEGORIES,
-            totalKeys: ALL_EMOJI_IDS.length,
-        });
-    } catch (e) {
-        log.error('[Icons API]', e);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    const userId = req.session.user.id;
+    const packs = await iconStore.getIconPacks(userId);
+    const user = await userStore.getUser(userId);
+    res.json({
+        packs,
+        activeIconPackId: user ? user.activeIconPackId : null,
+        categories: EMOJI_CATEGORIES,
+        totalKeys: ALL_EMOJI_IDS.length,
+    });
 });
 
 // ── Pack CRUD ───────────────────────────────────────────────────
 
 router.post('/', validate({ body: CreateBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const { name, icons } = req.body;
-        const newPack = await iconStore.createIconPack(userId, name, icons);
-        res.status(201).json(newPack);
-    } catch (e) {
-        log.error('[Icons API]', e);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    const userId = req.session.user.id;
+    const { name, icons } = req.body;
+    const newPack = await iconStore.createIconPack(userId, name, icons);
+    res.status(201).json(newPack);
 });
 
 router.put('/:id', validate({ body: UpdateBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const ok = await iconStore.updateIconPack(req.params.id, userId, req.body);
-        if (ok) res.json({ success: true });
-        else res.status(404).json({ error: 'Pack not found or access denied' });
-    } catch (e) {
-        log.error('[Icons API]', e);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    const userId = req.session.user.id;
+    const ok = await iconStore.updateIconPack(req.params.id, userId, req.body);
+    if (ok) res.json({ success: true });
+    else res.status(404).json({ error: 'Pack not found or access denied' });
 });
 
 // PATCH /api/icons/:id/icons/:key — single-icon edit (no full-pack PUT race)
 router.patch('/:id/icons/:key', validate({ params: IconParams, body: SetIconBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        // null clears the override (see SetIconBody).
-        const data = req.body;
-        const next = await iconStore.setIcon(req.params.id, userId, req.params.key, data);
-        if (!next) return res.status(404).json({ error: 'Pack not found or access denied' });
-        res.json({ success: true, icons: next });
-    } catch (e) {
-        log.error('[Icons API]', e);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+    const userId = req.session.user.id;
+    // null clears the override (see SetIconBody).
+    const data = req.body;
+    const next = await iconStore.setIcon(req.params.id, userId, req.params.key, data);
+    if (!next) return res.status(404).json({ error: 'Pack not found or access denied' });
+    res.json({ success: true, icons: next });
 });
 
 router.delete('/:id', async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const ok = await iconStore.deleteIconPack(req.params.id, userId);
-        if (!ok) return res.status(404).json({ error: 'Pack not found or access denied' });
-        const user = await userStore.getUser(userId);
-        if (user && user.activeIconPackId === req.params.id) {
-            await userStore.updateUser(userId, { activeIconPackId: null });
-        }
-        res.json({ success: true });
-    } catch (e) {
-        log.error('[Icons API]', e);
-        res.status(500).json({ error: 'Internal Server Error' });
+    const userId = req.session.user.id;
+    const ok = await iconStore.deleteIconPack(req.params.id, userId);
+    if (!ok) return res.status(404).json({ error: 'Pack not found or access denied' });
+    const user = await userStore.getUser(userId);
+    if (user && user.activeIconPackId === req.params.id) {
+        await userStore.updateUser(userId, { activeIconPackId: null });
     }
+    res.json({ success: true });
 });
 
 router.post('/:id/activate', validate({ body: NoBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const packId = req.params.id;
+    const userId = req.session.user.id;
+    const packId = req.params.id;
 
-        if (packId === 'default' || packId === 'null') {
-            await userStore.updateUser(userId, { activeIconPackId: null });
-            return res.json({ success: true, activeIconPackId: null });
-        }
-
-        const pack = await iconStore.getIconPack(packId);
-        if (!pack || pack.user_id !== userId) {
-            return res.status(404).json({ error: 'Pack not found or access denied' });
-        }
-        await userStore.updateUser(userId, { activeIconPackId: packId });
-        res.json({ success: true, activeIconPackId: packId });
-    } catch (e) {
-        log.error('[Icons API]', e);
-        res.status(500).json({ error: 'Internal Server Error' });
+    if (packId === 'default' || packId === 'null') {
+        await userStore.updateUser(userId, { activeIconPackId: null });
+        return res.json({ success: true, activeIconPackId: null });
     }
+
+    const pack = await iconStore.getIconPack(packId);
+    if (!pack || pack.user_id !== userId) {
+        return res.status(404).json({ error: 'Pack not found or access denied' });
+    }
+    await userStore.updateUser(userId, { activeIconPackId: packId });
+    res.json({ success: true, activeIconPackId: packId });
 });
 
 // ── Direct file upload ──────────────────────────────────────────
 
 router.post('/upload', uploadIcon, async (req, res) => {
-    try {
-        // uploadGuard already answered 400/413/415 for anything it rejected, so
-        // reaching here means the bytes matched an allowed image type (and an
-        // SVG has been replaced by its sanitized rendering).
-        const ext = ICON_MIME_EXT[String(req.file.mimetype || '').toLowerCase()];
-        if (!ext) return res.status(415).json({ error: 'Unsupported image type' });
+    // uploadGuard already answered 400/413/415 for anything it rejected, so
+    // reaching here means the bytes matched an allowed image type (and an
+    // SVG has been replaced by its sanitized rendering).
+    const ext = ICON_MIME_EXT[String(req.file.mimetype || '').toLowerCase()];
+    if (!ext) return res.status(415).json({ error: 'Unsupported image type' });
 
-        const filename = `icon-${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
-        await fs.promises.writeFile(path.join(uploadDir, filename), req.file.buffer);
-        res.json({ url: `/api/icons/data/${filename}` });
-    } catch (e) {
-        log.error('[Icons API upload]', e);
-        res.status(500).json({ error: 'Upload failed' });
-    }
+    const filename = `icon-${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
+    await fs.promises.writeFile(path.join(uploadDir, filename), req.file.buffer);
+    res.json({ url: `/api/icons/data/${filename}` });
 });
 
 // ── AI generation (Nano Banana) ─────────────────────────────────
@@ -371,7 +337,7 @@ router.post('/generate', imageGenLimiter, validate({ body: GenerateBody }), asyn
 
     const apiKey = await configStore.getSecret('google_api_key');
     if (!apiKey) {
-        return res.status(503).json({ error: 'Image generation unavailable — Google API key not configured.' });
+        throw new HttpError(503, 'image_generation_unavailable', 'Image generation unavailable — Google API key not configured.');
     }
 
     const fullPrompt = buildIconPrompt(prompt, { style });
@@ -381,7 +347,7 @@ router.post('/generate', imageGenLimiter, validate({ body: GenerateBody }), asyn
     });
 
     if (!result?.imageBase64) {
-        return res.status(502).json({ error: 'Generation returned no image' });
+        throw new HttpError(502, 'no_image_generated', 'Generation returned no image');
     }
 
     const url = await saveBase64Png(result.imageBase64, result.mimeType);
@@ -399,7 +365,7 @@ router.post('/:id/bulk-generate', imageGenLimiter, validate({ body: BulkGenerate
 
     const apiKey = await configStore.getSecret('google_api_key');
     if (!apiKey) {
-        return res.status(503).json({ error: 'Image generation unavailable — Google API key not configured.' });
+        throw new HttpError(503, 'image_generation_unavailable', 'Image generation unavailable — Google API key not configured.');
     }
 
     const { style, model, overwrite, only } = req.body;
@@ -459,38 +425,28 @@ router.post('/:id/bulk-generate', imageGenLimiter, validate({ body: BulkGenerate
 // ── Import / Export ─────────────────────────────────────────────
 
 router.get('/:id/export', async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const pack = await iconStore.getIconPack(req.params.id);
-        if (!pack || pack.user_id !== userId) {
-            return res.status(404).json({ error: 'Pack not found or access denied' });
-        }
-        const bundle = {
-            kind: 'beeflow.iconpack',
-            version: 1,
-            name: pack.name,
-            exportedAt: new Date().toISOString(),
-            icons: pack.icons || {},
-        };
-        res.setHeader('Content-Disposition', `attachment; filename="beeflow-iconpack-${pack.name.replace(/[^a-z0-9]/gi, '_')}.json"`);
-        res.setHeader('Content-Type', 'application/json');
-        res.json(bundle);
-    } catch (e) {
-        log.error('[Icons API export]', e);
-        res.status(500).json({ error: 'Export failed' });
+    const userId = req.session.user.id;
+    const pack = await iconStore.getIconPack(req.params.id);
+    if (!pack || pack.user_id !== userId) {
+        return res.status(404).json({ error: 'Pack not found or access denied' });
     }
+    const bundle = {
+        kind: 'beeflow.iconpack',
+        version: 1,
+        name: pack.name,
+        exportedAt: new Date().toISOString(),
+        icons: pack.icons || {},
+    };
+    res.setHeader('Content-Disposition', `attachment; filename="beeflow-iconpack-${pack.name.replace(/[^a-z0-9]/gi, '_')}.json"`);
+    res.setHeader('Content-Type', 'application/json');
+    res.json(bundle);
 });
 
 router.post('/import', validate({ body: ImportBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const { name, icons } = req.body;
-        const newPack = await iconStore.createIconPack(userId, name, icons);
-        res.status(201).json(newPack);
-    } catch (e) {
-        log.error('[Icons API import]', e);
-        res.status(500).json({ error: 'Import failed' });
-    }
+    const userId = req.session.user.id;
+    const { name, icons } = req.body;
+    const newPack = await iconStore.createIconPack(userId, name, icons);
+    res.status(201).json(newPack);
 });
 
 // ── Static serve ────────────────────────────────────────────────

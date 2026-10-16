@@ -185,7 +185,7 @@ export function NewMenu({
         >
             {model.map((entry) => {
                 if (entry.type === 'divider') {
-                    return <div key={entry.id} role="separator" className="h-px my-1.5 mx-1" style={{ background: 'var(--border-default)' }} />;
+                    return <div key={entry.id} role="separator" className="h-px my-1.5 mx-1 bg-[var(--border-default)]" />;
                 }
                 if (entry.type === 'ai') {
                     return (

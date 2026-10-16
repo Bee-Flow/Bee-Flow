@@ -77,7 +77,7 @@ export default function Info({ children, title, className = '' }) {
                 style={{ color: 'var(--text-primary)' }}
             >
                 {title && <div className="font-semibold mb-1">{title}</div>}
-                <div style={{ color: 'var(--text-secondary)' }}>{children}</div>
+                <div className="text-[var(--text-secondary)]">{children}</div>
             </AnchoredMenu>
         </span>
     );

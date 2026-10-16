@@ -333,6 +333,8 @@ test('the simulation never reaches a decision about rights, connections or entit
         ['./toolPolicy/', 'which actions an agent may call, and as whom'],
         ['./toolStackAssembly.js', 'which tools reach the model, and the connection policy'],
         ['../integrations/integrationTools.js', 'connection lending'],
+        ['../integrations/integrationToolGroups.js', 'connection lending'],
+        ['../integrations/integrationToolFeatures.js', 'which tools reach the model'],
         ['../tools/datatableTools.js', 'which ROWS somebody may read'],
         ['../../auth/datatableAccess.js', 'datatable grades'],
         ['../../automation/agentCallableTools.js', 'who owns an automation'],

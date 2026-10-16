@@ -1,5 +1,5 @@
 /**
- * Sign-in method (web: orgInfo/OrgAuthSection.jsx, AUTH_METHODS and
+ * Sign-in method (web: orgInfo/OrgAuthSection.tsx, AUTH_METHODS and
  * AllowedDomainsEditor in orgInfoShared.jsx).
  *
  * The method is chosen ONCE: each user's key is tied to how they sign in, so

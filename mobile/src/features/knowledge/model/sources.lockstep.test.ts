@@ -1,7 +1,7 @@
 /**
  * The source vocabulary against the web's own files: the schedule presets
  * (KnowledgeStudio/ScheduleMenu.jsx), the kinds the server creates
- * (sourceKinds.js and server sources.js) and the kind labels. Textual, like
+ * (sourceKinds.js and server sourcePolicy.js) and the kind labels. Textual, like
  * the other lockstep tests: when this fails the web or the server changed.
  */
 
@@ -17,20 +17,20 @@ const t = (_k: string, fallback: string, p: Record<string, unknown> = {}) => fal
 
 describe('sources ↔ the web and the server', () => {
     it('offers the web’s three schedule presets, same cron, same order', () => {
-        const web = [...read(path.join(STUDIO, 'ScheduleMenu.jsx')).matchAll(/id: '(\w+)', cron: '([^']+)'/g)].map((m) => [m[1], m[2]]);
+        const web = [...read(path.join(STUDIO, 'ScheduleMenu.tsx')).matchAll(/id: '(\w+)', cron: '([^']+)'/g)].map((m) => [m[1], m[2]]);
         expect(CRON_PRESETS.map((p) => [p.id, p.cron])).toEqual(web);
     });
 
     it('knows the kinds the server creates', () => {
-        const server = read(path.join(REPO, 'server/routes/knowledgeBases/sources.js')).match(/const CREATABLE_KINDS = Object\.freeze\(\[([^\]]+)\]\)/);
-        const web = read(path.join(STUDIO, 'sourceKinds.js')).match(/CREATABLE_KINDS = Object\.freeze\(\[([^\]]+)\]\)/);
+        const server = read(path.join(REPO, 'server/routes/knowledgeBases/sourcePolicy.js')).match(/const CREATABLE_KINDS = Object\.freeze\(\[([^\]]+)\]\)/);
+        const web = read(path.join(STUDIO, 'sourceKinds.ts')).match(/CREATABLE_KINDS = Object\.freeze\(\[([^\]]+)\]\)/);
         const parse = (m: RegExpMatchArray | null) => (m?.[1] ?? '').split(',').map((s) => s.trim().replace(/'/g, '')).filter(Boolean);
         expect([...CREATABLE_KINDS]).toEqual(parse(server));
         expect([...CREATABLE_KINDS]).toEqual(parse(web));
     });
 
     it('labels every kind the web labels, with the web’s English', () => {
-        const src = read(path.join(STUDIO, 'sourceKinds.js'));
+        const src = read(path.join(STUDIO, 'sourceKinds.ts'));
         for (const m of src.matchAll(/labelKey: '(knowledge\.kind\.(\w+))', labelFallback: '([^']+)'/g)) {
             expect(sourceKindLabel(t, m[2] as string)).toBe(m[3]);
         }

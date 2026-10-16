@@ -30,7 +30,7 @@ export type FontId = (typeof FONT_IDS)[number];
 /** AccentSection.jsx ACCENT_PRESETS (no purple, brand-wide). */
 export const ACCENT_PRESETS = ['#9ca3af', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'] as const;
 
-/** RadiusSection.jsx's slider, and the server's refusal range. */
+/** RadiusSection.tsx's slider, and the server's refusal range. */
 export const RADIUS_RANGE = { min: 0.5, max: 1.5, step: 0.05 } as const;
 
 /** The knobs this screen edits. Defaults are brandingStore.js DEFAULTS. */
@@ -63,7 +63,7 @@ export function normalizeAccent(raw: string): string {
     return (trimmed.startsWith('#') ? trimmed : `#${trimmed}`).toLowerCase();
 }
 
-/** RadiusSection.jsx's `${v.toFixed(2)}×`. */
+/** RadiusSection.tsx's `${v.toFixed(2)}×`. */
 export function formatRadius(value: number): string {
     return `${value.toFixed(2)}×`;
 }

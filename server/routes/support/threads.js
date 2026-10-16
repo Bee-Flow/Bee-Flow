@@ -30,39 +30,22 @@
 
 const supportStore = require('../../stores/supportStore');
 const userStore = require('../../stores/userStore');
-const notificationStore = require('../../stores/notificationStore');
 const { setupSSE, startSseHeartbeat } = require('../../core/http/sseHelpers');
-const { supportThreadPath } = require('../../utils/appPaths');
 const { resolveUserOrgIds } = require('../../auth');
-const { runAiAutoResponder } = require('../../services/supportAiResponder');
 const {
-    sendThreadCreatedEmail,
-    sendAiReplyEmail,
-    sendStaffReplyEmail,
-    sendThreadResolvedEmail,
-    sendOrNotifyStaff,
-} = require('../../support/emails');
-
-const {
-    _redactEmail,
-    _shortId,
-    _notifExcerpt,
     getUserId,
-    getUserDisplay,
     _hasAdminSupport,
     requireStaffSupport,
-    _buildThreadUrl,
-    _buildCsatLinks,
     supportEvents,
-    _emit,
     _logListenerPressure,
-    notifyStaff,
 } = require('./shared');
 const { publicCreateLimiter, threadReadLimiter, _emailRateLimitOk } = require('./rateLimits');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
-const log = require('../../telemetry/log');
+// The handler bodies: the steps of creating a ticket, and the staff routes.
+const { _isLikelySpam, loggedInRequester, anonymousRequester, openTicket } = require('./threadCreate');
+const H = require('./threadHandlers');
 
 // ── What a body and a query may carry ───────────────────────────────
 
@@ -143,302 +126,158 @@ const TokenQuery = z.object({
     token: worded('token must be an access token.').optional(),
 }).strict();
 
-// ── Honeypot + minimum-form-age guard for anonymous submissions ──────────
-function _isLikelySpam(body, source) {
-    if (source !== 'marketing') return false;
-    // Hidden honeypot field — bots fill it; humans don't see it.
-    if (body && typeof body.website_url === 'string' && body.website_url.trim().length > 0) {
-        return true;
+// ── Handlers that decide who the caller is ───────────────────────────
+// These stay in this file: the access sweep (auth/accessRegistry.sweep.test.js)
+// reads a route's handler here to find its gate. The steps behind them live in
+// threadCreate.js and threadHandlers.js.
+
+/** POST /threads — create thread (anon or authenticated). */
+async function createThread(req, res) {
+    const body = req.body;
+    const source = body.source === 'in_app' ? 'in_app' : 'marketing';
+    if (_isLikelySpam(body, source)) {
+        // Silently 200 so bots get no signal.
+        return res.status(200).json({ ok: true, threadId: null, spam: true });
     }
-    // Minimum render age — anything submitted within 2s of render is bot-like.
-    const ts = parseInt(body?.rendered_at_ms, 10);
-    if (Number.isFinite(ts)) {
-        if (Date.now() - ts < 2000) return true;
+    const val = { subject: body.subject, message: body.message };
+
+    const userId = getUserId(req);
+    const r = { userId, email: (body.email || '').trim().toLowerCase(), name: (body.name || '').trim() || null, orgRole: null, orgId: null, orgName: null };
+    if (userId) {
+        // Logged-in tenant: bound to the user's account, role and org.
+        await loggedInRequester(req, userId, r);
+        const orgIds = await resolveUserOrgIds(req);
+        if (orgIds && orgIds.size > 0) r.orgId = Array.from(orgIds)[0];
+        const sessOrgId = (req.session?.user || {}).organizationId;
+        if (!r.orgId && sessOrgId) r.orgId = sessOrgId;
+    } else {
+        // Anonymous (marketing) submissions: require a real email to reply.
+        if (!r.email) {
+            return res.status(400).json({ error: 'email is required for anonymous submissions' });
+        }
+        await anonymousRequester(r);
     }
-    return false;
+
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(r.email)) {
+        return res.status(400).json({ error: 'invalid email' });
+    }
+
+    // Look up the organisation name for the badge/chip in the inbox. Snapshot
+    // it on the thread: orgs can be renamed and the ticket history should
+    // reflect what was true at submit time.
+    if (r.orgId) {
+        try {
+            const org = await userStore.getOrganization(r.orgId);
+            if (org && org.name) r.orgName = org.name;
+        } catch {}
+    }
+
+    // Per-email submit cap (anonymous only). Mitigates enumeration by an
+    // attacker that varies the IP but reuses the same target email.
+    if (!userId && !_emailRateLimitOk(r.email)) {
+        return res.status(429).json({
+            error: 'Too many submissions for this email. Try again in a minute.',
+        });
+    }
+
+    res.status(201).json(await openTicket(req, r, val));
 }
 
+/**
+ * Who may see a thread: staff, its owner, or an anonymous requester with a
+ * valid token. Anonymous-token access stays valid even after a thread is
+ * later linked to a user (via email match): marketing-form requesters come
+ * back via the email link without ever logging in.
+ */
+async function checkThreadAccess(req, thread) {
+    const userId = getUserId(req);
+    const staff = await _hasAdminSupport(req);
+    const isOwner = userId && thread.requester_user_id === userId;
+    const tokenOK = req.query.token
+        && supportStore.verifyAccessToken(thread.id, thread.requester_email, req.query.token);
+    return { userId, staff, allowed: !!(staff || isOwner || tokenOK) };
+}
+
+/** GET /threads/:id — view a thread (requester, staff, or anon w/ token). */
+async function getThread(req, res) {
+    const thread = await supportStore.getThread(req.params.id);
+    // Mix "not found" and "no access" into a single 404 so an attacker can't
+    // tell "thread exists but I can't read it" from "thread doesn't exist at
+    // all": that distinction would enable UUID enumeration.
+    const NOT_FOUND = () => res.status(404).json({ error: 'Not found' });
+    if (!thread) return NOT_FOUND();
+    const { staff, allowed } = await checkThreadAccess(req, thread);
+    if (!allowed) return NOT_FOUND();
+    const messages = await supportStore.getThreadMessages(thread.id, { includeInternal: staff });
+    res.json({ thread, messages, viewerIsStaff: !!staff });
+}
+
+/** POST /threads/:id/messages — append a reply (same access as reading). */
+async function postReply(req, res) {
+    const thread = await supportStore.getThread(req.params.id);
+    const NOT_FOUND = () => res.status(404).json({ error: 'Not found' });
+    if (!thread) return NOT_FOUND();
+    const { userId, staff, allowed } = await checkThreadAccess(req, thread);
+    if (!allowed) return NOT_FOUND();
+    return H.appendReply(req, res, thread, { userId, staff });
+}
+
+/** GET /stream — SSE of thread_updated / thread_created for live inbox refresh (staff). */
+async function stream(req, res) {
+    let listener = null;
+    let heartbeat = null;
+    let markEnded = () => {};
+    // Force-cleanup so a listener never outlives the underlying socket. This
+    // closure is the single cleanup site.
+    let cleaned = false;
+    const cleanup = () => {
+        if (cleaned) return;
+        cleaned = true;
+        try { if (heartbeat) heartbeat(); } catch {}
+        try { if (listener) supportEvents.off('event', listener); } catch {}
+        try { markEnded(); } catch {}
+    };
+    try {
+        if (!(await _hasAdminSupport(req))) {
+            return res.status(403).json({ error: 'admin_support permission required' });
+        }
+        const sse = setupSSE(res);
+        markEnded = sse.markEnded;
+        sse.sendEvent('ready', { at: Date.now() });
+
+        listener = ({ event, data }) => {
+            // Company inbox only: tenant Support-studio inbox events carry an
+            // inboxId and are streamed by /api/support-inbox/stream instead.
+            if (data && data.inboxId) return;
+            try { sse.sendEvent(event, { ...data, at: Date.now() }); }
+            catch { cleanup(); }
+        };
+        supportEvents.on('event', listener);
+        _logListenerPressure();
+
+        // Heartbeat-driven liveness: 3 consecutive ping failures force-cleanup
+        // the listener, even if `close` was never fired (half-closed sockets).
+        heartbeat = startSseHeartbeat(res, 25000, { frame: ': ping\n\n', onDead: cleanup });
+
+        req.on('close', cleanup);
+        req.on('error', cleanup);
+        res.on('error', cleanup);
+    } catch (err) {
+        cleanup();
+        throw err;
+    }
+}
+
+// ── The route table ──────────────────────────────────────────────────
 
 function registerThreadRoutes(router) {
-    // ──────────────────────────────────────────────────────────────────────────
-    // POST /threads — create thread (anon or authenticated)
     // Body: { subject, message, email?, name?, source?, website_url?, rendered_at_ms? }
-    // ──────────────────────────────────────────────────────────────────────────
-    router.post('/threads', publicCreateLimiter, validate({ body: CreateThread }), async (req, res) => {
-        const body = req.body;
-        const source = body.source === 'in_app' ? 'in_app' : 'marketing';
+    router.post('/threads', publicCreateLimiter, validate({ body: CreateThread }), createThread);
 
-        if (_isLikelySpam(body, source)) {
-            // Silently 200 so bots get no signal.
-            return res.status(200).json({ ok: true, threadId: null, spam: true });
-        }
-
-        const val = { subject: body.subject, message: body.message };
-
-        const userId = getUserId(req);
-        let orgIds = null;
-        let orgId = null;
-        let requesterUserId = userId;
-        let requesterEmail = (body.email || '').trim().toLowerCase();
-        let requesterName = (body.name || '').trim() || null;
-        let requesterOrgRole = null;
-        let requesterOrgName = null;
-
-        if (userId) {
-            // Logged-in tenant — bind the thread to the user's account + org +
-            // role within that org. Email + display name are resolved from (in
-            // order): the session user, then the user record. We never reject
-            // a logged-in submission for "missing email" — the server already
-            // knows who they are, even if the stored email is null (e.g. SSO
-            // accounts where the username is the contact handle).
-            const sessUser = req.session?.user || {};
-            requesterEmail = (sessUser.email || requesterEmail || '').trim().toLowerCase();
-            requesterName = requesterName
-                || sessUser.displayName
-                || sessUser.name
-                || null;
-            requesterOrgRole = sessUser.orgRole || null;
-            try {
-                const user = await userStore.getUser(userId);
-                if (user) {
-                    if (!requesterEmail) requesterEmail = (user.email || '').trim().toLowerCase();
-                    if (!requesterEmail && typeof user.username === 'string' && user.username.includes('@')) {
-                        requesterEmail = user.username.trim().toLowerCase();
-                    }
-                    if (!requesterName) {
-                        requesterName = user.displayName
-                            || [user.firstName, user.lastName].filter(Boolean).join(' ').trim()
-                            || user.username
-                            || null;
-                    }
-                    requesterOrgRole = requesterOrgRole || user.orgRole || null;
-                }
-            } catch {}
-            if (!requesterEmail) {
-                requesterEmail = `user-${userId}@noemail.beeflow.local`;
-            }
-            orgIds = await resolveUserOrgIds(req);
-            if (orgIds && orgIds.size > 0) orgId = Array.from(orgIds)[0];
-            if (!orgId && sessUser.organizationId) orgId = sessUser.organizationId;
-        } else {
-            // Anonymous (marketing) submissions: require a real email to reply.
-            if (!requesterEmail) {
-                return res.status(400).json({ error: 'email is required for anonymous submissions' });
-            }
-            // Best-effort: if this email matches an existing user, link the
-            // thread to their account + org + role. Otherwise leave it truly
-            // anonymous and staff will see "Guest".
-            try {
-                const match = await userStore.getUserByEmail(requesterEmail);
-                if (match) {
-                    requesterUserId = match.id;
-                    requesterOrgRole = match.orgRole || null;
-                    if (!orgId) orgId = match.organizationId || null;
-                    if (!requesterName) {
-                        requesterName = match.displayName
-                            || [match.firstName, match.lastName].filter(Boolean).join(' ').trim()
-                            || match.username
-                            || null;
-                    }
-                }
-            } catch {}
-        }
-
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(requesterEmail)) {
-            return res.status(400).json({ error: 'invalid email' });
-        }
-
-        // Look up the organisation name for the badge/chip in the inbox.
-        // Snapshot it on the thread — orgs can be renamed and we want the
-        // ticket history to reflect what was true at submit time.
-        if (orgId) {
-            try {
-                const org = await userStore.getOrganization(orgId);
-                if (org && org.name) requesterOrgName = org.name;
-            } catch {}
-        }
-
-        // For in_app: source must match a logged-in user.
-        const effectiveSource = userId ? 'in_app' : 'marketing';
-        const skipOutboundEmail = requesterEmail.endsWith('@noemail.beeflow.local');
-
-        // Per-email submit cap (anonymous only). Mitigates enumeration by
-        // an attacker that varies the IP but reuses the same target email.
-        if (!userId && !_emailRateLimitOk(requesterEmail)) {
-            return res.status(429).json({
-                error: 'Too many submissions for this email. Try again in a minute.',
-            });
-        }
-
-        const thread = await supportStore.createThread({
-            organizationId: orgId,
-            requesterUserId,
-            requesterEmail,
-            requesterName,
-            requesterOrgRole,
-            requesterOrgName,
-            source: effectiveSource,
-            subject: val.subject,
-            requesterIp: req.ip || req.headers['x-forwarded-for'] || null,
-            requesterUa: req.headers['user-agent'] || null,
-        });
-
-        // Compute SLA due dates from the org/global policy (best-effort).
-        try {
-            const { computeSlaDueAt } = require('../../services/supportSlaEnforcer');
-            const due = await computeSlaDueAt(thread);
-            if (due.first || due.resolution) {
-                await supportStore.setThreadSla(thread.id, {
-                    firstDueAt: due.first,
-                    resolutionDueAt: due.resolution,
-                });
-                thread.sla_first_response_due_at = due.first;
-                thread.sla_resolution_due_at = due.resolution;
-            }
-        } catch (e) {
-            log.warn('[Support] SLA compute on create failed:', e.message);
-        }
-
-        const firstMsg = await supportStore.appendMessage({
-            threadId: thread.id,
-            authorKind: 'requester',
-            authorUserId: userId,
-            authorDisplay: requesterName || requesterEmail,
-            body: val.message,
-        });
-
-        // Audit trail entry for the requester's opening message.
-        supportStore.recordThreadEvent({
-            threadId: thread.id,
-            actorUserId: requesterUserId,
-            actorKind: 'requester',
-            action: 'reply',
-            payload: { initial: true, source: effectiveSource },
-        }).catch(() => {});
-
-        const requesterUrl = _buildThreadUrl(thread);
-        const accessToken = !userId ? supportStore.buildAccessToken(thread.id, requesterEmail) : null;
-
-        // Confirmation email — failures surface to staff via sendOrNotifyStaff.
-        if (!skipOutboundEmail) {
-            sendOrNotifyStaff(
-                sendThreadCreatedEmail,
-                { to: requesterEmail, requesterName, subject: val.subject, threadUrl: requesterUrl },
-                { kind: 'thread_created', threadId: thread.id, messageId: firstMsg?.id },
-            );
-        }
-
-        notifyStaff({
-            title: `New support: ${val.subject}`,
-            // No email in the notification body — staff opens the thread to see it.
-            message: `${effectiveSource === 'marketing' ? 'Marketing site' : 'In-app'} · ${_redactEmail(requesterEmail)}`,
-            threadId: thread.id,
-        }).catch(() => {});
-
-        _emit('thread_created', { threadId: thread.id });
-
-        // Chat notification joins the same fan-out, fire-and-forget: a
-        // chat outage must never fail a customer's ticket submission.
-        require('../../services/outboundChatNotifier')
-            .notify({ thread, event: 'ticket_created' })
-            .catch(() => {});
-
-        // Kick off the AI auto-responder fire-and-forget for both sources.
-        // The marketing form polls /api/support/threads/:id?token=… every few
-        // seconds to surface the AI reply when it lands — much more robust
-        // than the previous "block the HTTP response for up to 15s" approach.
-        Promise.resolve().then(() => runAiAutoResponder(thread.id))
-            .then(result => {
-                if (result && result.message) {
-                    if (!skipOutboundEmail) {
-                        sendOrNotifyStaff(
-                            sendAiReplyEmail,
-                            {
-                                to: requesterEmail,
-                                requesterName,
-                                subject: val.subject,
-                                replyBody: result.message.body,
-                                threadUrl: requesterUrl,
-                                escalated: result.escalated,
-                            },
-                            { kind: 'ai_reply', threadId: thread.id, messageId: result.message.id },
-                        );
-                    }
-                    if (result.escalated) {
-                        notifyStaff({
-                            title: `AI escalated: ${val.subject}`,
-                            message: result.escalateReason || 'AI handed off to staff',
-                            threadId: thread.id,
-                        }).catch(() => {});
-                    }
-                    // AI fully resolved → send a resolution + CSAT email so the
-                    // customer can confirm and rate without logging in.
-                    if (result.resolved && !skipOutboundEmail) {
-                        sendOrNotifyStaff(
-                            sendThreadResolvedEmail,
-                            {
-                                to: requesterEmail,
-                                requesterName,
-                                subject: val.subject,
-                                threadUrl: requesterUrl,
-                                csatLinks: _buildCsatLinks(thread),
-                            },
-                            { kind: 'resolved', threadId: thread.id },
-                        );
-                    }
-                    if (userId) {
-                        notificationStore.createNotification({
-                            userId,
-                            taskId: thread.id,
-                            category: 'info',
-                            title: result.escalated ? 'Bee Flow Support — a human will reply' : 'Bee Flow Support — AI replied',
-                            // Show the actual inbound reply, not the user's own subject line.
-                            message: _notifExcerpt(result.message.body) || val.subject,
-                            link: supportThreadPath(thread.id),
-                        }).catch(() => {});
-                    }
-                    _emit('thread_updated', { threadId: thread.id });
-                }
-            })
-            .catch(e => log.error(`[Support] AI auto-responder background failure (thread=${_shortId(thread.id)}):`, e.message));
-
-        res.status(201).json({
-            ok: true,
-            threadId: thread.id,
-            accessToken,
-            threadUrl: requesterUrl,
-        });
-    });
-
-    // ──────────────────────────────────────────────────────────────────────────
     // GET /threads — staff inbox
-    // ──────────────────────────────────────────────────────────────────────────
-    router.get('/threads', requireStaffSupport, validate({ query: InboxQuery }), async (req, res) => {
-        const { status, q, assignee, limit, offset, followup } = req.query;
-        const statusList = status ? status.split(',').map(s => s.trim()).filter(Boolean) : null;
-        // Isolation: this is Bee Flow's OWN company inbox. Tenant Support-studio
-        // inboxes live in the same tables with inbox_id set — exclude them so the
-        // super-admin never sees a tenant's customer tickets (and vice-versa, the
-        // tenant routes force inbox_id IS NOT NULL). See server/routes/supportInbox.js.
-        const threads = await supportStore.listThreads({
-            statusIn: statusList && statusList.length ? statusList : null,
-            q: q || null,
-            assigneeUserId: assignee || null,
-            inboxIsNull: true,
-            followupOnly: followup === '1' || followup === 'true',
-            limit: limit ?? 100,
-            offset: offset ?? 0,
-        });
-        const counts = await supportStore.countThreadsByStatus({ inboxIsNull: true });
-        // The follow-up queue cuts across status, so it is its own count
-        // rather than another key in the status histogram.
-        counts.followup = await supportStore.countFollowupNeeded();
-        res.json({ threads, counts });
-    });
+    router.get('/threads', requireStaffSupport, validate({ query: InboxQuery }), H.listInbox);
 
-    // ──────────────────────────────────────────────────────────────────────────
     // GET /threads/mine — logged-in user's own threads
-    // ──────────────────────────────────────────────────────────────────────────
     router.get('/threads/mine', async (req, res) => {
         const userId = getUserId(req);
         if (!userId) return res.status(401).json({ error: 'Not authenticated' });
@@ -446,411 +285,24 @@ function registerThreadRoutes(router) {
         res.json({ threads });
     });
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // GET /threads/:id — view a thread (requester, staff, or anon w/ token)
-    // ──────────────────────────────────────────────────────────────────────────
-    router.get('/threads/:id', threadReadLimiter, validate({ query: TokenQuery }), async (req, res) => {
-        try {
-            const thread = await supportStore.getThread(req.params.id);
+    router.get('/threads/:id', threadReadLimiter, validate({ query: TokenQuery }), getThread);
+    router.post('/threads/:id/messages', validate({ query: TokenQuery, body: ReplyBody }), postReply);
 
-            // Mix "not found" and "no access" into a single 404 so an attacker
-            // can't distinguish "thread exists but I can't read it" from "thread
-            // doesn't exist at all" — that distinction would enable UUID
-            // enumeration.
-            const NOT_FOUND = () => res.status(404).json({ error: 'Not found' });
-            if (!thread) return NOT_FOUND();
-
-            const userId = getUserId(req);
-            const staff = await _hasAdminSupport(req);
-            const isOwner = userId && thread.requester_user_id === userId;
-            // Anonymous-token access stays valid even after a thread is later
-            // linked to a user (via email match). Marketing-form requesters need
-            // to come back via the email link without ever logging in.
-            const tokenOK = req.query.token
-                && supportStore.verifyAccessToken(thread.id, thread.requester_email, req.query.token);
-
-            if (!staff && !isOwner && !tokenOK) return NOT_FOUND();
-
-            const messages = await supportStore.getThreadMessages(thread.id, { includeInternal: staff });
-            res.json({ thread, messages, viewerIsStaff: !!staff });
-        } catch (err) {
-            log.error(`[Support] GET /threads/:id error (id=${_shortId(req.params.id)}):`, err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
-    });
-
-    // ──────────────────────────────────────────────────────────────────────────
-    // POST /threads/:id/messages — append a reply
-    // ──────────────────────────────────────────────────────────────────────────
-    router.post('/threads/:id/messages', validate({ query: TokenQuery, body: ReplyBody }), async (req, res) => {
-        try {
-            const thread = await supportStore.getThread(req.params.id);
-            const NOT_FOUND = () => res.status(404).json({ error: 'Not found' });
-            if (!thread) return NOT_FOUND();
-
-            const userId = getUserId(req);
-            const staff = await _hasAdminSupport(req);
-            const isOwner = userId && thread.requester_user_id === userId;
-            const tokenOK = req.query.token
-                && supportStore.verifyAccessToken(thread.id, thread.requester_email, req.query.token);
-
-            if (!staff && !isOwner && !tokenOK) return NOT_FOUND();
-
-            const body = req.body.body;
-            // Only a real boolean makes a reply internal, and only for staff.
-            const internalNote = req.body.internalNote === true && staff;
-
-            const authorKind = staff ? 'staff' : 'requester';
-            const authorDisplay = staff
-                ? (getUserDisplay(req) || 'Bee Flow Support')
-                : (thread.requester_name || thread.requester_email);
-
-            const msg = await supportStore.appendMessage({
-                threadId: thread.id,
-                authorKind,
-                authorUserId: userId,
-                authorDisplay,
-                body,
-                internalNote,
-            });
-
-            supportStore.recordThreadEvent({
-                threadId: thread.id,
-                actorUserId: userId,
-                actorKind: authorKind === 'staff' ? 'staff' : 'requester',
-                action: internalNote ? 'internal_note' : 'reply',
-                payload: { messageId: msg?.id, length: body.length },
-            }).catch(() => {});
-
-            // Side-effects ─────────────────────────────────────────────────────
-            if (staff && !internalNote) {
-                // Atomic transition wins concurrent first-replies: COALESCE leaves
-                // any already-set first_response_at / assignee_user_id intact.
-                await supportStore.firstStaffReplyTransition(thread.id, userId);
-
-                sendOrNotifyStaff(
-                    sendStaffReplyEmail,
-                    {
-                        to: thread.requester_email,
-                        requesterName: thread.requester_name,
-                        subject: thread.subject,
-                        staffName: authorDisplay,
-                        replyBody: body,
-                        threadUrl: _buildThreadUrl(thread),
-                    },
-                    { kind: 'staff_reply', threadId: thread.id, messageId: msg?.id },
-                );
-
-                if (thread.requester_user_id) {
-                    notificationStore.createNotification({
-                        userId: thread.requester_user_id,
-                        taskId: thread.id,
-                        category: 'info',
-                        title: 'Bee Flow Support replied',
-                        // Preview the staff reply itself, not the thread subject.
-                        message: _notifExcerpt(body) || thread.subject,
-                        link: supportThreadPath(thread.id),
-                    }).catch(() => {});
-                }
-            } else if (!staff) {
-                // Requester reply → flip to awaiting_agent; if AI hasn't escalated
-                // yet, give the AI one more shot.
-                await supportStore.updateThread(thread.id, { status: 'awaiting_agent' });
-
-                if (thread.assignee_user_id) {
-                    notificationStore.createNotification({
-                        userId: thread.assignee_user_id,
-                        taskId: thread.id,
-                        category: 'heads_up',
-                        title: 'Customer replied',
-                        message: _notifExcerpt(body) || thread.subject,
-                    }).catch(() => {});
-                } else {
-                    notifyStaff({
-                        title: `Customer replied: ${thread.subject}`,
-                        message: _redactEmail(thread.requester_email),
-                        threadId: thread.id,
-                    }).catch(() => {});
-                }
-
-                require('../../services/outboundChatNotifier')
-                    .notify({ thread, event: 'customer_message' })
-                    .catch(() => {});
-
-                // Re-run AI on requester follow-up, but only if the thread is
-                // still AI-handled (no staff has weighed in). Failure goes via
-                // the responder's internal escalate-on-error path.
-                if (!thread.first_response_at && thread.ai_handled) {
-                    Promise.resolve().then(() => runAiAutoResponder(thread.id))
-                        .then(result => {
-                            if (result && result.message) {
-                                sendOrNotifyStaff(
-                                    sendAiReplyEmail,
-                                    {
-                                        to: thread.requester_email,
-                                        requesterName: thread.requester_name,
-                                        subject: thread.subject,
-                                        replyBody: result.message.body,
-                                        threadUrl: _buildThreadUrl(thread),
-                                        escalated: result.escalated,
-                                    },
-                                    { kind: 'ai_reply', threadId: thread.id, messageId: result.message.id },
-                                );
-                                // Notify the requester of the follow-up reply too — previously
-                                // only the very first AI reply created a bell notification, so
-                                // later replies landed silently.
-                                if (thread.requester_user_id) {
-                                    notificationStore.createNotification({
-                                        userId: thread.requester_user_id,
-                                        taskId: thread.id,
-                                        category: 'info',
-                                        title: result.escalated ? 'Bee Flow Support — a human will reply' : 'Bee Flow Support — AI replied',
-                                        message: _notifExcerpt(result.message.body),
-                                        link: supportThreadPath(thread.id),
-                                    }).catch(() => {});
-                                }
-                                _emit('thread_updated', { threadId: thread.id });
-                            }
-                        })
-                        .catch(e => log.warn(`[Support] follow-up AI failed (thread=${_shortId(thread.id)}):`, e.message));
-                }
-            }
-
-            _emit('thread_updated', { threadId: thread.id });
-            res.status(201).json({ ok: true, message: msg });
-        } catch (err) {
-            log.error(`[Support] POST /threads/:id/messages error (id=${_shortId(req.params.id)}):`, err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
-    });
-
-    // ──────────────────────────────────────────────────────────────────────────
     // PATCH /threads/:id — staff status/priority/assignee + resolve
-    // ──────────────────────────────────────────────────────────────────────────
-    router.patch('/threads/:id', requireStaffSupport, validate({ body: PatchThread }), async (req, res) => {
-        try {
-            const thread = await supportStore.getThread(req.params.id);
-            if (!thread) return res.status(404).json({ error: 'thread not found' });
+    router.patch('/threads/:id', requireStaffSupport, validate({ body: PatchThread }), H.patchThread);
 
-            const patch = {};
-            const { status, priority, assignee_user_id, category, tags } = req.body;
-
-            if (status) {
-                patch.status = status;
-                if (status === 'resolved') patch.resolved_at = new Date().toISOString();
-            }
-            if (priority) patch.priority = priority;
-            if (assignee_user_id !== undefined) {
-                patch.assignee_user_id = assignee_user_id || null;
-                // A manual assignee change always clears the auto-assigned flag.
-                patch.auto_assigned = false;
-            }
-            if (category !== undefined) patch.category = category || null;
-            // Priority drives the SLA clock — recompute due dates when it changes.
-            if (patch.priority && patch.priority !== thread.priority) {
-                try {
-                    const { computeSlaDueAt } = require('../../services/supportSlaEnforcer');
-                    const due = await computeSlaDueAt({ ...thread, priority: patch.priority });
-                    patch.sla_first_response_due_at = due.first;
-                    patch.sla_resolution_due_at = due.resolution;
-                } catch (e) {
-                    log.warn('[Support] SLA recompute on priority change failed:', e.message);
-                }
-            }
-
-            const updated = await supportStore.updateThread(thread.id, patch);
-
-            // Tags are JSONB — handled by a dedicated helper, not the generic patch.
-            if (tags !== undefined) {
-                const tagged = await supportStore.setThreadTags(thread.id, tags);
-                if (tagged) Object.assign(updated, tagged);
-                supportStore.recordThreadEvent({
-                    threadId: thread.id,
-                    actorUserId: getUserId(req),
-                    actorKind: 'staff',
-                    action: 'tags_change',
-                    payload: { tags: tagged?.tags || [] },
-                }).catch(() => {});
-            }
-
-            const userId = getUserId(req);
-            // Audit each field that actually changed.
-            if (patch.status && patch.status !== thread.status) {
-                supportStore.recordThreadEvent({
-                    threadId: thread.id,
-                    actorUserId: userId,
-                    actorKind: 'staff',
-                    action: patch.status === 'resolved' ? 'resolved' : 'status_change',
-                    payload: { from: thread.status, to: patch.status },
-                }).catch(() => {});
-            }
-            if (patch.priority && patch.priority !== thread.priority) {
-                supportStore.recordThreadEvent({
-                    threadId: thread.id,
-                    actorUserId: userId,
-                    actorKind: 'staff',
-                    action: 'priority_change',
-                    payload: { from: thread.priority, to: patch.priority },
-                }).catch(() => {});
-            }
-            if (patch.assignee_user_id !== undefined && patch.assignee_user_id !== thread.assignee_user_id) {
-                supportStore.recordThreadEvent({
-                    threadId: thread.id,
-                    actorUserId: userId,
-                    actorKind: 'staff',
-                    action: 'assignee_change',
-                    payload: { from: thread.assignee_user_id || null, to: patch.assignee_user_id || null },
-                }).catch(() => {});
-            }
-
-            // Resolution email
-            if (patch.status === 'resolved' && thread.status !== 'resolved') {
-                sendOrNotifyStaff(
-                    sendThreadResolvedEmail,
-                    {
-                        to: thread.requester_email,
-                        requesterName: thread.requester_name,
-                        subject: thread.subject,
-                        threadUrl: _buildThreadUrl(thread),
-                        csatLinks: _buildCsatLinks(thread),
-                    },
-                    { kind: 'resolved', threadId: thread.id },
-                );
-                if (thread.requester_user_id) {
-                    notificationStore.createNotification({
-                        userId: thread.requester_user_id,
-                        taskId: thread.id,
-                        category: 'info',
-                        title: 'Your support request was resolved',
-                        message: thread.subject,
-                        // Make the "resolved" bell clickable like the reply notifs (BFSF-191).
-                        link: supportThreadPath(thread.id),
-                    }).catch(() => {});
-                }
-            }
-
-            _emit('thread_updated', { threadId: thread.id });
-            res.json({ ok: true, thread: updated });
-        } catch (err) {
-            log.error(`[Support] PATCH /threads/:id error (id=${_shortId(req.params.id)}):`, err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
-    });
-
-    // ──────────────────────────────────────────────────────────────────────────
     // GET /threads/:id/events — staff-only audit log for a thread
-    // ──────────────────────────────────────────────────────────────────────────
-    router.get('/threads/:id/events', requireStaffSupport, async (req, res) => {
-        try {
-            const events = await supportStore.listThreadEvents(req.params.id, { limit: 200 });
-            res.json({ events });
-        } catch (err) {
-            log.error(`[Support] GET /threads/:id/events error (id=${_shortId(req.params.id)}):`, err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
-    });
+    router.get('/threads/:id/events', requireStaffSupport, H.threadEvents);
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // GET /threads/:id/stream — SSE
-    // Streams thread_updated / thread_created events for live inbox refresh.
-    // ──────────────────────────────────────────────────────────────────────────
-    router.get('/stream', async (req, res) => {
-        let listener = null;
-        let heartbeat = null;
-        let markEnded = () => {};
-        // Force-cleanup so a listener never outlives the underlying socket. Wrapped
-        // in try/finally below; this closure is the single cleanup site.
-        let cleaned = false;
-        const cleanup = () => {
-            if (cleaned) return;
-            cleaned = true;
-            try { if (heartbeat) heartbeat(); } catch {}
-            try { if (listener) supportEvents.off('event', listener); } catch {}
-            try { markEnded(); } catch {}
-        };
-        try {
-            if (!(await _hasAdminSupport(req))) {
-                return res.status(403).json({ error: 'admin_support permission required' });
-            }
-            const sse = setupSSE(res);
-            markEnded = sse.markEnded;
-            sse.sendEvent('ready', { at: Date.now() });
-
-            listener = ({ event, data }) => {
-                // Company inbox only — tenant Support-studio inbox events carry an
-                // inboxId and are streamed by /api/support-inbox/stream instead.
-                if (data && data.inboxId) return;
-                try { sse.sendEvent(event, { ...data, at: Date.now() }); }
-                catch { cleanup(); }
-            };
-            supportEvents.on('event', listener);
-            _logListenerPressure();
-
-            // Heartbeat-driven liveness: 3 consecutive ping failures force-cleanup
-            // the listener, even if `close` was never fired (half-closed sockets).
-            heartbeat = startSseHeartbeat(res, 25000, { frame: ': ping\n\n', onDead: cleanup });
-
-            req.on('close', cleanup);
-            req.on('error', cleanup);
-            res.on('error', cleanup);
-        } catch (err) {
-            cleanup();
-            log.error('[Support] stream error:', err.message);
-            if (!res.headersSent) res.status(500).json({ error: 'Internal error' });
-        }
-    });
+    router.get('/stream', stream);
 }
 
 function registerBulkRoute(router) {
-    // ──────────────────────────────────────────────────────────────────────────
     // POST /threads/bulk — apply an action to multiple threads (staff)
     // Body: { ids: [], action: 'assign'|'status'|'priority'|'tag'|'resolve', params }
     // Per-thread partial success; never an all-or-nothing transaction.
-    // ──────────────────────────────────────────────────────────────────────────
-    router.post('/threads/bulk', requireStaffSupport, validate({ body: BulkBody }), async (req, res) => {
-        try {
-            const { ids, action } = req.body;
-            const params = req.body.params || {};
-
-            const userId = getUserId(req);
-            const results = [];
-            for (const id of ids) {
-                try {
-                    const thread = await supportStore.getThread(id);
-                    if (!thread) { results.push({ id, ok: false, error: 'not found' }); continue; }
-
-                    if (action === 'tag') {
-                        const tag = params.tag || '';
-                        if (!tag) { results.push({ id, ok: false, error: 'tag required' }); continue; }
-                        await supportStore.addThreadTag(id, tag);
-                        supportStore.recordThreadEvent({ threadId: id, actorUserId: userId, actorKind: 'staff', action: 'tags_change', payload: { added: tag } }).catch(() => {});
-                    } else if (action === 'assign') {
-                        await supportStore.updateThread(id, { assignee_user_id: params.assignee_user_id || null, auto_assigned: false });
-                        supportStore.recordThreadEvent({ threadId: id, actorUserId: userId, actorKind: 'staff', action: 'assignee_change', payload: { to: params.assignee_user_id || null } }).catch(() => {});
-                    } else if (action === 'priority') {
-                        if (!params.priority) { results.push({ id, ok: false, error: 'priority required' }); continue; }
-                        await supportStore.updateThread(id, { priority: params.priority });
-                        supportStore.recordThreadEvent({ threadId: id, actorUserId: userId, actorKind: 'staff', action: 'priority_change', payload: { from: thread.priority, to: params.priority } }).catch(() => {});
-                    } else if (action === 'status' || action === 'resolve') {
-                        const status = action === 'resolve' ? 'resolved' : params.status;
-                        if (!status) { results.push({ id, ok: false, error: 'status required' }); continue; }
-                        const patch = { status };
-                        if (status === 'resolved') patch.resolved_at = new Date().toISOString();
-                        await supportStore.updateThread(id, patch);
-                        supportStore.recordThreadEvent({ threadId: id, actorUserId: userId, actorKind: 'staff', action: status === 'resolved' ? 'resolved' : 'status_change', payload: { from: thread.status, to: status } }).catch(() => {});
-                    }
-                    _emit('thread_updated', { threadId: id });
-                    results.push({ id, ok: true });
-                } catch (e) {
-                    results.push({ id, ok: false, error: e.message });
-                }
-            }
-            res.json({ ok: true, results });
-        } catch (err) {
-            log.error('[Support] POST /threads/bulk error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
-    });
+    router.post('/threads/bulk', requireStaffSupport, validate({ body: BulkBody }), H.bulk);
 }
 
 module.exports = { registerThreadRoutes, registerBulkRoute, STATUSES, PATCH_THREAD_SHAPE };
+

@@ -32,9 +32,24 @@ const EXEMPT = new Map([
     // dat die tenant ontstaat, in een eigen schema — er bestaat geen globale
     // boot-DDL om hier af te wachten.
     ['stores/lib/pgAppEngine.js', 'per-tenant engine — DDL per app-schema, niet bij boot'],
+    ['stores/lib/pgAppEnginePartsTx.js', 'per-tenant engine (migration part) — DDL per app-schema, niet bij boot'],
     // Het schema van projectChatStore, eruit gesplitst; de store zelf staat in de ladder en draait het bij boot.
+    // initSchema.js (the agentStore ladder entry) is a facade since LF-S3: it runs
+    // these two parts in order, so the ladder still executes all of their DDL.
+    ['stores/agent/initSchema.base.js', 'DDL of stores/agent/initSchema.js — run by its initDB (agent schema facade)'],
+    ['stores/agent/initSchema.agents.js', 'DDL of stores/agent/initSchema.js — run by its initDB (agent schema facade)'],
+    // DDL of projectAiParticipationStore / projectTaskStore, split out of them
+    // (LF-S2); each store requires its DDL and is itself in STORE_MODULES.
+    ['stores/projectAiParticipationDdl.js', 'DDL of projectAiParticipationStore — covered via that store (ladder)'],
+    ['stores/projectTaskDdl.js', 'DDL of projectTaskStore — covered via that store (ladder)'],
     ['stores/lib/projectChatSchema.js', 'schema van projectChatStore — DDL draait via die store (ladder)'],
     ['stores/lib/sqliteBlobEngine.js', 'per-tenant engine — sqlite-blob per app, geen Postgres-DDL'],
+    ['stores/lib/sqliteBlobStatements.js', 'statement API of the sqlite-blob engine — names CREATE TABLE only in a comment'],
+    // The user store's statement lists, split out of stores/user/schema.js:
+    // that file's initDB runs them, reached through the userStore facade.
+    ['stores/user/schemaTables.js', 'DDL of stores/user/schema.js — run by its initDB (userStore facade)'],
+    ['stores/user/schemaMigrations.js', 'DDL of stores/user/schema.js — run by its initDB (userStore facade)'],
+    ['stores/user/planMigrations.js', 'DDL of stores/user/schema.js — run by its initDB (userStore facade)'],
     // Bereikt via de automationStore-facade in de lijst: die exporteert core's
     // initDB, en de integratietest bewijst dat automations/automation_runs
     // na de ladder bestaan.
@@ -50,6 +65,8 @@ const EXEMPT = new Map([
     // Idem: blueprintStore.js is sinds de opsplitsing (golf 1) een facade die
     // blueprint/schema.js' initDB doorgeeft.
     ['stores/blueprint/schema.js', 'gedekt via de blueprintStore-facade'],
+    // Same for the skill store: skillStore.js re-exports stores/skill/schema.js's initDB.
+    ['stores/skill/schema.js', 'covered via the skillStore facade'],
     // Idem voor de stores die in de tweede splitsgolf een facade werden: elke
     // facade hieronder staat in STORE_MODULES en exporteert de initDB van zijn
     // schema-module (makeStoreInit of rechtstreeks doorgegeven), dus de ladder

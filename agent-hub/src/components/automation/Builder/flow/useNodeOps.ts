@@ -3,6 +3,7 @@ import type { MutableRefObject } from 'react';
 import { prefixAddedStep, parseInlineId } from './inlineFlowlets';
 import { seedPositions } from './layout';
 import { applyDeleteNodes, applyDuplicateNode, applyDetachNode, applyPatchStep } from './nodeOps';
+import type { FlowDefinition } from './types';
 import type { DefinitionEmitter, DiagramDefinition, DiagramStep, RunByStep, StepId } from './diagramPaneTypes';
 
 /** The inputs the node operations read at call time (also read by useNodeDragWiring). */
@@ -49,7 +50,7 @@ export function useNodeOps(inputs: NodeOpsInputs, runByStep: RunByStep): NodeOps
         // The layer_input of an expanded flowlet: its mini-definition requires
         // exactly one, so there is nothing sensible to do here.
         if (protectedIds?.has?.(stepId)) return;
-        const next = applyDeleteNodes(def as object, stepId);
+        const next = applyDeleteNodes(def as FlowDefinition, stepId);
         if (next === def) return; // primary trigger / unknown id
         emit?.(seedPositions(next));
     }, []);
@@ -60,7 +61,7 @@ export function useNodeOps(inputs: NodeOpsInputs, runByStep: RunByStep): NodeOps
     const onDetachNode = useCallback((stepId: StepId) => {
         const { definition: def, editable: ed, structuralEditsBlocked: blocked, onDefinitionChange: emit } = nodeOpsRef.current!;
         if (!ed || blocked || !stepId) return;
-        const next = applyDetachNode(def as object, stepId);
+        const next = applyDetachNode(def as FlowDefinition, stepId);
         if (next === def) return; // not a step, or already loose
         emit?.(seedPositions(next));
     }, []);
@@ -68,7 +69,7 @@ export function useNodeOps(inputs: NodeOpsInputs, runByStep: RunByStep): NodeOps
     const onDuplicateNode = useCallback((stepId: StepId) => {
         const { definition: def, editable: ed, structuralEditsBlocked: blocked, onDefinitionChange: emit } = nodeOpsRef.current!;
         if (!ed || blocked || !stepId) return;
-        const { definition: next, newStepId } = applyDuplicateNode(def as object, stepId);
+        const { definition: next, newStepId } = applyDuplicateNode(def as FlowDefinition, stepId);
         if (!newStepId) return; // triggers aren't duplicable
         // The copy of a step inside an expanded flowlet belongs to that
         // flowlet — without the prefix it would land in the flow around it.
@@ -83,7 +84,7 @@ export function useNodeOps(inputs: NodeOpsInputs, runByStep: RunByStep): NodeOps
     const onPatchStep = useCallback((stepId: StepId, patch: Record<string, unknown>) => {
         const { definition: def, editable: ed, structuralEditsBlocked: blocked, onDefinitionChange: emit } = nodeOpsRef.current!;
         if (!ed || blocked || !stepId) return;
-        const next = applyPatchStep(def as object, stepId, patch);
+        const next = applyPatchStep(def as FlowDefinition, stepId, patch);
         if (next === def) return;
         emit?.(next as DiagramDefinition);
     }, []);
@@ -107,7 +108,7 @@ export function useNodeOps(inputs: NodeOpsInputs, runByStep: RunByStep): NodeOps
             if (!row || row.output === undefined || row.status === 'pinned') return;
             patch = { pinnedOutput: row.output, pinnedAt: new Date().toISOString(), pinnedSource: undefined };
         }
-        const next = applyPatchStep(def as object, stepId, patch);
+        const next = applyPatchStep(def as FlowDefinition, stepId, patch);
         if (next === def) return;
         emit?.(next as DiagramDefinition);
     }, []);

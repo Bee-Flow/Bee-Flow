@@ -12,7 +12,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ShieldSaveBar } from './ShieldSaveBar';
 import type { TranslateFn } from '../../../../../../hooks/useTranslation';
 
-const t: TranslateFn = (key, fallbackOrParams, paramsArg) => {
+const t: TranslateFn = (key: string, fallbackOrParams, paramsArg) => {
     const fallback = typeof fallbackOrParams === 'string' ? fallbackOrParams : key;
     const params = typeof fallbackOrParams === 'object' ? fallbackOrParams : paramsArg;
     return Object.entries(params || {}).reduce((out, [k, v]) => out.split(`{${k}}`).join(String(v)), fallback);

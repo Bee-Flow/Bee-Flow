@@ -353,7 +353,7 @@ describe('FrameworkPage — phone (artboard 1h)', () => {
 describe('FrameworkPage — hygiene', () => {
     it('no hex colours, --status-* tokens or purple words in the page tree', () => {
         const dir = path.resolve(__dirname);
-        const files = ['FrameworkPage.jsx', ...fs.readdirSync(path.join(dir, 'framework')).filter((f) => /\.jsx?$/.test(f) && !f.includes('.test.')).map((f) => path.join('framework', f))];
+        const files = ['FrameworkPage.jsx', ...fs.readdirSync(path.join(dir, 'framework')).filter((f) => /\.[jt]sx?$/.test(f) && !f.includes('.test.')).map((f) => path.join('framework', f))];
         for (const f of files) {
             const src = fs.readFileSync(path.join(dir, f), 'utf8');
             expect(src, f).not.toMatch(/#[0-9a-f]{3,8}\b/i);

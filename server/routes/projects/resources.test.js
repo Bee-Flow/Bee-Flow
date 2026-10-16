@@ -128,7 +128,9 @@ test('a kind that is not movable, a move that matched nothing, and a refusal a k
 
     fx.fileError = new Error('relation "x" does not exist');
     const broken = await call('PUT', '/p1/resources', 'bob', { kind: 'document', id: 'd9' });
-    assert.deepStrictEqual([broken.status, broken.body], [500, { error: 'Request failed' }], 'no SQL text reaches the client');
+    assert.strictEqual(broken.status, 500);
+    assert.strictEqual(broken.body.error, 'Internal server error', 'no SQL text reaches the client');
+    assert.doesNotMatch(JSON.stringify(broken.body), /does not exist/);
 
     assert.strictEqual((await call('PUT', '/p1/resources', 'carol', { kind: 'document', id: 'd1' })).status, 403);
 });
@@ -149,8 +151,14 @@ test('the graph and completeness answer over the loader, and completeness fails 
     fx.graphError = new Error('db down');
     const failed = await call('GET', '/p1/completeness', 'carol');
     assert.strictEqual(failed.status, 500);
-    assert.deepStrictEqual(failed.body, {
-        error: 'Request failed', blocked: true, complete: false, findings: [], unavailable: ['all'],
+    // The blocked shape rides in `details` of the terminal handler's body.
+    assert.strictEqual(failed.body.error, 'Request failed');
+    assert.strictEqual(failed.body.code, 'completeness_failed');
+    assert.ok(failed.body.correlationId);
+    assert.deepStrictEqual(failed.body.details, {
+        blocked: true, complete: false, findings: [], unavailable: ['all'],
     });
-    assert.deepStrictEqual((await call('GET', '/p1/graph', 'carol')).body, { error: 'Request failed' });
+    const graphFailed = await call('GET', '/p1/graph', 'carol');
+    assert.strictEqual(graphFailed.status, 500);
+    assert.strictEqual(graphFailed.body.error, 'Internal server error');
 });

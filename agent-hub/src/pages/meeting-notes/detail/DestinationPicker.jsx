@@ -152,10 +152,10 @@ export default function DestinationPicker({ item, meeting, onPicked, disabled = 
                 className="py-1"
             >
                 {error && (
-                    <div className="px-3 py-2 text-xs" style={{ color: 'var(--error-ink)' }} role="alert">{error}</div>
+                    <div className="px-3 py-2 text-xs text-[var(--error-ink)]" role="alert">{error}</div>
                 )}
                 {busy && (
-                    <div className="px-3 py-2 text-xs flex items-center gap-2" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="px-3 py-2 text-xs flex items-center gap-2 text-[var(--text-tertiary)]">
                         <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
                         {t('meetings.dest_sending', 'Sending…')}
                     </div>

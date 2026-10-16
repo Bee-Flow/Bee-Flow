@@ -13,19 +13,22 @@ import { useEffect, useState } from 'react';
 import { fetchAgentEditorBootstrap } from '../../../../api/agentEditor';
 import { useAgentEditorBootstrap } from '../AgentEditorBootstrapContext';
 import { READ } from '../canUse/canUseFacts';
+import type { AutomationRow, CategoryRow, ReadState } from '../agentEditor.types';
+import type { ModelTierMap } from '../../../../api/queries/modelTiers';
+import type { Skill } from '../../../../api/queries/skills';
+import type { IntegrationStatus } from '../../AgentDesigner/DesignerPanels';
+import type { OrgGroup } from '../../AgentDesigner/PublishMenu';
 
-type Row = Record<string, unknown>;
-type ReadState = (typeof READ)[keyof typeof READ];
 type Setter<T> = (value: T) => void;
 
 interface BootstrapSetters {
-    setAllSkills: Setter<Row[] | null>;
-    setIntegrationStatus: Setter<Row | null>;
-    setCategories: Setter<Row[]>;
+    setAllSkills: Setter<Skill[] | null>;
+    setIntegrationStatus: Setter<IntegrationStatus | null>;
+    setCategories: Setter<CategoryRow[]>;
     setCategoriesState: Setter<ReadState>;
-    setOrgGroups: Setter<Row[]>;
-    setTiers: Setter<Row>;
-    setAutomations: Setter<Row[]>;
+    setOrgGroups: Setter<OrgGroup[]>;
+    setTiers: Setter<ModelTierMap>;
+    setAutomations: Setter<AutomationRow[]>;
 }
 
 /** Standalone fallback: the same six requests the provider sends, read into local state. */
@@ -63,17 +66,17 @@ async function loadStandalone(s: BootstrapSetters, isCancelled: () => boolean): 
 
 export default function useAgentBootstrapData() {
     // Loaded once for pickers
-    const [allSkills, setAllSkills] = useState<Row[] | null>(null); // null = not loaded, [] = loaded but empty
-    const [integrationStatus, setIntegrationStatus] = useState<Row | null>(null);
+    const [allSkills, setAllSkills] = useState<Skill[] | null>(null); // null = not loaded, [] = loaded but empty
+    const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus | null>(null);
     // Tier (for chat input)
-    const [tiers, setTiers] = useState<Row>({});
+    const [tiers, setTiers] = useState<ModelTierMap>({});
     // Categories + groups (for selectors)
-    const [categories, setCategories] = useState<Row[]>([]);
+    const [categories, setCategories] = useState<CategoryRow[]>([]);
     // "Could the category list be read?", kept apart from the list itself so
     // a failed read does not read as "this org has no categories".
     const [categoriesState, setCategoriesState] = useState<ReadState>(READ.LOADING);
-    const [orgGroups, setOrgGroups] = useState<Row[]>([]);
-    const [automations, setAutomations] = useState<Row[]>([]);
+    const [orgGroups, setOrgGroups] = useState<OrgGroup[]>([]);
+    const [automations, setAutomations] = useState<AutomationRow[]>([]);
 
     const bootstrap = useAgentEditorBootstrap();
     const usingProvider = bootstrap.loaded || bootstrap.allSkills !== null;

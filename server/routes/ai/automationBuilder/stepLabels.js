@@ -12,6 +12,7 @@
 
 const express = require('express');
 const log = require('../../../telemetry/log');
+const { HttpError } = require('../../../core/http/errors');
 const router = express.Router();
 const { z, typeError } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
@@ -141,7 +142,7 @@ router.post('/label-steps', requireAuth, summariseLayerRateLimit, validate({ bod
         ], LABEL_STEPS_TOOL, { maxTokens: 1024, temperature: 0.2, reasoningEffort: 'none', budgetTokens: 0 }));
     } catch (e) {
         log.error('[automationBuilder/label-steps] inference failed:', e.message);
-        return res.status(502).json({ error: 'Could not generate labels right now.' });
+        throw new HttpError(502, 'label_steps_unavailable', 'Could not generate labels right now.');
     }
 
     const targetById = new Map(bounded.map(t => [t.id, t]));

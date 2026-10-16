@@ -16,7 +16,7 @@ const ToolsUsedTimeline = ({ visibleTools }) => {
     const { t } = useTranslation();
     return (
     <div>
-        <div className="text-[10px] font-semibold uppercase tracking-wider mb-2 px-1" style={{ color: 'var(--text-tertiary)' }}>{t('chat.msg.tools_used', 'Tools Used')}</div>
+        <div className="text-[10px] font-semibold uppercase tracking-wider mb-2 px-1 text-[var(--text-tertiary)]">{t('chat.msg.tools_used', 'Tools Used')}</div>
         <div className="relative">
             <TimelineRail show={visibleTools.length > 1} />
             <div className="space-y-2">
@@ -33,14 +33,14 @@ const ToolsUsedTimeline = ({ visibleTools }) => {
                                 <AppEmoji id={toolNameToCatalogId(tool.name)} default={getToolIcon(tool.name)} className="text-sm flex-shrink-0" />
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>{getToolLabel(tool.name)}</span>
+                                        <span className="text-[11px] font-semibold text-[var(--text-primary)]">{getToolLabel(tool.name)}</span>
                                         {/* Arg chips */}
                                         {argEntries.slice(0, 3).map(([k, v]) => {
                                             const val = typeof v === 'string' ? (v.length > 35 ? v.slice(0, 35) + '…' : v) : JSON.stringify(v).slice(0, 25);
                                             return (
                                                 <span key={k} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] max-w-[160px] overflow-hidden" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-                                                    <span className="font-medium opacity-50 flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>{k}</span>
-                                                    <span className="truncate" style={{ color: 'var(--text-primary)' }}>{val}</span>
+                                                    <span className="font-medium opacity-50 flex-shrink-0 text-[var(--text-secondary)]">{k}</span>
+                                                    <span className="truncate text-[var(--text-primary)]">{val}</span>
                                                 </span>
                                             );
                                         })}

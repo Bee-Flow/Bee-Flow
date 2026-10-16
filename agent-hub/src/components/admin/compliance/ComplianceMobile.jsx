@@ -104,7 +104,7 @@ export default function ComplianceMobile({
     ];
 
     return (
-        <div data-testid="compliance-mobile" data-view={homeTab ? 'tab' : atHome ? view : 'section'} className="flex flex-col h-full min-h-0" style={{ background: 'var(--bg-primary)' }}>
+        <div data-testid="compliance-mobile" data-view={homeTab ? 'tab' : atHome ? view : 'section'} className="flex flex-col h-full min-h-0 bg-[var(--bg-primary)]">
             {/* ── Top bar ── */}
             <div className="flex items-center gap-2.5 px-4 py-1.5 flex-shrink-0" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-default)' }}>
                 <button type="button" data-testid="mobile-back" onClick={goBack} className={`${ICON_BUTTON} -ml-2.5`} style={{ color: 'var(--text-secondary)' }}
@@ -116,11 +116,11 @@ export default function ComplianceMobile({
                     <Scale size={15} aria-hidden="true" />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <div className="text-[15px] font-semibold leading-[18px] truncate" style={{ color: 'var(--text-primary)' }}>
+                    <div className="text-[15px] font-semibold leading-[18px] truncate text-[var(--text-primary)]">
                         {t('settings.compliance', 'Compliance')}
                     </div>
                     {subtitle && (
-                        <div data-testid="mobile-subtitle" className="text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>{subtitle}</div>
+                        <div data-testid="mobile-subtitle" className="text-[11px] truncate text-[var(--text-tertiary)]">{subtitle}</div>
                     )}
                 </div>
                 <button type="button" data-testid="mobile-run-now" onClick={() => core.runNow?.()} disabled={!canRun || !!core.running}

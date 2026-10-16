@@ -112,30 +112,30 @@ describe('the tier ladder', () => {
 
 describe('the web logic this ports', () => {
     it('EntitlementsContext: tier table, licence-feature mapping and lock reason', () => {
-        const src = read('agent-hub/src/components/licensing/EntitlementsContext.jsx');
-        expect(contains(src, 'const TIER_RANK = { community: 0, enterprise: 1, full: 2 };')).toBe(true);
-        expect(contains(src, "const LEGACY_TIER_ALIAS = { pro: 'enterprise' };")).toBe(true);
+        const src = read('agent-hub/src/components/licensing/EntitlementsContext.tsx');
+        expect(contains(src, 'const TIER_RANK: Record<string, number> = { community: 0, enterprise: 1, full: 2 };')).toBe(true);
+        expect(contains(src, "const LEGACY_TIER_ALIAS: Record<string, string> = { pro: 'enterprise' };")).toBe(true);
         expect(
             contains(src, 'if (c.licenseFeature && !(c.licenseFeature in featureToCapId)) featureToCapId[c.licenseFeature] = c.id;'),
         ).toBe(true);
         expect(
             contains(
                 src,
-                "lockReason: (id) => (has(effSets, id) ? null : (has(ceilSets, id) ? 'not_granted' : (state.reasons[resolveId(id)] || 'ceiling'))),",
+                "lockReason: (id: string) => (has(effSets, id) ? null : (has(ceilSets, id) ? 'not_granted' : (state.reasons[resolveId(id)] || 'ceiling'))),",
             ),
         ).toBe(true);
         expect(contains(src, 'integration: new Set([...(state.effective.integration || []), ...(state.effective.mcp || [])]),')).toBe(true);
     });
 
     it('LicenseContext.hasFeature delegates to the entitlements', () => {
-        const src = read('agent-hub/src/components/licensing/LicenseContext.jsx');
-        expect(contains(src, 'const hasFeature = useCallback((name) => entCan(name), [entCan]);')).toBe(true);
+        const src = read('agent-hub/src/components/licensing/LicenseContext.tsx');
+        expect(contains(src, 'const hasFeature = useCallback((name: string) => entCan(name), [entCan]);')).toBe(true);
         expect(contains(src, "export const TIER_HIERARCHY = ['community', 'enterprise', 'full'];")).toBe(true);
     });
 
     it('studioApps: makeCanUse and the lock hint keys', () => {
         // studioApps.jsx re-exports makeCanUse from studioGates.ts, where the lock hints live too.
-        expect(read('agent-hub/src/components/admin/Studio/studioApps.jsx')).toMatch(/\bmakeCanUse\b[\s\S]*?from '\.\/studioGates'/);
+        expect(read('agent-hub/src/components/admin/Studio/studioApps.tsx')).toMatch(/\bmakeCanUse\b[\s\S]*?from '\.\/studioGates'/);
         const src = read('agent-hub/src/components/admin/Studio/studioGates.ts');
         expect(
             contains(

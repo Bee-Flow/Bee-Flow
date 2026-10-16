@@ -272,26 +272,23 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
             className="max-w-2xl"
         >
             <div
-                className="w-full max-h-[90vh] flex flex-col overflow-hidden rounded-2xl border shadow-2xl animate-in fade-in zoom-in-95 duration-150"
-                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}
+                className="w-full max-h-[90vh] flex flex-col overflow-hidden rounded-2xl border shadow-2xl animate-in fade-in zoom-in-95 duration-150 bg-[var(--bg-secondary)] border-[var(--border-subtle)]"
             >
                 {/* Header */}
-                <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b flex-shrink-0 border-[var(--border-subtle)]">
                     <div className="relative flex-shrink-0">
                         <button
                             onClick={() => setShowIconPicker(v => !v)}
                             disabled={locked}
                             title={t('skill_form.choose_icon', 'Choose icon')}
                             aria-label={t('skill_form.choose_icon', 'Choose icon')}
-                            className="w-11 h-11 rounded-xl border-[1.5px] flex items-center justify-center text-[22px] transition-colors"
-                            style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}
+                            className="w-11 h-11 rounded-xl border-[1.5px] flex items-center justify-center text-[22px] transition-colors bg-[var(--bg-tertiary)] border-[var(--border-default)]"
                         >
                             {form.icon}
                         </button>
                         {showIconPicker && (
                             <div
-                                className="absolute top-[52px] left-0 z-10 p-2 rounded-xl border shadow-xl grid grid-cols-5 gap-1 w-[180px]"
-                                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)' }}
+                                className="absolute top-[52px] left-0 z-10 p-2 rounded-xl border shadow-xl grid grid-cols-5 gap-1 w-[180px] bg-[var(--bg-primary)] border-[var(--border-subtle)]"
                             >
                                 {ICONS.map(ic => (
                                     <button
@@ -342,7 +339,7 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                 {locked && <ManagedPartBanner managed={managedPart} notDeployed={refusal?.reason === 'not_deployed'} />}
 
                 {/* Tab bar */}
-                <div className="flex border-b px-6 flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="flex border-b px-6 flex-shrink-0 border-[var(--border-subtle)]">
                     {TABS.map(tab => (
                         <button
                             key={tab.id}
@@ -361,15 +358,14 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                 {/* Tab body */}
                 <div className="flex-1 overflow-auto px-6 py-4">
                     <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="text-[11px] text-[var(--text-tertiary)]">
                             {t(currentTab.hintKey, currentTab.hintEn)}
                         </span>
                         {activeTab === 'instructions' && <CharCount value={form.instructions} limit={INSTRUCTION_LIMIT} t={t} />}
                     </div>
                     {warning && !locked && (
                         <p
-                            className="text-[11px] mb-1.5 m-0"
-                            style={{ color: 'var(--warning-ink)' }}
+                            className="text-[11px] mb-1.5 m-0 text-[var(--warning-ink)]"
                             data-testid="skill-form-structure-warning"
                         >
                             {t(warning.key, warning.en, { count: structuredCount })}
@@ -396,8 +392,8 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
 
                 {/* Sharing scope (groups) — only when shared and groups exist for the org */}
                 {form.isShared && orgGroups.length > 0 && (
-                    <div className="px-6 pb-3 pt-1 border-t flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
-                        <label className="text-[11px] mb-1.5 block" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="px-6 pb-3 pt-1 border-t flex-shrink-0 border-[var(--border-subtle)]">
+                        <label className="text-[11px] mb-1.5 block text-[var(--text-tertiary)]">
                             {t('skill_form.groups_label', 'Share with specific groups (leave empty for all org members)')}
                         </label>
                         <div className="space-y-1 max-h-32 overflow-auto">
@@ -409,8 +405,8 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                                         onChange={() => toggleGroup(group.id)}
                                         className="rounded"
                                     />
-                                    <span className="text-[13px]" style={{ color: 'var(--text-primary)' }}>{group.name}</span>
-                                    {group.description && <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>— {group.description}</span>}
+                                    <span className="text-[13px] text-[var(--text-primary)]">{group.name}</span>
+                                    {group.description && <span className="text-[11px] text-[var(--text-tertiary)]">— {group.description}</span>}
                                 </label>
                             ))}
                         </div>
@@ -418,7 +414,7 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                 )}
 
                 {/* Footer */}
-                <div className="flex items-center justify-between px-6 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="flex items-center justify-between px-6 py-4 border-t flex-shrink-0 border-[var(--border-subtle)]">
                     <button
                         onClick={() => setField('isShared', !form.isShared)}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border-[1.5px] text-[13px] font-medium transition-all ${form.isShared

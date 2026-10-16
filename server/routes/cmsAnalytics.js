@@ -32,6 +32,7 @@ const { requireSuperAdmin } = require('../auth/permissions');
 const log = require('../telemetry/log');
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, closedObject, choice, typeError } = require('../core/http/schemaParts');
+const { HttpError } = require('../core/http/errors');
 
 const router = express.Router();
 
@@ -198,7 +199,6 @@ function invalidateCache() { _cache.clear(); }
 //
 // `params` is the per-resource allow-list of caller-supplied query keys, on top
 // of the window (startAt/endAt/unit/timezone) which we always compute ourselves.
-
 
 const RESOURCES = Object.freeze({
     stats:            { path: (w) => `/api/websites/${w}/stats`,            params: [] },
@@ -373,8 +373,7 @@ router.get('/query/:resource', async (req, res) => {
         // Umami's failures are schema/validation text, not secrets — collapsing
         // them into a bare "Failed to load analytics" turned a self-describing
         // 400 ("expected one of …") into a guessing game.
-        return res.status(502).json({
-            error: 'Failed to load analytics',
+        throw new HttpError(502, 'analytics_unavailable', 'Failed to load analytics', {
             upstreamStatus: err.status || null,
             reason: String(err.message || '').slice(0, 600),
         });
@@ -424,7 +423,7 @@ router.post('/report/:type', async (req, res) => {
         return res.json(payload);
     } catch (err) {
         log.error(`[CMS] analytics report ${req.params.type} failed:`, err.message);
-        return res.status(502).json({ error: 'Failed to load report' });
+        throw new HttpError(502, 'analytics_unavailable', 'Failed to load report');
     }
 });
 
@@ -707,9 +706,8 @@ async function putRecorderHandler(req, res) {
     if (upstream) {
         log.warn('[CMS] recorder flag not applied upstream:', upstream);
         const recording = !!(await getRecorderMap())[siteId];
-        return res.status(502).json({
+        throw new HttpError(502, 'recorder_not_applied', `Umami rejected the recorder change: ${upstream}`, {
             success: false, siteId, recording,
-            error: `Umami rejected the recorder change: ${upstream}`,
         });
     }
 
@@ -778,7 +776,7 @@ async function getAnalyticsOverviewHandler(req, res) {
         });
     } catch (err) {
         log.error('[CMS] analytics overview error:', err.message);
-        res.status(502).json({ error: 'Failed to load analytics' });
+        throw new HttpError(502, 'analytics_unavailable', 'Failed to load analytics');
     }
 }
 

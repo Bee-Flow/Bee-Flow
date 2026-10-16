@@ -9,8 +9,8 @@ import RunList from './RunList';
 import RunDetail from './RunDetail';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
-// Both are plain JS whose defaults (`= null`) are all tsc can infer from.
-const useRunStream = useRunStreamJs as unknown as (o: { enabled: boolean; automationId: string; onEvent: (type: string) => void }) => unknown;
+const useRunStream = useRunStreamJs;
+// ExecutionView is plain JS whose defaults (`= null`) are all tsc can infer from.
 const ExecutionView = ExecutionViewJs as unknown as ComponentType<Record<string, unknown>>;
 
 type RunStateReport = (patch: { runId: string | null; stepId: string | null }, opts: { replace: boolean }) => void;

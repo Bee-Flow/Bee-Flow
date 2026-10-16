@@ -105,6 +105,7 @@ describe('App Studio — no purple in source', () => {
             __dirname, // the whole AppStudio tree
             path.resolve(__dirname, '../../../../pages/apps'),
             path.resolve(__dirname, '../../../../hooks/useAppBuilderStream.ts'),
+            path.resolve(__dirname, '../../../../hooks/appBuilderStream'),
         ];
         const files = [];
         const walk = (p) => {

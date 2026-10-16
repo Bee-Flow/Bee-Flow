@@ -140,26 +140,25 @@ export default function KnowledgeOverview({
                     </div>
 
                     {createError && (
-                        <p className="px-3 py-2.5 rounded-lg text-sm" role="alert"
-                            style={{ background: 'var(--bg-secondary)', color: 'var(--error)' }}>
+                        <p className="px-3 py-2.5 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--error)]" role="alert">
                             {createError}
                         </p>
                     )}
 
                     <div aria-live="polite" className="flex flex-col gap-2.5">
                         {loading ? (
-                            <div className="flex items-center justify-center py-12" style={{ color: 'var(--text-tertiary)' }}>
+                            <div className="flex items-center justify-center py-12 text-[var(--text-tertiary)]">
                                 <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                                 <span className="sr-only">{t('knowledge.loading', 'Loading…')}</span>
                             </div>
                         ) : error ? (
-                            <p className="px-3 py-2.5 rounded-lg text-sm" style={{ background: 'var(--bg-secondary)', color: 'var(--warning)' }}>
+                            <p className="px-3 py-2.5 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--warning)]">
                                 {error}
                             </p>
                         ) : kbs.length === 0 ? (
                             <NoKnowledgeYet t={t} canCreate={canCreate} onCreate={onCreate} />
                         ) : shown.length === 0 ? (
-                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="text-sm text-[var(--text-secondary)]">
                                 {t('knowledge.search_empty', 'No knowledge base matches that.')}
                             </p>
                         ) : shown.map(kb => (
@@ -264,8 +263,8 @@ function KbRow({ t, rel, kb, categoryName, usage, onOpen }) {
             <span className="flex items-center gap-2.5 min-w-0">
                 <span style={tile} aria-hidden="true">{Icon && <Icon style={glyph} />}</span>
                 <span className="min-w-0">
-                    <span className="block text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{kb.name}</span>
-                    <span className="block text-[12px] truncate" style={{ color: 'var(--text-tertiary)' }}>{meta}</span>
+                    <span className="block text-[13px] font-semibold truncate text-[var(--text-primary)]">{kb.name}</span>
+                    <span className="block text-[12px] truncate text-[var(--text-tertiary)]">{meta}</span>
                 </span>
             </span>
             <UsagePills t={t} usage={usage} />
@@ -337,7 +336,7 @@ function FreshnessCell({ t, rel, kb, usage }) {
     const v = freshnessOf(kb, { usageCount });
     if (v.tone === TONE.PROBLEM) {
         return (
-            <span className="inline-flex items-center gap-1.5 justify-self-end text-[12px]" style={{ color: 'var(--error)' }} data-testid="kb-freshness" data-tone={v.tone}>
+            <span className="inline-flex items-center gap-1.5 justify-self-end text-[12px] text-[var(--error)]" data-testid="kb-freshness" data-tone={v.tone}>
                 <CircleAlert className="w-3 h-3" aria-hidden="true" />
                 {t('knowledge.freshness.empty_in_use', 'empty, but in use')}
             </span>
@@ -345,7 +344,7 @@ function FreshnessCell({ t, rel, kb, usage }) {
     }
     const dot = v.tone === TONE.OK ? 'var(--success)' : 'var(--text-tertiary)';
     return (
-        <span className="inline-flex items-center gap-1.5 justify-self-end text-[12px]" style={{ color: 'var(--text-secondary)' }} data-testid="kb-freshness" data-tone={v.tone}>
+        <span className="inline-flex items-center gap-1.5 justify-self-end text-[12px] text-[var(--text-secondary)]" data-testid="kb-freshness" data-tone={v.tone}>
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: dot }} aria-hidden="true" />
             {v.key === 'knowledge.freshness.updated'
                 ? t('knowledge.freshness.updated', 'updated {when}', { when: rel(v.at) })
@@ -374,10 +373,10 @@ function NoKnowledgeYet({ t, canCreate, onCreate }) {
     return (
         <div className="flex flex-col items-center text-center gap-3 py-12">
             <span style={tile} aria-hidden="true">{Icon && <Icon style={glyph} />}</span>
-            <div className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <div className="text-[15px] font-semibold text-[var(--text-primary)]">
                 {t('knowledge.empty_title', 'No knowledge bases yet')}
             </div>
-            <p className="text-sm max-w-md" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-sm max-w-md text-[var(--text-secondary)]">
                 {t('knowledge.empty_body', 'A knowledge base is the material your AI may quote from: a folder, a table, a page, meeting notes. Add sources once and they keep themselves up to date.')}
             </p>
             {canCreate && (

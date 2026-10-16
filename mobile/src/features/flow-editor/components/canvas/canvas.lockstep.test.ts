@@ -8,7 +8,7 @@
  *     sizes, origins, children, their positions, the neighbour shift, and
  *     the open/close rule;
  *   - line colours (edgeColors.ts) against flow/edgeColors.js and
- *     edgeColoring.js's "branches" mode;
+ *     edgeColoring.ts's "branches" mode;
  *   - by text, the numbers only a component holds: the ports' placement
  *     (StepNodeBase), the handle ids (ConditionNode, GuardNode, SwitchNode,
  *     LoopNode), an open loop's port offsets, and the lane pitches (edges.jsx).
@@ -33,8 +33,8 @@ const FLOW = `${BUILDER}/flow`;
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webLayout = require(`${FLOW}/layout.js`);
 const webInline = require(`${FLOW}/inlineFlowlets.js`);
-const webColors = require(`${FLOW}/edgeColors.js`);
-const webColoring = require(`${FLOW}/edgeColoring.js`);
+const webColors = require(`${FLOW}/edgeColors.ts`);
+const webColoring = require(`${FLOW}/edgeColoring.ts`);
 const TEMPLATES_JS = path.resolve(__dirname, '../../../../../../server/automation/templates.js');
 const TEMPLATES = templateDefinitions(fs.readFileSync(TEMPLATES_JS, 'utf8'), require(TEMPLATES_JS).getTemplate);
 /* eslint-enable @typescript-eslint/no-require-imports */
@@ -140,16 +140,17 @@ describe('line colours', () => {
 
 describe('what only the web components say', () => {
     it('places two ports at thirds and more on 22px rows (StepNodeBase)', () => {
-        const base = read('flow/nodes/StepNodeBase.jsx');
+        // The split moved the port placement out of StepNodeBase into StepNodePorts.
+        const base = `${read('flow/nodes/StepNodeBase.tsx')}\n${read('flow/nodes/StepNodePorts.tsx')}`;
         expect(base).toContain('? PORT_PAD + PORT_PITCH * (i + 0.5)');
         expect(base).toContain(': `${((i + 1) / (branchHandles.length + 1)) * 100}%`');
     });
 
     it('names the handles the edge model reports', () => {
-        expect(read('flow/nodes/ConditionNode.jsx')).toMatch(/\{ id: 'then'[^}]*\},\s*\{ id: 'else'/);
-        expect(read('flow/nodes/GuardNode.jsx')).toMatch(/\{ id: 'then', label: 'personal data'[^}]*\},\s*\{ id: 'else', label: 'clean'/);
-        expect(read('flow/nodes/SwitchNode.jsx')).toContain("{ id: 'case:default', label: t('condition_node.otherwise.label', 'Otherwise'), tone: 'default' }");
-        const loop = read('flow/nodes/LoopNode.jsx');
+        expect(read('flow/nodes/ConditionNode.tsx')).toMatch(/\{ id: 'then'[^}]*\},\s*\{ id: 'else'/);
+        expect(read('flow/nodes/GuardNode.tsx')).toMatch(/\{ id: 'then', label: 'personal data'[^}]*\},\s*\{ id: 'else', label: 'clean'/);
+        expect(read('flow/nodes/SwitchNode.tsx')).toContain("{ id: 'case:default', label: t('condition_node.otherwise.label', 'Otherwise'), tone: 'default' }");
+        const loop = read('flow/nodes/LoopNode.tsx');
         expect(loop).toMatch(/\{ id: 'done', label: t\('automations\.canvas\.loop_port_done', 'Done'\), tone: 'then' \},\s*\{ id: 'on_error', label: t\('automations\.canvas\.loop_port_on_error', 'On error'\), tone: 'error' \}/);
         // An open loop keeps its ports on its header strip.
         expect(loop).toContain('id="done"\n                style={{ top: CONTAINER_HEADER / 2 - 8 }}');

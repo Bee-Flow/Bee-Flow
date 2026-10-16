@@ -15,8 +15,9 @@ import { BADGE_COLORS, BUTTON_GRADIENTS, CHANGE_DOWN, CHANGE_UP, STAT_COLORS } f
 const web = (file: string) => fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/${file}`, 'utf8');
 const RESEARCH = web('ResearchRenderer.jsx');
 const TEST_REPORT = web('TestReportRenderer.jsx');
-const PAGE = web('PageRenderer.jsx');
-const MERMAID = web('MermaidRenderer.jsx');
+// The page renderer's per-kind renderers live in sibling files.
+const PAGE = web('PageRenderer.jsx') + web('pageLayoutElements.tsx') + web('pageDataElements.tsx');
+const MERMAID = web('MermaidRenderer.tsx');
 
 describe('research and test reports', () => {
     it('use the web’s gradients', () => {

@@ -44,6 +44,7 @@
  */
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { notebookApi } from './notebookApi';
+import { errorStatus, errorBodyRecord } from '../../../../utils/caughtError';
 
 export type SaveState = 'idle' | 'saving' | 'error' | 'conflict';
 
@@ -75,16 +76,11 @@ interface Options {
 
 interface RefusalDetails { conflictVersionId?: string | null; currentVersion?: number | null }
 
-interface SaveError extends Error {
-    status?: number;
-    body?: { code?: string; details?: RefusalDetails };
-}
-
 /** How the hook answers a refused save. */
-function refusalOf(e: SaveError): 'collab' | 'conflict' | 'permission' | 'other' {
-    if (e.status === 409 && e.body?.code === 'COLLAB_ACTIVE') return 'collab';
-    if (e.status === 409) return 'conflict';
-    if (e.status === 401 || e.status === 403) return 'permission';
+function refusalOf(e: unknown): 'collab' | 'conflict' | 'permission' | 'other' {
+    if (errorStatus(e) === 409 && errorBodyRecord(e)?.code === 'COLLAB_ACTIVE') return 'collab';
+    if (errorStatus(e) === 409) return 'conflict';
+    if (errorStatus(e) === 401 || errorStatus(e) === 403) return 'permission';
     return 'other';
 }
 
@@ -200,9 +196,10 @@ export default function useDocumentAutosave({
     }, []);
 
     /** A refused save. True when the server kept the text and saving goes on, so newer text may follow. */
-    const onRefused = useCallback((e: SaveError, html: string, savingForId: string, isRetry: boolean): boolean => {
+    const onRefused = useCallback((e: unknown, html: string, savingForId: string, isRetry: boolean): boolean => {
         const kind = refusalOf(e);
-        const details: RefusalDetails = e.body?.details || {};
+        const rawDetails = errorBodyRecord(e)?.details;
+        const details: RefusalDetails = typeof rawDetails === 'object' && rawDetails !== null ? rawDetails : {};
         if (kind === 'collab') { awaitSession(html, details.conflictVersionId ?? null); return !awaitingSessionRef.current; }
         if (kind === 'conflict') {
             pausedRef.current = true;
@@ -238,7 +235,7 @@ export default function useDocumentAutosave({
             onSaved(html, res);
             return true;
         } catch (err) {
-            return entityIdRef.current === savingForId && onRefused(err as SaveError, html, savingForId, isRetry);
+            return entityIdRef.current === savingForId && onRefused(err, html, savingForId, isRetry);
         } finally {
             setDocSaving(false);
         }
@@ -338,7 +335,7 @@ export default function useDocumentAutosave({
             // Held back by a conflict or a session to join: the server keeps
             // this copy as a version (a 409 here is not a loss).
             putDocument(leavingId, pending, versionRef.current).catch((err) => {
-                if ((err as SaveError)?.status !== 409) console.error('[Notebooks] flush-on-switch save failed:', err);
+                if (errorStatus(err) !== 409) console.error('[Notebooks] flush-on-switch save failed:', err);
             });
         };
     }, [entityId]);

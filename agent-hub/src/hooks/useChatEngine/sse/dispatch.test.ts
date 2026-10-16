@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { buildHandlerTable, dispatchSSEEvent, SSE_HANDLERS } from './dispatch';
 import type { SseDispatchContext, SseDispatchIds, SseEventData } from '../types';
 
-/** Every `case` label of the switch the handler table replaced. */
+/** Every `case` label of the switch the handler table replaced, plus events added since (document_open). */
 const SWITCH_EVENTS = [
     'ping', 'content', 'phase', 'thinking_start', 'thinking', 'thinking_stop',
     'content_replace', 'content_redact', 'swarm_started', 'swarm_phase_started',
@@ -18,7 +18,7 @@ const SWITCH_EVENTS = [
     'rule_attribution', 'workspace_update', 'notebook_doc_update', 'slides_deck_update',
     'slides_theme_update', 'notebook_source_added', 'history_locked', 'webpage_doc_update',
     'webpage_source_added', 'webpage_extra_update', 'webpage_extra_deleted', 'document_update',
-    'document_suggestions', 'webpage_db_update', 'webpage_framework_changed',
+    'document_suggestions', 'document_open', 'webpage_db_update', 'webpage_framework_changed',
     'webpage_runtime_changed', 'webpage_plan_proposed', 'slides_source_added', 'sheet_update',
     'sheet_source_added', 'proposal_blocks_update', 'done', 'error', 'dlp_preview',
     'dlp_attachment_preview', 'dlp_resolved', 'pii_tokenized', 'privacy_payload',

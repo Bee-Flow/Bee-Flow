@@ -91,8 +91,8 @@ mock(path.join(SERVER, 'integrations/nextcloudClient'), { resolveAuth: async () 
 mock(path.join(SERVER, 'core/integrations/ncScopeGuard'), { guardedNcCall: async (tool, args, ctx, run) => run(), checkToolCall: async () => null });
 mock(path.join(SERVER, 'auth/ncAudience'), { isNcOrg: async () => true });
 mock(path.join(SERVER, 'core/integrations/integrationTools'), { isIntegrationPermittedForUser: async () => true });
-mock(path.join(SERVER, 'jobs/kbSourceRefresh'), { onDatatableChanged: () => {} });
-mock(path.join(SERVER, 'core/webpages/webpageShareReconciler'), { onDatatableChanged: () => {} });
+// The sources reach nextcloudClient (mocked above) through the client registry boot fills.
+require('../integrations/integrationClients');
 
 const router = require('./datatables');
 const datatableStore = require('../stores/datatableStore');

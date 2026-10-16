@@ -146,14 +146,14 @@ function KnowledgeLines({ knowledge, currentUserId, onNavigate, t }) {
             </TabHeading>
 
             {knowledge.state === KNOWLEDGE_LINES.LOADING && (
-                <p className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="flex items-center gap-1.5 text-xs text-[var(--text-tertiary)]">
                     <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
                     {t('meetings.outputs_checking', 'Checking what happens to this meeting…')}
                 </p>
             )}
 
             {knowledge.state === KNOWLEDGE_LINES.UNKNOWN && (
-                <p className="flex items-start gap-1.5 text-xs" role="status" style={{ color: 'var(--warning)' }} data-testid="extracted-knowledge-unknown">
+                <p className="flex items-start gap-1.5 text-xs text-[var(--warning)]" role="status" data-testid="extracted-knowledge-unknown">
                     <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" aria-hidden="true" />
                     {t('meetings.extracted_knowledge_unknown', 'Could not check which knowledge bases hold lines from this transcript.')}
                 </p>
@@ -164,13 +164,13 @@ function KnowledgeLines({ knowledge, currentUserId, onNavigate, t }) {
                     {/* Gekeken, maar niet overal: "minstens dit" hoort vóór de
                         lijst te staan, niet eronder. */}
                     {knowledge.partial && (
-                        <p className="flex items-start gap-1.5 text-xs" role="status" style={{ color: 'var(--warning)' }}>
+                        <p className="flex items-start gap-1.5 text-xs text-[var(--warning)]" role="status">
                             <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" aria-hidden="true" />
                             {t('meetings.extracted_knowledge_partial', 'This list may be incomplete.')}
                         </p>
                     )}
                     {knowledge.rows.length === 0 ? (
-                        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }} data-testid="extracted-knowledge-none">
+                        <p className="text-xs text-[var(--text-tertiary)]" data-testid="extracted-knowledge-none">
                             {t('meetings.extracted_knowledge_none', 'No line from this transcript has been filed yet.')}
                         </p>
                     ) : (
@@ -214,20 +214,19 @@ function KnowledgeRow({ row, currentUserId, onNavigate, t }) {
 
     return (
         <div className="flex items-baseline gap-1.5 text-xs min-w-0" data-testid="extracted-knowledge-row">
-            <span className="tabular-nums font-medium shrink-0" style={{ color: 'var(--text-primary)' }}>{lines}</span>
-            <span className="shrink-0" style={{ color: 'var(--text-muted)' }} aria-hidden="true">→</span>
+            <span className="tabular-nums font-medium shrink-0 text-[var(--text-primary)]">{lines}</span>
+            <span className="shrink-0 text-[var(--text-muted)]" aria-hidden="true">→</span>
             {navigable ? (
                 <button
                     type="button"
                     onClick={() => onNavigate(href)}
-                    className="min-w-0 truncate inline-flex items-center gap-1 hover:underline"
-                    style={{ color: 'var(--text-secondary)' }}
+                    className="min-w-0 truncate inline-flex items-center gap-1 hover:underline text-[var(--text-secondary)]"
                 >
                     <span className="truncate">{name}</span>
                     <ArrowUpRight className="w-2.5 h-2.5 shrink-0" aria-hidden="true" />
                 </button>
             ) : (
-                <span className="min-w-0 truncate" style={{ color: 'var(--text-secondary)' }}>{name}</span>
+                <span className="min-w-0 truncate text-[var(--text-secondary)]">{name}</span>
             )}
         </div>
     );
@@ -257,7 +256,7 @@ function Speakers({ model, check, colorFor, perPersonEnabled, onEditSpeakers, t 
             {!perPersonEnabled ? (
                 // Dezelfde zin die de Inzichten-tab gebruikt — één sleutel,
                 // niet twee met dezelfde tekst.
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }} data-testid="extracted-speakers-off">
+                <p className="text-xs text-[var(--text-muted)]" data-testid="extracted-speakers-off">
                     {t('meeting_notes.insights_per_person_off', 'Per-person statistics are disabled by your organization.')}
                 </p>
             ) : rows.length > 0 ? (
@@ -279,7 +278,7 @@ function Speakers({ model, check, colorFor, perPersonEnabled, onEditSpeakers, t 
             )}
 
             {showUnknown && (
-                <p className="flex items-start gap-1.5 text-xs" role="status" style={{ color: 'var(--text-muted)' }} data-testid="extracted-speakers-unknown">
+                <p className="flex items-start gap-1.5 text-xs text-[var(--text-muted)]" role="status" data-testid="extracted-speakers-unknown">
                     <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" aria-hidden="true" />
                     {t('meetings.speaker_gap_unknown', 'The speaker list for this meeting could not be read, so it was not compared with the attendees.')}
                 </p>
@@ -291,14 +290,13 @@ function Speakers({ model, check, colorFor, perPersonEnabled, onEditSpeakers, t 
                     style={{ background: 'color-mix(in srgb, var(--accent-primary) 6%, transparent)', borderColor: 'var(--border-default)' }}
                     data-testid="extracted-speaker-gap"
                 >
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-xs text-[var(--text-secondary)]">
                         {speakerGapText(check, t)}
                     </p>
                     <button
                         type="button"
                         onClick={() => onEditSpeakers()}
-                        className="self-start inline-flex items-center gap-1 text-xs font-semibold rounded-md px-2 py-1 hover:bg-[var(--bg-tertiary)] transition-colors"
-                        style={{ color: 'var(--accent-primary)' }}
+                        className="self-start inline-flex items-center gap-1 text-xs font-semibold rounded-md px-2 py-1 hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--accent-primary)]"
                     >
                         <Users className="w-3 h-3" aria-hidden="true" />
                         {t('meetings.speaker_gap_fix', 'Check the speakers')}

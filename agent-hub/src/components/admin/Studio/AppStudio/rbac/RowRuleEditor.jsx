@@ -73,6 +73,12 @@ function draftToRule(draft) {
     return draft.mode === 'raw' ? draft.raw : buildRowRule(draft);
 }
 
+/**
+ * @param {{
+ *   appId?: string | null,
+ *   onDirtyChange?: ((dirty: boolean) => void) | null,
+ * }} props Every prop may be left out; without an appId nothing is loaded.
+ */
 export default function RowRuleEditor({ appId, onDirtyChange = null }) {
     const { t } = useTranslation();
     const { roles, tables, saveTableAccess, savingAccess } = useAppRoles(appId);
@@ -194,7 +200,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
         <div data-testid="row-rule-editor" className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-3">
                 <label className="flex items-center gap-2 text-sm">
-                    <span style={{ color: 'var(--text-secondary)' }}>{t('studio_apps_edit.rule_editor.table', 'Table')}</span>
+                    <span className="text-[var(--text-secondary)]">{t('studio_apps_edit.rule_editor.table', 'Table')}</span>
                     <select
                         value={tableId}
                         onChange={(e) => requestSwitch({ tableId: e.target.value })}
@@ -206,7 +212,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
                     </select>
                 </label>
                 <label className="flex items-center gap-2 text-sm">
-                    <span style={{ color: 'var(--text-secondary)' }}>{t('studio_apps_edit.rule_editor.role', 'Role')}</span>
+                    <span className="text-[var(--text-secondary)]">{t('studio_apps_edit.rule_editor.role', 'Role')}</span>
                     <select
                         value={roleKey}
                         onChange={(e) => requestSwitch({ roleKey: e.target.value })}
@@ -220,7 +226,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                <span className="text-xs font-medium text-[var(--text-secondary)]">
                     {t('studio_apps_edit.rule_editor.start_with', 'Start with')}
                 </span>
                 <SegmentedControl
@@ -231,7 +237,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
                     options={BASE_SCOPES.map((s) => ({ value: s.value, label: t(s.labelKey, s.label) }))}
                 />
                 {preset ? null : (
-                    <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="text-[11px] text-[var(--text-tertiary)]">
                         {t('studio_apps_edit.rule_editor.mixed_access', 'This role was given a more detailed mix of what it may do than these three buttons cover. Leave them alone to keep it exactly as it is — picking one replaces it.')}
                     </span>
                 )}
@@ -239,17 +245,16 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
 
             <div className="flex flex-col gap-2">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="text-xs font-medium text-[var(--text-secondary)]">
                         {t('studio_apps_edit.rule_editor.then_keep', 'Then keep only the rows where…')}{' '}
-                        <span style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_edit.rule_editor.optional', '(optional)')}</span>
+                        <span className="text-[var(--text-tertiary)]">{t('studio_apps_edit.rule_editor.optional', '(optional)')}</span>
                     </span>
                     {draft.mode === 'build' ? (
                         <button
                             type="button"
                             onClick={() => setDraft((prev) => ({ ...prev, mode: 'raw', raw: draftToRule(prev) }))}
                             disabled={noAccess}
-                            className="text-[11px] hover:underline disabled:opacity-50"
-                            style={{ color: 'var(--accent-primary)' }}
+                            className="text-[11px] hover:underline disabled:opacity-50 text-[var(--accent-primary)]"
                         >
                             {t('studio_apps_edit.rule_editor.write_myself', 'Write it myself')}
                         </button>
@@ -258,8 +263,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
                             type="button"
                             onClick={() => setDraft(seedDraft(draft.raw, table))}
                             disabled={noAccess || !canSwitchToBuilder}
-                            className="text-[11px] hover:underline disabled:opacity-50"
-                            style={{ color: 'var(--accent-primary)' }}
+                            className="text-[11px] hover:underline disabled:opacity-50 text-[var(--accent-primary)]"
                         >
                             {t('studio_apps_edit.rule_editor.back_to_picker', 'Back to the picker')}
                         </button>
@@ -277,7 +281,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
                 ) : (
                     <>
                         {draft.raw.trim() && !canSwitchToBuilder ? (
-                            <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="text-[11px] text-[var(--text-tertiary)]">
                                 {t('studio_apps_edit.rule_editor.stays_text', 'This rule does more than the picker can show, so it stays as text — it is saved exactly as written.')}
                             </span>
                         ) : null}
@@ -294,14 +298,13 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
 
             <div
                 data-testid="row-rule-outcome"
-                className="rounded-md border px-3 py-2 text-xs"
-                style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)' }}
+                className="rounded-md border px-3 py-2 text-xs border-[var(--border-subtle)] bg-[var(--bg-tertiary)]"
             >
-                <p style={{ color: 'var(--text-primary)' }}>{outcome.sees}</p>
+                <p className="text-[var(--text-primary)]">{outcome.sees}</p>
                 {outcome.writes ? (
-                    <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>{outcome.writes}</p>
+                    <p className="mt-1 text-[var(--text-secondary)]">{outcome.writes}</p>
                 ) : null}
-                <p className="mt-1 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{outcome.owner}</p>
+                <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">{outcome.owner}</p>
             </div>
 
             <div className="flex justify-end">
@@ -309,8 +312,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }) {
                     type="button"
                     onClick={doSave}
                     disabled={savingAccess || unfinished || (!!rule.trim() && !validation.ok)}
-                    className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 bg-[var(--accent-primary)]"
                 >
                     {savingAccess ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
                     {t('studio_apps_edit.rule_editor.save', 'Save row access')}
@@ -365,8 +367,7 @@ function RawRuleBox({ table, value, onChange, disabled, error }) {
                         onClick={() => insert(`record.${f.key}`)}
                         disabled={disabled}
                         title={f.name}
-                        className="rounded-md border px-2 py-0.5 text-[11px] hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
-                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                        className="rounded-md border px-2 py-0.5 text-[11px] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-subtle)] text-[var(--text-secondary)]"
                     >
                         record.{f.key}
                     </button>
@@ -378,8 +379,7 @@ function RawRuleBox({ table, value, onChange, disabled, error }) {
                         onClick={() => insert(path)}
                         disabled={disabled}
                         title={compareSourceLabel(path, t)}
-                        className="rounded-md border px-2 py-0.5 text-[11px] hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
-                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                        className="rounded-md border px-2 py-0.5 text-[11px] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-subtle)] text-[var(--text-secondary)]"
                     >
                         {path}
                     </button>

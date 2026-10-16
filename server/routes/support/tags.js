@@ -17,7 +17,6 @@ const { _hasAdminSupport, requireStaffSupport, _actingOrgId } = require('./share
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
-const log = require('../../telemetry/log');
 
 const NAME_TEXT = 'A tag needs a name.';
 const TagBody = z.object({
@@ -31,17 +30,12 @@ function register(router) {
     // Tag taxonomy CRUD (staff)
     // ──────────────────────────────────────────────────────────────────────────
     router.get('/tags', async (req, res) => {
-        try {
-            if (!(await _hasAdminSupport(req))) {
-                return res.status(403).json({ error: 'admin_support permission required' });
-            }
-            const orgId = await _actingOrgId(req);
-            const tags = await supportStore.listTags(orgId);
-            res.json({ tags });
-        } catch (err) {
-            log.error('[Support] GET /tags error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
+        if (!(await _hasAdminSupport(req))) {
+            return res.status(403).json({ error: 'admin_support permission required' });
         }
+        const orgId = await _actingOrgId(req);
+        const tags = await supportStore.listTags(orgId);
+        res.json({ tags });
     });
 
     router.post('/tags', requireStaffSupport, validate({ body: TagBody }), async (req, res) => {
@@ -57,24 +51,18 @@ function register(router) {
             res.json({ ok: true, tag });
         } catch (err) {
             if (/duplicate key/i.test(err.message)) return res.status(409).json({ error: 'tag already exists' });
-            log.error('[Support] POST /tags error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
+            throw err;
         }
     });
 
     router.delete('/tags/:id', async (req, res) => {
-        try {
-            if (!(await _hasAdminSupport(req))) {
-                return res.status(403).json({ error: 'admin_support permission required' });
-            }
-            const orgId = await _actingOrgId(req);
-            const ok = await supportStore.deleteTag(req.params.id, orgId);
-            if (!ok) return res.status(404).json({ error: 'not found' });
-            res.json({ ok: true });
-        } catch (err) {
-            log.error('[Support] DELETE /tags/:id error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
+        if (!(await _hasAdminSupport(req))) {
+            return res.status(403).json({ error: 'admin_support permission required' });
         }
+        const orgId = await _actingOrgId(req);
+        const ok = await supportStore.deleteTag(req.params.id, orgId);
+        if (!ok) return res.status(404).json({ error: 'not found' });
+        res.json({ ok: true });
     });
 }
 

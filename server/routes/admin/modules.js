@@ -35,6 +35,7 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 
 const modules = require('../../modules');
+const { importModule, removeModule } = require('../../modules/moduleLifecycle');
 const hubClient = require('../../modules/hubClient');
 const remoteCatalog = require('../../modules/remoteCatalog');
 const packageLoader = require('../../modules/packageLoader');
@@ -42,6 +43,7 @@ const entitlementRefresh = require('../../modules/entitlementRefresh');
 const platformModuleStore = require('../../stores/platformModuleStore');
 const { requireSuperAdmin } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
+const { HttpError } = require('../../core/http/errors');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 
@@ -64,7 +66,6 @@ const { worded } = require('../../core/http/schemaParts');
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
-
 const one = (name, what) => worded(`${name} is ${what}.`).trim().optional();
 const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`).optional();
@@ -112,20 +113,19 @@ const UpdatePolicyBody = bodyOf({
     pin: z.enum(['none', 'major', 'minor'], { error: () => PIN_TEXT }).default('none'),
 });
 
-// Map a HubError onto the PRODUCT ADMIN API's HTTP vocabulary. Everything the
-// caller can't act on collapses to 502 { error: hub_unavailable, detail }.
+const hubUnavailable = (detail) => new HttpError(502, 'hub_unavailable', 'hub_unavailable', { detail });
+
+// Map a HubError onto the PRODUCT ADMIN API's HTTP vocabulary. What the caller
+// can't act on collapses to 502 hub_unavailable, the reason in details.detail.
 function mapHubError(e, res) {
     switch (e && e.code) {
         case 'not_connected': return res.status(409).json({ error: 'not_connected' });
         case 'already_connected': return res.status(409).json({ error: 'already_connected' });
         case 'not_entitled': return res.status(402).json({ error: 'not_entitled' });
         case 'already_entitled': return res.status(409).json({ error: 'already_entitled' });
-        case 'checksum_mismatch': return res.status(502).json({ error: 'hub_unavailable', detail: 'checksum_mismatch' });
-        case 'hub_denied':
-        case 'hub_unavailable': return res.status(502).json({ error: 'hub_unavailable', detail: e.detail || e.message });
-        default:
-            log.error('[Modules] hub error:', e && e.message);
-            return res.status(502).json({ error: 'hub_unavailable', detail: e && e.message });
+        case 'checksum_mismatch': throw hubUnavailable('checksum_mismatch');
+        case 'hub_denied': case 'hub_unavailable': throw hubUnavailable(e.detail || e.message);
+        default: throw hubUnavailable(e && e.message); // the terminal handler logs it
     }
 }
 
@@ -297,7 +297,7 @@ router.get('/marketplace/:id/media/:mediaId', requireSuperAdmin, async (req, res
         res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
         res.send(Buffer.from(await upstream.arrayBuffer()));
     } catch (e) {
-        res.status(502).json({ error: 'hub_unavailable' });
+        throw new HttpError(502, 'hub_unavailable', 'hub_unavailable');
     }
 });
 
@@ -334,21 +334,21 @@ router.post('/entitlements/refresh', requireSuperAdmin, async (req, res, next) =
 });
 
 router.post('/:id/import', requireSuperAdmin, async (req, res) => {
-    const result = await modules.importModule(req.params.id, { actorId: req.session.user?.id || null });
+    const result = await importModule(req.params.id, { actorId: req.session.user?.id || null });
     if (!result.ok) {
         if (result.error === 'not_found') return res.status(404).json({ error: 'not_found' });
         if (result.error === 'module_unavailable') return res.status(409).json({ error: 'module_unavailable' });
         if (result.error === 'not_entitled') return res.status(402).json({ error: 'not_entitled' });
-        return res.status(500).json({ error: result.error });
+        throw new HttpError(500, 'module_import_failed', result.error);
     }
     res.json({ ok: true, module: result.module });
 });
 
 router.post('/:id/remove', requireSuperAdmin, async (req, res) => {
-    const result = await modules.removeModule(req.params.id, { actorId: req.session.user?.id || null });
+    const result = await removeModule(req.params.id, { actorId: req.session.user?.id || null });
     if (!result.ok) {
         if (result.error === 'not_found') return res.status(404).json({ error: 'not_found' });
-        return res.status(500).json({ error: result.error });
+        throw new HttpError(500, 'module_remove_failed', result.error);
     }
     res.json({ ok: true, module: result.module });
 });

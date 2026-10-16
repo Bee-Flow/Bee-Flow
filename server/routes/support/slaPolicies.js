@@ -37,14 +37,9 @@ function register(router) {
     // SLA policies (staff read, super-admin write for system-wide)
     // ──────────────────────────────────────────────────────────────────────────
     router.get('/sla-policies', requireStaffSupport, async (req, res) => {
-        try {
-            const orgId = await _actingOrgId(req);
-            const policies = await supportStore.listSlaPolicies(orgId);
-            res.json({ policies });
-        } catch (err) {
-            log.error('[Support] GET /sla-policies error:', err.message);
-            res.status(500).json({ error: 'Internal error' });
-        }
+        const orgId = await _actingOrgId(req);
+        const policies = await supportStore.listSlaPolicies(orgId);
+        res.json({ policies });
     });
 
     router.put('/sla-policies', requireStaffSupport, validate({ body: SlaBody }), async (req, res) => {

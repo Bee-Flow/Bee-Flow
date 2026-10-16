@@ -14,6 +14,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import ts from 'typescript';
 
 import { readToolCall } from '@/features/flow-editor/api/builder';
 
@@ -28,7 +29,7 @@ jest.mock('../../../../../../agent-hub/src/utils/integrationIcons', () => ({
 
 const CHAT = path.resolve(__dirname, '../../../../../../agent-hub/src/components/automation/Builder/chat');
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const web = require(`${CHAT}/toolCallDisplay.js`);
+const web = require(`${CHAT}/toolCallDisplay.ts`);
 
 const t = (_key: string, fallback: string, params?: Record<string, string | number>) =>
     fallback.replace(/\{(\w+)\}/g, (_, k: string) => String(params?.[k] ?? ''));
@@ -67,10 +68,10 @@ describe('the activity rows', () => {
 });
 
 describe('the welcome', () => {
-    const src = fs.readFileSync(`${CHAT}/AssistantWelcome.jsx`, 'utf8');
+    const src = fs.readFileSync(`${CHAT}/AssistantWelcome.tsx`, 'utf8');
     // The web's chip logic, cut out of its component and run beside the port:
     // from `const steps` to the JSX, with its icons as plain names.
-    const body = src.slice(src.indexOf('const steps ='), src.indexOf('return <div'));
+    const body = ts.transpileModule(src.slice(src.indexOf('const steps ='), src.indexOf('return <div')), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
     const icons = (/import \{([^}]+)\} from 'lucide-react'/.exec(src)?.[1] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
     const webChips = new Function('triggerKind', 'definition', 'selectedStep', 't', ...icons, `${body}\nreturn chips.slice(0, 4).map((c) => c.text);`) as (
         triggerKind: string,

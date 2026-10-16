@@ -34,7 +34,6 @@
  */
 
 const express = require('express');
-const log = require('../telemetry/log');
 const router = express.Router();
 
 const studioAppStore = require('../stores/studioAppStore');
@@ -69,23 +68,18 @@ router.get('/usage-counts', requireAuth, validate({ query: UsageQuery }), async 
             supported: Object.keys(usageStore.RUN_COUNT_WINDOWS),
         });
     }
-    try {
-        const { userId, orgIds, userGroups } = await resolveAudienceContext(req);
-        // resolveUserOrgIds returns null for a super admin; the store predicates
-        // want a plain array (same collapse as studioApps.js audienceFor).
-        const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
-        const apps = await studioAppStore.getAccessibleStudioApps(userId, userGroups, orgIdArr);
-        const counts = await usageStore.getStudioAppRunCounts(apps.map(a => a.id), { window });
-        res.json({
-            window,
-            // Names the measurement in the payload itself — see the docblock.
-            unit: 'action_runs',
-            counts: Object.fromEntries(counts),
-        });
-    } catch (err) {
-        log.error('[StudioAppUsage] usage-counts failed:', err.message);
-        res.status(500).json({ error: 'Failed to load app usage' });
-    }
+    const { userId, orgIds, userGroups } = await resolveAudienceContext(req);
+    // resolveUserOrgIds returns null for a super admin; the store predicates
+    // want a plain array (same collapse as studioApps.js audienceFor).
+    const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+    const apps = await studioAppStore.getAccessibleStudioApps(userId, userGroups, orgIdArr);
+    const counts = await usageStore.getStudioAppRunCounts(apps.map(a => a.id), { window });
+    res.json({
+        window,
+        // Names the measurement in the payload itself — see the docblock.
+        unit: 'action_runs',
+        counts: Object.fromEntries(counts),
+    });
 });
 
 module.exports = router;

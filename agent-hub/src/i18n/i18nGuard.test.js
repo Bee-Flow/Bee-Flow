@@ -85,7 +85,7 @@
  *    en/index.js (which throws on an unlisted file, on a key filed under the
  *    wrong namespace, and on a key defined twice).
  *  - Plural is a KEY choice, never a string choice: base key + `<key>_plural`,
- *    built by `pluralKey()`/`nOf()` (KnowledgeStudio/plural.js). Never
+ *    built by `pluralKey()`/`nOf()` (KnowledgeStudio/plural.ts). Never
  *    `problem${n === 1 ? '' : 's'}` — that is English grammar in JavaScript
  *    and no translation can undo it.
  *  - A namespace follows the SUBJECT, not the screen, and has one writer.
@@ -264,8 +264,8 @@ const CARRIERS = [
  * and fixture files flip.
  */
 const FIELD_SELECTOR_FILES = [
-    'components/admin/Studio/AppStudio/runtime/componentRegistry.jsx',
-    'components/admin/Studio/AppStudio/state/sampleDefinitions.js',
+    'components/admin/Studio/AppStudio/runtime/componentRegistry.ts',
+    'components/admin/Studio/AppStudio/state/sampleDefinitions.ts',
     'demo/fixtures/appStudio.js',
 ];
 
@@ -281,7 +281,7 @@ const ALIAS_CALL = `(?:^|[^\\w$.])(${T_ALIASES.join('|')})\\(|\\btRef\\.current\
 // the key sits 2nd in nOf(), 3rd in nameOf() and 5th in _isoMutate().
 const KEY_ARG_HELPERS = ['tx', 'nOf', 'pluralKey', 'nameOf', '_isoMutate'];
 // Of those, the two that DERIVE a second key at runtime: `<key>_plural`
-// (KnowledgeStudio/plural.js). That derived key exists nowhere as a literal,
+// (KnowledgeStudio/plural.ts). That derived key exists nowhere as a literal,
 // so it is the one key shape no regex over the tree can otherwise reach.
 const PLURAL_DERIVING = new Set(['nOf', 'pluralKey']);
 
@@ -385,21 +385,21 @@ function unknownTableKeys(rels, srcOf) {
 // holds React list keys, node ids and localStorage names (`new-chat`,
 // `my-organization`, `sample-a`).
 const KEY_TABLE_FILES = [
-    'components/admin/Studio/Executions/runLanguage.js',
+    'components/admin/Studio/Executions/runLanguage.ts',
     'components/admin/Studio/KnowledgeStudio/SourceDetail.jsx',
-    'components/admin/Studio/KnowledgeStudio/freshness.js',
-    'components/admin/Studio/KnowledgeStudio/sourceKinds.js',
+    'components/admin/Studio/KnowledgeStudio/freshness.ts',
+    'components/admin/Studio/KnowledgeStudio/sourceKinds.ts',
     // Seven event labels in EVENT_LABELS. Reported by P5's own adversarial
     // round: the file uses the { key, en } shape but was not on this list, so
     // those keys travelled unchecked — an `en` beside a key is exactly what
     // hides a missing one, which is the reason this check exists.
     'components/admin/Studio/AppStudio/inspector/ActionsSection.jsx',
-    'components/admin/Studio/SkillsStudio/SkillStepEditor.jsx',
-    'components/admin/Studio/SkillsStudio/SkillsOverview.jsx',
+    'components/admin/Studio/SkillsStudio/SkillStepEditor.tsx',
+    'components/admin/Studio/SkillsStudio/SkillsOverview.tsx',
     // De statustabellen van de ISMS-registers (AUDIT_STATUS, FINDING_SEVERITY,
     // NC_STATUS, NC_SEVERITY, NC_SOURCE, OBJ_STATUS) — de opvolger van de
     // { key, en }-tabellen uit de oude AuditPage.jsx.
-    'components/admin/compliance/pages/audits/auditForms.js',
+    'components/admin/compliance/pages/audits/auditForms.ts',
     // The access log's event labels (ACTION_META), moved out of
     // AccessAuditPage.jsx. The same { key, en } shape has slipped past the
     // guard four times (labelKey in O4 and W5, the studio.ai.err_* table in
@@ -417,27 +417,27 @@ const KEY_TABLE_FILES = [
     // LEGAL_BASES, RESIDENCY, NIS2_ENTITY_CLASSES, CRA_ROLES,
     // CONFORMANCE_LEVELS, RELEVANCE_OPTIONS: de keuzelijsten van het
     // instellingenformulier reizen als DATA.
-    'components/admin/compliance/pages/settings/settingsFields.js',
-    'components/automation/Builder/flow/nodeTypeColors.js',
+    'components/admin/compliance/pages/settings/settingsFields.ts',
+    'components/automation/Builder/flow/nodeTypeColors.ts',
     // Vier tabellen in het spoorpaneel (A4 deel C): regelkoppen, de reden dat
     // een stap ontbreekt, de weggelaten feiten en de fasenamen. Ze reizen als
     // DATA — `line(tt, entry)` roept t() met een variabele aan — dus geen enkele
     // andere controle hier ziet ze.
     'components/chat/AnswerTracePanel.jsx',
-    'components/automation/Builder/mapping/fieldKinds.js',
+    'components/automation/Builder/mapping/fieldKinds.ts',
     // The automations launcher's tab labels (TABS).
     'components/admin/Studio/AutomationsStudio/AutomationsLauncher.jsx',
     'components/skills/SkillFormModal.jsx',
     // De vier filterkoppen van de skills-grid (`{ id, key, en }`, gerenderd als
     // `{t(f.key, f.en)}`). Precies de bewaakte vorm, en tot nu toe niet op deze
     // lijst: een verzonnen sleutel in die tabel liet de guard groen.
-    'components/skills/SkillsGrid.jsx',
+    'components/skills/SkillsGrid.tsx',
     // De vier grafiektypen van de notitieblok-editor. Hier heette `key` eerst
     // het CHARTTYPE ('bar'|'line'|…) en stond het label er kaal naast; de tabel
     // is naar `{ id, key, en }` gebracht zodat `key` weer een sleutel is.
-    'editor/react/ChartConfigModal.jsx',
+    'editor/react/ChartConfigModal.tsx',
     'pages/settings/usage/OverviewTab.jsx',
-    'pages/settings/usage/RangeControl.jsx',
+    'pages/settings/usage/RangeControl.tsx',
 ];
 
 /**
@@ -460,9 +460,9 @@ const KEY_TABLE_FILES = [
  */
 const TEXT_HELPERS = [
     { rel: 'components/shared/statusTokens.ts' },
-    { rel: 'components/admin/Studio/KnowledgeStudio/freshness.js' },
-    { rel: 'components/admin/Studio/KnowledgeStudio/plural.js' },
-    { rel: 'components/automation/Builder/mapping/mismatch.js' },
+    { rel: 'components/admin/Studio/KnowledgeStudio/freshness.ts' },
+    { rel: 'components/admin/Studio/KnowledgeStudio/plural.ts' },
+    { rel: 'components/automation/Builder/mapping/mismatch.ts' },
     // The clock: ten modules, eight of them the very same ladder — "just now",
     // "{n}m ago", "{n}h ago" — pasted from each other and already drifting
     // (`Math.round` here, `Math.floor` there, "just now" vs "Just now"). The
@@ -470,30 +470,31 @@ const TEXT_HELPERS = [
     // keys are in BOTH dictionaries, so this cluster can be cleaned without a
     // dictionary turn. Only the pure modules need a t-taking variant.
     { rel: 'components/cowork/coworkFormat.js', pending: 'CW — relativeTime/formatDuration/fullTimestamp, plus the browser locale' },
-    { rel: 'components/projects/relativeTime.js', pending: 'PRJ — the same five sentences, copied' },
-    { rel: 'components/admin/Studio/AutomationsStudio/historyUtils.js', pending: 'RUN — times, durations, expiry and the day buckets' },
-    { rel: 'components/automation/taskFormatters.js', pending: 'ROU — timeAgo/formatNextRun, plus the hard REPEAT_OPTIONS table' },
-    { rel: 'pages/meeting-notes/lib/format.js', pending: 'MTG — the same ladder again' },
-    { rel: 'utils/helpers.js', pending: 'shared — "Just now" (capital J: the copy that drifted) and the demo notices' },
+    { rel: 'components/projects/relativeTime.ts', pending: 'PRJ — the same five sentences, copied' },
+    { rel: 'components/admin/Studio/AutomationsStudio/historyUtils.ts', pending: 'RUN — times, durations, expiry and the day buckets' },
+    { rel: 'components/automation/taskFormatters.ts', pending: 'ROU — timeAgo/formatNextRun, plus the hard REPEAT_OPTIONS table' },
+    { rel: 'pages/meeting-notes/lib/format.ts', pending: 'MTG — the same ladder again' },
+    { rel: 'utils/helpers.ts', pending: 'shared — "Just now" (capital J: the copy that drifted) and the demo notices' },
     { rel: 'utils/dateFormatters.ts', pending: 'shared — durations and byte sizes; the unit suffix is copy too' },
-    { rel: 'pages/settings/usage/format.js', pending: 'USE — billing-period ranges, browser locale' },
-    { rel: 'components/cowork/coworkSchedule.js', pending: 'CW — "Run now" / "In an hour" / "Tomorrow morning" presets' },
+    { rel: 'components/support/supportInboxLabels.ts', pending: 'SUP — formatRelative ("Nm ago" ladder), moved out of SupportInboxPanel.tsx unchanged by LF-A7' },
+    { rel: 'pages/settings/usage/format.ts', pending: 'USE — billing-period ranges, browser locale' },
+    { rel: 'components/cowork/coworkSchedule.ts', pending: 'CW — "Run now" / "In an hour" / "Tomorrow morning" presets' },
     // Registered CLEAN, with no pending: every English string in its two
     // tables is a fallback beside a key (`admin.shield_activity_action_*`,
     // `admin.shield_activity_marker_*`, both in the dictionaries), which is
     // what the rest of this list is working towards. It is on the register
     // because the SHAPE keeps getting copy-pasted, not because it owes
     // anything.
-    { rel: 'components/admin/security/guardrails/orgShield/activity/activityLabels.js' },
+    { rel: 'components/admin/security/guardrails/orgShield/activity/activityLabels.ts' },
     // Label tables: value → English, no key anywhere. Same shape as the two in
     // runLanguage.js that this register was built around.
-    { rel: 'components/automation/Builder/flow/triggerLabels.js', pending: 'BLD — TRIGGER_TYPE_LABEL/TRIGGER_NAME/APP_EVENT_TYPE_LABEL, read by four Builder files' },
-    { rel: 'components/admin/Studio/AppStudio/rbac/rowRuleModel.js' },
+    { rel: 'components/automation/Builder/flow/triggerLabels.ts', pending: 'BLD — TRIGGER_TYPE_LABEL/TRIGGER_NAME/APP_EVENT_TYPE_LABEL, read by four Builder files' },
+    { rel: 'components/admin/Studio/AppStudio/rbac/rowRuleModel.ts' },
     { rel: 'components/admin/Studio/Datatables/datatableDisplay.js', pending: 'DT — visibility sentences and GRADE_LABEL' },
     { rel: 'components/admin/Studio/SupportStudio/auditMeta.js', pending: 'SUP — ACTION_LABEL, the whole ticket audit trail' },
-    { rel: 'components/admin/ai-config/ProviderCards/local/localRuntimeApi.js', pending: 'A1 — TIER_LABELS plus the runtime error messages' },
-    { rel: 'components/admin/ai-config/chatModelTiers/modelMeta.js', pending: 'A1 — EFFORT_LABELS and the openAIEffortOptions labels' },
-    { rel: 'components/admin/product-website/analytics/filters.js', pending: 'CMS — analytics filter names' },
+    { rel: 'components/admin/ai-config/ProviderCards/local/localRuntimeApi.ts', pending: 'A1 — TIER_LABELS plus the runtime error messages' },
+    { rel: 'components/admin/ai-config/chatModelTiers/modelMeta.ts', pending: 'A1 — EFFORT_LABELS and the openAIEffortOptions labels' },
+    { rel: 'components/admin/product-website/analytics/filters.ts', pending: 'CMS — analytics filter names' },
     { rel: 'components/admin/product-website/analytics/heatmap/model.js', pending: 'CMS — block-type names in the heatmap' },
     // Caught by the relative-time signature on the words "just now" in a
     // sentence that is not about time at all — which is the check doing its
@@ -504,7 +505,7 @@ const TEXT_HELPERS = [
     // node cards it sits among. Registered as one entry rather than reworded
     // around the regex, because rewording is the escape this register's own
     // header calls out.
-    { rel: 'components/automation/Builder/flow/settings/routeRulesRequest.js', pending: 'BLD — the AI-fallback refusals; the rest of the Suggest-outputs box is English too' },
+    { rel: 'components/automation/Builder/flow/settings/routeRulesRequest.ts', pending: 'BLD — the AI-fallback refusals; the rest of the Suggest-outputs box is English too' },
 ];
 
 /**

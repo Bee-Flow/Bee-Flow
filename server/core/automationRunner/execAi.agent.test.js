@@ -19,6 +19,11 @@
 'use strict';
 
 const { test, beforeEach, after } = require('node:test');
+// The runner reaches automation/, integrations/ and services/ through
+// core/automationRunner/featurePorts.js; boot registers these for the server.
+require('../../automation/runnerPorts');
+require('../../integrations/runnerPorts');
+require('../../services/runnerPorts');
 const assert = require('node:assert');
 
 const { installResolveStub } = require('../../testUtils/stubRequire');

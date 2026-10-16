@@ -378,7 +378,7 @@ export default function LearningCenterSection({ user }) {
     if (courses.length === 0) {
         return (
             <div className="h-full flex items-center justify-center p-8">
-                <div className="rounded-xl border p-8 text-sm text-center" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-muted)' }}>
+                <div className="rounded-xl border p-8 text-sm text-center border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-muted)]">
                     {t('settings.learning_empty', 'No lessons available for your account yet.')}
                 </div>
             </div>
@@ -386,7 +386,7 @@ export default function LearningCenterSection({ user }) {
     }
 
     return (
-        <div className="flex h-full min-h-0" style={{ background: 'var(--bg-primary)' }} data-testid="learning-center">
+        <div className="flex h-full min-h-0 bg-[var(--bg-primary)]" data-testid="learning-center">
             <LearningRail
                 t={t} courses={courses} lessonsOf={lessonsOf} completedMap={completedMap}
                 isLocked={isLocked} isComplete={isComplete} path={path}
@@ -425,8 +425,7 @@ export default function LearningCenterSection({ user }) {
                                     </IconSquareButton>
                                     <AnchoredMenu open={menuOpen} onClose={() => setMenuOpen(false)} anchorRef={menuRef} align="right" width={220} role="menu" aria-label={t('learn.more', 'More')} className="py-1">
                                         <button type="button" role="menuitem" onClick={onReset} disabled={!anyProgress}
-                                            className="w-full text-left px-3 py-1.5 text-[13px] flex items-center gap-2 hover:bg-[var(--bg-secondary)] disabled:opacity-50"
-                                            style={{ color: 'var(--text-primary)' }}>
+                                            className="w-full text-left px-3 py-1.5 text-[13px] flex items-center gap-2 hover:bg-[var(--bg-secondary)] disabled:opacity-50 text-[var(--text-primary)]">
                                             <RotateCcw size={13} aria-hidden="true" />{t('settings.learning_reset', 'Reset progress')}
                                         </button>
                                     </AnchoredMenu>

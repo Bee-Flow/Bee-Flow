@@ -30,6 +30,7 @@
 
 const express = require('express');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 const storageStore = require('../stores/storageStore');
 const { hasTraversal, verifyTempSignature } = require('../utils/tempDownloadUrl');
@@ -60,7 +61,7 @@ router.get('/tmp/:token', async (req, res) => {
         }
 
         if (!storageStore.isAvailable()) {
-            return res.status(503).json({ error: 'Storage not available' });
+            throw new HttpError(503, 'storage_unavailable', 'Storage not available');
         }
 
         const { stream, contentType, contentLength } = await storageStore.streamFile(key);
@@ -78,8 +79,7 @@ router.get('/tmp/:token', async (req, res) => {
         if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
             return res.status(404).json({ error: 'File not found' });
         }
-        log.error('[StorageProxy] Temp download error:', err.message);
-        res.status(500).json({ error: 'Failed to retrieve file' });
+        throw err;
     }
 });
 
@@ -125,7 +125,7 @@ router.get('/file/{*fileKey}', async (req, res) => {
         }
 
         if (!storageStore.isAvailable()) {
-            return res.status(503).json({ error: 'Storage not available' });
+            throw new HttpError(503, 'storage_unavailable', 'Storage not available');
         }
 
         const { stream, contentType, contentLength } = await storageStore.streamFile(key);
@@ -156,8 +156,7 @@ router.get('/file/{*fileKey}', async (req, res) => {
         if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
             return res.status(404).json({ error: 'File not found' });
         }
-        log.error('[StorageProxy] Error streaming file:', err.message);
-        res.status(500).json({ error: 'Failed to retrieve file' });
+        throw err;
     }
 });
 

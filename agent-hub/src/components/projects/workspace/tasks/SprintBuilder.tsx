@@ -68,7 +68,7 @@ function BuilderSummary({ projectId, canEdit, backlog, picked, setPicked, unesti
     const total = sprintPlanPoints(backlog, picked);
     const budget = Number(capacity) || 0;
     const over = budget > 0 && total > budget;
-    const onError = (e: Error) => toast.error(projectErrorText(t, e));
+    const onError = (e: unknown) => toast.error(projectErrorText(t, e));
 
     const createSprint = async () => {
         const clean = name.trim();
@@ -81,7 +81,7 @@ function BuilderSummary({ projectId, canEdit, backlog, picked, setPicked, unesti
             if (sprint) await assign.mutateAsync({ sprintId: sprint.id, taskIds: [...picked] });
             toast.success(t('project_tasks.builder_created', 'Sprint created with {count} items', { count: picked.size }));
             onCreated();
-        } catch (e) { onError(e as Error); }
+        } catch (e) { onError(e); }
     };
 
     return (

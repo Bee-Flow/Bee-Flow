@@ -36,7 +36,7 @@ export default function AchievementsView({
                     <div>
                         <Eyebrow>{t('learn.achievements.level', 'Level')}</Eyebrow>
                         <div className="text-[18px] font-semibold leading-[22px]">{lvl ? t(`learn.level.${lvl.key}`, lvl.titleFallback) : '—'}</div>
-                        <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <div className="text-[11px] text-[var(--text-tertiary)]">
                             {next
                                 ? t('learn.xp.to_next', '{xp} XP · {n} to {level}').replace('{xp}', String(xp)).replace('{n}', String(next.min - xp)).replace('{level}', t(`learn.level.${next.key}`, next.titleFallback))
                                 : t('learn.xp.max', '{xp} XP · top level!').replace('{xp}', String(xp))}
@@ -45,14 +45,14 @@ export default function AchievementsView({
                 </div>
                 <div className="flex flex-col gap-2 min-w-0">
                     <LevelLine t={t} xp={xp} current={lvl} />
-                    <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('learn.achievements.xp_note', 'XP is derived from what you did — never stored. No leaderboard, no streaks.')}</div>
+                    <div className="text-[11px] text-[var(--text-tertiary)]">{t('learn.achievements.xp_note', 'XP is derived from what you did — never stored. No leaderboard, no streaks.')}</div>
                 </div>
                 <div className="flex gap-[18px]">
                     <Counter value={lessonsDone} label={t('learn.state.complete', 'complete')} color="var(--learn-complete-ink)" />
                     <Divider />
                     <Counter value={levelInfo?.mastered || 0} label={t('learn.legend.mastered', 'mastered')} color="var(--learn-mastered-ink)" valueColor="var(--learn-mastered-ink)" />
                     <Divider />
-                    <Counter value={<>{earnedCount}<span className="text-[12px] font-medium" style={{ color: 'var(--text-tertiary)' }}>/{ordered.length}</span></>} label={t('learn.achievements.badges', 'badges')} color="var(--text-tertiary)" />
+                    <Counter value={<>{earnedCount}<span className="text-[12px] font-medium text-[var(--text-tertiary)]">/{ordered.length}</span></>} label={t('learn.achievements.badges', 'badges')} color="var(--text-tertiary)" />
                 </div>
             </Card>
 
@@ -62,7 +62,7 @@ export default function AchievementsView({
                     <div className="flex items-center gap-2" style={{ padding: '12px 14px' }}>
                         <Medal style={{ width: 15, height: 15, color: 'var(--text-secondary)' }} aria-hidden="true" />
                         <span className="font-semibold">{t('learn.achievements.badges_title', 'Badges')}</span>
-                        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="text-[11px] text-[var(--text-tertiary)]">
                             {t('learn.achievements.badges_sub', 'one per course · {a} of {b}').replace('{a}', String(earnedCount)).replace('{b}', String(ordered.length))}
                         </span>
                     </div>
@@ -91,14 +91,14 @@ export default function AchievementsView({
                                 </div>
                                 <div className="min-w-0">
                                     <div className="font-medium truncate">{t(badge.titleKey, badge.titleFallback)}</div>
-                                    <div className="text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>
+                                    <div className="text-[11px] truncate text-[var(--text-tertiary)]">
                                         <span aria-hidden="true">{course.icon}</span> {isCap ? t('learn.achievements.capstone_sub', 'Capstone · proven in your workspace') : t(course.titleKey, course.titleFallback)}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {isCap && checks
-                                        ? <><SegmentedProgress width={60} segments={countSegments(checks.done, checks.total)} /><span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('learn.achievements.checks_n', '{a}/{b} checks').replace('{a}', String(checks.done)).replace('{b}', String(checks.total))}</span></>
-                                        : <><SegmentedProgress width={60} segments={locked ? repeatSegments(lessons.length, SEGMENT.LOCKED) : courseSegments(lessons, completedMap, masteredMap)} /><span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{locked ? t('learn.course.lesson_count', '{n} lessons').replace('{n}', String(lessons.length)) : `${done}/${lessons.length}`}</span></>}
+                                        ? <><SegmentedProgress width={60} segments={countSegments(checks.done, checks.total)} /><span className="text-[11px] text-[var(--text-tertiary)]">{t('learn.achievements.checks_n', '{a}/{b} checks').replace('{a}', String(checks.done)).replace('{b}', String(checks.total))}</span></>
+                                        : <><SegmentedProgress width={60} segments={locked ? repeatSegments(lessons.length, SEGMENT.LOCKED) : courseSegments(lessons, completedMap, masteredMap)} /><span className="text-[11px] text-[var(--text-tertiary)]">{locked ? t('learn.course.lesson_count', '{n} lessons').replace('{n}', String(lessons.length)) : `${done}/${lessons.length}`}</span></>}
                                 </div>
                                 <BadgeStatus t={t} locale={locale} earned={earned} locked={locked} lockedReason={lockedReasonFor(course)} remaining={lessons.length - done} started={done > 0} minutes={lessons.reduce((n, l) => n + (l.estMinutes || 0), 0)} />
                             </button>
@@ -112,7 +112,7 @@ export default function AchievementsView({
                         <div className="flex items-center gap-2 pb-2">
                             <Award style={{ width: 15, height: 15, color: 'var(--text-secondary)' }} aria-hidden="true" />
                             <span className="font-semibold">{t('learn.cert.section_title', 'Certificates')}</span>
-                            <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="text-[11px] text-[var(--text-tertiary)]">
                                 {t('learn.achievements.certs_sub', '{a} of {b} · eligibility is recomputed on the server').replace('{a}', String(certsEarned)).replace('{b}', String((certificates || []).length))}
                             </span>
                         </div>
@@ -121,7 +121,7 @@ export default function AchievementsView({
                                 busy={busyCertId === cert.certificateId} isComplete={isComplete} onEarn={onEarnCert} onView={onViewCert} onOpenCourse={onOpenCourse} />
                         ))}
                         {!(certificates || []).length && (
-                            <div className="text-[11px] py-2" style={{ color: 'var(--text-tertiary)' }}>{t('learn.achievements.certs_loading', 'Loading your certificates…')}</div>
+                            <div className="text-[11px] py-2 text-[var(--text-tertiary)]">{t('learn.achievements.certs_loading', 'Loading your certificates…')}</div>
                         )}
                     </Card>
 
@@ -131,10 +131,10 @@ export default function AchievementsView({
                             <Share2 style={{ width: 15, height: 15, color: 'var(--text-secondary)' }} aria-hidden="true" />
                             <span className="font-semibold">{t('learn.achievements.how_title', 'How an earned certificate works')}</span>
                         </div>
-                        <div className="flex flex-col gap-1.5 text-[11px] leading-4" style={{ color: 'var(--text-secondary)' }}>
-                            <div className="flex gap-2"><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>1</span>{t('learn.achievements.how_1', 'Download as PNG or PDF — the image is rendered on the server.')}</div>
-                            <div className="flex gap-2"><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>2</span>{t('learn.achievements.how_2', 'Optional: make it public. Only then does a verification link and a LinkedIn button exist.')}</div>
-                            <div className="flex gap-2"><span className="font-semibold" style={{ color: 'var(--text-primary)' }}>3</span><span>{t('learn.achievements.how_3', 'Third parties see only your name, the certificate and the date on {path} — never serial numbers, never your progress.').replace('{path}', '/verify/:token')}</span></div>
+                        <div className="flex flex-col gap-1.5 text-[11px] leading-4 text-[var(--text-secondary)]">
+                            <div className="flex gap-2"><span className="font-semibold text-[var(--text-primary)]">1</span>{t('learn.achievements.how_1', 'Download as PNG or PDF — the image is rendered on the server.')}</div>
+                            <div className="flex gap-2"><span className="font-semibold text-[var(--text-primary)]">2</span>{t('learn.achievements.how_2', 'Optional: make it public. Only then does a verification link and a LinkedIn button exist.')}</div>
+                            <div className="flex gap-2"><span className="font-semibold text-[var(--text-primary)]">3</span><span>{t('learn.achievements.how_3', 'Third parties see only your name, the certificate and the date on {path} — never serial numbers, never your progress.').replace('{path}', '/verify/:token')}</span></div>
                         </div>
                     </Card>
                 </div>
@@ -165,7 +165,7 @@ function LevelLine({ t, xp, current }) {
                         </div>
                         <div className="text-[11px] leading-[14px]" style={{ color: isCurrent ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: isCurrent ? 600 : 400 }}>
                             {t(`learn.level.${lv.key}`, lv.titleFallback)}<br />
-                            <span className="text-[10px] font-normal" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="text-[10px] font-normal text-[var(--text-tertiary)]">
                                 {t('learn.achievements.xp_value', '{xp} XP', { xp: lv.min.toLocaleString() })}{isCurrent && <> · {t('learn.achievements.you', 'you: {xp}').replace('{xp}', String(xp))}</>}
                             </span>
                         </div>
@@ -189,7 +189,7 @@ function Divider() { return <div style={{ width: 1, background: 'var(--border-de
 function BadgeStatus({ t, locale, earned, locked, lockedReason, remaining, started, minutes }) {
     if (earned) {
         return (
-            <span className="inline-flex items-center gap-1 font-medium" style={{ color: 'var(--learn-complete-ink)' }}>
+            <span className="inline-flex items-center gap-1 font-medium text-[var(--learn-complete-ink)]">
                 <CircleCheck style={{ width: 13, height: 13 }} aria-hidden="true" />
                 {t('learn.achievements.earned_on', 'Earned {date}').replace('{date}', shortDate(earned.earnedAt, locale))}
             </span>
@@ -199,9 +199,9 @@ function BadgeStatus({ t, locale, earned, locked, lockedReason, remaining, start
         return <span className="inline-flex items-center gap-1"><Lock style={{ width: 12, height: 12 }} aria-hidden="true" />{lockedReason}</span>;
     }
     if (started) {
-        return <span style={{ color: 'var(--text-secondary)' }}>{t('learn.achievements.remaining', '{n} lessons to go').replace('{n}', String(remaining))}</span>;
+        return <span className="text-[var(--text-secondary)]">{t('learn.achievements.remaining', '{n} lessons to go').replace('{n}', String(remaining))}</span>;
     }
-    return <span style={{ color: 'var(--text-secondary)' }}>{t('learn.achievements.not_started', 'Not started · {min} min').replace('{min}', String(Math.round(minutes)))}</span>;
+    return <span className="text-[var(--text-secondary)]">{t('learn.achievements.not_started', 'Not started · {min} min').replace('{min}', String(Math.round(minutes)))}</span>;
 }
 
 function CertificateRow({ t, cert, last, busy, isComplete, onEarn, onView, onOpenCourse }) {
@@ -218,7 +218,7 @@ function CertificateRow({ t, cert, last, busy, isComplete, onEarn, onView, onOpe
                 <div className="font-medium truncate">{cert.title}</div>
                 <div className="flex items-center gap-2">
                     <SegmentedProgress width={60} segments={earned ? repeatSegments(total || 1, SEGMENT.COMPLETE) : countSegments(done, total)} />
-                    <span className="text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="text-[11px] truncate text-[var(--text-tertiary)]">
                         {earned
                             ? (cert.isPublic ? t('learn.cert.public', 'Public · shareable on LinkedIn') : t('learn.cert.earned', 'Earned — view, download or share'))
                             : cert.certificateId === 'cert-practitioner'
@@ -237,7 +237,7 @@ function CertificateRow({ t, cert, last, busy, isComplete, onEarn, onView, onOpe
             ) : missing.length > 0 ? (
                 <SecondaryButton small onClick={() => onOpenCourse(missing[0].id)}>{t('learn.achievements.cert_continue', 'Continue')}<ArrowRight style={{ width: 12, height: 12 }} aria-hidden="true" /></SecondaryButton>
             ) : (
-                <span className="text-[11px] whitespace-nowrap" style={{ color: 'var(--text-tertiary)' }}>{t('learn.achievements.cert_every_course', 'every course counts')}</span>
+                <span className="text-[11px] whitespace-nowrap text-[var(--text-tertiary)]">{t('learn.achievements.cert_every_course', 'every course counts')}</span>
             )}
         </div>
     );

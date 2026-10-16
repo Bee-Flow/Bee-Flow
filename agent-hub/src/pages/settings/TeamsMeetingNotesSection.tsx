@@ -10,6 +10,7 @@ import {
     useInvalidateTeamsMeetingNotes,
     type TeamsNotesSettings,
 } from '../../api/queries/teamsMeetingNotes';
+import { errorMessage, messageOf } from '../../utils/caughtError';
 
 /**
  * Personal Microsoft Teams → Meeting Notes settings. Self-hides while loading,
@@ -25,7 +26,7 @@ export default function TeamsMeetingNotesSection() {
     const invalidate = useInvalidateTeamsMeetingNotes();
     const [cfg, setCfg] = useState<TeamsNotesSettings>({ autoImport: false, autoRecordConfig: false, language: 'nl', lookbackHours: 24 });
     const [reauthing, setReauthing] = useState(false);
-    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string | undefined } | null>(null);
 
     const data = query.data;
     useEffect(() => {
@@ -43,7 +44,7 @@ export default function TeamsMeetingNotesSection() {
             await save.mutateAsync(cfg);
             setMessage({ type: 'success', text: t('settings.teams_notes_saved', 'Saved') });
         } catch (e) {
-            setMessage({ type: 'error', text: (e as Error).message });
+            setMessage({ type: 'error', text: errorMessage(e) });
         }
     };
 
@@ -54,7 +55,7 @@ export default function TeamsMeetingNotesSection() {
             const result = await openMicrosoftOAuthPopup({ authFetch, apiBase: API_BASE });
             if (result.success) await invalidate();
         } catch (e) {
-            setMessage({ type: 'error', text: (e as Error).message || t('settings.teams_notes_reauth_failed', 'Could not start the Microsoft reconnect. Try again.') });
+            setMessage({ type: 'error', text: messageOf(e, t('settings.teams_notes_reauth_failed', 'Could not start the Microsoft reconnect. Try again.')) });
         } finally {
             setReauthing(false);
         }

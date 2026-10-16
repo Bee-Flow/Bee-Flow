@@ -215,13 +215,13 @@ function ScoreLine({ t, summary, questionCount, progress }) {
             );
         case RUN_STATE.UNKNOWN:
             return (
-                <div data-testid="agent-tests-score" data-state="unknown" className="text-[13px]" style={{ color: 'var(--warning)' }}>
+                <div data-testid="agent-tests-score" data-state="unknown" className="text-[13px] text-[var(--warning)]">
                     {t('agent_studio.test.last_run_unknown', 'Could not read the last run, so nothing is claimed here.')}
                 </div>
             );
         case RUN_STATE.UNFINISHED:
             return (
-                <div data-testid="agent-tests-score" data-state="unfinished" className="text-[13px]" style={{ color: 'var(--warning)' }}>
+                <div data-testid="agent-tests-score" data-state="unfinished" className="text-[13px] text-[var(--warning)]">
                     {t('agent_studio.test.stored_unfinished', 'The last run did not finish, so there is no score for it.')}
                 </div>
             );
@@ -282,7 +282,7 @@ function AboutLine({ t, summary, justRan = null }) {
     return (
         <div data-testid="agent-tests-about" className="text-[12px] text-[var(--text-tertiary)]">
             {parts.join(' · ')}
-            {stale && <span className="block" style={{ color: 'var(--warning)' }}>{stale}</span>}
+            {stale && <span className="block text-[var(--warning)]">{stale}</span>}
         </div>
     );
 }
@@ -467,7 +467,7 @@ export default function TestSetCard({
                     weg is — en bij een "Test als"-simulatie is er niet eens
                     een weigering die het uitlegt. */}
                 {justRan && !justRan.kept && (
-                    <div className="text-[12px]" style={{ color: 'var(--warning)' }} data-testid="agent-tests-not-kept">
+                    <div className="text-[12px] text-[var(--warning)]" data-testid="agent-tests-not-kept">
                         {justRan.notStored === 'test_as'
                             ? t('agent_studio.test.not_kept_test_as', 'This was a simulation for one group, so the score is not kept.')
                             : t('agent_studio.test.not_kept', 'This score is not kept.')}

@@ -24,6 +24,8 @@ const transcriptionStore = require('../../stores/transcriptionStore');
 const { resolveTalkNotesSettings } = require('./talkNotesSettings');
 const { ingestNextcloudRecording, parseTalkRoomToken, ACCEPTED_RECORDING_EXTS } = require('./ingestNextcloudRecording');
 const log = require('../../telemetry/log');
+// The trigger bus lives in automation/, a feature: injected (../automationRunner/featurePorts.js).
+const { runnerPort } = require('../automationRunner/featurePorts');
 
 async function resolveOrgIdForUser(userId) {
     if (!userId) return null;
@@ -120,7 +122,7 @@ async function maybeIngest({ payload, userId = null, orgId = null }) {
     if (existing) return;
 
     // ── Background auth (connector pseudo-session / vault token) ──
-    const triggerBus = require('../../automation/triggerBus');
+    const triggerBus = runnerPort('triggerBus');
     const session = await triggerBus.loadSession(ownerId);
     if (!session) {
         log.warn('[TalkAutoIngest] no Nextcloud credentials for owner — skipping', { ownerId, path: ncPath });

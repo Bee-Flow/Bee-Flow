@@ -36,6 +36,7 @@ const { publicTable, publicSource } = require('./projection');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 
 /** The reading routes take nothing but the table in the path. */
 const NO_QUERY = validate({ query: z.object({}).strict() });
@@ -88,7 +89,7 @@ async function refreshNow(req, res) {
     } catch (e) {
         if (answerDatatableError(res, e, req.datatableScope)) return;
         log.error('[datatables] mirror refresh failed:', e.message);
-        res.status(500).json({ error: `Could not refresh this table from ${sources.sourceLabel(req.datatable)}` });
+        throw new HttpError(500, 'refresh_failed', `Could not refresh this table from ${sources.sourceLabel(req.datatable)}`);
     }
 }
 
@@ -116,8 +117,7 @@ async function saveSettings(req, res) {
         res.json({ datatable: publicTable(t, req.datatableGrade) });
     } catch (e) {
         if (answerDatatableError(res, e, req.datatableScope)) return;
-        log.error('[datatables] mirror settings failed:', e.message);
-        res.status(500).json({ error: 'Could not save the settings of this table' });
+        throw e;
     }
 }
 
@@ -129,8 +129,7 @@ async function saveRelations(req, res) {
         res.json({ datatable: publicTable(t, req.datatableGrade) });
     } catch (e) {
         if (answerDatatableError(res, e, req.datatableScope)) return;
-        log.error('[datatables] mirror relations failed:', e.message);
-        res.status(500).json({ error: 'Could not save the relations' });
+        throw e;
     }
 }
 
@@ -143,8 +142,7 @@ async function relinkNow(req, res) {
         res.json({ datatable: publicTable(t, req.datatableGrade) });
     } catch (e) {
         if (answerDatatableError(res, e, req.datatableScope)) return;
-        log.error('[datatables] relink failed:', e.message);
-        res.status(500).json({ error: 'Could not re-link this table' });
+        throw e;
     }
 }
 

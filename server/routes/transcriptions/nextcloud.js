@@ -120,7 +120,7 @@ router.get('/nextcloud-audio-files', requireAuth, validate({ query: FolderQuery 
         });
         if (r.status === 404) return res.status(404).json({ error: `Folder not found: ${folder}` });
         if (r.status === 401) return res.status(401).json({ error: ctx.authError || 'Nextcloud auth failed' });
-        if (!r.ok) return res.status(502).json({ error: `Nextcloud PROPFIND failed (${r.status})` });
+        if (!r.ok) throw new HttpError(502, 'nextcloud_propfind_failed', `Nextcloud PROPFIND failed (${r.status})`);
 
         const xml = await r.text();
         // Naive but sufficient parse — pull <d:response> blocks and extract href + props.

@@ -28,7 +28,7 @@ import { paramsToSchema, schemaToParams } from './triggerSchemaUtils';
 import { BUILDER, requireWeb, webValue } from '../testing/web';
 import type { FlowDefinition, FlowEdge, FlowNode } from '../types';
 
-const flow = (name: string) => requireWeb(`${BUILDER}/flow/${name}.js`);
+const flow = (name: string) => requireWeb(`${BUILDER}/flow/${name}`);
 
 describe('displayHelpers', () => {
     const web = flow('displayHelpers');
@@ -55,7 +55,7 @@ describe('dataSummary', () => {
 });
 
 describe('setOperations', () => {
-    const web = flow('setOperations');
+    const web = requireWeb(`${BUILDER}/flow/setOperations.ts`);
     const OPS = [
         { op: 'rowId', target: 'n' }, { op: 'groupId', target: 'g', keys: ['a'] }, { op: 'rename', from: 'a', to: 'b' },
         { op: 'rename', from: 'b', to: 'b' }, { op: 'rename', from: 'zz', to: 'y' }, { op: 'keep', keys: ['b', 'n', 'q'] },

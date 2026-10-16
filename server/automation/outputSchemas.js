@@ -418,12 +418,12 @@ const OUTPUT_SCHEMAS = {
         sample: { success: true, downloadUrl: '/api/storage/file/users/u1/presentations/1700000000_ab12cd_q3-review.pptx', filename: 'q3-review.pptx', size: 61440, slideCount: 7, houseStyle: true, warnings: [] },
     },
     create_word_document: {
-        // Kept in storage: downloadUrl + size. With nextcloudPath (and Nextcloud
-        // reachable) the upload fields + webUrl instead. `houseStyle` is the
-        // name of the Word house style applied, or false.
+        // Kept in storage: downloadUrl + size; saved to Nextcloud or OneDrive: path + webUrl. houseStyle: the style's name or false.
         shape: { success: 'boolean', downloadUrl: 'string|undefined', filename: 'string', size: 'integer|undefined', path: 'string|undefined', webUrl: 'string|null|undefined', houseStyle: 'string|boolean' },
         sample: { success: true, downloadUrl: '/api/storage/file/users/u1/documents/1700000000_ab12cd_offerte-acme.docx', filename: 'offerte-acme.docx', size: 12288, houseStyle: 'Kantoorstijl' },
     },
+    create_spreadsheet: { shape: { success: 'boolean', downloadUrl: 'string|undefined', filename: 'string', size: 'integer|undefined', sheets: 'integer', path: 'string|undefined', webUrl: 'string|null|undefined' },
+        sample: { success: true, downloadUrl: '/api/storage/file/users/u1/documents/1700000000_ab12cd_budget-2026.xlsx', filename: 'budget-2026.xlsx', size: 8192, sheets: 2 } },
     nextcloud_deck_create_card: {
         // Returns the raw Deck card JSON (POST .../cards). Demo write tool.
         shape: { id: 'integer', title: 'string', description: 'string', stackId: 'integer', type: 'string', order: 'integer', archived: 'boolean', duedate: 'string|null', createdAt: 'integer', lastModified: 'integer' },

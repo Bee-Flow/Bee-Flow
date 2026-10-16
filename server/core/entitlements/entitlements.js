@@ -40,6 +40,7 @@
 
 const license = require('../../license/index');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../shared/httpErrors');
 const tiers = license.tiers;
 const registry = require('./capabilityRegistry');
 const { tagGate } = require('../../auth/gateMeta');
@@ -664,12 +665,11 @@ function requireCapability(capId) {
             });
         } catch (e) {
             log.warn(`[entitlements] resolve_failed user=${req.session?.user?.id} cap=${capId} error=${e.message}`);
-            res.set('Retry-After', '1');
-            return res.status(503).json({ error: 'entitlement_unavailable', retry_after: 1 });
+            snap = null; // fail closed: handled with the degraded case below
         }
-        if (snap.degraded) {
+        if (!snap || snap.degraded) {
             res.set('Retry-After', '1');
-            return res.status(503).json({ error: 'entitlement_unavailable', retry_after: 1 });
+            return next(new HttpError(503, 'entitlement_unavailable', 'entitlement_unavailable', { retry_after: 1 }));
         }
         if (snapshotHas(snap, capId)) return next();
 

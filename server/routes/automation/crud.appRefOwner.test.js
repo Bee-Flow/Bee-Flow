@@ -53,7 +53,7 @@ mock(path.join(SERVER, 'stores/studioAppStore'), {
         return APPS[id] || null;
     },
 });
-mock(path.join(SERVER, 'automation/cron'), { nextRunAt: () => null });
+mock(path.join(SERVER, 'core/scheduling/cron'), { nextRunAt: () => null });
 mock(path.join(SERVER, 'automation/summarise'), { summariseDefinition: () => ({ summary: '' }) });
 mock(path.join(SERVER, 'automation/deliverableEvents'), { getDeliverableEvents: () => [] });
 mock(path.join(SERVER, 'automation/toolRegistry'), { TOOL_REGISTRY: [], loadTools: () => [] });

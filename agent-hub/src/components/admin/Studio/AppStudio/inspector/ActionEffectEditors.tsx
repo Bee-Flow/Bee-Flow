@@ -33,22 +33,8 @@ interface ParamDraft {
     row: ParamRow;
 }
 
-// keyedRows.js is still JavaScript; these state the contract its header
-// describes. They go away when that module becomes TypeScript.
-const merge = mergeDrafts as (stored: ParamRow[], drafts: ParamDraft[]) => ParamRow[];
-const split = splitNamed as (rows: ParamRow[]) => { named: ParamRow[]; drafts: ParamDraft[] };
-
-// logic/ExpressionInput.jsx is still JavaScript, and its `= null` defaults are
-// all TypeScript can see of half its props. This states the ones this editor
-// passes; it goes away when that component becomes TypeScript.
-const Expression = ExpressionInput as React.ComponentType<{
-    variant?: 'block' | 'inline';
-    value?: string;
-    onChange?: (expr: string) => void;
-    placeholder?: string;
-    ariaLabel?: string;
-    disabled?: boolean;
-}>;
+// logic/ExpressionInput.jsx is still JavaScript; its JSDoc types the props.
+const Expression = ExpressionInput;
 
 // Mirror of LIMITS.MAX_NAVIGATE_PARAMS (server/appStudio/componentSpecs.js).
 const MAX_NAVIGATE_PARAMS = 20;
@@ -83,7 +69,7 @@ export function NavigateParamsEditor({ params, onChange, disabled }: NavigatePar
     // occupy, or clearing a name would make the row jump to the bottom of the
     // list while the author was still typing in it.
     const [drafts, setDrafts] = useState<ParamDraft[]>([]);
-    const rows = merge(stored, drafts);
+    const rows = mergeDrafts(stored, drafts);
     // The row whose rename was refused because the name is already taken. UI
     // only, and cleared by the next accepted edit.
     const [clash, setClash] = useState<number | null>(null);
@@ -95,7 +81,7 @@ export function NavigateParamsEditor({ params, onChange, disabled }: NavigatePar
         // key and threw the first row's value away without a word. Unnamed rows
         // wait here instead, exactly as the flow editor's keyed-bindings field
         // does, and reach `params` only once they have a name of their own.
-        const { named, drafts: nextDrafts } = split(next);
+        const { named, drafts: nextDrafts } = splitNamed(next);
         setDrafts(nextDrafts);
         onChange(named.length ? Object.fromEntries(named) : null);
     };

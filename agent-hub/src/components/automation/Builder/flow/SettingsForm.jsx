@@ -529,8 +529,7 @@ export default function SettingsForm({
                        own wording and its own colour, so it cannot be read as
                        "nothing wrong" (which is what silence means here). */
                     <span
-                        className="shrink-0 px-[7px] rounded-full border font-semibold leading-[18px]"
-                        style={{ borderColor: 'var(--warning)', color: 'var(--warning-ink)' }}
+                        className="shrink-0 px-[7px] rounded-full border font-semibold leading-[18px] border-[var(--warning)] text-[var(--warning-ink)]"
                         title={t('automations.builder.fields_unknown_hint', 'This step\u2019s tool details could not be loaded, so its required fields cannot be checked. Reload the page to try again.')}
                         data-testid="settings-empty-slots-unknown"
                     >
@@ -538,8 +537,7 @@ export default function SettingsForm({
                     </span>
                 ) : emptySlots.empty > 0 && (
                     <span
-                        className="shrink-0 px-[7px] rounded-full border font-semibold leading-[18px]"
-                        style={{ borderColor: 'var(--error)', color: 'var(--error)' }}
+                        className="shrink-0 px-[7px] rounded-full border font-semibold leading-[18px] border-[var(--error)] text-[var(--error)]"
                         title={emptySlots.keys.join(', ')}
                         data-testid="settings-empty-slots"
                     >

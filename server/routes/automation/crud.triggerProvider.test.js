@@ -38,7 +38,7 @@ let LIST = [];
 mock(path.join(SERVER, 'stores/automationStore'), {
     getAutomationsForUser: async () => LIST,
 });
-mock(path.join(SERVER, 'automation/cron'), { nextRunAt: () => null });
+mock(path.join(SERVER, 'core/scheduling/cron'), { nextRunAt: () => null });
 mock(path.join(SERVER, 'automation/validate'), { validateDefinition: () => ({ ok: true, warnings: [] }) });
 mock(path.join(SERVER, 'automation/summarise'), { summariseDefinition: () => ({ summary: '' }) });
 mock(path.join(SERVER, 'automation/deliverableEvents'), { getDeliverableEvents: () => [] });

@@ -411,8 +411,7 @@ router.post('/users', requireOrgAdminForUser, validate({ body: CreateUserBody })
         if (e instanceof userStore.SeatCapExceededError) {
             return res.status(403).json({ error: 'seat_cap_exceeded', current: e.current, max: e.max });
         }
-        log.error('[adminRoutes] createUser error:', e);
-        return res.status(500).json({ error: 'Failed to create user' });
+        throw e;
     }
 });
 
@@ -636,39 +635,34 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
 // locked-out user without weakening the account long-term. Audited.
 router.post('/users/:id/mfa/reset', requireOrgAdminForUser, async (req, res) => {
     const { id } = req.params;
-    try {
-        const target = await userStore.getUser(id);
-        if (!target) return res.status(404).json({ error: 'User not found' });
-        // Before the early return: a reset must leave no security key behind,
-        // whatever state the MFA columns are in.
-        const removedKeys = await userStore.deleteAllSecurityKeys(id);
-        if (!target.mfa_enabled) return res.json({ success: true, wasEnabled: false });
+    const target = await userStore.getUser(id);
+    if (!target) return res.status(404).json({ error: 'User not found' });
+    // Before the early return: a reset must leave no security key behind,
+    // whatever state the MFA columns are in.
+    const removedKeys = await userStore.deleteAllSecurityKeys(id);
+    if (!target.mfa_enabled) return res.json({ success: true, wasEnabled: false });
 
-        const ok = await userStore.updateUser(id, {
-            mfaEnabled: false,
-            mfaSecret: null,
-            mfaEnrolledAt: null,
-            mfaRecoveryCodes: null,
-            mfaRecoveryCodesGeneratedAt: null,
-        });
-        if (!ok) return res.status(500).json({ error: 'Failed to reset MFA' });
+    const ok = await userStore.updateUser(id, {
+        mfaEnabled: false,
+        mfaSecret: null,
+        mfaEnrolledAt: null,
+        mfaRecoveryCodes: null,
+        mfaRecoveryCodesGeneratedAt: null,
+    });
+    if (!ok) throw new Error(`MFA reset: updateUser wrote nothing for '${id}'`);
 
-        log.warn(`[Audit] ${req.session.user?.id || 'system'} reset 2FA for user '${id}'`);
-        await userStore.logAccessAudit(
-            'user.mfa_reset',
-            'user',
-            id,
-            req.session.user?.id || null,
-            { mfa_enabled: true, security_keys: removedKeys },
-            { mfa_enabled: false, security_keys: 0 },
-            target.organizationId || null,
-        );
-        await invalidatePermissionCache(id);
-        res.json({ success: true, wasEnabled: true });
-    } catch (e) {
-        log.error('[adminRoutes] mfa reset error:', e);
-        res.status(500).json({ error: 'Failed to reset MFA' });
-    }
+    log.warn(`[Audit] ${req.session.user?.id || 'system'} reset 2FA for user '${id}'`);
+    await userStore.logAccessAudit(
+        'user.mfa_reset',
+        'user',
+        id,
+        req.session.user?.id || null,
+        { mfa_enabled: true, security_keys: removedKeys },
+        { mfa_enabled: false, security_keys: 0 },
+        target.organizationId || null,
+    );
+    await invalidatePermissionCache(id);
+    res.json({ success: true, wasEnabled: true });
 });
 
 // Delete user
@@ -808,30 +802,25 @@ router.post('/change-password', requireAuth, validate({ body: ChangePasswordBody
         return res.status(401).json({ error: 'Current password is incorrect' });
     }
 
-    try {
-        const result = await rewrapUserDEKCompat(userId, oldPassword, newPassword);
-        if (!result.success) {
-            return res.status(500).json({ error: 'Failed to update encryption keys' });
-        }
-
-        const passwordHash = await passwords.hash(newPassword);
-        await userStore.updateUser(userId, { passwordHash });
-
-        // Update session encryption key
-        if (result.encryptionKey) {
-            req.session.encryptionKey = result.encryptionKey;
-        }
-
-        req.session.save((err) => {
-            if (err) {
-                log.error('Session save error:', err);
-            }
-            res.json({ success: true, message: 'Password changed successfully' });
-        });
-    } catch (err) {
-        log.error('[Auth] Password change DEK operation failed:', err.message);
-        return res.status(500).json({ error: 'Failed to update encryption keys' });
+    const result = await rewrapUserDEKCompat(userId, oldPassword, newPassword);
+    if (!result.success) {
+        throw new Error('Password change: the encryption key could not be unwrapped with the verified password');
     }
+
+    const passwordHash = await passwords.hash(newPassword);
+    await userStore.updateUser(userId, { passwordHash });
+
+    // Update session encryption key
+    if (result.encryptionKey) {
+        req.session.encryptionKey = result.encryptionKey;
+    }
+
+    req.session.save((err) => {
+        if (err) {
+            log.error('Session save error:', err);
+        }
+        res.json({ success: true, message: 'Password changed successfully' });
+    });
 });
 
 module.exports = router;

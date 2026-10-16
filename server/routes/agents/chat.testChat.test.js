@@ -191,9 +191,15 @@ test('someone who may chat but not edit cannot open a test chat', async () => {
 
 test('an edit check that could not run is not permission to test', async () => {
     fx.modifyThrows = true;
-    const res = await dispatch({ message: 'hi', test: true });
-    assert.strictEqual(res.statusCode, 503);
-    assert.strictEqual(res.body.code, 'test_chat_check_failed');
+    // The route throws; the terminal handler answers (error, code at the top
+    // level, `codes` under `details`).
+    const err = await dispatch({ message: 'hi', test: true }).then(
+        (res) => { throw new Error(`expected a refusal, got ${res.statusCode}`); },
+        (e) => e,
+    );
+    assert.strictEqual(err.status, 503);
+    assert.strictEqual(err.code, 'test_chat_check_failed');
+    assert.deepStrictEqual(err.details, { codes: ['test_chat_check_failed'] });
     assert.deepStrictEqual(fx.metadata, []);
 });
 

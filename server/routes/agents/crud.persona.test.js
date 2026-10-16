@@ -26,6 +26,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { CRUD_MODULES } = require('./crud.testkit');
 
 const noop = () => {};
 const mw = () => (req, res, next) => next();
@@ -122,7 +123,7 @@ for (const [group, map] of [['crud', CRUD_MOCKS], ['policy', POLICY_MOCKS]]) {
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
     const from = parent && parent.filename;
-    if (from && /agents[\\/]crud\.js$/.test(from) && MOCK_IDS.crud[request]) return MOCK_IDS.crud[request];
+    if (from && CRUD_MODULES.test(from) && MOCK_IDS.crud[request]) return MOCK_IDS.crud[request];
     // toolPolicy is a FOLDER now: the stubbed requires live in its sibling
     // modules (appIndex.js, connectionLending.js), not in a single toolPolicy.js.
     if (from && /agentRuntime[\\/]toolPolicy[\\/][^\\/]+\.js$/.test(from) && MOCK_IDS.policy[request]) return MOCK_IDS.policy[request];

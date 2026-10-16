@@ -20,6 +20,7 @@ const { APP_BUILD_SHA } = require('../utils/buildInfo');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
+const { unavailable } = require('../core/http/errors');
 
 // ── What the pipeline may send ──────────────────────────────────────
 //
@@ -81,7 +82,7 @@ function _authorized(req) {
 
 function _requireDeployToken(req, res, next) {
     if (!process.env.MAINTENANCE_ANNOUNCE_TOKEN) {
-        return res.status(503).json({ error: 'maintenance_announce_disabled' });
+        return next(unavailable('maintenance_announce_disabled', 'maintenance_announce_disabled'));
     }
     if (!_authorized(req)) return res.status(401).json({ error: 'unauthorized' });
     next();

@@ -9,6 +9,7 @@ const { resolveUserOrgIds } = require('../../auth');
 const { getEffectiveUserId, getUserAuth } = require('../../utils/routeHelpers');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 
 // LLM-backed helper endpoints (title generation, building description) are
 // gated to prevent unauthenticated cost blow-up. Stream chat has its own
@@ -452,11 +453,8 @@ router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), asy
             const _refused = [];
             if (wantsTest) _refused.push(testChatMod.TEST_CHAT_CODES.checkFailed);
             if (req.body?.asGroup) _refused.push('test_as_check_failed');
-            return res.status(503).json({
-                error: 'Could not check your permissions right now. Try again.',
-                code: _refused[0] || 'test_as_check_failed',
-                codes: _refused,
-            });
+            throw new HttpError(503, _refused[0] || 'test_as_check_failed',
+                'Could not check your permissions right now. Try again.', { codes: _refused });
         }
         const testGate = testChatMod.gateTestChatRequest({ test: req.body?.test, canEdit });
         if (!testGate.ok) return res.status(testGate.status).json({ error: testGate.error, code: testGate.code });
@@ -589,15 +587,10 @@ router.post('/thread/title', requireAuth, helperLimiter, validate({ body: TitleB
         return res.status(413).json({ error: 'Content too large' });
     }
 
-    try {
-        const threadOrgIds = await resolveUserOrgIds(req);
-        const threadOrgId = threadOrgIds && threadOrgIds.size > 0 ? Array.from(threadOrgIds)[0] : null;
-        const title = await agentRuntime.generateChatTitle(content, null, threadOrgId, req.session?.user?.id || null);
-        res.json({ title });
-    } catch (error) {
-        log.error('Thread title generation error:', error);
-        res.status(500).json({ error: 'Failed to generate title' });
-    }
+    const threadOrgIds = await resolveUserOrgIds(req);
+    const threadOrgId = threadOrgIds && threadOrgIds.size > 0 ? Array.from(threadOrgIds)[0] : null;
+    const title = await agentRuntime.generateChatTitle(content, null, threadOrgId, req.session?.user?.id || null);
+    res.json({ title });
 });
 
 // Describe what's being built from partial code (uses fast model)

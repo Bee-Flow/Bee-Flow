@@ -341,10 +341,13 @@ test('de preview weigert te antwoorden als de identiteit niet gelezen kon worden
     reset();
     PRINCIPAL_ERROR = 'the user row could not be read';
     RUNTIME_AGENT = { agent: { name: 'A' }, agentId: 'agt_1', config: {}, runtimeSource: 'published' };
-    const res = await getAgentPreview('agt_1', { useTools: '1' });
-    assert.strictEqual(res.statusCode, 503);
-    assert.strictEqual(res.body.canUse, undefined, 'geen beleidsantwoord op een storing');
-    assert.match(res.body.error, /identity unavailable/);
+    // The refusal is an HttpError for the terminal handler, never a policy answer.
+    await assert.rejects(getAgentPreview('agt_1', { useTools: '1' }), (err) => {
+        assert.strictEqual(err.status, 503);
+        assert.strictEqual(err.code, 'identity_unavailable');
+        assert.match(err.message, /identity unavailable/);
+        return true;
+    });
 });
 
 test('de HOME-org beslist, niet de groepsafgeleide terugval', async () => {

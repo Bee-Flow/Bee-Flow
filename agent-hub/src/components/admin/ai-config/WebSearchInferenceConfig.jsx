@@ -136,10 +136,10 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }) => {
         : t('admin_ai_config.ws_pick_model', 'Pick a model');
 
     return (
-        <div className="p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+        <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
             <div className="mb-6">
-                <h3 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.ws_title', 'Web Search: Inference')}</h3>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+                <h3 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_ai_config.ws_title', 'Web Search: Inference')}</h3>
+                <p className="text-sm mt-1 text-[var(--text-muted)]">
                     {t('admin_ai_config.ws_subtitle', 'Three tasks the search-service runs for every web query. Embeddings inherit your global Embeddings settings; rerank is a method-only choice; cleanup picks any chat model from a configured provider.')}
                 </p>
             </div>
@@ -155,16 +155,15 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }) => {
                 <div className="rounded-xl border p-4" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
                     <div className="flex items-center justify-between gap-4 mb-3">
                         <div className="flex-1">
-                            <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.ws_embeddings', 'Embeddings')}</div>
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                            <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.ws_embeddings', 'Embeddings')}</div>
+                            <p className="text-xs mt-0.5 text-[var(--text-muted)]">
                                 {t('admin_ai_config.ws_embed_hint', 'Vectorise queries and pages for semantic search. Pick a model to override, or leave on “Inherit global” to use the model from the Embeddings tab.')}
                             </p>
                         </div>
                         {onNavigateToTab && (
                             <button
                                 onClick={() => onNavigateToTab('embeddings')}
-                                className="text-xs px-3 py-1.5 rounded-lg border hover:bg-white/5 transition-colors"
-                                style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}
+                                className="text-xs px-3 py-1.5 rounded-lg border hover:bg-white/5 transition-colors text-[var(--text-secondary)] border-[var(--border-default)]"
                             >
                                 {t('admin_ai_config.ws_open_embed', 'Open Embeddings settings →')}
                             </button>
@@ -179,7 +178,7 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }) => {
                         onChange={({ providerId, modelId }) => setConfig(prev => ({ ...prev, embed: { providerId, modelId } }))}
                     />
                     {Object.keys(embedGroups).length === 0 && (
-                        <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-xs mt-2 text-[var(--text-muted)]">
                             {t('admin_ai_config.ws_embed_none', 'No embedding models found in your configured providers: add a provider with embeddings (e.g. OpenAI, Mistral) or set one globally in the Embeddings tab.')}
                         </p>
                     )}
@@ -187,8 +186,8 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }) => {
 
                 {/* ── Reranking ─────────────────────────────────────── */}
                 <div className="rounded-xl border p-4" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
-                    <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.ws_reranking', 'Reranking')}</div>
-                    <p className="text-xs mt-0.5 mb-3" style={{ color: 'var(--text-muted)' }}>
+                    <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.ws_reranking', 'Reranking')}</div>
+                    <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
                         {t('admin_ai_config.ws_rerank_hint', 'Re-score search results to surface the most relevant. Provider-agnostic.')}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
@@ -218,7 +217,7 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }) => {
                                             {opt.label}
                                         </span>
                                     </div>
-                                    <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>{opt.desc}</p>
+                                    <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">{opt.desc}</p>
                                 </button>
                             );
                         })}
@@ -234,7 +233,7 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }) => {
                                 onChange={({ providerId, modelId }) => setConfig(prev => ({ ...prev, rerank: { method: 'provider', providerId, modelId } }))}
                             />
                             {!config.rerank.modelId && (
-                                <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                                <p className="text-xs mt-1.5 text-[var(--text-muted)]">
                                     {t('admin_ai_config.ws_rerank_pick_hint', 'Pick a model: without one, “Provider model” falls back to cosine similarity at runtime.')}
                                 </p>
                             )}
@@ -244,8 +243,8 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }) => {
 
                 {/* ── Cleanup ───────────────────────────────────────── */}
                 <div className="rounded-xl border p-4" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
-                    <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin_ai_config.ws_cleanup', 'Webpage cleanup')}</div>
-                    <p className="text-xs mt-0.5 mb-3" style={{ color: 'var(--text-muted)' }}>
+                    <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.ws_cleanup', 'Webpage cleanup')}</div>
+                    <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
                         {t('admin_ai_config.ws_cleanup_hint', 'Convert raw scraped HTML into clean, agent-readable text. Pick any chat model from a configured provider.')}
                     </p>
                     <SearchableModelSelect
@@ -257,7 +256,7 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }) => {
                         onChange={({ providerId, modelId }) => setConfig(prev => ({ ...prev, cleanup: { providerId, modelId } }))}
                     />
                     {Object.keys(cleanupGroups).length === 0 && (
-                        <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-xs mt-2 text-[var(--text-muted)]">
                             {t('admin_ai_config.ws_no_providers', 'No providers configured yet: add an API key in the Providers tab to enable model selection.')}
                         </p>
                     )}

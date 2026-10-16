@@ -144,7 +144,7 @@ const SignupWizard = ({
             </div>
 
             <div className="w-full max-w-2xl relative z-10">
-                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)' }}>
+                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                     {/* Language picker */}
                     {availableLocales.length > 1 && (
                         <div className="absolute top-4 right-4 z-10">
@@ -154,7 +154,7 @@ const SignupWizard = ({
                                     className="appearance-none bg-transparent text-xs font-medium text-[var(--text-secondary)] cursor-pointer pr-4 outline-none"
                                     style={{ minWidth: '2rem' }}>
                                     {availableLocales.map(l => (
-                                        <option key={l.code} value={l.code} style={{ background: 'var(--bg-secondary)' }}>{l.code.toUpperCase()}</option>
+                                        <option key={l.code} value={l.code} className="bg-[var(--bg-secondary)]">{l.code.toUpperCase()}</option>
                                     ))}
                                 </select>
                             </div>
@@ -167,8 +167,8 @@ const SignupWizard = ({
                             <img src={logoSrc} alt="Bee Flow" className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h1 className="text-lg font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{titleFor(step)}</h1>
-                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            <h1 className="text-lg font-semibold truncate text-[var(--text-primary)]">{titleFor(step)}</h1>
+                            <p className="text-xs text-[var(--text-secondary)]">
                                 {isInvite
                                     ? t('signup.invited_to_join', "You've been invited to join {orgName}", { orgName: inviteInfo.orgName || '' })
                                     : t('signup.step_counter', 'Step {n} of {total}', { n: idx + 1, total: steps.length })}
@@ -204,15 +204,15 @@ const SignupWizard = ({
                                 choice (BFSF-276). Stay account-type-agnostic until the
                                 user has actually picked; the specific lines still show
                                 when they navigate back to this step. */}
-                            <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                            <p className="text-sm text-[var(--text-primary)]">
                                 {signupData.signupType === 'consumer'
                                     ? t('signup.wizard_welcome_consumer', "Let's create your personal Bee Flow account in a few quick steps.")
                                     : signupData.signupType
                                         ? t('signup.wizard_welcome_org', "Let's set up your organisation on Bee Flow in a few quick steps.")
                                         : t('signup.wizard_welcome_neutral', "Let's set up your account on Bee Flow in a few quick steps.")}
                             </p>
-                            <div className="rounded-xl border p-4 text-sm" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)' }}>
-                                <p style={{ color: 'var(--text-secondary)' }}>
+                            <div className="rounded-xl border p-4 text-sm border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+                                <p className="text-[var(--text-secondary)]">
                                     {t('signup.wizard_welcome_body', "We'll walk you through your account type, how you sign in, privacy, and your account details. You can change most of this later in settings.")}
                                 </p>
                             </div>
@@ -233,7 +233,7 @@ const SignupWizard = ({
 
                     {step === 'plan' && (
                         <div className="space-y-4">
-                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="text-sm text-[var(--text-secondary)]">
                                 {signupData.signupType === 'consumer'
                                     ? t('signup.plan_intro_consumer', 'Pick the plan that fits you. You can change or cancel it later from your billing settings.')
                                     : t('signup.plan_intro_org', 'Pick a plan for your organisation. You can change it later, and seats are billed as you invite people.')}
@@ -250,7 +250,7 @@ const SignupWizard = ({
                                     ? t('signup.plan_selected', 'Selected')
                                     : t('signup.plan_select', 'Select'))}
                             />
-                            <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                            <p className="text-xs text-[var(--text-tertiary)]">
                                 {t('signup.plan_skip_hint', 'Not sure yet? Continue without choosing — you will start on the free plan and can upgrade any time.')}
                             </p>
                         </div>
@@ -289,15 +289,13 @@ const SignupWizard = ({
                         step renders its own primary action inside the body. */}
                     <div className="flex items-center justify-between mt-8">
                         <button type="button" onClick={prev} disabled={isLoading}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-30"
-                            style={{ color: 'var(--text-secondary)' }}>
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-30 text-[var(--text-secondary)]">
                             <ChevronLeft className="w-4 h-4" />
                             {idx === 0 ? t('signup.back_to_signin', 'Back to sign in') : t('signup.back', 'Back')}
                         </button>
                         {step !== 'account' && (
                             <button type="button" onClick={next} disabled={!canAdvance()}
-                                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium text-white disabled:opacity-30"
-                                style={{ background: 'var(--accent-primary)' }}>
+                                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium text-white disabled:opacity-30 bg-[var(--accent-primary)]">
                                 {t('signup.next', 'Next')} <ChevronRight className="w-4 h-4" />
                             </button>
                         )}

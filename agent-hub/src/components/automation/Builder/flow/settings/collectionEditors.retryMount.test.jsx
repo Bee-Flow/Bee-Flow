@@ -29,7 +29,7 @@ function editorFiles() {
     const out = [];
     for (const root of roots) {
         for (const name of fs.readdirSync(root)) {
-            if (!name.endsWith('.jsx') || name.includes('.test.')) continue;
+            if (!/\.[jt]sx$/.test(name) || name.includes('.test.')) continue;
             out.push(path.join(root, name));
         }
     }

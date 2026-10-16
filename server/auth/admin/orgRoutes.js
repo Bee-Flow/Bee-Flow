@@ -368,7 +368,7 @@ router.put('/organizations/:id/encryption', validate({ body: EncryptionBody }), 
     }
 
     const ok = await userStore.updateOrganization(id, updates);
-    if (!ok) return res.status(500).json({ error: 'Failed to update encryption settings' });
+    if (!ok) throw new Error(`Failed to update encryption settings for organisation '${id}'`);
 
     // ── Make the change take effect ──────────────────────────────────────────
     invalidatePolicyCache(id);

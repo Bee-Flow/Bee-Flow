@@ -126,6 +126,7 @@ test.before(async () => {
     // Stand in for the real session middleware.
     app.use((req, res, next) => { req.session = sessionUser; next(); });
     app.use('/analytics', cmsAnalytics.router);
+    app.use(require('../core/http/terminalErrorHandler').createTerminalErrorHandler({ log: { warn() {}, error() {} } }));
     server = http.createServer(app);
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
     baseUrl = `http://127.0.0.1:${server.address().port}`;
@@ -431,8 +432,9 @@ test('a rejected recorder change is NOT persisted', async () => {
     try {
         const res = await call('PUT', '/analytics/recorder', { siteId: SITE_ID, enabled: true });
         assert.equal(res.status, 502);
-        assert.equal(res.json.success, false);
-        assert.equal(res.json.recording, false);
+        assert.equal(res.json.code, 'recorder_not_applied');
+        assert.equal(res.json.details.success, false);
+        assert.equal(res.json.details.recording, false);
         assert.ok(/did not apply|rejected/i.test(res.json.error));
         assert.equal(configValues.get('cms_analytics_recorder_map'), null,
             'a rejected opt-in must not be written to config');

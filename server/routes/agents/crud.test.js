@@ -10,7 +10,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
+const { stubCrudRequires } = require('./crud.testkit');
 
 // ── Fixtures the lazy stores read ───────────────────────────────────
 const SKILLS = { // skill id → { org_id, user_id }
@@ -55,23 +55,11 @@ const MOCKS = {
     '../../stores/skillStore': { getSkillScope: async (id) => SKILLS[id] || null },
     '../../stores/knowledgeBases': { getKB: async (id) => KBS[id] || null, isSystemKB: (kb) => !!kb?._system },
 };
-const MOCK_IDS = {};
-for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:crud:${request}`;
-    MOCK_IDS[request] = mockId;
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
-}
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /agents[\\/]crud\.js$/.test(parent.filename) && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
-        return MOCK_IDS[request];
-    }
-    return originalResolve.call(this, request, parent, ...rest);
-};
+const restoreResolve = stubCrudRequires(MOCKS, 'crud');
 
 const { validateAgentConfigReferences } = require('./crud');
 
-test.after(() => { Module._resolveFilename = originalResolve; });
+test.after(restoreResolve);
 
 const agent = (orgId) => ({ owner_id: 'owner', organization_id: orgId });
 

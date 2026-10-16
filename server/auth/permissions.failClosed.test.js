@@ -66,15 +66,51 @@ test('a user the database no longer has is signed out', async () => {
     assert.equal(res.statusCode, 401);
 });
 
-test('a database error is a 503, never a pass', async () => {
+test('a database error is a 503 auth_unavailable on the wire, never a pass', async () => {
     // A fresh id, so the 5-second user-exists cache cannot answer for the DB.
+    const express = require('express');
+    const h = require('../testUtils/routeHarness');
+    let reached = false;
+    const router = express.Router();
+    router.use(requireAuth);
+    router.get('/x', (_req, res) => { reached = true; res.json({ ok: true }); });
+    const api = h.serve('/', router, { user: { id: 'unverifiable', role: 'user' } });
     dbDown = true;
     try {
-        const { res, nexted } = await call('unverifiable');
-        assert.equal(nexted, false);
-        assert.equal(res.statusCode, 503);
-        assert.deepEqual(res.body, { error: 'auth_unavailable' });
+        const res = await api.call('GET', '/x');
+        assert.equal(res.status, 503);
+        assert.equal(res.body.error, 'auth_unavailable');
+        assert.equal(res.body.code, 'auth_unavailable');
+        assert.ok(res.body.correlationId);
+        assert.equal(reached, false);
     } finally {
         dbDown = false;
+        await api.close();
+    }
+});
+
+test('a Microsoft session whose identity-binding lookup throws is a 503 auth_unavailable, never a pass', async () => {
+    const express = require('express');
+    const h = require('../testUtils/routeHarness');
+    const storePath = require.resolve('../stores/microsoftIdentityStore');
+    const saved = require.cache[storePath];
+    require.cache[storePath] = { id: storePath, filename: storePath, loaded: true, exports: { getIdentityBinding: async () => { throw new Error('db down'); } } };
+    let reached = false;
+    const router = express.Router();
+    router.use(requireAuth);
+    router.get('/x', (_req, res) => { reached = true; res.json({ ok: true }); });
+    const identity = { azureTenantId: '11111111-1111-1111-1111-111111111111', azureUserId: '22222222-2222-2222-2222-222222222222', revision: '4' };
+    const api = h.serve('/', router, {
+        user: { id: 'alive', role: 'user' },
+        session: { oauthProvider: 'microsoft', microsoftIdentityVersion: 2, microsoftLoginIdentity: identity },
+    });
+    try {
+        const res = await api.call('GET', '/x');
+        assert.equal(res.status, 503);
+        assert.equal(res.body.error, 'auth_unavailable');
+        assert.equal(reached, false);
+    } finally {
+        if (saved) require.cache[storePath] = saved; else delete require.cache[storePath];
+        await api.close();
     }
 });

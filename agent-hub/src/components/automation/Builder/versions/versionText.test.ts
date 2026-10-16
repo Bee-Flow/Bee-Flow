@@ -4,7 +4,7 @@ import type { VersionRow } from '../../../../api/queries/automation/versions';
 import { describeVersion, formatValue, groupVersions, milestonesOnly, settingName, versionMeta, versionTitle, worksTheSame } from './versionText';
 
 // The fallback text with its {params} filled in, like the real hook without a catalogue.
-const t: TranslateFn = (_key, fallback, params) => {
+const t: TranslateFn = (_key: string, fallback, params) => {
     const text = typeof fallback === 'string' ? fallback : _key;
     return text.replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m));
 };

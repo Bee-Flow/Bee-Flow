@@ -35,6 +35,7 @@ const {
     createAiRouteRouter, ROUTE_KIND_KEYS, MAX_TEXT_CHARS, MAX_COMPANIONS,
     buildRouteTool, buildRouteMessages, parseRouteAnswer,
 } = require('./aiRoute');
+const { createTerminalErrorHandler } = require('../../core/http/terminalErrorHandler');
 
 // Everything that identifies the caller. Nothing on this list may appear in
 // what is sent to the provider.
@@ -99,6 +100,8 @@ function mount(nextDeps) {
         next();
     });
     app.use('/api/studio', createAiRouteRouter(deps));
+    // As in the real app: a handler that throws ends at the terminal handler.
+    app.use(createTerminalErrorHandler({ log: { error() {}, warn() {} } }));
     return app;
 }
 
@@ -511,4 +514,5 @@ test('a throwing model client is a 500, not an empty card', async () => {
     assert.strictEqual(res.status, 500);
     const body = await res.json();
     assert.ok(!('kind' in body));
+    assert.strictEqual(body.error, 'Internal server error');
 });

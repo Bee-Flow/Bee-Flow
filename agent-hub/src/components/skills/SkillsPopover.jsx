@@ -270,16 +270,16 @@ export default function SkillsPopover({
                     className="absolute bottom-full left-0 mb-2 w-80 rounded-xl border shadow-2xl overflow-hidden z-50"
                     style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', animation: 'appsOverlayIn .15s ease-out' }}
                 >
-                    <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                    <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
                         <div className="flex items-center justify-between mb-1">
-                            <h3 className="text-sm font-semibold flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+                            <h3 className="text-sm font-semibold flex items-center gap-1.5 text-[var(--text-primary)]">
                                 <Sparkles size={14} /> {t('skills.title', 'Skills')}
                             </h3>
-                            <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                                 {t('skills.cap_active', '{count}/{max} active', { count: activeCount, max: SKILL_CAP })}
                             </span>
                         </div>
-                        <p className="text-[11px] mb-2.5" style={{ color: 'var(--text-tertiary)' }}>
+                        <p className="text-[11px] mb-2.5 text-[var(--text-tertiary)]">
                             {t('skills.popover_hint', 'Toggle reusable instruction packs for this chat')}
                         </p>
                         <input
@@ -295,9 +295,9 @@ export default function SkillsPopover({
 
                     <div className="p-1.5 max-h-72 overflow-y-auto">
                         {loading && filtered.length === 0 ? (
-                            <div className="text-center py-6 text-sm" style={{ color: 'var(--text-tertiary)' }}>{t('agent_skills.loading', 'Loading skills…')}</div>
+                            <div className="text-center py-6 text-sm text-[var(--text-tertiary)]">{t('agent_skills.loading', 'Loading skills…')}</div>
                         ) : filtered.length === 0 ? (
-                            <div className="text-center py-6 text-sm" style={{ color: 'var(--text-tertiary)' }}>{t('agent_skills.no_match', 'No skills match your search')}</div>
+                            <div className="text-center py-6 text-sm text-[var(--text-tertiary)]">{t('agent_skills.no_match', 'No skills match your search')}</div>
                         ) : filtered.map(skill => {
                             const isAttached = attachedSet.has(skill.id);
                             const isActive = isAttached || activeSkillIds.includes(skill.id);
@@ -317,13 +317,12 @@ export default function SkillsPopover({
                                             ? t('skills.cap_reached', 'Maximum {count} skills active', { count: SKILL_CAP })
                                             : undefined}
                                 >
-                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[16px]"
-                                        style={{ background: 'var(--bg-tertiary)' }}>
+                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[16px] bg-[var(--bg-tertiary)]">
                                         {skill.icon || '⚡'}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1.5">
-                                            <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                                            <span className="text-sm font-medium truncate text-[var(--text-primary)]">
                                                 {skill.name}
                                             </span>
                                             {isAttached && (
@@ -338,7 +337,7 @@ export default function SkillsPopover({
                                             ))}
                                         </div>
                                         {skill.description && (
-                                            <div className="text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>
+                                            <div className="text-[11px] truncate text-[var(--text-tertiary)]">
                                                 {skill.description}
                                             </div>
                                         )}
@@ -361,16 +360,15 @@ export default function SkillsPopover({
                         })}
 
                         {directMode && (
-                            <div className="mt-2 border-t pt-2" style={{ borderColor: 'var(--border-subtle)' }}>
+                            <div className="mt-2 border-t pt-2 border-[var(--border-subtle)]">
                                 <div className="flex items-center justify-between px-3 pb-1 gap-2">
                                     <div className="flex items-center gap-2 min-w-0">
-                                        <div className="text-[11px] font-semibold uppercase tracking-wide truncate" style={{ color: 'var(--text-tertiary)' }}>
+                                        <div className="text-[11px] font-semibold uppercase tracking-wide truncate text-[var(--text-tertiary)]">
                                             {t('skills.flow_stages', 'Flow Stages')}
                                         </div>
                                         {sessionProgress.total > 0 && (
                                             <span
-                                                className="text-[10px] px-1.5 py-0.5 rounded-full"
-                                                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+                                                className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
                                                 title={t('skills.flow_progress_title', '{done} completed · {active} active · {pending} pending', {
                                                     done: sessionProgress.done,
                                                     active: sessionProgress.activeInFocus,
@@ -387,8 +385,7 @@ export default function SkillsPopover({
                                         <button
                                             onClick={handleRegenerateSessionSkills}
                                             disabled={regenerating}
-                                            className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-60 flex-shrink-0"
-                                            style={{ color: 'var(--text-secondary)' }}
+                                            className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-60 flex-shrink-0 text-[var(--text-secondary)]"
                                             title={t('skills.regenerate_title', 'Regenerate the Flow stages for this conversation')}
                                         >
                                             <RefreshCw size={10} className={regenerating ? 'animate-spin' : ''} />
@@ -399,12 +396,12 @@ export default function SkillsPopover({
                                     )}
                                 </div>
                                 {directConversationId && filteredSessionSkills.length === 0 && (
-                                    <div className="px-3 py-2 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                                    <div className="px-3 py-2 text-[11px] text-[var(--text-tertiary)]">
                                         {t('skills.flow_none', 'No Flow stages yet for this direct chat.')}
                                     </div>
                                 )}
                                 {!directConversationId && (
-                                    <div className="px-3 py-2 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                                    <div className="px-3 py-2 text-[11px] text-[var(--text-tertiary)]">
                                         {t('skills.flow_send_first', 'Send the first message to generate Flow stages.')}
                                     </div>
                                 )}
@@ -437,11 +434,10 @@ export default function SkillsPopover({
                                             <div className="flex items-center gap-2 px-3 py-2">
                                                 <button
                                                     onClick={() => setExpandedSessionSkillId(expanded ? null : skill.id)}
-                                                    className="w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold bg-white/40 hover:bg-white/60 transition-colors"
+                                                    className="w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold bg-white/40 hover:bg-white/60 transition-colors text-[var(--text-primary)]"
                                                     title={expanded
                                                         ? t('skills.hide_details', 'Hide details')
                                                         : t('skills.step_n', 'Step {count}', { count: stepNum })}
-                                                    style={{ color: 'var(--text-primary)' }}
                                                 >
                                                     {stepBadge || <ChevronDown size={13} />}
                                                 </button>
@@ -470,14 +466,13 @@ export default function SkillsPopover({
                                                         )}
                                                     </div>
                                                     {skill.description && (
-                                                        <div className="text-[10px] truncate" style={{ color: 'var(--text-tertiary)' }}>{skill.description}</div>
+                                                        <div className="text-[10px] truncate text-[var(--text-tertiary)]">{skill.description}</div>
                                                     )}
                                                 </div>
                                                 <button
                                                     onClick={() => handleImportSessionSkill(skill.id)}
                                                     disabled={importing || imported}
-                                                    className="px-2 py-1 text-[10px] rounded border transition-colors disabled:opacity-60"
-                                                    style={{ borderColor: 'var(--border-subtle)', color: 'var(--accent-primary)' }}
+                                                    className="px-2 py-1 text-[10px] rounded border transition-colors disabled:opacity-60 border-[var(--border-subtle)] text-[var(--accent-primary)]"
                                                     title={t('skills.import_title', 'Import into skill library')}
                                                 >
                                                     {imported
@@ -497,18 +492,18 @@ export default function SkillsPopover({
                                                 </button>
                                             </div>
                                             {expanded && (
-                                                <div className="px-3 pb-2 space-y-1.5 text-[10.5px]" style={{ color: 'var(--text-secondary)' }}>
+                                                <div className="px-3 pb-2 space-y-1.5 text-[10.5px] text-[var(--text-secondary)]">
                                                     {skill.instructions && (
-                                                        <div><span className="font-semibold uppercase tracking-wide text-[9px]" style={{ color: 'var(--text-tertiary)' }}>{t('skills.field_instructions', 'Instructions')}</span><div className="whitespace-pre-wrap">{skill.instructions}</div></div>
+                                                        <div><span className="font-semibold uppercase tracking-wide text-[9px] text-[var(--text-tertiary)]">{t('skills.field_instructions', 'Instructions')}</span><div className="whitespace-pre-wrap">{skill.instructions}</div></div>
                                                     )}
                                                     {skill.workflow && (
-                                                        <div><span className="font-semibold uppercase tracking-wide text-[9px]" style={{ color: 'var(--text-tertiary)' }}>{t('skills.field_workflow', 'Workflow')}</span><div className="whitespace-pre-wrap">{skill.workflow}</div></div>
+                                                        <div><span className="font-semibold uppercase tracking-wide text-[9px] text-[var(--text-tertiary)]">{t('skills.field_workflow', 'Workflow')}</span><div className="whitespace-pre-wrap">{skill.workflow}</div></div>
                                                     )}
                                                     {skill.rules && (
-                                                        <div><span className="font-semibold uppercase tracking-wide text-[9px]" style={{ color: 'var(--text-tertiary)' }}>{t('skills.field_rules', 'Rules')}</span><div className="whitespace-pre-wrap">{skill.rules}</div></div>
+                                                        <div><span className="font-semibold uppercase tracking-wide text-[9px] text-[var(--text-tertiary)]">{t('skills.field_rules', 'Rules')}</span><div className="whitespace-pre-wrap">{skill.rules}</div></div>
                                                     )}
                                                     {skill.examples && (
-                                                        <div><span className="font-semibold uppercase tracking-wide text-[9px]" style={{ color: 'var(--text-tertiary)' }}>{t('skills.field_examples', 'Examples')}</span><div className="whitespace-pre-wrap">{skill.examples}</div></div>
+                                                        <div><span className="font-semibold uppercase tracking-wide text-[9px] text-[var(--text-tertiary)]">{t('skills.field_examples', 'Examples')}</span><div className="whitespace-pre-wrap">{skill.examples}</div></div>
                                                     )}
                                                 </div>
                                             )}
@@ -521,8 +516,7 @@ export default function SkillsPopover({
 
                     <button
                         onClick={() => setShowForm(true)}
-                        className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 text-[12px] font-medium border-t transition-colors hover:bg-[var(--bg-tertiary)]"
-                        style={{ color: 'var(--accent-primary)', borderColor: 'var(--border-subtle)' }}
+                        className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 text-[12px] font-medium border-t transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--accent-primary)] border-[var(--border-subtle)]"
                     >
                         <Plus size={13} /> {t('skills.create_new', 'Create new skill')}
                     </button>

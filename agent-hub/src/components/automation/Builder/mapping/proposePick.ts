@@ -11,20 +11,8 @@
  */
 import { pathListShape } from './listShape';
 import { columnForSlot, detectMismatch, fieldForSlot, kindAtPath, quietDefaultId, remediesFor } from './mismatch';
+import type { Remedies, Remedy } from './mismatch.types';
 import { canonicalRefPath } from '../../../../utils/bindingHelpers';
-
-export interface PickRemedy {
-    id: string;
-    binding?: unknown;
-    [key: string]: unknown;
-}
-
-export interface PickRemedies {
-    primary: PickRemedy[];
-    more: PickRemedy[];
-    defaultId?: string;
-    [key: string]: unknown;
-}
 
 export interface PickOpts {
     slot?: string | null;
@@ -38,18 +26,15 @@ export interface PickDecision {
     actualKind: string | null;
     expectedKind: string | null;
     /** Null: insert `path` as it is. */
-    remedy: PickRemedy | null;
-    remedies: PickRemedies | null;
+    remedy: Remedy | null;
+    remedies: Remedies | null;
 }
 
-// mismatch.js is untyped JS whose defaults (`slot = null`) read as narrower
-// types than it accepts; these are the signatures it really has.
-type SlotPick = (path: string, sampleRoot: unknown, opts: { slot?: string | null; expectedKind?: string }) => string | null;
 type PickCtx = { path: string; actualKind: string | null; expectedKind: string };
-const columnFor = columnForSlot as unknown as SlotPick;
-const fieldFor = fieldForSlot as unknown as SlotPick;
-const remediesAt = remediesFor as unknown as (path: string, sampleRoot: unknown, opts: { allowForEach?: boolean; actualKind?: string }) => PickRemedies;
-const quietIdOf = quietDefaultId as unknown as (remedies: PickRemedies, ctx: PickCtx) => string | undefined;
+const columnFor = columnForSlot;
+const fieldFor = fieldForSlot;
+const remediesAt = remediesFor;
+const quietIdOf = quietDefaultId;
 
 /** Narrow a whole table to its column, or a whole record to its field, when the slot says which. */
 function narrowPick(path: string, sampleRoot: unknown, slot: string | null, expectKind: string | null) {
@@ -71,7 +56,7 @@ function narrowPick(path: string, sampleRoot: unknown, slot: string | null, expe
 }
 
 /** The remedy written without asking: the quiet default, else the remedies' own default, else the first. */
-function quietRemedy(remedies: PickRemedies, ctx: PickCtx): PickRemedy | null {
+function quietRemedy(remedies: Remedies, ctx: PickCtx): Remedy | null {
     const all = [...remedies.primary, ...remedies.more];
     const quiet = quietIdOf(remedies, ctx);
     return all.find(r => r.id === quiet) || all.find(r => r.id === remedies.defaultId) || remedies.primary[0] || null;

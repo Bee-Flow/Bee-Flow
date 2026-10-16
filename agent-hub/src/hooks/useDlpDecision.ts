@@ -25,6 +25,8 @@ export const DLP_TOUCH_INTERVAL_MS = 60 * 1000;
  *  richer fields (`reviewText`, `provider`, …), so only the id is named. */
 export interface DlpPreviewDetail {
     decisionId?: string;
+    reviewText?: string;
+    findings?: unknown[];
     [key: string]: unknown;
 }
 
@@ -34,8 +36,8 @@ export type DlpChoice = 'redact' | 'block' | 'allow';
 
 /** A span the user marked in the review UI; the server redacts exactly these. */
 export interface DlpManualAddition {
-    start: number;
-    end: number;
+    offset: number;
+    length: number;
     [key: string]: unknown;
 }
 

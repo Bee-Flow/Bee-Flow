@@ -46,6 +46,7 @@ inject('../../integrations/kbSearchTools.js', {
 });
 
 const { executeTool } = require('./toolDispatcher');
+require('../../integrations/toolFamilies'); // the integration tools the dispatcher routes to
 
 const SIM = { groupId: 'grp-marketing', groupName: 'Marketing', audience: 'group' };
 

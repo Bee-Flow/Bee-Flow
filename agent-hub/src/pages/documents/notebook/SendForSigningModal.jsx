@@ -83,15 +83,15 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                 }}
             >
                 {/* Header */}
-                <div className="flex items-center gap-3 px-6 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-[var(--border-subtle)]">
                     <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.1)' }}>
                         <PenTool className="w-5 h-5" style={{ color: '#22c55e' }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <h3 className="text-base font-semibold text-[var(--text-primary)]">
                             {t('notebooks.send_for_signing', 'Send for signing')}
                         </h3>
-                        <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-[11px] truncate text-[var(--text-muted)]">
                             {t('notebooks.via_signrequest', 'via SignRequest')} · {notebookTitle}
                         </p>
                     </div>
@@ -110,17 +110,17 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                         /* ── Success state ── */
                         <div className="flex flex-col items-center gap-3 py-6">
                             <CheckCircle className="w-12 h-12" style={{ color: '#22c55e' }} />
-                            <h4 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            <h4 className="text-base font-semibold text-[var(--text-primary)]">
                                 {t('notebooks.sign_sent_title', 'Document sent for signing!')}
                             </h4>
-                            <p className="text-sm text-center" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="text-sm text-center text-[var(--text-secondary)]">
                                 {result.message || t('notebooks.sign_sent_body', 'Your document has been sent to the signer(s).')}
                             </p>
                             {result.signers?.length > 0 && (
-                                <div className="w-full mt-2 rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-subtle)' }}>
+                                <div className="w-full mt-2 rounded-xl border overflow-hidden border-[var(--border-subtle)]">
                                     {result.signers.map((s, i) => (
                                         <div key={i} className="flex items-center gap-2 px-4 py-2 text-sm" style={{ borderBottom: i < result.signers.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-                                            <span className="flex-1 truncate" style={{ color: 'var(--text-primary)' }}>
+                                            <span className="flex-1 truncate text-[var(--text-primary)]">
                                                 {s.name ? `${s.name} (${s.email})` : s.email}
                                             </span>
                                             <span className="text-[11px] px-2 py-0.5 rounded-full font-medium"
@@ -137,7 +137,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                         <>
                             {/* Signers */}
                             <div>
-                                <label className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                                <label className="text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                                     {t('notebooks.signers', 'Signers')}
                                 </label>
                                 <div className="space-y-2 mt-2">
@@ -175,8 +175,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                                             {signers.length > 1 && (
                                                 <button
                                                     onClick={() => removeSigner(signer._uid)}
-                                                    className="p-2 rounded-lg hover:bg-[rgba(239,68,68,0.1)] transition-colors mt-0.5"
-                                                    style={{ color: 'var(--error)' }}
+                                                    className="p-2 rounded-lg hover:bg-[rgba(239,68,68,0.1)] transition-colors mt-0.5 text-[var(--error)]"
                                                     title={t('notebooks.remove_signer', 'Remove signer')}
                                                     aria-label={t('notebooks.remove_signer', 'Remove signer')}
                                                 >
@@ -188,8 +187,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                                 </div>
                                 <button
                                     onClick={addSigner}
-                                    className="flex items-center gap-1.5 mt-2 text-[12px] font-medium px-2 py-1 rounded-lg hover:bg-black/5 transition-colors"
-                                    style={{ color: 'var(--accent-primary)' }}
+                                    className="flex items-center gap-1.5 mt-2 text-[12px] font-medium px-2 py-1 rounded-lg hover:bg-black/5 transition-colors text-[var(--accent-primary)]"
                                 >
                                     <Plus className="w-3.5 h-3.5" /> {t('notebooks.add_signer', 'Add signer')}
                                 </button>
@@ -197,7 +195,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
 
                             {/* Subject */}
                             <div>
-                                <label className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                                <label className="text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                                     {t('notebooks.email_subject', 'Email subject')}
                                 </label>
                                 <input
@@ -212,7 +210,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
 
                             {/* Message */}
                             <div>
-                                <label className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                                <label className="text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                                     {t('notebooks.message_optional', 'Message (optional)')}
                                 </label>
                                 <textarea
@@ -239,7 +237,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                 )}
 
                 {/* Footer */}
-                <div className="px-6 py-3 border-t flex items-center justify-end gap-2" style={{ borderColor: 'var(--border-subtle)' }}>
+                <div className="px-6 py-3 border-t flex items-center justify-end gap-2 border-[var(--border-subtle)]">
                     {result ? (
                         <button
                             onClick={onClose}

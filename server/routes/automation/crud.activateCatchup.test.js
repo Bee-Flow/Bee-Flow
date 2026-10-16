@@ -41,7 +41,7 @@ mock(path.join(SERVER, 'stores/automationStore'), {
     createSubscription: async (opts) => { const row = { id: `sub-${subscriptionCalls.length}`, ...opts }; subscriptionCalls.push(row); return row; },
     updateSubscription: async () => true,
 });
-mock(path.join(SERVER, 'automation/cron'), { nextRunAt: () => null });
+mock(path.join(SERVER, 'core/scheduling/cron'), { nextRunAt: () => null });
 mock(path.join(SERVER, 'automation/validate'), { validateDefinition: () => ({ ok: true, warnings: [] }) });
 mock(path.join(SERVER, 'automation/summarise'), { summariseDefinition: () => ({ summary: '' }) });
 mock(path.join(SERVER, 'automation/deliverableEvents'), { getDeliverableEvents: () => [] });

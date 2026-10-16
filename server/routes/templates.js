@@ -148,190 +148,160 @@ function extractParameters(text) {
 
 router.post('/upload', requireAuth, upload.single('file'), validate({ body: UploadBody }), async (req, res) => {
     const knowledgeBaseIds = await authorizeKbIds(req, req.body.knowledgeBaseIds);
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
-
-        const fileName = req.file.originalname;
-        if (!fileName.toLowerCase().endsWith('.docx')) {
-            return res.status(400).json({ error: 'Only .docx files are supported' });
-        }
-
-        const userId = req.session.user.id;
-        const buffer = req.file.buffer;
-
-        // Extract text to detect parameters
-        let parameters = [];
-        let extractedText = '';
-        try {
-            const result = await mammoth.extractRawText({ buffer });
-            extractedText = result.value || '';
-            parameters = extractParameters(extractedText);
-        } catch (err) {
-            log.warn(`[Templates] Failed to extract text from ${fileName}:`, err.message);
-        }
-
-        // Upload to RustFS
-        let storageKey;
-        const storageName = `template_${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
-
-        if (storageStore.isAvailable()) {
-            storageKey = storageStore.buildKey(userId, 'templates', storageName);
-            await storageStore.uploadFile(storageKey, buffer, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-            log.info(`[Templates] Uploaded template to RustFS: ${storageKey}`);
-        } else {
-            // Fallback: store on local disk
-            const fs = require('fs');
-            const path = require('path');
-            const dir = path.join(__dirname, '..', 'data', 'templates', userId);
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            const localPath = path.join(dir, storageName);
-            await fs.promises.writeFile(localPath, buffer);
-            storageKey = `local:${localPath}`;
-            log.info(`[Templates] Stored template locally: ${localPath}`);
-        }
-
-        // Save metadata to DB
-        const name = req.body.name || fileName.replace(/\.docx$/i, '');
-        const template = await templateStore.createTemplate({
-            userId,
-            name,
-            description: req.body.description || '',
-            instructions: req.body.instructions || '',
-            fileName,
-            storageKey,
-            parameters,
-            knowledgeBaseIds: knowledgeBaseIds || [],
-        });
-
-        // ── Background tasks: auto-generate context + auto-create KB + auto-parameterize ──
-        const hasContent = extractedText && extractedText.length > 50;
-        const skipAutoParam = req.body.skipAutoParameterize === 'true';
-        if (hasContent) {
-            // 1. Generate AI context/description + instructions from the document
-            generateTemplateContext(template.id, userId, extractedText, parameters).catch(err => {
-                log.warn('[Templates] Auto-context generation failed:', err.message);
-            });
-            // 2. Auto-create a KB and ingest document text
-            autoCreateTemplateKB(template.id, userId, fileName, extractedText).catch(err => {
-                log.warn('[Templates] Auto-KB creation failed:', err.message);
-            });
-            // 3. Auto-parameterize: AI identifies placeholders and replaces them in the .docx
-            if (!skipAutoParam) {
-                autoParameterizeTemplate(template.id, userId, extractedText, buffer).catch(err => {
-                    log.warn('[Templates] Auto-parameterization failed:', err.message);
-                });
-            } else {
-                log.info(`[Templates] Skipping auto-parameterization (user chose skip)`);
-            }
-        }
-
-        res.json({ success: true, template, generatingContext: !!hasContent });
-    } catch (err) {
-        log.error('[Templates] Upload failed:', err);
-        res.status(500).json({ error: 'Failed to upload template' });
+    if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
     }
+
+    const fileName = req.file.originalname;
+    if (!fileName.toLowerCase().endsWith('.docx')) {
+        return res.status(400).json({ error: 'Only .docx files are supported' });
+    }
+
+    const userId = req.session.user.id;
+    const buffer = req.file.buffer;
+
+    // Extract text to detect parameters
+    let parameters = [];
+    let extractedText = '';
+    try {
+        const result = await mammoth.extractRawText({ buffer });
+        extractedText = result.value || '';
+        parameters = extractParameters(extractedText);
+    } catch (err) {
+        log.warn(`[Templates] Failed to extract text from ${fileName}:`, err.message);
+    }
+
+    // Upload to RustFS
+    let storageKey;
+    const storageName = `template_${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
+
+    if (storageStore.isAvailable()) {
+        storageKey = storageStore.buildKey(userId, 'templates', storageName);
+        await storageStore.uploadFile(storageKey, buffer, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        log.info(`[Templates] Uploaded template to RustFS: ${storageKey}`);
+    } else {
+        // Fallback: store on local disk
+        const fs = require('fs');
+        const path = require('path');
+        const dir = path.join(__dirname, '..', 'data', 'templates', userId);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const localPath = path.join(dir, storageName);
+        await fs.promises.writeFile(localPath, buffer);
+        storageKey = `local:${localPath}`;
+        log.info(`[Templates] Stored template locally: ${localPath}`);
+    }
+
+    // Save metadata to DB
+    const name = req.body.name || fileName.replace(/\.docx$/i, '');
+    const template = await templateStore.createTemplate({
+        userId,
+        name,
+        description: req.body.description || '',
+        instructions: req.body.instructions || '',
+        fileName,
+        storageKey,
+        parameters,
+        knowledgeBaseIds: knowledgeBaseIds || [],
+    });
+
+    // ── Background tasks: auto-generate context + auto-create KB + auto-parameterize ──
+    const hasContent = extractedText && extractedText.length > 50;
+    const skipAutoParam = req.body.skipAutoParameterize === 'true';
+    if (hasContent) {
+        // 1. Generate AI context/description + instructions from the document
+        generateTemplateContext(template.id, userId, extractedText, parameters).catch(err => {
+            log.warn('[Templates] Auto-context generation failed:', err.message);
+        });
+        // 2. Auto-create a KB and ingest document text
+        autoCreateTemplateKB(template.id, userId, fileName, extractedText).catch(err => {
+            log.warn('[Templates] Auto-KB creation failed:', err.message);
+        });
+        // 3. Auto-parameterize: AI identifies placeholders and replaces them in the .docx
+        if (!skipAutoParam) {
+            autoParameterizeTemplate(template.id, userId, extractedText, buffer).catch(err => {
+                log.warn('[Templates] Auto-parameterization failed:', err.message);
+            });
+        } else {
+            log.info(`[Templates] Skipping auto-parameterization (user chose skip)`);
+        }
+    }
+
+    res.json({ success: true, template, generatingContext: !!hasContent });
 });
 
 // ── List templates ───────────────────────────────────────────────
 
 router.get('/', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const templates = await templateStore.getTemplates(userId);
-        res.json({ templates });
-    } catch (err) {
-        log.error('[Templates] List failed:', err);
-        res.status(500).json({ error: 'Failed to list templates' });
-    }
+    const userId = req.session.user.id;
+    const templates = await templateStore.getTemplates(userId);
+    res.json({ templates });
 });
 
 // ── Get single template ──────────────────────────────────────────
 
 router.get('/:id', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const template = await templateStore.getTemplate(req.params.id, userId);
-        if (!template) return res.status(404).json({ error: 'Template not found' });
-        res.json({ template });
-    } catch (err) {
-        log.error('[Templates] Get failed:', err);
-        res.status(500).json({ error: 'Failed to get template' });
-    }
+    const userId = req.session.user.id;
+    const template = await templateStore.getTemplate(req.params.id, userId);
+    if (!template) return res.status(404).json({ error: 'Template not found' });
+    res.json({ template });
 });
 
 // ── Update template ──────────────────────────────────────────────
 
 router.put('/:id', requireAuth, validate({ body: UpdateBody }), async (req, res) => {
     await authorizeKbIds(req, req.body.knowledgeBaseIds);
-    try {
-        const userId = req.session.user.id;
-        const { name, description, instructions, knowledgeBaseIds } = req.body;
-        const updated = await templateStore.updateTemplate(req.params.id, userId, { name, description, instructions, knowledgeBaseIds });
-        if (!updated) return res.status(404).json({ error: 'Template not found' });
-        res.json({ success: true });
-    } catch (err) {
-        log.error('[Templates] Update failed:', err);
-        res.status(500).json({ error: 'Failed to update template' });
-    }
+    const userId = req.session.user.id;
+    const { name, description, instructions, knowledgeBaseIds } = req.body;
+    const updated = await templateStore.updateTemplate(req.params.id, userId, { name, description, instructions, knowledgeBaseIds });
+    if (!updated) return res.status(404).json({ error: 'Template not found' });
+    res.json({ success: true });
 });
 
 // ── Delete template ──────────────────────────────────────────────
 
 router.delete('/:id', requireAuth, async (req, res) => {
+    const userId = req.session.user.id;
+    const result = await templateStore.deleteTemplate(req.params.id, userId);
+    if (!result) return res.status(404).json({ error: 'Template not found' });
+
+    // Clean up storage
     try {
-        const userId = req.session.user.id;
-        const result = await templateStore.deleteTemplate(req.params.id, userId);
-        if (!result) return res.status(404).json({ error: 'Template not found' });
-
-        // Clean up storage
-        try {
-            if (result.storageKey && !result.storageKey.startsWith('local:')) {
-                await storageStore.deleteFile(result.storageKey);
-            } else if (result.storageKey?.startsWith('local:')) {
-                const fs = require('fs');
-                const localPath = localTemplateFile(result.storageKey);
-                if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
-            }
-        } catch (cleanupErr) {
-            log.warn('[Templates] Storage cleanup failed:', cleanupErr.message);
+        if (result.storageKey && !result.storageKey.startsWith('local:')) {
+            await storageStore.deleteFile(result.storageKey);
+        } else if (result.storageKey?.startsWith('local:')) {
+            const fs = require('fs');
+            const localPath = localTemplateFile(result.storageKey);
+            if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
         }
-
-        res.json({ success: true });
-    } catch (err) {
-        log.error('[Templates] Delete failed:', err);
-        res.status(500).json({ error: 'Failed to delete template' });
+    } catch (cleanupErr) {
+        log.warn('[Templates] Storage cleanup failed:', cleanupErr.message);
     }
+
+    res.json({ success: true });
 });
 
 // ── Download original template ───────────────────────────────────
 
 router.get('/:id/download', requireAuth, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const template = await templateStore.getTemplate(req.params.id, userId);
-        if (!template) return res.status(404).json({ error: 'Template not found' });
+    const userId = req.session.user.id;
+    const template = await templateStore.getTemplate(req.params.id, userId);
+    if (!template) return res.status(404).json({ error: 'Template not found' });
 
-        if (template.storageKey.startsWith('local:')) {
-            const fs = require('fs');
-            const localPath = localTemplateFile(template.storageKey);
-            let localExists = true;
-            try { await fs.promises.access(localPath); } catch { localExists = false; }
-            if (!localExists) return res.status(404).json({ error: 'File not found' });
-            res.setHeader('Content-Disposition', contentDisposition(template.fileName));
-            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-            return fs.createReadStream(localPath).pipe(res);
-        }
-
-        const { stream, contentType } = await storageStore.streamFile(template.storageKey);
+    if (template.storageKey.startsWith('local:')) {
+        const fs = require('fs');
+        const localPath = localTemplateFile(template.storageKey);
+        let localExists = true;
+        try { await fs.promises.access(localPath); } catch { localExists = false; }
+        if (!localExists) return res.status(404).json({ error: 'File not found' });
         res.setHeader('Content-Disposition', contentDisposition(template.fileName));
-        res.setHeader('Content-Type', contentType || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-        stream.pipe(res);
-    } catch (err) {
-        log.error('[Templates] Download failed:', err);
-        res.status(500).json({ error: 'Failed to download template' });
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        return fs.createReadStream(localPath).pipe(res);
     }
+
+    const { stream, contentType } = await storageStore.streamFile(template.storageKey);
+    res.setHeader('Content-Disposition', contentDisposition(template.fileName));
+    res.setHeader('Content-Type', contentType || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    stream.pipe(res);
 });
 
 // ── Fill template with values ────────────────────────────────────
@@ -383,55 +353,45 @@ async function renderTemplate(template, values) {
 }
 
 router.post('/:id/fill', requireAuth, validate({ body: FillBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const template = await templateStore.getTemplate(req.params.id, userId);
-        if (!template) return res.status(404).json({ error: 'Template not found' });
+    const userId = req.session.user.id;
+    const template = await templateStore.getTemplate(req.params.id, userId);
+    if (!template) return res.status(404).json({ error: 'Template not found' });
 
-        // A .docx attachment, not HTML; the filename goes through contentDisposition.
-        const { filledBuffer, filledName } = await renderTemplate(template, req.body.values); // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss
-        res.setHeader('Content-Disposition', contentDisposition(filledName));
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-        res.send(filledBuffer);
-    } catch (err) {
-        log.error('[Templates] Fill failed:', err);
-        res.status(500).json({ error: 'Failed to fill template' });
-    }
+    // A .docx attachment, not HTML; the filename goes through contentDisposition.
+    const { filledBuffer, filledName } = await renderTemplate(template, req.body.values); // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss
+    res.setHeader('Content-Disposition', contentDisposition(filledName));
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.send(filledBuffer);
 });
 
 // Fill template and store result — returns a download URL for use in chat
 router.post('/:id/fill-and-store', requireAuth, validate({ body: FillBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const template = await templateStore.getTemplate(req.params.id, userId);
-        if (!template) return res.status(404).json({ error: 'Template not found' });
+    const userId = req.session.user.id;
+    const template = await templateStore.getTemplate(req.params.id, userId);
+    if (!template) return res.status(404).json({ error: 'Template not found' });
 
-        const { filledBuffer, filledName } = await renderTemplate(template, req.body.values);
-        const crypto = require('crypto');
+    const { filledBuffer, filledName } = await renderTemplate(template, req.body.values);
+    const crypto = require('crypto');
 
-        // Store in RustFS and return download URL
-        if (storageStore.isAvailable()) {
-            const storageName = `filled_${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${safeFileName(filledName)}`;
-            const key = storageStore.buildKey(userId, 'templates_filled', storageName);
-            await storageStore.uploadFile(key, filledBuffer, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-            const proxyPath = storageStore.buildProxyUrl(key);
-            log.info(`[Templates] Filled document stored: ${key}`);
-            res.json({ downloadUrl: proxyPath, fileName: filledName });
-        } else {
-            // Fallback: store locally
-            const fs = require('fs');
-            const path = require('path');
-            const dir = path.join(__dirname, '..', 'data', 'templates_filled', userId);
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            // safeFileName leaves no separator or leading dot to climb out of dir.
-            // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal
-            const localPath = path.join(dir, `${Date.now()}_${safeFileName(filledName)}`);
-            await fs.promises.writeFile(localPath, filledBuffer);
-            res.json({ downloadUrl: `/api/templates/download-filled/${encodeURIComponent(path.basename(localPath))}`, fileName: filledName });
-        }
-    } catch (err) {
-        log.error('[Templates] Fill-and-store failed:', err);
-        res.status(500).json({ error: 'Failed to generate document' });
+    // Store in RustFS and return download URL
+    if (storageStore.isAvailable()) {
+        const storageName = `filled_${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${safeFileName(filledName)}`;
+        const key = storageStore.buildKey(userId, 'templates_filled', storageName);
+        await storageStore.uploadFile(key, filledBuffer, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        const proxyPath = storageStore.buildProxyUrl(key);
+        log.info(`[Templates] Filled document stored: ${key}`);
+        res.json({ downloadUrl: proxyPath, fileName: filledName });
+    } else {
+        // Fallback: store locally
+        const fs = require('fs');
+        const path = require('path');
+        const dir = path.join(__dirname, '..', 'data', 'templates_filled', userId);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        // safeFileName leaves no separator or leading dot to climb out of dir.
+        // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal
+        const localPath = path.join(dir, `${Date.now()}_${safeFileName(filledName)}`);
+        await fs.promises.writeFile(localPath, filledBuffer);
+        res.json({ downloadUrl: `/api/templates/download-filled/${encodeURIComponent(path.basename(localPath))}`, fileName: filledName });
     }
 });
 

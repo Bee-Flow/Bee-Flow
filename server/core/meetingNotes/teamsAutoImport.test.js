@@ -4,7 +4,7 @@
  * Covers: discovery (organizer-only seeding, opt-in, licence and scope skips,
  * per-meeting opt-out, unparking), the per-job pipeline (recording preferred,
  * transcript fallback, transcript switch off = no transcript, waiting with
- * backoff, the 24 h no-recording deadline, not-organizer), ingest retries and
+ * backoff, the 48 h no-recording deadline, not-organizer), ingest retries and
  * terminal codes, claim-time opt-out and needs_reauth parking.
  *
  * Every dependency is injected through init(); the job store is an
@@ -65,6 +65,7 @@ function makeJobStore() {
         },
         async parkNeedsReauth(id) { Object.assign(byId(id), { status: 'needs_reauth', errorCode: 'needs_reauth' }); return true; },
         async unparkForUser(userId) {
+            fx.unparkCalls++;
             let n = 0;
             for (const j of jobs) if (j.userId === userId && j.status === 'needs_reauth') { j.status = 'pending'; j.errorCode = null; n++; }
             return n;
@@ -83,6 +84,10 @@ function resetFx() {
     fx.entitled = {};
     fx.authByUser = { u1: { userId: 'u1', orgId: 'orgA', accessToken: 'at', refreshToken: 'rt', scope: TEAMS_SCOPE } };
     fx.ended = [];
+    fx.endedCalls = 0;
+    fx.authCalls = 0;
+    fx.unparkCalls = 0;
+    fx.optInUsers = null;
     fx.meeting = { id: 'MSo1' };
     fx.recordings = [];
     fx.transcripts = [];
@@ -104,6 +109,10 @@ auto.init({
         getUser: async (id) => fx.usersById[id] || null,
         getAllUsers: async () => fx.users,
     },
+    recordOptIn: {
+        hasLiveRecordOptIn: (rows) => rows.some((r) => r.record === true),
+        listUsersWithRecordOptIn: async () => (Object.values(fx.prefs).includes(true) ? (fx.optInUsers || ['u1']) : []),
+    },
     meetingPrefs: {
         teamsIds: ({ eventId = null, seriesMasterId = null } = {}) => [
             { kind: 'event', id: eventId }, { kind: 'code', id: seriesMasterId },
@@ -117,6 +126,7 @@ auto.init({
                 return null;
             };
             return {
+                rows: Object.entries(fx.prefs).map(([k, record]) => ({ idKind: k.split(':')[0], externalId: k.split(':')[1], record })),
                 opinionFor,
                 decide: ({ ids, participantCount, fallback }) => {
                     const o = opinionFor(ids);
@@ -127,7 +137,7 @@ auto.init({
             };
         },
     },
-    automationAuth: { getProviderAuth: async (userId) => fx.authByUser[userId] || null },
+    automationAuth: { getProviderAuth: async (userId) => { fx.authCalls++; return fx.authByUser[userId] || null; } },
     resolveMicrosoftSession: async (s, userId) => (s?.automationProviders?.microsoft ? { userId, accessToken: s.automationProviders.microsoft.accessToken } : null),
     hasCapability: async (_c, { userId }) => fx.entitled[userId] !== false,
     graphFetch: async () => ({ attendees: [{ emailAddress: { address: 'an@x.nl', name: 'An' } }] }),
@@ -136,7 +146,7 @@ auto.init({
     }),
     hasTeamsScopes: (scope) => String(scope || '').includes('OnlineMeetingRecording.Read.All'),
     hasTranscriptScope: (scope) => String(scope || '').includes('OnlineMeetingTranscript.Read.All'),
-    listRecentlyEndedTeamsMeetings: async () => fx.ended,
+    listRecentlyEndedTeamsMeetings: async ({ lookbackHours } = {}) => { fx.endedCalls++; fx.lookback = lookbackHours; return fx.ended; },
     getOnlineMeetingByJoinUrl: async () => {
         if (fx.lookupError) throw fx.lookupError;
         return fx.meeting;
@@ -200,6 +210,61 @@ test('discover skips: autoImport off, no licence, no Teams scopes, opted out, 1-
     assert.strictEqual(fx.store.jobs.length, 0);
 });
 
+test('autoImport off: an explicit record mark imports that one meeting only', async () => {
+    fx.settingsByUser.u1 = { autoImport: false };
+    fx.ended = [endedMeeting(), endedMeeting({ eventId: 'ev2' })];
+    fx.prefs['event:ev2'] = true;
+    await auto.discover();
+    assert.deepStrictEqual(fx.store.jobs.map(j => j.calendarEventId), ['ev2']);
+});
+
+test('autoImport off and a user who only has a mark (no settings doc) is still a candidate', async () => {
+    fx.configAll = {};
+    fx.settingsByUser = {};
+    fx.ended = [endedMeeting()];
+    fx.prefs['event:ev1'] = true;
+    await auto.discover();
+    assert.strictEqual(fx.store.jobs.length, 1);
+});
+
+test('autoImport off without any mark: no Graph call, no job; an opt-out still wins', async () => {
+    fx.settingsByUser.u1 = { autoImport: false };
+    fx.ended = [endedMeeting()];
+    await auto.discover();
+    assert.strictEqual(fx.endedCalls, 0);
+    fx.prefs['event:ev1'] = false;
+    await auto.discover();
+    assert.strictEqual(fx.endedCalls, 0);
+    assert.strictEqual(fx.store.jobs.length, 0);
+    assert.strictEqual(fx.authCalls, 0, 'no token refresh for a user without a mark');
+    assert.strictEqual(fx.unparkCalls, 0, 'no database write for a user without a mark');
+});
+
+test('a deleted or deactivated user is not discovered, even with a mark', async () => {
+    fx.ended = [endedMeeting()];
+    fx.prefs['event:ev1'] = true;
+    fx.usersById.u1 = { id: 'u1', organizationId: 'orgA', status: 'disabled' };
+    await auto.discover();
+    delete fx.usersById.u1;
+    await auto.discover();
+    assert.strictEqual(fx.endedCalls, 0);
+});
+
+test('claim time with autoImport off: a marked job runs, an unmarked one is skipped', async () => {
+    fx.settingsByUser.u1 = { autoImport: false };
+    fx.recordings = [{ id: 'R1' }];
+    await seeded();
+    fx.prefs['event:ev1'] = true;
+    await auto.processDue();
+    assert.strictEqual(fx.store.jobs[0].status, 'ingested');
+
+    resetFx();
+    fx.settingsByUser.u1 = { autoImport: false };
+    await seeded();
+    await auto.processDue();
+    assert.strictEqual(fx.store.jobs[0].status, 'skipped');
+});
+
 test('an org that turned autoImport on brings in members without their own doc', async () => {
     fx.configAll = { org_teams_notes_orgA: {} };
     fx.settingsByUser = {};
@@ -258,8 +323,14 @@ test('transcript API switched off by the tenant counts as "no transcript yet", n
     assert.ok(fx.store.jobs[0].backoffMs > 0);
 });
 
-test('nothing 24 h after the end → terminal no_recording', async () => {
-    await seeded({ meetingStart: hoursAgo(30), meetingEnd: hoursAgo(29) });
+test('no artifact 30 h after the end still waits (deadline is 48 h)', async () => {
+    await seeded({ meetingStart: hoursAgo(31), meetingEnd: hoursAgo(30) });
+    await auto.processDue();
+    assert.strictEqual(fx.store.jobs[0].status, 'awaiting_artifacts');
+});
+
+test('nothing 48 h after the end → terminal no_recording', async () => {
+    await seeded({ meetingStart: hoursAgo(50), meetingEnd: hoursAgo(49) });
     await auto.processDue();
     assert.strictEqual(fx.store.jobs[0].status, 'no_recording');
 });

@@ -10,7 +10,6 @@ const { requireAuth } = require('../../auth/permissions');
 const { issuePreviewToken } = require('../../auth/webpagePreviewToken');
 const { validate } = require('../../core/http/validate');
 const { NO_QUERY, NOTHING } = require('./schemas');
-const log = require('../../telemetry/log');
 
 function register(router) {
     // ── Preview token (for sandboxed iframe → API calls) ────────────────
@@ -26,36 +25,31 @@ function register(router) {
     // eruitziet alsof hij dat kan verschuiven (`userId`, `scope`) hoort een 400
     // te krijgen en niet genegeerd te worden.
     router.post('/:id/preview-token', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
-        try {
-            const userId = req.session.user.id;
-            // Owner OR org/group-published reader — same visibility as GET /:id, so
-            // shared-page viewers get a token and their React preview can call the
-            // bridges (without it, dbToken=null and the preview renders blank).
-            let wp = await webpageStore.getWebpage(req.params.id, userId);
-            if (!wp) {
-                const raw = await webpageStore.getWebpageRaw(req.params.id);
-                const { orgIds, userGroups } = await resolveAudienceContext(req);
-                const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
-                if (raw && await webpageStore.canReadWebpageAsync(raw, userId, userGroups, orgIdArr)) {
-                    wp = raw;
-                }
+        const userId = req.session.user.id;
+        // Owner OR org/group-published reader — same visibility as GET /:id, so
+        // shared-page viewers get a token and their React preview can call the
+        // bridges (without it, dbToken=null and the preview renders blank).
+        let wp = await webpageStore.getWebpage(req.params.id, userId);
+        if (!wp) {
+            const raw = await webpageStore.getWebpageRaw(req.params.id);
+            const { orgIds, userGroups } = await resolveAudienceContext(req);
+            const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+            if (raw && await webpageStore.canReadWebpageAsync(raw, userId, userGroups, orgIdArr)) {
+                wp = raw;
             }
-            if (!wp) return res.status(404).json({ error: 'Webpage not found' });
-            // Scope the token to the page OWNER so all authorized viewers read/write
-            // the SAME per-page database (webpageDbStore keys by the token's userId).
-            // AI/automations/integrations already act as the author independently.
-            // `userId` = de eigenaar (paginadatabase + acts-as-author-bruggen),
-            // `viewerUserId` = wie er nu kijkt. De tabelroutes gebruiken alleen de
-            // tweede: een datatable heeft graden per persoon, en een gedeelde
-            // pagina mag de tabelrechten van de auteur niet uitlenen.
-            const { token, expiresAt } = issuePreviewToken({
-                userId: wp.userId, webpageId: wp.id, viewerUserId: userId,
-            });
-            res.json({ token, expiresAt, webpageId: wp.id });
-        } catch (err) {
-            log.error('[Webpages] Preview token failed:', err);
-            res.status(500).json({ error: 'Failed to issue preview token' });
         }
+        if (!wp) return res.status(404).json({ error: 'Webpage not found' });
+        // Scope the token to the page OWNER so all authorized viewers read/write
+        // the SAME per-page database (webpageDbStore keys by the token's userId).
+        // AI/automations/integrations already act as the author independently.
+        // `userId` = de eigenaar (paginadatabase + acts-as-author-bruggen),
+        // `viewerUserId` = wie er nu kijkt. De tabelroutes gebruiken alleen de
+        // tweede: een datatable heeft graden per persoon, en een gedeelde
+        // pagina mag de tabelrechten van de auteur niet uitlenen.
+        const { token, expiresAt } = issuePreviewToken({
+            userId: wp.userId, webpageId: wp.id, viewerUserId: userId,
+        });
+        res.json({ token, expiresAt, webpageId: wp.id });
     });
 }
 

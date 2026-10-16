@@ -211,28 +211,18 @@ router.post('/signup', signupIpLimiter, signupTargetLimiter, validate({ body: Si
         organizationId: orgId || '', orgRole: placement.orgRole || ''
     };
 
-    try {
-        const result = await getOrCreateUserDEKCompat(newUser.id, password);
-        try {
-            await establishSession(req, {
-                user: sessionUser,
-                isAdmin: false,
-                extra: { encryptionKey: result?.encryptionKey || null },
-                audit: { method: 'signup', organizationId: orgId || null },
-            });
-        } catch (err) {
-            log.error('Session save error:', err);
-            return res.status(500).json({ error: 'Failed to save session' });
-        }
-        const response = { success: true, user: sessionUser };
-        if (result?.recoveryKey) {
-            response.recoveryKey = result.recoveryKey;
-        }
-        res.json(response);
-    } catch (err) {
-        log.error('[Auth] Signup DEK creation failed:', err.message);
-        return res.status(500).json({ error: 'Encryption initialization failed' });
+    const result = await getOrCreateUserDEKCompat(newUser.id, password);
+    await establishSession(req, {
+        user: sessionUser,
+        isAdmin: false,
+        extra: { encryptionKey: result?.encryptionKey || null },
+        audit: { method: 'signup', organizationId: orgId || null },
+    });
+    const response = { success: true, user: sessionUser };
+    if (result?.recoveryKey) {
+        response.recoveryKey = result.recoveryKey;
     }
+    res.json(response);
 });
 
 module.exports = router;

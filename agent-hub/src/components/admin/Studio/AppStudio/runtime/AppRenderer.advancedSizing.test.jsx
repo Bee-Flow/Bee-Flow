@@ -161,7 +161,7 @@ describe('a horizontal pane on a phone', () => {
     });
 
     it('the hook it keys off is one AppPane actually emits', () => {
-        const pane = readFileSync(resolve(RUNTIME_DIR, 'components/AppPane.jsx'), 'utf8');
+        const pane = readFileSync(resolve(RUNTIME_DIR, 'components/AppPane.tsx'), 'utf8');
         expect(pane).toContain("data-app-pane={horizontal ? 'horizontal' : 'vertical'}");
     });
 });
@@ -244,7 +244,7 @@ describe('the tablet tier', () => {
         // Run mode and the editor canvas use different wrappers; a rule keyed
         // to an attribute only one of them writes is a layout that changes the
         // moment you press Preview.
-        for (const file of ['AppRenderer.jsx', '../editor/EditorNodeWrapper.jsx']) {
+        for (const file of ['AppRenderer.jsx', '../editor/EditorNodeWrapper.tsx']) {
             expect(readFileSync(resolve(RUNTIME_DIR, file), 'utf8')).toContain('data-app-type={node.type}');
         }
     });

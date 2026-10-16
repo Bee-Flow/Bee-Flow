@@ -342,8 +342,7 @@ export default function SkillDetail({
             <div className="flex-1 min-h-0 overflow-y-auto px-7 py-6" onBlur={flushNow}>
                 {readOnly && (
                     <p
-                        className="text-xs mb-4 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] m-0"
-                        style={{ color: 'var(--text-secondary)' }}
+                        className="text-xs mb-4 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] m-0 text-[var(--text-secondary)]"
                         data-testid="skill-readonly"
                     >
                         {t('skills_studio.readonly', 'You can see this skill but not change it. Ask its owner, or an admin of the organisation it belongs to.')}
@@ -535,8 +534,7 @@ function UsedByNote({ usage, unchecked = [], t }) {
     }
     return (
         <p
-            className="mt-auto px-3 py-2.5 rounded-[10px] text-[11px] leading-4 m-0"
-            style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+            className="mt-auto px-3 py-2.5 rounded-[10px] text-[11px] leading-4 m-0 bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
             data-testid="skill-usedby-note"
         >
             {usage.length === 0
@@ -564,7 +562,7 @@ function TextCard({ label, value, onChange, readOnly, placeholder, muted = false
                 className="w-full resize-y rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] px-3 py-2.5 text-[13px] leading-[18px] outline-none placeholder:text-[var(--text-tertiary)]"
                 style={{ color: muted ? 'var(--text-secondary)' : 'var(--text-primary)' }}
             />
-            {hint && <span className="text-xs" style={{ color: 'var(--warning-ink)' }}>{hint}</span>}
+            {hint && <span className="text-xs text-[var(--warning-ink)]">{hint}</span>}
         </label>
     );
 }

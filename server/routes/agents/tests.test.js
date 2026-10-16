@@ -210,7 +210,7 @@ for (const [request, exportsObj] of Object.entries(TEST_AS_MOCKS)) {
 
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /agents[\\/]tests\.js$/.test(parent.filename)
+    if (parent && /agents[\\/](tests|testsGuards|testsRun)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }

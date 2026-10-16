@@ -11,11 +11,11 @@ import { controlValue, MEDIA_PANELS, panelsFor } from './mediaPanels';
 
 const read = (name: string) => fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/${name}`, 'utf8');
 const WEB = {
-    image: read('NanoBananaSettings.jsx') + read('ImageGenSettings.jsx'),
-    video: read('VideoGenSettings.jsx'),
+    image: read('NanoBananaSettings.tsx') + read('ImageGenSettings.tsx'),
+    video: read('VideoGenSettings.tsx'),
     lyria: read('MusicGenSettings.jsx'),
-    elevenlabs: read('NanoBananaSettings.jsx') + read('ElevenLabsSettings.jsx'),
-    sfx: read('NanoBananaSettings.jsx') + read('ElevenLabsSettings.jsx'),
+    elevenlabs: read('NanoBananaSettings.tsx') + read('ElevenLabsSettings.jsx'),
+    sfx: read('NanoBananaSettings.tsx') + read('ElevenLabsSettings.jsx'),
 };
 
 describe.each(MEDIA_PANELS.flatMap((panel) => panel.controls.map((c) => [`${c.section}.${c.key}`, c] as const)))('%s', (_name, control) => {

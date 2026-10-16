@@ -206,7 +206,7 @@ export default function SettingsTab({
     return (
         <div className="flex flex-col gap-6 max-w-xl" data-testid="kb-tab-settings">
             {error && (
-                <p className="text-xs" role="alert" style={{ color: 'var(--error)' }}>{error}</p>
+                <p className="text-xs text-[var(--error)]" role="alert">{error}</p>
             )}
 
             <NameFields
@@ -223,7 +223,7 @@ export default function SettingsTab({
 
             {/* ── Where it can be used ──────────────────────────── */}
             <section className="flex flex-col gap-2" data-testid="kb-surfaces">
-                <h3 className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">
                     {t('knowledge.settings.where_title', 'Where it can be used')}
                 </h3>
                 <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
@@ -239,7 +239,7 @@ export default function SettingsTab({
                         />
                     ))}
                 </div>
-                <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-[11px] text-[var(--text-tertiary)]">
                     {t('knowledge.settings.where_hint', 'This decides which pickers offer this knowledge base. It does not change who may read what is in it — that is below.')}
                 </p>
             </section>
@@ -287,7 +287,7 @@ export default function SettingsTab({
             {/* ── Duplicate ─────────────────────────────────────── */}
             {canManage && kb?.id && (
                 <section className="flex flex-col gap-2" data-testid="kb-duplicate">
-                    <h3 className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">
                         {t('knowledge.settings.duplicate_title', 'Make a copy')}
                     </h3>
                     <div className="flex flex-wrap gap-2">
@@ -312,7 +312,7 @@ export default function SettingsTab({
                             {t('knowledge.settings.duplicate_sources', 'Copy with its sources')}
                         </button>
                     </div>
-                    <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="text-[11px] text-[var(--text-tertiary)]">
                         {t('knowledge.settings.duplicate_hint', 'Documents are never copied. A copied source reads its own files and pages again on its first refresh, so the copy gets what is there now.')}
                     </p>
                 </section>
@@ -330,7 +330,7 @@ export default function SettingsTab({
                     openLabel={t('knowledge.settings.delete_open', 'Delete this knowledge base')}
                     notice={(
                         <>
-                            <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="text-xs text-[var(--text-secondary)]">
                                 {t('knowledge.settings.delete_notice', 'Its documents go with it. The original files, pages and folders they were read from stay where they are.')}
                             </p>
                             {unchecked.length > 0 && (
@@ -357,7 +357,7 @@ function NameFields({ t, fieldStyle, name, description, setName, setDescription,
     return (
         <section className="flex flex-col gap-3">
             <label className="block">
-                <span className="block text-xs mb-1 font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                <span className="block text-xs mb-1 font-semibold text-[var(--text-secondary)]">
                     {t('knowledge.settings.name', 'Name')}
                 </span>
                 <input
@@ -371,7 +371,7 @@ function NameFields({ t, fieldStyle, name, description, setName, setDescription,
                 />
             </label>
             <label className="block">
-                <span className="block text-xs mb-1 font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                <span className="block text-xs mb-1 font-semibold text-[var(--text-secondary)]">
                     {t('knowledge.settings.description', 'What is in it')}
                 </span>
                 <textarea
@@ -456,11 +456,11 @@ function PersonalNotice({ t, canMove, onMove, busy }) {
             style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card)' }}
             data-testid="kb-personal-notice"
         >
-            <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
                 <Building2 style={{ width: 14, height: 14 }} aria-hidden="true" />
                 {t('knowledge.settings.personal_title', 'Personal — only you can see this')}
             </div>
-            <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-[11px] text-[var(--text-tertiary)]">
                 {t('knowledge.settings.personal_hint', 'A personal knowledge base cannot be shared. Move it into your organisation to choose an audience.')}
             </p>
             {canMove && (
@@ -480,7 +480,7 @@ function PersonalNotice({ t, canMove, onMove, busy }) {
                 </button>
             )}
             {canMove && (
-                <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-[11px] text-[var(--text-tertiary)]">
                     {/* The consequence, before the button rather than after it. */}
                     {t('knowledge.settings.move_consequence', 'It stays unshared until you pick an audience — but administrators will be able to see and manage it, and this cannot be undone.')}
                 </p>

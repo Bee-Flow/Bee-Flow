@@ -46,6 +46,7 @@ const { z, typeError } = require('../utils/zod');
 const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 
 const router = express.Router();
 
@@ -105,10 +106,7 @@ router.post('/', requireAuth, (req, res, next) => {
         const result = await transcribeLocally(tmpPath, { language });
 
         if (!result) {
-            return res.status(503).json({
-                error: 'Speech recognition is not available on this server right now.',
-                code: 'dictation_unavailable',
-            });
+            throw new HttpError(503, 'dictation_unavailable', 'Speech recognition is not available on this server right now.');
         }
         return res.json({
             text: result.text || '',
@@ -116,11 +114,12 @@ router.post('/', requireAuth, (req, res, next) => {
             durationSec: result.durationSec ?? null,
         });
     } catch (err) {
+        if (err instanceof HttpError) throw err;
         if (err?.code === 'local_whisper_too_long' || err?.code === 'npu_whisper_too_long') {
             return res.status(413).json({ error: err.message, code: 'recording_too_long' });
         }
         log.error('[Dictate] failed:', err.message);
-        return res.status(500).json({ error: 'Could not transcribe that recording.', code: 'dictation_failed' });
+        throw new HttpError(500, 'dictation_failed', 'Could not transcribe that recording.');
     } finally {
         try { await fs.promises.unlink(tmpPath); } catch (_) { /* never written */ }
     }

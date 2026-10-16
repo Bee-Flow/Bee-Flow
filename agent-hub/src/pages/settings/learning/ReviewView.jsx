@@ -47,7 +47,7 @@ export default function ReviewView({ t, locale, progressMap, reviewDue, reviewBu
                     <div className="flex items-center gap-2" style={{ padding: '12px 14px' }}>
                         <ListChecks style={{ width: 15, height: 15, color: 'var(--text-secondary)' }} aria-hidden="true" />
                         <span className="font-semibold">{t('learn.review.mistakes_title', 'Mistakes to clear')}</span>
-                        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{mistakes.length}</span>
+                        <span className="text-[11px] text-[var(--text-tertiary)]">{mistakes.length}</span>
                     </div>
                     {mistakes.length === 0 ? (
                         <div className="text-[11px]" style={{ padding: '0 14px 14px', color: 'var(--text-tertiary)' }}>{t('learn.review.mistakes_none', 'No open mistakes — every quiz and simulation you answered is cleared.')}</div>
@@ -59,7 +59,7 @@ export default function ReviewView({ t, locale, progressMap, reviewDue, reviewBu
                                 <EmojiTile icon={lesson?.icon || '❓'} size={32} />
                                 <div className="min-w-0">
                                     <div className="font-medium truncate">{tOpt(t, step?.titleKey, step?.titleFallback) || tOpt(t, step?.questionKey, step?.questionFallback) || tOpt(t, lesson?.titleKey, lesson?.titleFallback)}</div>
-                                    <div className="text-[11px] truncate flex items-center gap-1" style={{ color: 'var(--text-tertiary)' }}>
+                                    <div className="text-[11px] truncate flex items-center gap-1 text-[var(--text-tertiary)]">
                                         {m.kind === STEP_TYPES.SIM ? <Puzzle style={{ width: 11, height: 11 }} aria-hidden="true" /> : <ListChecks style={{ width: 11, height: 11 }} aria-hidden="true" />}
                                         {tOpt(t, lesson?.titleKey, lesson?.titleFallback)}{m.at && <> · {shortDate(m.at, locale)}</>}
                                     </div>
@@ -74,7 +74,7 @@ export default function ReviewView({ t, locale, progressMap, reviewDue, reviewBu
                     <div className="flex items-center gap-2" style={{ padding: '12px 14px' }}>
                         <Clock style={{ width: 15, height: 15, color: 'var(--text-secondary)' }} aria-hidden="true" />
                         <span className="font-semibold">{t('learn.review.stale_title', 'Going stale')}</span>
-                        <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('learn.review.stale_sub', 'complete, not mastered, older than {days} days').replace('{days}', String(REVIEW_STALE_DAYS))}</span>
+                        <span className="text-[11px] text-[var(--text-tertiary)]">{t('learn.review.stale_sub', 'complete, not mastered, older than {days} days').replace('{days}', String(REVIEW_STALE_DAYS))}</span>
                     </div>
                     {stale.length === 0 ? (
                         <div className="text-[11px]" style={{ padding: '0 14px 14px', color: 'var(--text-tertiary)' }}>{t('learn.review.stale_none', 'Nothing is going stale — mastered lessons never do.')}</div>
@@ -85,7 +85,7 @@ export default function ReviewView({ t, locale, progressMap, reviewDue, reviewBu
                                 <EmojiTile icon={lesson?.icon || '📘'} size={32} />
                                 <div className="min-w-0">
                                     <div className="font-medium truncate">{tOpt(t, lesson?.titleKey, lesson?.titleFallback)}</div>
-                                    <div className="text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>{t('learn.table.completed_on', 'Completed on {date}').replace('{date}', shortDate(s.completedAt, locale))}</div>
+                                    <div className="text-[11px] truncate text-[var(--text-tertiary)]">{t('learn.table.completed_on', 'Completed on {date}').replace('{date}', shortDate(s.completedAt, locale))}</div>
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     {practiceableIds.has(s.lessonId) && (

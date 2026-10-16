@@ -56,7 +56,7 @@
 
 const express = require('express');
 const crypto = require('crypto');
-const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf } = require('../core/http/schemaParts');
@@ -228,7 +228,7 @@ async function publicDataContext(found, req, res, { tableId } = {}) {
 }
 
 /** Same error contract as studioAppData.js — safe messages only, generic 500s. */
-function handleErr(res, err, where) {
+function handleErr(res, err, _where) {
     const status = err && typeof err.status === 'number' ? err.status : null;
     // dataReadRunner marks its own refusals `safe` — the same 'Table not found'
     // / 'Forbidden' text these handlers used to return inline.
@@ -241,8 +241,10 @@ function handleErr(res, err, where) {
     if (status === 422 || status === 400 || status === 403) {
         return res.status(status).json({ error: err.message });
     }
-    log.error(`[StudioAppPublic/${where}] ${err && err.message}`);
-    return res.status(500).json({ error: 'Request failed' });
+    // Public and unauthenticated: only an HttpError may carry its own message;
+    // anything else is a generic 500 (the terminal handler logs the cause).
+    if (err instanceof HttpError) throw err;
+    throw Object.assign(new Error('Request failed'), { cause: err });
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -250,33 +252,28 @@ function handleErr(res, err, where) {
 // ═══════════════════════════════════════════════════════════════════
 
 router.get('/:token', ipLimiter, tokenLimiter, async (req, res) => {
-    try {
-        privateHeaders(res);
-        const found = await loadPublicApp(req, res);
-        if (!found) return undefined;
+    privateHeaders(res);
+    const found = await loadPublicApp(req, res);
+    if (!found) return undefined;
 
-        // A fresh identity per page load. The browser persists it for the
-        // duration of the visit (sessionStorage) so a reload mid-form keeps the
-        // rows the visitor already wrote visible to them.
-        const viewerId = publicAccess.ANON_VIEWER_PREFIX + crypto.randomBytes(12).toString('hex');
-        const visitorToken = issueVisitorToken({ pageToken: found.token, appId: found.app.id, viewerId });
+    // A fresh identity per page load. The browser persists it for the
+    // duration of the visit (sessionStorage) so a reload mid-form keeps the
+    // rows the visitor already wrote visible to them.
+    const viewerId = publicAccess.ANON_VIEWER_PREFIX + crypto.randomBytes(12).toString('hex');
+    const visitorToken = issueVisitorToken({ pageToken: found.token, appId: found.app.id, viewerId });
 
-        studioAppStore.touchPublicPage(found.token);
+    studioAppStore.touchPublicPage(found.token);
 
-        return res.json({
-            app: {
-                id: found.app.id,
-                name: found.surface.title || found.app.name || 'Formulier',
-                icon: found.app.icon || null,
-            },
-            definition: publicAccess.buildPublicDefinition(found.definition, found.surface),
-            entryScreenId: found.surface.entryScreenId,
-            visitorToken,
-        });
-    } catch (err) {
-        log.error(`[StudioAppPublic/load] ${err.message}`);
-        return res.status(500).json({ error: 'Could not load this page' });
-    }
+    return res.json({
+        app: {
+            id: found.app.id,
+            name: found.surface.title || found.app.name || 'Formulier',
+            icon: found.app.icon || null,
+        },
+        definition: publicAccess.buildPublicDefinition(found.definition, found.surface),
+        entryScreenId: found.surface.entryScreenId,
+        visitorToken,
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -290,85 +287,80 @@ router.get('/:token', ipLimiter, tokenLimiter, async (req, res) => {
 // screen, so posting a back-office action id resolves to nothing.
 
 router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody, bodySizeGuard, requireVisitor, validate({ body: R.StepBody }), async (req, res) => {
-    try {
-        privateHeaders(res);
-        const found = await loadPublicApp(req, res);
-        if (!found) return undefined;
+    privateHeaders(res);
+    const found = await loadPublicApp(req, res);
+    if (!found) return undefined;
 
-        const actionId = req.params.actionId;
-        if (!found.surface.actionIds.has(actionId)) {
-            // Not reachable from a public screen — indistinguishable from an
-            // action that does not exist.
-            return res.status(404).json({ error: 'Action not found' });
-        }
-        const actions = found.definition.actions;
-        const action = (actions && typeof actions === 'object' && Object.hasOwn(actions, actionId)) ? actions[actionId] : null;
-        if (!action) return res.status(404).json({ error: 'Action not found' });
-
-        const rawIndex = req.body?.stepIndex;
-        const stepIndex = Number.isInteger(rawIndex) ? rawIndex : parseInt(rawIndex, 10);
-        const steps = flattenSteps(normalizeSequence(action));
-        const step = (Number.isInteger(stepIndex) && stepIndex >= 0 && stepIndex < steps.length) ? steps[stepIndex] : null;
-        if (!step || typeof step.kind !== 'string') return res.status(404).json({ error: 'Step not found' });
-        if (!DATA_MUTATING_STEP_KINDS.includes(step.kind)) {
-            return res.status(400).json({ error: 'This step does not run on the server' });
-        }
-
-        // Budget by kind, before any work. A model call gets its own bucket —
-        // an action legitimately repeats one per uploaded photo.
-        // Awaited: the Redis-backed limiter decides asynchronously (BFSF-459).
-        const budget = AI_STEP_KINDS.includes(step.kind) ? aiStepLimiter : stepLimiter;
-        if (!(await budget.check(req, res))) return undefined;
-
-        const ctx = await publicDataContext(found, req, res);
-        if (!ctx) return undefined;
-
-        const t0 = Date.now();
-        const result = await actionExecutor.executeDataStep(found.app, ctx.model, step, {
-            viewerId: ctx.viewerId,
-            // Audit stamp for steps that create durable records (request_approval).
-            actionId,
-            // No name, no email: there is no person behind this id, and a
-            // `currentUser.name` formula must render empty rather than invent one.
-            viewerName: null,
-            viewerEmail: null,
-            role: ctx.role,
-            orgId: found.app.organizationId || null,
-            formValues: sanitizeBag(req.body?.formValues),
-            vars: sanitizeBag(req.body?.vars),
-            variables: Array.isArray(found.definition.variables) ? found.definition.variables : null,
-            item: req.body?.item,
-            index: Number.isInteger(Number(req.body?.index)) && Number(req.body?.index) >= 0 ? Number(req.body.index) : undefined,
-            value: req.body?.value,
-            viewer: ctx.viewer,
-        });
-
-        // The work happened under the OWNER — attribute it to them, as /step does.
-        usageStore.logUsage({
-            user_id: found.app.userId,
-            organization_id: found.app.organizationId || null,
-            agent_id: found.app.id,
-            agent_name: `App: ${found.app.name || 'Untitled app'}`,
-            agent_type: 'studio_app',
-            prompt_tokens: 0,
-            completion_tokens: 0,
-            total_tokens: 0,
-            duration_ms: Date.now() - t0,
-            source: 'studio_app_public',
-            conversation_id: found.app.id,
-        }).catch(() => {});
-
-        if (result && result.ok) return res.json({ ok: true, result: result.result ?? null });
-        return res.json({
-            ok: false,
-            error: (result && result.error) || 'Step failed',
-            ...(result?.code ? { code: result.code, limit: result.limit, used: result.used } : {}),
-            result: result?.result ?? null,
-        });
-    } catch (err) {
-        log.error(`[StudioAppPublic/step] ${err.message}`);
-        return res.status(500).json({ error: 'Step failed to run' });
+    const actionId = req.params.actionId;
+    if (!found.surface.actionIds.has(actionId)) {
+        // Not reachable from a public screen — indistinguishable from an
+        // action that does not exist.
+        return res.status(404).json({ error: 'Action not found' });
     }
+    const actions = found.definition.actions;
+    const action = (actions && typeof actions === 'object' && Object.hasOwn(actions, actionId)) ? actions[actionId] : null;
+    if (!action) return res.status(404).json({ error: 'Action not found' });
+
+    const rawIndex = req.body?.stepIndex;
+    const stepIndex = Number.isInteger(rawIndex) ? rawIndex : parseInt(rawIndex, 10);
+    const steps = flattenSteps(normalizeSequence(action));
+    const step = (Number.isInteger(stepIndex) && stepIndex >= 0 && stepIndex < steps.length) ? steps[stepIndex] : null;
+    if (!step || typeof step.kind !== 'string') return res.status(404).json({ error: 'Step not found' });
+    if (!DATA_MUTATING_STEP_KINDS.includes(step.kind)) {
+        return res.status(400).json({ error: 'This step does not run on the server' });
+    }
+
+    // Budget by kind, before any work. A model call gets its own bucket —
+    // an action legitimately repeats one per uploaded photo.
+    // Awaited: the Redis-backed limiter decides asynchronously (BFSF-459).
+    const budget = AI_STEP_KINDS.includes(step.kind) ? aiStepLimiter : stepLimiter;
+    if (!(await budget.check(req, res))) return undefined;
+
+    const ctx = await publicDataContext(found, req, res);
+    if (!ctx) return undefined;
+
+    const t0 = Date.now();
+    const result = await actionExecutor.executeDataStep(found.app, ctx.model, step, {
+        viewerId: ctx.viewerId,
+        // Audit stamp for steps that create durable records (request_approval).
+        actionId,
+        // No name, no email: there is no person behind this id, and a
+        // `currentUser.name` formula must render empty rather than invent one.
+        viewerName: null,
+        viewerEmail: null,
+        role: ctx.role,
+        orgId: found.app.organizationId || null,
+        formValues: sanitizeBag(req.body?.formValues),
+        vars: sanitizeBag(req.body?.vars),
+        variables: Array.isArray(found.definition.variables) ? found.definition.variables : null,
+        item: req.body?.item,
+        index: Number.isInteger(Number(req.body?.index)) && Number(req.body?.index) >= 0 ? Number(req.body.index) : undefined,
+        value: req.body?.value,
+        viewer: ctx.viewer,
+    });
+
+    // The work happened under the OWNER — attribute it to them, as /step does.
+    usageStore.logUsage({
+        user_id: found.app.userId,
+        organization_id: found.app.organizationId || null,
+        agent_id: found.app.id,
+        agent_name: `App: ${found.app.name || 'Untitled app'}`,
+        agent_type: 'studio_app',
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: 0,
+        duration_ms: Date.now() - t0,
+        source: 'studio_app_public',
+        conversation_id: found.app.id,
+    }).catch(() => {});
+
+    if (result && result.ok) return res.json({ ok: true, result: result.result ?? null });
+    return res.json({
+        ok: false,
+        error: (result && result.error) || 'Step failed',
+        ...(result?.code ? { code: result.code, limit: result.limit, used: result.used } : {}),
+        result: result?.result ?? null,
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -485,148 +477,128 @@ function roleMayUpload(model, role) {
 }
 
 router.post('/:token/data/attachments', ipLimiter, uploadLimiter, guard, requireVisitor, validate({ body: UploadFields }), async (req, res) => {
+    privateHeaders(res);
+    const found = await loadPublicApp(req, res);
+    if (!found) return undefined;
+    const ctx = await publicDataContext(found, req, res);
+    if (!ctx) return undefined;
+    if (!roleMayUpload(ctx.model, ctx.role)) return res.status(403).json({ error: 'Forbidden' });
+
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'No file uploaded' });
+    if (!storageStore.isAvailable()) throw new HttpError(503, 'storage_unavailable', 'File storage is not available');
+
     try {
-        privateHeaders(res);
-        const found = await loadPublicApp(req, res);
-        if (!found) return undefined;
-        const ctx = await publicDataContext(found, req, res);
-        if (!ctx) return undefined;
-        if (!roleMayUpload(ctx.model, ctx.role)) return res.status(403).json({ error: 'Forbidden' });
-
-        const file = req.file;
-        if (!file) return res.status(400).json({ error: 'No file uploaded' });
-        if (!storageStore.isAvailable()) return res.status(503).json({ error: 'File storage is not available' });
-
-        try {
-            await studioAppQuota.assertAttachmentQuota(found.app, file.size);
-            await assertAttachmentTotalBytes(found.app, file.size);
-        } catch (err) {
-            if (err && err.status === 409) {
-                return res.status(409).json({ error: err.message, code: err.code, limit: err.limit, used: err.used });
-            }
-            throw err;
-        }
-
-        const sha = crypto.createHash('sha256').update(file.buffer).digest('hex');
-        const key = attachmentKey(found.app.userId, found.app.id, sha);
-
-        // Put the blob, THEN scan — the ledger row is written only on a clean
-        // verdict, so unscanned bytes are never linked to a record.
-        await storageStore.uploadFile(key, file.buffer, file.mimetype, file.sanitized ? { sanitized: 'true' } : null);
-        const scan = await scanBuffer(file.buffer);
-        if (!scan.clean) {
-            try { await storageStore.deleteFile(key); } catch (_) { /* best-effort */ }
-            return res.status(422).json({ error: 'File failed a malware scan', signature: scan.signature || null });
-        }
-
-        const body = (req.body && typeof req.body === 'object') ? req.body : {};
-        const attachment = await studioAppDataStore.addAttachment(found.app.id, found.app.userId, {
-            recordId: null, // the record does not exist yet — the form is still open
-            fieldKey: typeof body.fieldKey === 'string' && body.fieldKey ? body.fieldKey.slice(0, 100) : null,
-            mimeType: file.mimetype,
-            sha256: sha,
-            size: file.size,
-        });
-        await studioAppDataStore.setAttachmentScan(attachment.id, found.app.id, found.app.userId, { scanned: true, quarantined: false })
-            .catch(() => { /* advisory */ });
-
-        return res.json({
-            success: true,
-            attachment: {
-                id: attachment.id,
-                recordId: null,
-                fieldKey: attachment.fieldKey,
-                mime: attachment.mimeType,
-                size: attachment.size,
-                sha: attachment.sha256,
-                scanned: true,
-            },
-        });
+        await studioAppQuota.assertAttachmentQuota(found.app, file.size);
+        await assertAttachmentTotalBytes(found.app, file.size);
     } catch (err) {
-        log.error(`[StudioAppPublic/upload] ${err.message}`);
-        return res.status(500).json({ error: 'Upload failed' });
+        if (err && err.status === 409) {
+            return res.status(409).json({ error: err.message, code: err.code, limit: err.limit, used: err.used });
+        }
+        throw err;
     }
+
+    const sha = crypto.createHash('sha256').update(file.buffer).digest('hex');
+    const key = attachmentKey(found.app.userId, found.app.id, sha);
+
+    // Put the blob, THEN scan — the ledger row is written only on a clean
+    // verdict, so unscanned bytes are never linked to a record.
+    await storageStore.uploadFile(key, file.buffer, file.mimetype, file.sanitized ? { sanitized: 'true' } : null);
+    const scan = await scanBuffer(file.buffer);
+    if (!scan.clean) {
+        try { await storageStore.deleteFile(key); } catch (_) { /* best-effort */ }
+        return res.status(422).json({ error: 'File failed a malware scan', signature: scan.signature || null });
+    }
+
+    const body = (req.body && typeof req.body === 'object') ? req.body : {};
+    const attachment = await studioAppDataStore.addAttachment(found.app.id, found.app.userId, {
+        recordId: null, // the record does not exist yet — the form is still open
+        fieldKey: typeof body.fieldKey === 'string' && body.fieldKey ? body.fieldKey.slice(0, 100) : null,
+        mimeType: file.mimetype,
+        sha256: sha,
+        size: file.size,
+    });
+    await studioAppDataStore.setAttachmentScan(attachment.id, found.app.id, found.app.userId, { scanned: true, quarantined: false })
+        .catch(() => { /* advisory */ });
+
+    return res.json({
+        success: true,
+        attachment: {
+            id: attachment.id,
+            recordId: null,
+            fieldKey: attachment.fieldKey,
+            mime: attachment.mimeType,
+            size: attachment.size,
+            sha: attachment.sha256,
+            scanned: true,
+        },
+    });
 });
 
-router.get('/:token/data/attachments/:fileId', ipLimiter, tokenLimiter, requireVisitor, async (req, res) => {
+router.get('/:token/data/attachments/:fileId', ipLimiter, tokenLimiter, requireVisitor, async (req, res, next) => {
+    privateHeaders(res);
+    const found = await loadPublicApp(req, res);
+    if (!found) return undefined;
+    const ctx = await publicDataContext(found, req, res);
+    if (!ctx) return undefined;
+
+    const attachment = await studioAppDataStore.getAttachment(req.params.fileId, found.app.id, found.app.userId);
+    if (!attachment || attachment.quarantined) return res.status(404).json({ error: 'Attachment not found' });
+
+    // The SAME record-shaped rule the signed-in download uses: readable
+    // exactly when a record it hangs off is readable under this role. An
+    // upload that is not yet on a record is therefore not yet readable —
+    // which is correct, and is why the uploader is never handed a
+    // capability by virtue of having uploaded.
+    const allowed = await attachmentAccess.viewerMayReadAttachment(found.app, attachment, {
+        id: ctx.viewerId, role: ctx.role, model: ctx.model, organizationId: null,
+    });
+    if (!allowed) return res.status(404).json({ error: 'Attachment not found' });
+
+    const key = attachmentKey(found.app.userId, found.app.id, attachment.sha256);
+    let obj;
     try {
-        privateHeaders(res);
-        const found = await loadPublicApp(req, res);
-        if (!found) return undefined;
-        const ctx = await publicDataContext(found, req, res);
-        if (!ctx) return undefined;
-
-        const attachment = await studioAppDataStore.getAttachment(req.params.fileId, found.app.id, found.app.userId);
-        if (!attachment || attachment.quarantined) return res.status(404).json({ error: 'Attachment not found' });
-
-        // The SAME record-shaped rule the signed-in download uses: readable
-        // exactly when a record it hangs off is readable under this role. An
-        // upload that is not yet on a record is therefore not yet readable —
-        // which is correct, and is why the uploader is never handed a
-        // capability by virtue of having uploaded.
-        const allowed = await attachmentAccess.viewerMayReadAttachment(found.app, attachment, {
-            id: ctx.viewerId, role: ctx.role, model: ctx.model, organizationId: null,
-        });
-        if (!allowed) return res.status(404).json({ error: 'Attachment not found' });
-
-        const key = attachmentKey(found.app.userId, found.app.id, attachment.sha256);
-        let obj;
-        try {
-            obj = await storageStore.streamFile(key);
-        } catch (err) {
-            if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
-                return res.status(404).json({ error: 'Attachment not found' });
-            }
-            throw err;
-        }
-
-        const mime = attachment.mimeType || obj.contentType || 'application/octet-stream';
-        res.setHeader('Content-Type', mime);
-        res.setHeader('X-Content-Type-Options', 'nosniff');
-        const inline = /^image\//.test(mime) || mime === 'application/pdf';
-        res.setHeader('Content-Disposition', inline ? 'inline' : 'attachment');
-        if (obj.contentLength) res.setHeader('Content-Length', obj.contentLength);
-        obj.stream.on('error', (e) => {
-            log.error(`[StudioAppPublic/stream] ${e.message}`);
-            if (!res.headersSent) res.status(500).json({ error: 'Stream failed' });
-            else res.destroy();
-        });
-        return obj.stream.pipe(res);
+        obj = await storageStore.streamFile(key);
     } catch (err) {
-        log.error(`[StudioAppPublic/get] ${err.message}`);
-        if (!res.headersSent) return res.status(500).json({ error: 'Failed to load attachment' });
-        return undefined;
+        if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
+            return res.status(404).json({ error: 'Attachment not found' });
+        }
+        throw err;
     }
+
+    const mime = attachment.mimeType || obj.contentType || 'application/octet-stream';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    const inline = /^image\//.test(mime) || mime === 'application/pdf';
+    res.setHeader('Content-Disposition', inline ? 'inline' : 'attachment');
+    if (obj.contentLength) res.setHeader('Content-Length', obj.contentLength);
+    obj.stream.on('error', next);
+    return obj.stream.pipe(res);
 });
 
 // Re-picking a file three times must not leave three dead blobs charging
 // against the owner's quota. Refuses anything already linked to a record, so
 // this can only ever discard an upload that never landed anywhere.
 router.delete('/:token/data/attachments/:fileId', ipLimiter, uploadLimiter, requireVisitor, async (req, res) => {
-    try {
-        privateHeaders(res);
-        const found = await loadPublicApp(req, res);
-        if (!found) return undefined;
-        const ctx = await publicDataContext(found, req, res);
-        if (!ctx) return undefined;
-        if (!roleMayUpload(ctx.model, ctx.role)) return res.status(403).json({ error: 'Forbidden' });
+    privateHeaders(res);
+    const found = await loadPublicApp(req, res);
+    if (!found) return undefined;
+    const ctx = await publicDataContext(found, req, res);
+    if (!ctx) return undefined;
+    if (!roleMayUpload(ctx.model, ctx.role)) return res.status(403).json({ error: 'Forbidden' });
 
-        const attachment = await studioAppDataStore.getAttachment(req.params.fileId, found.app.id, found.app.userId);
-        if (!attachment) return res.status(404).json({ error: 'Attachment not found' });
-        if (attachment.recordId) {
-            return res.status(409).json({ error: 'This file is attached to a record.', code: 'attachment_linked' });
-        }
-
-        await studioAppDataStore.deleteAttachment(attachment.id, found.app.id, found.app.userId);
-        const stillUsed = await studioAppDataStore.countAttachmentsBySha(found.app.id, found.app.userId, attachment.sha256);
-        if (stillUsed === 0 && attachment.sha256 && storageStore.isAvailable()) {
-            try { await storageStore.deleteFile(attachmentKey(found.app.userId, found.app.id, attachment.sha256)); } catch (_) { /* swept later */ }
-        }
-        return res.json({ success: true });
-    } catch (err) {
-        log.error(`[StudioAppPublic/delete] ${err.message}`);
-        return res.status(500).json({ error: 'Failed to remove the file' });
+    const attachment = await studioAppDataStore.getAttachment(req.params.fileId, found.app.id, found.app.userId);
+    if (!attachment) return res.status(404).json({ error: 'Attachment not found' });
+    if (attachment.recordId) {
+        return res.status(409).json({ error: 'This file is attached to a record.', code: 'attachment_linked' });
     }
+
+    await studioAppDataStore.deleteAttachment(attachment.id, found.app.id, found.app.userId);
+    const stillUsed = await studioAppDataStore.countAttachmentsBySha(found.app.id, found.app.userId, attachment.sha256);
+    if (stillUsed === 0 && attachment.sha256 && storageStore.isAvailable()) {
+        try { await storageStore.deleteFile(attachmentKey(found.app.userId, found.app.id, attachment.sha256)); } catch (_) { /* swept later */ }
+    }
+    return res.json({ success: true });
 });
 
 module.exports = router;

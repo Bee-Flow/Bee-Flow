@@ -34,6 +34,7 @@ const {
     handleSetupIntentSucceeded,
 } = require('./customerEvents');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 
 const router = express.Router();
 
@@ -57,13 +58,7 @@ router.post('/webhook', async (req, res) => {
     // processed. Fails CLOSED: if the ledger is unreachable we cannot tell a
     // first delivery from a replay, and a 500 gets the event redelivered rather
     // than double-applied.
-    let firstTime;
-    try {
-        firstTime = await userStore.recordStripeEventProcessed(event.id, event.type);
-    } catch (err) {
-        log.error(`[Stripe Webhook] idempotency ledger unavailable event_id=${event.id}:`, err.message);
-        return res.status(500).json({ error: 'ledger_unavailable' });
-    }
+    const firstTime = await userStore.recordStripeEventProcessed(event.id, event.type);
     if (!firstTime) {
         log.info(`[Stripe Webhook] stripe.webhook.duplicate event_id=${event.id} type=${event.type}`);
         return res.json({ received: true, duplicate: true });
@@ -159,7 +154,7 @@ router.post('/webhook', async (req, res) => {
         } catch (releaseErr) {
             log.error(`[Stripe Webhook] could not release ledger row ${event.id} — the retry will replay-skip:`, releaseErr.message);
         }
-        return res.status(500).json({ error: 'handler_failed', event_id: event.id });
+        throw new HttpError(500, 'handler_failed', 'handler_failed', { event_id: event.id });
     }
 
     res.json({ received: true });

@@ -13,9 +13,12 @@ const assert = require('node:assert');
 const { installResolveStub } = require('../../../../testUtils/stubRequire');
 
 const world = { ncOrg: true, permitted: true, denial: null, session: { user: { id: 'u1' } }, auth: { baseUrl: 'http://nc', fetch: async () => ({}) }, org: { nc_instance_id: 'inst_1' } };
+// Core reaches these through core/integrations/integrationClients.js (boot registers the real ones).
+require('../../../integrations/integrationClients').registerIntegrationClients({
+    nextcloud: () => ({ resolveAuth: async () => world.auth }),
+});
 const restore = installResolveStub({
     '../../../automationRunner/sessionResolution': { resolveUserSession: async () => world.session },
-    '../../../../integrations/nextcloudClient': { resolveAuth: async () => world.auth },
     '../../../../auth/ncAudience': { isNcOrg: async () => world.ncOrg },
     '../../../integrations/integrationTools': { isIntegrationPermittedForUser: async () => world.permitted },
     '../../../integrations/ncScopeGuard': { checkToolCall: async () => world.denial },

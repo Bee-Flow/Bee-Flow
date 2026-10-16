@@ -62,7 +62,29 @@ function routeBody(verb, pathStr) {
     assert.ok(i > -1, `route ${verb.toUpperCase()} ${pathStr} not found`);
     const rest = SRC.slice(i + needle.length);
     const next = rest.search(/\n[ \t]*router\.(get|post|put|delete|use)\(/);
-    return next === -1 ? rest : rest.slice(0, next);
+    const reg = next === -1 ? rest : rest.slice(0, next);
+    return reg + handlerText(reg);
+}
+
+// A route registered with a named handler (`H.updateRow`) keeps its body in a
+// sibling module of the folder (rowHandlers.js, rowTransfer.js). Read the
+// handler's definition, and the definitions of the folder functions it calls,
+// as part of the route: the registration line alone asserts nothing.
+function handlerText(reg) {
+    const ref = reg.match(/,\s*(?:[A-Z]\w*\.)?(\w+)\);/);
+    if (!ref) return '';
+    const seen = new Set();
+    const defOf = (name) => {
+        const at = SRC.indexOf(`function ${name}(`);
+        if (at === -1 || seen.has(name)) return '';
+        seen.add(name);
+        const end = SRC.slice(at + 1).search(/\n(?:async )?function |\nconst |\nmodule\.exports/);
+        return end === -1 ? SRC.slice(at) : SRC.slice(at, at + 1 + end);
+    };
+    const own = defOf(ref[1]);
+    if (!own) return '';
+    const helpers = [...own.matchAll(/\b(\w+)\(/g)].map(m => defOf(m[1])).join('\n');
+    return `\n${own}\n${helpers}`;
 }
 
 test('the router is mounted on its own path, not under /api/automation', () => {

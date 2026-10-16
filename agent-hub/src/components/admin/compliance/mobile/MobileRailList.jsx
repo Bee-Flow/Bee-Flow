@@ -26,12 +26,12 @@ export const MOBILE_ROW_CLASS = 'w-full flex items-center gap-3 px-3.5 py-2.5 mi
 export function RailMetaText({ meta }) {
     if (!meta) return null;
     if (meta.kind === 'text') {
-        return <span className="text-[11px] whitespace-nowrap" style={{ color: 'var(--text-tertiary)' }}>{meta.text}</span>;
+        return <span className="text-[11px] whitespace-nowrap text-[var(--text-tertiary)]">{meta.text}</span>;
     }
     if (meta.kind === 'score') {
         const tone = TONES[meta.tone] || TONES.neutral;
         return (
-            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold tabular-nums text-[var(--text-primary)]">
                 <span aria-hidden="true" className="inline-block w-2 h-2 rounded-full" style={{ background: tone.raw }} />
                 {meta.score}
             </span>
@@ -49,7 +49,7 @@ export function RailMetaText({ meta }) {
                 {!meta.badge && meta.dueAt && (
                     <DeadlineClock variant="rail" dueAt={meta.dueAt} startedAt={meta.startedAt} urgentBelowMs={meta.urgentBelowMs} />
                 )}
-                {meta.suffix && <span style={{ color: 'var(--text-tertiary)' }}>{meta.suffix}</span>}
+                {meta.suffix && <span className="text-[var(--text-tertiary)]">{meta.suffix}</span>}
             </span>
         );
     }
@@ -78,7 +78,7 @@ export function MobileSectionRow({ section, meta, hint = null, active, onClick, 
                 onClick={onClick} className={`${MOBILE_ROW_CLASS} border-b last:border-b-0`}
                 style={{ borderColor: 'var(--border-default)', background: active ? 'var(--bg-tertiary)' : 'transparent' }}>
                 {Icon && <Icon size={16} aria-hidden="true" className="flex-shrink-0" style={{ color: active ? 'var(--kind-compliance)' : 'var(--text-secondary)' }} />}
-                <span className="flex-1 min-w-0 truncate text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>
+                <span className="flex-1 min-w-0 truncate text-[13px] font-medium text-[var(--text-primary)]">
                     {label}
                 </span>
                 <RailMetaText meta={meta} />
@@ -108,7 +108,7 @@ export default function MobileRailList({ groups, counts, frameworks, active, onS
                 return (
                     <div key={groupId} className="flex flex-col gap-2">
                         {showHeads && group && (
-                            <div className="text-[11px] font-semibold uppercase tracking-wide px-1" style={{ color: 'var(--text-tertiary)' }}>
+                            <div className="text-[11px] font-semibold uppercase tracking-wide px-1 text-[var(--text-tertiary)]">
                                 {t(group.labelKey, group.labelFallback)}
                             </div>
                         )}

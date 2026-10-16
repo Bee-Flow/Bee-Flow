@@ -131,7 +131,7 @@ router.post('/setup', validate({ body: SetupBody }), async (req, res) => {
 
     config.admin.passwordHash = await passwords.hash(password, { bcryptRounds: 12 });
     if (!await saveConfig({ admin: config.admin })) {
-        return res.status(500).json({ error: 'Failed to save config' });
+        throw new Error('Initial setup: failed to save the admin configuration');
     }
 
     // Create admin user in the users table so DEK can be stored

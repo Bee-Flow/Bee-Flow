@@ -344,8 +344,7 @@ export default function CanvasSouthBar({
                         type="button"
                         onClick={onOpenFormOverlay}
                         data-testid="canvas-run-open-form"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition hover:opacity-90"
-                        style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg)' }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition hover:opacity-90 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
                     >
                         <FileText size={12} /> {t('automations.canvas.open_form', 'Open the form')}
                     </button>
@@ -406,8 +405,7 @@ export default function CanvasSouthBar({
                         onClick={onDeleteSelection}
                         disabled={structuralEditsBlocked}
                         title={t('automations.canvas_south_bar.delete_the_selected_steps_their_neighbours', 'Delete the selected steps (their neighbours reconnect)')}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-[var(--bg-tertiary)] disabled:opacity-40 transition"
-                        style={{ color: 'var(--error)' }}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-[var(--bg-tertiary)] disabled:opacity-40 transition text-[var(--error)]"
                     >
                         <Trash2 size={12} /> {t('automations.canvas.delete', 'Delete')}
                     </button>

@@ -26,6 +26,7 @@ const { tagGate } = require('../auth/gateMeta');
 const { buildKey } = require('../utils/buildInfo');
 const { recordFeatureGate } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { HttpError } = require('../shared/httpErrors');
 const tiers = license.tiers;
 
 const UPGRADE_URL = process.env.LICENSE_UPGRADE_URL || 'https://beeflow.nl/pricing';
@@ -187,7 +188,7 @@ function requireTier(requiredTier) {
         if (!req.session?.isAuthenticated) return next(); // let auth middleware reject
         const resolution = await resolveBestTierForRequest(req);
         if (resolution.error === 'tier_unavailable') {
-            return res.status(503).json({ error: 'tier_unavailable', retry_after: 1 });
+            return next(new HttpError(503, 'tier_unavailable', 'tier_unavailable', { retry_after: 1 }));
         }
         if (!tiers.tierAtLeast(resolution.tier, requiredTier)) {
             recordFeatureGate({ feature: 'tier_gate', tier: requiredTier, decision: 'deny' });
@@ -233,7 +234,7 @@ function requireFeature(featureName) {
         if (!req.session?.isAuthenticated) return next();
         const { allowed, resolution } = await featureAllowedForRequest(req, featureName);
         if (resolution.error === 'tier_unavailable') {
-            return res.status(503).json({ error: 'tier_unavailable', retry_after: 1 });
+            return next(new HttpError(503, 'tier_unavailable', 'tier_unavailable', { retry_after: 1 }));
         }
         if (!allowed) {
             const required = findRequiredTierForFeature(featureName) || 'enterprise';

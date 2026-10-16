@@ -52,7 +52,7 @@ export function wandToastText(t: TranslateFn, { mapped, ai = 0 }: { mapped: numb
 }
 
 export default function useAiAutoMap({ inputs, api = null }: { inputs: Inputs; api?: SuggestMappingsApi | null }) {
-    const hookApi = useAutomationApi() as unknown as SuggestMappingsApi;
+    const hookApi = useAutomationApi();
     const client = api || hookApi;
     const { t } = useTranslation();
     // The answer arrives after the editor has re-rendered (at least with the

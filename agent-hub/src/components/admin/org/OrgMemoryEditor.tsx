@@ -18,6 +18,7 @@ import Section from '../../shared/Section';
 import { toast } from '../../shared/Toast';
 import Toggle from '../../shared/Toggle';
 import useConfirm from '../../shared/useConfirm';
+import { errorStatus } from '../../../utils/caughtError';
 
 const CONFIRM_WORD = 'DELETE';
 
@@ -123,7 +124,7 @@ function Form({ orgId, server }: { orgId: string; server: OrgMemoryState }) {
                     toast.info(nOf(t, 'admin.org_memory.deleted_sensitive', saved.deletedSensitive, 'Deleted 1 sensitive memory.', 'Deleted {count} sensitive memories.'));
                 }
             },
-            onError: (e) => toast.error((e as { status?: number }).status === 403
+            onError: (e) => toast.error(errorStatus(e) === 403
                 ? t('admin.org_memory.forbidden', 'Only an admin of this organisation can change this.')
                 : t('admin.org_memory.save_failed', 'Could not save the memory settings')),
         });

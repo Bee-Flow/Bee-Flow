@@ -69,7 +69,7 @@ export default function ChatActivity({ msg, sessionSkills = [], t: tProp = null 
                 <span className="text-[10px] text-[var(--text-tertiary)]">{rows.length}</span>
                 {!streaming && totalMs > 0 && <DurationPill ms={totalMs} />}
                 {failed > 0 && (
-                    <span className="ml-auto flex items-center gap-1 text-[10px]" style={{ color: 'var(--warning)' }}>
+                    <span className="ml-auto flex items-center gap-1 text-[10px] text-[var(--warning)]">
                         <TriangleAlert size={11} />
                         {t('chat.act.failed_count', '{n} failed', { n: failed })}
                     </span>
@@ -171,7 +171,7 @@ function ActivityRow({ n, row, entry, result, t }) {
 function PayloadBlock({ label, text }) {
     return (
         <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-tertiary)' }}>{label}</div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5 text-[var(--text-tertiary)]">{label}</div>
             <pre className="bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-md p-2 max-h-60 overflow-auto whitespace-pre-wrap text-[var(--text-primary)]">
                 {text}
             </pre>

@@ -35,7 +35,6 @@ const { z, typeError } = require('../../utils/zod');
 // empty questionnaire, and the outcome it computed from the live signals alone
 // was attested, written to the evidence chain and answered 200 as if the
 // admin's answers had been recorded.
-const log = require('../../telemetry/log');
 const router = express.Router();
 
 const aiActAssessmentStore = require('../../stores/aiActAssessmentStore');
@@ -94,98 +93,78 @@ const AssessmentBody = z.preprocess((v) => (v === undefined || v === null ? {} :
 }).strict());
 
 router.get('/ai-act/assessments', ...guard, async (req, res) => {
-    try {
-        const orgId = await requireOrgId(req, res);
-        if (!orgId) return;
-        const rows = await aiActAssessmentStore.listForOrg(orgId);
-        const titles = await signals.titlesFor(orgId, rows);
-        res.json(rows.map(r => ({
-            target_kind: r.target_kind,
-            target_id: r.target_id,
-            title: (titles[r.target_kind] || {})[String(r.target_id)] ?? null,
-            outcome: r.outcome,
-            attested_by: r.attested_by || null,
-            attested_at: r.attested_at,
-            expires_at: r.expires_at || null,
-            current: aiActAssessmentStore.isCurrent(r),
-        })));
-    } catch (e) {
-        log.error('[compliance/aiAct] list failed:', e.message);
-        res.status(500).json({ error: 'Failed to list AI Act assessments' });
-    }
+    const orgId = await requireOrgId(req, res);
+    if (!orgId) return;
+    const rows = await aiActAssessmentStore.listForOrg(orgId);
+    const titles = await signals.titlesFor(orgId, rows);
+    res.json(rows.map(r => ({
+        target_kind: r.target_kind,
+        target_id: r.target_id,
+        title: (titles[r.target_kind] || {})[String(r.target_id)] ?? null,
+        outcome: r.outcome,
+        attested_by: r.attested_by || null,
+        attested_at: r.attested_at,
+        expires_at: r.expires_at || null,
+        current: aiActAssessmentStore.isCurrent(r),
+    })));
 });
 
 router.get('/ai-act/assessments/:kind/:id/signals', ...guard, async (req, res) => {
-    try {
-        const orgId = await requireOrgId(req, res);
-        if (!orgId) return;
-        const t = _target(req, res);
-        if (!t) return;
-        const live = await _liveSignals(orgId, t.kind, t.id);
-        if (!live) return res.status(404).json({ error: 'target_not_found' });
-        res.json(live);
-    } catch (e) {
-        log.error('[compliance/aiAct] signals failed:', e.message);
-        res.status(500).json({ error: 'Failed to compute AI Act signals' });
-    }
+    const orgId = await requireOrgId(req, res);
+    if (!orgId) return;
+    const t = _target(req, res);
+    if (!t) return;
+    const live = await _liveSignals(orgId, t.kind, t.id);
+    if (!live) return res.status(404).json({ error: 'target_not_found' });
+    res.json(live);
 });
 
 router.get('/ai-act/assessments/:kind/:id', ...guard, async (req, res) => {
-    try {
-        const orgId = await requireOrgId(req, res);
-        if (!orgId) return;
-        const t = _target(req, res);
-        if (!t) return;
-        const target = await _loadTarget(orgId, t.kind, t.id);
-        if (!target) return res.status(404).json({ error: 'target_not_found' });
-        const latest = await aiActAssessmentStore.getLatest(orgId, t.kind, t.id);
-        const history = await aiActAssessmentStore.listHistory(orgId, t.kind, t.id, { limit: 20 });
-        if (!latest) {
-            // Never assessed: hand the drawer the live signals so the questionnaire
-            // opens pre-filled; outcome stays null until the admin attests.
-            const live = await _liveSignals(orgId, t.kind, t.id);
-            return res.json({
-                target_kind: t.kind, target_id: t.id, title: _titleOf(t.kind, target),
-                signals: live || {}, answers: null, outcome: null,
-                attested_by: null, attested_at: null, expires_at: null, current: false,
-                open_duties: assess.openDuties(live || {}, {}),
-                history: [],
-            });
-        }
-        const row = _publicRow(latest);
-        res.json({
-            ...row,
-            title: _titleOf(t.kind, target),
-            open_duties: assess.openDuties(row.signals, row.answers),
-            history: history.map(_publicRow),
+    const orgId = await requireOrgId(req, res);
+    if (!orgId) return;
+    const t = _target(req, res);
+    if (!t) return;
+    const target = await _loadTarget(orgId, t.kind, t.id);
+    if (!target) return res.status(404).json({ error: 'target_not_found' });
+    const latest = await aiActAssessmentStore.getLatest(orgId, t.kind, t.id);
+    const history = await aiActAssessmentStore.listHistory(orgId, t.kind, t.id, { limit: 20 });
+    if (!latest) {
+        // Never assessed: hand the drawer the live signals so the questionnaire
+        // opens pre-filled; outcome stays null until the admin attests.
+        const live = await _liveSignals(orgId, t.kind, t.id);
+        return res.json({
+            target_kind: t.kind, target_id: t.id, title: _titleOf(t.kind, target),
+            signals: live || {}, answers: null, outcome: null,
+            attested_by: null, attested_at: null, expires_at: null, current: false,
+            open_duties: assess.openDuties(live || {}, {}),
+            history: [],
         });
-    } catch (e) {
-        log.error('[compliance/aiAct] detail failed:', e.message);
-        res.status(500).json({ error: 'Failed to load AI Act assessment' });
     }
+    const row = _publicRow(latest);
+    res.json({
+        ...row,
+        title: _titleOf(t.kind, target),
+        open_duties: assess.openDuties(row.signals, row.answers),
+        history: history.map(_publicRow),
+    });
 });
 
 router.put('/ai-act/assessments/:kind/:id', ...guard, validate({ body: AssessmentBody }), async (req, res) => {
-    try {
-        const orgId = await requireOrgId(req, res);
-        if (!orgId) return;
-        const t = _target(req, res);
-        if (!t) return;
-        const body = req.body;
-        const target = await _loadTarget(orgId, t.kind, t.id);
-        if (!target) return res.status(404).json({ error: 'target_not_found' });
+    const orgId = await requireOrgId(req, res);
+    if (!orgId) return;
+    const t = _target(req, res);
+    if (!t) return;
+    const body = req.body;
+    const target = await _loadTarget(orgId, t.kind, t.id);
+    if (!target) return res.status(404).json({ error: 'target_not_found' });
 
-        const live = await _liveSignals(orgId, t.kind, t.id);
-        const actorId = req.session?.user?.id || null;
-        const { row, result } = await attest({
-            orgId, kind: t.kind, id: t.id, signals: live || {}, answers: body.answers || {}, actorId,
-        });
+    const live = await _liveSignals(orgId, t.kind, t.id);
+    const actorId = req.session?.user?.id || null;
+    const { row, result } = await attest({
+        orgId, kind: t.kind, id: t.id, signals: live || {}, answers: body.answers || {}, actorId,
+    });
 
-        res.json({ ...(_publicRow(row) || {}), title: _titleOf(t.kind, target), open_duties: result.open_duties });
-    } catch (e) {
-        log.error('[compliance/aiAct] attest failed:', e.message);
-        res.status(500).json({ error: 'Failed to record AI Act assessment' });
-    }
+    res.json({ ...(_publicRow(row) || {}), title: _titleOf(t.kind, target), open_duties: result.open_duties });
 });
 
 module.exports = router;

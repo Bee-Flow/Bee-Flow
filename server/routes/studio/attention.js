@@ -349,21 +349,15 @@ function createAttentionRouter(deps = null) {
         res.set('Cache-Control', 'private, no-store');
         const cached = cacheGet(key);
         if (cached) return res.json(cached);
-        try {
-            const body = await collectAttention(req, d);
-            // ONLY A COMPLETE ANSWER IS CACHED. Holding an incomplete one for a
-            // minute would turn a two-second store hiccup into a minute of a
-            // screen that cannot say whether anything is wrong.
-            if (body.complete) cacheSet(key, body);
-            return res.json(body);
-        } catch (err) {
-            // collectAttention swallows per-source failures, so this is the
-            // "could not even start" case. It 500s rather than answering with
-            // an empty list, because an empty list is the one sentence this
-            // endpoint must never say by accident.
-            log.error('[StudioAttention] failed:', err?.message || err);
-            return res.status(500).json({ error: 'Could not check' });
-        }
+        // collectAttention swallows per-source failures; one that cannot even
+        // start rejects to a 500 (the terminal handler), never an empty list,
+        // because an empty list is the one sentence this endpoint must never say.
+        const body = await collectAttention(req, d);
+        // ONLY A COMPLETE ANSWER IS CACHED. Holding an incomplete one for a
+        // minute would turn a two-second store hiccup into a minute of a
+        // screen that cannot say whether anything is wrong.
+        if (body.complete) cacheSet(key, body);
+        return res.json(body);
     });
 
     router.__clearCacheForTests = () => cache.clear();

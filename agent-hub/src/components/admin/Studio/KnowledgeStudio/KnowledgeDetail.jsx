@@ -213,7 +213,7 @@ export default function KnowledgeDetail({
 
     if (loading) {
         return (
-            <div className="h-full flex items-center justify-center" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="h-full flex items-center justify-center text-[var(--text-tertiary)]">
                 <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                 <span className="sr-only">{t('knowledge.loading', 'Loading…')}</span>
             </div>

@@ -5,7 +5,7 @@
  */
 
 const { resolveValue, resolveInputs } = require('../automationModel/bind');
-const { evaluate, parseExpr } = require('../../automation/expr');
+const { evaluate, parseExpr } = require('./expr');
 const safety = require('./safety');
 const usageStore = require('../../stores/usageStore');
 const { usageLogFields } = require('../providers/usageNormalizer');
@@ -324,7 +324,7 @@ function parseParseJsonSource(raw, { requireStructured }) {
         throw new Error('parse_json: source is undefined — the Source path matched nothing. Check the Source field (e.g. steps.<id>.output.body).');
     }
     if (typeof raw === 'string') {
-        const { extractJsonText, parseJsonText } = require('../../automation/expr');
+        const { extractJsonText, parseJsonText } = require('./expr');
         const text = raw.replace(/^﻿/, '').trim();
         let v;
         try { v = JSON.parse(text); }

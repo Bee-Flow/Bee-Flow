@@ -71,19 +71,6 @@ async function requireSolutionProject(req, res, next) {
 }
 
 /**
- * Errors with a 4xx status were raised on purpose and carry a message for the
- * caller, and so does an HttpError of any status (a 503 `ref_ledger_unavailable`
- * or `bindings_unavailable` is written for the caller too): they go to the
- * terminal error handler as they are. Only the rest is logged and answered
- * with a generic 500.
- */
-function rethrowClientError(err) {
-    if (err instanceof HttpError) throw err;
-    const status = Number(err?.status);
-    if (Number.isInteger(status) && status >= 400 && status < 500) throw err;
-}
-
-/**
  * POST /:id/package/export — capture this project as a Blueprint.
  *
  * Returns the manifest as JSON rather than a download: what the caller does
@@ -98,96 +85,90 @@ function rethrowClientError(err) {
  * `_checks` so the caller can say what an installer would run into.
  */
 router.post('/:id/package/export', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.ExportBody }), requireSolutionProject, require('../../compliance/dataPortability/stampExport')('solutions'), async (req, res) => {
-    try {
-        const projectStore = require('../../stores/projectStore');
-        const project = await projectStore.getProject(req.params.id);
-        if (!project) return res.status(404).json({ error: 'Not found' });
+    const projectStore = require('../../stores/projectStore');
+    const project = await projectStore.getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Not found' });
 
-        const save = req.body?.save === true;
-        const verdict = await publication.releaseGate(project);
-        if (save && verdict.blocked) {
-            throw new HttpError(409, 'release_blocked',
-                'This Solution has findings that block publishing. Resolve them, then publish again.',
-                { findings: verdict.findings, unavailable: verdict.unavailable });
-        }
-
-        // Stamped by the caller so capture stays a pure function of the
-        // database's state and two runs can be compared.
-        const exportedAt = new Date().toISOString();
-        // A publication names every part by its ledger ref (F1), so an
-        // installed copy's stamps match the right part on the next upgrade
-        // however the store orders the list. A download is not a publication
-        // and leaves the ledger alone.
-        const result = save
-            ? await captureWithLedger(project, exportedAt)
-            : await captureSolution({ project, exportedAt });
-        if (!result.ok) return res.status(400).json({ error: result.errors.join(' ') });
-
-        // `save` keeps it on the instance so another team can install it
-        // without a file passing through anyone's downloads folder. Opt-in,
-        // because a download is the more private default and the size ceiling
-        // only applies to what is stored.
-        //
-        // PUBLISHING, not just saving (O4). `publishRelease` writes the gallery
-        // row and the history row in one transaction — see its header for why a
-        // failed history row must take the gallery row down with it, rather
-        // than leaving a version that nobody can find back.
-        //
-        // The note comes from the server, never from the request (see
-        // `releaseNotesFor`): a diff is the server's statement about two
-        // manifests, and the export schema refuses a `notes` key.
-        let saved = null;
-        if (save) {
-            try {
-                const store = require('../../stores/blueprintStore');
-                const notes = await publication.releaseNotesFor({
-                    store, project, userId: req.session.user.id, manifest: result.manifest,
-                });
-                const published = await store.publishRelease({
-                    organizationId: project.organizationId || null,
-                    createdBy: req.session.user.id,
-                    sourceProjectId: project.id,
-                    manifest: result.manifest,
-                    notes,
-                });
-                saved = published.blueprint;
-                await publication.announcePublication(project.id, req.session.user.id);
-            } catch (err) {
-                // The capture succeeded; only publishing it failed. Hand back
-                // the manifest anyway so the download still works, and say why.
-                return res.json({ ...result.manifest, _saveError: err.message });
-            }
-        }
-
-        // ── The provenance block, stamped on what the caller receives ──────
-        //
-        // HERE and not in `captureSolution`, for two reasons that are both
-        // about order: the Blueprint id exists only once publishing succeeded,
-        // and the organisation's name is nothing a capture should read — it
-        // only knows the project.
-        //
-        // Without a publication `blueprintId` stays null. That is the honest
-        // value: a downloaded file that was never published belongs to no
-        // gallery row and must not point at one.
-        //
-        // What goes into this block is only the EXPORTING organisation's own
-        // identity — no person, no reader list, no data from another project.
-        // See the header of `readSource` in packaging/manifest.js.
-        const source = {
-            blueprintId: saved?.id || null,
-            orgId: project.organizationId || null,
-            orgName: await organizationNameFor(project.organizationId),
-            version: saved?.version || result.manifest?.solution?.version || 1,
-        };
-        const { withSource } = require('../../projects/packaging/manifest');
-        res.json(saved
-            ? { ...withSource(saved.manifest, source), _savedAs: saved.id, _version: saved.version }
-            : { ...withSource(result.manifest, source), _checks: publication.checksForDownload(verdict) });
-    } catch (err) {
-        rethrowClientError(err);
-        log.error('[Projects] Blueprint export failed:', err.message);
-        res.status(500).json({ error: 'Request failed' });
+    const save = req.body?.save === true;
+    const verdict = await publication.releaseGate(project);
+    if (save && verdict.blocked) {
+        throw new HttpError(409, 'release_blocked',
+            'This Solution has findings that block publishing. Resolve them, then publish again.',
+            { findings: verdict.findings, unavailable: verdict.unavailable });
     }
+
+    // Stamped by the caller so capture stays a pure function of the
+    // database's state and two runs can be compared.
+    const exportedAt = new Date().toISOString();
+    // A publication names every part by its ledger ref (F1), so an
+    // installed copy's stamps match the right part on the next upgrade
+    // however the store orders the list. A download is not a publication
+    // and leaves the ledger alone.
+    const result = save
+        ? await captureWithLedger(project, exportedAt)
+        : await captureSolution({ project, exportedAt });
+    if (!result.ok) return res.status(400).json({ error: result.errors.join(' ') });
+
+    // `save` keeps it on the instance so another team can install it
+    // without a file passing through anyone's downloads folder. Opt-in,
+    // because a download is the more private default and the size ceiling
+    // only applies to what is stored.
+    //
+    // PUBLISHING, not just saving (O4). `publishRelease` writes the gallery
+    // row and the history row in one transaction — see its header for why a
+    // failed history row must take the gallery row down with it, rather
+    // than leaving a version that nobody can find back.
+    //
+    // The note comes from the server, never from the request (see
+    // `releaseNotesFor`): a diff is the server's statement about two
+    // manifests, and the export schema refuses a `notes` key.
+    let saved = null;
+    if (save) {
+        try {
+            const store = require('../../stores/blueprintStore');
+            const notes = await publication.releaseNotesFor({
+                store, project, userId: req.session.user.id, manifest: result.manifest,
+            });
+            const published = await store.publishRelease({
+                organizationId: project.organizationId || null,
+                createdBy: req.session.user.id,
+                sourceProjectId: project.id,
+                manifest: result.manifest,
+                notes,
+            });
+            saved = published.blueprint;
+            await publication.announcePublication(project.id, req.session.user.id);
+        } catch (err) {
+            // The capture succeeded; only publishing it failed. Hand back
+            // the manifest anyway so the download still works, and say why.
+            return res.json({ ...result.manifest, _saveError: err.message });
+        }
+    }
+
+    // ── The provenance block, stamped on what the caller receives ──────
+    //
+    // HERE and not in `captureSolution`, for two reasons that are both
+    // about order: the Blueprint id exists only once publishing succeeded,
+    // and the organisation's name is nothing a capture should read — it
+    // only knows the project.
+    //
+    // Without a publication `blueprintId` stays null. That is the honest
+    // value: a downloaded file that was never published belongs to no
+    // gallery row and must not point at one.
+    //
+    // What goes into this block is only the EXPORTING organisation's own
+    // identity — no person, no reader list, no data from another project.
+    // See the header of `readSource` in packaging/manifest.js.
+    const source = {
+        blueprintId: saved?.id || null,
+        orgId: project.organizationId || null,
+        orgName: await organizationNameFor(project.organizationId),
+        version: saved?.version || result.manifest?.solution?.version || 1,
+    };
+    const { withSource } = require('../../projects/packaging/manifest');
+    res.json(saved
+        ? { ...withSource(saved.manifest, source), _savedAs: saved.id, _version: saved.version }
+        : { ...withSource(result.manifest, source), _checks: publication.checksForDownload(verdict) });
 });
 
 /**
@@ -418,47 +399,35 @@ function withSourceWarnings(result, { warnings }) {
  * project — an upgrade rewrites other members' entities.
  */
 router.post('/:id/package/upgrade/plan', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.UpgradeBody }), requireSolutionProject, async (req, res) => {
-    try {
-        const resolved = await resolveManifest(req);
-        if (resolved.error) return res.status(resolved.status).json({ error: resolved.error });
-        const checked = await checkUpgradeSource(req.params.id, checkedUpgradeManifest(resolved.manifest));
+    const resolved = await resolveManifest(req);
+    if (resolved.error) return res.status(resolved.status).json({ error: resolved.error });
+    const checked = await checkUpgradeSource(req.params.id, checkedUpgradeManifest(resolved.manifest));
 
-        const { planUpgrade } = require('../../projects/packaging/upgrade');
-        const result = await planUpgrade({ projectId: req.params.id, manifest: resolved.manifest });
-        if (!result.ok) return res.status(400).json({ error: result.errors.join(' ') });
-        res.json(withSourceWarnings(result, checked));
-    } catch (err) {
-        rethrowClientError(err);
-        log.error('[Projects] Blueprint upgrade plan failed:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
+    const { planUpgrade } = require('../../projects/packaging/upgrade');
+    const result = await planUpgrade({ projectId: req.params.id, manifest: resolved.manifest });
+    if (!result.ok) return res.status(400).json({ error: result.errors.join(' ') });
+    res.json(withSourceWarnings(result, checked));
 });
 
 /** POST /:id/package/upgrade — apply it. Replaces the untouched, keeps the rest. */
 router.post('/:id/package/upgrade', blueprintPackaging, requireProjectRole('owner'), validate({ body: S.UpgradeBody }), requireSolutionProject, async (req, res) => {
-    try {
-        const resolved = await resolveManifest(req);
-        if (resolved.error) return res.status(resolved.status).json({ error: resolved.error });
-        const checked = await checkUpgradeSource(req.params.id, checkedUpgradeManifest(resolved.manifest));
+    const resolved = await resolveManifest(req);
+    if (resolved.error) return res.status(resolved.status).json({ error: resolved.error });
+    const checked = await checkUpgradeSource(req.params.id, checkedUpgradeManifest(resolved.manifest));
 
-        const { applyUpgrade } = require('../../projects/packaging/upgrade');
-        const result = await applyUpgrade({
-            projectId: req.params.id,
-            manifest: resolved.manifest,
-            ownerId: req.session.user.id,
-            organizationId: req.session?.user?.organizationId || null,
-            can: await capabilityPredicate(req),
-            // Only the knowledge-base kind reads this, and only to ask "may
-            // this person read this base" before it is linked into a project.
-            req,
-        });
-        if (!result.ok) return res.status(400).json({ error: result.errors.join(' ') });
-        res.json(withSourceWarnings(result, checked));
-    } catch (err) {
-        rethrowClientError(err);
-        log.error('[Projects] Blueprint upgrade failed:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
+    const { applyUpgrade } = require('../../projects/packaging/upgrade');
+    const result = await applyUpgrade({
+        projectId: req.params.id,
+        manifest: resolved.manifest,
+        ownerId: req.session.user.id,
+        organizationId: req.session?.user?.organizationId || null,
+        can: await capabilityPredicate(req),
+        // Only the knowledge-base kind reads this, and only to ask "may
+        // this person read this base" before it is linked into a project.
+        req,
+    });
+    if (!result.ok) return res.status(400).json({ error: result.errors.join(' ') });
+    res.json(withSourceWarnings(result, checked));
 });
 
 /**
@@ -494,23 +463,17 @@ router.post('/:id/package/upgrade', blueprintPackaging, requireProjectRole('owne
  * Versies-tab houdt die twee uit elkaar.
  */
 router.get('/:id/package/releases', blueprintPackaging, requireProjectRole('owner'), requireSolutionProject, async (req, res) => {
-    try {
-        const releases = await require('../../stores/blueprintStore').listReleases(req.params.id);
-        res.json({
-            releases: (releases || []).map(r => ({
-                id: r.id,
-                version: r.version,
-                notes: r.notes,
-                publishedAt: r.publishedAt,
-            })),
-        });
-    } catch (err) {
-        // Een 500 — nooit `{ releases: [] }`. Een lege lijst leest als "deze
-        // Oplossing is nooit gepubliceerd", en dat is precies het antwoord dat
-        // een mislukte lees niet mag geven.
-        log.error('[Projects] Blueprint release history failed:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
+    // A failed read rejects to a 500, never `{ releases: [] }`: an empty list
+    // reads as "this Solution was never published".
+    const releases = await require('../../stores/blueprintStore').listReleases(req.params.id);
+    res.json({
+        releases: (releases || []).map(r => ({
+            id: r.id,
+            version: r.version,
+            notes: r.notes,
+            publishedAt: r.publishedAt,
+        })),
+    });
 });
 
 /**
@@ -625,50 +588,45 @@ router.get('/:id/package/releases/:releaseId', blueprintPackaging, requireProjec
  * in de 500 hieronder — het scherm zegt dan "niet te lezen", niet "nul".
  */
 router.get('/:id/package/installs', blueprintPackaging, requireProjectRole('owner'), requireSolutionProject, async (req, res) => {
-    try {
-        const projectStore = require('../../stores/projectStore');
-        const project = await projectStore.getProject(req.params.id);
-        if (!project) return res.status(404).json({ error: 'Not found' });
+    const projectStore = require('../../stores/projectStore');
+    const project = await projectStore.getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Not found' });
 
-        const store = require('../../stores/blueprintStore');
-        const readable = await store.listBlueprintsFor({
-            userId: req.session?.user?.id,
-            organizationId: req.session?.user?.organizationId || null,
-        });
-        // De Blueprints die uit DIT project komen. `solution_key` is
-        // `sol_<projectId>` (packaging/manifest.buildManifest), en de serie loopt
-        // per maker — twee collega's die hetzelfde project publiceren hebben elk
-        // hun eigen rij, en beide tellen mee.
-        const ids = new Set((readable || [])
-            .filter(b => b?.solutionKey === `sol_${project.id}`)
-            .map(b => b.id));
+    const store = require('../../stores/blueprintStore');
+    const readable = await store.listBlueprintsFor({
+        userId: req.session?.user?.id,
+        organizationId: req.session?.user?.organizationId || null,
+    });
+    // De Blueprints die uit DIT project komen. `solution_key` is
+    // `sol_<projectId>` (packaging/manifest.buildManifest), en de serie loopt
+    // per maker — twee collega's die hetzelfde project publiceren hebben elk
+    // hun eigen rij, en beide tellen mee.
+    const ids = new Set((readable || [])
+        .filter(b => b?.solutionKey === `sol_${project.id}`)
+        .map(b => b.id));
 
-        // …plus elke Blueprint waaronder dit project ooit gepubliceerd heeft.
-        // Zonder deze tweede bron leest een verwijderde galerijrij als "nul
-        // installaties". GEEN catch: kan de geschiedenis niet gelezen worden,
-        // dan is de telling onbekend en hoort dat als 500 op het scherm te
-        // komen, niet als nul.
-        for (const release of (await store.listReleases(project.id)) || []) {
-            if (typeof release?.blueprintId === 'string' && release.blueprintId) ids.add(release.blueprintId);
-        }
-
-        // "Hier" is de organisatie van de Blueprint zelf, en dat is die van het
-        // project waar hij uit komt — niet die van de sessie. Voor de eigenaar
-        // van dit project zijn dat dezelfde, behalve wanneer het project ooit
-        // van organisatie is gewisseld; dan is de vraag "hoeveel bij ons" een
-        // vraag over waar de Oplossing nú thuishoort.
-        const counted = await store.countInstallsFor([...ids], { organizationId: project.organizationId || null });
-
-        // Twee velden, met de hand opgeschreven. Niets van een projectrij en
-        // niets van een galerijrij reist mee.
-        res.json({
-            installsHere: counted ? counted.here : null,
-            installsElsewhere: counted ? counted.elsewhere : null,
-        });
-    } catch (err) {
-        log.error('[Projects] Blueprint install count failed:', err.message);
-        res.status(500).json({ error: 'Request failed' });
+    // …plus elke Blueprint waaronder dit project ooit gepubliceerd heeft.
+    // Zonder deze tweede bron leest een verwijderde galerijrij als "nul
+    // installaties". GEEN catch: kan de geschiedenis niet gelezen worden,
+    // dan is de telling onbekend en hoort dat als 500 op het scherm te
+    // komen, niet als nul.
+    for (const release of (await store.listReleases(project.id)) || []) {
+        if (typeof release?.blueprintId === 'string' && release.blueprintId) ids.add(release.blueprintId);
     }
+
+    // "Hier" is de organisatie van de Blueprint zelf, en dat is die van het
+    // project waar hij uit komt — niet die van de sessie. Voor de eigenaar
+    // van dit project zijn dat dezelfde, behalve wanneer het project ooit
+    // van organisatie is gewisseld; dan is de vraag "hoeveel bij ons" een
+    // vraag over waar de Oplossing nú thuishoort.
+    const counted = await store.countInstallsFor([...ids], { organizationId: project.organizationId || null });
+
+    // Twee velden, met de hand opgeschreven. Niets van een projectrij en
+    // niets van een galerijrij reist mee.
+    res.json({
+        installsHere: counted ? counted.here : null,
+        installsElsewhere: counted ? counted.elsewhere : null,
+    });
 });
 
 /**
@@ -685,36 +643,30 @@ router.get('/:id/package/installs', blueprintPackaging, requireProjectRole('owne
  * partly-usable Solution unusable.
  */
 router.post('/package/install', blueprintPackaging, validate({ body: S.InstallBody }), async (req, res) => {
-    try {
-        const userId = req.session?.user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = req.session?.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
-        const resolved = await resolveManifest(req);
-        if (resolved.error) return res.status(resolved.status).json({ error: resolved.error });
-        const { manifest, blueprintId, blueprintOrgId } = resolved;
-        const { name, resolutions } = req.body || {};
+    const resolved = await resolveManifest(req);
+    if (resolved.error) return res.status(resolved.status).json({ error: resolved.error });
+    const { manifest, blueprintId, blueprintOrgId } = resolved;
+    const { name, resolutions } = req.body || {};
 
-        const { installBlueprint } = require('../../projects/packaging/install');
-        const organizationId = req.session?.user?.organizationId || null;
-        const can = await capabilityPredicate(req);
+    const { installBlueprint } = require('../../projects/packaging/install');
+    const organizationId = req.session?.user?.organizationId || null;
+    const can = await capabilityPredicate(req);
 
-        const result = await installBlueprint({
-            // What the install wizard's Connect step collected: which table a
-            // step should use, which HTTP credential, who approves. Handed
-            // over raw — projects/packaging/resolutions.js is the one place
-            // that decides what a resolutions body may contain, so a second
-            // shape check here could only disagree with it.
-            manifest, ownerId: userId, organizationId, name, blueprintId, blueprintOrgId,
-            can, req, resolutions,
-        });
-        if (!result.ok) return res.status(400).json({ error: result.errors.join(' ') });
+    const result = await installBlueprint({
+        // What the install wizard's Connect step collected: which table a
+        // step should use, which HTTP credential, who approves. Handed
+        // over raw — projects/packaging/resolutions.js is the one place
+        // that decides what a resolutions body may contain, so a second
+        // shape check here could only disagree with it.
+        manifest, ownerId: userId, organizationId, name, blueprintId, blueprintOrgId,
+        can, req, resolutions,
+    });
+    if (!result.ok) return res.status(400).json({ error: result.errors.join(' ') });
 
-        res.json({ projectId: result.projectId, report: result.report });
-    } catch (err) {
-        rethrowClientError(err);
-        log.error('[Projects] Blueprint install failed:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
+    res.json({ projectId: result.projectId, report: result.report });
 });
 
 /**
@@ -724,17 +676,12 @@ router.post('/package/install', blueprintPackaging, validate({ body: S.InstallBo
  * multi-megabyte JSONB and nothing on the list screen reads them.
  */
 router.get('/package/blueprints', blueprintPackaging, async (req, res) => {
-    try {
-        const userId = req.session?.user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-        const blueprints = await require('../../stores/blueprintStore').listBlueprintsFor({
-            userId, organizationId: req.session?.user?.organizationId || null,
-        });
-        res.json({ blueprints });
-    } catch (err) {
-        log.error('[Projects] Blueprint list failed:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
+    const userId = req.session?.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const blueprints = await require('../../stores/blueprintStore').listBlueprintsFor({
+        userId, organizationId: req.session?.user?.organizationId || null,
+    });
+    res.json({ blueprints });
 });
 
 /**
@@ -752,38 +699,28 @@ router.get('/package/blueprints', blueprintPackaging, async (req, res) => {
  * you may install is not a wider permission than installing it.
  */
 router.get('/package/blueprints/:blueprintId', blueprintPackaging, async (req, res) => {
-    try {
-        const userId = req.session?.user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = req.session?.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
-        const store = require('../../stores/blueprintStore');
-        const found = await store.getBlueprintById(req.params.blueprintId);
-        const readable = store.canRead(found, {
-            userId, organizationId: req.session?.user?.organizationId || null,
-        });
-        // One answer for "no such Blueprint" and "not yours to read", so this
-        // route cannot be used to discover which ids exist in other orgs.
-        if (!found || !readable) return res.status(404).json({ error: 'Not found' });
+    const store = require('../../stores/blueprintStore');
+    const found = await store.getBlueprintById(req.params.blueprintId);
+    const readable = store.canRead(found, {
+        userId, organizationId: req.session?.user?.organizationId || null,
+    });
+    // One answer for "no such Blueprint" and "not yours to read", so this
+    // route cannot be used to discover which ids exist in other orgs.
+    if (!found || !readable) return res.status(404).json({ error: 'Not found' });
 
-        res.json({ blueprint: found });
-    } catch (err) {
-        log.error('[Projects] Blueprint read failed:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
+    res.json({ blueprint: found });
 });
 
 /** DELETE /package/blueprints/:blueprintId — creator only. */
 router.delete('/package/blueprints/:blueprintId', blueprintPackaging, async (req, res) => {
-    try {
-        const userId = req.session?.user?.id;
-        if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-        const ok = await require('../../stores/blueprintStore').deleteBlueprint(req.params.blueprintId, userId);
-        if (!ok) return res.status(404).json({ error: 'Not found, or not yours to delete' });
-        res.json({ success: true });
-    } catch (err) {
-        log.error('[Projects] Blueprint delete failed:', err.message);
-        res.status(500).json({ error: 'Request failed' });
-    }
+    const userId = req.session?.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const ok = await require('../../stores/blueprintStore').deleteBlueprint(req.params.blueprintId, userId);
+    if (!ok) return res.status(404).json({ error: 'Not found, or not yours to delete' });
+    res.json({ success: true });
 });
 
 module.exports = router;

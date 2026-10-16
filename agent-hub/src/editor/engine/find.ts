@@ -8,6 +8,7 @@
 import { isCode } from '../model/schema.js';
 import { getNode, updateAt } from './doc.js';
 import { inlineToTokens, textTokens, tokensToInline } from './inline.js';
+import type { InlineToken } from './inline.js';
 import { buildTextIndex, foldCase, posAtOffset, type ModelPos } from './textIndex';
 
 export interface FindMatch { from: ModelPos; to: ModelPos }
@@ -68,7 +69,7 @@ export function replaceMatches<S extends AnyState>(state: S, matches: FindMatch[
     for (const m of ordered) {
         const block = getNode(doc, m.from.path) as AnyNode | undefined;
         if (!block || m.to.path.join() !== m.from.path.join()) continue;
-        const toks = inlineToTokens(block.content || []) as Array<{ ch?: string; marks?: unknown[]; node?: unknown }>;
+        const toks = inlineToTokens(block.content || []) as InlineToken[];
         if (m.to.offset > toks.length || m.from.offset >= m.to.offset) continue;
         const first = toks[m.from.offset];
         const marks = isCode(block.type) || !first || first.node ? [] : (first.marks || []);

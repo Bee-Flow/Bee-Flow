@@ -25,6 +25,10 @@
 const configStore = require('../../stores/configStore');
 const { resolveTalkNotesSettings } = require('./talkNotesSettings');
 const log = require('../../telemetry/log');
+// The trigger bus (automation/) and the Talk client (integrations/) are injected:
+// see ../automationRunner/featurePorts.js and ../integrations/integrationClients.js.
+const { runnerPort } = require('../automationRunner/featurePorts');
+const { integrationClient } = require('../integrations/integrationClients');
 const kit = require('./importJobKit');
 
 const ARMED_KEY = (userId) => `talk_autorecord_armed_${userId}`;
@@ -156,11 +160,11 @@ async function scanUser(userId) {
     const settings = await resolveTalkNotesSettings({ orgId, userId });
     if (!settings.autoRecord) return;
 
-    const triggerBus = require('../../automation/triggerBus');
+    const triggerBus = runnerPort('triggerBus');
     const session = await triggerBus.loadSession(userId);
     if (!session) return;
 
-    const talk = require('../../integrations/nextcloudTalkTools');
+    const talk = integrationClient('nextcloudTalk');
     const cap = await talk.getTalkRecordingCapability(session, userId);
     if (!cap.recordingEnabled) return;
 

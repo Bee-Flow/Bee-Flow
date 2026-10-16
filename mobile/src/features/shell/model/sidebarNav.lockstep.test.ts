@@ -1,12 +1,12 @@
 /**
  * The drawer's fixed rows, held to the web Sidebar (textual lockstep).
  *
- * agent-hub/src/components/shell/Sidebar.jsx declares two arrays, `coreNav`
- * (pinned: New Chat, Cowork, Approvals, Search) and `secondaryNav` (Agents,
- * Studio, Apps, Forms, Notebooks). The drawer renders the same rows in the
- * same order with the same keys and glyphs (model/nav.ts). The file is read
- * as TEXT; each row is the `key: '…'` with the `label: t('…'` and `icon: X`
- * that follow it.
+ * agent-hub/src/components/shell/sidebar/sidebarNav.tsx builds two lists,
+ * `buildCoreNav` (pinned: New Chat, Cowork, Approvals, Search) and
+ * `buildSecondaryNav` (Agents, then the Studio, Apps and Forms rows its
+ * helpers return). The drawer renders the same rows in the same order with the
+ * same keys and glyphs (model/nav.ts). The file is read as TEXT; each row is
+ * the `key: '…'` with the `label: t('…'` and `icon: X` that follow it.
  *
  * When this fails the web sidebar changed: move nav.ts (and the drawer) with
  * it. Don't loosen the test.
@@ -19,7 +19,7 @@ import { CLIENT_DICT, SERVER_DICT, readDict } from '@/core/i18n/dictionaryText';
 
 import { CORE_NAV, SECONDARY_NAV } from './nav';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/components/shell/Sidebar.jsx');
+const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/components/shell/sidebar/sidebarNav.tsx');
 const src = fs.readFileSync(WEB, 'utf8');
 
 interface WebRow {
@@ -28,11 +28,16 @@ interface WebRow {
     icon: string;
 }
 
-/** The rows of one `const <name> = [ … ];` array, in order. */
-function rowsOf(name: string): WebRow[] {
-    const start = src.indexOf(`const ${name} = [`);
-    const end = src.indexOf('\n    ];', start);
-    const body = src.slice(start, end);
+/** The source of one top-level `function <name>(` up to its closing brace. */
+function bodyOf(name: string): string {
+    const start = src.indexOf(`function ${name}(`);
+    if (start < 0) return '';
+    const end = src.indexOf('\n}\n', start);
+    return src.slice(start, end < 0 ? undefined : end);
+}
+
+/** The rows written inline in a builder's array literal, in order. */
+function inlineRows(body: string): WebRow[] {
     // A row's own key sits at 8 or 12 spaces (spread rows are one level
     // deeper); flyout children are deeper still and are not rows.
     const rows: WebRow[] = [];
@@ -45,8 +50,22 @@ function rowsOf(name: string): WebRow[] {
     return rows;
 }
 
-const core = rowsOf('coreNav');
-const secondary = rowsOf('secondaryNav');
+/**
+ * A builder's rows, in order: the inline ones, then each row a helper builds
+ * (`items.push(studioNavItem(…))`), read from the object that helper returns.
+ */
+function rowsOf(builder: string): WebRow[] {
+    const body = bodyOf(builder);
+    const rows = inlineRows(body);
+    for (const push of body.matchAll(/items\.push\((\w+)\(/g)) {
+        const m = /return \{\s*key: '([^']+)',\s*label: (?:\w+\.)?t\('([^']+)'[\s\S]*?icon: (\w+)/.exec(bodyOf(push[1] as string));
+        if (m) rows.push({ key: m[1] as string, labelKey: m[2] as string, icon: m[3] as string });
+    }
+    return rows;
+}
+
+const core = rowsOf('buildCoreNav');
+const secondary = rowsOf('buildSecondaryNav');
 
 describe('the web sidebar is readable at all', () => {
     it('found both arrays', () => {

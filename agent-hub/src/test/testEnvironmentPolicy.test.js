@@ -54,6 +54,8 @@ const PRAGMA_RE = /^\s*\/\/\s*@vitest-environment\s+node\s*$/m;
 // Matches static import/export-from, require() and import() with a literal.
 const IMPORT_RE = /(?:import|export)\s*(?:[\s\S]*?\s*from\s*)?['"]([^'"]+)['"]|require\(\s*['"]([^'"]+)['"]\s*\)|import\(\s*['"]([^'"]+)['"]\s*\)/g;
 
+const TYPE_ONLY_RE = /^(?:import|export)\s+type\b(?!\s+from\b)/;
+
 function walk(dir, out = []) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         const p = path.join(dir, entry.name);
@@ -103,6 +105,8 @@ function chainToTranslationHook(entry) {
         while ((m = IMPORT_RE.exec(src))) {
             const spec = m[1] || m[2] || m[3];
             if (!spec) continue;
+            // `import type …` / `export type … from` is erased at compile time and never loads the chain.
+            if (TYPE_ONLY_RE.test(m[0])) continue;
             const resolved = resolveSpec(spec, file);
             if (resolved && !seen.has(resolved)) stack.push([resolved, [...chain, resolved]]);
         }

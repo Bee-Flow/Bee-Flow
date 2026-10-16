@@ -34,20 +34,25 @@ const formQueue = readServer('automation/formQueue.js');
 const links = readServer('routes/automation/webhooksAndRunOps.js');
 const answersRoute = readServer('routes/datatables/answers.js');
 const rows = readServer('routes/datatables/rows.js');
+// rows.js keeps the route table; its named handlers (H.listRows, …) live here.
+const rowHandlers = readServer('routes/datatables/rowHandlers.js');
 const summary = readServer('automation/formAnswers/summary.js');
 const index = readServer('index.js');
 
 /**
  * The source of one route handler. Inline (`router.get('/x', async (req, res) => {…`):
- * from its registration to the next one. Named (`router.get('/x', limiter, handlerFn);`):
- * that function's own source.
+ * from its registration to the next one. Named (`router.get('/x', limiter, handlerFn);`
+ * or `H.handlerFn`): that function's own source, from `src` or from `handlers`
+ * when the router keeps its handlers in a sibling module.
  */
-function handler(src: string, registration: string): string {
+function handler(src: string, registration: string, handlers: string = src): string {
     const at = src.indexOf(registration);
     if (at < 0) throw new Error(`${registration} is gone`);
     const lineEnd = src.indexOf('\n', at);
-    const named = /,\s*([A-Za-z_$][\w$]*)\);\s*$/.exec(src.slice(at, lineEnd < 0 ? undefined : lineEnd));
+    // `friendly(handlerFn, 'code', 'sentence')` (formPublic/friendly.js) wraps a named handler: look through it.
+    const named = /,\s*(?:friendly\()?(?:[A-Za-z_$][\w$]*\.)?([A-Za-z_$][\w$]*)(?:,\s*'[^']*',\s*'[^']*'\))?\);\s*$/.exec(src.slice(at, lineEnd < 0 ? undefined : lineEnd));
     if (named) {
+        src = handlers;
         const start = src.search(new RegExp(`^(?:async )?function ${named[1]}\\(`, 'm'));
         if (start < 0) throw new Error(`${named[1]} (the handler of ${registration}) is gone`);
         const end = src.indexOf('\n}\n', start);
@@ -114,5 +119,5 @@ it('still answers the dashboard in one shape', () => {
     const fn = summary.slice(summary.indexOf('async function answersSummary'));
     expect(missing(fn, ['table', 'range', 'totals', 'timeline', 'questions', 'recent', 'inRange', 'last7d', 'completed', 'open', 'lastAt', 'retired', 'answered', 'skipped', 'breakdown', 'preview', 'runId', 'submittedAt'])).toEqual([]);
     for (const kind of ['choice', 'yesno', 'number', 'date', 'file', 'text']) expect(fn).toContain(`kind: '${kind}'`);
-    expect(missing(handler(rows, "router.get('/:id/rows'"), ['rows', 'hasMore', 'nextCursor', 'total'])).toEqual([]);
+    expect(missing(handler(rows, "router.get('/:id/rows'", rowHandlers), ['rows', 'hasMore', 'nextCursor', 'total'])).toEqual([]);
 });

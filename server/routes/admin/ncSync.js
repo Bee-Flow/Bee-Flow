@@ -16,6 +16,7 @@ const { requireAuth, isOrgAdminForOrg } = require('../../auth/permissions');
 const { tagGate } = require('../../auth/gateMeta');
 const orgHealth = require('../../services/orgHealth'); // fire-and-forget health capture
 const { validate } = require('../../core/http/validate');
+const { HttpError } = require('../../core/http/errors');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 
@@ -158,7 +159,7 @@ router.get('/admin/:orgId/nc-sync/groups', requireAuth, checkOrgAdmin, async (re
         res.json({ groups });
     } catch (e) {
         log.warn('[NcSync] listing Nextcloud groups failed:', e.message);
-        res.status(502).json({ error: 'Could not reach Nextcloud' });
+        throw new HttpError(502, 'nextcloud_unreachable', 'Could not reach Nextcloud');
     }
 });
 

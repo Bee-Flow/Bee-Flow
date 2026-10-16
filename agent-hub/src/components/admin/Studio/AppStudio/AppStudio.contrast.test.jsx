@@ -60,7 +60,7 @@ async function sourceFiles() {
         const stat = fs.statSync(p);
         if (stat.isDirectory()) {
             for (const entry of fs.readdirSync(p)) walk(path.join(p, entry));
-        } else if (/\.(jsx?|css)$/.test(p) && !/\.test\.|contrast\.test/.test(p)) {
+        } else if (/\.([jt]sx?|css)$/.test(p) && !/\.test\.|contrast\.test/.test(p)) {
             files.push(p);
         }
     };

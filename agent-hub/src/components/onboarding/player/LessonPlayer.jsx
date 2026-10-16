@@ -342,7 +342,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                 <span className="text-[12px] font-semibold leading-[14px] truncate max-w-[220px]" style={{ color: advanceable ? 'var(--learn-complete-ink)' : 'var(--text-primary)' }}>
                     {advanceable ? t('learn.player.pill_passed', 'Step passed') : title}
                 </span>
-                <span className="text-[11px] leading-[13px]" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-[11px] leading-[13px] text-[var(--text-tertiary)]">
                     {advanceable
                         ? t('learn.player.pill_passed_sub', 'every check passed · {time}').replace('{time}', new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
                         : `${stepCounter.toLowerCase()} · ${isAction ? t('learn.player.pill_checking', 'check running') : t('learn.player.pill_paused', 'paused')}`}
@@ -372,7 +372,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
             <div className="flex items-center gap-1.5 flex-shrink-0" style={{ height: 48, padding: '0 10px 0 14px', borderBottom: '1px solid var(--border-default)' }}>
                 <div className="min-w-0 flex-1">
                     <div className="uppercase font-semibold leading-3 truncate" style={{ fontSize: 10, letterSpacing: '.08em', color: 'var(--accent-primary)' }}>{eyebrow}</div>
-                    <h2 className="text-[14px] font-semibold leading-[18px] truncate" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+                    <h2 className="text-[14px] font-semibold leading-[18px] truncate text-[var(--text-primary)]">{title}</h2>
                 </div>
                 {!finished && (
                     <button type="button" onClick={() => setTutorOpen((o) => !o)} aria-pressed={tutorOpen}
@@ -417,7 +417,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                                 style={{ height: 4, borderRadius: 2, background: i < stepIndex ? 'var(--text-primary)' : (i === stepIndex ? 'var(--accent-primary)' : 'var(--bg-tertiary)') }} />
                         ))}
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
                         <span>{stepCounter}</span>
                         {stepKind && (
                             <>·<span className="inline-flex items-center gap-[3px] font-medium" style={{ color: stepKind === STEP_TYPES.ACTION ? 'var(--accent-primary)' : undefined }}>
@@ -455,7 +455,7 @@ function LessonPlayerView({ lessonId, courseId = null, initialLayout = null, use
                     <TutorPanel lessonId={lessonId} step={step} modelTier={modelTier} onClose={() => setTutorOpen(false)} />
                 )}
                 {!finished && !advanceable && stepIsRequired(step) && (
-                    <div className="mt-auto flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="mt-auto flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
                         <Lock style={{ width: 11, height: 11 }} aria-hidden="true" />
                         {isAction
                             ? t('learn.player.next_unlocks_checks', '"Next" unlocks once every check passes.')
@@ -573,16 +573,16 @@ function CompletionScreen({ t, celebration, lesson, steps, onClose, onNavigate, 
         <div className="flex flex-col items-center gap-3.5 text-center" style={{ padding: '12px 2px 4px' }} data-testid="lesson-complete">
             <div className="text-[34px] leading-none" aria-hidden="true">{isReview ? '🧠' : '🎉'}</div>
             <div className="flex flex-col gap-1">
-                <div className="text-[18px] font-bold leading-[22px]" style={{ color: 'var(--text-primary)' }}>
+                <div className="text-[18px] font-bold leading-[22px] text-[var(--text-primary)]">
                     {isReview ? t('learn.review.complete', 'Review complete!') : t('learn.player.lesson_complete', 'Lesson complete!')}
                 </div>
-                <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+                <div className="text-[12px] text-[var(--text-secondary)]">
                     {isReview
                         ? t('learn.review.complete_sub', 'Refreshed and re-proven — this is how it sticks.')
                         : (
                             <>
                                 {t('learn.player.steps_done', '{a} of {b} steps').replace('{a}', String((steps || []).length)).replace('{b}', String((steps || []).length))}
-                                {xp && <> · <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>+{xp.gained} XP</span> · {t(`learn.level.${xp.level.key}`, xp.level.titleFallback)} {xp.total} XP{xp.next && <> · {t('learn.player.to_next_level', '{n} to {level}').replace('{n}', String(xp.next.min - xp.total)).replace('{level}', t(`learn.level.${xp.next.key}`, xp.next.titleFallback))}</>}</>}
+                                {xp && <> · <span className="font-semibold text-[var(--text-primary)]">+{xp.gained} XP</span> · {t(`learn.level.${xp.level.key}`, xp.level.titleFallback)} {xp.total} XP{xp.next && <> · {t('learn.player.to_next_level', '{n} to {level}').replace('{n}', String(xp.next.min - xp.total)).replace('{level}', t(`learn.level.${xp.next.key}`, xp.next.titleFallback))}</>}</>}
                                 {!xp && t('learn.player.lesson_complete_sub', 'Nice work. Your progress is saved.')}
                             </>
                         )}
@@ -596,12 +596,12 @@ function CompletionScreen({ t, celebration, lesson, steps, onClose, onNavigate, 
                         <Award style={{ width: 18, height: 18 }} aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <div className="font-semibold" style={{ color: 'var(--learn-mastered-ink)' }}>{t('learn.mastery.earned', 'Mastered')}</div>
-                        <div className="text-[11px] leading-[15px]" style={{ color: 'var(--text-secondary)' }}>
+                        <div className="font-semibold text-[var(--learn-mastered-ink)]">{t('learn.mastery.earned', 'Mastered')}</div>
+                        <div className="text-[11px] leading-[15px] text-[var(--text-secondary)]">
                             {celebration?.mastered ? t('learn.mastery.clean_run_body', 'Every quiz and simulation first try, the exercise without a hint. Nothing revealed.') : masteredTitles.join(' · ')}
                         </div>
                     </div>
-                    {celebration?.mastered && <span className="font-semibold whitespace-nowrap" style={{ color: 'var(--learn-mastered-ink)' }}>+{xp?.masteryBonus ?? 50} XP</span>}
+                    {celebration?.mastered && <span className="font-semibold whitespace-nowrap text-[var(--learn-mastered-ink)]">+{xp?.masteryBonus ?? 50} XP</span>}
                 </div>
             )}
 
@@ -611,14 +611,14 @@ function CompletionScreen({ t, celebration, lesson, steps, onClose, onNavigate, 
                         <PartyPopper style={{ width: 18, height: 18 }} aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <div className="font-semibold" style={{ color: 'var(--accent-primary)' }}>{t('learn.player.badge_earned', 'Badge earned')}</div>
+                        <div className="font-semibold text-[var(--accent-primary)]">{t('learn.player.badge_earned', 'Badge earned')}</div>
                         {newBadges.map((b) => (
-                            <div key={b.id || b.badgeId} className="text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            <div key={b.id || b.badgeId} className="text-[12px] font-semibold text-[var(--text-primary)]">
                                 <span aria-hidden="true">{b.icon || '🏅'}</span> {t(b.titleKey, b.titleFallback || b.title)}
                             </div>
                         ))}
                         {celebration?.courseComplete && celebration?.courseTitle && (
-                            <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{t('learn.player.course_complete', 'You completed {course}.').replace('{course}', celebration.courseTitle)}</div>
+                            <div className="text-[11px] text-[var(--text-secondary)]">{t('learn.player.course_complete', 'You completed {course}.').replace('{course}', celebration.courseTitle)}</div>
                         )}
                     </div>
                 </div>
@@ -644,7 +644,7 @@ function CompletionScreen({ t, celebration, lesson, steps, onClose, onNavigate, 
                 )}
             </div>
             {!isReview && !celebration?.courseComplete && lesson && (
-                <div className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>{t('learn.player.badge_note', 'On the last lesson of a course the "Badge earned" panel appears here too.')}</div>
+                <div className="text-[11px] text-[var(--text-tertiary)]">{t('learn.player.badge_note', 'On the last lesson of a course the "Badge earned" panel appears here too.')}</div>
             )}
         </div>
     );

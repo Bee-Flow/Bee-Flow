@@ -60,7 +60,7 @@ export function dedupeSummary(step, { stepLabelById } = {}) {
 }
 
 /** "From Read many ▸ Messages": the outer list a flatten works through, or "Pick a list" (muted). */
-/** @param {any} step @param {{ stepLabelById?: Map<string, string>, t?: any }} [opts] */
+/** @param {any} step @param {{ stepLabelById?: Map<string, string> | null, t?: any }} [opts] */
 export function flattenSummary(step, { stepLabelById, t = null } = {}) {
     const route = String(step?.arrayRef || '');
     const wild = route.indexOf('[*]');

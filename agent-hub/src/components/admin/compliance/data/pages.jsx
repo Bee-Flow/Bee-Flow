@@ -42,7 +42,7 @@ import ConnectorsPage from '../pages/ConnectorsPage';
 export function PendingPage({ section }) {
     const { t } = useTranslation();
     return (
-        <div className="p-6 text-[13px]" style={{ color: 'var(--text-tertiary)' }} data-testid={`pending-page-${section?.id || ''}`}>
+        <div className="p-6 text-[13px] text-[var(--text-tertiary)]" data-testid={`pending-page-${section?.id || ''}`}>
             {t('compliance.page_pending', 'This section arrives with the next release')}
         </div>
     );

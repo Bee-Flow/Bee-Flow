@@ -5,7 +5,6 @@
  */
 
 const express = require('express');
-const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const userStore = require('../../stores/userStore');
 const { buildCatalog } = require('../../appStudio/componentSpecs');
@@ -17,7 +16,6 @@ const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { requireAuth } = require('../../auth/permissions');
 const { DownloadQuery } = require('./schemas');
 const { requireManageApps, audienceFor, resolveOwnerOrgId } = require('./access');
-const { rethrowClientError } = require('./appHelpers');
 
 const router = express.Router();
 
@@ -33,27 +31,15 @@ router.get('/catalog', requireAuth, (req, res) => {
 // appStudio/templateRegistry.js — a captured template installs by exactly the
 // same path, so nothing below this line needs to know which kind it got.
 router.get('/templates', requireAuth, async (req, res) => {
-    try {
-        const { userId, orgIdArr } = await audienceFor(req);
-        res.json({ templates: await listAvailableTemplates({ userId, orgIds: orgIdArr }) });
-    } catch (err) {
-        rethrowClientError(err);
-        log.error('[StudioApps] Template list failed:', err);
-        res.status(500).json({ error: 'Failed to list templates' });
-    }
+    const { userId, orgIdArr } = await audienceFor(req);
+    res.json({ templates: await listAvailableTemplates({ userId, orgIds: orgIdArr }) });
 });
 
 router.get('/templates/:templateId', requireAuth, async (req, res) => {
-    try {
-        const { userId, orgIdArr } = await audienceFor(req);
-        const template = await resolveTemplate(req.params.templateId, { userId, orgIds: orgIdArr });
-        if (!template) return res.status(404).json({ error: 'Template not found' });
-        res.json({ template });
-    } catch (err) {
-        rethrowClientError(err);
-        log.error('[StudioApps] Template read failed:', err);
-        res.status(500).json({ error: 'Failed to read template' });
-    }
+    const { userId, orgIdArr } = await audienceFor(req);
+    const template = await resolveTemplate(req.params.templateId, { userId, orgIds: orgIdArr });
+    if (!template) return res.status(404).json({ error: 'Template not found' });
+    res.json({ template });
 });
 
 // Deleting a CAPTURED template — the creator, or an admin of the org it was
@@ -61,30 +47,24 @@ router.get('/templates/:templateId', requireAuth, async (req, res) => {
 // non-utpl_ id is the honest answer rather than a 403 implying it might work
 // with more rights.
 router.delete('/templates/:templateId', requireAuth, requireManageApps, async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const { orgIdArr } = await audienceFor(req);
-        const templateId = req.params.templateId;
-        if (!studioAppTemplateStore.isCapturedTemplateId(templateId)) {
-            return res.status(404).json({ error: 'Template not found' });
-        }
-        const existing = await studioAppTemplateStore.getTemplateById(templateId);
-        if (!existing) return res.status(404).json({ error: 'Template not found' });
-
-        // An org admin may clear out a template a departed colleague left in
-        // the org's gallery; the store's own rule is creator-only.
-        const isOrgAdmin = !!req.session.user.isSuperAdmin
-            || (req.session.user.isOrgAdmin && existing.organizationId
-                && orgIdArr.includes(existing.organizationId));
-        const out = await studioAppTemplateStore.deleteTemplate(templateId, userId, { force: isOrgAdmin });
-        if (out.notFound) return res.status(404).json({ error: 'Template not found' });
-        if (out.forbidden) return res.status(403).json({ error: 'Only the template\'s creator can delete it' });
-        res.json({ success: true });
-    } catch (err) {
-        rethrowClientError(err);
-        log.error('[StudioApps] Template delete failed:', err);
-        res.status(500).json({ error: 'Failed to delete template' });
+    const userId = req.session.user.id;
+    const { orgIdArr } = await audienceFor(req);
+    const templateId = req.params.templateId;
+    if (!studioAppTemplateStore.isCapturedTemplateId(templateId)) {
+        return res.status(404).json({ error: 'Template not found' });
     }
+    const existing = await studioAppTemplateStore.getTemplateById(templateId);
+    if (!existing) return res.status(404).json({ error: 'Template not found' });
+
+    // An org admin may clear out a template a departed colleague left in
+    // the org's gallery; the store's own rule is creator-only.
+    const isOrgAdmin = !!req.session.user.isSuperAdmin
+        || (req.session.user.isOrgAdmin && existing.organizationId
+            && orgIdArr.includes(existing.organizationId));
+    const out = await studioAppTemplateStore.deleteTemplate(templateId, userId, { force: isOrgAdmin });
+    if (out.notFound) return res.status(404).json({ error: 'Template not found' });
+    if (out.forbidden) return res.status(403).json({ error: 'Only the template\'s creator can delete it' });
+    res.json({ success: true });
 });
 
 /**
@@ -107,47 +87,42 @@ router.delete('/templates/:templateId', requireAuth, requireManageApps, async (r
 router.get('/templates/:templateId/export', requireAuth, requireManageApps, validate({ query: DownloadQuery }),
     require('../../compliance/dataPortability/stampExport')('app_templates'),
     async (req, res) => {
-        try {
-            const { userId, orgIdArr } = await audienceFor(req);
-            const template = await resolveTemplate(req.params.templateId, { userId, orgIds: orgIdArr });
-            if (!template) return res.status(404).json({ error: 'Template not found' });
+        const { userId, orgIdArr } = await audienceFor(req);
+        const template = await resolveTemplate(req.params.templateId, { userId, orgIds: orgIdArr });
+        if (!template) return res.status(404).json({ error: 'Template not found' });
 
-            // The organisation NAME is read here rather than in buildExport for
-            // the reason manifest.withSource gives: a capture knows the thing it
-            // captured, not the tenant it sat in, and the name is a courtesy to
-            // the recipient ("this came from Acme") rather than anything the
-            // format depends on.
-            let orgName = null;
-            // resolveOwnerOrgId, not `session.user.organizationId`: it is the
-            // same answer for most people and the right one for a member whose
-            // organisation comes from a group rather than the user row — and it
-            // is what the import route on the other side uses to decide where a
-            // template lands, so the two halves agree on what "your
-            // organisation" means.
-            const orgId = await resolveOwnerOrgId(userId);
-            if (orgId) {
-                try {
-                    const org = await userStore.getOrganization(orgId);
-                    orgName = (org && typeof org.name === 'string') ? org.name : null;
-                } catch { /* a missing name is a missing courtesy, not a failed export */ }
-            }
-
-            const { envelope, warnings } = buildExport(template, {
-                exportedAt: new Date().toISOString(),
-                source: { templateId: template.id, orgId, orgName, version: templateVersion(template) },
-            });
-            if (!envelope) return res.status(500).json({ error: 'Failed to export template' });
-
-            if (req.query.download === '1') {
-                res.setHeader('Content-Type', 'application/json; charset=utf-8');
-                res.setHeader('Content-Disposition', `attachment; filename="${exportFilename(template)}"`);
-                return res.send(JSON.stringify(envelope, null, 2));
-            }
-            res.json({ envelope, warnings, filename: exportFilename(template) });
-        } catch (err) {
-            log.error('[StudioApps] Template export failed:', err);
-            res.status(500).json({ error: 'Failed to export template' });
+        // The organisation NAME is read here rather than in buildExport for
+        // the reason manifest.withSource gives: a capture knows the thing it
+        // captured, not the tenant it sat in, and the name is a courtesy to
+        // the recipient ("this came from Acme") rather than anything the
+        // format depends on.
+        let orgName = null;
+        // resolveOwnerOrgId, not `session.user.organizationId`: it is the
+        // same answer for most people and the right one for a member whose
+        // organisation comes from a group rather than the user row — and it
+        // is what the import route on the other side uses to decide where a
+        // template lands, so the two halves agree on what "your
+        // organisation" means.
+        const orgId = await resolveOwnerOrgId(userId);
+        if (orgId) {
+            try {
+                const org = await userStore.getOrganization(orgId);
+                orgName = (org && typeof org.name === 'string') ? org.name : null;
+            } catch { /* a missing name is a missing courtesy, not a failed export */ }
         }
+
+        const { envelope, warnings } = buildExport(template, {
+            exportedAt: new Date().toISOString(),
+            source: { templateId: template.id, orgId, orgName, version: templateVersion(template) },
+        });
+        if (!envelope) throw new Error('Template export produced no envelope');
+
+        if (req.query.download === '1') {
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.setHeader('Content-Disposition', `attachment; filename="${exportFilename(template)}"`);
+            return res.send(JSON.stringify(envelope, null, 2));
+        }
+        res.json({ envelope, warnings, filename: exportFilename(template) });
     });
 
 /**
@@ -233,9 +208,7 @@ router.post('/templates/import', requireAuth, requireManageApps, templateImportL
         if (/limit reached|exceeds/i.test(message)) {
             return res.status(409).json({ error: message, code: 'template_limit' });
         }
-        rethrowClientError(err);
-        log.error('[StudioApps] Template import failed:', err);
-        res.status(500).json({ error: 'Failed to import template' });
+        throw err;
     }
 });
 

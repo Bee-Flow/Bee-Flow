@@ -36,7 +36,10 @@ async function readableDocument(rawPanel, userId, deps = {}) {
 async function buildDirectNote(rawPanel, userId, deps) {
     const doc = await readableDocument(rawPanel, userId, deps);
     if (!doc) return '';
-    return `\n\n[DOCUMENT OPEN] The user has "${oneLine(doc.name)}" (documentId: ${doc.id}, type: ${doc.docType || 'document'}) open next to the chat. Read it with document_read when the request is about it.`;
+    const sheetHint = doc.docType === 'spreadsheet'
+        ? ' It has tabs: read one with document_read({ documentId, tab }) and change cells with document_write({ documentId, cells, tab }).'
+        : '';
+    return `\n\n[DOCUMENT OPEN] The user has "${oneLine(doc.name)}" (documentId: ${doc.id}, type: ${doc.docType || 'document'}) open next to the chat. Read it with document_read when the request is about it.${sheetHint}`;
 }
 
 /** Agent chat: the document's text, read-only, capped. */

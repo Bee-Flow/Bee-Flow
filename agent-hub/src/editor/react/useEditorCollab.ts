@@ -16,6 +16,7 @@
 import { useEffect, useState } from 'react';
 import { bindEditor, type CollabBinding } from '../collab/binding';
 import type { CollabHandle } from '../collab/useCollab';
+import { errorName } from '../../utils/caughtError';
 
 export interface EditorCollabState {
     active: boolean;
@@ -43,7 +44,7 @@ export default function useEditorCollab(view: any, handle: CollabHandle | null |
             fragment: handle.fragment,
             awareness: handle.awareness,
             // Codes only, never content: the view reloads from the shared state.
-            onError: (e) => console.warn('[BeeEditor] a local change could not be shared; reloaded', (e as Error)?.name || 'Error'),
+            onError: (e) => console.warn('[BeeEditor] a local change could not be shared; reloaded', errorName(e) || 'Error'),
         });
         setBinding(b);
         return () => {

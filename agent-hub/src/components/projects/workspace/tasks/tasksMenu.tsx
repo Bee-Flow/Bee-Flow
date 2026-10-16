@@ -6,20 +6,8 @@ import { Check } from 'lucide-react';
 import React from 'react';
 import AnchoredMenuJs from '../../../shared/AnchoredMenu';
 
-/** The props of the shared AnchoredMenu that Tasks uses (it is plain JavaScript, so TypeScript cannot read them). */
-export interface TaskMenuProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'role'> {
-    open: boolean;
-    onClose: () => void;
-    anchorRef: React.RefObject<HTMLElement | null>;
-    align?: 'stretch' | 'left' | 'right';
-    width?: number | null;
-    minWidth?: number;
-    maxHeight?: number | null;
-    role?: string;
-}
-
-/** The shared AnchoredMenu, typed: portal, outside click, Escape and the arrow-key menu pattern. */
-export const AnchoredMenu = AnchoredMenuJs as unknown as React.ComponentType<TaskMenuProps>;
+/** The shared AnchoredMenu: portal, outside click, Escape and the arrow-key menu pattern. */
+export const AnchoredMenu = AnchoredMenuJs;
 
 /** Borderless toolbar button: quieter than a SecondaryButton, darker while its menu is open. */
 export const TOOLBAR_BUTTON_CLASS =

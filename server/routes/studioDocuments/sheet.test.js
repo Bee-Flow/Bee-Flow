@@ -17,7 +17,7 @@ const { HttpError } = require('../../core/http/errors');
 const { makeSheetRouter, sheetCsv } = require('./sheet');
 const { makeSheetGate, sheetsVisible } = require('./sheetGate');
 
-const state = { cells: {}, writes: [], created: [], dropped: [], copies: [], gateOpen: true, failCreate: false, asked: [], overLimit: false };
+const state = { cells: {}, writes: [], created: [], dropped: [], copies: [], updates: [], gateOpen: true, failCreate: false, asked: [], overLimit: false };
 const baseSettings = () => ({ sheet: { tabs: [{ id: 't1', name: 'Budget', datatableId: 'dt1' }] } });
 const DOCS = {
     s1: { id: 's1', userId: 'owner', name: 'Budget', docType: 'spreadsheet', settings: baseSettings() },
@@ -40,6 +40,9 @@ const router = makeSheetRouter({
             return { id: 'new-doc', ...input };
         },
         async updateDocument(id, _ctx, { settings }) {
+            // Like a plain column write: the settings sent ARE the settings (no merge to lean on).
+            state.updates.push([id, settings]);
+            if (id === 'new-doc') return { id, settings, versionId: 'v-copy-2' };
             const doc = DOCS[id];
             if (!doc) return null;
             doc.settings = settings;
@@ -78,7 +81,7 @@ const router = makeSheetRouter({
 const api = h.serve('/api/studio-documents', router);
 test.after(api.close);
 test.beforeEach(() => {
-    Object.assign(state, { cells: { A1: '2', A2: '3', A3: '=A1*A2' }, writes: [], created: [], dropped: [], copies: [], gateOpen: true, failCreate: false, asked: [], overLimit: false });
+    Object.assign(state, { cells: { A1: '2', A2: '3', A3: '=A1*A2' }, writes: [], created: [], dropped: [], copies: [], updates: [], gateOpen: true, failCreate: false, asked: [], overLimit: false });
     DOCS.s1.settings = baseSettings();
 });
 
@@ -89,7 +92,7 @@ const expectedTabs = [{ id: 't1', name: 'Budget', datatableId: 'dt1' }];
 test('the owner reads the cells; a project viewer reads them read-only', async () => {
     const mine = await as('owner', 'GET', '/s1/sheet');
     assert.strictEqual(mine.status, 200, mine.text);
-    assert.deepStrictEqual(mine.body, { cells: { A1: '2', A2: '3', A3: '=A1*A2' }, rows: 3, columns: 26, tabs: expectedTabs, activeTab: 't1', readOnly: false });
+    assert.deepStrictEqual(mine.body, { cells: { A1: '2', A2: '3', A3: '=A1*A2' }, rows: 3, columns: 26, refTabs: {}, tabs: expectedTabs, activeTab: 't1', readOnly: false });
     const theirs = await as('viewer', 'GET', '/s1/sheet');
     assert.strictEqual(theirs.body.readOnly, true);
     assert.deepStrictEqual(theirs.body.tabs, expectedTabs);
@@ -126,6 +129,18 @@ test('the CSV holds what the sheet shows, formulas computed', async () => {
     assert.match(String(res.headers.get('content-type')), /text\/csv/);
     assert.match(String(res.headers.get('content-disposition')), /filename="Budget\.csv"/);
     assert.strictEqual(res.text.replace(/^﻿/, ''), '2\r\n3\r\n6\r\n');
+});
+
+test('the Excel download is an attachment of the whole workbook, for a viewer too', async () => {
+    for (const user of ['owner', 'viewer']) {
+        const res = await as(user, 'GET', '/s1/sheet.xlsx');
+        assert.strictEqual(res.status, 200, res.text);
+        assert.match(String(res.headers.get('content-type')), /spreadsheetml\.sheet/);
+        assert.match(String(res.headers.get('content-disposition')), /^attachment; filename="Budget\.xlsx"$/);
+        assert.strictEqual(res.text.slice(0, 2), 'PK');
+    }
+    assert.strictEqual((await as('stranger', 'GET', '/s1/sheet.xlsx')).status, 404);
+    assert.strictEqual((await as('owner', 'GET', '/p1/sheet.xlsx')).status, 404);
 });
 
 test('sheetCsv quotes what needs quoting and fills the gaps', () => {
@@ -245,6 +260,54 @@ test('an editor can add, rename and remove tabs; the last tab cannot be removed'
     const last = await as('editor', 'DELETE', `/s1/sheet/tabs/${add.body.tab.id}`);
     assert.strictEqual(last.status, 422);
     assert.strictEqual(last.body.code, 'sheet_last_tab');
+});
+
+test('adding, renaming and removing tabs keeps the charts; a removed tab takes its own charts along', async () => {
+    const charts = [
+        { id: 'c1', type: 'bar', dataRange: 'B2:B5', anchor: 'E2', width: 672, height: 392, tab: 't1' },
+        { id: 'c2', type: 'pie', dataRange: 'B2:B5', anchor: 'E2', width: 672, height: 392, tab: 't2' },
+        { id: 'c0', type: 'line', dataRange: 'B2:B5', anchor: 'H2', width: 672, height: 392 },
+    ];
+    DOCS.s1.settings = { sheet: { tabs: [{ id: 't1', name: 'Budget', datatableId: 'dt1' }, { id: 't2', name: 'Costs', datatableId: 'dt2' }], charts } };
+    const ids = () => DOCS.s1.settings.sheet.charts.map((c) => c.id);
+    assert.strictEqual((await as('editor', 'POST', '/s1/sheet/tabs', { name: 'Q4' })).status, 201);
+    assert.deepStrictEqual(ids(), ['c1', 'c2', 'c0'], 'a new tab');
+    DOCS.s1.settings.sheet.charts.push({ id: 'orphan', type: 'bar', dataRange: 'B2:B5', anchor: 'E2', width: 672, height: 392, tab: 'deleted-long-ago' });
+    assert.strictEqual((await as('editor', 'PATCH', '/s1/sheet/tabs/t2', { name: 'Kosten' })).status, 200);
+    assert.deepStrictEqual(ids(), ['c1', 'c2', 'c0'], 'a renamed tab; an orphan from before is cleaned up');
+    assert.strictEqual((await as('editor', 'DELETE', '/s1/sheet/tabs/t1')).status, 200);
+    assert.deepStrictEqual(ids(), ['c2', 'c0'], 'the removed tab\'s chart is gone, the others and the tab-less one stay');
+    assert.deepStrictEqual(DOCS.s1.settings.sheet.tabs.map((t) => t.name), ['Kosten', 'Q4']);
+});
+
+test('a copy carries the charts, with new ids, pinned to the copied tabs', async () => {
+    DOCS.s1.settings = { sheet: {
+        tabs: [{ id: 't1', name: 'Budget', datatableId: 'dt1' }, { id: 't2', name: 'Costs', datatableId: 'dt2' }],
+        charts: [
+            { id: 'c1', type: 'bar', dataRange: 'B2:B5', anchor: 'E2', width: 672, height: 392, tab: 't1' },
+            { id: 'c2', type: 'kpi', dataRange: 'B2', anchor: 'A1', width: 336, height: 112, tab: 't2' },
+            { id: 'c0', type: 'line', dataRange: 'B2:B5', anchor: 'H2', width: 672, height: 392 },
+            { id: 'gone', type: 'bar', dataRange: 'B2:B5', anchor: 'E2', width: 672, height: 392, tab: 'deleted-tab' },
+        ],
+    } };
+    const res = { statusCode: 0, body: null, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
+    await router.duplicateSheet({ session: { user: { id: 'editor' } }, body: {} }, res, DOCS.s1);
+    assert.strictEqual(res.statusCode, 201);
+    const [[docId, settings]] = state.updates;
+    assert.strictEqual(docId, 'new-doc');
+    const tabByName = Object.fromEntries(settings.sheet.tabs.map((t) => [t.name, t.id]));
+    assert.deepStrictEqual(settings.sheet.charts.map((c) => [c.type, c.tab]), [['bar', tabByName.Budget], ['kpi', tabByName.Costs], ['line', undefined]]);
+    for (const c of settings.sheet.charts) assert.match(c.id, /^chart-[0-9a-f]{10}$/);
+    assert.ok(!settings.sheet.tabs.some((t) => t.id === 't1' || t.id === 't2'), 'the copy has its own tab ids');
+    assert.strictEqual(res.body.document.versionId, 'v-copy-2', 'the answer is the copy as saved, not the first draft');
+    assert.deepStrictEqual(res.body.document.settings.sheet.tabs.map((t) => t.name), ['Budget', 'Costs']);
+    assert.strictEqual(res.body.document.settings.sheet.charts.length, 3);
+});
+
+test('a one-tab copy without charts needs no second save', async () => {
+    const res = { statusCode: 0, body: null, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
+    await router.duplicateSheet({ session: { user: { id: 'editor' } }, body: {} }, res, DOCS.s1);
+    assert.deepStrictEqual(state.updates, []);
 });
 
 test('a viewer cannot change tabs', async () => {

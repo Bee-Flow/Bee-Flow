@@ -15,7 +15,7 @@ import { loadWeb } from '../testing/loadWeb';
 
 type AnyFn = (...args: unknown[]) => unknown;
 type Css = Record<string, unknown>;
-const W = loadWeb<Record<string, unknown> & { ROLE_COLORS: Record<string, string> }>('runtime/styleResolver.js');
+const W = loadWeb<Record<string, unknown> & { ROLE_COLORS: Record<string, string> }>('runtime/styleResolver.ts');
 const call = (name: string, ...args: unknown[]) => (W[name] as AnyFn)(...args);
 
 const colorCss = (ref: port.ColorRef) => ('hex' in ref ? ref.hex : W.ROLE_COLORS[ref.role]);

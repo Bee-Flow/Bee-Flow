@@ -142,6 +142,10 @@ test('buildListAcl mirrors the store predicate shape for every combination', () 
     assert.deepStrictEqual(buildListAcl('u', { orgIds: ['o'], userGroupIds: [] }), buildListAcl('u', { orgIds: ['o'] }));
 });
 
+// Errors are answered the way index.js answers them: by the terminal handler.
+const answerError = require('../core/http/terminalErrorHandler')
+    .createTerminalErrorHandler({ log: { error() {}, warn() {} } });
+
 test('a database failure answers 500 with a generic message, never the SQL error', async () => {
     const dbPath = require.resolve('../db');
     const real = require.cache[dbPath].exports;
@@ -158,9 +162,10 @@ test('a database failure answers 500 with a generic message, never the SQL error
             json(b) { this.body = b; resolve(this); return this; },
             send(b) { this.body = b; resolve(this); return this; }, end() { resolve(this); return this; }, setTimeout() {},
         };
-        fresh(req, r, (err) => reject(err || new Error('fell through')));
+        fresh(req, r, (err) => (err ? answerError(err, req, r, reject) : reject(new Error('fell through'))));
     });
     require.cache[dbPath].exports = real;
     assert.strictEqual(res.statusCode, 500);
-    assert.deepStrictEqual(res.body, { error: 'Failed to list tags' });
+    assert.strictEqual(res.body.error, 'Internal server error');
+    assert.ok(!JSON.stringify(res.body).includes('does not exist'), 'no SQL in the answer');
 });

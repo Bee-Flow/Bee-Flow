@@ -30,6 +30,8 @@ const { AUDIO_SCRATCH_DIR: uploadsDir } = require('./savedAudioStore');
 // lives in its own db-free module so the routes can share it.
 const { parseTalkRoomToken, talkRecordingRoots, DEFAULT_RECORDING_FOLDER } = require('./talkRecordingPaths');
 const log = require('../../telemetry/log');
+// Nextcloud and Talk clients are injected by integrations/ (see ../integrations/integrationClients.js).
+const { integrationClient } = require('../integrations/integrationClients');
 
 // Audio + (Talk) video container extensions we can hand to a provider. Talk
 // records audio as .ogg and video as .mp4/.webm/.ogv/.mkv.
@@ -102,7 +104,7 @@ async function ingestNextcloudRecording(opts) {
 
     // ── Download from Nextcloud ──────────────────────────────
     try {
-        const ncClient = require('../../integrations/nextcloudClient');
+        const ncClient = integrationClient('nextcloud');
         await ncClient.downloadBinary(session, userId, ncPath, tmpPath);
     } catch (err) {
         safeUnlink(tmpPath);
@@ -155,7 +157,7 @@ async function ingestNextcloudRecording(opts) {
  */
 async function postSummaryToTalk({ session, userId, orgId = null, talkRoomToken, title, summary, actionItems }) {
     try {
-        const { executeNextcloudTalkTool } = require('../../integrations/nextcloudTalkTools');
+        const { executeNextcloudTalkTool } = integrationClient('nextcloudTalk');
         const lines = [`📝 **${title || 'Meeting summary'}**`, ''];
         if (summary) lines.push(summary.trim());
         if (Array.isArray(actionItems) && actionItems.length) {
@@ -199,7 +201,7 @@ async function postSummaryToTalk({ session, userId, orgId = null, talkRoomToken,
  */
 async function resolveTalkParticipantNames(session, userId, talkRoomToken, orgId = null) {
     try {
-        const { executeNextcloudTalkTool } = require('../../integrations/nextcloudTalkTools');
+        const { executeNextcloudTalkTool } = integrationClient('nextcloudTalk');
         // The roster is data about the conversation, and it is PERSISTED into
         // the meeting note as speaker names — so it needs the same scope check
         // as the write-back below. It sat two functions away from a guarded

@@ -134,8 +134,8 @@ export default function FormAudienceCard({ form, canEdit, onChanged }) {
                             <span className="flex items-center gap-2.5 min-w-0">
                                 <Avatar name={nameOf(r.type, r.id)} group={r.type === 'group'} />
                                 <span className="min-w-0">
-                                    <span className="block text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{nameOf(r.type, r.id)}</span>
-                                    <span className="block text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                                    <span className="block text-sm font-medium truncate text-[var(--text-primary)]">{nameOf(r.type, r.id)}</span>
+                                    <span className="block text-[11px] text-[var(--text-tertiary)]">
                                         {r.type === 'group' ? t('forms.share.audience_group', 'A group — every member') : t('forms.share.audience_person', 'A person')}
                                     </span>
                                 </span>
@@ -186,7 +186,7 @@ export default function FormAudienceCard({ form, canEdit, onChanged }) {
                 </div>
             )}
             <p aria-live="polite" className="mt-2">
-                {error && <span role="alert" className="text-xs" style={{ color: 'var(--error)' }}>{error}</span>}
+                {error && <span role="alert" className="text-xs text-[var(--error)]">{error}</span>}
             </p>
             {confirmDialog}
         </DashCard>
@@ -209,8 +209,8 @@ function AudienceRow({ icon, title, description, checked, onSelect, disabled = f
             <input type="radio" name="form-audience" checked={checked} onChange={onSelect} disabled={disabled} className="mt-1 shrink-0" />
             <span className="mt-0.5 shrink-0" style={{ color: checked ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}>{icon}</span>
             <span className="min-w-0">
-                <span className="block text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{title}</span>
-                <span className="block text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{description}</span>
+                <span className="block text-sm font-medium text-[var(--text-primary)]">{title}</span>
+                <span className="block text-xs mt-0.5 text-[var(--text-secondary)]">{description}</span>
             </span>
         </label>
     );

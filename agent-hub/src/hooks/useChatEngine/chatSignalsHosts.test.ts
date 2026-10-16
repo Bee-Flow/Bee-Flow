@@ -68,8 +68,8 @@ describe('chat signals: who can send the marker', () => {
             'AgentHub/useAgentHubData.js',
             'pages/TemplatesPage.jsx',
             'pages/documents/notebook/detail/useNotebookChat.ts',
-            'pages/meeting-notes/detail/AssistantSidebar.jsx',
-            'pages/webpages/WebpageEditorPage.jsx',
+            'pages/meeting-notes/detail/AssistantSidebar.tsx',
+            'pages/webpages/hooks/useWebpageChat.ts',
         ]);
     });
 

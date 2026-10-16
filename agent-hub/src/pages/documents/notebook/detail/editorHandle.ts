@@ -27,6 +27,8 @@ export interface NotebookEditorHandle {
     getSelectionAnchor?: () => CommentAnchor | null;
     highlightAnchors?: (list: Array<{ id: string; anchor: CommentAnchor }>, activeId?: string | null) => void;
     scrollToAnchor?: (anchor: CommentAnchor) => boolean;
+    highlightSuggestions?: (list: Array<{ id: string; anchor: CommentAnchor }>, activeId?: string | null) => void;
+    suggestionAtPoint?: (x: number, y: number) => string | null;
     scrollToHeading?: (index: number) => void;
     openFind?: () => void;
     [key: string]: unknown;

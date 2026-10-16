@@ -3,13 +3,13 @@
  * a meeting note. Each is a small card with its own title and a close button;
  * Enter submits the URL, Escape closes it.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Mic, X } from 'lucide-react';
 import MeetingPickerJs from '../../../../components/meeting-picker/MeetingPicker';
 import useTranslation from '../../../../hooks/useTranslation';
 import { useCapture } from '../../../meeting-notes/capture/CaptureContext';
 
-const MeetingPicker = MeetingPickerJs as unknown as React.ComponentType<any>;
+const MeetingPicker = MeetingPickerJs;
 
 /** Max characters for a pasted-text source (the server re-validates on ingest). */
 export const PASTE_MAX_CHARS = 500000;

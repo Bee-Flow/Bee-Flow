@@ -207,7 +207,7 @@ export default function OverviewTab({
                     {costCap > 0 && (
                         <div style={{ marginTop: 12 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11, fontWeight: 600 }}>
-                                <span style={{ color: 'var(--text-secondary)' }}>{t('usage.ai_usage_vs_cap', 'AI usage vs. cap')}</span>
+                                <span className="text-[var(--text-secondary)]">{t('usage.ai_usage_vs_cap', 'AI usage vs. cap')}</span>
                                 <span style={{ color: capColor }}>{pct}%</span>
                             </div>
                             <div style={{ height: 8, borderRadius: 999, background: 'var(--bg-tertiary)', overflow: 'hidden' }}>
@@ -449,7 +449,7 @@ export default function OverviewTab({
                                                 </div>
                                                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                                                     <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{fNum(m.total_tokens)}</span>
-                                                    <span style={{ color: 'var(--text-muted)' }}>{fCur(m.estimated_cost)}</span>
+                                                    <span className="text-[var(--text-muted)]">{fCur(m.estimated_cost)}</span>
                                                 </div>
                                             </div>
                                         ))}

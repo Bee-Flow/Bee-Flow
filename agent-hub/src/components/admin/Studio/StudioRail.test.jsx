@@ -28,7 +28,7 @@ vi.mock('../../../hooks/useTranslation', () => {
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
 vi.mock('../../shell/NavLink', () => ({ default: ({ children, ...p }) => <a {...p}>{children}</a> }));
 
-import StudioRail from './StudioRail.jsx';
+import StudioRail from './StudioRail';
 
 const SECTIONS = [
     { id: 'aiTasks', urlSegment: 'automations', labelKey: 'studio.tab.automations', labelFallback: 'Automations', Icon: Table2, kind: 'automation', countKey: 'automations', category: 'build', locked: null },

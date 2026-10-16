@@ -37,6 +37,21 @@ import useTranslation from '../../hooks/useTranslation';
  * the header's strip says WHICH SECTION of the page you are in, this says
  * which of the section's five surfaces — a different question, and it must
  * not look like the same one.
+ *
+ * @typedef {object} WebpageDataTabProps
+ * @property {string} webpageId
+ * @property {unknown[]} [sources]
+ * @property {(sources: unknown[]) => void} [onSourcesChange]
+ * @property {boolean} [readOnly]
+ * @property {string} [theme]
+ * @property {Function | null} [onNavigate]
+ * @property {import('./webpageEditorTypes').WebpageRow | null} [page]
+ * @property {unknown[]} [orgGroups]
+ * @property {(() => void) | null} [onSetPersonal]
+ * @property {(() => void) | null} [onSetEntireOrg]
+ * @property {((gid: string) => void) | null} [onToggleGroup]
+ *
+ * @param {WebpageDataTabProps} props
  */
 export default function WebpageDataTab({
     webpageId, sources, onSourcesChange, readOnly = false, theme = 'light', onNavigate = null,
@@ -52,8 +67,8 @@ export default function WebpageDataTab({
     const [pane, setPane] = useState('overview');
 
     return (
-        <div className="flex flex-col h-full min-h-0" style={{ background: 'var(--bg-primary)' }}>
-            <div className="shrink-0 px-3 py-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
+        <div className="flex flex-col h-full min-h-0 bg-[var(--bg-primary)]">
+            <div className="shrink-0 px-3 py-2 border-b border-[var(--border-subtle)]">
                 <SegmentedControl
                     size="sm"
                     ariaLabel={t('webpages.data.panes', 'Data surfaces')}

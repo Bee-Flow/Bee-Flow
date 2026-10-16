@@ -55,16 +55,16 @@ export default function SourceMirrorPanel({ table, mirror, canEdit, canWrite, on
     return (
         <div className="space-y-4">
             <section className="p-4 space-y-3" style={CARD} aria-label={t('datatables.src_status_title', 'Kept in step with {source}', { source: sourceName })}>
-                <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                <h3 className="text-sm font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                     {Glyph && React.createElement(Glyph, { className: 'w-4 h-4', style: { color: 'var(--type-data)' }, 'aria-hidden': 'true' })}
                     {t('datatables.src_status_title', 'Kept in step with {source}', { source: sourceName })}
                 </h3>
                 <StatusLine t={t} rel={rel} sync={sync} sourceName={sourceName} />
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-xs text-[var(--text-secondary)]">
                     {spec ? spec.liveExplain(t) : null}
                 </p>
                 {sync?.truncated && spec && (
-                    <p className="text-xs flex items-start gap-2" style={{ color: 'var(--warning)' }}>
+                    <p className="text-xs flex items-start gap-2 text-[var(--warning)]">
                         <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
                         {spec.truncated(t, new Intl.NumberFormat().format(source?.rowCap || 10000))}
                     </p>
@@ -82,14 +82,14 @@ export default function SourceMirrorPanel({ table, mirror, canEdit, canWrite, on
                     )}
                     {url && (
                         <a href={url} target="_blank" rel="noopener noreferrer"
-                            className="text-xs inline-flex items-center gap-1 ml-auto" style={{ color: 'var(--text-secondary)' }}>
+                            className="text-xs inline-flex items-center gap-1 ml-auto text-[var(--text-secondary)]">
                             <ExternalLink className="w-3 h-3" aria-hidden="true" />
                             {t('datatables.src_open_in', 'Open in {source}', { source: sourceName })}
                         </a>
                     )}
                 </div>
                 {source?.linkedByUserId && (
-                    <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="text-[11px] text-[var(--text-tertiary)]">
                         {t('datatables.src_linked_by', '{source} is read and written as the account that linked this table.', { source: sourceName })}
                         {source.linkedAt ? ` ${t('datatables.nc_linked_at', 'Linked {when}.', { when: rel(source.linkedAt) })}` : ''}
                     </p>
@@ -99,11 +99,11 @@ export default function SourceMirrorPanel({ table, mirror, canEdit, canWrite, on
 
             {isNcMirror(table) && (
                 <section className="p-4 space-y-2" style={CARD} aria-label={t('datatables.nc_write_title', 'Changes go both ways')}>
-                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('datatables.nc_write_title', 'Changes go both ways')}</h3>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('datatables.nc_write_title', 'Changes go both ways')}</h3>
+                    <p className="text-xs text-[var(--text-secondary)]">
                         {t('datatables.nc_write_body', 'Rows added, changed or deleted here are written to Nextcloud first, and this copy is refreshed from what Nextcloud answered. When Nextcloud refuses a change — no permission there, a required column left empty — the refusal is shown here and nothing changes on either side.')}
                     </p>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-xs text-[var(--text-secondary)]">
                         {t('datatables.nc_columns_body', 'The columns are Nextcloud’s. Change them in Nextcloud; the next refresh brings them here.')}{' '}
                         {t('datatables.nc_no_retention', 'Rows are not aged out here — they stay as long as they are in Nextcloud.')}
                     </p>
@@ -132,18 +132,18 @@ export function SourceSyncStrip({ table, mirror, canWrite }) {
     const sourceName = sourceNameOf(table, mirror?.source);
     const Glyph = sourceGlyphOf(table);
     return (
-        <div className="flex items-center gap-2 flex-wrap text-xs px-3 py-2 rounded-lg mb-3" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+        <div className="flex items-center gap-2 flex-wrap text-xs px-3 py-2 rounded-lg mb-3 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
             {Glyph && React.createElement(Glyph, { className: 'w-3.5 h-3.5 shrink-0', style: { color: 'var(--type-data)' }, 'aria-hidden': 'true' })}
             <StatusLine t={t} rel={rel} sync={sync} sourceName={sourceName} compact />
             {canWrite && (
                 <button type="button" disabled={busy || sync?.status === 'running'}
                     onClick={async () => { setBusy(true); try { await mirror.refreshNow(); } catch { /* shown on the tab */ } finally { setBusy(false); } }}
-                    className="inline-flex items-center gap-1 underline disabled:opacity-50" style={{ color: 'var(--text-primary)' }}>
+                    className="inline-flex items-center gap-1 underline disabled:opacity-50 text-[var(--text-primary)]">
                     <RefreshCw className={`w-3 h-3 ${busy ? 'animate-spin' : ''}`} aria-hidden="true" />
                     {t('datatables.nc_refresh_now', 'Refresh now')}
                 </button>
             )}
-            <span className="ml-auto" style={{ color: 'var(--text-tertiary)' }}>
+            <span className="ml-auto text-[var(--text-tertiary)]">
                 {sourceWritable(table, mirror?.source)
                     ? t('datatables.src_strip_write', 'Rows you change here are changed in {source}.', { source: sourceName })
                     : t('datatables.ss_strip_readonly', 'Rows cannot be changed here — change them in the file.')}
@@ -176,7 +176,7 @@ function StatusLine({ t, rel, sync, sourceName, compact = false }) {
         <span className={`${cls} inline-flex items-center gap-1.5`} style={{ color: 'var(--text-secondary)' }}>
             <Zap className="w-3.5 h-3.5" style={{ color: 'var(--success)' }} aria-hidden="true" />
             {t('datatables.src_status_live', 'Live · in step with {source}', { source: sourceName })}
-            <span style={{ color: 'var(--text-tertiary)' }}>
+            <span className="text-[var(--text-tertiary)]">
                 {t('datatables.nc_live_last', '· checked {when}', { when: rel(sync.lastSuccessAt || sync.lastSyncAt) })}
             </span>
         </span>

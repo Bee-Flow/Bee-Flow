@@ -113,7 +113,7 @@ export default function TasksTab(props: WorkspaceTabProps) {
     const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
     const all = useMemo(() => (query.data?.tasks || []).filter(task => !removed.has(task.id)), [query.data, removed]);
     const labels = useMemo(() => allLabels(all).filter(label => !label.startsWith('bf:')), [all]);
-    const onError = (e: Error) => toast.error(projectErrorText(t, e));
+    const onError = (e: unknown) => toast.error(projectErrorText(t, e));
     const remove = useDeleteTask(projectId);
     const mayDelete = (task: ProjectTask) => mayDeleteTask(task, me, role === 'owner', canEdit);
     const setRemovedId = (id: string, gone: boolean) => setRemoved((prev) => {
@@ -148,7 +148,7 @@ export default function TasksTab(props: WorkspaceTabProps) {
         else update.mutate({ id: task.id, patch: { status, beforeId } }, { onError });
     };
     const quickCreate = async (columnId: string, title: string) => {
-        try { await boardActions.create.mutateAsync({ columnId, title }); } catch (e) { onError(e as Error); throw e; }
+        try { await boardActions.create.mutateAsync({ columnId, title }); } catch (e) { onError(e); throw e; }
     };
     const changeView = (next: View) => { setView(next); try { scopedStorage.setItem(VIEW_KEY, next); } catch { /* the choice just does not outlive the page */ } };
     const open = all.filter(x => x.status !== 'done').length;

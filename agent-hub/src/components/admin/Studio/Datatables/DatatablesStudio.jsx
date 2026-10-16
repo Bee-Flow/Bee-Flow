@@ -137,15 +137,15 @@ export default function DatatablesStudio({ user = null, hasPermission = () => tr
                 <div className="mx-auto px-6 py-8 space-y-4" style={{ maxWidth: 760 }}>
                     <div className="flex items-end gap-3">
                         <div className="flex-1 min-w-0">
-                            <h2 className="text-[18px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            <h2 className="text-[18px] font-semibold text-[var(--text-primary)]">
                                 {t('datatables.heading', 'Tables')}
                                 {!loading && !error && tables.length > 0 && (
-                                    <span className="ml-2 font-medium" style={{ color: 'var(--text-tertiary)' }}>
+                                    <span className="ml-2 font-medium text-[var(--text-tertiary)]">
                                         {tables.length}
                                     </span>
                                 )}
                             </h2>
-                            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="text-sm mt-1 text-[var(--text-secondary)]">
                                 {t('datatables.intro', 'Rows that stay put after a run ends. An automation can read back what an earlier run wrote, and other automations can use the same table.')}
                             </p>
                         </div>
@@ -159,8 +159,7 @@ export default function DatatablesStudio({ user = null, hasPermission = () => tr
                         the table was not available to them, with the real error
                         printed underneath it contradicting it on screen. */}
                     {openId && !openTable && !loading && !error && (
-                        <p className="px-3 py-2.5 rounded-lg text-sm flex items-start gap-2"
-                            style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                        <p className="px-3 py-2.5 rounded-lg text-sm flex items-start gap-2 bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
                             {/* Never "you do not have access": whether it was deleted or
                                 simply never shared is exactly what the 404 refuses to
@@ -171,19 +170,18 @@ export default function DatatablesStudio({ user = null, hasPermission = () => tr
 
                     <div aria-live="polite">
                         {loading ? (
-                            <div className="flex items-center justify-center py-12" style={{ color: 'var(--text-tertiary)' }}>
+                            <div className="flex items-center justify-center py-12 text-[var(--text-tertiary)]">
                                 <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                                 <span className="sr-only">{t('datatables.loading', 'Loading…')}</span>
                             </div>
                         ) : error ? (
-                            <p className="px-3 py-2.5 rounded-lg text-sm"
-                                style={{ background: 'var(--bg-secondary)', color: 'var(--warning)' }}>
+                            <p className="px-3 py-2.5 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--warning)]">
                                 {error}
                             </p>
                         ) : tables.length === 0 ? (
                             <NoTablesYet t={t} canCreate={canCreate} onCreate={() => setCreating(true)} />
                         ) : shown.length === 0 ? (
-                            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                            <p className="text-sm text-[var(--text-secondary)]">
                                 {t('datatables.search_empty', 'No table matches that.')}
                             </p>
                         ) : (

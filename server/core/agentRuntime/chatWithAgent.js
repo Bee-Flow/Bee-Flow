@@ -1,38 +1,127 @@
 /**
- * Non-streaming agent chat — synchronous tool-calling loop
+ * Non-streaming agent chat — synchronous tool-calling loop.
+ *
+ * The preparation (generation settings, fixed tool params, the input-side
+ * privacy pass) lives in ./chatWithAgentPrep, one tool call's execution in
+ * ./chatWithAgentTools.
  */
 const { getAIConfig, getProviderForModel } = require('../aiAgent');
 const { getAdapter } = require('../providers');
 const agentStore = require('../../stores/agentStore');
 const usageStore = require('../../stores/usageStore');
 const { usageLogFields } = require('../providers/usageNormalizer');
-const { sanitizeToolResult } = require('../../utils/sanitize');
 const { sanitizeMessages } = require('../../utils/messageUtils');
 require('../tools/toolExecution');
 const { resolveAgentModelWithTier } = require('./modelResolver');
-const { getEUAwareTiers, TIER_DEFAULTS, findTierKeyForModel } = require('../llm/modelResolver');
 const { getAgentTools } = require('./agentTools');
-const { mayLendOwnerConnection } = require('./toolPolicy');
 const { processSystemPrompt } = require('../llm/promptUtils');
-const { validateInputForPii } = require('../privacy/piiDetection');
-const { resolveShieldFor } = require('../privacy/orgShield');
-const dlpRunner = require('../dlp/dlpRunner');
-const { buildTokenPreservationAddendum } = require('../dlp/tokenPreservationPrompt');
 const { applyTokenMapToOutbound } = require('../dlp/applyTokenMapToOutbound');
 const { recordAgentRun } = require('../../telemetry/metrics');
 const log = require('../../telemetry/log');
+const { resolveGenerationSettings, loadToolParamsMap, shieldIncomingMessages, tokenPreservationAddendum } = require('./chatWithAgentPrep');
+const { executeChatToolCall } = require('./chatWithAgentTools');
+const { getEUAwareTiers, TIER_DEFAULTS, findTierKeyForModel } = require('../llm/modelResolver');
+const { validateInputForPii } = require('../privacy/piiDetection');
+const { resolveShieldFor } = require('../privacy/orgShield');
+const dlpRunner = require('../dlp/dlpRunner');
+const { mayLendOwnerConnection } = require('./toolPolicy');
+
+// What ./chatWithAgentPrep and ./chatWithAgentTools work with, handed in:
+// it sits in the server's large import cycle, which those modules stay out
+// of. The lazy ones stay lazy.
+const PREP_DEPS = {
+    getAIConfig, agentStore, getEUAwareTiers, TIER_DEFAULTS, findTierKeyForModel,
+    validateInputForPii, resolveShieldFor, dlpRunner,
+};
+const TOOL_DEPS = {
+    mayLendOwnerConnection,
+    connectionResolution: () => require('../integrations/connectionResolution'),
+    toolDispatcher: () => require('../tools/toolDispatcher'),
+    toolPiiGate: () => require('../privacy/toolPiiGate'),
+};
 
 async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
     const _agentT0 = Date.now();
     // Runtime projection (published_* once published, live concept otherwise)
     // — same loader as the streaming path so non-streaming chat, the support
     // responder and the support preview never run a different config.
-    let agent = await agentStore.getForRuntime(agentId);
+    const agent = await agentStore.getForRuntime(agentId);
 
     if (!agent) {
         throw new Error('Agent not found');
     }
 
+    const run = await prepareRun({ agent, agentId, userId, userMessage, userAuth });
+
+    // Tool execution loop (max 20 iterations to prevent infinite loops).
+    // Bumped from 10 after Opus 4.7 multi-step agent runs were hitting the
+    // cap mid-task. Admins can still narrow this in code if a regression hits.
+    let iterations = 0;
+    const maxIterations = 20;
+    const toolCalls = [];
+    const { messages, conversation, modelToUse } = run;
+
+    while (iterations < maxIterations) {
+        iterations++;
+
+        try {
+            const assistantMessage = await callModel(run, { agent, agentId, userId });
+
+            // Check if there are tool calls
+            if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+                // Add assistant message with tool calls
+                messages.push(assistantMessage);
+
+                // Execute tool calls in parallel
+                const results = await Promise.all(assistantMessage.tool_calls.map((toolCall) => executeChatToolCall(toolCall, {
+                    agent, agentId, userId, userAuth, conversation, modelToUse,
+                    toolParamsMap: run.toolParamsMap, orgShield: run.orgShield, logShieldEvent: run.logShieldEvent, d: TOOL_DEPS,
+                })));
+
+                // Add results to history and toolCalls array in order
+                results.forEach(res => {
+                    toolCalls.push(res.toolCallInfo);
+                    messages.push(res.message);
+                });
+
+                // Continue the loop to get the final response
+                continue;
+            }
+
+            // No tool calls - we have the final response
+            messages.push({
+                role: 'assistant',
+                content: assistantMessage.content,
+            });
+
+            // Save conversation
+            await agentStore.updateConversation(conversation.id, messages, userAuth.encryptionKey, userAuth.userId);
+
+            recordAgentRun({ agentType: 'chat', status: 'ok', durationMs: Date.now() - _agentT0 });
+            return {
+                message: assistantMessage.content,
+                model: modelToUse,
+                toolCalls,
+                conversationLength: messages.length,
+            };
+
+        } catch (error) {
+            recordAgentRun({ agentType: 'chat', status: 'error', durationMs: Date.now() - _agentT0 });
+            log.error('[Agent] Error:', error);
+            throw error;
+        }
+    }
+
+    recordAgentRun({ agentType: 'chat', status: 'error', durationMs: Date.now() - _agentT0 });
+    throw new Error('Agent exceeded maximum tool call iterations');
+}
+
+/**
+ * Everything the loop needs before its first round: model, provider adapter,
+ * generation settings, tools and their fixed params, the conversation with the
+ * new user message, the system prompt and the input-side privacy pass.
+ */
+async function prepareRun({ agent, agentId, userId, userMessage, userAuth }) {
     // Get the model to use - supports tier-based selection (tier:auto, tier:fast, etc.)
     // `resolvedTierKey` is the tier that produced the model. Carrying it is what
     // keeps the settings below exact when several tiers share one model — see
@@ -56,7 +145,7 @@ async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
         userOrgId: userAuth?.userOrgId || agent.organization_id || null,
         userId,
         tierKey: resolvedTierKey,
-    });
+    }, PREP_DEPS);
 
     const tools = await getAgentTools(agentId);
     // Callers (e.g. the support auto-responder) may inject extra read-only
@@ -66,97 +155,26 @@ async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
     }
 
     // Load tool configs with fixed params
-    const toolParamsMap = {};
-    const toolConfigs = await agentStore.getAgentToolsWithParams(agentId);
-    for (const tc of toolConfigs) {
-        // Convert component ID to tool name format (replace hyphens with underscores)
-        const toolName = tc.componentId.replace(/-/g, '_');
-        toolParamsMap[toolName] = tc.params;
-    }
+    const toolParamsMap = await loadToolParamsMap(agentId, PREP_DEPS);
 
     const conversation = await agentStore.getOrCreateConversation(agentId, userId);
-    let messages = [...conversation.messages];
+    const messages = [...conversation.messages];
 
     // Add user message
     messages.push({ role: 'user', content: userMessage });
 
-    // Build system prompt
+    // Build system prompt, then process its dynamic tags
     let systemPrompt = agent.system_prompt ||
         `You are a helpful AI assistant. You have access to various tools to help accomplish tasks. Use them when appropriate.`;
-
-    // Process dynamic tags in system prompt
     systemPrompt = processSystemPrompt(systemPrompt);
 
-    // Tool execution loop (max 20 iterations to prevent infinite loops).
-    // Bumped from 10 after Opus 4.7 multi-step agent runs were hitting the
-    // cap mid-task. Admins can still narrow this in code if a regression hits.
-    let iterations = 0;
-    const maxIterations = 20;
-    let toolCalls = [];
-
-    // ── Unicode Smuggling Defense (must run FIRST) ───────────────────
-    const { sanitizeMessagesUnicode } = require('../../utils/unicodeSanitizer');
-    const unicodeResult = sanitizeMessagesUnicode(messages);
-    if (unicodeResult.smugglingDetected) {
-        log.warn(`[ChatWithAgent] 🚨 Unicode smuggling stripped: ${unicodeResult.totalStripped} hidden chars`);
-    }
-
-    // Content moderation (Hate/Violence/Sexual/Self-Harm) was removed when
-    // the Azure Content Safety backend was dropped. PII detection still
-    // runs in the block below.
-
-    // ── PII Detection ─────────────────────────────────────────────────
-    const aiConfigForPii = await getAIConfig();
-    let piiTokenMap = null;
-    // Agents owned by a consumer account have `organization_id === null` — fall
-    // back to that user's personal Privacy Shield so PII detection still runs
-    // (agent-path twin of BFSF-290).
-    const orgShield = await resolveShieldFor({ orgId: agent.organization_id, userId });
-    // PII gate: the shield's master `enabled` flag is the only switch.
-    // detectPii() in piiDetection.js routes between the in-process
-    // Transformers.js detector and the optional GLiNER guard service.
-    const orgPiiEnabled = !!orgShield?.enabled;
-    if (aiConfigForPii?.piiDetectionEnabled || orgPiiEnabled) {
-        try {
-            const piiResult = await validateInputForPii(messages.slice(-3), orgPiiEnabled, orgShield, userAuth?.piiActionOverride || null, null, { vaultUserId: userAuth?.userId || null });
-
-            if (piiResult && piiResult.tokenizedText) {
-                // Redact/tokenize mode: replace last user message with tokenized version
-                const lastMsg = messages[messages.length - 1];
-                if (typeof lastMsg.content === 'string') {
-                    lastMsg.content = piiResult.tokenizedText;
-                } else if (Array.isArray(lastMsg.content)) {
-                    const textPart = lastMsg.content.find(p => p.type === 'text');
-                    if (textPart) textPart.text = piiResult.tokenizedText;
-                }
-                piiTokenMap = piiResult.tokenMap;
-                if (conversation?.id) dlpRunner.mergeTokenMap(conversation.id, piiTokenMap);
-                log.warn(`[ChatWithAgent] 🔒 PII tokenized (${Object.keys(piiTokenMap).length} tokens)`);
-            }
-        } catch (piiError) {
-            // Propagate both a PII block and a fail-closed "protection
-            // unavailable" block to the route handler (BFSF-269).
-            if (piiError.message?.includes('PII Detected') || piiError.privacyUnavailable) {
-                throw piiError;
-            }
-            // Service unavailable → fail-open
-        }
-    }
-
-    // PII tokens: instruct the LLM to preserve & reuse them rather than invent new placeholders.
-    {
-        const _convTokenMap = conversation?.id
-            ? dlpRunner.getConversationTokenMap(conversation.id)
-            : (piiTokenMap || {});
-        const _tokenAddendum = buildTokenPreservationAddendum(_convTokenMap);
-        if (_tokenAddendum) systemPrompt += _tokenAddendum;
-    }
+    const { orgShield, piiTokenMap } = await shieldIncomingMessages({ messages, agent, userId, userAuth, conversation }, PREP_DEPS);
+    const _tokenAddendum = tokenPreservationAddendum(conversation, piiTokenMap, PREP_DEPS);
+    if (_tokenAddendum) systemPrompt += _tokenAddendum;
 
     // Privacy Shield tool block lists ("Outside tools" / "Own server"): the
-    // check the streaming agent loop runs, on this loop too (BFSF-354). A
-    // refused call is never dispatched; what the model reads of a result has
-    // the forbidden categories stripped. Rules in core/privacy/toolPiiGate.js.
-    const toolPiiGate = require('../privacy/toolPiiGate');
+    // check the streaming agent loop runs, on this loop too (BFSF-354) — see
+    // ./chatWithAgentTools. Every refusal or strip is logged through this.
     const logShieldEvent = (fields) => {
         require('../../stores/guardrailEventStore').logGuardrailEvent({
             organization_id: agent.organization_id || null,
@@ -167,274 +185,68 @@ async function chatWithAgent(agentId, userId, userMessage, userAuth = {}) {
         }).catch(() => {});
     };
 
-    while (iterations < maxIterations) {
-        iterations++;
-
-        try {
-            // Sanitize messages — Mistral rejects extra fields like parentId, id, etc.
-            const sanitize = sanitizeMessages;
-
-            // Outbound-prompt guard — last-stop substitution of any real
-            // values that may have crept into the prompt via memory, KB,
-            // attachment hydration, or any other channel. Idempotent.
-            const _guarded = applyTokenMapToOutbound({
-                conversationId: conversation?.id,
-                systemPrompt,
-                messages: sanitize(messages),
-            });
-
-            // Route through adapter.chat() — the shared entry point direct chat
-            // and streaming agent chat use — so per-model settings are honored
-            // and restricted models (which reject `temperature`) are handled by
-            // the adapter instead of 400-ing.
-            const _callStart = Date.now();
-            const result = await adapter.chat(apiKey, apiUrl, modelToUse, [
-                { role: 'system', content: _guarded.systemPrompt },
-                ..._guarded.messages,
-            ], {
-                ...generationSettings,
-                tools: tools.length > 0 ? tools : undefined,
-                toolChoice: tools.length > 0 ? 'auto' : undefined,
-            });
-
-            const assistantMessage = {
-                role: 'assistant',
-                content: result.content ?? null,
-                tool_calls: (result.toolCalls && result.toolCalls.length > 0) ? result.toolCalls : undefined,
-            };
-            const usage = result.usage || null;
-            // `stop_reason` is the adapter contract; `raw` is the provider's own
-            // response and not every one spells it finish_reason (the Mistral
-            // SDK's is camelCase).
-            const finishReason = result.stop_reason || result.raw?.choices?.[0]?.finish_reason || null;
-
-            // Track usage
-            if (usage) {
-                await usageStore.logUsage({
-                    user_id: userId,
-                    agent_id: agentId,
-                    agent_name: agent.name,
-                    agent_type: 'chat',
-                    model: modelToUse,
-                    // Adapters hand back the normalised shape (providers/usageNormalizer.js);
-                    // usageLogFields also accepts a raw provider block.
-                    ...usageLogFields(usage),
-                    stop_reason: finishReason,
-                    source: 'agent_chat',
-                    duration_ms: Date.now() - _callStart,
-                    organization_id: agent.organization_id || null,
-                    conversation_id: conversation?.id || null
-                });
-            }
-
-            // Check if there are tool calls
-            if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-                // Add assistant message with tool calls
-                messages.push(assistantMessage);
-
-                // Execute tool calls in parallel
-                const toolExecutionPromises = assistantMessage.tool_calls.map(async (toolCall) => {
-                    const toolName = toolCall.function.name;
-                    let toolArgs = {};
-
-                    try {
-                        toolArgs = JSON.parse(toolCall.function.arguments || '{}');
-                    } catch (e) {
-                        toolArgs = {};
-                    }
-
-                    // Get fixed params for this tool if any
-                    const fixedParams = toolParamsMap[toolName] || null;
-
-                    log.info(`[Agent] Executing tool: ${toolName}`, toolArgs, fixedParams ? `(with fixed: ${JSON.stringify(fixedParams)})` : '');
-
-                    const refusal = await toolPiiGate.refuseToolCall({
-                        toolName, args: toolArgs, shield: orgShield,
-                        logEvent: logShieldEvent, tag: 'ChatWithAgent ToolPiiGuard',
-                    });
-                    if (refusal) {
-                        return {
-                            toolCallInfo: { name: toolName, args: toolArgs, result: refusal.uiResult },
-                            message: { role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify({ error: refusal.modelError }) },
-                        };
-                    }
-
-                    // Connection lending (GATED, default off): a shared agent run
-                    // by another user may borrow the OWNER's named connection for
-                    // this tool (full delegation). Inert — and zero DB cost —
-                    // unless INTEGRATION_CONNECTION_LENDING_ENABLED is set, in
-                    // which case effUserId/effOrgId fall back to exactly today's
-                    // values. Never overrides an explicit acting identity.
-                    let effUserId = userAuth?.integrationUserId || userId;
-                    let effOrgId = userAuth?.integrationOrgId || null;
-                    let lentConnection = null;
-                    try {
-                        const cr = require('../integrations/connectionResolution');
-                        // The owner's `actAs` answer, asked here too. The
-                        // streaming route asked it and this one did not, so
-                        // the same stored "as the person asking" was obeyed on
-                        // one route and ignored on the other — an owner cannot
-                        // tell which route a caller lands on, so a restriction
-                        // that holds on only one of them is not a restriction.
-                        const _mayLend = mayLendOwnerConnection(toolName, agent?.config);
-                        if (cr.isLendingEnabled() && !userAuth?.integrationUserId && _mayLend) {
-                            if (!userAuth.__runCtx) userAuth.__runCtx = await cr.runningUserContext(userId);
-                            const ov = await cr.resolveEffectiveIdentity({
-                                toolName, runningUserId: userId,
-                                runningUserOrgId: userAuth.__runCtx.orgId,
-                                runningUserGroups: userAuth.__runCtx.groups,
-                                ownerUserId: agent.owner_id || null,
-                                resourceType: 'agent', resourceId: agentId,
-                            });
-                            if (ov) { effUserId = ov.integrationUserId; effOrgId = ov.integrationOrgId; lentConnection = ov; }
-                        }
-                    } catch (_) { /* fail closed to bring-your-own */ }
-
-                    let toolResult;
-                    try {
-                        // Use unified tool dispatcher — supports integrations + components
-                        const { executeTool: dispatchTool } = require('../tools/toolDispatcher');
-                        toolResult = await dispatchTool(toolName, toolArgs, {
-                            // Integration tools may run under an explicit acting
-                            // identity (e.g. the Support inbox's designated
-                            // operator) so per-user OAuth / API keys / n8n org
-                            // resolve correctly. This is decoupled from the
-                            // conversation/usage `userId` above so per-thread
-                            // bucketing is preserved. Only set when a caller
-                            // injects it; every other caller is unaffected.
-                            // effUserId/effOrgId also carry a borrowed (lent)
-                            // connection identity when lending resolves one.
-                            userId: effUserId,
-                            // The person who actually asked — see the note on
-                            // the same field in toolRoundExecutor. `effUserId`
-                            // may be an acting or borrowed INTEGRATION
-                            // identity; a tool that decides which rows someone
-                            // may see must key on this one instead.
-                            askerUserId: userId,
-                            session: userAuth?.session,
-                            userAuth,
-                            orgId: effOrgId,
-                            fixedParams: fixedParams,
-                            agentId,
-                            supportThreadId: userAuth?.supportThreadId || null,
-                            lentConnection,
-                            // No capture context of its own here: the dispatcher's
-                            // chokepoint writes the egress row with these ids.
-                            egress: {
-                                source: 'agent_chat',
-                                model: modelToUse,
-                                ids: {
-                                    organization_id: agent.organization_id || null,
-                                    user_id: userId,
-                                    agent_id: agentId,
-                                    agent_name: agent.name,
-                                    conversation_id: conversation?.id || null,
-                                    acting_user_id: lentConnection ? lentConnection.integrationUserId : null,
-                                    connection_id: lentConnection ? lentConnection.connectionId : null,
-                                    grant_id: lentConnection ? lentConnection.grantId : null,
-                                },
-                            },
-                        });
-                    } catch (err) {
-                        log.error(`[Agent] Tool execution failed for ${toolName}:`, err);
-                        toolResult = { error: err.message };
-                    }
-
-                    // Return the standardized tool result object and the tool message
-                    return {
-                        toolCallInfo: {
-                            name: toolName,
-                            args: toolArgs,
-                            result: sanitizeToolResult(toolResult)
-                        },
-                        message: {
-                            role: 'tool',
-                            tool_call_id: toolCall.id,
-                            content: await toolPiiGate.stripToolResultForModel(
-                                typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult),
-                                { toolName, shield: orgShield, logEvent: logShieldEvent, tag: 'ChatWithAgent ToolResultDlp' },
-                            ),
-                        }
-                    };
-                });
-
-                // Wait for all tools to complete
-                const results = await Promise.all(toolExecutionPromises);
-
-                // Add results to history and toolCalls array in order
-                results.forEach(res => {
-                    toolCalls.push(res.toolCallInfo);
-                    messages.push(res.message);
-                });
-
-                // Continue the loop to get the final response
-                continue;
-            }
-
-            // No tool calls - we have the final response
-            messages.push({
-                role: 'assistant',
-                content: assistantMessage.content
-            });
-
-            // Save conversation
-            await agentStore.updateConversation(conversation.id, messages, userAuth.encryptionKey, userAuth.userId);
-
-            recordAgentRun({ agentType: 'chat', status: 'ok', durationMs: Date.now() - _agentT0 });
-            return {
-                message: assistantMessage.content,
-                model: modelToUse,
-                toolCalls,
-                conversationLength: messages.length
-            };
-
-        } catch (error) {
-            recordAgentRun({ agentType: 'chat', status: 'error', durationMs: Date.now() - _agentT0 });
-            log.error('[Agent] Error:', error);
-            throw error;
-        }
-    }
-
-    recordAgentRun({ agentType: 'chat', status: 'error', durationMs: Date.now() - _agentT0 });
-    throw new Error('Agent exceeded maximum tool call iterations');
+    return {
+        modelToUse, apiKey, apiUrl, adapter, generationSettings, tools, toolParamsMap,
+        conversation, messages, systemPrompt, orgShield, logShieldEvent,
+    };
 }
 
-/**
- * Resolve the generation settings (maxTokens / temperature / reasoning) for a
- * resolved model, mirroring how direct chat builds `chatOptions`.
- *
- * `tierKey` is the tier that actually produced the model (see
- * resolveAgentModelWithTier) and is authoritative when given. Without it the
- * model id is reverse-mapped, which is a guess: several tiers may share one
- * model, and then the ladder in findTierKeyForModel decides rather than
- * whatever order the tier map happens to be stored in.
- *
- * `temperature` is still passed but the adapter drops it for restricted /
- * adaptive-only models. Falls back to tier defaults when the model isn't
- * attached to any tier.
- */
-async function resolveGenerationSettings(modelId, { userOrgId = null, userId = null, tierKey: explicitTierKey = null } = {}) {
-    let tiers = {};
-    try {
-        tiers = await getEUAwareTiers({ userOrgId, userId }) || {};
-    } catch (_) {
-        tiers = {};
+/** One model round through adapter.chat(), with its usage logged. Resolves to the assistant message. */
+async function callModel(run, { agent, agentId, userId }) {
+    const { adapter, apiKey, apiUrl, modelToUse, generationSettings, tools, conversation, messages, systemPrompt } = run;
+    // Outbound-prompt guard — last-stop substitution of any real values that
+    // may have crept into the prompt via memory, KB, attachment hydration, or
+    // any other channel. Idempotent. sanitizeMessages: Mistral rejects extra
+    // fields like parentId, id, etc.
+    const _guarded = applyTokenMapToOutbound({
+        conversationId: conversation?.id,
+        systemPrompt,
+        messages: sanitizeMessages(messages),
+    });
+
+    // Route through adapter.chat() — the shared entry point direct chat and
+    // streaming agent chat use — so per-model settings are honored and
+    // restricted models (which reject `temperature`) are handled by the
+    // adapter instead of 400-ing.
+    const _callStart = Date.now();
+    const result = await adapter.chat(apiKey, apiUrl, modelToUse, [
+        { role: 'system', content: _guarded.systemPrompt },
+        ..._guarded.messages,
+    ], {
+        ...generationSettings,
+        tools: tools.length > 0 ? tools : undefined,
+        toolChoice: tools.length > 0 ? 'auto' : undefined,
+    });
+
+    const usage = result.usage || null;
+    // `stop_reason` is the adapter contract; `raw` is the provider's own
+    // response and not every one spells it finish_reason (the Mistral SDK's is
+    // camelCase).
+    const finishReason = result.stop_reason || result.raw?.choices?.[0]?.finish_reason || null;
+
+    // Track usage
+    if (usage) {
+        await usageStore.logUsage({
+            user_id: userId,
+            agent_id: agentId,
+            agent_name: agent.name,
+            agent_type: 'chat',
+            model: modelToUse,
+            // Adapters hand back the normalised shape (providers/usageNormalizer.js);
+            // usageLogFields also accepts a raw provider block.
+            ...usageLogFields(usage),
+            stop_reason: finishReason,
+            source: 'agent_chat',
+            duration_ms: Date.now() - _callStart,
+            organization_id: agent.organization_id || null,
+            conversation_id: conversation?.id || null,
+        });
     }
 
-    const tierKey = (explicitTierKey && tiers[explicitTierKey])
-        ? explicitTierKey
-        : findTierKeyForModel(tiers, modelId);
-    const tierSettings = (tierKey && tiers[tierKey]) ? tiers[tierKey] : {};
-    const tierDefaults = TIER_DEFAULTS[tierKey] || TIER_DEFAULTS.smart || TIER_DEFAULTS.fast || {};
-
     return {
-        maxTokens: tierSettings.maxTokens || tierDefaults.maxTokens || 4096,
-        temperature: tierSettings.temperature !== undefined ? tierSettings.temperature : tierDefaults.temperature,
-        reasoningEffort: tierSettings.reasoningEffort || tierDefaults.reasoningEffort || undefined,
-        reasoningSummary: tierSettings.reasoningSummary !== undefined
-            ? tierSettings.reasoningSummary
-            : (tierDefaults.reasoningSummary || false),
-        budgetTokens: tierSettings.budgetTokens || undefined,
+        role: 'assistant',
+        content: result.content ?? null,
+        tool_calls: (result.toolCalls && result.toolCalls.length > 0) ? result.toolCalls : undefined,
     };
 }
 

@@ -24,6 +24,7 @@ const { requireAuth } = require('../auth/permissions');
 const ncScope = require('../core/integrations/ncScope');
 const { NC_INTEGRATIONS } = require('../core/integrations/ncIntegrationCatalog');
 const { validate } = require('../core/http/validate');
+const { HttpError } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
 
@@ -133,50 +134,34 @@ function presentScope(doc) {
 }
 
 router.get('/', requireAuth, async (req, res) => {
-    try {
-        const doc = await ncScope.getUserScopeDoc(req.session.user.id);
-        res.json({ integrations: presentScope(doc), updatedAt: doc?.updatedAt || null });
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to load Nextcloud access settings' });
-    }
+    const doc = await ncScope.getUserScopeDoc(req.session.user.id);
+    res.json({ integrations: presentScope(doc), updatedAt: doc?.updatedAt || null });
 });
 
 router.put('/', requireAuth, express.json({ limit: '256kb' }), validate({ body: ScopeBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const doc = await ncScope.saveUserScope(userId, { integrations: req.body.integrations }, {
-            orgId: callerOrgId(req),
-            updatedBy: userId,
-        });
-        _invalidateGuardCache(userId);
-        res.json({ integrations: presentScope(doc), updatedAt: doc.updatedAt });
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to save Nextcloud access settings' });
-    }
+    const userId = req.session.user.id;
+    const doc = await ncScope.saveUserScope(userId, { integrations: req.body.integrations }, {
+        orgId: callerOrgId(req),
+        updatedBy: userId,
+    });
+    _invalidateGuardCache(userId);
+    res.json({ integrations: presentScope(doc), updatedAt: doc.updatedAt });
 });
 
 // One-click offboarding: every integration explicitly off.
 router.post('/revoke-all', requireAuth, validate({ body: NoBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const doc = await ncScope.revokeAll(userId, { orgId: callerOrgId(req), updatedBy: userId });
-        _invalidateGuardCache(userId);
-        res.json({ integrations: presentScope(doc), updatedAt: doc.updatedAt, revoked: true });
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to revoke Nextcloud access' });
-    }
+    const userId = req.session.user.id;
+    const doc = await ncScope.revokeAll(userId, { orgId: callerOrgId(req), updatedBy: userId });
+    _invalidateGuardCache(userId);
+    res.json({ integrations: presentScope(doc), updatedAt: doc.updatedAt, revoked: true });
 });
 
 // Back to the allow-all default (delete the doc).
 router.post('/reset', requireAuth, validate({ body: NoBody }), async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const doc = await ncScope.resetToDefault(userId, { orgId: callerOrgId(req), updatedBy: userId });
-        _invalidateGuardCache(userId);
-        res.json({ integrations: presentScope(doc), updatedAt: null, reset: true });
-    } catch (e) {
-        res.status(500).json({ error: 'Failed to reset Nextcloud access settings' });
-    }
+    const userId = req.session.user.id;
+    const doc = await ncScope.resetToDefault(userId, { orgId: callerOrgId(req), updatedBy: userId });
+    _invalidateGuardCache(userId);
+    res.json({ integrations: presentScope(doc), updatedAt: null, reset: true });
 });
 
 function _invalidateGuardCache(userId) {
@@ -232,7 +217,7 @@ router.get('/resources/:integrationId', requireAuth, resourceLimiter, validate({
         if (integrationId === 'nextcloud') {
             // Folder picker: one PROPFIND level per expansion (lazy tree).
             const result = await executeNextcloudFamilyTool('nextcloud_list_files', { path }, userId, req.session);
-            if (result?.error) return res.status(502).json({ error: result.error });
+            if (result?.error) throw new HttpError(502, 'nextcloud_list_failed', result.error);
             // nextcloud_list_files → { path, count, items: [{ name, path,
             // type: 'folder'|'file', … }] } (parsePropfind).
             const items = (result?.items || [])
@@ -241,7 +226,7 @@ router.get('/resources/:integrationId', requireAuth, resourceLimiter, validate({
             data = { kind: spec.kind, path: result?.path || path, resources: items };
         } else {
             const result = await executeNextcloudFamilyTool(spec.listTool, {}, userId, req.session);
-            if (result?.error) return res.status(502).json({ error: result.error });
+            if (result?.error) throw new HttpError(502, 'nextcloud_list_failed', result.error);
             const CONTAINERS = ['calendars', 'addressbooks', 'boards', 'rooms', 'conversations', 'lists', 'accounts', 'tables', 'forms'];
             const arr = Array.isArray(result) ? result
                 : CONTAINERS.map(k => result?.[k]).find(Array.isArray) || [];
@@ -262,7 +247,8 @@ router.get('/resources/:integrationId', requireAuth, resourceLimiter, validate({
         cacheResource(cacheKey, data);
         res.json(data);
     } catch (e) {
-        res.status(502).json({ error: 'Could not list Nextcloud resources — is your Nextcloud connection working?' });
+        if (e instanceof HttpError) throw e;
+        throw new HttpError(502, 'nextcloud_unreachable', 'Could not list Nextcloud resources — is your Nextcloud connection working?');
     }
 });
 

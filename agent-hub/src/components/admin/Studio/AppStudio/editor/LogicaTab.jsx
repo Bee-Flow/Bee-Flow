@@ -224,10 +224,10 @@ export default function LogicaTab({
             <div className="mx-auto w-full max-w-5xl p-4">
                 <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
-                        <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <h2 className="text-sm font-semibold text-[var(--text-primary)]">
                             {t('app_studio.views.logic_title', 'What happens in this app')}
                         </h2>
-                        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                        <p className="text-xs text-[var(--text-tertiary)]">
                             {t('app_studio.views.logic_desc', 'Every component that does something, by screen. Select one to change it.')}
                         </p>
                     </div>
@@ -235,8 +235,7 @@ export default function LogicaTab({
                         type="button"
                         onClick={() => setPickerOpen(true)}
                         disabled={disabled}
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed disabled:opacity-50"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
                     >
                         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                         {t('app_studio.logic.add_automation', 'Add an automation')}
@@ -245,8 +244,7 @@ export default function LogicaTab({
 
                 {empty ? (
                     <p
-                        className="rounded-lg border border-dashed px-4 py-6 text-center text-xs"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-tertiary)' }}
+                        className="rounded-lg border border-dashed px-4 py-6 text-center text-xs border-[var(--border-default)] text-[var(--text-tertiary)]"
                     >
                         {t('app_studio.views.logic_empty', 'Nothing is wired yet — select a button on the canvas and choose what it should do.')}
                     </p>
@@ -280,8 +278,7 @@ function LogicRow({ row, status, notices, onReveal, t }) {
         <tr
             data-logic-row={row.kind}
             data-logic-wired={row.wired ? 'true' : 'false'}
-            className="align-top"
-            style={{ color: 'var(--text-primary)' }}
+            className="align-top text-[var(--text-primary)]"
         >
             <td className="px-3 py-2">
                 <span className="flex min-w-0 items-center gap-2">
@@ -289,7 +286,7 @@ function LogicRow({ row, status, notices, onReveal, t }) {
                     <span className="min-w-0">
                         <span className="block">{row.when}</span>
                         {row.nodeType || row.surfaceLabel ? (
-                            <span className="block text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                            <span className="block text-[11px] text-[var(--text-tertiary)]">
                                 {[entry?.label || row.nodeType, row.surfaceLabel].filter(Boolean).join(' · ')}
                             </span>
                         ) : null}
@@ -302,8 +299,7 @@ function LogicRow({ row, status, notices, onReveal, t }) {
                     <span style={{ color: rowColor(row) }}>{row.what}</span>
                 ) : (
                     <span
-                        className="inline-block rounded border border-dashed px-1.5 py-0.5"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-tertiary)' }}
+                        className="inline-block rounded border border-dashed px-1.5 py-0.5 border-[var(--border-default)] text-[var(--text-tertiary)]"
                     >
                         {row.what}
                     </span>
@@ -337,12 +333,12 @@ function StatusCell({ status, t }) {
     return (
         <td className="px-3 py-2" data-logic-status={status.state}>
             {status.state === 'known' ? (
-                <span style={{ color: 'var(--text-secondary)' }}>{status.text}</span>
+                <span className="text-[var(--text-secondary)]">{status.text}</span>
             ) : null}
             {status.state === 'unknown' ? (
                 // Geen streepje en geen nul: het woord zelf, want het verschil
                 // met "er is niets" is de hele mededeling.
-                <span style={{ color: 'var(--text-tertiary)' }}>
+                <span className="text-[var(--text-tertiary)]">
                     {t('app_studio.logic.status_unknown', 'Not available')}
                 </span>
             ) : null}
@@ -393,12 +389,11 @@ function GroupHeading({ title, hint = null }) {
             <th
                 scope="colgroup"
                 colSpan={4}
-                className="border-t px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                className="border-t px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide border-[var(--border-default)] text-[var(--text-secondary)]"
             >
                 {title}
                 {hint ? (
-                    <span className="block text-[11px] font-normal normal-case tracking-normal" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="block text-[11px] font-normal normal-case tracking-normal text-[var(--text-tertiary)]">
                         {hint}
                     </span>
                 ) : null}
@@ -412,7 +407,7 @@ function LogicTable({ groups, automations, statusOf, noticesByRow, onReveal, t }
     return (
         <table className="w-full border-collapse text-left text-xs" data-logic-table>
             <thead>
-                <tr style={{ color: 'var(--text-tertiary)' }}>
+                <tr className="text-[var(--text-tertiary)]">
                     <th scope="col" className="w-[26%] px-3 py-1.5 font-medium">
                         {t('app_studio.logic.col_when', 'When')}
                     </th>

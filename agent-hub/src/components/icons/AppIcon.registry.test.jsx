@@ -44,14 +44,14 @@ describe('AppIcon icon registry', () => {
         const seed = path.join(repoRoot, 'server/scripts/content/beeflowSite.js');
         const missing = [...new Set(namesIn(seed, ICON_RE))]
             .filter((n) => !ICON_REGISTRY[n]);
-        expect(missing, `seed icons missing from iconRegistry.js: ${missing.join(', ')}`).toEqual([]);
+        expect(missing, `seed icons missing from iconRegistry.ts: ${missing.join(', ')}`).toEqual([]);
     });
 
     it('covers every icon in the CMS block defaults', () => {
         const defaults = path.join(repoRoot, 'server/i18n/defaults/cmsDefaults.js');
         const missing = [...new Set(namesIn(defaults, ICON_RE))]
             .filter((n) => !ICON_REGISTRY[n]);
-        expect(missing, `default icons missing from iconRegistry.js: ${missing.join(', ')}`).toEqual([]);
+        expect(missing, `default icons missing from iconRegistry.ts: ${missing.join(', ')}`).toEqual([]);
     });
 
     it('covers every literal <AppIcon name="…"> in src', () => {
@@ -62,11 +62,11 @@ describe('AppIcon icon registry', () => {
                 if (!ICON_REGISTRY[n]) missing.add(`${n} (${path.relative(repoRoot, f)})`);
             }
         }
-        expect([...missing], 'literal AppIcon names missing from iconRegistry.js').toEqual([]);
+        expect([...missing], 'literal AppIcon names missing from iconRegistry.ts').toEqual([]);
     });
 
     it('AppIcon itself has no wildcard lucide import', () => {
-        const src = fs.readFileSync(path.join(here, 'AppIcon.jsx'), 'utf8');
+        const src = fs.readFileSync(path.join(here, 'AppIcon.tsx'), 'utf8');
         expect(src).not.toMatch(/import \* as .* from 'lucide-react'/);
     });
 });

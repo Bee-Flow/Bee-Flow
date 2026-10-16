@@ -73,7 +73,6 @@ const { resolveDatatablePrincipal } = require('../auth/datatableAccess');
 const { isSourceError } = require('../core/dataEngine/sources/mirror/errors');
 const { validate } = require('../core/http/validate');
 const { worded, bodyOf, flag, scopeWord } = require('./datatables/schemas');
-const log = require('../telemetry/log');
 
 // ── What a caller may send ──────────────────────────────────────────
 
@@ -217,8 +216,7 @@ function makeSpreadsheetsRouter({ publicTable }) {
             res.json(await adapter().link.providers(req.session, principal, scope));
         } catch (e) {
             if (answer(res, e)) return;
-            log.error('[datatables/spreadsheets] providers failed:', e.message);
-            res.status(500).json({ error: 'Could not list the connected storages' });
+            throw e;
         }
     });
 
@@ -235,8 +233,7 @@ function makeSpreadsheetsRouter({ publicTable }) {
             }));
         } catch (e) {
             if (answer(res, e)) return;
-            log.error('[datatables/spreadsheets] browse failed:', e.message);
-            res.status(500).json({ error: 'Could not read that folder' });
+            throw e;
         }
     });
 
@@ -258,8 +255,7 @@ function makeSpreadsheetsRouter({ publicTable }) {
             }));
         } catch (e) {
             if (answer(res, e)) return;
-            log.error('[datatables/spreadsheets] describe failed:', e.message);
-            res.status(500).json({ error: 'Could not read that spreadsheet' });
+            throw e;
         }
     });
 
@@ -283,8 +279,7 @@ function makeSpreadsheetsRouter({ publicTable }) {
             });
         } catch (e) {
             if (answer(res, e)) return;
-            log.error('[datatables/spreadsheets] link failed:', e.message);
-            res.status(500).json({ error: 'Could not link the spreadsheet' });
+            throw e;
         }
     });
 

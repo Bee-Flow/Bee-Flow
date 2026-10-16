@@ -37,6 +37,7 @@ export interface RibbonApp {
     label: string;
     shortLabel?: string;
     integrationId: string;
+    connected?: boolean;
     actions: Array<{ kind: string; tool: string; label: string; description?: string; integrationId: string; sideEffect?: unknown }>;
 }
 

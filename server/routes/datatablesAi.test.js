@@ -142,13 +142,11 @@ describe('POST /api/datatables/ai/draft', () => {
 
     test('no model → 503 no_model; an unusable answer → 502 ai_unusable', async () => {
         fx.model = null;
-        let res = makeRes();
-        await datatablesAi.draft(makeReq({ mode: 'create', brief: 'anything' }), res);
-        assert.strictEqual(res.statusCode, 503); assert.strictEqual(res.body.code, 'no_model');
+        await assert.rejects(datatablesAi.draft(makeReq({ mode: 'create', brief: 'anything' }), makeRes()),
+            (err) => err.status === 503 && err.code === 'no_model');
         fx.model = 'claude-fast';
         fx.structured = { name: 'x', fields: [] };
-        res = makeRes();
-        await datatablesAi.draft(makeReq({ mode: 'create', brief: 'anything' }), res);
-        assert.strictEqual(res.statusCode, 502); assert.strictEqual(res.body.code, 'ai_unusable');
+        await assert.rejects(datatablesAi.draft(makeReq({ mode: 'create', brief: 'anything' }), makeRes()),
+            (err) => err.status === 502 && err.code === 'ai_unusable');
     });
 });

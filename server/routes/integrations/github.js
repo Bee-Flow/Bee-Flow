@@ -55,34 +55,29 @@ router.post('/connect', requireSessionUser, validate({ body: ConnectBody }), asy
     const userId = req.session.user.id;
     const { token } = req.body;
 
-    try {
-        // Validate token by fetching user profile
-        const userRes = await fetch('https://api.github.com/user', {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/vnd.github+json',
-                'X-GitHub-Api-Version': '2022-11-28',
-            },
-            signal: AbortSignal.timeout(10000),
-        });
+    // Validate token by fetching user profile
+    const userRes = await fetch('https://api.github.com/user', {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+        },
+        signal: AbortSignal.timeout(10000),
+    });
 
-        if (!userRes.ok) {
-            return res.status(400).json({ error: 'Invalid GitHub token. Please check and try again.' });
-        }
-
-        const userData = await userRes.json();
-        const username = userData.login;
-
-        // Store token and username
-        await configStore.setSecret(`github_token_user_${userId}`, token);
-        await configStore.setConfig(`github_username_user_${userId}`, username);
-
-        log.info(`[GitHub] Connected for user ${userId} (${username})`);
-        res.json({ success: true, username });
-    } catch (err) {
-        log.error('[GitHub] Connect error:', err.message);
-        res.status(500).json({ error: 'Failed to validate GitHub token' });
+    if (!userRes.ok) {
+        return res.status(400).json({ error: 'Invalid GitHub token. Please check and try again.' });
     }
+
+    const userData = await userRes.json();
+    const username = userData.login;
+
+    // Store token and username
+    await configStore.setSecret(`github_token_user_${userId}`, token);
+    await configStore.setConfig(`github_username_user_${userId}`, username);
+
+    log.info(`[GitHub] Connected for user ${userId} (${username})`);
+    res.json({ success: true, username });
 });
 
 // ─── Disconnect ──────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 {
   "_comment": "Highest number of hand-written .status(5xx) responses server may still carry. Lower it with `node scripts/count-ratchet.mjs status-5xx server --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
-  "_generated": "2026-10-12",
-  "count": 737
+  "_generated": "2026-10-15",
+  "count": 14
 }

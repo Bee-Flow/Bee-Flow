@@ -471,15 +471,9 @@ function createCountsRouter(overrides = null) {
         res.set('Cache-Control', 'private, no-store');
         const cached = cacheGet(orgId);
         if (cached) return res.json(pickKeys(cached, req.query.keys));
-        let counted;
-        try {
-            counted = await computeCounts(req, orgId, d);
-        } catch (err) {
-            log.error('[ComplianceCounts] failed:', err?.message || err);
-            return res.status(500).json({ error: 'Could not count' });
-        }
-        // Outside the catch: a misspelled `keys` is the caller's 400, never a
-        // "could not count" that reads as the server's own fault.
+        // A failed count rejects to the terminal error handler (a 500); a
+        // misspelled `keys` in pickKeys stays the caller's 400.
+        const counted = await computeCounts(req, orgId, d);
         if (!counted.partial) cacheSet(orgId, counted.body);
         return res.json(pickKeys(counted.body, req.query.keys));
     });

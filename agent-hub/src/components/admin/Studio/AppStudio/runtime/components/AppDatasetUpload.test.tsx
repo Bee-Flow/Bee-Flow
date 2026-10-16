@@ -55,7 +55,7 @@ const NODE = {
 };
 
 function renderInput(runAction = vi.fn()) {
-    const value = { ...DEFAULT_RUNTIME, scope: buildScope({ now: '2020-01-01T00:00:00.000Z' }), mode: 'run', runAction };
+    const value = { ...DEFAULT_RUNTIME, scope: buildScope({ now: '2020-01-01T00:00:00.000Z' }), mode: 'run' as const, runAction };
     const view = render(
         <RuntimeProvider value={value}>
             <AppDatasetUpload node={NODE} />

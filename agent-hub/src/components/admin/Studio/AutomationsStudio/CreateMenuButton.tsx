@@ -1,11 +1,10 @@
 import { ChevronDown, FolderPlus, Package, Plus, Workflow } from 'lucide-react';
 import { useRef, useState } from 'react';
-import type { ComponentType, KeyboardEvent, ReactNode, RefObject } from 'react';
+import type { KeyboardEvent, ReactNode, RefObject } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import AnchoredMenuJs from '../../../shared/AnchoredMenu';
 
-// A .jsx module whose `= null` defaults would type the props as null-only.
-const AnchoredMenu = AnchoredMenuJs as unknown as ComponentType<Record<string, unknown>>;
+const AnchoredMenu = AnchoredMenuJs;
 
 export interface CreateMenuButtonProps {
     /** The main part, and the menu's first (default) item. */

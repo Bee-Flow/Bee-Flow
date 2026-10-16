@@ -14,6 +14,7 @@
 
 const express = require('express');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 
@@ -239,7 +240,7 @@ router.post('/refresh', validate({ body: NoBody }), async (req, res) => {
         ({ refreshOne } = require('../license/refresh'));
     } catch (_) { /* refresh module not present */ }
     if (typeof refreshOne !== 'function') {
-        return res.status(503).json({ error: 'Refresh subsystem unavailable' });
+        throw new HttpError(503, 'refresh_unavailable', 'Refresh subsystem unavailable');
     }
     const result = await refreshOne(lic);
     res.json(result);

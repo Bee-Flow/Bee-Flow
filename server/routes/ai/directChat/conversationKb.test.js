@@ -138,7 +138,11 @@ function dispatch({ method, url, body = {}, session }) {
             // 400 reads as a crashed test rather than as the answer.
             if (!err) return reject(new Error(`fell through: ${method} ${url}`));
             const status = Number(err.status || err.statusCode) || 500;
-            if (status >= 500) return reject(err);
+            // A 5xx answers as the terminal handler does: the route's own
+            // message only for an HttpError, a generic sentence otherwise.
+            if (status >= 500) {
+                return res.status(status).json(err.expose ? { error: err.message, code: err.code } : { error: 'Internal server error' });
+            }
             return res.status(status).json({ error: err.message, code: err.code, details: err.details });
         });
     });
@@ -255,6 +259,7 @@ test('a database that has not migrated says so, instead of blaming the user', as
         body: { knowledgeBaseIds: ['kb-a'] }, session: ALICE,
     });
     assert.strictEqual(res.statusCode, 503);
+    assert.strictEqual(res.body.error, 'Knowledge bases cannot be attached until the database has migrated');
 });
 
 test('a stranger gets 404 before any of this is reached', async () => {
@@ -297,7 +302,7 @@ test('when the check cannot be run the read shows no bases at all', async () => 
     fx.conversations.c1.knowledge_base_ids = ['kb-a'];
     fx.usableThrows = true;
     const res = await dispatch({ method: 'GET', url: '/direct/conversations/c1', session: ALICE });
-    // The route's own catch answers 500 rather than serving an unchecked list.
+    // The failure reaches the terminal handler (a 500) rather than serving an unchecked list.
     assert.strictEqual(res.statusCode, 500);
     assert.ok(!JSON.stringify(res.body || {}).includes('kb-a'));
 });

@@ -29,6 +29,8 @@
  */
 
 const { KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES } = require('../automationModel/constants');
+// The knowledge-base ingest tool is integrations/', reached through ./featurePorts.js.
+const { runnerPort } = require('./featurePorts');
 
 /** How much text one step may store. Beyond this it is a document, not a note. */
 const MAX_CONTENT_CHARS = 200_000;
@@ -140,7 +142,7 @@ async function execKnowledgeWrite(step, ctx, runState, mode) {
         };
     }
 
-    const { executeKbIngestTool } = require('../../integrations/kbIngestTools');
+    const { executeKbIngestTool } = runnerPort('knowledgeBase');
     const result = await executeKbIngestTool('knowledge_base_ingest', {
         knowledgeBaseId, title, content, sourceUri, nearDuplicateStrategy,
     }, {

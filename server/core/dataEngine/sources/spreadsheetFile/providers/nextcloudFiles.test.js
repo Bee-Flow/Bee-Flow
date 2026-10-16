@@ -28,7 +28,6 @@ const fakeNcClient = {
 };
 const restore = installResolveStub({
     '../nextcloudClient': fakeNcClient,                          // what webdav.js loads
-    '../../../../../integrations/nextcloudClient': fakeNcClient,  // what the provider loads
     '../../../../../stores/userStore': { getOrganization: async (id) => { calls.orgs.push(id); return world.org; } },
     '../../../../integrations/ncScopeGuard': {
         checkToolCall: async (args) => { calls.checks.push(args); return world.denial; },
@@ -38,6 +37,12 @@ const restore = installResolveStub({
             return run();
         },
     },
+});
+// The provider reaches both through core/integrations/integrationClients.js
+// (boot registers the real ones); webdav.js is the real module, on the fake client.
+require('../../../../integrations/integrationClients').registerIntegrationClients({
+    nextcloud: () => fakeNcClient,
+    nextcloudWebdav: () => require('../../../../../integrations/nextcloudFiles/webdav'),
 });
 const nextcloudFiles = require('./nextcloudFiles');
 test.after(() => restore());

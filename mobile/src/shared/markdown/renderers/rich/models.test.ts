@@ -110,7 +110,7 @@ describe('maps', () => {
 });
 
 describe('link cards', () => {
-    const WEB = fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/MarkdownRenderer.jsx`, 'utf8');
+    const WEB = fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/MarkdownRenderer.tsx`, 'utf8');
 
     it('uses the web’s patterns', () => {
         expect(WEB).toContain(`${String(WEBPAGE_CARD)}.test(href)`);

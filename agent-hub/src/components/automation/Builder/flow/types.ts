@@ -16,6 +16,8 @@ export interface FlowStep {
     /** The trigger's flavour ('form', 'webhook', 'app_event', …). */
     kind?: string;
     label?: string;
+    /** An integration action's tool name ('slack.post_message'). */
+    tool?: string;
     /** A hand-written output, replayed instead of running the step. */
     pinnedOutput?: unknown;
     /** A form trigger's or form_page's declared questions. */
@@ -29,6 +31,8 @@ export interface FlowEdge {
     to?: string;
     caseName?: string | null;
     label?: string;
+    /** A palette key ('blue' | 'red' | …), never a raw hex (flow/edgeColors.ts). */
+    color?: string | null;
     [key: string]: unknown;
 }
 
@@ -45,12 +49,15 @@ export interface FlowDefinition {
     edges?: FlowEdge[];
     /** Root-only map of flowlets, keyed by LAYER_KEY_RE (flow/flowletScope.js). */
     layers?: Record<string, FlowDefinition>;
+    /** PII group → palette key overrides for the line colours (flow/edgeColorOps.ts). */
+    piiLineColors?: Record<string, string> | null;
     [key: string]: unknown;
 }
 
 /** One step's row in a run, as the builder keeps them in memory. */
 export interface RunStepRow {
     stepId?: string;
+    status?: string;
     output?: unknown;
     [key: string]: unknown;
 }

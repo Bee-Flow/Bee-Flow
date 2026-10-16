@@ -30,7 +30,7 @@ export interface TeamsNotesUserSettings extends TeamsNotesSettings {
     connection: TeamsConnection;
 }
 
-export type TeamsRecordingState = 'available' | 'transcript_only' | 'none';
+export type TeamsRecordingState = 'available' | 'transcript_only' | 'processing' | 'none';
 
 export interface TeamsRecordingItem {
     eventId: string;

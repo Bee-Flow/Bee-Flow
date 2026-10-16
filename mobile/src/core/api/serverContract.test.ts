@@ -39,6 +39,12 @@ function read(rel: string): string {
 }
 
 /** Concatenated source of every non-test .js file under a server directory. */
+/** The agent table's DDL: initSchema.js composes the steps in initSchema.base.js and .agents.js. */
+function agentSchema(): string {
+    // Literal paths: serverClosure.test.ts finds the server files mobile reads by these strings.
+    return [read('stores/agent/initSchema.js'), read('stores/agent/initSchema.base.js'), read('stores/agent/initSchema.agents.js')].join('\n');
+}
+
 function readTree(rel: string): string {
     const chunks: string[] = [];
     const walk = (dir: string) => {
@@ -94,6 +100,15 @@ function nestedEnd(source: string, start: number): string | null {
     if (indent === '') return null;
     const close = source.slice(start).search(new RegExp(`\\n${indent}\\}`));
     return source.slice(start, close === -1 ? undefined : start + close + indent.length + 2);
+}
+
+/**
+ * A module split into files, one source per file, for functionSlice and
+ * routeSlice to pick the one holding their marker. Plain path literals, so
+ * src/meta/serverClosure.test.ts sees every file read.
+ */
+function readSplit(...rels: string[]): string[] {
+    return rels.map(read);
 }
 
 /**
@@ -304,7 +319,7 @@ describe('agent rows (server/stores/agent/initSchema.js)', () => {
     // parseStarterPrompts on the phone handles both).
     it('still declares every agent column the phone reads', () => {
         expect(
-            absentTokens(read('stores/agent/initSchema.js'), [
+            absentTokens(agentSchema(), [
                 'name', 'description', 'avatar', 'model', 'owner_id',
                 'is_published', 'starter_prompts', 'threads_enabled',
                 'copy_enabled', 'workspace_enabled', 'embed_enabled', 'config',
@@ -380,7 +395,8 @@ describe('persisted chat turns (finalizeTurn.js, direct chat and agent runtime)'
     // It used to read `tools` and `sources`, names the server never saved, so
     // a reopened chat lost its tool steps and citations with no error anywhere.
     it('the direct chat still saves toolHistory, thinking and images on the answer', () => {
-        const source = read('routes/ai/directChat/finalizeTurn.js');
+        // finalizeTurn.js builds the saved rows in finalizeRows.js.
+        const source = read('routes/ai/directChat/finalizeRows.js');
         expect(missingOutput(source, ['toolHistory', 'thinking', 'images'], 'assistantSave')).toEqual([]);
         // The parts of `thinking`, an image's `url`, and the turn's date.
         expect(absentTokens(source, ['text', 'redacted', 'url', 'mimeType', 'timestamp'])).toEqual([]);
@@ -472,6 +488,18 @@ function routeSlice(source: string | readonly string[], marker: string): string 
     return source.slice(start, next === -1 ? undefined : start + marker.length + next);
 }
 
+/**
+ * A route registered with a NAMED handler (`router.get('/x', mw, H.list);`)
+ * keeps its body in a handler module: the registration plus that function's
+ * source from `handlers`. An inline handler is just its routeSlice.
+ */
+function routeHandlerSlice(router: string, marker: string, handlers: readonly string[]): string {
+    const registration = routeSlice(router, marker);
+    const line = registration.slice(0, registration.indexOf('\n') === -1 ? undefined : registration.indexOf('\n'));
+    const named = /,\s*(?:[A-Za-z_$][\w$]*\.)?([A-Za-z_$][\w$]*)\);\s*$/.exec(line);
+    return named ? `${registration}\n${functionSlice(handlers, named[1] as string)}` : registration;
+}
+
 /** Every `onEvent('x'` / `sendEvent('x'` literal in a chunk of server source. */
 function emittedEventNames(source: string): string[] {
     const found = [...source.matchAll(/\b(?:onEvent|sendEvent)\s*\??\.?\(\s*'([a-zA-Z_0-9]+)'/g)];
@@ -483,11 +511,13 @@ describe('skill rows (server/stores/skillStore.js)', () => {
     // header that it was written from `mapRow` rather than from the routes —
     // both GET routes hand back exactly what mapRow produces, so mapRow IS the
     // payload and the empty-string/`⚡` defaults it applies are load-bearing.
-    const source = read('stores/skillStore.js');
+    // skillStore.js is split by concern under stores/skill/ (rows, reads, usage).
+    const store = readSplit('stores/skillStore.js', 'stores/skill/rows.js', 'stores/skill/reads.js', 'stores/skill/usage.js');
+    const source = store.join('\n');
 
     it('mapRow still maps every field the skill screens render', () => {
         expect(
-            missingFrom(functionSlice(source, 'mapRow'), [
+            missingFrom(functionSlice(store, 'mapRow'), [
                 'id', 'orgId', 'userId', 'name', 'description', 'instructions',
                 'workflow', 'rules', 'examples', 'icon', 'isShared',
                 'dynamicActivation', 'sharedGroups', 'automationId',
@@ -534,7 +564,7 @@ describe('skill rows (server/stores/skillStore.js)', () => {
         // attached and renumbering every step. Nothing else pins it: the
         // structured store tests cover the CHANGED-text branch and the rename,
         // never the full-snapshot PUT with unchanged text.
-        const slice = functionSlice(source, 'updateSkill');
+        const slice = functionSlice(store, 'updateSkill');
         expect(slice).not.toEqual('');
         expect(slice).toMatch(/if\s*\(\s*textSent\s*&&[\s\S]{0,200}?\)\s*continue\s*;/);
     });
@@ -650,7 +680,7 @@ describe('the 409 delete guards (src/core/api/deleteGuard.ts)', () => {
             const phone = GUARD_KINDS[resource as keyof typeof scanned];
             expect({ resource, stale: phone.filter((k) => !kinds.includes(k)) }).toEqual({ resource, stale: [] });
         }
-        const skillUsage = functionSlice(read('stores/skillStore.js'), 'listSkillUsage');
+        const skillUsage = functionSlice(read('stores/skill/usage.js'), 'listSkillUsage');
         for (const kind of GUARD_KINDS.skill) expect(skillUsage).toContain(`kind: '${kind}'`);
     });
 });
@@ -748,7 +778,7 @@ describe('the agent endpoints the phone calls', () => {
         // parseStarterPrompts JSON.parses a string — a column that starts
         // handing back a parsed object instead makes it throw. Both are TEXT
         // today and both mobile readers depend on that staying true.
-        const schema = read('stores/agent/initSchema.js');
+        const schema = agentSchema();
         expect(schema).toContain('avatar TEXT');
         expect(schema).toContain('starter_prompts TEXT');
     });
@@ -1070,11 +1100,13 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
             'apps', 'datatables', 'knowledgeBases', 'agents', 'formPickSources', 'agentsError',
             'knowledgeWriteStrategies', 'datatableOps', 'steps', 'triggerOutputs', 'triggerMeta',
             'deliverability', 'stepTypes', 'triggers', 'flags',
-            // one action
-            'name', 'label', 'description', 'inputSchema', 'outputSchema', 'outputSample', 'producesList',
-            'listField', 'sideEffect', 'effect', 'integrationId', 'integrationLabel', 'available', 'actions',
             // the flags
             'code', 'codeReason', 'automations',
+        ])).toEqual([]);
+        // One app and one action are built in catalogApps.js.
+        expect(missingFrom(functionSlice(read('routes/automation/catalogApps.js'), 'buildApps'), [
+            'name', 'label', 'description', 'inputSchema', 'outputSchema', 'outputSample', 'producesList',
+            'listField', 'sideEffect', 'effect', 'integrationId', 'integrationLabel', 'available', 'actions',
         ])).toEqual([]);
         expect(missingFrom(functionSlice(read('automation/formPickSources.js'), 'catalog'), [
             'id', 'appId', 'app', 'label', 'searchHint', 'internal', 'sampleData',
@@ -1126,7 +1158,7 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
         const usage = routeSlice(crud, "router.get('/:id/usage'");
         expect(missingFrom(usage, ['usage', 'canOpen', 'complete'])).toEqual([]);
         // A failed read is an ERROR, never `{ usage: [] }` (lifecycle.ts relies on it).
-        expect(usage).toContain("res.status(500).json({ error: 'usage_unavailable' })");
+        expect(usage).toContain("throw new HttpError(500, 'usage_unavailable', 'usage_unavailable')");
     });
 
     it('the builder turn still reads every key the phone sends, and the session still carries what it reads', () => {
@@ -1153,6 +1185,11 @@ describe('App Studio (server/routes/studioApps*.js, studioAppData.js, the builde
     const apps = APP_ROUTERS.map((name) => read(`routes/studioApps/${name}.js`));
     const run = read('routes/studioAppsRun.js');
     const data = read('routes/studioAppData.js');
+    // studioAppData.js keeps the route table; its handlers live in routes/studio/appData*.js.
+    const dataHandlers = readSplit(
+        'routes/studio/appDataContext.js', 'routes/studio/appDataRecords.js',
+        'routes/studio/appDataQuery.js', 'routes/studio/appDataAdmin.js',
+    );
     // studioAppStore.js is the barrel; the row mappers are in studioApp/rowMappers.js.
     const store = read('stores/studioApp/rowMappers.js');
 
@@ -1223,16 +1260,16 @@ describe('App Studio (server/routes/studioApps*.js, studioAppData.js, the builde
     });
 
     it('still answers the data routes in the read shape', () => {
-        expect(missingFrom(functionSlice(data, 'publicTable'), [
+        expect(missingFrom(functionSlice(dataHandlers, 'publicTable'), [
             'id', 'key', 'name', 'icon', 'fields', 'type', 'subtype', 'required', 'unique', 'options', 'relation',
         ])).toEqual([]);
-        expect(missingFrom(routeSlice(data, "router.get('/:id/data/tables/:tableId/records'"), ['records', 'nextCursor', 'appVersion'])).toEqual([]);
-        expect(missingFrom(routeSlice(data, "router.post('/:id/data/batch'"), ['results', 'appVersion'])).toEqual([]);
-        const patch = routeSlice(data, "router.patch('/:id/data/tables/:tableId/records/:recordId'");
+        expect(missingFrom(routeHandlerSlice(data, "router.get('/:id/data/tables/:tableId/records'", dataHandlers), ['records', 'nextCursor', 'appVersion'])).toEqual([]);
+        expect(missingFrom(routeHandlerSlice(data, "router.post('/:id/data/batch'", dataHandlers), ['results', 'appVersion'])).toEqual([]);
+        const patch = routeHandlerSlice(data, "router.patch('/:id/data/tables/:tableId/records/:recordId'", dataHandlers);
         expect(patch).toContain('expectedUpdatedAt');
         expect(patch).toContain("code: 'record_conflict'");
-        expect(missingFrom(routeSlice(data, "router.get('/:id/schema'"), ['model', 'modelVersion'])).toEqual([]);
-        const schema = routeSlice(data, "router.put('/:id/schema'");
+        expect(missingFrom(routeHandlerSlice(data, "router.get('/:id/schema'", dataHandlers), ['model', 'modelVersion'])).toEqual([]);
+        const schema = routeHandlerSlice(data, "router.put('/:id/schema'", dataHandlers);
         expect(schema).toContain('body.expectedVersion');
         expect(missingFrom(schema, ['currentVersion', 'model', 'version', 'errors'])).toEqual([]);
     });
@@ -1333,7 +1370,7 @@ describe('datatables (server/routes/datatables/**)', () => {
     });
 
     it('a row page still carries its keyset cursor and the total', () => {
-        const slice = routeSlice(read('routes/datatables/rows.js'), "router.get('/:id/rows'");
+        const slice = routeHandlerSlice(read('routes/datatables/rows.js'), "router.get('/:id/rows'", [read('routes/datatables/rowHandlers.js')]);
         expect(missingFrom(slice, ['rows', 'hasMore', 'nextCursor', 'total'])).toEqual([]);
     });
 
@@ -1604,7 +1641,7 @@ describe('skill structure, tests and drafts (server/stores/skillStore.js, routes
     // side routes below. A rename on either side leaves an empty editor or a
     // PUT the server re-parses — both silent.
     it('mapRow still maps every structured facet the editor reads', () => {
-        const source = read('stores/skillStore.js');
+        const source = read('stores/skill/rows.js');
         expect(
             missingFrom(functionSlice(source, 'mapRow'), [
                 'steps', 'rulesV2', 'examplesV2', 'outputSchema', 'knowledgeBaseIds', 'allowedAutomationIds', 'lastUsedAt',
@@ -1639,7 +1676,7 @@ describe('knowledge base Studio routes (server/routes/knowledgeBases/*)', () => 
     it('mapSourceForApi still sends every field the Sources tab reads', () => {
         const source = read('routes/knowledgeBases/sources.js');
         expect(
-            missingFrom(functionSlice(source, 'mapSourceForApi'), [
+            missingFrom(functionSlice(read('routes/knowledgeBases/sourcePolicy.js'), 'mapSourceForApi'), [
                 'id', 'kind', 'name', 'config', 'refreshMode', 'refreshCron', 'refreshTz', 'supportsModes',
                 'nextRefreshAt', 'lastRefreshAt', 'status', 'error', 'documentCount', 'processedCount',
                 'errorCount', 'skippedCount', 'redactedCount', 'piiFoundCount', 'createdBy',
@@ -1909,7 +1946,7 @@ describe('the chat answer, its cards and its composer (features/chat)', () => {
     });
 
     it('persists the parts of an answer the phone reads back (messageReader.ts)', () => {
-        const finalize = read('routes/ai/directChat/finalizeTurn.js');
+        const finalize = read('routes/ai/directChat/finalizeRows.js');
         expect(
             absentTokens(finalize, ['thinkingParts', 'toolHistory', 'emailDrafts', 'calendarDrafts', 'mapEmbeds', 'audioFiles', 'tokenisationInfo', 'autoSelectedTier']),
         ).toEqual([]);

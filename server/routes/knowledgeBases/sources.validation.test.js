@@ -28,6 +28,8 @@ const Module = require('module');
 // ── Fixtures ────────────────────────────────────────────────────────
 // Every store call lands in `touched`. A refused request must leave it empty.
 const touched = [];
+// Adoption of source-less (pre-source-model) documents, see the tests at the end.
+const adopt = { orphans: 0, calls: [], fails: false, system: false, kb: null, sources: [], counts: {} };
 
 const KB = { id: 'kb1', tenant_id: 'owner1', organization_id: 'org1' };
 const SOURCE = { id: 's1', knowledgeBaseId: 'kb1', kind: 'webpage', name: 'Docs', config: { url: 'https://example.com' }, refreshMode: 'manual', createdBy: 'u1' };
@@ -41,18 +43,32 @@ const MOCKS = {
         // store actually accepts.
         DOC_STATUSES: ['processed', 'redacted', 'skipped', 'error', 'duplicate'],
         PII_STATUSES: ['none', 'found', 'redacted', 'unscanned'],
-        getKB: async (id) => { touched.push({ what: 'getKB', args: [id] }); return { ...KB }; },
-        countsBySource: async () => ({}),
+        getKB: async (id) => { touched.push({ what: 'getKB', args: [id] }); return { ...KB, ...(adopt.kb || {}) }; },
+        isSystemKB: () => adopt.system,
+        countsBySource: async (ids) => Object.fromEntries(ids.filter((i) => adopt.counts[i]).map((i) => [i, adopt.counts[i]])),
         listDocuments: async (...a) => { touched.push({ what: 'listDocuments', args: a }); return []; },
         countDocuments: async () => 0,
     },
     '../../stores/kbSources': {
         SOURCE_KINDS: ['upload', 'text', 'webpage', 'nextcloud_folder', 'datatable', 'meeting_tag', 'automation', 'legacy'],
         get: async (id) => { touched.push({ what: 'getSource', args: [id] }); return { ...SOURCE }; },
-        listByKb: async () => [],
+        listByKb: async () => adopt.sources,
         create: async (p) => { touched.push({ what: 'create', args: [p] }); return { ...SOURCE, ...p, id: 's9' }; },
         update: async (id, patch) => { touched.push({ what: 'update', args: [id, patch] }); return { ...SOURCE, ...patch }; },
     },
+    '../../stores/kb/adoptOrphanDocuments': () => ({
+        adoptOrphanDocuments: async (kbId) => {
+            adopt.calls.push(kbId);
+            if (adopt.fails) throw new Error('db down');
+            const n = adopt.orphans;
+            if (n > 0) {
+                adopt.sources = [{ ...SOURCE, id: 'adopted', kind: 'upload', name: 'Uploaded files', config: {} }];
+                adopt.counts.adopted = { documentCount: n, processedCount: n, redactedCount: 0, skippedCount: 0, errorCount: 0, duplicateCount: 0, piiFoundCount: 0, totalChunks: 0 };
+                adopt.orphans = 0;
+            }
+            return n;
+        },
+    }),
     '../../stores/userStore': { getUser: async (id) => ({ id, name: 'Tom' }) },
     '../../auth': { requireAuth: pass, requirePermission: () => pass },
     './shared': {
@@ -72,7 +88,7 @@ for (const [request, exportsObj] of Object.entries(MOCKS)) {
 }
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /knowledgeBases[\\/]sources\.js$/.test(parent.filename)
+    if (parent && /knowledgeBases[\\/](sources|sourcePolicy|sourceSchemas|sourceCreate|sourceUploads)\.js$/.test(parent.filename)
         && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
         return MOCK_IDS[request];
     }
@@ -107,7 +123,10 @@ function dispatch({ method, url, body = {}, session = { user: { id: 'u1' } } }) 
     });
 }
 
-test.beforeEach(() => { touched.length = 0; });
+test.beforeEach(() => {
+    touched.length = 0;
+    Object.assign(adopt, { orphans: 0, calls: [], fails: false, system: false, kb: null, sources: [], counts: {} });
+});
 
 /** Assert: refused with 400, the named field is in `details`, nothing touched. */
 async function refuses(request, field) {
@@ -245,4 +264,35 @@ test('a real, comma-separated status list is accepted', async () => {
 
 test('an unknown pii value is refused the same way', async () => {
     await refuses({ method: 'GET', url: '/kb1/sources/s1/documents?pii=nope' }, 'query.pii');
+});
+
+// ═══ GET /:id/sources adopts documents from before the source model ═══
+
+test('GET /:id/sources adopts source-less documents first, so the detail agrees with the overview', async () => {
+    adopt.orphans = 1;
+    const res = await dispatch({ method: 'GET', url: '/kb1/sources' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(adopt.calls, ['kb1'], 'only the requested KB is adopted');
+    assert.strictEqual(res.body.totals.sourceCount, 1);
+    assert.strictEqual(res.body.totals.documentCount, 1);
+});
+
+test('GET /:id/sources still answers when the adoption fails', async () => {
+    adopt.fails = true;
+    const res = await dispatch({ method: 'GET', url: '/kb1/sources' });
+    assert.strictEqual(res.statusCode, 200);
+});
+
+test('a system KB is listed but never adopted into (read-only)', async () => {
+    adopt.system = true;
+    const res = await dispatch({ method: 'GET', url: '/kb1/sources' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(adopt.calls, []);
+});
+
+test("a project's files KB is listed but never adopted into", async () => {
+    adopt.kb = { source_kind: 'project_files' };
+    const res = await dispatch({ method: 'GET', url: '/kb1/sources' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(adopt.calls, []);
 });

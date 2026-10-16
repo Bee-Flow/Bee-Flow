@@ -1,82 +1,19 @@
 /**
- * The condition-builder half of agent-hub `utils/bindingHelpers.js`: split a
+ * The condition-builder half of agent-hub `utils/bindingHelpers.ts`: split a
  * simple `<path> <op> <value>` expression into slots, and serialise slots and
- * bindings back into the restricted expression grammar. Pinned by
- * bindingHelpers.lockstep.test.ts.
+ * bindings back into the restricted expression grammar. The web's functions,
+ * the generated mirror under bindings/mirror/utils/ (npm run gen:shared);
+ * pinned by bindingHelpers.lockstep.test.ts.
  */
 
+import { buildConditionExpr as webBuildConditionExpr } from './mirror/utils/bindingHelpers';
 import type { BindingValue } from './types';
-import { isCleanPath } from './walkPath';
 import { renderBindingValue } from '../model/route/bindingText';
+
+export { parseSimpleCondition } from './mirror/utils/bindingHelpers';
 
 // One copy of "a binding as an expression fragment", beside the condition
 // model that writes with it (it sits below this layer).
 export { renderBindingValue };
 
-// Longest first, so `>=` is never read as `>`.
-const COND_OPS = ['===', '!==', '==', '!=', '>=', '<=', '>', '<'];
-const OP_CHARS = new Set(['=', '!', '<', '>']);
-
-/** Is position `at` inside a quoted string of `text`? */
-function insideQuotes(text: string, at: number): boolean {
-    let quote: string | null = null;
-    for (let i = 0; i < at; i++) {
-        const c = text.charAt(i);
-        if (quote) {
-            if (c === '\\') i++;
-            else if (c === quote) quote = null;
-        } else if (c === '"' || c === "'") {
-            quote = c;
-        }
-    }
-    return quote !== null;
-}
-
-function findOperator(text: string, op: string): number {
-    let from = 0;
-    while (from < text.length) {
-        const idx = text.indexOf(op, from);
-        if (idx === -1) return -1;
-        // Inside a quoted key (`fields["a > b"]`) an operator is text.
-        if (insideQuotes(text, idx)) {
-            from = idx + 1;
-            continue;
-        }
-        const before = idx > 0 ? text.charAt(idx - 1) : ' ';
-        const after = idx + op.length < text.length ? text.charAt(idx + op.length) : ' ';
-        // Surrounded by other operator characters: part of a longer operator.
-        if (OP_CHARS.has(before) || OP_CHARS.has(after)) {
-            from = idx + 1;
-            continue;
-        }
-        return idx;
-    }
-    return -1;
-}
-
-/**
- * `steps.s1.output.total > 1000` → `{ leftPath, op, rightRaw }`, or null when
- * the expression is not that simple shape (the builder then shows raw text).
- */
-export function parseSimpleCondition(expr: unknown): { leftPath: string; op: string; rightRaw: string } | null {
-    if (typeof expr !== 'string') return null;
-    const text = expr.trim();
-    if (!text) return null;
-    for (const op of COND_OPS) {
-        const idx = findOperator(text, op);
-        if (idx === -1) continue;
-        const left = text.slice(0, idx).trim();
-        const right = text.slice(idx + op.length).trim();
-        if (!left || !right) continue;
-        if (!isCleanPath(left)) return null;
-        return { leftPath: left, op, rightRaw: right };
-    }
-    return null;
-}
-
-/** The three slots of the visual condition builder, as one expression. */
-export function buildConditionExpr(leftPath: unknown, op: string, rightBinding: BindingValue): string {
-    const left = String(leftPath || '').trim();
-    if (!left) return '';
-    return `${left} ${op} ${renderBindingValue(rightBinding)}`;
-}
+export const buildConditionExpr = webBuildConditionExpr as (leftPath: unknown, op: string, rightBinding: BindingValue) => string;
