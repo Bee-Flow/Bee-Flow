@@ -137,7 +137,7 @@
     --card-bg:           var(--surface-2);
     --card-border-color: var(--hairline);
     --card-hover-bg:     var(--surface-3);
-    --card-hover-border: var(--hairline-accent);
+    --card-hover-border: var(--highlight-border, var(--hairline-accent));
 }
 .marketing-root.cms-gradient [data-cms-block-id],
 .marketing-root.cms-gradient .cms-band--surface,
@@ -268,15 +268,15 @@
 
 /* Mono-caps eyebrow — the "01 — PRIVATE BY DESIGN" label register. */
 .marketing-root .eyebrow-mono {
-    font-family: var(--font-mono);
+    font-family: var(--label-font, var(--font-mono));
     font-size: var(--text-eyebrow);
     font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    text-transform: var(--label-transform, uppercase);
+    letter-spacing: var(--label-tracking, 0.08em);
     color: var(--text-secondary);
 }
 /* Index digits are text at eyebrow size — same 4.5:1 rule as .label. */
-.marketing-root .eyebrow-mono .eyebrow-index { color: var(--accent-strong, var(--accent)); }
+.marketing-root .eyebrow-mono .eyebrow-index { color: var(--highlight-color, var(--accent-strong, var(--accent))); }
 
 /* Tabular numerals — stats, prices, chapter numbers. */
 .marketing-root .tnum { font-variant-numeric: tabular-nums lining-nums; }

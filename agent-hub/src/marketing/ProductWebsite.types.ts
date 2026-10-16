@@ -28,6 +28,11 @@ export interface DesignColors {
     surface?: string;
     textPrimary?: string;
     textSecondary?: string;
+    /** Colour roles; '' (or absent) follows `primary`. */
+    cta?: string;
+    link?: string;
+    highlight?: string;
+    tile?: string;
 }
 
 export interface DesignTypography {
@@ -57,6 +62,7 @@ export interface DesignComponents {
     tileFill?: string;
     tileSize?: string;
     tileIconColor?: string;
+    labelStyle?: string;
 }
 
 export interface DesignLayout {

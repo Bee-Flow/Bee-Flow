@@ -11,7 +11,7 @@ import useConfirm from '../../shared/useConfirm';
 import '../../../marketing/self-hosted-fonts.css';
 import DisplayTrackingControl from './controls/DisplayTrackingControl';
 import DarkBandControl from './controls/DarkBandControl';
-import IconTileControls from './controls/IconTileControls';
+import DesignRoleControls from './controls/DesignRoleControls';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { DesignColors, DesignEditorProps, EditableDesign, ThemePreset } from './DesignEditor.types';
 
@@ -64,9 +64,7 @@ const FALLBACK_DESIGN = {
     motion:   'full',
     darkBand: 'palette',
     grain:    false,
-    // Identity values — these emit no CSS at all (see SHAPE_MAPS in
-    // marketing/ProductWebsite.jsx), so a site without them renders
-    // exactly as it did before the theme system existed.
+    // Identity values: they emit no CSS (SHAPE_MAPS in marketing/ProductWebsite.tsx).
     components: {
         buttonShape: 'soft', buttonSize: 'md', buttonTextColor: 'light',
         navStyle: 'bar', navHeight: 'default', logoSize: 'md',
@@ -360,7 +358,7 @@ export default function DesignEditor({ design, onChange }: DesignEditorProps) {
                     />
                 </FieldRow>
 
-                <IconTileControls components={cp} onChange={setComponent} />
+                <DesignRoleControls colors={d.colors} components={cp} onColor={setColor} onComponent={setComponent} />
                 <SectionDivider label="Layout" />
                 <FieldRow label="Content width" hint="The max width every section aligns to.">
                     <SegmentedControl

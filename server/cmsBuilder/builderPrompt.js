@@ -16,7 +16,7 @@
 const {
     BLOCK_DEFAULTS, BLOCK_TYPES, BLOCK_VARIANTS,
     DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS, DARK_BANDS,
-    DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS,
+    DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS,
 } = require('../i18n/defaults/cmsDefaults');
 const { THEME_PRESETS } = require('../i18n/defaults/themePresets');
 
@@ -99,7 +99,7 @@ function buildSystemPrompt() {
 - The site's THEME — colours, fonts, type scale, component shape/size and the page frame — is site-wide design, edited with cms_update_design, never with page blocks or per-block style overrides. The current design travels in the site state each turn as compact JSON; patch it from there.
 - The call is a DEEP-MERGE PATCH: send ONLY what changes. colorsPatch {primary} keeps the other six colours; the groups you omit are untouched. There is no "reset" — to go back to a known look, apply a preset.
 - \`preset\` applies a built-in theme's COMPLETE values first, then your other patches layer on top ({ preset:"midnight-flow", colorsPatch:{primary:"#CE3F26"} } = that theme with a custom primary). The themes: ${PRESET_TEXT}.
-- COLOURS: colorsPatch { ${COLOR_KEYS.join(', ')} } and darkColorsPatch { ${DARK_COLOR_KEYS.join(', ')} }. Every value is a literal "#rrggbb" hex string — colour names, rgb()/hsl() and 3-digit shorthand are REJECTED and nothing is saved. darkColors.primary and darkColors.accent also take "" meaning "reuse the light value". Translate the user's words into hex yourself ("warm amber" → "#F5A623").
+- COLOURS: colorsPatch { ${COLOR_KEYS.join(', ')} } and darkColorsPatch { ${DARK_COLOR_KEYS.join(', ')} }. Every value is a literal "#rrggbb" hex string (the roles ${BLANKABLE_COLORS.join(', ')} also take "" = follow the primary colour: cta = buttons and focus ring, link = text links, highlight = badges, eyebrows and hover borders, tile = icon tile fill and glyph, so the brand colour can be used sparingly) — colour names, rgb()/hsl() and 3-digit shorthand are REJECTED and nothing is saved. darkColors.primary and darkColors.accent also take "" meaning "reuse the light value". Translate the user's words into hex yourself ("warm amber" → "#F5A623").
 - FONTS: fontsPatch { heading, body, mono }. Only these faces exist — anything else is rejected: ${DESIGN_FONTS_TEXT}.
 - typographyPatch { displaySize (${DISPLAY_SIZES.join(' | ')}), headingWeight (${HEADING_WEIGHTS.join(' | ')}), displayTracking (${DISPLAY_TRACKINGS.join(' | ')}), bodySize (${BODY_SIZES.join(' | ')}) }; radius 0-24 (px, global); theme (${DESIGN_THEMES.join(' | ')}); motion (${DESIGN_MOTIONS.join(' | ')}); darkBand (${DARK_BANDS.join(' | ')}, the fill of dark bands); grain and gradient booleans.
 - componentsPatch — ${COMPONENTS_TEXT}.

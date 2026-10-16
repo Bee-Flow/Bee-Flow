@@ -156,7 +156,14 @@
 /* Eyebrows are 13px TEXT, so they use --accent-strong, not the raw accent:
    #F5A623 on white is ~2:1 (WCAG failure); the strong variant is the same
    hue at ≥4.5:1 on light surfaces and re-brightens inside dark scopes. */
-.marketing-root .label       { font-size: 0.8rem;   font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent-strong, var(--accent)); }
+.marketing-root .label {
+    font-family: var(--label-font, inherit);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: var(--label-transform, uppercase);
+    letter-spacing: var(--label-tracking, 0.12em);
+    color: var(--highlight-color, var(--accent-strong, var(--accent)));
+}
 
 .marketing-root .gradient-text {
     background: var(--accent-gradient);
@@ -213,9 +220,14 @@
 .marketing-root .btn--md { --btn-pad-y: 14px; --btn-pad-x: 32px; --btn-font-size: 0.95rem; }
 .marketing-root .btn--lg { --btn-pad-y: 17px; --btn-pad-x: 40px; --btn-font-size: 1.0625rem; }
 .marketing-root .btn-primary {
-    background: var(--accent-gradient);
+    background: var(--cta-bg, var(--accent-gradient));
     color: var(--btn-primary-fg, #fff);
     box-shadow: var(--btn-shadow, 0 4px 20px var(--accent-glow));
+}
+/* With a cta colour the keyboard focus ring follows it too. */
+.marketing-root.cms-role-cta :is(a, button, [role="button"]):focus-visible {
+    outline: 2px solid var(--cta-color);
+    outline-offset: 2px;
 }
 .marketing-root .btn-primary:hover {
     transform: translateY(var(--btn-lift, -2px));
@@ -255,7 +267,7 @@
     border: none;
 }
 .marketing-root .btn-ghost:hover {
-    color: var(--accent);
+    color: var(--link-color, var(--accent));
 }
 
 /* Link — plain underlined link, matches body-text rhythm. Useful for
@@ -263,7 +275,7 @@
 .marketing-root .btn-link {
     padding: 0;
     background: transparent;
-    color: var(--accent);
+    color: var(--link-color, var(--accent));
     border: none;
     border-radius: 0;
     text-decoration: underline;
@@ -1804,7 +1816,7 @@
     align-self: flex-start;
     font-size: 0.85rem;
     font-weight: 600;
-    color: var(--accent);
+    color: var(--link-color, var(--accent));
 }
 .marketing-root .roadmap-card-link:hover {
     text-decoration: underline;
@@ -1935,7 +1947,7 @@
     margin-top: 14px;
     font-size: 0.9rem;
     font-weight: 600;
-    color: var(--accent);
+    color: var(--link-color, var(--accent));
     text-decoration: none;
 }
 .marketing-root .security-row-link:hover {
@@ -3575,11 +3587,11 @@ section.customer-support-block {
     color: var(--text-primary);
 }
 .marketing-root .trust-chip-label {
-    font-family: var(--font-mono);
-    font-size: var(--text-eyebrow);
+    font-family: var(--label-font, var(--font-mono));
+    font-size: var(--label-size, var(--text-eyebrow));
     font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    text-transform: var(--label-transform, uppercase);
+    letter-spacing: var(--label-tracking, 0.08em);
     color: var(--text-primary);
 }
 .marketing-root .trust-chip-sub { display: none; }
@@ -3966,11 +3978,18 @@ section.customer-support-block {
     --card-hover-bg: transparent;
 }
 
-/* Trust-band chip labels in plain sentence case in the body font. */
-.marketing-root .cms-label-plain .trust-chip-label {
-    font-family: var(--font-body);
-    font-size: var(--text-small);
-    font-weight: 500;
-    text-transform: none;
-    letter-spacing: normal;
+/* Label style of a block (eyebrows and trust-band chip labels). It sets the
+   same properties as the theme-wide Label style, so the block value overrides
+   the theme value for everything inside the block. */
+.marketing-root .cms-label-plain {
+    --label-font: var(--font-body);
+    --label-transform: none;
+    --label-tracking: normal;
+    --label-size: var(--text-small);
+}
+.marketing-root .cms-label-mono {
+    --label-font: var(--font-mono);
+    --label-transform: uppercase;
+    --label-tracking: 0.08em;
+    --label-size: var(--text-eyebrow);
 }

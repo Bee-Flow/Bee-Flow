@@ -898,6 +898,14 @@ const DESIGN_DEFAULTS = {
         surface:       '#F3EFE7',  // card / section bg
         textPrimary:   '#1C1917',  // warm ink
         textSecondary: '#57534E',
+        // Colour ROLES. '' = follow `primary`, so a site that never sets them
+        // renders as before. cta: buttons and the focus ring; link: text links;
+        // highlight: badges, eyebrows, hover borders (the "accent" role; `accent`
+        // above is already the gradient end); tile: icon tile fill and glyph.
+        cta:           '',
+        link:          '',
+        highlight:     '',
+        tile:          '',
     },
     // Dark-mode layout palette. primary/accent are optional per-mode brand
     // adjustments; empty string = reuse the light brand colors unchanged.
@@ -950,6 +958,7 @@ const DESIGN_DEFAULTS = {
         tileFill:        'default',   // default (tint + ring) | tint | solid | none
         tileSize:        'default',   // default | sm | lg
         tileIconColor:   'default',   // default (the tile colour) | light | dark
+        labelStyle:      'mono',      // mono (mono caps) | plain (body font, sentence case); a block's style.labelStyle overrides it
     },
     layout: {
         containerWidth:  'default',   // narrow 1120 | default 1280 | wide 1440 | full 1760
@@ -973,6 +982,7 @@ const DESIGN_COMPONENT_ENUMS = {
     tileFill:        ['default', 'tint', 'solid', 'none'],
     tileSize:        ['default', 'sm', 'lg'],
     tileIconColor:   ['default', 'light', 'dark'],
+    labelStyle:      ['mono', 'plain'],
 };
 // Where the cookie banner sits: today's floating card, a slim full-width bar
 // along the bottom edge, or a small card in the bottom-left corner.
@@ -997,6 +1007,8 @@ const HEADING_WEIGHTS = [500, 600, 700, 800, 900];
 const DISPLAY_TRACKINGS = ['default', 'tight', 'tighter', 'tightest'];
 const BODY_SIZES      = [16, 17, 18];
 const COLOR_KEYS      = Object.keys(DESIGN_DEFAULTS.colors);
+// Colour roles that take '' = "follow the primary colour".
+const BLANKABLE_COLORS = ['cta', 'link', 'highlight', 'tile'];
 const DARK_COLOR_KEYS = Object.keys(DESIGN_DEFAULTS.darkColors);
 
 // Font allowlist — mirrors the curated FONT_LIBRARY in
@@ -1018,4 +1030,4 @@ const DESIGN_FONTS = [
     'Satoshi', 'Cabinet Grotesk', 'General Sans', 'Clash Display', 'Clash Grotesk',
 ];
 
-export { SITE_DEFAULTS, BLOCK_DEFAULTS, BLOCK_TYPES, BLOCK_TYPE_IDS, TABS_MIN, TABS_MAX, STORY_METRICS_MIN, STORY_METRICS_MAX, STORY_GRID_MAX, BLOCK_VARIANTS, DEMO_FEATURE_IDS, DESIGN_DEFAULTS, DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, COOKIE_BANNER_LAYOUTS, DESIGN_THEMES, SHARE_IMAGE_TEMPLATES, DESIGN_MOTIONS, DARK_BANDS, DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS };
+export { SITE_DEFAULTS, BLOCK_DEFAULTS, BLOCK_TYPES, BLOCK_TYPE_IDS, TABS_MIN, TABS_MAX, STORY_METRICS_MIN, STORY_METRICS_MAX, STORY_GRID_MAX, BLOCK_VARIANTS, DEMO_FEATURE_IDS, DESIGN_DEFAULTS, DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, COOKIE_BANNER_LAYOUTS, DESIGN_THEMES, SHARE_IMAGE_TEMPLATES, DESIGN_MOTIONS, DARK_BANDS, DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS };

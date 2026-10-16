@@ -18,7 +18,7 @@
 
 const {
     DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS, DARK_BANDS,
-    DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS,
+    DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS,
 } = require('../i18n/defaults/cmsDefaults');
 const { THEME_PRESET_IDS } = require('../i18n/defaults/themePresets');
 
@@ -279,7 +279,7 @@ const TOOL_SCHEMAS = [
                     },
                     colorsPatch: {
                         type: 'object',
-                        description: `Light-mode colours to change: ${COLOR_KEYS.join(', ')} — each a "#rrggbb" hex string.`,
+                        description: `Light-mode colours to change: ${COLOR_KEYS.join(', ')} — each a "#rrggbb" hex string; the roles ${BLANKABLE_COLORS.join(', ')} also accept "" (follow the primary colour).`,
                     },
                     darkColorsPatch: {
                         type: 'object',

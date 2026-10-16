@@ -133,6 +133,8 @@ function sanitizeDesign(input) {
     const numClamp = (v, lo, hi, fb) =>
         (typeof v === 'number' && v >= lo && v <= hi) ? Math.round(v) : fb;
     const oneOf = (v, set, fb) => (set.includes(v) ? v : fb);
+    // A colour role: a literal #rrggbb or '' (follow the primary colour).
+    const role = (v) => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v : '');
     return {
         colors: {
             primary:       str(c.primary,       DESIGN_DEFAULTS.colors.primary),
@@ -142,6 +144,10 @@ function sanitizeDesign(input) {
             surface:       str(c.surface,       DESIGN_DEFAULTS.colors.surface),
             textPrimary:   str(c.textPrimary,   DESIGN_DEFAULTS.colors.textPrimary),
             textSecondary: str(c.textSecondary, DESIGN_DEFAULTS.colors.textSecondary),
+            cta:           role(c.cta),
+            link:          role(c.link),
+            highlight:     role(c.highlight),
+            tile:          role(c.tile),
         },
         darkColors: {
             background:    str(dk.background,    DESIGN_DEFAULTS.darkColors.background),

@@ -42,7 +42,9 @@ describe('look switches', () => {
         expect(designStyleClasses({ decor: 'none', cardFill: 'white', labelStyle: 'plain' }))
             .toEqual(['cms-decor-none', 'cms-cardfill-white', 'cms-label-plain']);
         expect(designStyleClasses({ cardFill: 'none' })).toEqual(['cms-cardfill-none']);
-        expect(designStyleClasses({ decor: 'default', cardFill: 'tint', labelStyle: 'mono' })).toEqual([]);
+        // An explicit 'mono' overrides a theme-wide plain label style, so it gets a class too.
+        expect(designStyleClasses({ labelStyle: 'mono' })).toEqual(['cms-label-mono']);
+        expect(designStyleClasses({ decor: 'default', cardFill: 'tint' })).toEqual([]);
         expect(designStyleClasses({ decor: 'blur(9px)', cardFill: '#fff', labelStyle: 'x y' })).toEqual([]);
     });
 });

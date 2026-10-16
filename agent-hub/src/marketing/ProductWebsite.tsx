@@ -57,6 +57,7 @@ import ExperimentSection, { experimentAttrs } from './experiments/ExperimentSect
 import { designStyleClasses, designStyleVars } from './blockWrap';
 import { blockFlowOptions } from './blockFlow';
 import { applyTileVars, TILE_VAR_PROPS } from './designTiles';
+import { applyBrandVars, BRAND_VAR_PROPS, roleColor } from './designBrand';
 import { applyTypographyVars } from './designTypography';
 import { LOCALE_PREFIXES } from '../utils/cmsPublicRouting';
 import type {
@@ -138,7 +139,7 @@ function applyDesignToRoot(rootEl: HTMLElement | null, design: SiteDesign | null
     if (!design || typeof design !== 'object') {
         // No design — clear any inline overrides we previously set.
         for (const prop of CSS_VAR_PROPS) style.removeProperty(prop);
-        rootEl.classList.remove('cms-theme-dark', 'cms-gradient', 'cms-grain',
+        rootEl.classList.remove('cms-theme-dark', 'cms-gradient', 'cms-grain', 'cms-role-cta',
             'cms-motion--none', 'cms-motion--subtle');
         return;
     }
@@ -203,12 +204,10 @@ function applyDesignToRoot(rootEl: HTMLElement | null, design: SiteDesign | null
     applyTypographyVars(style, design.typography || {});
 
     // ── Component shape + size ──────────────────────────────────────
-    // Each map below is value → inline properties. The DEFAULT value maps
-    // to {} so it emits nothing, and every CSS consumer is written
-    // var(--token, <today's literal>) — that is what makes an absent
-    // field, an unknown field and an explicit default all render
-    // identically. Applied AFTER the scalar tokens above so the
-    // "sharp implies flat" coupling can override the shadow level.
+    // Each map is value → inline properties; the DEFAULT maps to {} and emits
+    // nothing, and CSS consumers read var(--token, <today's literal>), so an
+    // absent, unknown or default value renders identically. Applied AFTER the
+    // scalar tokens so "sharp implies flat" can override the shadow level.
     const comp: DesignComponents = design.components || {};
     const lay: DesignLayout = design.layout || {};
     applyEnum(style, SHAPE_MAPS.buttonShape,     comp.buttonShape);
@@ -219,15 +218,14 @@ function applyDesignToRoot(rootEl: HTMLElement | null, design: SiteDesign | null
     applyEnum(style, SHAPE_MAPS.shadow,          comp.shadow);
     applyEnum(style, SHAPE_MAPS.containerWidth,  lay.containerWidth);
     applyEnum(style, SHAPE_MAPS.sectionRhythm,   lay.sectionRhythm);
-    applyTileVars(style, comp);
+    applyBrandVars(rootEl, c, comp);
 
-    // Button label color. 'auto' derives from the RESOLVED primary's
-    // luminance, which a single site-wide value can't express when a theme
-    // inverts its button between light and dark mode.
+    // Button label color. 'auto' derives from the RESOLVED button colour (cta, else
+    // primary), which one site-wide value can't give when a theme inverts per mode.
     if (comp.buttonTextColor === 'dark') {
         style.setProperty('--btn-primary-fg', '#0B0B0C');
     } else if (comp.buttonTextColor === 'auto') {
-        style.setProperty('--btn-primary-fg', relativeLuminance(primary) > 0.45 ? '#0B0B0C' : '#fff');
+        style.setProperty('--btn-primary-fg', relativeLuminance(roleColor(c.cta) || primary) > 0.45 ? '#0B0B0C' : '#fff');
     }
 
     // 'sharp' means "flat" as a whole idiom, not just square corners —
@@ -322,7 +320,7 @@ function relativeLuminance(hex: string | undefined) {
 }
 
 const CSS_VAR_PROPS = [
-    ...TILE_VAR_PROPS,
+    ...BRAND_VAR_PROPS,
     '--brand-primary', '--brand-secondary', '--brand-accent',
     '--brand-bg', '--brand-surface',
     '--brand-text', '--brand-text-secondary',

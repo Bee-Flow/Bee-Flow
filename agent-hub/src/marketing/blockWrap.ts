@@ -31,7 +31,7 @@ export function designStyleClasses(style: BlockStyle): string[] {
     }
     if (s.decor === 'none') out.push('cms-decor-none');
     if (s.cardFill === 'white' || s.cardFill === 'none') out.push(`cms-cardfill-${s.cardFill}`);
-    if (s.labelStyle === 'plain') out.push('cms-label-plain');
+    if (s.labelStyle === 'plain' || s.labelStyle === 'mono') out.push(`cms-label-${s.labelStyle}`);
     return out;
 }
 

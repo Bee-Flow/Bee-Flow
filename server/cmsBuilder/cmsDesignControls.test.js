@@ -235,6 +235,46 @@ test('safeIconAsset: only uploaded-asset addresses, never another origin or mark
     }
 });
 
+test('sanitizeDesign: colour roles default to blank (follow primary), accept only #rrggbb', () => {
+    const base = sanitizeDesign({});
+    for (const role of ['cta', 'link', 'highlight', 'tile']) assert.strictEqual(base.colors[role], '', role);
+    const set = sanitizeDesign({ colors: { cta: '#1F2937', link: '#0b5fff', highlight: 'red', tile: 'url(x)' } });
+    assert.strictEqual(set.colors.cta, '#1F2937');
+    assert.strictEqual(set.colors.link, '#0b5fff');
+    assert.strictEqual(set.colors.highlight, '', 'a colour name is dropped to "follow primary"');
+    assert.strictEqual(set.colors.tile, '', 'free CSS is dropped');
+});
+
+test('sanitizeDesign: labelStyle is an enum with an identity default', () => {
+    assert.strictEqual(sanitizeDesign({}).components.labelStyle, 'mono');
+    assert.strictEqual(sanitizeDesign({ components: { labelStyle: 'plain' } }).components.labelStyle, 'plain');
+    assert.strictEqual(sanitizeDesign({ components: { labelStyle: 'uppercase; color:red' } }).components.labelStyle, 'mono');
+});
+
+test('cms_update_design: role colours (blank allowed) and the label style are validated', async () => {
+    const draft = await makeDraft();
+    const ok = await applyToolCall(draft, 'cms_update_design', {
+        colorsPatch: { cta: '#F5A623', tile: '#1F2937', link: '' },
+        componentsPatch: { labelStyle: 'plain' },
+    });
+    assert.ok(!ok.error, JSON.stringify(ok));
+    const stored = (await cmsStore.getProject(draft.siteId)).design;
+    assert.strictEqual(stored.colors.cta, '#F5A623');
+    assert.strictEqual(stored.colors.tile, '#1F2937');
+    assert.strictEqual(stored.colors.link, '');
+    assert.strictEqual(stored.components.labelStyle, 'plain');
+    assert.strictEqual(stored.colors.primary, '#F5A623', 'the primary is untouched by a role patch');
+    for (const args of [
+        { colorsPatch: { cta: 'navy' } },
+        { colorsPatch: { highlight: 'rgb(0,0,0)' } },
+        { colorsPatch: { primary: '' } },
+        { componentsPatch: { labelStyle: 'url(x)' } },
+    ]) {
+        const r = await applyToolCall(draft, 'cms_update_design', args);
+        assert.ok(r.error, JSON.stringify(args));
+    }
+});
+
 test('sanitizeDesign: tile enums default to the identity value and drop anything else', () => {
     const base = sanitizeDesign({});
     assert.deepStrictEqual(

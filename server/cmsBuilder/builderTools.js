@@ -32,7 +32,7 @@ const { validateStylePatch, STYLE_KEYS } = require('./blockStyle');
 const {
     BLOCK_DEFAULTS, BLOCK_TYPE_IDS,
     DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS, DARK_BANDS,
-    DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS,
+    DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS,
 } = require('../i18n/defaults/cmsDefaults');
 const { THEME_PRESETS, THEME_PRESET_IDS } = require('../i18n/defaults/themePresets');
 const { TOOL_SCHEMAS, LINK_HINT, DESIGN_HINT } = require('./schemas');
@@ -837,7 +837,7 @@ function sanitizeDesignPatch(args) {
     };
 
     if (args.colorsPatch !== undefined) {
-        const r = colourGroup(args.colorsPatch, COLOR_KEYS, 'colorsPatch', []);
+        const r = colourGroup(args.colorsPatch, COLOR_KEYS, 'colorsPatch', BLANKABLE_COLORS);
         if (r.error) return r;
         if (Object.keys(r.out).length) patch.colors = r.out;
     }

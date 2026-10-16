@@ -38,7 +38,7 @@
 'use strict';
 
 const { sanitizeBlockDesignStyle, BLOCK_DESIGN_STYLE_KEYS, MEDIA_HEIGHTS, MEDIA_FITS } = require('../i18n/defaults/blockStyleEnums');
-const { BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS } = require('../i18n/defaults/cmsDefaults');
+const { BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS } = require('../i18n/defaults/cmsDefaults');
 const { checkTabs, checkStoryHeader, checkScrollStory, checkFeatureDemo } = require('./validateBlocks');
 const { slugProblem } = require('../stores/cms/slugRules');
 const { checkPageMedia } = require('./validateMedia');
@@ -106,7 +106,7 @@ function checkDesign(design, warnings) {
 
     /** @type {Array<[string, Record<string, unknown>, string[], string[]]>} */
     const colorGroups = [
-        ['colors', colors, COLOR_KEYS, []],
+        ['colors', colors, COLOR_KEYS, BLANKABLE_COLORS],
         // darkColors.primary/accent use '' for "reuse the light value".
         ['darkColors', darkColors, DARK_COLOR_KEYS, ['primary', 'accent']],
     ];
