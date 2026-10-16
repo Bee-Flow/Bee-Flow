@@ -2,6 +2,7 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field } from '../uiBits';
 import useInputChange from '../useInputChange';
+import type { NodeProps } from './appNode.types';
 
 /**
  * App Studio runtime — 'input_checkbox'. Spec: server/appStudio/componentSpecs.js.
@@ -12,7 +13,14 @@ import useInputChange from '../useInputChange';
  * Field wrapper, so "you have to agree to the terms" was enforced on submit and
  * never explained on screen.
  */
-export default function AppInputCheckbox({ node }) {
+interface CheckboxProps {
+    name?: string;
+    label?: string;
+    defaultChecked?: boolean;
+    required?: boolean;
+}
+
+export default function AppInputCheckbox({ node }: NodeProps<CheckboxProps>) {
     const { t } = useTranslation();
     const { name, label = t('studio_apps_runtime.inputs.yes', 'Yes'), defaultChecked = false, required = false } = node.props || {};
     const { value, setValue, error } = useFormField({
