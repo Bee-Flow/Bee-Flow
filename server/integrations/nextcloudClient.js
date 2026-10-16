@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Client — Shared HTTP helper for OAuth Bearer access to WebDAV + OCS.
  *
@@ -170,7 +171,7 @@ async function _doRefreshAccessToken(session) {
         throw new Error('Nextcloud token refresh failed — user must re-authenticate');
     }
 
-    const tokenData = await response.json();
+    const tokenData = /** @type {{ access_token?: string, refresh_token?: string, expires_in?: number|string }} */ (await response.json());
 
     if (tokenData.access_token) creds.accessToken = tokenData.access_token;
     // Nextcloud rotates refresh tokens; always overwrite when present.
@@ -237,7 +238,7 @@ async function resolveUid(session, baseUrl) {
     if (!res.ok) {
         throw new Error(`Failed to resolve Nextcloud uid (${res.status})`);
     }
-    const body = await res.json();
+    const body = /** @type {{ ocs?: { data?: { id?: string } } }} */ (await res.json());
     const uid = body?.ocs?.data?.id;
     if (!uid) throw new Error('Nextcloud uid not present in OCS response');
     creds.uid = uid;
@@ -506,6 +507,23 @@ function isConnectorSession(session) {
     return !!(session?.user?.provider === 'nextcloud_connector' || session?.connectorOrgId);
 }
 
+/**
+ * How a tool reaches Nextcloud: base URL, the user's uid, a ready `fetch` and the
+ * message to show when it is refused. The rest depends on `mode`.
+ *
+ * @typedef {object} NcAuth
+ * @property {string} [mode]
+ * @property {string} baseUrl
+ * @property {string} [publicBaseUrl]
+ * @property {string} [uid]
+ * @property {any} [session]
+ * @property {string} [username]
+ * @property {string} [password]
+ * @property {(url: string, options?: any) => Promise<any>} fetch
+ * @property {string} authError
+ */
+
+/** @returns {Promise<NcAuth>} */
 async function resolveAuth(session, userId) {
     // Connector path takes priority: if the user came in via the Nextcloud
     // ExApp connector, we have an instance binding and zero credentials —

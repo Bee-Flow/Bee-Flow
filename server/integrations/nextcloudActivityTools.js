@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Activity Tools — read-only stream of "what happened".
  *

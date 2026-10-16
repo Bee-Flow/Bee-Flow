@@ -1,3 +1,4 @@
+// @typecheck
 /** Small readers for parsed WebDAV properties shared by the calendar and tasks tools. */
 
 /** True when current-user-privilege-set lets the user write. */

@@ -1,3 +1,4 @@
+// @typecheck
 /** Due-date handling for the Deck tools. */
 
 /**

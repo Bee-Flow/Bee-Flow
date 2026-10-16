@@ -26,7 +26,8 @@
     "maxNodeModuleJsDepth": 0,
     "types": ["node"],
     "paths": {
-      "googleapis": ["./types/shims/googleapis.d.ts"]
+      "googleapis": ["./types/shims/googleapis.d.ts"],
+      "ical.js": ["./types/shims/ical.d.ts"]
     }
   }
 }

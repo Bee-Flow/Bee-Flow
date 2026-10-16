@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Contacts Tools — CardDAV CRUD over /remote.php/dav/addressbooks/users/<uid>/.
  *

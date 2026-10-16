@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Per-tool handlers of the Nextcloud Deck executor (nextcloudDeckTools.js).
  * Each takes (args, { api, ncFetch, authError, baseUrl, toolName }) and answers

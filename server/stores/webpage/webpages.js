@@ -17,6 +17,9 @@ const log = require('../../telemetry/log');
 
 // ── Webpage CRUD ─────────────────────────────────────────────────────
 
+/**
+ * @param {{ userId: string, name: string, description?: string, instructions?: string, knowledgeBaseIds?: any, settings?: any }} input
+ */
 async function createWebpage({ userId, name, description, instructions, knowledgeBaseIds, settings }) {
     await initDB();
     const id = crypto.randomUUID();

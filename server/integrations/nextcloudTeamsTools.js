@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Teams Tools — the org chart Nextcloud actually shares against.
  *
@@ -185,6 +186,7 @@ async function readJsonSafe(res) {
     try { return JSON.parse(text); } catch { return text; }
 }
 
+/** @returns {Promise<{ error?: string, ok?: boolean, data?: any, ocs?: any }>} */
 async function handle(res, authError, what) {
     if (!res.ok) return nextcloudHttpError(res, { authError, what: `Teams ${what}`, app: 'Teams' });
     const body = await readJsonSafe(res);

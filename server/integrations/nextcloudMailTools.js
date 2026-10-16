@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Mail Tools — list / read / search / send mail via the Mail app's
  * REST API (/index.php/apps/mail/api/...). Mirrors the Gmail tool surface
@@ -336,6 +337,7 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
             const { extractAttachment, isPdf, isDocx, isSpreadsheet } = require('../core/documents/attachmentExtractor');
             const att = { name: filename, type: contentType, content: buf.toString('base64') };
             if (isPdf(att) || isDocx(att) || isSpreadsheet(att)) {
+                /** @type {{ kind: string, text?: string, source?: string, meta?: any, reason?: string, images?: any }} */
                 const result = await extractAttachment(att);
                 if (result.kind === 'text') {
                     const truncated = result.text.length > MAX_BODY_BYTES;

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Tables Tools — structured data inside Nextcloud.
  *

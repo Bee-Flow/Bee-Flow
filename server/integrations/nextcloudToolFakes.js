@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Fake Nextcloud for tool tests that keep state across several calls.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Deck Tools — kanban boards / stacks / cards / labels / comments.
  *

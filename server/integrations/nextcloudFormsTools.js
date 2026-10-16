@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Forms Tools — the intake side of a workflow.
  *
@@ -152,6 +153,7 @@ async function readJsonSafe(res) {
     try { return JSON.parse(text); } catch { return text; }
 }
 
+/** @returns {Promise<{ error?: string, ok?: boolean, data?: any }>} */
 async function handle(res, authError, what) {
     if (!res.ok) return nextcloudHttpError(res, { authError, what: `Forms ${what}`, app: 'Forms' });
     const body = await readJsonSafe(res);

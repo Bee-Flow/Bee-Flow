@@ -280,6 +280,8 @@ function validateReactMui({ sources, assetPathSet }) {
 /**
  * Dispatcher. assetPaths must include ALL extra files (text AND binary).
  * Returns { violations } capped at MAX_VIOLATIONS.
+ *
+ * @param {{ framework?: string, html?: string, scriptTexts?: string[], sources?: any, assetPaths?: string[], allowedHosts?: any }} project
  */
 function validateWebpageProject({ framework, html, scriptTexts, sources, assetPaths, allowedHosts }) {
     const assetPathSet = new Set((assetPaths || []).map(normalizeAssetPath).filter(Boolean));

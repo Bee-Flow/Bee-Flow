@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The one HMAC implementation for SaaS → connector `/nc/*` callbacks.
  *

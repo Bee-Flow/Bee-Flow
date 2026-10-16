@@ -1,3 +1,4 @@
+// @typecheck
 /** Error text, role and body helpers for the Nextcloud Mail tools. */
 
 const MAX_RAW_BODY = 400 * 1024; // the tool trims to 200 KB of text; never strip more than twice that

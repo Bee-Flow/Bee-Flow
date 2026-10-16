@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Files and folders over WebDAV — listing, reading, uploading, creating,
  * deleting and server-side move/copy — plus the OCS endpoints that act on a
@@ -170,6 +171,7 @@ async function executeFileOperationTool(toolName, args, ctx) {
             // Office docs).
             const { extractAttachment, isPdf, isDocx, isSpreadsheet, isPptx } = require('../../core/documents/attachmentExtractor');
             if (isPdf(att) || isDocx(att) || isSpreadsheet(att) || isPptx(att)) {
+                /** @type {{ kind: string, text?: string, source?: string, meta?: any, reason?: string, images?: any }} */
                 const result = await extractAttachment({
                     name: filename,
                     type: contentType,

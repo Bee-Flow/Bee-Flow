@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Notes Tools — JSON CRUD on /index.php/apps/notes/api/v1/notes.
  *

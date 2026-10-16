@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage Builder Tools — used by directChat so the regular AI chat can create
  * and edit webpages without the user being in the dedicated Webpages editor.
@@ -142,7 +143,7 @@ function isBuilderTool(toolName) {
  *   readSlots is keyed by webpageId — tracks which slots the AI has read this
  *   call-batch so the read-before-edit guard can warn when an edit comes in
  *   on a slot it never read.
- * @returns {{ result, webpageUpdate?: { webpageId, file, content, title? } }}
+ * @returns {Promise<{ result: any, webpageUpdate?: { webpageId: any, file: any, content: any, title?: any } }>}
  */
 async function executeBuilderTool(toolName, args, ctx) {
     const { userId, readSlots } = ctx;

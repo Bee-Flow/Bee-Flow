@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Memory Tools — the user's own long-term memory (stores/memoryStore.js) as two
  * tools a chat agent or an automation step can call.

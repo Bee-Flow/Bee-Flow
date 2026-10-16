@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Transcription Tools — Multi-provider meeting transcription with diarization
  *
@@ -507,6 +508,7 @@ async function handleWhisperXTranscription(args, context) {
         const fallbackEndpoint = `${baseUrl}/v1/audio/transcriptions`;
 
         let resp = null;
+        /** @type {{ segments?: Array<any> } | null} */
         let data = null;
 
         // Abort signal: 5 minutes max
@@ -539,7 +541,7 @@ async function handleWhisperXTranscription(args, context) {
             return { error: `WhisperX server returned HTTP ${resp.status}: ${safeBody}` };
         }
 
-        data = await resp.json();
+        data = /** @type {{ segments?: Array<any> }} */ (await resp.json());
 
         // Normalise response — support both { segments: [...] } and { text, segments: [...] }
         const rawSegments = (data.segments || []).map((seg) => ({

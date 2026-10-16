@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Fireflies.ai Tools — Built-in tools for AI to search and read meeting transcripts
  * 

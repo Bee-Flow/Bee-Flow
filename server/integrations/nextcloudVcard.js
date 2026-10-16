@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * vCard text <-> contact object for the Nextcloud contacts tools (vcf for line
  * folding and parameter parsing, manual RFC 6350 escaping).

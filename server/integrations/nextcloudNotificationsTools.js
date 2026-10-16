@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Notifications Tools — list / dismiss / send notifications via
  * the OCS Notifications API.

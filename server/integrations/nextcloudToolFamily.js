@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Nextcloud tool family: the per-app executors behind every nextcloud_*
  * tool, and the scope-guarded entry the dispatcher runs them through.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Talk Tools — chat rooms, messages, reactions.
  *

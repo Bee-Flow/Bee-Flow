@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CalDAV plumbing for the Nextcloud tasks tools: multistatus parsing, list
  * discovery (supportsTasks / writable) and readable errors for failed writes.

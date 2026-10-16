@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Tasks Tools — VTODO over CalDAV.
  *
@@ -198,6 +199,20 @@ function todoFromIcal(vtodo) {
     };
 }
 
+/**
+ * @typedef {object} Todo
+ * @property {string|null} uid
+ * @property {string|null} summary
+ * @property {string|null} description
+ * @property {string|null} due
+ * @property {number} priority
+ * @property {string} status
+ * @property {number} percentComplete
+ * @property {string|null} completed
+ * @property {string[]} categories
+ */
+
+/** @returns {Todo[]} */
 function parseICalTodos(text) {
     if (!text) return [];
     let jcal;
@@ -206,6 +221,7 @@ function parseICalTodos(text) {
     return root.getAllSubcomponents('vtodo').map(todoFromIcal);
 }
 
+/** @param {Partial<Todo>} todo */
 function buildVCalendarTodo({ uid, summary, description, due, priority, status, percentComplete, completed, categories }) {
     const cal = new ICAL.Component(['vcalendar', [], []]);
     cal.updatePropertyWithValue('prodid', '-//Bee Flow//Nextcloud Tasks Tool//EN');
@@ -396,6 +412,7 @@ async function executeNextcloudTasksTool(toolName, args, userId, session) {
             if (getRes.status === 404) return { error: `Task not found: ${args.uid}` };
             if (!getRes.ok) return { error: `Could not load task for update (${getRes.status})` };
             const currentEtag = getRes.headers.get('etag');
+            /** @type {Partial<Todo>} */
             const current = parseICalTodos(await getRes.text())[0] || {};
 
             let merged;

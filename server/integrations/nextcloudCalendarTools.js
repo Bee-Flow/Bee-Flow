@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Calendar Tools — CalDAV CRUD over /remote.php/dav/calendars/<uid>/.
  *

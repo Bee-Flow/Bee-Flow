@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud search — the unified fan-out across every registered search
  * provider, and the files-only provider search.

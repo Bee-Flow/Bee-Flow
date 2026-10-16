@@ -1,3 +1,4 @@
+// @typecheck
 /** Shapes and error text for the Talk tools (kept apart from the executor). */
 
 const { nextcloudHttpError } = require('./nextcloudHttpError');

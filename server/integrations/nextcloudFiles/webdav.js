@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud WebDAV plumbing shared by the file tools — the multistatus XML
  * parser, the PROPFIND body, path building and the binary upload helper.

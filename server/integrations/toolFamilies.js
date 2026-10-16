@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The integration tool families, registered with core's tool dispatcher.
  *
@@ -101,6 +102,7 @@ async function executeCreatePresentation(toolName, toolArgs, context) {
     // Through the scope guard, exactly like a direct nextcloud_* call.
     const nc = await executeCheckedNextcloudTool('nextcloud_create_presentation', { ...rest, path }, context);
     if (nc && !nc.error) return nc;
+    /** @type {{ error?: string, message?: string }} */
     const local = await executePresentationTool(toolArgs, { userId, session, orgId: documentOrgId(context) });
     return { ...local, nextcloud: { error: (nc && nc.error) || 'Nextcloud is not available' }, message: `${local.message || ''} It could NOT be saved to Nextcloud (${(nc && nc.error) || 'not connected'}) — tell the user and give the download link.` };
 }

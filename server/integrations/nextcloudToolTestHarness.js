@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /** Shared fake-Nextcloud harness for the Mail / Talk / Notifications / Activity tool tests. */
 const ncClient = require('./nextcloudClient');
