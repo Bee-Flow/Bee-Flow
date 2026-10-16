@@ -795,3 +795,18 @@ test('a table Bee Flow just created says so, instead of silently vanishing', asy
     });
     assert.equal(inScope.nc_scope_note, undefined, 'no note when the id is already shared');
 });
+
+test('folder_tree from a start folder: a node named like another selected root does not leak', async () => {
+    // The executor writes the full path on every node ("/Shared/Secret"), so a
+    // selection of {/Shared/B, /Secret} must not let it through as "/Secret".
+    setUserScope({ nextcloud: { mode: 'selected', selected: ['/Shared/B', '/Secret'] } });
+    const out = await guard.filterResult({
+        toolName: 'nextcloud_folder_tree',
+        result: { depth: 2, tree: [
+            { name: 'Secret', path: '/Shared/Secret', children: [{ name: 'x', path: '/Shared/Secret/x' }] },
+            { name: 'B', path: '/Shared/B' },
+        ] },
+        userId: USER,
+    });
+    assert.deepEqual(out.tree.map(n => n.path), ['/Shared/B']);
+});

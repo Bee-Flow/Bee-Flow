@@ -106,9 +106,31 @@ async function parsePptx(buffer, filename) {
 }
 
 // ── Spreadsheet Parser (XLSX / XLS / CSV) ───────────────────────
+/**
+ * SheetJS reads a CSV buffer as codepage 1252, so "é" arrives as "Ã©". Delimited
+ * text that is valid UTF-8 is read as a string instead (BOM stripped); one
+ * that is not valid UTF-8 keeps the old behaviour (legacy Windows exports).
+ */
+function readWorkbook(buffer) {
+    // XLSX/ODS are zip ("PK"), legacy XLS is a compound file (D0 CF 11 E0):
+    // anything else is delimited text.
+    // Also dBASE (.dbf: 0x03, 0x83, 0x8B), which SheetJS reads from a buffer.
+    const binary = (buffer[0] === 0x50 && buffer[1] === 0x4b) || (buffer[0] === 0xd0 && buffer[1] === 0xcf)
+        || buffer[0] === 0x03 || buffer[0] === 0x83 || buffer[0] === 0x8b;
+    if (!binary) {
+        try {
+            const text = new TextDecoder('utf-8', { fatal: true }).decode(buffer).replace(/^\uFEFF/, '');
+            return XLSX.read(text, { type: 'string' });
+        } catch (e) {
+            log.debug(`[DocumentParser] CSV is not valid UTF-8, reading it as a legacy encoding: ${e.message}`);
+        }
+    }
+    return XLSX.read(buffer, { type: 'buffer' });
+}
+
 function parseSpreadsheet(buffer, filename) {
     try {
-        const workbook = XLSX.read(buffer, { type: 'buffer' });
+        const workbook = readWorkbook(buffer);
         const sheets = workbook.SheetNames;
 
         if (sheets.length === 0) {

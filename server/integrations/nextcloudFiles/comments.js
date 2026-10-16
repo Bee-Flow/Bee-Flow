@@ -56,7 +56,11 @@ async function executeCommentTool(toolName, args, ctx) {
                 const text = await res.text().catch(() => '');
                 return { error: `Comment failed (${res.status}): ${text.slice(0, 200)}` };
             }
-            return { success: true, fileId: args.fileId };
+            // Nextcloud names the new comment in the Content-Location header
+            // (.../comments/files/<fileId>/<commentId>).
+            const location = res.headers?.get?.('content-location') || res.headers?.get?.('location') || '';
+            const commentId = parseInt((location.match(/\/(\d+)\/?$/) || [])[1] || '', 10);
+            return { success: true, fileId: args.fileId, commentId: Number.isFinite(commentId) ? commentId : null };
         }
 
         default:

@@ -4,6 +4,23 @@
  * needs first.
  */
 
+const { extractReason } = require('../nextcloudHttpError');
+
+// Nextcloud sends a share id as a string ("12"); update_share and delete_share
+// take a number. Hand the number back everywhere so ids round-trip.
+function toShareId(id) {
+    if (id == null || id === '') return null;
+    const n = Number(id);
+    return Number.isInteger(n) ? n : id;
+}
+
+// An OCS failure as one readable line: Nextcloud's own reason (ocs.meta.message,
+// in the server's language) instead of the raw JSON body.
+async function shareFailure(res, what) {
+    const reason = extractReason(await res.text().catch(() => ''));
+    return { error: `${what} failed (${res.status})${reason ? `: ${reason}` : ''}` };
+}
+
 // Returns undefined when the tool belongs to another Nextcloud file family, so
 // the facade can hand it to the next handler.
 async function executeShareTool(toolName, args, ctx) {
@@ -46,10 +63,7 @@ async function executeShareTool(toolName, args, ctx) {
                 body: params.toString(),
             });
             if (res.status === 401) return { error: authError };
-            if (!res.ok) {
-                const text = await res.text().catch(() => '');
-                return { error: `Share creation failed (${res.status}): ${text.slice(0, 200)}` };
-            }
+            if (!res.ok) return shareFailure(res, 'Share creation');
             const data = await res.json();
             const meta = data?.ocs?.meta;
             const share = data?.ocs?.data;
@@ -60,7 +74,7 @@ async function executeShareTool(toolName, args, ctx) {
                 success: true,
                 url: share?.url || null,
                 token: share?.token || null,
-                id: share?.id || null,
+                id: toShareId(share?.id),
                 path: args.path,
                 expiration: share?.expiration || null,
             };
@@ -91,10 +105,7 @@ async function executeShareTool(toolName, args, ctx) {
                 body: params.toString(),
             });
             if (res.status === 401) return { error: authError };
-            if (!res.ok) {
-                const text = await res.text().catch(() => '');
-                return { error: `Share create failed (${res.status}): ${text.slice(0, 200)}` };
-            }
+            if (!res.ok) return shareFailure(res, 'Share creation');
             const data = await res.json().catch(() => ({}));
             const meta = data?.ocs?.meta;
             const share = data?.ocs?.data;
@@ -103,7 +114,8 @@ async function executeShareTool(toolName, args, ctx) {
             }
             return {
                 success: true,
-                shareId: share?.id || null,
+                id: toShareId(share?.id),
+                shareId: toShareId(share?.id),
                 shareType,
                 shareWith: args.shareWith,
                 path: args.path,
@@ -120,10 +132,10 @@ async function executeShareTool(toolName, args, ctx) {
                 headers: { 'OCS-APIRequest': 'true', 'Accept': 'application/json' },
             });
             if (res.status === 401) return { error: authError };
-            if (!res.ok) return { error: `Share list failed (${res.status})` };
+            if (!res.ok) return shareFailure(res, 'Share list');
             const data = await res.json().catch(() => ({}));
             const shares = (data?.ocs?.data || []).map(s => ({
-                id: s.id,
+                id: toShareId(s.id),
                 shareType: s.share_type,
                 shareWith: s.share_with,
                 shareWithDisplayName: s.share_with_displayname,
@@ -162,12 +174,9 @@ async function executeShareTool(toolName, args, ctx) {
                     body: params.toString(),
                 });
                 if (res.status === 401) return { error: authError };
-                if (!res.ok) {
-                    const text = await res.text().catch(() => '');
-                    return { error: `Share update (${key}) failed (${res.status}): ${text.slice(0, 200)}` };
-                }
+                if (!res.ok) return shareFailure(res, `Share update (${key})`);
             }
-            return { success: true, shareId: args.shareId };
+            return { success: true, shareId: toShareId(args.shareId) };
         }
 
         case 'nextcloud_delete_share': {
@@ -178,7 +187,7 @@ async function executeShareTool(toolName, args, ctx) {
             });
             if (res.status === 401) return { error: authError };
             if (res.status === 404) return { error: `Share not found: ${args.shareId}` };
-            if (!res.ok) return { error: `Share delete failed (${res.status})` };
+            if (!res.ok) return shareFailure(res, 'Share delete');
             return { success: true, shareId: args.shareId };
         }
 
@@ -187,4 +196,4 @@ async function executeShareTool(toolName, args, ctx) {
     }
 }
 
-module.exports = { executeShareTool };
+module.exports = { executeShareTool, toShareId };

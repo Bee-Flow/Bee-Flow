@@ -5,6 +5,7 @@
 
 const { DECK_INPUT_PROPERTIES } = require('../../core/documents/deckModel');
 const { DECK_THEME_INPUT_SCHEMA } = require('../../core/documents/deckThemeOptions');
+const { FOLDER_TREE_TOOL } = require('./folderTreeTool');
 
 const NEXTCLOUD_TOOLS = [
     {
@@ -182,19 +183,7 @@ const NEXTCLOUD_TOOLS = [
             }
         }
     },
-    {
-        type: 'function',
-        function: {
-            name: 'nextcloud_folder_tree',
-            description: 'Get a nested tree of the user\'s folders in one call — much cheaper than walking list_files level by level when you need an overview of where things live.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    depth: { type: 'integer', description: 'How many levels deep to descend (default 3, max 10).' }
-                }
-            }
-        }
-    },
+    FOLDER_TREE_TOOL,
     {
         type: 'function',
         function: {

@@ -55,3 +55,23 @@ test('pages are joined without the library\'s page markers', async () => {
     const out = await parseDocument(await done, 'application/pdf', 'two.pdf');
     assert.strictEqual(out, 'first page\n\nsecond page');
 });
+
+test('a UTF-8 CSV keeps its accents (no codepage-1252 mojibake)', async () => {
+    const csv = 'naam,stad\nZoë,Zürich\nRené,Genève\n';
+    const out = await parseDocument(Buffer.from(csv, 'utf-8'), 'text/csv', 'mensen.csv');
+    assert.match(out, /Zoë/);
+    assert.match(out, /Genève/);
+    assert.doesNotMatch(out, /Ã/);
+    assert.doesNotMatch(out, /\uFEFF/);
+});
+
+test('a CSV in a legacy single-byte encoding is still read, not dropped', async () => {
+    const out = await parseDocument(Buffer.from([0x61, 0x2c, 0x62, 0x0a, 0xe9, 0x2c, 0x31, 0x0a]), 'text/csv', 'oud.csv');
+    assert.match(out, /é/);
+});
+
+test('a BOM at the start of a CSV does not end up in the first header', async () => {
+    const out = await parseDocument(Buffer.from('\uFEFFnaam,stad\nZoë,Zürich\n', 'utf-8'), 'text/csv', 'bom.csv');
+    assert.doesNotMatch(out, /\uFEFF/);
+    assert.match(out, /Zoë/);
+});
