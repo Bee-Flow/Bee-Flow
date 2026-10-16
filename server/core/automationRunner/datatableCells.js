@@ -15,11 +15,21 @@
 const NUMERIC_RE = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}([T ][\d:.]+(Z|[+-]\d{2}:?\d{2})?)?$/;
 
+const YES = new Set(['true', 't', 'yes', 'y', 'on', '1']);
+const NO = new Set(['false', 'f', 'no', 'n', 'off', '0']);
+
 const err = (key, wanted) => {
     const e = new Error(`The value for the column "${key}" is not ${wanted}, so the row was not written.`);
     e.errorClass = 'datatable_type_mismatch';
     return e;
 };
+
+/** The calendar date really exists (2026-02-30 does not). */
+function realDate(text) {
+    const [y, m, d] = text.slice(0, 10).split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d && !Number.isNaN(Date.parse(text));
+}
 
 /** One cell → the type of its column. Throws datatable_type_mismatch. */
 function normaliseCell(field, value) {
@@ -38,12 +48,13 @@ function normaliseCell(field, value) {
     if (type === 'bool') {
         if (typeof value === 'boolean') return value;
         const s = String(value).trim().toLowerCase();
-        if (value === 1 || s === 'true' || s === '1' || s === 'yes') return true;
-        if (value === 0 || s === 'false' || s === '0' || s === 'no') return false;
+        // What Postgres' boolean input accepts ('on' is what an HTML checkbox posts).
+        if (value === 1 || YES.has(s)) return true;
+        if (value === 0 || NO.has(s)) return false;
         throw err(key, 'true or false');
     }
     if (type === 'date' || type === 'datetime') {
-        if (typeof value !== 'string' || !DATE_RE.test(value.trim()) || Number.isNaN(Date.parse(value.trim()))) {
+        if (typeof value !== 'string' || !DATE_RE.test(value.trim()) || !realDate(value.trim())) {
             throw err(key, type === 'date' ? 'a date (YYYY-MM-DD)' : 'a date and time');
         }
         return value.trim();

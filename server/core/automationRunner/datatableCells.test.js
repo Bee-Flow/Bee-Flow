@@ -31,3 +31,15 @@ test('a type mismatch names the column and the type, never the value', () => {
     assert.throws(() => normaliseCells(META, { due: 'tomorrow' }), /"due".*date/);
     assert.throws(() => normaliseCells(META, { n: 1.5 }), /"n".*whole number/);
 });
+
+test('yes/no accepts what Postgres accepted, any case', () => {
+    const f = { key: 'done', type: 'bool' };
+    for (const v of ['t', 'Y', 'ON', 'On']) assert.strictEqual(normaliseCell(f, v), true, v);
+    for (const v of ['f', 'N', 'OFF']) assert.strictEqual(normaliseCell(f, v), false, v);
+});
+
+test('a date must exist on the calendar', () => {
+    const f = { key: 'due', type: 'date' };
+    assert.strictEqual(normaliseCell(f, '2026-02-28'), '2026-02-28');
+    assert.throws(() => normaliseCell(f, '2026-02-30'), /"due"/);
+});

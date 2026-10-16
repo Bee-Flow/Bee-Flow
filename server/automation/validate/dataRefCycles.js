@@ -74,7 +74,7 @@ function checkDataRefCycles(ctx) {
         const chain = [...comp, comp[0]].join(' → ');
         pushE({
             code: 'ref.cycle', severity: 'error', path: p(`steps[${comp[0]}]`),
-            message: `Steps ${comp.join(' and ')} read each other's output (${chain}), so none of them can run first and every read comes back empty.`,
+            message: `Steps ${comp.join(' and ')} read each other's output (${chain}), so whichever runs second reads nothing from the other (the read of the later step comes back empty).`,
             hint: 'Break the loop: move the value one of them needs into an earlier step, or drop the binding that points back.',
         });
     }

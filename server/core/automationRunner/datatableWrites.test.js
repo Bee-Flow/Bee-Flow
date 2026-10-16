@@ -94,3 +94,16 @@ test('a preview keeps its synthetic cells instead of failing on them', async () 
     const res = await runDatatableWrite(ctxFor('add_row', { qty: lit('sample') }, { mode: 'dry_run' }), stores());
     assert.strictEqual(res.output.row.qty, 'sample');
 });
+
+test('a match value with %, _ and \\ is bound escaped, so it matches literally', async () => {
+    const s = stores();
+    await runDatatableWrite(ctxFor('save_row', { email: lit('100%_a\\b') }), s);
+    assert.strictEqual(s.calls.find(c => c.kind === 'query').params[0], '100\\%\\_a\\\\b');
+});
+
+test('a match column missing from the metadata compares exactly', async () => {
+    const s = stores();
+    await runDatatableWrite(ctxFor('save_row', { email: lit('a') }, { declared: new Set(['email']), tableMeta: { ...META, fields: META.fields.filter(f => f.key !== 'email') } }), s).catch(() => {});
+    const q = s.calls.find(c => c.kind === 'query');
+    assert.ok(!q || !/ILIKE/.test(q.sql));
+});

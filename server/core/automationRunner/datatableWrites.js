@@ -135,7 +135,7 @@ async function saveExistingRow(t, values, s) {
     // A text match ignores capitalisation ("A@X.COM" is the row "a@x.com"),
     // like the Set step's groupId; a number, date or yes/no compares exactly.
     const matchField = (t.tableMeta.fields || []).find(f => f.key === t.step.matchColumn);
-    const ci = !matchField || matchField.type === 'text' || matchField.type === 'select' || matchField.type === 'richtext';
+    const ci = !!matchField && (matchField.type === 'text' || matchField.type === 'select' || matchField.type === 'richtext');
     const probe = s.queryCompiler.compileRecordList(t.tableMeta, {
         filters: [{ field: t.step.matchColumn, op: 'eq', value: matchValue, ...(ci ? { ci: true } : {}) }],
         limit: 1, dialect: 'pg',
