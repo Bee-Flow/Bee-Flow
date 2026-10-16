@@ -225,9 +225,8 @@ async function loadDraft(automationId, userId) {
     // refused (see builderDatatableCatalog.js).
     try { draftWrap._datatables = await buildDatatableCatalogForUser(userId); }
     catch (_) { draftWrap._datatables = null; }
-    // And the designed documents, for builder_add_fill_document's id check —
-    // same re-read-per-call reasoning: a template designed a minute ago must
-    // be fillable now.
+    // The designed documents, for builder_add_fill_document's id check; re-read
+    // per call too, so a template designed a minute ago is fillable now.
     try { draftWrap._documents = await require('./builderDocumentCatalog').buildDocumentCatalogForUser(userId); }
     catch (_) { draftWrap._documents = null; }
     // The tools this user can run and their input schemas, from the same catalog
@@ -247,10 +246,10 @@ async function loadDraft(automationId, userId) {
     // What the draft's tools really returned on this user's last live run, for
     // the builder's path checks — the same read the chat route makes per turn.
     draftWrap._runtimeShapes = await loadRuntimeShapes(draftWrap.def, userId);
-    // The chat's "inspect before you bind" gate remembers inspections for one SSE
-    // turn. Every MCP call is its own turn, so an inspect could never count and a
-    // partial add would be refused forever: the gate stays off here.
+    // The chat's inspect-before-bind gate lasts one SSE turn; every MCP call is its
+    // own turn, so a partial add would be refused forever: the gate stays off here.
     draftWrap._inspectGate = false;
+    require('./mcpDocumentReads').restore(draftWrap); // reads from earlier calls
     return { draftWrap };
 }
 
@@ -460,6 +459,7 @@ async function callTool(name, rawArgs, { userId }) {
     const { draftWrap } = loaded;
 
     const result = await applyToolCall(name, args, draftWrap);
+    if (name === 'builder_read_document') require('./mcpDocumentReads').remember(draftWrap);
     const ok = !(result && typeof result === 'object' && result.error);
 
     // Persist on the same condition the SSE route does (chatStream.js
