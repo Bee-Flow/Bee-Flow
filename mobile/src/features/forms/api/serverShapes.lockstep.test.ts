@@ -49,7 +49,8 @@ function handler(src: string, registration: string, handlers: string = src): str
     const at = src.indexOf(registration);
     if (at < 0) throw new Error(`${registration} is gone`);
     const lineEnd = src.indexOf('\n', at);
-    const named = /,\s*(?:[A-Za-z_$][\w$]*\.)?([A-Za-z_$][\w$]*)\);\s*$/.exec(src.slice(at, lineEnd < 0 ? undefined : lineEnd));
+    // `friendly(handlerFn, 'code', 'sentence')` (formPublic/friendly.js) wraps a named handler: look through it.
+    const named = /,\s*(?:friendly\()?(?:[A-Za-z_$][\w$]*\.)?([A-Za-z_$][\w$]*)(?:,\s*'[^']*',\s*'[^']*'\))?\);\s*$/.exec(src.slice(at, lineEnd < 0 ? undefined : lineEnd));
     if (named) {
         src = handlers;
         const start = src.search(new RegExp(`^(?:async )?function ${named[1]}\\(`, 'm'));

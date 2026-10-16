@@ -41,7 +41,9 @@ export async function compile(source) {
 
 /** The renames to check: [oldPath, newPath] for every .js/.jsx that became .ts/.tsx. */
 export function renames(base, head) {
-    return git('diff', '--name-status', '-M40%', `${base}...${head}`, '--', 'agent-hub/src')
+    // -l: without a rename limit git gives up on rename detection past ~1000
+    // candidates (a stderr warning only), and every pair it skips goes unchecked.
+    return git('diff', '--name-status', '-M40%', '-l100000', `${base}...${head}`, '--', 'agent-hub/src')
         .split('\n')
         .map((l) => l.match(/^R\d*\t(\S+\.jsx?)\t(\S+\.tsx?)$/))
         .filter(Boolean)
