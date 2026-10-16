@@ -52,6 +52,9 @@ function buildRunContext({
         // created here, never lazily): the summary says how many and which
         // (bindingMisses.js).
         _bindingMisses: [],
+        // Every Loop / per-item step an iteration cap cut short (truncations.js);
+        // shared by reference like _bindingMisses, so it is created here.
+        _truncations: [],
         // Paths a dry run's simulated side-effect steps would have produced
         // (simulatedPaths.js). Shared by reference with every ctx copy, so it is
         // created here, never lazily: a write inside a loop body or parallel

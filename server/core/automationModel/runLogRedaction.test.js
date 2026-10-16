@@ -47,6 +47,37 @@ function redact(value, secretValues = []) {
     assert.strictEqual(withSecret.token, '«redacted:secret»', 'known secretValue masked even when key is exempt');
 }
 
+// ── Provenance: a token a Talk step emitted in THIS run stays readable ──
+// Container steps (loop, filter, set, call_layer) carry a Talk step's output
+// in their own output, where no Talk tool name applies. The run hands the
+// redactor the tokens Talk steps really emitted (`publicValues`); only a
+// `token` key holding exactly one of those values is exempt.
+{
+    const publicValues = ['fzj5spny'];
+    const room = { token: 'fzj5spny', type: 2, name: 'Room 1', participantType: 1, hasCall: false };
+    const out = redactForPersistence({ items: [room], kept: { token: 'fzj5spny' } }, { publicValues }).value;
+    assert.strictEqual(out.items[0].token, 'fzj5spny', 'room token survives inside a container step output');
+    assert.strictEqual(out.kept.token, 'fzj5spny', 'a set step that keeps only the token too');
+
+    // Same shape, but the token did NOT come from a Talk step: still masked.
+    assert.strictEqual(redactForPersistence({ items: [room] }).value.items[0].token, '«redacted:key»', 'no provenance, no exemption');
+    assert.strictEqual(redactForPersistence({ ...room, token: 'opaque-api-token' }, { publicValues }).value.token, '«redacted:key»', 'a different value is masked');
+    assert.strictEqual(redactForPersistence({ ...room, token: 'opaque-api-token' }, { publicValues: [] }).value.token, '«redacted:key»');
+
+    // The exemption is for `token` only: every other sensitive key stays masked,
+    // even when its value equals a public one.
+    const same = redactForPersistence(
+        { api_key: 'fzj5spny', access_token: 'fzj5spny', refresh_token: 'fzj5spny', password: 'fzj5spny', secret: 'fzj5spny' },
+        { publicValues },
+    ).value;
+    for (const k of Object.keys(same)) assert.strictEqual(same[k], '«redacted:key»', k);
+
+    // A value that is also a known run secret, or has a secret shape, is still masked.
+    assert.strictEqual(redactForPersistence({ token: 'fzj5spny' }, { publicValues, secretValues: ['fzj5spny'] }).value.token, '«redacted:secret»');
+    const shaped = 'sk-abcdefghijklmnop1234';
+    assert.strictEqual(redactForPersistence({ token: shaped }, { publicValues: [shaped] }).value.token, '«redacted:sk-token»');
+}
+
 // ── 1. Pattern table — secret-shaped strings get masked, by kind ────────
 {
     const TABLE = [

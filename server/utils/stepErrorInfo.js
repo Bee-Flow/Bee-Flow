@@ -35,7 +35,7 @@
 
 'use strict';
 
-const { classifyNextcloudError } = require('./nextcloudErrorClassifier');
+const { classifyNextcloudError, nextcloudAppOf } = require('./nextcloudErrorClassifier');
 
 const MAX_TECHNICAL = 2000;
 const MAX_PARAM = 200;
@@ -213,19 +213,6 @@ function statusOf(err, text) {
     const m = String(text || '').match(/\((\d{3})\)|\bfailed:\s*(\d{3})\b|\bstatus(?: code)?:?\s*(\d{3})\b|^(\d{3})\s/i);
     if (m) return Number(m[1] || m[2] || m[3] || m[4]);
     return null;
-}
-
-// Nextcloud apps that are not Files. Every other nextcloud_* tool works on
-// files and folders.
-const NC_APPS = {
-    deck: 'Deck', talk: 'Talk', notes: 'Notes', calendar: 'Calendar', contacts: 'Contacts',
-    mail: 'Mail', tables: 'Tables', forms: 'Forms', tasks: 'Tasks', notifications: 'Notifications',
-    status: 'Status', teams: 'Teams', activity: 'Activity',
-};
-
-function nextcloudAppOf(tool) {
-    const seg = String(tool || '').replace(/^nextcloud_/, '').split('_')[0];
-    return NC_APPS[seg] || 'Files';
 }
 
 const SERVICE_NAMES = {

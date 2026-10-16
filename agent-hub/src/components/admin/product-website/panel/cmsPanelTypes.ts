@@ -26,6 +26,8 @@ export type CmsPageSeo = CmsSeo;
 /** A PageDoc: one page's blocks and SEO. */
 export interface CmsPageDoc {
     id: string;
+    /** Revision the server stored; a save must name the one it is based on (409 otherwise). */
+    rev?: number;
     slug?: string;
     title?: string;
     blocks?: CmsBlock[];
@@ -64,6 +66,8 @@ export interface CmsBlogIndexSettings {
 /** The SiteDoc: chrome, design, the page index and the blog index settings. */
 export interface CmsSiteDoc {
     id?: string;
+    /** Revision of the chrome the server stored; a save must name the one it is based on. */
+    rev?: number;
     homepageId?: string | null;
     versionGroupId?: string;
     pages?: CmsPageIndexEntry[];
@@ -74,8 +78,8 @@ export interface CmsSiteDoc {
 
 /** Sparse per-locale text overrides. */
 export interface CmsLocaleOverrides {
-    siteByLocale?: Record<string, Record<string, unknown> | undefined>;
-    pagesByLocale?: Record<string, Record<string, Record<string, unknown> | undefined> | undefined>;
+    siteByLocale?: Record<string, Record<string, unknown> | null | undefined>;
+    pagesByLocale?: Record<string, Record<string, Record<string, unknown> | null | undefined> | undefined>;
 }
 
 /** One site of GET /api/cms/sites. */

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 const { listPlaceholders, fillDocumentBody, _test: { lookup } } = require('./documentTemplate');
@@ -18,12 +19,49 @@ function validateCondition(rule, depth = 0) {
         children.forEach(r => { if (!r || typeof r !== 'object') throw bad('Invalid condition in rule group.'); validateCondition(r, depth + 1); });
     } else if (!safePath(rule.parameter) || !OPERATORS.includes(rule.operator)) throw bad('Invalid section rule.');
 }
+/**
+ * @typedef {object} ContractParameter
+ * @property {string} key
+ * @property {string} type
+ * @property {string} label
+ * @property {boolean} required
+ * @property {string} summary
+ * @property {string} instructions
+ * @property {any} [example]
+ * @property {any} [default]
+ * @property {string[]} [options]
+ * @property {ContractParameter[]} [fields]
+ * @property {boolean} [inferred]
+ * @property {string[]} [usedInSections]
+ * @property {string[]} [conditionForSections]
+ * @property {boolean} [usedOutsideSections]
+ */
+
+/**
+ * @typedef {object} ContractSection
+ * @property {string} id
+ * @property {string} title
+ * @property {string} summary
+ * @property {any} condition
+ * @property {{ documentId: string, versionId: string }} [source]
+ * @property {string|null} [parentId]
+ */
+
+/**
+ * @param {{ parameters?: any[], sections?: any[], instructions?: any }} [raw]
+ * @returns {{ schemaVersion: number, instructions: string, parameters: ContractParameter[], sections: ContractSection[] }}
+ */
 function normalizeContract(raw = {}) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw bad('Expected a document contract.');
     const parameters = raw.parameters || [];
     const sections = raw.sections || [];
     if (!Array.isArray(parameters) || parameters.length > 200 || !Array.isArray(sections) || sections.length > 100) throw bad('Maximum 200 parameters and 100 sections.');
     const keys = new Set();
+    /**
+     * @param {any} p
+     * @param {boolean} [nested]
+     * @returns {ContractParameter}
+     */
     function parameter(p, nested = false) {
         if (!p || !safePath(p.key) || !TYPES.includes(p.type)) throw bad('Each parameter needs a safe key and a supported type.');
         if (!nested && keys.has(p.key)) throw bad(`Duplicate parameter: ${p.key}`);
@@ -141,19 +179,55 @@ function typeValid(p, value) {
         default: return typeof value === 'string';
     }
 }
+/**
+ * A number given as text ("21", "21,5" in a nl locale) becomes a number; anything
+ * else is left alone so typeValid refuses it by name. Template-bound values and
+ * stored defaults are strings, so without this a constant could never fill a
+ * number parameter.
+ */
+/** "1,000" / "12.345" (one separator, exactly 3 digits after it) or two separators: ambiguous, never guessed. */
+function hasThousandsSeparator(t) {
+    return /^-?\d{1,3}[.,]\d{3}$/.test(t) || /[.,].*[.,]/.test(t);
+}
+function coerceNumber(value) {
+    if (typeof value !== 'string') return value;
+    const t = value.trim();
+    if (!/^-?\d+(?:[.,]\d+)?$/.test(t) || hasThousandsSeparator(t)) return value;
+    const n = Number(t.replace(',', '.'));
+    return Number.isFinite(n) ? n : value;
+}
+function coerceNumberParams(params, scope) {
+    for (const p of params || []) {
+        const { found, value } = lookup(p.key, [scope]);
+        if (!found) continue;
+        if (p.type === 'number') {
+            const n = coerceNumber(value);
+            if (n !== value) setPath(scope, p.key, n);
+        } else if (p.type === 'list' && Array.isArray(value)) {
+            // Copy each item: the list may be the caller's input or a contract default.
+            const copy = value.map(item => (item && typeof item === 'object' && !Array.isArray(item) ? { ...item } : item));
+            for (const item of copy) if (item && typeof item === 'object') coerceNumberParams(p.fields, item);
+            setPath(scope, p.key, copy);
+        }
+    }
+}
 function prepareDocument(doc, supplied = {}, overrides = {}) {
     const contract = getContract(doc);
     const values = Object.create(null);
     if (!supplied || typeof supplied !== 'object' || Array.isArray(supplied) || Object.keys(supplied).length > 200) throw bad('Expected at most 200 parameter values.');
     for (const [key, value] of Object.entries(supplied)) setPath(values, key, value);
     for (const p of contract.parameters) if (!lookup(p.key, [values]).found && p.default !== undefined) setPath(values, p.key, p.default);
+    coerceNumberParams(contract.parameters, values);
     const issues = [];
     for (const [id, choice] of Object.entries(overrides || {})) {
         if (!contract.sections.some(s => s.id === id) || !['automatic', 'include', 'exclude'].includes(choice)) issues.push({ code: 'invalid_override', sectionId: id, message: 'Invalid section choice' });
     }
     let bodyHtml = doc.bodyHtml || '';
     let $;
-    if (contract.sections.length) $ = require('cheerio').load(bodyHtml, { xmlMode: true, decodeEntities: false }, false);
+    // A variable, not a literal: `decodeEntities` is passed through to the parser
+    // but is not a declared CheerioOptions key (excess-property check).
+    const loadOptions = { xmlMode: true, decodeEntities: false };
+    if (contract.sections.length) $ = require('cheerio').load(bodyHtml, loadOptions, false);
     const originalCounts = new Map(contract.sections.map(s=>[s.id,$(`[data-doc-section="${s.id}"]`).length]));
     const sections = contract.sections.map(s => {
         const choice = overrides?.[s.id];
@@ -179,7 +253,7 @@ function prepareDocument(doc, supplied = {}, overrides = {}) {
             if (p.required) issues.push({ code: 'required', key, message: `${p.label || key} is required` });
             return;
         }
-        if (!typeValid(p, value)) issues.push({ code: 'type', key, message: `${key} must be ${p.type}` });
+        if (!typeValid(p, value)) issues.push({ code: 'type', key, message: p.type === 'number' && typeof value === 'string' ? `${key} must be a number${hasThousandsSeparator(value.trim()) ? ' without a thousands separator' : ''}, got "${value.slice(0, 40)}"` : `${key} must be ${p.type}` });
         else if (p.type === 'list') value.forEach((item, i) => (p.fields || []).forEach(f => check(f, item, `${key}[${i}].`)));
     }
     const ruleKeys = new Set(); const activeRuleKeys = new Set();

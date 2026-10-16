@@ -175,6 +175,15 @@ const THUMBS: Record<string, React.ReactElement> = {
             <Btn x={80} y={49} w={24} h={8} />
         </Frame>
     ),
+    form: (
+        <Frame>
+            <Line x={20} y={8} w={40} h={3} o={0.6} />
+            <Card x={20} y={14} w={80} h={7} />
+            <Card x={20} y={24} w={80} h={7} />
+            <Card x={20} y={34} w={80} h={11} />
+            <Btn x={20} y={49} w={24} h={7} />
+        </Frame>
+    ),
     testimonials: (
         <Frame>
             {[10, 45, 80].map((x, i) => (
@@ -240,6 +249,44 @@ const THUMBS: Record<string, React.ReactElement> = {
             <Line x={26} y={33} w={68} h={4} o={0.45} />
             <circle cx="19" cy="46" r="2.2" fill={MUTED} fillOpacity="0.5" />
             <Line x={26} y={44} w={46} h={4} o={0.35} />
+        </Frame>
+    ),
+    tabs: (
+        <Frame>
+            <rect x="14" y="10" width="20" height="8" rx="4" fill={ACCENT} fillOpacity="0.35" />
+            <rect x="38" y="10" width="20" height="8" rx="4" fill="none" stroke={MUTED} strokeOpacity="0.4" />
+            <rect x="62" y="10" width="20" height="8" rx="4" fill="none" stroke={MUTED} strokeOpacity="0.4" />
+            <line x1="14" y1="24" x2="106" y2="24" stroke={MUTED} strokeOpacity="0.3" />
+            <Line x={14} y={31} w={40} h={4} o={0.6} />
+            <Line x={14} y={39} w={46} h={3} />
+            <Line x={14} y={45} w={34} h={3} />
+            <Card x={66} y={30} w={40} h={26} />
+        </Frame>
+    ),
+    'story-header': (
+        <Frame>
+            <Line x={14} y={10} w={22} h={6} o={0.5} />
+            <Line x={14} y={21} w={70} h={5} o={0.7} />
+            <Line x={14} y={30} w={52} h={3} />
+            {[14, 44, 74].map(x => (
+                <g key={x}>
+                    <Line x={x} y={39} w={18} h={5} o={0.8} fill={ACCENT} />
+                    <Line x={x} y={47} w={24} h={3} o={0.4} />
+                </g>
+            ))}
+        </Frame>
+    ),
+    'customer-stories': (
+        <Frame>
+            {[10, 44, 78].map(x => (
+                <g key={x}>
+                    <Card x={x} y={14} w={32} h={40} />
+                    <Line x={x + 4} y={19} w={12} h={4} o={0.6} />
+                    <Line x={x + 4} y={28} w={24} h={3} />
+                    <Line x={x + 4} y={34} w={20} h={3} />
+                    <Line x={x + 4} y={44} w={10} h={4} o={0.8} fill={ACCENT} />
+                </g>
+            ))}
         </Frame>
     ),
 };

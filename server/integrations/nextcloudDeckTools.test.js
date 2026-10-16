@@ -209,22 +209,70 @@ test('create_card', async () => {
 test('update_card merges, optionally moves, and reports a failed move', async () => {
     assert.deepEqual((await run('nextcloud_deck_update_card', {})).out, { error: 'boardId, stackId, cardId required' });
     const base = `${API}/boards/3/stacks/1/cards/10`;
-    const get = `GET ${base}`, put = `PUT ${base}`, move = `PUT ${base}/reorder`;
+    const get = `GET ${base}`, put = `PUT ${base}`, move = `PUT ${API}/boards/3/stacks/2/cards/10`;
     const cur = { title: 'Old', description: 'd', duedate: '2026-01-01', type: 'plain', owner: { uid: 'bob' }, order: 4 };
     const a = { boardId: 3, stackId: 1, cardId: 10 };
     const ok = await run('nextcloud_deck_update_card', { ...a, title: 'New', duedate: '' }, { [get]: res(200, cur), [put]: res(200, { id: 10, title: 'New' }) });
     assert.deepEqual(ok.out, { success: true, card: { id: 10, title: 'New' } });
     assert.deepEqual(ok.calls[1].body, { title: 'New', description: 'd', duedate: null, type: 'plain', owner: 'bob', order: 4 });
-    const mv = await run('nextcloud_deck_update_card', { ...a, targetStackId: 2, order: 1 }, { [get]: res(200, cur), [put]: res(200, { id: 10 }), [move]: res(200, {}) });
-    assert.deepEqual(mv.out, { success: true, card: { id: 10 } });
-    assert.deepEqual(mv.calls[2].body, { order: 1, stackId: 2 });
-    const bad = await run('nextcloud_deck_update_card', { ...a, targetStackId: 2 }, { [get]: res(200, cur), [put]: res(200, { id: 10 }), [move]: res(500, 'x') });
-    assert.deepEqual(bad.out, { success: true, updated: { id: 10 }, moveError: 'Card update succeeded but move failed (500)', moveDetail: 'x' });
+    const at2 = `GET ${API}/boards/3/stacks/2/cards/10`;
+    const mv = await run('nextcloud_deck_update_card', { ...a, targetStackId: 2, order: 1 }, { [get]: res(200, cur), [move]: res(200, { id: 10 }), [at2]: res(200, { id: 10, stackId: 2 }) });
+    assert.deepEqual(mv.out, { success: true, card: { id: 10, stackId: 2 } });
+    // One PUT, addressed to the TARGET stack, with the full card body (Deck takes the stack from the URL).
+    assert.deepEqual(mv.calls[1].body, { title: 'Old', description: 'd', duedate: '2026-01-01T00:00:00.000Z', type: 'plain', owner: 'bob', order: 1, stackId: 2 });
+    assert.equal(mv.calls.some((c) => /reorder/.test(JSON.stringify(c))), false);
+    const bad = await run('nextcloud_deck_update_card', { ...a, targetStackId: 2 }, { [get]: res(200, cur), [move]: res(500, 'x') });
+    assert.deepEqual(bad.out, { error: 'Card update failed (500)', detail: 'x' });
     assert.deepEqual((await run('nextcloud_deck_update_card', a, { [get]: res(401, '') })).out, { error: 'AUTH-ERR' });
     assert.deepEqual((await run('nextcloud_deck_update_card', a, { [get]: res(404, '') })).out, { error: 'Card not found: 10' });
     assert.deepEqual((await run('nextcloud_deck_update_card', a, { [get]: res(500, '') })).out, { error: 'Could not load card for update (500)' });
     assert.deepEqual((await run('nextcloud_deck_update_card', a, { [get]: res(200, cur), [put]: res(401, '') })).out, { error: 'AUTH-ERR' });
     assert.deepEqual((await run('nextcloud_deck_update_card', a, { [get]: res(200, cur), [put]: res(400, 'z') })).out, { error: 'Card update failed (400)', detail: 'z' });
+});
+
+test('update_card reports a move that did not take effect', async () => {
+    const base = `${API}/boards/3/stacks/1/cards/10`;
+    const cur = { title: 'Old', owner: 'bob', order: 4 };
+    const routes = {
+        [`GET ${base}`]: res(200, cur), [`PUT ${API}/boards/3/stacks/2/cards/10`]: res(200, { id: 10 }),
+        [`GET ${API}/boards/3/stacks/2/cards/10`]: res(404, ''),
+    };
+    const r = await run('nextcloud_deck_update_card', { boardId: 3, stackId: 1, cardId: 10, targetStackId: 2, order: 0 }, routes);
+    assert.equal(r.out.success, true);
+    assert.match(r.out.moveError, /did not move/i);
+});
+
+test('update_card says so when the move cannot be verified, and keeps an unparsable stored due date', async () => {
+    const base = `${API}/boards/3/stacks/1/cards/10`;
+    const cur = { title: 'T', owner: 'bob', order: 1, duedate: 'weird' };
+    const routes = {
+        [`GET ${base}`]: res(200, cur), [`PUT ${API}/boards/3/stacks/2/cards/10`]: res(200, { id: 10 }),
+        [`GET ${API}/boards/3/stacks/2/cards/10`]: res(500, ''),
+    };
+    const r = await run('nextcloud_deck_update_card', { boardId: 3, stackId: 1, cardId: 10, targetStackId: 2 }, routes);
+    assert.match(r.out.moveError, /could not be verified \(500\)/);
+    assert.equal(r.calls[1].body.duedate, 'weird');
+});
+
+test('update_card and archive_card resend the due date as UTC, not as an offset string', async () => {
+    const base = `${API}/boards/3/stacks/1/cards/10`;
+    const cur = { title: 'T', owner: 'bob', order: 1, duedate: '2026-06-01T10:00:00-05:00' };
+    const routes = () => ({ [`GET ${base}`]: res(200, cur), [`PUT ${base}`]: res(200, {}) });
+    const up = await run('nextcloud_deck_update_card', { boardId: 3, stackId: 1, cardId: 10, title: 'y' }, routes());
+    assert.equal(up.calls[1].body.duedate, '2026-06-01T15:00:00.000Z');
+    const ar = await run('nextcloud_deck_archive_card', { boardId: 3, stackId: 1, cardId: 10 }, routes());
+    assert.equal(ar.calls[1].body.duedate, '2026-06-01T15:00:00.000Z');
+    const set = await run('nextcloud_deck_update_card', { boardId: 3, stackId: 1, cardId: 10, duedate: '2026-07-01T10:00:00+02:00' }, routes());
+    assert.equal(set.calls[1].body.duedate, '2026-07-01T08:00:00.000Z');
+});
+
+test('an unparsable duedate is refused before Deck sees it', async () => {
+    const a = { boardId: 3, stackId: 1, cardId: 10, duedate: 'next tuesday-ish' };
+    const up = await run('nextcloud_deck_update_card', a, {});
+    assert.match(up.out.error, /duedate/i);
+    const cr = await run('nextcloud_deck_create_card', { boardId: 3, stackId: 1, title: 't', duedate: 'nope' }, {});
+    assert.match(cr.out.error, /duedate/i);
+    assert.equal(up.calls.length + cr.calls.length, 0);
 });
 
 test('archive_card defaults to archiving', async () => {
@@ -282,4 +330,13 @@ test('comments use the OCS family with the OCS header', async () => {
     assert.deepEqual((await run('nextcloud_deck_list_comments', { cardId: 10, limit: 999 }, { [`GET ${OCS}/cards/10/comments?limit=200`]: res(200, { ocs: {} }) })).out, { count: 0, comments: { ocs: {} } });
     assert.deepEqual((await run('nextcloud_deck_list_comments', { cardId: 10 }, { [get]: res(401, '') })).out, { error: 'AUTH-ERR' });
     assert.deepEqual((await run('nextcloud_deck_list_comments', { cardId: 10 }, { [get]: res(500, '') })).out, { error: 'Comment list failed (500)' });
+});
+
+test('remove_label: a 403 or 404 names its cause instead of a bare status', async () => {
+    const a = { boardId: 3, stackId: 1, cardId: 10, labelId: 5 };
+    const key = `PUT ${API}/boards/3/stacks/1/cards/10/removeLabel`;
+    const denied = (await run('nextcloud_deck_remove_label', a, { [key]: res(403, '{"message":"Not allowed"}') })).out;
+    assert.match(denied.error, /Permission denied/);
+    const missing = (await run('nextcloud_deck_remove_label', a, { [key]: res(404, '{"message":"Label not found"}') })).out;
+    assert.match(missing.error, /Not found.*Label not found/);
 });

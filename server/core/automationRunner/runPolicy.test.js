@@ -61,10 +61,10 @@ test('withSanitizedRunPolicy cleans the definition and leaves others untouched',
 });
 
 test('resolveRunPolicy always hands the runner a complete, in-range policy', () => {
-    assert.deepStrictEqual(resolveRunPolicy({}), { retry: { max: 0, then: 'stop_notify' }, maxDurationMin: null, concurrency: 'serial', retentionDays: null });
+    assert.deepStrictEqual(resolveRunPolicy({}), { retry: { max: 0, then: 'stop_notify' }, maxDurationMin: null, concurrency: 'serial', retentionDays: null, connections: 'owner' });
     assert.deepStrictEqual(resolveRunPolicy(null).concurrency, 'serial');
     const odd = resolveRunPolicy({ runPolicy: { retry: { max: 50, then: '?' }, maxDurationMin: 999, concurrency: 'x', retentionDays: 1 } });
-    assert.deepStrictEqual(odd, { retry: { max: 5, then: 'stop_notify' }, maxDurationMin: 60, concurrency: 'serial', retentionDays: 7 });
+    assert.deepStrictEqual(odd, { retry: { max: 5, then: 'stop_notify' }, maxDurationMin: 60, concurrency: 'serial', retentionDays: 7, connections: 'owner' });
 });
 
 test('a step\'s own retry wins over the automation default', () => {
@@ -77,4 +77,16 @@ test('a step\'s own retry wins over the automation default', () => {
 test('maxDurationMin becomes the run timeout in ms', () => {
     assert.strictEqual(runTimeoutMsFor(resolveRunPolicy({ runPolicy: { maxDurationMin: 30 } })), 1_800_000);
     assert.strictEqual(runTimeoutMsFor(resolveRunPolicy({})), null);
+});
+
+test('connections: "owner" (default) or "caller"; anything else is an error, a missing key is the owner', () => {
+    assert.deepStrictEqual(sanitizeRunPolicy({ connections: 'caller' }), { value: { connections: 'caller' }, errors: [] });
+    assert.deepStrictEqual(sanitizeRunPolicy({ connections: 'owner' }).value, { connections: 'owner' });
+    const bad = sanitizeRunPolicy({ connections: 'everyone' });
+    assert.strictEqual(bad.value, undefined);
+    assert.deepStrictEqual(bad.errors.map(e => e.path), ['runPolicy.connections']);
+    assert.strictEqual(resolveRunPolicy({}).connections, 'owner');
+    assert.strictEqual(resolveRunPolicy({ runPolicy: { connections: 'caller' } }).connections, 'caller');
+    // A stored value the resolver does not know can never widen: it reads as the default.
+    assert.strictEqual(resolveRunPolicy({ runPolicy: { connections: 'x' } }).connections, 'owner');
 });

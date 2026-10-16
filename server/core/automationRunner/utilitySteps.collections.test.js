@@ -213,3 +213,10 @@ test('filter counts stay coherent when everything is kept or dropped', async () 
     assert.strictEqual(none.output.count, 0);
     assert.strictEqual(none.output.rejectedCount, 2);
 });
+
+test('summarize avg of an empty list is null, not 0 (and sum stays 0)', async () => {
+    const avg = await execSummarize({ arrayRef: REF, op: 'avg', field: 'amount' }, {}, state([]));
+    assert.strictEqual(avg.output.result, null);
+    const sum = await execSummarize({ arrayRef: REF, op: 'sum', field: 'amount' }, {}, state([]));
+    assert.strictEqual(sum.output.result, 0);
+});

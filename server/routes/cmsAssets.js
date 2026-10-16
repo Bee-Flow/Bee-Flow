@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS assets: the admin uploader (images, SVG after sanitising, WebVTT
  * captions), the read-only asset library for the reuse picker, and the public
@@ -8,6 +9,7 @@
  */
 
 const multer = require('multer');
+const { sendStream } = require('../core/http/sendStream');
 const path = require('path');
 const { HttpError } = require('../core/http/errors');
 const storageStore = require('../stores/storageStore');
@@ -15,6 +17,28 @@ const { sanitizeSvg } = require('../utils/svgSanitizer');
 const cmsMedia = require('./cmsMedia');
 const { UPLOAD_MIME_WHITELIST, IMAGE_MAX_BYTES } = require('../core/cms/uploadPolicy');
 const { parseRangeHeader } = require('../core/http/httpRange');
+const { parseVariantWidth, pickFormat, isResizable, renderVariant, MAX_SOURCE_BYTES } = require('../core/cms/assetVariants');
+const { variantKey, scheduleVariants } = require('../core/cms/assetVariantStore');
+const log = require('../telemetry/log');
+const { buffer: streamToBuffer } = require('node:stream/consumers');
+const crypto = require('node:crypto');
+
+/** Keys minted by the uploaders: never overwritten (see serveAsset). */
+const MINTED_KEY_RE = /^cms\/\d{13}-[0-9a-z]+-/;
+
+/**
+ * Does an If-None-Match header (a list, possibly with weak `W/` tags, or `*`)
+ * match this ETag?
+ * @param {string | undefined} header
+ * @param {string} etag
+ */
+function matchesEtag(header, etag) {
+    if (!header) return false;
+    return header.split(',').some((t) => {
+        const tag = t.trim().replace(/^W\//, '');
+        return tag === etag || tag === '*';
+    });
+}
 
 // Accepted MIME types for the CMS uploader live in core/cms/uploadPolicy.js
 // (shared with the CMS MCP server's upload URLs). Images cover the regular
@@ -88,6 +112,9 @@ async function handleUpload(req, res) {
     }
 
     await storageStore.uploadFile(key, body, contentType, metadata);
+    // Resized AVIF/WebP copies, rendered in the background; the response does not wait.
+    scheduleVariants({ key, source: body, contentType, storage: storageStore })
+        .catch((err) => log.warn(`[CmsVariants] ${key} not scheduled: ${err.message}`));
 
     const url = `/api/cms/asset/${key.split('/').map(encodeURIComponent).join('/')}`;
     res.json({ success: true, key, url });
@@ -137,29 +164,95 @@ function isScriptableMime(mime) {
     const lower = mime.toLowerCase();
     return SCRIPTABLE_MIME_PREFIXES.some(p => lower.startsWith(p));
 }
+
+/**
+ * Answers with the variant written at upload time, when there is one.
+ * @param {import('express').Response} res
+ * @param {string} key
+ * @param {number} width
+ * @param {'avif' | 'webp'} format
+ * @param {() => void} cacheHeaders
+ * @returns {Promise<boolean>} true when the response was sent
+ */
+async function sendStoredVariant(res, key, width, format, cacheHeaders) {
+    try {
+        const { stream, contentLength } = await storageStore.streamFile(variantKey(key, width, format));
+        cacheHeaders();
+        res.setHeader('Content-Type', `image/${format}`);
+        if (contentLength) res.setHeader('Content-Length', contentLength);
+        await sendStream(stream, res);
+        return true;
+    } catch (err) {
+        // No stored variant (older upload, or not made yet): render on demand.
+        if (err.name !== 'NoSuchKey' && err.$metadata?.httpStatusCode !== 404) {
+            log.warn(`[CmsVariants] stored variant of ${key} unreadable: ${err.message}`);
+        }
+        return false;
+    }
+}
+
 async function serveAsset(req, res) {
     try {
         const key = req.params[0];
         if (!key.startsWith('cms/')) return res.status(404).json({ error: 'Not found' });
         if (!storageStore.isAvailable()) throw new HttpError(503, 'storage_unavailable', 'Storage unavailable');
 
+        // Uploads mint `cms/<ms>-<random>-<name>` and never overwrite it, so the
+        // bytes behind such a URL never change: cache for a year. Other keys
+        // (the site seeder rewrites its logos and screenshots in place) get a
+        // short cache and an ETag taken from the stored object.
+        const width = parseVariantWidth(req.query.w);
+        const minted = MINTED_KEY_RE.test(key);
+        let version = '';
+        let head = null;
+        if (!minted || width || req.headers.range) {
+            head = await storageStore.headFile(key);
+            version = String(head.etag || head.contentLength || '');
+        }
+        const format = width ? pickFormat(req.headers.accept) : '';
+        const etag = `"${crypto.createHash('sha1').update(`${key}|${minted ? '' : version}|${width || ''}|${format}`).digest('hex').slice(0, 20)}"`;
+        const cacheHeaders = () => {
+            res.setHeader('ETag', etag);
+            res.setHeader('Cache-Control', minted ? 'public, max-age=31536000, immutable' : 'public, max-age=300');
+            res.setHeader('Vary', width ? 'Accept-Encoding, Accept' : 'Accept-Encoding');
+        };
+        if (matchesEtag(req.headers['if-none-match'], etag)) {
+            cacheHeaders();
+            return res.status(304).end();
+        }
+
+        // A variant is served whole; a Range only applies to the original.
+        const wantsVariant = !!width && isResizable(head && head.contentType);
+
         // Byte ranges: <video> seeking needs them and Safari/iOS will not start
         // a media resource that does not advertise them. The total size is
         // needed first to answer a suffix range or a 416.
-        res.setHeader('Accept-Ranges', 'bytes');
+        res.setHeader('Accept-Ranges', wantsVariant ? 'none' : 'bytes');
+        /** @type {{ start: number, end: number } | null} */
         let range = null;
         let total = 0;
-        if (req.headers.range) {
-            const head = await storageStore.headFile(key);
+        if (req.headers.range && !wantsVariant && head) {
             total = Number(head.contentLength) || 0;
-            range = parseRangeHeader(req.headers.range, total);
-            if (range && range.invalid) {
+            const parsed = parseRangeHeader(req.headers.range, total);
+            if (parsed && 'invalid' in parsed) {
                 res.setHeader('Content-Range', `bytes */${total}`);
                 return res.status(416).end();
             }
+            if (parsed && !('invalid' in parsed)) range = parsed;
         }
 
+        if (wantsVariant && minted && await sendStoredVariant(res, key, /** @type {number} */ (width), /** @type {'avif' | 'webp'} */ (format), cacheHeaders)) return;
         const { stream, contentType: storedType, contentLength, metadata } = await storageStore.streamFile(key, { range });
+        if (wantsVariant) {
+            // Resized variant for srcset, rendered now; falls back to the original bytes.
+            const original = Number(head && head.contentLength) > MAX_SOURCE_BYTES ? null : await streamToBuffer(stream);
+            const variant = original && await renderVariant(`${key}|${version}`, original, /** @type {number} */ (width), /** @type {'avif' | 'webp'} */ (format));
+            cacheHeaders();
+            res.setHeader('Content-Type', variant ? `image/${format}` : storedType);
+            if (original) return res.end(variant || original);
+            return sendStream(stream, res);
+        }
+        cacheHeaders();
         // Captions are always served as UTF-8 WebVTT, whatever the object
         // metadata says.
         const isVtt = key.toLowerCase().endsWith('.vtt');
@@ -193,8 +286,7 @@ async function serveAsset(req, res) {
             res.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${total}`);
         }
         if (contentLength) res.setHeader('Content-Length', contentLength);
-        res.setHeader('Cache-Control', 'public, max-age=3600');
-        stream.pipe(res);
+        sendStream(stream, res);
     } catch (err) {
         if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
             return res.status(404).json({ error: 'Asset not found' });

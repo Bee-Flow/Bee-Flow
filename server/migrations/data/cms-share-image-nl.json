@@ -1,0 +1,12 @@
+{
+  "translations": {
+    "cms_share.help": "Pagina's zonder eigen deelafbeelding krijgen een kaart met de paginatitel en je merkkleuren.",
+    "cms_share.motif": "Honingraatpatroon",
+    "cms_share.template": "Kaartstijl",
+    "cms_share.template_brand": "Merkkleur",
+    "cms_share.template_dark": "Donker",
+    "cms_share.template_light": "Licht",
+    "cms_share.title": "Deelafbeelding"
+  },
+  "sameAsEnglish": []
+}

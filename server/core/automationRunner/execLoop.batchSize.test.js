@@ -84,3 +84,43 @@ test('a non-numeric or zero batchSize falls back to 1 (never divides by zero / N
         assert.strictEqual(output.iterations, 2, `batchSize=${bad} should behave as 1`);
     }
 });
+
+// ── #213: an iteration cap that cuts the list is reported on the run ─────────
+
+const { execForEachStep } = require('../automationRunner');
+const truncState = (items) => ({ trigger: { output: { items } }, steps: {}, vars: {}, secrets: {}, loop: {}, _templateWarnings: [] });
+const truncDispatch = async () => ({ output: { ok: true }, startedAt: new Date().toISOString(), inputSnapshot: null });
+
+test('execLoop over a capped list reports the cut on the run', async () => {
+    const ctx = { _truncations: [] };
+    const rs = truncState([1, 2, 3, 4, 5]);
+    const step = { id: 'lp', type: 'loop', overRef: 'trigger.output.items', maxIterations: 3, body: [{ id: 'b', type: 'set' }] };
+    const { output } = await execLoop(step, ctx, rs, 'live', truncDispatch);
+    assert.strictEqual(output.truncated, true);
+    assert.strictEqual(output.totalItems, 5);
+    assert.strictEqual(output.processedItems, 3);
+    assert.strictEqual(output.skippedItems, 2);
+    assert.strictEqual(ctx._truncations.length, 1);
+    assert.match(rs._templateWarnings.join('\n'), /lp processed 3 of 5 items/);
+});
+
+test('execLoop without a cut leaves the run clean', async () => {
+    const ctx = { _truncations: [] };
+    const rs = truncState([1, 2]);
+    const step = { id: 'lp', type: 'loop', overRef: 'trigger.output.items', maxIterations: 3, body: [{ id: 'b', type: 'set' }] };
+    const { output } = await execLoop(step, ctx, rs, 'live', truncDispatch);
+    assert.strictEqual(output.truncated, undefined);
+    assert.strictEqual(ctx._truncations.length, 0);
+});
+
+test('execForEachStep over a capped list reports the cut on the run', async () => {
+    const ctx = { _truncations: [] };
+    const rs = truncState([1, 2, 3, 4, 5]);
+    const step = { id: 'fe', type: 'set', forEach: { overRef: 'trigger.output.items', maxIterations: 2 } };
+    const { output } = await execForEachStep(step, ctx, rs, 'live', async () => ({ output: { ok: true } }));
+    assert.strictEqual(output.truncated, true);
+    assert.strictEqual(output.skippedItems, 3);
+    assert.match(rs._templateWarnings.join('\n'), /fe processed 2 of 5 items/);
+    assert.strictEqual(ctx._truncations.length, 1);
+});
+

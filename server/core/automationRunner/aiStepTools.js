@@ -7,6 +7,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { permittedCatalog } = require('./toolIdentity');
 
 /**
  * Agent step: the agent's per-action grants, MINUS `ask`.
@@ -44,10 +45,7 @@ async function agentStepTools({ step, ctx, agentBinding, agentToolsForStep, skil
 async function catalogStepTools({ step, ctx, skillCtx }) {
     try {
         const { getIntegrationTools } = require('../integrations/integrationTools');
-        const catalog = await getIntegrationTools({
-            userId: ctx.userId,
-            session: ctx.session,
-            isAdmin: !!ctx.session?.isAdmin || ctx.session?.user?.role === 'admin',
+        const catalog = await permittedCatalog(ctx, getIntegrationTools, {
             // Apps the step's (static) skills enable, as in chat. On this
             // path `allowTools` is the tools switch, so they ride on it.
             extraEnabledApps: skillCtx.grants.apps.length ? skillCtx.grants.apps : null,

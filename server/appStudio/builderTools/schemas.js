@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder — function-calling tool schemas (OpenAI format).
  *
@@ -201,6 +202,7 @@ const ACTION_OBJECT_SCHEMA = { type: 'object', description: ACTION_OBJECT_DESC, 
 /** How each batch-capable tool tells the model about its array form. */
 const batchHint = (key, single) => `BATCH FORM: pass \`${key}\` — an array of up to ${MAX_BATCH_PATCHES_PER_CALL} ${single} objects applied in order — instead of the single form, and do a whole screen's worth of work in ONE call. Each entry that fails is reported at its index in \`failed\` and the others still land.`;
 
+/** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
 const TOOL_SCHEMAS = [
     {
         type: 'function',
@@ -843,7 +845,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'app_query_data',
-            description: 'Read rows from the app\'s data (owner-scoped, never mutates) — verify seeds landed, inspect real values, or check what a dataset returns. Pass tableId for raw rows (with optional filter/sort) OR datasetId for a saved aggregation.',
+            description: 'Read rows from the app\'s data (owner-scoped, never mutates) — verify seeds landed, inspect real values, or check what a dataset returns. Pass tableId for raw rows (with optional filter/sort) OR datasetId for a saved aggregation, not both. More rows than one page: the answer has more:true and a nextCursor to pass back.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -854,8 +856,9 @@ const TOOL_SCHEMAS = [
                         description: `Optional literal filters: [{field, op, value?}] with ops ${FILTER_OPS.join(', ')}.`,
                         items: { type: 'object' },
                     },
-                    sort: { type: 'object', description: 'Optional { field, dir: "asc"|"desc" }.' },
-                    limit: { type: 'number', description: 'Max rows (default 5, max 20).' },
+                    sort: { type: 'object', description: 'Optional { field, dir: "asc"|"desc" } (tableId only).' },
+                    limit: { type: 'number', description: 'Max rows per call (default 5, max 20; a larger value is clamped and the answer says limitClamped).' },
+                    cursor: { type: 'string', description: 'The nextCursor of the previous answer, to read the next page.' },
                 },
             },
         },
@@ -872,7 +875,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'app_list_documents',
-            description: "List the DESIGNED documents the app owner made in Studio → Documents — an invoice, a quote, a letter on the company's letterhead — with the placeholders each one carries. Read-only, NO arguments. Returns [{ documentId, name, docType, placeholders:[{key, kind, fields?}] }].\n\nCall it before writing a `fill_document` step: `documentId` must be one of these (never invent one, and you cannot create a document — the owner designs it), and the keys of `values` are the placeholder names EXACTLY as listed. A placeholder of kind \"list\" must be bound to a binding that resolves to an ARRAY; its `fields` are what each item needs. If the list comes back empty, say the owner has to design the document in Studio → Documents first — do not fall back to a text export and call it an invoice.",
+            description: "List the DESIGNED documents the app owner made in Studio → Documents (templates and ordinary documents with placeholders, at most 50) — an invoice, a quote, a letter on the company's letterhead — with the placeholders each one carries. Read-only, NO arguments. Returns [{ documentId, name, docType, kind, versionId, placeholders:[{key, kind, fields?}] }].\n\nCall it before writing a `fill_document` step: `documentId` must be one of these (never invent one, and you cannot create a document — the owner designs it), and the keys of `values` are the placeholder names EXACTLY as listed. A placeholder of kind \"list\" must be bound to a binding that resolves to an ARRAY; its `fields` are what each item needs. If the list comes back empty, say the owner has to design the document in Studio → Documents first — do not fall back to a text export and call it an invoice.",
             parameters: { type: 'object', properties: {} },
         },
     },
@@ -940,8 +943,14 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'app_list_automations',
-            description: 'List the automations (automations) the app owner can wire into run_automation actions: id, title, description, active state, trigger kind, and — for agent_call automations — the input parameter names to map via inputMapping.',
-            parameters: { type: 'object', properties: {} },
+            description: 'List the automations (automations) the app owner can wire into run_automation actions: id, title, description, active state, trigger kind, and — for agent_call automations — the input parameter names to map via inputMapping. Returns at most 30 by default.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    query: { type: 'string', description: 'Only automations whose title or description contains this text (case-insensitive).' },
+                    limit: { type: 'integer', description: 'Max automations to return (default 30, max 100).' },
+                },
+            },
         },
     },
     {

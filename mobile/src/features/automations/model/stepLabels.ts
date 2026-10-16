@@ -8,7 +8,7 @@
  * tokens nobody named. The definition the run was made from knows the names.
  *
  * `friendlyStepName`, `buildNameMap` and `nameFor` are the web builder's
- * (DryRunPanel.jsx), ported and pinned there by flow-editor's
+ * (DryRunPanel.tsx), ported and pinned there by flow-editor's
  * run.lockstep.test.ts; the flow editor's test-run sheet reads them from here,
  * because this feature may not import the flow editor. `runStepNames` and
  * `runStepTitle` are the Automations screens' reading of the same: loop bodies

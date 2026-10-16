@@ -40,7 +40,50 @@ describe('CanvasSouthBar — the run banner', () => {
         const started = new Date(Date.now() - 9000).toISOString();
         render(<CanvasSouthBar runFocus={focus({ state: 'error', startedAt: started })} />);
         expect(screen.getByTestId('canvas-run-elapsed').textContent).toContain('9s');
-        expect(screen.getByTestId('canvas-run-banner').textContent).toContain('Run failed at');
+        expect(screen.getByTestId('canvas-run-banner').textContent).toContain('Step failed');
+    });
+
+    it('names the run it belongs to and says the step, not the run, failed', () => {
+        const started = '2026-10-15T10:03:00.000Z';
+        const runIdentity = { kind: 'test', id: 'run_1', startedAt: started };
+        render(<CanvasSouthBar runFocus={focus({ state: 'error', startedAt: started, done: 2, total: 5 })} runIdentity={runIdentity} />);
+        expect(screen.getByTestId('canvas-run-banner').textContent).toContain('2 of 5 steps completed');
+        expect(screen.getByTestId('canvas-run-identity').textContent).toContain('Test run');
+        expect(screen.getByTestId('canvas-run-identity').textContent).toContain('2026');
+    });
+
+    it('does not call a hydrated non-test run a "Test run"', () => {
+        const runIdentity = { kind: 'run', id: 'run_2', startedAt: '2026-10-15T10:03:00.000Z' };
+        render(<CanvasSouthBar runFocus={focus({ state: 'error' })} runIdentity={runIdentity} />);
+        const text = screen.getByTestId('canvas-run-identity').textContent;
+        expect(text).not.toContain('Test run');
+        expect(text).toContain('Run');
+    });
+
+    it('uses the singular for one step', () => {
+        render(<CanvasSouthBar runFocus={focus({ state: 'error', done: 0, total: 1 })} />);
+        expect(screen.getByTestId('canvas-run-steps-done').textContent).toContain('0 of 1 step completed');
+    });
+
+    it('shows no run identity when the host names the run elsewhere', () => {
+        render(<CanvasSouthBar runFocus={focus({ state: 'error' })} />);
+        expect(screen.queryByTestId('canvas-run-identity')).toBeNull();
+    });
+
+    it('opens the run from "View run"', async () => {
+        const onOpen = vi.fn();
+        render(<CanvasSouthBar runFocus={focus({ state: 'error' })} runIdentity={{ kind: 'test', id: 'run_1', startedAt: null, onOpen }} />);
+        await userEvent.click(screen.getByTestId('canvas-run-view'));
+        expect(onOpen).toHaveBeenCalledWith('run_1');
+    });
+
+    it('has a dismiss button on a failure, none on a live run', async () => {
+        const onDismissRun = vi.fn();
+        const { rerender } = render(<CanvasSouthBar runFocus={focus({ state: 'error' })} onDismissRun={onDismissRun} />);
+        await userEvent.click(screen.getByRole('button', { name: 'Dismiss the failed-run notice' }));
+        expect(onDismissRun).toHaveBeenCalledTimes(1);
+        rerender(<CanvasSouthBar runFocus={focus()} onDismissRun={onDismissRun} />);
+        expect(screen.queryByTestId('canvas-run-dismiss')).toBeNull();
     });
 
     it('offers "Open the form" as a button that opens the overlay, even without a public page', async () => {

@@ -32,10 +32,9 @@ describe('isCmsPathCandidate', () => {
         expect(parseCmsPath('/f/abcdef')).toBeNull();
     });
 
-    it('keeps the DSR-form URL reserved', () => {
-        // /privacy frames the public DSR request form; a CMS page must not be
-        // able to shadow it.
-        expect(isCmsPathCandidate('/privacy')).toBe(false);
+    it('serves /privacy as a CMS page and keeps the DSR form (/privacy/requests) apart', () => {
+        expect(isCmsPathCandidate('/privacy')).toBe(true);
+        expect(isCmsPathCandidate('/privacy/requests')).toBe(false);
     });
 });
 
@@ -99,7 +98,7 @@ describe('hasCmsFallback', () => {
 
 describe('slugIssues', () => {
     it('flags reserved app slugs as blocking', () => {
-        for (const s of ['app', 'privacy', 'admin', 'chat']) {
+        for (const s of ['app', 'admin', 'chat']) {
             expect(RESERVED_TOP_LEVEL.has(s)).toBe(true);
             const issue = slugIssues(s);
             expect(issue?.kind).toBe('reserved');

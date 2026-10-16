@@ -1,6 +1,6 @@
 import React from 'react';
 import SectionHeader from '../components/SectionHeader';
-import AppIcon from '../../components/icons/AppIcon';
+import IconGlyph from '../components/IconGlyph';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import { resolveAssetUrl } from '../assetUrl';
@@ -11,9 +11,9 @@ import type { SectionDataBase } from './sectionData.types';
 
 interface IntegrationItem {
     label?: string;
-    logoSrc?: string;
-    logoId?: string;
     icon?: string;
+    logoId?: string;
+    logoSrc?: string;
 }
 
 interface IntegrationCategory {
@@ -32,9 +32,9 @@ interface IntegrationsData extends SectionDataBase {
    envelope/ticket outline in the same accent colour — the page said "44
    integrations" while looking like one. Reusing the product's registry keeps
    the two surfaces honest: if the app grows a mark, the website gets it. */
-const brandLogo = (id?: string | null) => (id ? getIntegrationLogo(id) : null);
+const brandLogo = (id: string | undefined) => (id ? getIntegrationLogo(id) : null);
 
-function BrandMark({ id }: { id?: string }) {
+function BrandMark({ id }: { id: string | undefined }) {
     const Logo = brandLogo(id);
     if (!Logo) return null;
     return (
@@ -93,7 +93,7 @@ export default function Integrations({ data }: { data?: IntegrationsData | null 
                                             ) : brandLogo(item.logoId) ? (
                                                 <BrandMark id={item.logoId} />
                                             ) : item.icon ? (
-                                                <span className="icon-tile"><AppIcon name={item.icon} className="w-4 h-4" /></span>
+                                                <span className="icon-tile"><IconGlyph icon={item.icon} className="w-4 h-4" /></span>
                                             ) : null}
                                             <EditableText
                                                 path={`integrations.categories.${i}.items.${j}.label`}

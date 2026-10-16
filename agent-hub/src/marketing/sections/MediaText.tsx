@@ -3,9 +3,16 @@ import Button from '../components/Button';
 import EditableText from '../components/EditableText';
 import FramedMedia from '../components/FramedMedia';
 import ClipVideo from '../components/ClipVideo';
+import { assetSrcSet } from '../assetUrl';
+import LazyLoopVideo from '../components/LazyLoopVideo';
 import SectionFrame from '../components/SectionFrame';
 import { inlineTextStyle } from './textStyle';
+import TourPill from '../motion/TourPill';
+import type { TourData } from '../motion/motion.types';
 import type { MediaSlot, SectionDataBase, TextStyleBlob } from './sectionData.types';
+
+// The image sits in one of two columns on desktop, full width on a phone.
+const MEDIA_TEXT_SIZES = '(min-width: 1024px) 600px, 100vw';
 
 interface MediaTextCta {
     label?: string;
@@ -20,6 +27,7 @@ interface MediaTextData extends SectionDataBase {
     body?: string;
     cta?: MediaTextCta | null;
     media?: MediaSlot;
+    tour?: TourData;
     mediaPosition?: string;
     mediaSize?: string;
     headingStyle?: TextStyleBlob;
@@ -164,6 +172,7 @@ export default function MediaText({ data }: { data?: MediaTextData }) {
                                     </Button>
                                 </div>
                             ) : null}
+                            <TourPill tour={data.tour} />
                         </div>
                     </div>
                 </div>
@@ -225,14 +234,7 @@ function renderMedia(media: MediaSlot, heading: string) {
         // playsInline is REQUIRED for iOS Safari autoplay; muted is what
         // browsers actually gate autoplay on (audio policy).
         return (
-            <video
-                src={src}
-                autoPlay
-                loop
-                muted
-                playsInline
-                aria-label={alt || undefined}
-            />
+            <LazyLoopVideo src={src} ariaLabel={alt || undefined} />
         );
     }
 
@@ -246,7 +248,7 @@ function renderMedia(media: MediaSlot, heading: string) {
     // byte-identically.
     const frame = media?.frame;
     if (frame === 'hairline' || frame === 'browser') {
-        return <FramedMedia media={{ ...media, kind: 'image' }} />;
+        return <FramedMedia media={{ ...media, kind: 'image' }} sizes={MEDIA_TEXT_SIZES} />;
     }
     if (!src) {
         return (
@@ -261,7 +263,8 @@ function renderMedia(media: MediaSlot, heading: string) {
     const dims = (media?.width as number) > 0 && (media?.height as number) > 0
         ? { width: Math.round(media.width as number), height: Math.round(media.height as number) }
         : {};
-    return <img src={src} alt={alt} {...dims} loading="lazy" />;
+    const srcSet = assetSrcSet(src);
+    return <img src={src} srcSet={srcSet} sizes={srcSet ? MEDIA_TEXT_SIZES : undefined} alt={alt} {...dims} loading="lazy" />;
 }
 
 /**

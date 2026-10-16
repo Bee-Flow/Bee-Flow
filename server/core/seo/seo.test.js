@@ -45,7 +45,7 @@ test('a two-letter segment that is NOT a configured locale stays a slug', () => 
 });
 
 test('app routes and multi-segment paths are refused', () => {
-    for (const p of ['/app', '/api', '/admin', '/auth', '/privacy', '/a/b/c', '/nl/a/b']) {
+    for (const p of ['/app', '/api', '/admin', '/auth', '/privacy/requests', '/a/b/c', '/nl/a/b']) {
         assert.strictEqual(parsePublicPath(p, LOCALES), null, p);
     }
     // 'legal' and 'terms' were released to the CMS when the static legal-docs
@@ -527,7 +527,7 @@ test('external, protocol-relative and anchor CTAs stay client-side', () => {
     assert.match(html, /<p>GitHub<\/p>/, 'the label itself still renders, as before');
 });
 
-test('a card with prose of its own is not swallowed by the CTA rule', () => {
+test('a card with prose of its own is not swallowed by the CTA rule, and its link is kept', () => {
     const html = renderBlocks([{
         type: 'features',
         content: {
@@ -536,7 +536,7 @@ test('a card with prose of its own is not swallowed by the CTA rule', () => {
     }]);
     assert.match(html, /Sharing/);
     assert.match(html, /Org or group\./);
-    assert.ok(!html.includes('<a '), 'mixed objects keep their normal rendering');
+    assert.match(html, /<a href="\/identity-access">Sharing<\/a>/, 'the card text stays and the link is a real anchor');
 });
 
 test('a CTA href is escaped like everything else', () => {
@@ -631,4 +631,31 @@ test('the pre-hydration view is laid out, and is not hidden', () => {
         assert.ok(!PREHYDRATE_CSS.includes(trick), `pre-hydration CSS must not use ${trick}`);
     }
     assert.ok(!html.includes('hidden'), 'the markup itself must not be hidden either');
+});
+
+test('a page without its own og:image points at the generated card, versioned by the publish time', () => {
+    const noImage = { ...page, slug: 'pricing', seo: { metaTitle: 'Pricing', metaDescription: '' } };
+    const head = buildHead({
+        origin: ORIGIN, slug: 'pricing', locale: 'nl', defaultLocale: 'en',
+        locales: LOCALES, page: noImage, design: { logo: 'cms/logo.png' }, siteName: 'Bee Flow', shareImageVersion: '1788000000000',
+    });
+    assert.match(head, /og:image" content="https:\/\/beeflow\.nl\/api\/cms\/og\/nl\/pricing\.png\?v=1788000000000"/);
+    assert.match(head, /og:image:width" content="1200"/);
+    assert.match(head, /twitter:image" content="https:\/\/beeflow\.nl\/api\/cms\/og\/nl\/pricing\.png/);
+    assert.match(head, /twitter:card" content="summary_large_image"/);
+});
+
+test('a page with its own og:image keeps it; an unpublished site gets no generated card', () => {
+    const own = { ...page, slug: 'pricing', seo: { ...page.seo, ogImage: 'cms/hero.png' } };
+    const withOwn = buildHead({
+        origin: ORIGIN, slug: 'pricing', locale: 'en', defaultLocale: 'en',
+        locales: ['en'], page: own, design: {}, siteName: 'Bee Flow', shareImageVersion: '1',
+    });
+    assert.ok(!/\/api\/cms\/og\//.test(withOwn));
+    assert.match(withOwn, /cms\/hero\.png/);
+    const unpublished = buildHead({
+        origin: ORIGIN, slug: 'pricing', locale: 'en', defaultLocale: 'en',
+        locales: ['en'], page: { ...page, slug: 'pricing' }, design: {}, siteName: 'Bee Flow', shareImageVersion: '',
+    });
+    assert.ok(!/\/api\/cms\/og\//.test(unpublished));
 });

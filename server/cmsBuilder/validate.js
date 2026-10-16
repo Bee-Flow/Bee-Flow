@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS builder — draft-wide validation for the AI feedback loop.
  *
@@ -14,13 +15,16 @@
  *   warnings: empty_page          — a page with zero blocks
  *             unknown_icon        — an icon value that is not a Lucide
  *                                   PascalCase name (renderers show nothing).
- *                                   PAGE BLOCKS ONLY — header/footer chrome
- *                                   icons (e.g. mega-menu items) are emoji or
- *                                   short text by design, so those trees are
- *                                   exempt from the icon check.
+ *                                   Page blocks only: header/footer chrome
+ *                                   (mega-menu items) may hold legacy emoji,
+ *                                   so those trees skip the name check.
+ *             invalid_icon_asset  — an icon that looks like an address (cms/… or /…)
+ *                                   but is not an uploaded asset (any tree)
  *             bad_color           — a design colour that is not #rrggbb
  *             unknown_font        — a design font outside the loadable library
  *             low_contrast        — a design colour pair below WCAG AA (4.5:1)
+ *             heavy_hero_image, autoplay_video, many_media — page speed (validateMedia.js)
+ *             demo_poster_not_text, demo_caption_not_text — feature-demo poster/caption (validateBlocks.js)
  *
  * The three design checks are WARNINGS, never errors, per this file's
  * doctrine: cmsStore.sanitizeDesign() coerces instead of rejecting, so these
@@ -33,7 +37,13 @@
 
 'use strict';
 
-const { RESERVED_SLUGS, BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS } = require('../i18n/defaults/cmsDefaults');
+const { sanitizeBlockDesignStyle, BLOCK_DESIGN_STYLE_KEYS, MEDIA_HEIGHTS, MEDIA_FITS } = require('../i18n/defaults/blockStyleEnums');
+const { BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS } = require('../i18n/defaults/cmsDefaults');
+const { checkTabs, checkStoryHeader, checkScrollStory, checkFeatureDemo } = require('./validateBlocks');
+const { slugProblem } = require('../stores/cms/slugRules');
+const { checkPageMedia } = require('./validateMedia');
+const { safeIconAsset } = require('../stores/cms/localeMedia');
+const { experimentWarnings } = require('./experiments');
 
 // Lucide component names are PascalCase ASCII (Star, ShieldCheck, BarChart3).
 const LUCIDE_NAME_RE = /^[A-Z][A-Za-z0-9]*$/;
@@ -42,6 +52,10 @@ const FONT_ROLES = ['heading', 'body', 'mono'];
 // WCAG 2.1 AA for normal-size body text.
 const AA_RATIO = 4.5;
 
+/**
+ * @param {unknown} v
+ * @returns {v is Record<string, unknown>}
+ */
 function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
@@ -90,11 +104,13 @@ function checkDesign(design, warnings) {
     const fonts = isPlainObject(d.fonts) ? d.fonts : {};
     const components = isPlainObject(d.components) ? d.components : {};
 
-    for (const [group, values, keys, blankable] of [
-        ['colors', colors, COLOR_KEYS, []],
+    /** @type {Array<[string, Record<string, unknown>, string[], string[]]>} */
+    const colorGroups = [
+        ['colors', colors, COLOR_KEYS, BLANKABLE_COLORS],
         // darkColors.primary/accent use '' for "reuse the light value".
         ['darkColors', darkColors, DARK_COLOR_KEYS, ['primary', 'accent']],
-    ]) {
+    ];
+    for (const [group, values, keys, blankable] of colorGroups) {
         for (const key of keys) {
             const v = values[key];
             if (v === undefined || (v === '' && blankable.includes(key))) continue;
@@ -185,19 +201,46 @@ function validateSiteDraft(draftWrap) {
         } else {
             bySlug.set(entry.slug, entry.id);
         }
-        if (RESERVED_SLUGS.has(String(entry.slug).toLowerCase())) {
+        const problem = slugProblem(entry.slug);
+        if (problem?.code === 'reserved') {
             errors.push({
                 code: 'reserved_slug',
                 path: `pages.${entry.id}`,
-                message: `Slug "${entry.slug}" is reserved (it collides with an app route).`,
+                message: problem.message,
                 hint: 'Rename the page slug with cms_update_page_meta.',
+            });
+        } else if (problem) {
+            warnings.push({
+                code: 'unroutable_slug',
+                path: `pages.${entry.id}`,
+                message: problem.message,
+                hint: 'Rename the page slug with cms_update_page_meta; until then the page is not reachable.',
             });
         }
     }
 
     // ── Link + icon walk over site chrome and every loaded page. The icon
-    //    check is opt-out: header/footer chrome icons are emoji/short text
-    //    by design (agent-hub HeaderEditor), only page blocks use Lucide. ──
+    //    name check is opt-out: header/footer chrome may hold legacy emoji. ──
+    // An address-shaped icon must be an uploaded asset; a name is checked as
+    // Lucide only where the tree is not exempt (chrome keeps legacy emoji).
+    const iconWarning = (icon, path, checkName) => {
+        if (icon.startsWith('cms/') || icon.startsWith('/')) {
+            if (safeIconAsset(icon)) return;
+            warnings.push({
+                code: 'invalid_icon_asset',
+                path: `${path}.icon`,
+                message: `Icon ${JSON.stringify(icon)} is not an uploaded asset of this site, so no icon is shown.`,
+                hint: 'Use a Lucide name, or the url of an uploaded file from cms_list_assets (cms/<file> or /api/cms/asset/cms/<file>).',
+            });
+        } else if (checkName && !LUCIDE_NAME_RE.test(icon)) {
+            warnings.push({
+                code: 'unknown_icon',
+                path: `${path}.icon`,
+                message: `Icon ${JSON.stringify(icon)} does not look like a Lucide icon name.`,
+                hint: 'Icons are Lucide PascalCase names, e.g. Star, Zap, ShieldCheck, BarChart3, or an uploaded asset url.',
+            });
+        }
+    };
     const checkTree = (root, rootPath, { checkIcons = true } = {}) => {
         walk(root, rootPath, (node, path) => {
             if (node.kind === 'page' && typeof node.pageId === 'string' && !knownIds.has(node.pageId)) {
@@ -208,14 +251,7 @@ function validateSiteDraft(draftWrap) {
                     hint: `Point it at a real page or switch to an external/anchor link. ${knownIdsHint}`,
                 });
             }
-            if (checkIcons && typeof node.icon === 'string' && node.icon && !LUCIDE_NAME_RE.test(node.icon)) {
-                warnings.push({
-                    code: 'unknown_icon',
-                    path: `${path}.icon`,
-                    message: `Icon ${JSON.stringify(node.icon)} does not look like a Lucide icon name.`,
-                    hint: 'Icons are Lucide PascalCase names, e.g. Star, Zap, ShieldCheck, BarChart3.',
-                });
-            }
+            if (typeof node.icon === 'string' && node.icon) iconWarning(node.icon, path, checkIcons);
         });
     };
 
@@ -238,6 +274,7 @@ function validateSiteDraft(draftWrap) {
                 hint: 'Add content with cms_add_blocks, or leave it if the user wants it empty.',
             });
         }
+        checkPageMedia(entry.id, entry.title || entry.slug, blocks, warnings);
         blocks.forEach((b, i) => {
             checkTree(b?.content, `pages.${entry.id}.blocks[${i}].content`);
             // Layout variant sanity — an unknown variant renders as the
@@ -254,6 +291,24 @@ function validateSiteDraft(draftWrap) {
                         hint: `Allowed variants for ${b.type}: ${allowed.join(', ')}. Unknown values render as '${allowed[0]}'.`,
                     });
                 }
+            }
+            // Bento card media box: unknown values render as the identity
+            // (the whole image at its own ratio).
+            if (b?.type === 'features' && Array.isArray(b?.content?.items)) {
+                b.content.items.forEach((item, j) => {
+                    /** @type {Array<[string, string[]]>} */
+                    const checks = [['mediaHeight', MEDIA_HEIGHTS], ['mediaFit', MEDIA_FITS]];
+                    for (const [key, allowedVals] of checks) {
+                        const v = item?.[key];
+                        if (v === undefined || v === '' || allowedVals.includes(v)) continue;
+                        warnings.push({
+                            code: 'unknown_item_value',
+                            path: `pages.${entry.id}.blocks[${i}].content.items[${j}].${key}`,
+                            message: `items[${j}].${key} ${JSON.stringify(v)} is not a known value.`,
+                            hint: `Allowed: ${allowedVals.join(', ')}. Invalid values are ignored by the renderer.`,
+                        });
+                    }
+                });
             }
             // Live feature demo — the block frames a real product UI chosen by
             // ID, and the renderer shows a placeholder for anything it does not
@@ -272,14 +327,19 @@ function validateSiteDraft(draftWrap) {
                         hint: `Available demos: ${DEMO_FEATURE_IDS.join(', ')}. Anything else renders an explanatory placeholder instead of the demo.`,
                     });
                 }
+                checkFeatureDemo(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             }
+            if (b?.type === 'tabs') checkTabs(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
+            if (b?.type === 'scrollStory') checkScrollStory(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
+            if (b?.type === 'story-header') checkStoryHeader(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
+            warnings.push(...experimentWarnings(b, `pages.${entry.id}.blocks[${i}].content`));
             // Style v2 enum sanity — invalid values are ignored by the
             // renderer, so warnings only (the model self-corrects).
             const st = b?.style;
             if (st && typeof st === 'object') {
                 const styleEnums = {
                     band:    ['default', 'surface', 'tint', 'dark', 'primary'],
-                    rhythm:  ['compact', 'default', 'spacious'],
+                    rhythm:  ['tight', 'compact', 'default', 'spacious'],
                     reveal:  ['on', 'off'],
                 };
                 for (const [key, allowedVals] of Object.entries(styleEnums)) {
@@ -292,6 +352,19 @@ function validateSiteDraft(draftWrap) {
                             hint: `Allowed: ${allowedVals.join(', ')}. Invalid values are ignored by the renderer.`,
                         });
                     }
+                }
+                // Design keys (background placement, brand motif): the store drops
+                // an illegal value on save, so say which one went.
+                const cleaned = sanitizeBlockDesignStyle(st);
+                for (const key of Object.keys(st)) {
+                    if (key in cleaned || !BLOCK_DESIGN_STYLE_KEYS.includes(key)) continue;
+                    if (key === 'backgroundImage' || key === 'backgroundOverlay') continue;
+                    warnings.push({
+                        code: 'unknown_style_value',
+                        path: `pages.${entry.id}.blocks[${i}].style.${key}`,
+                        message: `style.${key} ${JSON.stringify(st[key])} is not a known value and is dropped on save.`,
+                        hint: 'backgroundSize: cover | contain | auto | "<n>px"; backgroundPosition: the nine anchors (top-left … bottom-right); backgroundRepeat: no-repeat | repeat | repeat-x | repeat-y; motif: none | honeycomb; motifSide: right | left | center; decor: default | none; cardFill: tint | white | none; labelStyle: mono | plain; backgroundHideMobile / motifTiles: true | false.',
+                    });
                 }
                 if (st.columns !== undefined && ![2, 3, 4].includes(Number(st.columns))) {
                     warnings.push({

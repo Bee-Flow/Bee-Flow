@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The server-rendered side of the blog: <head> (title, description, canonical,
  * Open Graph article tags, BlogPosting JSON-LD, the RSS alternate), the body
@@ -11,7 +12,7 @@
 
 'use strict';
 
-const { esc, clamp } = require('./html');
+const { esc, clamp, clampTitle } = require('./html');
 const { buildHead, absolute, TITLE_MAX, DESC_MAX } = require('./head');
 const { buildPublicPath, BLOG_BASE } = require('./publicPath');
 const { renderPostMarkdown } = require('../cms/blogMarkdown');
@@ -43,7 +44,7 @@ function postPath(locale, slug, defaultLocale) {
 }
 
 /** The blog's index page query string for paging / a tag filter. */
-function indexQuery({ tag, page }) {
+function indexQuery({ tag, page = undefined }) {
     const qs = new URLSearchParams();
     if (tag) qs.set('tag', tag);
     if (page && page > 1) qs.set('page', String(page));
@@ -59,13 +60,14 @@ function buildBlogHead({ origin, eff, locale, defaultLocale, locales, siteName }
     const blog = eff.blog;
     const rss = `<link rel="alternate" type="application/rss+xml" title="${esc(`${siteName} — ${blog.title}`)}" href="${esc(`${origin}${feedPath(locale, defaultLocale)}`)}">`;
     const blogPath = buildPublicPath(locale, BLOG_BASE, defaultLocale);
+    const atom = `<link rel="alternate" type="application/atom+xml" title="${esc(`${siteName} — ${blog.title}`)}" href="${esc(`${origin}${blogPath}/atom.xml`)}">`;
     const homePath = buildPublicPath(locale, '', defaultLocale);
     const home = blog.labels?.home || 'Home';
 
     if (blog.view === 'post' && blog.post) {
         const p = blog.post;
         const url = `${origin}${postPath(locale, p.slug, defaultLocale)}`;
-        const title = clamp(eff.page.seo.metaTitle || p.title, TITLE_MAX);
+        const title = clampTitle(eff.page.seo.metaTitle || p.title, TITLE_MAX, siteName);
         const description = clamp(eff.page.seo.metaDescription || p.excerpt || '', DESC_MAX);
         const image = absolute(origin, eff.page.seo.ogImage || p.coverImage || '');
         const posting = {
@@ -101,7 +103,7 @@ function buildBlogHead({ origin, eff, locale, defaultLocale, locales, siteName }
                 { name: blog.title, path: blogPath },
                 { name: clamp(p.title, 80), path: postPath(locale, p.slug, defaultLocale) },
             ],
-            extraLinks: [rss],
+            extraLinks: [rss, atom],
         });
     }
 
@@ -125,7 +127,7 @@ function buildBlogHead({ origin, eff, locale, defaultLocale, locales, siteName }
         page: eff.page, design: eff.design || {}, siteName,
         extraJsonLd: [blogNode],
         breadcrumbTrail: [{ name: home, path: homePath }, { name: blog.title, path: blogPath }],
-        extraLinks: [rss],
+        extraLinks: [rss, atom],
     });
 }
 
@@ -136,6 +138,16 @@ function postMetaLine(p, blog) {
     if (p.authorName) bits.push(esc(fmt(blog.labels?.by || 'By {name}', { name: p.authorName })));
     if (p.readingMinutes) bits.push(esc(fmt(blog.labels?.min_read || '{n} min read', { n: p.readingMinutes })));
     return bits.length ? `<p class="label">${bits.join(' · ')}</p>` : '';
+}
+
+/** The tag filter of the index: plain links, so a filtered list is a crawlable URL. */
+function tagNav(blog) {
+    const link = (href, text, active) => `<a href="${esc(href)}"${active ? ' aria-current="page"' : ''}>${esc(text)}</a>`;
+    const items = [
+        link(blog.basePath, blog.labels?.all_posts || 'All posts', !blog.tag),
+        ...blog.tags.map(t => link(`${blog.basePath}${indexQuery({ tag: t.slug })}`, t.label, blog.tag?.slug === t.slug)),
+    ];
+    return `<nav aria-label="${esc(blog.labels?.tags || 'Tags')}">${items.join(' · ')}</nav>`;
 }
 
 /**
@@ -163,6 +175,7 @@ function renderBlogBody(eff) {
     } else {
         out.push(`<h1>${esc(blog.tag ? fmt(blog.labels?.tagged || 'Posts tagged “{tag}”', { tag: blog.tag.label }) : blog.title)}</h1>`);
         if (blog.description && !blog.tag) out.push(`<p>${esc(blog.description)}</p>`);
+        if (blog.tags?.length) out.push(tagNav(blog));
         if (!blog.posts?.length) out.push(`<p>${esc(blog.labels?.no_posts || 'No posts yet.')}</p>`);
         for (const p of blog.posts || []) {
             const href = `${blog.basePath}/${encodeURIComponent(p.slug)}`;
@@ -255,5 +268,5 @@ function blogSitemapEntries({ posts, overridesLocales, lastmod }) {
 }
 
 module.exports = {
-    FEED_FILE, buildBlogHead, renderBlogBody, buildFeed, blogSitemapEntries, feedPath, postPath, indexQuery, dateLabel,
+    FEED_FILE, FEED_MAX_ITEMS, xmlText, buildBlogHead, renderBlogBody, buildFeed, blogSitemapEntries, feedPath, postPath, indexQuery, dateLabel,
 };

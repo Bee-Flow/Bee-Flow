@@ -1073,6 +1073,10 @@
     "nextcloud.file.new": {
       "fields": [
         {
+          "key": "id",
+          "sample": 4711
+        },
+        {
           "key": "activityId",
           "sample": 12345
         },
@@ -1097,6 +1101,14 @@
           "sample": "alice"
         },
         {
+          "key": "actorName",
+          "sample": "Alice"
+        },
+        {
+          "key": "owner",
+          "sample": "alice"
+        },
+        {
           "key": "datetime",
           "sample": "2026-05-13T09:15:00Z"
         },
@@ -1106,6 +1118,9 @@
         }
       ],
       "sample": {
+        "id": 4711,
+        "actorName": "Alice",
+        "owner": "alice",
         "activityId": 12345,
         "path": "/Documents/Invoices/Invoice-2026-001.pdf",
         "name": "Invoice-2026-001.pdf",
@@ -1118,6 +1133,10 @@
     },
     "nextcloud.file.changed": {
       "fields": [
+        {
+          "key": "id",
+          "sample": 4711
+        },
         {
           "key": "activityId",
           "sample": 12346
@@ -1143,6 +1162,14 @@
           "sample": "alice"
         },
         {
+          "key": "actorName",
+          "sample": "Alice"
+        },
+        {
+          "key": "owner",
+          "sample": "alice"
+        },
+        {
           "key": "datetime",
           "sample": "2026-05-13T10:20:00Z"
         },
@@ -1152,6 +1179,9 @@
         }
       ],
       "sample": {
+        "id": 4711,
+        "actorName": "Alice",
+        "owner": "alice",
         "activityId": 12346,
         "path": "/Documents/Invoices/Invoice-2026-001.pdf",
         "name": "Invoice-2026-001.pdf",
@@ -1164,6 +1194,10 @@
     },
     "nextcloud.file.deleted": {
       "fields": [
+        {
+          "key": "id",
+          "sample": 4711
+        },
         {
           "key": "activityId",
           "sample": 12348
@@ -1189,6 +1223,14 @@
           "sample": "alice"
         },
         {
+          "key": "actorName",
+          "sample": "Alice"
+        },
+        {
+          "key": "owner",
+          "sample": "alice"
+        },
+        {
           "key": "datetime",
           "sample": "2026-05-13T11:30:00Z"
         },
@@ -1198,6 +1240,9 @@
         }
       ],
       "sample": {
+        "id": 4711,
+        "actorName": "Alice",
+        "owner": "alice",
         "activityId": 12348,
         "path": "/Documents/Old/Draft.docx",
         "name": "Draft.docx",
@@ -1210,6 +1255,10 @@
     },
     "nextcloud.file.renamed": {
       "fields": [
+        {
+          "key": "id",
+          "sample": 4711
+        },
         {
           "key": "activityId",
           "sample": 12349
@@ -1239,6 +1288,14 @@
           "sample": "alice"
         },
         {
+          "key": "actorName",
+          "sample": "Alice"
+        },
+        {
+          "key": "owner",
+          "sample": "alice"
+        },
+        {
           "key": "datetime",
           "sample": "2026-05-13T11:45:00Z"
         },
@@ -1248,6 +1305,9 @@
         }
       ],
       "sample": {
+        "id": 4711,
+        "actorName": "Alice",
+        "owner": "alice",
         "activityId": 12349,
         "path": "/Documents/Invoices/Invoice-2026-001.pdf",
         "oldPath": "/Documents/Invoices/draft.pdf",
@@ -1501,6 +1561,14 @@
           "sample": "personal"
         },
         {
+          "key": "calendarUri",
+          "sample": "personal"
+        },
+        {
+          "key": "objectUri",
+          "sample": "event-1.ics"
+        },
+        {
           "key": "summary",
           "sample": "Design review"
         },
@@ -1526,6 +1594,8 @@
         }
       ],
       "sample": {
+        "calendarUri": "personal",
+        "objectUri": "event-1.ics",
         "uid": "evt-9f2b",
         "calendarId": "personal",
         "summary": "Design review",
@@ -1545,6 +1615,14 @@
         {
           "key": "calendarId",
           "sample": "personal"
+        },
+        {
+          "key": "calendarUri",
+          "sample": "personal"
+        },
+        {
+          "key": "objectUri",
+          "sample": "event-1.ics"
         },
         {
           "key": "summary",
@@ -1572,6 +1650,8 @@
         }
       ],
       "sample": {
+        "calendarUri": "personal",
+        "objectUri": "event-1.ics",
         "uid": "evt-9f2b",
         "calendarId": "personal",
         "summary": "Design review (moved)",

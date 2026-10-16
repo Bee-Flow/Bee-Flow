@@ -82,3 +82,15 @@ test('non-array input yields empty result, no throw', () => {
     assert.deepStrictEqual(sanitizeBlocks(null), { blocks: [], dropped: [] });
     assert.deepStrictEqual(sanitizeBlocks(undefined), { blocks: [], dropped: [] });
 });
+
+test('motion blocks (issue 244) are known types and keep their content, aliases resolve', () => {
+    const { blocks, dropped } = sanitizeBlocks([
+        { id: 'm1', type: 'product-mockup', content: { prompt: 'Hi', steps: [{ role: 'user', text: 'x' }] } },
+        { id: 'm2', type: 'carousel', content: { cards: [{ title: 'One', gradient: 'mix' }] } },
+        { id: 'm3', type: 'hero', content: { backgroundVideo: { src: 'cms/a.mp4', poster: 'cms/a.jpg' }, tour: { src: 'cms/t.mp4' } } },
+    ]);
+    assert.strictEqual(dropped.length, 0);
+    assert.deepStrictEqual(blocks.map((b) => b.type), ['product-mockup', 'card-carousel', 'hero']);
+    assert.strictEqual(blocks[2].content.backgroundVideo.poster, 'cms/a.jpg');
+    assert.strictEqual(blocks[2].content.tour.src, 'cms/t.mp4');
+});

@@ -188,3 +188,30 @@ test('the binding resolver agrees with the engine on string members', async () =
         assert.deepEqual(evaluate(path, state), walkPath(path, state), `path: ${path}`);
     }
 });
+
+test('len and count measure text in code points, not UTF-16 units', () => {
+    assert.equal(evaluate('len("😀日本")', {}), 3);
+    assert.equal(evaluate('count("😀日本")', {}), 3);
+    assert.equal(evaluate('len(xs)', { xs: ['😀', 'a'] }), 2);
+});
+
+test('substring counts code points and never cuts a surrogate pair', () => {
+    const s = { t: '😀日本' };
+    assert.equal(evaluate('substring(t, 0, 1)', s), '😀');
+    assert.equal(evaluate('substring(t, 1)', s), '日本');
+    assert.equal(evaluate('substring(t, 2, 1)', s), '日', 'swapped like String#substring');
+    assert.equal(evaluate('substring(t, -5, 99)', s), '😀日本', 'clamped');
+    assert.equal(evaluate('substring("abc", 1, 2)', {}), 'b');
+});
+
+test('padStart counts code points and pads with whole characters', () => {
+    assert.equal(evaluate('padStart("😀", 3, "-")', {}), '--😀');
+    assert.equal(evaluate('padStart("a", 4, "😀日")', {}), '😀日😀a');
+    assert.equal(evaluate('padStart("日本", 2, "x")', {}), '日本', 'never truncates');
+    assert.equal(evaluate('padStart("7", 3, "0")', {}), '007');
+});
+
+test('split with an empty separator splits by code point', () => {
+    assert.deepEqual(evaluate('split(t, "")', { t: '😀日本' }), ['😀', '日', '本']);
+    assert.deepEqual(evaluate('split("a,b", ",")', {}), ['a', 'b']);
+});

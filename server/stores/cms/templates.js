@@ -4,6 +4,7 @@
 
 const configStore = require('../configStore');
 const { KEY_TEMPLATES, newId, clone } = require('./shared');
+const { BLOCK_DEFAULTS } = require('../../i18n/defaults/cmsDefaults');
 
 // ── Page templates (global, not site-scoped) ─────────────────────────
 //
@@ -15,10 +16,51 @@ const { KEY_TEMPLATES, newId, clone } = require('./shared');
 // regenerated at APPLY time, so the saved entry is portable across sites
 // and stable to delete-without-affecting copies.
 
-async function getTemplates() {
+/**
+ * Templates that ship with the product, listed before the saved ones. They are
+ * code, not data: never written to KEY_TEMPLATES (so a product update can
+ * improve them) and not deletable (deleteTemplate only touches stored rows).
+ * Block ids are regenerated at apply time, like for any template.
+ */
+const BUILTIN_TEMPLATES = Object.freeze([{
+    id: 'tpl_builtin_customer_story',
+    name: 'Customer story',
+    description: 'A case-study page: story header (customer, sector, logo, quote, metrics), the challenge, the solution and a closing call to action. Shows up in the Customer stories grid once published.',
+    createdAt: null,
+    builtin: true,
+    blocks: Object.freeze([
+        { type: 'story-header' },
+        {
+            type: 'media-text',
+            content: { heading: 'The challenge', body: 'Describe the situation before the customer started, in two or three sentences.' },
+        },
+        {
+            type: 'media-text',
+            content: { heading: 'The solution', body: 'Describe what the customer did and how it works for them.', mediaPosition: 'right' },
+        },
+        { type: 'cta-banner', content: { heading: 'Ready for results like these?', subheading: '' } },
+    ]),
+}]);
+
+/** The templates saved by users (the only ones that are stored). */
+async function getSavedTemplates() {
     const raw = await configStore.getConfig(KEY_TEMPLATES);
     if (!Array.isArray(raw)) return [];
     return raw;
+}
+
+/** Built-in templates (blocks seeded from the block defaults) followed by the saved ones. */
+async function getTemplates() {
+    const builtins = BUILTIN_TEMPLATES.map((t) => ({
+        ...t,
+        blocks: t.blocks.map((b) => ({
+            type: b.type,
+            enabled: true,
+            content: { ...clone(BLOCK_DEFAULTS[b.type] || {}), ...clone(b.content || {}) },
+            style: {},
+        })),
+    }));
+    return [...builtins, ...(await getSavedTemplates())];
 }
 
 async function setTemplates(list) {
@@ -33,7 +75,7 @@ async function saveTemplate({ name, description, blocks } = {}) {
     const trimmedName = String(name || '').trim();
     if (!trimmedName) throw new Error('Template name is required');
     if (!Array.isArray(blocks)) throw new Error('Template blocks must be an array');
-    const list = await getTemplates();
+    const list = await getSavedTemplates();
     const entry = {
         id: newId('tpl'),
         name: trimmedName.slice(0, 200),
@@ -48,7 +90,7 @@ async function saveTemplate({ name, description, blocks } = {}) {
 
 async function deleteTemplate(id) {
     if (!id) throw new Error('Template id is required');
-    const list = await getTemplates();
+    const list = await getSavedTemplates();
     const next = list.filter(t => t.id !== id);
     await setTemplates(next);
 }

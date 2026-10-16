@@ -14,6 +14,7 @@
  *   cms_project_{siteId}_locale_{xx}                      site-locale override
  *   cms_project_{siteId}_page_{pageId}                    PageDoc
  *   cms_project_{siteId}_page_{pageId}_locale_{xx}        page-locale override
+ *   cms_project_{siteId}_redirects                        redirects  {redirects[], allowedHosts[]} (stores/cms/redirects.js)
  *   cms_project_{siteId}_posts                            blog post registry (id + slug)
  *   cms_project_{siteId}_post_{postId}                    PostDoc (blog post, Markdown body)
  *   cms_project_{siteId}_post_{postId}_locale_{xx}        post-locale override
@@ -35,10 +36,11 @@
  * references under the identical surface this file had before the split.
  */
 
-const { BLOCK_TYPE_IDS, RESERVED_SLUGS } = require('../i18n/defaults/cmsDefaults');
+const { BLOCK_TYPE_IDS } = require('../i18n/defaults/cmsDefaults');
+const { RESERVED_PAGE_SLUGS } = require('./cms/slugRules');
 const {
     makeBlock, sanitizeBlocks,
-    getPage, setPage, deletePage,
+    getPage, setPage, mutatePage, deletePage,
 } = require('./cms/pages');
 const {
     isValidLocale, getDefaultLocale, setDefaultLocale,
@@ -46,11 +48,13 @@ const {
     getPageLocaleOverride, setPageLocaleOverride, deletePageLocaleOverride,
     collectLocaleOverrides, pruneBlockLocaleOverrides,
 } = require('./cms/localeOverrides');
+const { saveTranslatedPageOverride, saveTranslatedSiteOverride } = require('./cms/translatedOverrides');
 const {
-    listProjects, createProject, getProject, setProject,
+    listProjects, createProject, getProject, setProject, mutateProject, updateSiteChrome,
     deleteProject, renameProject, duplicateProject, sanitizePageIndexEntry,
-    createPage, removePage, updatePageMeta, setHomepage, reorderPages,
+    createPage, updatePageMeta, setHomepage, reorderPages,
 } = require('./cms/projects');
+const { removePage } = require('./cms/pageRemoval');
 const {
     getTemplates, saveTemplate, deleteTemplate, applyTemplate,
 } = require('./cms/templates');
@@ -65,19 +69,23 @@ const {
     EXPORT_MARKER, EXPORT_VERSION, EXPORT_SUPPORTED_VERSIONS,
 } = require('./cms/exportImport');
 const { mergeLocaleContent, sanitizeAnalytics, sanitizeBlogSettings } = require('./cms/shared');
+const { validateSiteChrome } = require('./cms/chromeValidation');
 const posts = require('./cms/posts');
+const redirects = require('./cms/redirects');
 const { getEffectiveBlog, getLatestPublishedPosts } = require('./cms/blogEffective');
 
 module.exports = {
     // locale settings
     getDefaultLocale, setDefaultLocale, isValidLocale,
     // projects
-    listProjects, createProject, getProject, setProject, deleteProject, renameProject, duplicateProject,
+    listProjects, createProject, getProject, setProject, mutateProject, updateSiteChrome,
+    deleteProject, renameProject, duplicateProject,
     // site-locale overrides
     getSiteLocaleOverride, setSiteLocaleOverride, deleteSiteLocaleOverride,
     // pages
-    getPage, setPage, deletePage,
+    getPage, setPage, mutatePage, deletePage,
     getPageLocaleOverride, setPageLocaleOverride, deletePageLocaleOverride,
+    saveTranslatedPageOverride, saveTranslatedSiteOverride,
     createPage, removePage, updatePageMeta, setHomepage, reorderPages,
     // page templates (global)
     getTemplates, saveTemplate, deleteTemplate, applyTemplate,
@@ -101,8 +109,11 @@ module.exports = {
     collectPostLocaleOverrides: posts.collectPostLocaleOverrides,
     getEffectiveBlog, getLatestPublishedPosts, sanitizeBlogSettings,
     PostError: posts.PostError, POST_LIMITS: posts.POST_LIMITS, POST_STATUSES: posts.POST_STATUSES,
+    // redirects (301/302 manager)
+    getRedirects: redirects.getRedirects, setRedirect: redirects.setRedirect,
+    removeRedirect: redirects.removeRedirect, redirectDeletedPage: redirects.redirectDeleted, setRedirectHosts: redirects.setAllowedHosts,
     // helpers / constants for tests
     makeBlock, resolveLink, mergeLocaleContent, sanitizeBlocks,
-    sanitizeAnalytics, sanitizePageIndexEntry,
-    BLOCK_TYPE_IDS, RESERVED_SLUGS,
+    sanitizeAnalytics, sanitizePageIndexEntry, validateSiteChrome,
+    BLOCK_TYPE_IDS, RESERVED_PAGE_SLUGS,
 };

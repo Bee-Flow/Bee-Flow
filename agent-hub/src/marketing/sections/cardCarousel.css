@@ -1,0 +1,75 @@
+.marketing-root .card-carousel-block { padding: var(--section-y) 0; }
+.marketing-root .card-carousel-controls { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: var(--space-4); }
+.marketing-root .card-carousel-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--hairline-strong);
+    border-radius: 50%;
+    background: var(--surface-0);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+.marketing-root .card-carousel-arrow svg { width: 18px; height: 18px; }
+.marketing-root .card-carousel-arrow:hover:not(:disabled) { border-color: var(--accent); }
+.marketing-root .card-carousel-arrow:disabled { opacity: 0.35; cursor: default; }
+.marketing-root .card-carousel-arrow:focus-visible,
+.marketing-root .card-carousel-track:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* The row bleeds to the viewport edge and snaps card by card. */
+.marketing-root .card-carousel-track {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding: 4px max(16px, calc((100vw - 1200px) / 2)) 16px;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: max(16px, calc((100vw - 1200px) / 2));
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+}
+.marketing-root .card-carousel-track::-webkit-scrollbar { display: none; }
+.marketing-root .card-carousel-card {
+    position: relative;
+    flex: 0 0 min(380px, 82vw);
+    min-height: 420px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+    padding: 28px;
+    border-radius: var(--radius-lg);
+    scroll-snap-align: start;
+    color: #fff;
+    background-color: var(--brand-primary);
+    background-size: 220% 220%;
+}
+.marketing-root .card-carousel-card--primary { background-image: linear-gradient(135deg, var(--brand-primary), var(--brand-accent) 70%, var(--brand-primary)); }
+.marketing-root .card-carousel-card--accent { background-image: linear-gradient(135deg, var(--brand-accent), var(--brand-primary) 70%, var(--brand-accent)); }
+.marketing-root .card-carousel-card--mix { background-image: radial-gradient(circle at 20% 15%, var(--brand-accent), transparent 55%), radial-gradient(circle at 85% 90%, var(--brand-primary), #17161d 75%); }
+.marketing-root .card-carousel-card--dark { background-image: linear-gradient(135deg, #17161d, #2b2933 60%, var(--brand-primary) 160%); }
+.marketing-root .card-carousel-block--animated .card-carousel-card { animation: card-carousel-drift 14s ease-in-out infinite alternate; }
+.marketing-root .card-carousel-block--animated .card-carousel-card:nth-child(2n) { animation-duration: 18s; animation-direction: alternate-reverse; }
+@keyframes card-carousel-drift {
+    from { background-position: 0% 30%; }
+    to { background-position: 100% 70%; }
+}
+.marketing-root .card-carousel-numeral {
+    position: absolute;
+    top: -0.12em;
+    right: 12px;
+    font-size: clamp(7rem, 12vw, 10rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: rgba(255, 255, 255, 0.16);
+    pointer-events: none;
+    user-select: none;
+}
+.marketing-root .card-carousel-copy { position: relative; display: flex; flex-direction: column; gap: 10px; }
+.marketing-root .card-carousel-title { margin: 0; font-size: var(--text-h3); line-height: var(--leading-h3); color: #fff; }
+.marketing-root .card-carousel-body { margin: 0; color: rgba(255, 255, 255, 0.88); }
+.marketing-root .card-carousel-link { color: #fff; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+    .marketing-root .card-carousel-block--animated .card-carousel-card { animation: none; }
+}

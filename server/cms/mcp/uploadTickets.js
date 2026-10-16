@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * One-time upload tickets for the CMS MCP server.
  *
@@ -35,6 +36,14 @@ const ID_BYTES = 12;
 const SECRET_BYTES = 32;
 // Tickets a user may hold open (unused and unexpired) at once.
 const MAX_OPEN_PER_USER = 20;
+// How often one ticket may be handed back after an upload that stored nothing.
+const MAX_RELEASES = 3;
+// Deadlines that grow with the ticket's size: a healthy large clip must not be cut off.
+const BODY_MIN_BPS = 128 * 1024;   // slowest accepted upload, bytes per second
+const STORE_MIN_BPS = 1024 * 1024; // slowest accepted storage write
+const bodyDeadlineMs = (maxSize) => Math.min(30 * 60 * 1000, 60 * 1000 + Math.ceil(maxSize / BODY_MIN_BPS) * 1000);
+const storeDeadlineMs = (maxSize) => 60 * 1000 + Math.ceil(maxSize / STORE_MIN_BPS) * 1000;
+const stallMsFor = (maxSize) => bodyDeadlineMs(maxSize) + storeDeadlineMs(maxSize) + 60 * 1000;
 const TICKET_RE = /^([a-f0-9]{24})\.([A-Za-z0-9_-]{43})$/;
 
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
@@ -127,8 +136,9 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
 
     /**
      * Look a presented ticket up WITHOUT consuming it.
-     * @returns {Promise<{ ok: true, record: object, id: string }
-     *   | { ok: false, reason: 'malformed'|'unknown'|'expired'|'used' }>}
+     * ok:true carries `record` and `id`; ok:false carries `reason`
+     * ('malformed' | 'unknown' | 'expired' | 'used').
+     * @returns {Promise<{ ok: boolean, record?: any, id?: string, reason?: string }>}
      */
     async function peek(ticket) {
         const parsed = parse(ticket);
@@ -148,11 +158,12 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
     /**
      * Burn a ticket: flip `used` atomically. Exactly one caller wins when two
      * PUTs race; the loser gets `used`. Done BEFORE any byte is stored.
-     * @returns {Promise<{ ok: true, record: object } | { ok: false, reason: string }>}
+     * @returns {Promise<{ ok: boolean, record?: any, id?: string, reason?: string }>}
      */
     async function burn(ticket) {
         const seen = await peek(ticket);
         if (!seen.ok) return seen;
+        /** @type {{ ok: boolean, record?: any, id?: string, reason?: string }} */
         let outcome = { ok: false, reason: 'unknown' };
         await kv.mutate(keyOf(seen.id), (current) => {
             // The mutator may be retried; it only decides and never has side effects.
@@ -172,6 +183,28 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
     }
 
     /**
+     * Hand a burned ticket back after an upload that stored nothing (a broken or
+     * stalled body, a storage error), so the client can retry within the TTL.
+     * Bounded by MAX_RELEASES; after that, and once a file is stored, the ticket stays spent.
+     * @returns {Promise<boolean>} true when the ticket is usable again
+     */
+    async function release(id, error) {
+        let released = false;
+        await kv.mutate(keyOf(id), (current) => {
+            if (!isRecord(current) || current.state !== 'uploading' || current.asset) return current;
+            const releases = (current.releases || 0) + 1;
+            if (releases > MAX_RELEASES) {
+                released = false;
+                return { ...current, state: 'failed', error };
+            }
+            released = true;
+            const { usedAt: _usedAt, ...rest } = current;
+            return { ...rest, used: false, state: 'pending', releases, error };
+        });
+        return released;
+    }
+
+    /**
      * What cms_upload_status reports. Only the user the ticket was issued to
      * sees it; any other id reads as unknown.
      */
@@ -180,20 +213,22 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
         const record = await kv.get(keyOf(id));
         if (!isRecord(record) || record.userId !== userId) return null;
         const expired = !record.used && Date.parse(record.expiresAt) <= now();
+        // A receiver that died mid-upload never reports back; do not show 'uploading' forever.
+        const stalled = record.state === 'uploading' && !record.asset && now() - Date.parse(record.usedAt) > stallMsFor(record.maxSize || 0);
         return {
             ticketId: id,
-            state: expired ? 'expired' : record.state,
+            state: expired ? 'expired' : stalled ? 'failed' : record.state,
             used: !!record.used,
             expiresAt: record.expiresAt,
             siteId: record.siteId,
             contentType: record.contentType,
             filename: record.filename,
             ...(record.asset ? { asset: record.asset } : {}),
-            ...(record.error ? { error: record.error } : {}),
+            ...(stalled ? { error: 'The upload never finished. Request a new upload URL.' } : record.error ? { error: record.error } : {}),
         };
     }
 
-    return { issue, peek, burn, finish, status, parse, prune };
+    return { issue, peek, burn, finish, release, status, parse, prune };
 }
 
-module.exports = { createUploadTickets, TTL_MS, KEY_PREFIX, MAX_OPEN_PER_USER };
+module.exports = { createUploadTickets, stallMsFor, bodyDeadlineMs, storeDeadlineMs, MAX_RELEASES, TTL_MS, KEY_PREFIX, MAX_OPEN_PER_USER };

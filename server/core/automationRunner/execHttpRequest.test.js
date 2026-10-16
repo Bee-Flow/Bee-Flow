@@ -274,6 +274,19 @@ test('auth: mask values are registered even when the fetch itself throws', async
     assert.ok(runState[MASK_VALUES].includes('tok-cred-X'), 'needles present before the throw is recorded');
 });
 
+test('a network failure is classed http_unreachable, not the generic integration class', async () => {
+    safeFetchImpl = async () => { throw Object.assign(new Error('fetch failed'), { cause: { code: 'ECONNREFUSED' } }); };
+    await assert.rejects(
+        () => execHttpRequest({ id: 'h1', type: 'http_request', url: 'https://api.example.com/x' }, {}, baseState(), 'live'),
+        (e) => e.errorClass === 'http_unreachable' && /http_request: fetch failed/.test(e.message),
+    );
+    safeFetchImpl = async () => { throw new Error('boom'); };
+    await assert.rejects(
+        () => execHttpRequest({ id: 'h1', type: 'http_request', url: 'https://api.example.com/x' }, {}, baseState(), 'live'),
+        (e) => e.errorClass === undefined,
+    );
+});
+
 test('dry-run: a GET WITH auth is synthesized — credentials are never resolved in dry-run', async () => {
     safeFetchCalls.length = 0;
     authState.calls.length = 0;

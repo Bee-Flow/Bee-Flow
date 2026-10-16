@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Notes Tools — JSON CRUD on /index.php/apps/notes/api/v1/notes.
  *
@@ -7,6 +8,7 @@
  */
 
 const ncClient = require('./nextcloudClient');
+const { appendToNote } = require('./nextcloudNotesAppend');
 
 const MAX_CONTENT_BYTES = 200 * 1024;
 
@@ -15,7 +17,7 @@ const NEXTCLOUD_NOTES_TOOLS = [
         type: 'function',
         function: {
             name: 'nextcloud_notes_list',
-            description: 'List the user\'s Nextcloud notes (id, title, category, modified time, excerpt).',
+            description: 'List the user\'s Nextcloud notes (id, title, category, modified time). Use nextcloud_notes_get for the content.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -147,14 +149,17 @@ function trimContent(content) {
 }
 
 function summarise(note) {
-    return {
+    const out = {
         id: note.id,
         title: note.title,
         category: note.category,
         modified: note.modified,
         favorite: note.favorite,
-        excerpt: (note.content || '').slice(0, 200),
     };
+    // A listing is fetched without content (exclude=content); an empty excerpt
+    // there would claim the note is empty, so the key is left out.
+    if (typeof note.content === 'string') out.excerpt = note.content.slice(0, 200);
+    return out;
 }
 
 async function executeNextcloudNotesTool(toolName, args, userId, session) {
@@ -285,48 +290,8 @@ async function executeNextcloudNotesTool(toolName, args, userId, session) {
             return { success: true, note: summarise(note) };
         }
 
-        case 'nextcloud_notes_append': {
-            if (!args.title || args.content === undefined) return { error: 'title and content are required' };
-            const sep = args.separator !== undefined ? String(args.separator) : '\n';
-            // Find an existing note with this exact title (case-insensitive).
-            const listRes = await ncFetch(`${api}?exclude=content`, { headers: baseHeaders });
-            if (listRes.status === 401) return { error: authError };
-            if (listRes.status === 404) return { error: 'Notes app is not installed/enabled on this Nextcloud server.' };
-            if (!listRes.ok) return { error: `Notes list failed (${listRes.status})` };
-            const all = await readJsonSafe(listRes);
-            const wanted = String(args.title).trim().toLowerCase();
-            const existing = Array.isArray(all) ? all.find(n => String(n.title || '').trim().toLowerCase() === wanted) : null;
-
-            if (existing) {
-                // Fetch current content, append, and PUT it back.
-                const getRes = await ncFetch(`${api}/${encodeURIComponent(existing.id)}`, { headers: baseHeaders });
-                if (getRes.status === 401) return { error: authError };
-                if (!getRes.ok) return { error: `Note fetch failed (${getRes.status})` };
-                const cur = await readJsonSafe(getRes);
-                const prev = cur && typeof cur.content === 'string' ? cur.content : '';
-                const merged = trimContent(`${prev}${prev ? sep : ''}${args.content}`);
-                const putRes = await ncFetch(`${api}/${encodeURIComponent(existing.id)}`, {
-                    method: 'PUT',
-                    headers: { ...baseHeaders, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: merged, modified: Math.floor(Date.now() / 1000) }),
-                });
-                if (putRes.status === 401) return { error: authError };
-                if (!putRes.ok) { const err = await readJsonSafe(putRes); return { error: `Note append failed (${putRes.status})`, detail: err }; }
-                const updated = await readJsonSafe(putRes);
-                return { success: true, appended: true, note: summarise(updated) };
-            }
-
-            // No existing note with that title → create it.
-            const createRes = await ncFetch(api, {
-                method: 'POST',
-                headers: { ...baseHeaders, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: args.title, content: args.content, category: args.category || '', favorite: false, modified: Math.floor(Date.now() / 1000) }),
-            });
-            if (createRes.status === 401) return { error: authError };
-            if (!createRes.ok) { const err = await readJsonSafe(createRes); return { error: `Note create failed (${createRes.status})`, detail: err }; }
-            const created = await readJsonSafe(createRes);
-            return { success: true, appended: false, created: true, note: summarise(created) };
-        }
+        case 'nextcloud_notes_append':
+            return appendToNote({ api, ncFetch, authError, baseHeaders, readJsonSafe, summarise, trimContent }, args);
 
         case 'nextcloud_notes_update': {
             if (!args.id) return { error: 'id is required' };
@@ -377,7 +342,10 @@ async function executeNextcloudNotesTool(toolName, args, userId, session) {
                 const cat = note.category || '';
                 counts.set(cat, (counts.get(cat) || 0) + 1);
             }
-            const categories = [...counts.entries()].map(([category, count]) => ({ category, count }));
+            // Notes without a category sit in the root; that is not a category to list.
+            const categories = [...counts.entries()]
+                .filter(([category]) => category !== '')
+                .map(([category, count]) => ({ category, count }));
             categories.sort((a, b) => a.category.localeCompare(b.category));
             return { count: categories.length, categories };
         }

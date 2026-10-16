@@ -17,8 +17,8 @@ import type { SectionDataBase } from './sectionData.types';
  *     rows: [{ aspect, left, right }],
  *     footnote }
  *
- * Semantics: a real <table> — <th scope="col"> for the three column heads
- * (aspect corner + leftLabel + rightLabel), <th scope="row"> for each
+ * Semantics: a real <table> — <th scope="col" role="columnheader"> for the three column heads
+ * (aspect corner + leftLabel + rightLabel), <th scope="row" role="rowheader"> for each
  * aspect cell — inside an overflow-x wrapper so narrow viewports scroll
  * the table, never the page. The server-rendered SEO view emits the same
  * rows as a plain <table> (server/core/seo/renderBlocks.js).
@@ -71,6 +71,11 @@ export default function CompareTable({ data }: { data?: CompareTableData }) {
     // site. The editor still gets the empty table scaffold to type into.
     if (!editing && rowEntries.length === 0) return null;
 
+    // Column names, repeated on each value cell (data-label) for the stacked
+    // phone layout in compareTable.css.
+    const leftName = data.leftLabel || 'Bee Flow';
+    const rightName = data.rightLabel || '';
+
     const showFootnote = hasText(data.footnote) || editing;
 
     return (
@@ -84,29 +89,29 @@ export default function CompareTable({ data }: { data?: CompareTableData }) {
                         eyebrowAlign={data.eyebrowAlign} titleAlign={data.titleAlign} leadAlign={data.leadAlign} align={data.align}
                     />
                     <div className="compare-table-scroll reveal">
-                        <table className="compare-table">
-                            <thead>
-                                <tr>
+                        <table className="compare-table" role="table">
+                            <thead role="rowgroup">
+                                <tr role="row">
                                     {/* Corner cell above the aspect column — an
                                         empty stub head is the conventional
                                         (and screen-reader-safe) treatment. */}
-                                    <th scope="col" />
-                                    <th scope="col" className="compare-table-col--left">
+                                    <th scope="col" role="columnheader" />
+                                    <th scope="col" role="columnheader" className="compare-table-col--left">
                                         <EditableText path="compare-table.leftLabel" placeholder="Bee Flow">
                                             {data.leftLabel || ''}
                                         </EditableText>
                                     </th>
-                                    <th scope="col">
+                                    <th scope="col" role="columnheader">
                                         <EditableText path="compare-table.rightLabel" placeholder="The alternative">
                                             {data.rightLabel || ''}
                                         </EditableText>
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody role="rowgroup">
                                 {rowEntries.map(({ row, idx }) => (
-                                    <tr key={idx}>
-                                        <th scope="row">
+                                    <tr key={idx} role="row">
+                                        <th scope="row" role="rowheader">
                                             <EditableText
                                                 path={`compare-table.rows.${idx}.aspect`}
                                                 multiline
@@ -115,7 +120,7 @@ export default function CompareTable({ data }: { data?: CompareTableData }) {
                                                 {row.aspect || ''}
                                             </EditableText>
                                         </th>
-                                        <td className="compare-table-col--left">
+                                        <td role="cell" className="compare-table-col--left" data-label={leftName}>
                                             <EditableText
                                                 path={`compare-table.rows.${idx}.left`}
                                                 multiline
@@ -124,7 +129,7 @@ export default function CompareTable({ data }: { data?: CompareTableData }) {
                                                 {row.left || ''}
                                             </EditableText>
                                         </td>
-                                        <td>
+                                        <td role="cell" data-label={rightName}>
                                             <EditableText
                                                 path={`compare-table.rows.${idx}.right`}
                                                 multiline

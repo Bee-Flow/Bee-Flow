@@ -179,6 +179,39 @@ test('PUT /upload/:ticket: an oversize stream is answered 413 and nothing is sto
     } finally { await h.close(); }
 });
 
+test('PUT /upload/:ticketId: a body that stalls is answered 408 and the same ticket works again', async () => {
+    const h = await boot({ receiverDeps: { idleMs: 150 } });
+    try {
+        const { ticketId, secret } = await h.tickets.issue({ userId: 'u1', orgId: 'o1', siteId: 'pj_aaaa', contentType: 'image/png', maxSize: PNG.length, filename: 'hero.png' });
+        const url = new URL(`${h.base}/mcp/cms/upload/${ticketId}`);
+        // Raw socket: announce the full length, send part of it, then go quiet.
+        const status = await new Promise((resolve, reject) => {
+            const req = http.request({ host: url.hostname, port: url.port, path: url.pathname, method: 'PUT', headers: { 'content-type': 'image/png', 'content-length': PNG.length, 'x-upload-ticket': secret } }, (res) => { res.resume(); resolve(res.statusCode); });
+            req.on('error', reject);
+            req.write(PNG.subarray(0, 100));
+            setTimeout(() => reject(new Error('no answer: the PUT hung')), 3000).unref();
+        });
+        assert.equal(status, 408);
+        const after = await h.tickets.status(ticketId, 'u1');
+        assert.equal(after.state, 'pending');
+        assert.equal(after.used, false);
+        const retry = await fetch(url, { method: 'PUT', headers: { 'content-type': 'image/png', 'x-upload-ticket': secret }, body: PNG });
+        assert.equal(retry.status, 200);
+        assert.equal(h.stored.length, 1);
+        assert.equal((await h.tickets.status(ticketId, 'u1')).state, 'done');
+    } finally { await h.close(); }
+});
+
+test('PUT /upload/:ticketId: storage that never answers is cut off with 504 and the ticket stays spent', async () => {
+    const h = await boot({ receiverDeps: { storeMs: 100, storage: { isAvailable: () => true, uploadFile: () => new Promise(() => {}) } } });
+    try {
+        const { ticketId, secret } = await h.tickets.issue({ userId: 'u1', orgId: 'o1', siteId: 'pj_aaaa', contentType: 'image/png', maxSize: PNG.length, filename: 'hero.png' });
+        const res = await fetch(`${h.base}/mcp/cms/upload/${ticketId}`, { method: 'PUT', headers: { 'content-type': 'image/png', 'x-upload-ticket': secret }, body: PNG, signal: AbortSignal.timeout(3000) });
+        assert.equal(res.status, 504);
+        assert.equal((await h.tickets.status(ticketId, 'u1')).state, 'failed');
+    } finally { await h.close(); }
+});
+
 test('the route is unmounted by default: the flag is exactly "1"', () => {
     const saved = process.env.CMS_MCP_ENABLED;
     try {

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The integration-action step executor (moved verbatim out of execAi.js):
  * the safety gates, the permission re-check, connection lending, the run
@@ -14,6 +15,8 @@
  */
 
 const { resolveInputs } = require('../automationModel/bind');
+const { failOnBlankInputs } = require('./blankInputs');
+const { captureBindingMisses } = require('../automationModel/bindCapture');
 const { isSideEffect } = require('../automationModel/sideEffectMap');
 // What this module needs from automation/ (a feature) comes through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
@@ -23,6 +26,7 @@ const synthesizeDryRunOutput = (toolName, args) => runnerPort('outputSchemas').s
 const { runWithProbe, markLocal } = require('../http/outboundProbe');
 const log = require('../../telemetry/log');
 const { assertStepToolPermitted, resolveLendingIdentity } = require('./integrationActionGates');
+const { toolIdentity } = require('./toolIdentity');
 const { recordSimulatedWrite, isUnderSimulatedPath, isNotFoundError } = require('./simulatedPaths');
 const { planReuse, readReuse, rememberAnswer } = require('./integrationActionMemo');
 
@@ -89,7 +93,7 @@ function dryRunWithoutDispatch(step, ctx, runState, { mode, sideEffect, guardedI
  * had already left the box.
  */
 function dispatchTool(step, ctx, mode, { executeTool, inputs, identity, resolveIntegration }) {
-    const { stepUserId, stepOrgId, lentConnection } = identity;
+    const { stepUserId, stepOrgId, stepSession, lentConnection } = identity;
     return runWithProbe(async () => {
         const meta = resolveIntegration(step.tool, inputs, { nextcloudUrl: ctx.nextcloudUrl });
         if (meta && meta.isLocal) markLocal(meta.label || meta.integration);
@@ -105,9 +109,10 @@ function dispatchTool(step, ctx, mode, { executeTool, inputs, identity, resolveI
                     // calls one — dies on "User ID required for MCP tool
                     // calls" before it reaches the server.
                     userAuth: { ...(ctx.userAuth || {}), userId: stepUserId },
-                    session: ctx.session,
+                    session: stepSession,
                     orgId: stepOrgId,
-                    userGroupIds: ctx.userGroupIds || [],
+                    userGroupIds: toolIdentity(ctx).userGroupIds,
+                    connectionsCallerUserId: ctx.callerOnly ? ctx.callerOnly.userId : null,
                     // The automation this step belongs to — what lets a
                     // self-scoped tool (automation_*) act on its own automation
                     // and nothing else.
@@ -133,27 +138,37 @@ function dispatchTool(step, ctx, mode, { executeTool, inputs, identity, resolveI
  * A failed dispatch. A REAL dispatch happened in both modes (dry-run
  * dispatches read-only tools live) — the failed call's bytes already left the
  * box, so both modes get a status='error' row. Dry-run rows carry
- * is_dry_run=true, same as the success path. In a dry run a read-only tool
- * that failed (auth lapsed, query yielded nothing, transient API hiccup) is
- * swapped for the curated sample, so the automation builder still has a
- * workable bind target downstream; a live run throws.
+ * is_dry_run=true, same as the success path.
+ *
+ * A live run throws. A dry run throws too, EXCEPT for the two cases checkResult
+ * also lets through, each flagged on the step so it is never mistaken for a
+ * real answer: an error about the ENVIRONMENT (not connected, unreachable,
+ * auth lapsed: 'not_connected') and a not-found on a path only a simulated
+ * step wrote ('simulated_upstream'). A timeout, a rejected id or a bad column
+ * used to be swapped for the sample too, so a read that cannot work showed a
+ * green step and the forEach behind it iterated over nothing.
  */
-async function dispatchFailed(step, ctx, mode, { err, inputs, probe, policy, auditBase, t0, deps }) {
+async function dispatchFailed(step, ctx, mode, { err, inputs, resolvedInputs, probe, policy, auditBase, t0, deps }) {
     await deps.safety.logEgress({
         toolName: step.tool, toolArgs: inputs, error: err, probe, policy, auditBase, mode,
         durationMs: Date.now() - t0,
     });
-    if (mode !== 'dry_run') throw deps.enrichNextcloudError(step.tool, err);
-    const fallback = synthesizeDryRunOutput(step.tool, inputs);
+    const message = String(err?.message ?? err);
+    let fallback = null;
+    if (mode === 'dry_run') {
+        if (deps.isEnvironmentToolError(message)) fallback = 'not_connected';
+        else if (isNotFoundError(step.tool, message) && isUnderSimulatedPath(ctx, resolvedInputs && resolvedInputs.path)) fallback = 'simulated_upstream';
+    }
+    if (!fallback) throw deps.enrichNextcloudError(step.tool, err);
     // Dedupe the warning per (tool, message) — a fan-out used to spam
     // dozens of identical lines per dry-run.
-    const logKey = `${step.tool}:${err.message}`;
+    const logKey = `${step.tool}:${message}`;
     ctx._dryRunFallbackLogged = ctx._dryRunFallbackLogged || new Set();
     if (!ctx._dryRunFallbackLogged.has(logKey)) {
         ctx._dryRunFallbackLogged.add(logKey);
-        log.warn(`[AutomationRunner] dry-run: live ${step.tool} failed, using sample (${err.message})`);
+        log.warn(`[AutomationRunner] dry-run: live ${step.tool} failed (${fallback}), using sample (${message})`);
     }
-    return { output: fallback, dryRunSynthesised: true, dryRunFallback: 'live_failed' };
+    return { output: synthesizeDryRunOutput(step.tool, inputs), dryRunSynthesised: true, dryRunFallback: fallback };
 }
 
 /**
@@ -191,6 +206,7 @@ function checkResult(step, ctx, mode, { result, inputs, resolvedInputs, deps }) 
     if (mode === 'dry_run' && isNotFoundError(step.tool, result.error) && isUnderSimulatedPath(ctx, resolvedInputs && resolvedInputs.path)) {
         return { output: synthesizeDryRunOutput(step.tool, inputs), dryRunSynthesised: true, dryRunFallback: 'simulated_upstream' };
     }
+    /** @type {import('./runnerError.types').RunnerError} */
     const err = new Error(`${step.tool} failed: ${String(result.error)}`);
     err.toolError = true;
     throw deps.enrichNextcloudError(step.tool, err, String(result.error));
@@ -201,8 +217,10 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
     // the agent/direct-chat pipeline so automations stop bypassing those controls.
     const { safety, stepInputsSynthetic } = deps;
     // Tool arguments are data, not prose: a list in a `{{…}}` stays JSON.
-    let inputs = resolveInputs(step.inputs || {}, runState, { allowSecrets: true, listAs: 'json' });
     const sideEffect = isSideEffect(step.tool);
+    const resolved = captureBindingMisses(() => resolveInputs(step.inputs || {}, runState, { allowSecrets: true, listAs: 'json' }));
+    let inputs = resolved.value;
+    if (mode !== 'dry_run' && sideEffect) failOnBlankInputs(step, resolved.misses);
     const { policy, auditBase, guardedIn } = await guardInputs(step, ctx, mode, inputs, safety);
     const { resolveIntegration } = require('../integrations/integrationToolMap');
     const synthesized = dryRunWithoutDispatch(step, ctx, runState, { mode, sideEffect, guardedIn, inputs, stepInputsSynthetic });
@@ -242,7 +260,7 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
         probe = ran.probe;
         if (!ran.result?.ok) {
             const err = ran.result?.error || new Error('tool dispatch failed');
-            return dispatchFailed(step, ctx, mode, { err, inputs, probe, policy, auditBase, t0: dispatchT0, deps });
+            return dispatchFailed(step, ctx, mode, { err, inputs, resolvedInputs, probe, policy, auditBase, t0: dispatchT0, deps });
         }
         result = ran.result.value;
         rememberAnswer(plan, { step, stepUserId: identity.stepUserId, result, softFailure: deps.isToolErrorResult(result), deps });

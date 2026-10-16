@@ -2,7 +2,7 @@ import type { CmsActivePage, CmsLocale, CmsLocaleOverrides, CmsPageDoc, CmsSiteD
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { LocaleCoverage } from '../shell/LocaleMenu';
 import {
-    ANALYTICS_VIRTUAL_ID, DESIGN_VIRTUAL_ID,
+    ANALYTICS_VIRTUAL_ID, DESIGN_VIRTUAL_ID, REDIRECTS_VIRTUAL_ID,
     isChromeEntryId, normalizeVirtualId,
 } from '../sentinels';
 import { coverageForLocale } from '../translatable';
@@ -48,6 +48,7 @@ function viewName(t: TranslateFn, entryId: string | null, isBlogView: boolean, i
     if (isChromeView) return t('cms_site.site.panel.view_chrome', 'site chrome');
     if (entryId === DESIGN_VIRTUAL_ID) return t('cms_site.site.panel.view_design', 'design');
     if (entryId === ANALYTICS_VIRTUAL_ID) return t('cms_site.site.panel.view_analytics', 'analytics');
+    if (entryId === REDIRECTS_VIRTUAL_ID) return t('cms_redirects.view', 'redirects');
     return activePage?.slug || 'home';
 }
 

@@ -9,6 +9,7 @@ import type useCmsPageMeta from './useCmsPageMeta';
 import type useCmsPanelState from './useCmsPanelState';
 import type useCmsPreviewBridge from './useCmsPreviewBridge';
 import type useCmsPublishing from './useCmsPublishing';
+import RedirectsInspector from '../inspector/RedirectsInspector';
 import { COOKIE_VIRTUAL_ID } from '../sentinels';
 
 interface PanelInspectorProps {
@@ -78,6 +79,7 @@ export default function PanelInspector(props: PanelInspectorProps) {
                     updateSiteChrome={publish.updateSiteChrome}
                 />
             ) : null}
+            redirectsInspector={<RedirectsInspector siteId={ps.activeSiteId} onSaved={() => ps.setDirtySincePublish(true)} />}
             activePageId={ps.activePageId}
             activePage={activePage}
             translationMode={translationMode}

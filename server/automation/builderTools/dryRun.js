@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tool — `builder_request_dry_run`: run the draft once in test mode.
  *
@@ -19,6 +20,8 @@
  */
 
 'use strict';
+
+const { prepareDryRunPayload } = require('./dryRunTrigger');
 
 function defaultDeps() {
     return {
@@ -71,11 +74,21 @@ async function applyRequestDryRun(draftWrap, args, deps) {
     const onRunCreated = typeof draftWrap._onDryRunStarted === 'function'
         ? (created) => { try { draftWrap._onDryRunStarted(created); } catch { /* a watcher never fails the run */ } }
         : null;
-    const run = await d.executeAutomation(automation, { triggerKind: 'dry_run', triggerPayload: args?.triggerPayload || null, mode: 'dry_run', rootStepId, onRunCreated });
+    const rootTrigger = rootStepId
+        ? (Array.isArray(draft.triggers) ? draft.triggers : []).find(t => t && t.id === rootStepId)
+        : draft.trigger;
+    const prepared = prepareDryRunPayload(rootTrigger, args?.triggerPayload);
+    const run = await d.executeAutomation(automation, { triggerKind: 'dry_run', triggerPayload: prepared.payload || null, mode: 'dry_run', rootStepId, onRunCreated, startedByUserId: draftWrap.userId || null });
     const steps = await d.getRunSteps(run.id);
     const annotated = [];
     for (const s of steps) annotated.push({ ...s, _hint: await d.annotate(s, draftWrap) });
-    return { run, steps: annotated };
+    return {
+        run,
+        steps: annotated,
+        ...(rootTrigger?.kind === 'app_event' ? { triggerPayloadSource: prepared.source } : {}),
+        ...(prepared.filterMatched !== null ? { triggerFilterMatched: prepared.filterMatched } : {}),
+        ...(prepared.warnings.length ? { _warnings: prepared.warnings } : {}),
+    };
 }
 
 module.exports = { applyRequestDryRun };

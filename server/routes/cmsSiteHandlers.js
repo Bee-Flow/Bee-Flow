@@ -13,8 +13,12 @@
 const cmsStore = require('../stores/cmsStore');
 const cmsTranslate = require('../core/cms/cmsTranslate');
 const languageStore = require('../stores/languageStore');
+const { HttpError } = require('../core/http/errors');
 const { getLiveSiteId, setLiveSiteId, ensurePublishedSnapshot } = require('./cmsShared');
 const { provisionAnalyticsForSite } = require('./cmsAnalytics');
+const { clientRev } = require('../stores/cms/revision');
+const { mediaWarningFor } = require('../stores/cms/localeMedia');
+const log = require('../telemetry/log');
 
 // ── Shared handler bodies ────────────────────────────────────────
 //
@@ -45,20 +49,33 @@ async function getGraph(req, res) {
 }
 
 async function putSiteDoc(req, res) {
+    const { site } = req.body || {};
+    if (!site) return res.status(400).json({ error: 'site object required' });
+    const chromeProblem = cmsStore.validateSiteChrome(site);
+    if (chromeProblem) throw new HttpError(400, 'invalid_site_chrome', chromeProblem);
     try {
-        const { site } = req.body || {};
-        if (!site) return res.status(400).json({ error: 'site object required' });
-        const saved = await cmsStore.setProject(req.siteId, site);
-        res.json({ success: true, site: saved });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+        // Chrome only (name, header, footer, design, ...): the page list and the
+        // homepage belong to the page operations, and a copy of them from an
+        // editor that has been open a while would erase pages created since.
+        const expectedRev = clientRev(site.rev, 'site', { route: 'PUT /site', siteId: req.siteId });
+        const report = {};
+        const saved = await cmsStore.updateSiteChrome(req.siteId, site, { expectedRev, report });
+        // `localeOverrides`: header/footer translations re-aligned to this save's item order.
+        res.json({ success: true, site: saved, localeOverrides: report.localeOverrides });
+    } catch (err) {
+        if (err instanceof HttpError) throw err;
+        res.status(400).json({ error: err.message });
+    }
 }
 
 async function putSiteLocale(req, res) {
     try {
         const { override } = req.body || {};
         if (!override) return res.status(400).json({ error: 'override object required' });
-        await cmsStore.setSiteLocaleOverride(req.siteId, req.params.locale.toLowerCase(), override);
-        res.json({ success: true });
+        const locale = req.params.locale.toLowerCase();
+        if (!cmsStore.isValidLocale(locale)) return res.status(400).json({ error: 'Invalid locale' });
+        const saved = await cmsStore.setSiteLocaleOverride(req.siteId, locale, override);
+        res.json({ success: true, mediaWarning: mediaWarningFor(override, saved) });
     } catch (err) { res.status(400).json({ error: err.message }); }
 }
 
@@ -101,10 +118,11 @@ async function postSiteAiTranslate(req, res) {
         userId: req.session?.user?.id || null,
         userOrgId: req.session?.user?.organizationId || null,
     });
-    await cmsStore.setSiteLocaleOverride(req.siteId, locale, result.override);
+    // Applied under the site lock against a fresh read (the model call took seconds).
+    const override = await cmsStore.saveTranslatedSiteOverride(req.siteId, locale, result.override, siteDoc);
     res.json({
         success: true,
-        override: result.override,
+        override,
         translated: result.translated,
         total: result.total,
         errors: result.errors,
@@ -122,7 +140,7 @@ async function postSitePublish(req, res) {
         provisionAnalyticsForSite(req.siteId, {
             name: project?.name || 'CMS site',
             domain: req.get('host'),
-        }).catch(() => {});
+        }).catch((e) => log.warn('[CMS] analytics provisioning after publish failed:', e.message));
         res.json({ success: true, ...result });
     } catch (err) { res.status(400).json({ error: err.message }); }
 }
@@ -136,13 +154,14 @@ async function putSiteLive(req, res) {
             return res.status(400).json({ error: 'live must be a boolean' });
         }
         if (live) {
+            // Publish FIRST: a version without a snapshot must never become the
+            // live one (it would blank the public site), and it must not leak
+            // its draft either. A failed publish throws here and the current
+            // live site stays as it is.
+            await ensurePublishedSnapshot(req.siteId);
             // Setting this site live implicitly takes any other live site
             // offline — only one project can be live at a time.
             await setLiveSiteId(req.siteId);
-            // Snapshot now so going Live can't publish a not-yet-published
-            // draft to the world (the "toggle Live before first Publish leaks
-            // the draft" bug).
-            await ensurePublishedSnapshot(req.siteId);
             return res.json({ success: true, liveSiteId: req.siteId });
         }
         // Clearing only matters when *this* site is the currently-live
@@ -154,7 +173,10 @@ async function putSiteLive(req, res) {
             return res.json({ success: true, liveSiteId: null });
         }
         res.json({ success: true, liveSiteId: current });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) {
+        if (err instanceof HttpError) return res.status(err.status).json({ error: err.message, code: err.code });
+        res.status(400).json({ error: err.message });
+    }
 }
 
 // Org-wide handlers (only mounted on /admin/*).
@@ -171,17 +193,20 @@ async function putEnabled(req, res) {
     // omit it to keep the currently-live one (or fall back to the
     // first project if none has ever been live before).
     if (siteId) {
+        await ensurePublishedSnapshot(siteId);
         const next = await setLiveSiteId(siteId);
-        if (next) await ensurePublishedSnapshot(next);
         return res.json({ success: true, enabled: true, liveSiteId: next });
     }
     let next = await getLiveSiteId();
     if (!next) {
         const projects = await cmsStore.listProjects();
         next = projects[0]?.id || null;
-        if (next) await setLiveSiteId(next);
     }
-    if (next) await ensurePublishedSnapshot(next);
+    if (next) {
+        // Publish before (re)setting the live id, like putSiteLive.
+        await ensurePublishedSnapshot(next);
+        await setLiveSiteId(next);
+    }
     res.json({ success: true, enabled: next !== null, liveSiteId: next });
 }
 

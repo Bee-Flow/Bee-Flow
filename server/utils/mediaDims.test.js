@@ -82,3 +82,39 @@ test('one asset used by many media objects is probed once', async () => {
     assert.strictEqual(n, 2);
     assert.strictEqual(calls, 1);
 });
+
+test('enrichMediaDims: a probe that never returns is cut off and the rest still runs', async () => {
+    const tree = [
+        { kind: 'image', src: 'cms/a.png' },
+        { kind: 'image', src: 'cms/b.png' },
+    ];
+    let aborted = false;
+    const probe = (key, { signal }) => {
+        if (key.endsWith('a.png')) {
+            return new Promise(() => { signal.addEventListener('abort', () => { aborted = true; }); });
+        }
+        return Promise.resolve({ width: 10, height: 5 });
+    };
+    const n = await enrichMediaDims(tree, probe, { probeTimeoutMs: 20, budgetMs: 1000 });
+    assert.strictEqual(n, 1);
+    assert.strictEqual(aborted, true);
+});
+
+test('enrichMediaDims: past the budget the remaining images are skipped', async () => {
+    const tree = Array.from({ length: 5 }, (_, i) => ({ kind: 'image', src: `cms/${i}.png` }));
+    let calls = 0;
+    const probe = () => { calls++; return new Promise(() => {}); };
+    await enrichMediaDims(tree, probe, { probeTimeoutMs: 30, budgetMs: 50 });
+    assert.ok(calls < 5, `stopped early (${calls} probes)`);
+});
+
+test('makeStorageProbe hands the abort signal to streamFile so a stalled GetObject is cancelled', async () => {
+    const { makeStorageProbe } = require('./mediaDims');
+    let seen;
+    const probe = makeStorageProbe({ streamFile: (key, opts) => { seen = opts; return new Promise(() => {}); } });
+    const ctrl = new AbortController();
+    probe('cms/a.png', { signal: ctrl.signal });
+    await new Promise((r) => setTimeout(r, 20));
+    // sharp may be unavailable on a platform; then there is nothing to cancel.
+    if (seen) assert.strictEqual(seen.signal, ctrl.signal);
+});

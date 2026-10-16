@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * generate_document step (extracted verbatim from engine.js): renders a
  * PDF/Word document from upstream text and records it in the run's file
@@ -12,6 +13,7 @@ const { runnerPort } = require('./featurePorts');
 const automationGraph = () => runnerPort('automationGraph');
 const { deckThemeFor } = require('../documents/documentHouseStyle');
 const log = require('../../telemetry/log');
+const { noteRunWarning } = require('./runWarnings');
 
 // ── AI content marking (EU AI Act Art. 50(2)) ──────────────────────────────
 //
@@ -259,6 +261,7 @@ async function execGenerateDocument(step, ctx, runState, mode) {
 
     if (degraded) {
         log.warn(`[generate_document] ${step.id}: rendered without a browser — the PDF uses the plain fallback layout.`);
+        noteRunWarning(runState, `${step.id}: the PDF was rendered without a browser, so it uses the plain fallback layout`);
     }
 
     return {

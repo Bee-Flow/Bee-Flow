@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — dry-run self-repair (Wave 4).
  *
@@ -44,30 +45,17 @@
 
 const { validateAppDefinition } = require('./validate');
 const { collectDataBindings } = require('./collectDataBindings');
-const queryCompiler = require('./queryCompiler');
-const rlsGateway = require('./rlsGateway');
 const { SYSTEM_COLUMNS } = require('./dataModel');
-const { seedVariableDefaults } = require('./componentSpecs');
-const { compile, tryEvaluate } = require('../automation/expr');
-
-// Read-only probe page — a couple of rows is enough to prove a binding returns
-// SOMETHING (or nothing); we never render the data.
-const DRY_RUN_LIMIT = 3;
+const {
+    DRY_RUN_LIMIT, dryRunFailure, isPlainObject, syntheticScope, resolveDryRunFilters,
+    runRecordBinding, runAggregateBinding, runDatasetBinding,
+} = require('./appDryRunReads');
 
 // A viewer id that is deliberately NOT the owner, so an 'own'-scoped role sees
 // only rows it created (none, for owner-seeded demo data) — that is exactly the
 // "member sees an empty screen" signal the asRole pass exists to catch.
 const ROLE_PROBE_VIEWER_ID = '__dry_run_role_probe__';
-
-// The scope roots the synthetic owner/role scope can populate. A formula filter
-// value referencing anything else (item/index/value in a repeater, the current
-// `form`, actions/records/datasets) can't be simulated statically → the binding
-// is reported skipped:'dynamic' rather than run with a wrong value.
-const SYNTHETIC_SCOPE_ROOTS = new Set(['currentUser', 'vars', 'forms', 'screen', 'now', 'today']);
-const NO_VALUE_FILTER_OPS = new Set(['isNull', 'isNotNull']);
 const DATA_STEP_KINDS = new Set(['create_record', 'update_record', 'delete_record']);
-
-function isPlainObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
 function findModelTable(dataModel, ref) {
     const tables = (dataModel && Array.isArray(dataModel.tables)) ? dataModel.tables : [];
@@ -75,141 +63,10 @@ function findModelTable(dataModel, ref) {
 }
 
 /**
- * The synthetic expression scope a formula filter resolves against.
- *
- * `vars` is seeded from the app's DECLARED variables rather than left empty.
- * With `{}` a filter like {value:{kind:'formula',expr:'vars.status'}} resolved
- * to undefined, the entry was omitted, and the dry run probed the UNFILTERED
- * query — reporting a row count the real screen will never show.
- */
-function syntheticScope(currentUser, variables) {
-    const now = Date.now();
-    return {
-        currentUser,
-        vars: seedVariableDefaults(variables),
-        forms: {},
-        screen: { params: {} },
-        now,
-        today: new Date(now).toISOString().slice(0, 10),
-    };
-}
-
-/**
- * Resolve a record/records binding's filter for the dry-run, mirroring the
- * client resolveBindingFilters contract against the synthetic scope:
- *   • isNull/isNotNull entries pass through untouched;
- *   • a {kind:'formula',expr} value referencing a non-populatable root → the
- *     WHOLE binding is skipped (dynamic — can't simulate it);
- *   • a formula that resolves to undefined/null has its entry OMITTED;
- *   • literals pass through.
- * Returns { filters } (an array, possibly empty) or { skipped:true }.
- */
-function resolveDryRunFilters(binding, scope) {
-    const filter = binding.filter;
-    if (filter === undefined || filter === null) return { filters: undefined };
-    // A legacy whole-filter formula string references live scope — can't simulate.
-    if (typeof filter === 'string') return { skipped: true };
-    if (!Array.isArray(filter)) return { filters: undefined };
-
-    const out = [];
-    for (const entry of filter) {
-        if (!isPlainObject(entry)) { out.push(entry); continue; }
-        if (NO_VALUE_FILTER_OPS.has(entry.op)) { out.push(entry); continue; }
-        const v = entry.value;
-        if (isPlainObject(v) && v.kind === 'formula') {
-            let refs;
-            try { refs = compile(String(v.expr || '')).refs; }
-            catch { return { skipped: true }; } // a bad formula is a STATIC error; skip data
-            if (refs.some((r) => !SYNTHETIC_SCOPE_ROOTS.has(r))) return { skipped: true };
-            const { value } = tryEvaluate(v.expr, scope);
-            if (value === undefined || value === null) continue; // omit — matches the client
-            out.push({ ...entry, value });
-        } else {
-            out.push(entry);
-        }
-    }
-    return { filters: out };
-}
-
-/**
- * Execute one record/records binding read-only and return the per-binding
- * finding fields ({ ok, rowCount } | { ok, error } | { skipped }).
- */
-async function runRecordBinding(binding, table, { roleArg, viewer, scope, app, ownerScope, deps }) {
-    const resolved = resolveDryRunFilters(binding, scope);
-    if (resolved.skipped) return { ok: true, skipped: 'dynamic' };
-    try {
-        const accessFilter = rlsGateway.compileAccessFilter(table, roleArg, viewer, 'read');
-        const { sql, params } = queryCompiler.compileRecordList(
-            table,
-            { filters: resolved.filters, sort: binding.sort, limit: DRY_RUN_LIMIT },
-            accessFilter,
-        );
-        const out = await deps.dbQuery(ownerScope, app.id, sql, params);
-        const rows = Array.isArray(out && out.rows) ? out.rows : [];
-        return { ok: true, rowCount: Math.min(rows.length, DRY_RUN_LIMIT) };
-    } catch (e) {
-        if (e instanceof rlsGateway.AccessError) return { ok: true, rowCount: 0, note: 'no read access for this role' };
-        return { ok: false, error: e && e.message ? e.message : String(e) };
-    }
-}
-
-/**
- * Execute one AGGREGATE binding read-only.
- *
- * It needs its own compiler call, and that is the whole point of this function.
- * Every non-dataset binding used to go through compileRecordList — which
- * resolves `sort.field` against the table's real columns. An aggregate sorts by
- * its own OUTPUT: `count`, `aanvragen`, a bucketed `day`. Those are aliases, not
- * columns, so a perfectly good chart came back as `unknown field: count` and the
- * dry run reported four working dashboard tiles as broken.
- *
- * A check that cries wolf is worse than no check: it teaches you to skim past
- * findings, which is exactly when the real one goes by. compileAggregate is also
- * what the live /data/query route runs, so what passes here is what runs.
- */
-async function runAggregateBinding(binding, table, { roleArg, viewer, scope, app, ownerScope, deps }) {
-    const resolved = resolveDryRunFilters(binding, scope);
-    if (resolved.skipped) return { ok: true, skipped: 'dynamic' };
-    try {
-        const accessFilter = rlsGateway.compileAccessFilter(table, roleArg, viewer, 'read');
-        const { sql, params } = queryCompiler.compileAggregate(
-            table,
-            {
-                filters: resolved.filters,
-                groupBy: binding.groupBy,
-                aggregates: binding.aggregates,
-                sort: binding.sort,
-                limit: DRY_RUN_LIMIT,
-            },
-            accessFilter,
-        );
-        const out = await deps.dbQuery(ownerScope, app.id, sql, params);
-        const rows = Array.isArray(out && out.rows) ? out.rows : [];
-        return { ok: true, rowCount: Math.min(rows.length, DRY_RUN_LIMIT) };
-    } catch (e) {
-        if (e instanceof rlsGateway.AccessError) return { ok: true, rowCount: 0, note: 'no read access for this role' };
-        return { ok: false, error: e && e.message ? e.message : String(e) };
-    }
-}
-
-/** Execute one dataset binding read-only via datasetCache.runDataset. */
-async function runDatasetBinding(binding, { dataModel, app, viewer, appId, ownerId, deps }) {
-    try {
-        const ds = await deps.getDataset(binding.datasetId, appId, ownerId);
-        if (!ds) return { ok: true, skipped: 'unresolved' }; // STATIC flags unknown_dataset
-        const out = await deps.runDataset(app, dataModel, ds, viewer, { refresh: true });
-        const rows = Array.isArray(out && out.rows) ? out.rows : [];
-        return { ok: true, rowCount: rows.length };
-    } catch (e) {
-        if (e instanceof rlsGateway.AccessError) return { ok: true, rowCount: 0, note: 'no read access for this role' };
-        return { ok: false, error: e && e.message ? e.message : String(e) };
-    }
-}
-
-/**
  * Run the DATA pass over the collected bindings for one identity (owner or a
  * role). Returns the per-binding finding array.
+ *
+ * @returns {Promise<Array<any>>}
  */
 async function runDataPass(collected, { dataModel, app, roleArg, viewer, ownerScope, appId, ownerId, deps, variables }) {
     const scope = syntheticScope(viewer, variables);
@@ -224,7 +81,7 @@ async function runDataPass(collected, { dataModel, app, roleArg, viewer, ownerSc
             const table = findModelTable(dataModel, binding.tableId);
             if (!table) { findings.push({ ...base, ok: true, skipped: 'unresolved' }); continue; } // STATIC flags unknown_table
             const run = binding.kind === 'aggregate' ? runAggregateBinding : runRecordBinding;
-            res = await run(binding, table, { roleArg, viewer, scope, app, ownerScope, deps });
+            res = await run(binding, table, { roleArg, viewer, scope, app, ownerScope, deps, dataModel });
         }
         findings.push({ ...base, ...res });
     }
@@ -287,22 +144,26 @@ function defaultDeps() {
             require('./datasetCache').runDataset(app, model, ds, viewer, opts),
         getDataset: (datasetId, appId, ownerId) =>
             require('../stores/studioAppDataStore').getDataset(datasetId, appId, ownerId),
+        readRecords: (ctx, table, opts) => require('./dataReadRunner').runRecordList(ctx, table, opts),
+        readAggregate: (ctx, table, descriptor) => require('./dataReadRunner').runInlineAggregate(ctx, table, descriptor),
     };
 }
 
 /**
  * Run a full dry-run.
  *
- * @param {object} input
- * @param {object}  input.def       — canonical app definition
- * @param {object}  [input.dataModel]— the app's data model (or null)
- * @param {Array}   [input.datasets]— dataset ids ([{id}] or [id]) for the STATIC pass
- * @param {object}  [input.app]     — the studio_apps row (needed for the DATA pass; null → data pass skipped)
- * @param {string}  [input.ownerId] — the app owner's user id
- * @param {object}  [input.deps]    — { dbQuery, runDataset, getDataset } overrides
+ * @param {object} [input]
+ * @param {any}     [input.def]     - canonical app definition
+ * @param {any}     [input.datatables] - the app's datatables (optional)
+ * @param {string}  [input.appId]   - app id when no `app` row is given
+ * @param {object}  [input.dataModel]- the app's data model (or null)
+ * @param {Array}   [input.datasets]- dataset ids ([{id}] or [id]) for the STATIC pass
+ * @param {object}  [input.app]     - the studio_apps row (needed for the DATA pass; null → data pass skipped)
+ * @param {string}  [input.ownerId] - the app owner's user id
+ * @param {object}  [input.deps]    - { dbQuery, runDataset, getDataset } overrides
  * @param {object} [opts]
- * @param {string}  [opts.screenId] — narrow the DATA pass to one screen
- * @param {string}  [opts.asRole]   — re-run the DATA pass as this role (when it exists)
+ * @param {string}  [opts.screenId] - narrow the DATA pass to one screen
+ * @param {string}  [opts.asRole]   - re-run the DATA pass as this role (when it exists)
  */
 async function appDryRun(input = {}, opts = {}) {
     const { def, dataModel = null, datasets = [], datatables = null, app = null, ownerId = null } = input;
@@ -310,6 +171,11 @@ async function appDryRun(input = {}, opts = {}) {
     const deps = { ...defaultDeps(), ...(input.deps || {}) };
     const appId = app ? app.id : (input.appId ?? null);
     const ownerScope = app ? app.userId : ownerId;
+
+    // An unknown screen or role is the caller's mistake, not a clean app: say so
+    // (app_screenshot refuses both the same way) instead of an ok:true with no bindings.
+    const unknown = unknownTarget(def, dataModel, screenId, asRole);
+    if (unknown) return unknown;
 
     // 1. STATIC — the data-aware cross-ref checker (unknown table/dataset/field).
     // `datatables` (de Studio-tabellen die de eigenaar heeft) rijdt mee zodat de
@@ -348,8 +214,9 @@ async function appDryRun(input = {}, opts = {}) {
     for (const b of bindings) {
         if (b.rowCount === 0 && b.kind !== 'dataset') {
             const ref = bindingTableRef(collected, b);
-            if (ref && !emptyTables.includes(ref)) emptyTables.push(ref);
-            hints.push(`${b.nodeId || 'component'}.${b.prop} (${b.kind}) returned 0 rows — seed data or fix the filter${ref ? ` on "${ref}"` : ''}.`);
+            // A filtered read that is empty says nothing about the table itself.
+            if (ref && !b.filtered && !emptyTables.includes(ref)) emptyTables.push(ref);
+            hints.push(`${b.nodeId || 'component'}.${b.prop} (${b.kind}) returned 0 rows${b.filtered ? ' with its filter' : ''} — seed data or fix the filter${ref ? ` on "${ref}"` : ''}.`);
         } else if (b.rowCount === 0 && b.kind === 'dataset') {
             hints.push(`${b.nodeId || 'component'}.${b.prop} (dataset) returned 0 rows — the dataset is empty (seed the source table) or its filters exclude everything.`);
         }
@@ -376,6 +243,23 @@ async function appDryRun(input = {}, opts = {}) {
     };
 }
 
+/** An error result when screenId/asRole name something the app does not have. */
+function unknownTarget(def, dataModel, screenId, asRole) {
+    if (screenId) {
+        const screens = Array.isArray(def && def.screens) ? def.screens.filter((x) => x && x.id) : [];
+        if (!screens.some((x) => x.id === screenId)) {
+            return { ok: false, error: `Unknown screenId ${JSON.stringify(screenId)}.`, _fixHint: `Screens: ${screens.map((x) => x.id).join(', ') || '(none)'}.` };
+        }
+    }
+    if (asRole) {
+        const roles = (dataModel && Array.isArray(dataModel.roles)) ? dataModel.roles.filter((r) => r && r.key) : [];
+        if (!roles.some((r) => r.key === asRole)) {
+            return { ok: false, error: `Unknown asRole ${JSON.stringify(asRole)}.`, _fixHint: `Roles: ${roles.map((r) => r.key).join(', ') || '(none defined)'}.` };
+        }
+    }
+    return null;
+}
+
 /** The table id/key a record/records binding finding referred to (for emptyTables). */
 function bindingTableRef(collected, finding) {
     const match = collected.find((c) => c.nodeId === finding.nodeId && c.prop === finding.prop && c.binding.kind === finding.kind);
@@ -385,6 +269,7 @@ function bindingTableRef(collected, finding) {
 module.exports = {
     appDryRun,
     DRY_RUN_LIMIT,
+    dryRunFailure,
     ROLE_PROBE_VIEWER_ID,
     // exposed for tests
     _test: { resolveDryRunFilters, syntheticScope, collectDataSteps, checkDataStep, runActionPass, findModelTable },

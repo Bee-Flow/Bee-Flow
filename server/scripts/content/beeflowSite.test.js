@@ -21,7 +21,8 @@ const { installCmsStoreMocks } = require('../../stores/cmsStore.testkit');
 installCmsStoreMocks();
 
 const cmsStore = require('../../stores/cmsStore');
-const { BLOCK_TYPE_IDS, RESERVED_SLUGS, DESIGN_FONTS, DEMO_FEATURE_IDS } = require('../../i18n/defaults/cmsDefaults');
+const { BLOCK_TYPE_IDS, DESIGN_FONTS, DEMO_FEATURE_IDS } = require('../../i18n/defaults/cmsDefaults');
+const { RESERVED_PAGE_SLUGS } = require('../../stores/cms/slugRules');
 const { THEME_PRESET_IDS } = require('../../i18n/defaults/themePresets');
 const { sanitizeSvg } = require('../../utils/svgSanitizer');
 const { buildBundle, PAGES } = require('./beeflowSite');
@@ -42,7 +43,7 @@ test('every block type in the seed exists in the catalogue', () => {
 });
 
 test('no page uses a slug the app has already claimed', () => {
-    const reserved = RESERVED_SLUGS instanceof Set ? RESERVED_SLUGS : new Set(RESERVED_SLUGS);
+    const reserved = RESERVED_PAGE_SLUGS;
     const clashes = PAGES.map(p => p.slug).filter(s => reserved.has(s));
     assert.deepStrictEqual(clashes, [], '/pricing, /privacy, /terms and /legal are app routes — pricing lives at /plans');
 });

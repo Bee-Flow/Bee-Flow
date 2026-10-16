@@ -18,6 +18,7 @@
  * webpage_create is the one exception: the new webpage is owned by the caller.
  */
 
+const { publicDbErrorMessage } = require('../stores/lib/publicDbError');
 const webpageStore = require('../stores/webpageStore');
 const { executeDbTool } = require('./webpageDbTools');
 const { executeBuilderTool } = require('./webpageBuilderTools');
@@ -49,12 +50,12 @@ const WEBPAGE_AUTOMATION_TOOLS = [
         type: 'function',
         function: {
             name: 'webpage_db_query',
-            description: 'Read rows from a webpage\'s SQLite database. SELECT / WITH / PRAGMA only — refuses to run a statement that would mutate the database. ALWAYS use ? placeholders and pass values via params; never interpolate into the SQL string. Returns { rows: [...], columns: [...], truncated, message }. Rows are capped at 10000.',
+            description: 'Read rows from a webpage\'s SQLite database. SELECT / WITH only, plus the schema PRAGMAs table_info, index_list, index_info and foreign_key_list — refuses to run a statement that would mutate the database. ALWAYS use ? placeholders and pass values via params; never interpolate into the SQL string. Returns { rows: [...], columns: [...], truncated, message }. Rows are capped at 10000.',
             parameters: {
                 type: 'object',
                 properties: {
                     webpageId: { type: 'string', description: 'The target webpage\'s id.' },
-                    sql: { type: 'string', description: 'A read-only SQL statement (SELECT / WITH / PRAGMA).' },
+                    sql: { type: 'string', description: 'A read-only SQL statement (SELECT / WITH, or a schema PRAGMA such as table_info).' },
                     params: { type: 'array', description: 'Values bound positionally to ? placeholders. Omit or [] when the SQL has no placeholders.', items: {} },
                 },
                 required: ['webpageId', 'sql'],
@@ -253,7 +254,7 @@ async function executeWebpageAutomationTool(toolName, args, ctx) {
         try {
             return await executeDbTool(toolName, dbArgs, { webpageId, userId: ownerUserId });
         } catch (err) {
-            return { error: `Webpage DB tool failed: ${err.message}` };
+            return { error: `Webpage DB tool failed: ${publicDbErrorMessage(err)}` };
         }
     }
 

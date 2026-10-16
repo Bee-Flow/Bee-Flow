@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS media helpers: clip uploads (demo videos WITH sound, up to 500 MB) and
  * WebVTT captions validation.
@@ -93,7 +94,7 @@ function clipUploadMiddleware(req, res, next) {
 }
 
 /** Stream a finished temp file into storage in bounded parts. */
-async function streamIntoStorage(filePath, size, key, contentType) {
+async function streamIntoStorage(filePath, size, key, contentType, signal = null) {
     const { uploadId } = await storageStore.beginMultipartUpload(key, contentType);
     const handle = await fs.promises.open(filePath, 'r');
     try {
@@ -101,6 +102,7 @@ async function streamIntoStorage(filePath, size, key, contentType) {
         let offset = 0;
         let partNumber = 1;
         while (offset < size) {
+            if (signal?.aborted) throw new Error('Upload aborted');
             const len = Math.min(CLIP_PART_BYTES, size - offset);
             const buf = Buffer.allocUnsafe(len);
             let filled = 0;

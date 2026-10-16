@@ -1,10 +1,19 @@
 import React from 'react';
 import EditableText from '../components/EditableText';
 import FramedMedia from '../components/FramedMedia';
+import { columnSizes } from '../assetUrl';
 import SectionFrame from '../components/SectionFrame';
 import SectionHeader from '../components/SectionHeader';
 import { sectionBgClass } from './sectionBg';
 import type { MediaSlot, SectionDataBase } from './sectionData.types';
+
+// True inside the CMS editor's preview iframe (?preview) — an empty media slot
+// keeps its placeholder frame there, but never on the published site.
+const isEditable = () =>
+    typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).has('preview');
+
+const hasSrc = (m?: MediaSlot) => typeof m?.src === 'string' && m.src.trim() !== '';
 
 interface ShowcaseData extends SectionDataBase {
     variant?: string;
@@ -20,6 +29,9 @@ export default function Showcase({ data }: { data?: ShowcaseData }) {
     // 'code-ui' = mono code panel (no syntax highlighting) + frame, 5/7.
     const variant = (['pair', 'code-ui'] as readonly (string | undefined)[]).includes(data.variant) ? data.variant : 'single';
     const code = data.code || {};
+    // Published site: an empty slot collapses instead of a grey skeleton pane.
+    const showMedia = hasSrc(data.media) || isEditable();
+    const showSecondary = hasSrc(data.mediaSecondary) || isEditable();
 
     return (
         <SectionFrame id="showcase" name="Showcase" enabled={data.enabled}>
@@ -33,8 +45,8 @@ export default function Showcase({ data }: { data?: ShowcaseData }) {
                     />
                     {variant === 'pair' ? (
                         <div className="showcase-pair reveal">
-                            <FramedMedia media={data.media} glow={false} />
-                            <FramedMedia media={data.mediaSecondary} glow={false} />
+                            {showMedia ? <FramedMedia media={data.media} glow={false} sizes={columnSizes(2)} /> : null}
+                            {showSecondary ? <FramedMedia media={data.mediaSecondary} glow={false} sizes={columnSizes(2)} /> : null}
                         </div>
                     ) : variant === 'code-ui' ? (
                         <div className="showcase-code-ui reveal">
@@ -59,13 +71,13 @@ export default function Showcase({ data }: { data?: ShowcaseData }) {
                                     {code.snippet || ''}
                                 </EditableText>
                             </div>
-                            <FramedMedia media={data.media} />
+                            {showMedia ? <FramedMedia media={data.media} /> : null}
                         </div>
-                    ) : (
+                    ) : showMedia ? (
                         <div className="showcase-single reveal">
                             <FramedMedia media={data.media} fadeMask />
                         </div>
-                    )}
+                    ) : null}
                 </div>
             </section>
         </SectionFrame>

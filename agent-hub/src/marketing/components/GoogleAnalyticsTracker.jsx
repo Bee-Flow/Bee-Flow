@@ -50,6 +50,7 @@ function removeGa(measurementId) {
     try { window[`ga-disable-${measurementId}`] = true; } catch { /* ignore */ }
 }
 
+/** @param {{ measurementId?: string | null }} [props] */
 export default function GoogleAnalyticsTracker({ measurementId } = {}) {
     useEffect(() => {
         if (typeof window === 'undefined') return undefined;

@@ -149,15 +149,15 @@ const GROUP_DEPS = {
  * @param {Object} options
  * @param {string}  options.userId       - Current user ID
  * @param {Object}  options.session      - Express session (for OAuth tokens)
- * @param {boolean} options.isAdmin      - Whether user is admin
- * @param {string[]|null} options.enabledAppsOverride - Stands in for the
+ * @param {boolean} [options.isAdmin]    - Whether user is admin
+ * @param {string[]|null} [options.enabledAppsOverride] - Stands in for the
  *   user's workspace-wide enabled-apps preference for this call. Used by a
  *   cowork item that carries its own, narrower list: the run may only touch
  *   what that item allows, regardless of what the user has on elsewhere.
  *   Goes through the SAME gate as the stored preference, so the
  *   AUTO_ENABLED_APPS carve-out and every entitlement/credential check below
  *   still apply — it narrows the user layer, it can never widen anything.
- * @param {string[]|null} options.extraEnabledApps - App ids allowed by an
+ * @param {string[]|null} [options.extraEnabledApps] - App ids allowed by an
  *   active skill (skill-scoped enablement). INVARIANT: this bypasses ONLY the
  *   per-user enabled-apps preference — it must never widen org entitlements
  *   or skip credential/session checks.

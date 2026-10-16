@@ -20,7 +20,7 @@ const {
 const COLUMNS = [
     { id: 11, title: 'Company', type: 'text' },
     { id: 12, title: 'Year', type: 'number' },
-    { id: 13, title: 'Status', type: 'selection' },
+    { id: 13, title: 'Status', type: 'selection', selectionOptions: [{ id: 1, label: 'active' }] },
 ];
 
 test('the prefix test matches this module and nothing broader', () => {
@@ -43,7 +43,7 @@ test('values are resolved by column title, case-insensitively', () => {
     const out = resolveValues({ Company: 'Acme BV', status: 'active' }, COLUMNS);
     assert.deepEqual(out.data, [
         { columnId: 11, value: 'Acme BV' },
-        { columnId: 13, value: 'active' },
+        { columnId: 13, value: 1 },
     ]);
 });
 

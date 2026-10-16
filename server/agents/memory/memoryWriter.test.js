@@ -150,6 +150,15 @@ describe('canonical key', () => {
         assert.equal(calls.create.length, 0);
     });
 
+    test('no value: other text under the same key supersedes, the same text confirms', async () => {
+        const bare = fact({ content: 'Signs off with Groet', subject: 'email style', attribute: 'signoff' });
+        const old = (content) => ({ id: 'old', value: null, content, origin: 'inferred' });
+        const a = harness({ findByKey: async () => old('Signs off with Cheers') });
+        assert.deepEqual(await a.writer.writeMemory(bare, CTX), { action: 'superseded', id: 'new-1', supersededId: 'old' });
+        const b = harness({ findByKey: async () => old('signs off  with groet') });
+        assert.deepEqual(await b.writer.writeMemory(bare, CTX), { action: 'confirmed', id: 'old' });
+    });
+
     test('another value supersedes: a new row, never an in-place edit', async () => {
         const { writer, calls } = harness({ findByKey: async () => ({ id: 'old', value: 'tester', origin: 'inferred' }) });
         const r = await writer.writeMemory(keyed, CTX);

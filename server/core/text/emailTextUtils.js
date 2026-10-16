@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Email/ticket text utilities — HTML→text cleanup, PII redaction, and the
  * KB-article merge prompt.
@@ -15,49 +16,107 @@
 // Ported directly from n8n Code node "Code: Cleanup HTML/Email"
 // ──────────────────────────────────────────────
 
+const NAMED_ENTITIES = {
+    nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'",
+    eacute: 'é', egrave: 'è', ecirc: 'ê', euml: 'ë', aacute: 'á', agrave: 'à', acirc: 'â', auml: 'ä',
+    iacute: 'í', icirc: 'î', iuml: 'ï', oacute: 'ó', ocirc: 'ô', ouml: 'ö', uacute: 'ú', ucirc: 'û',
+    uuml: 'ü', ccedil: 'ç', ntilde: 'ñ', szlig: 'ß', euro: '€', pound: '£', yen: '¥', copy: '©',
+    reg: '®', trade: '™', hellip: '…', ndash: '–', mdash: '—', lsquo: '‘', rsquo: '’', ldquo: '“',
+    rdquo: '”', bull: '•', middot: '·', laquo: '«', raquo: '»', deg: '°',
+};
+
 function decodeHtmlEntities(str) {
     if (!str) return '';
-    const map = {
-        '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>',
-        '&quot;': '"', '&#34;': '"', '&#39;': "'", '&apos;': "'",
-    };
-    return str.replace(/&nbsp;|&amp;|&lt;|&gt;|&quot;|&#34;|&#39;|&apos;/g, m => map[m] ?? m);
+    return str.replace(/&(#[xX][0-9a-fA-F]{1,6}|#[0-9]{1,7}|[a-zA-Z]{2,8});/g, (m, body) => {
+        if (body[0] === '#') {
+            const cp = body[1] === 'x' || body[1] === 'X' ? parseInt(body.slice(2), 16) : parseInt(body.slice(1), 10);
+            const valid = cp > 0 && cp <= 0x10ffff && !(cp >= 0xd800 && cp <= 0xdfff);
+            return valid ? String.fromCodePoint(cp) : m;
+        }
+        return NAMED_ENTITIES[body] ?? NAMED_ENTITIES[body.toLowerCase()] ?? m;
+    });
+}
+
+// Elements whose content is never text, plus comments. Removed with indexOf
+// scans (no backtracking), to the close tag or, when it is missing, to the end.
+const DROP_BLOCKS = new Set(['head', 'script', 'style', 'title', 'noscript', 'template']);
+
+/** Index just past the `>` of the close tag `</name  >` found after `from`, or -1. */
+function findCloseEnd(s, lower, name, from) {
+    const needle = `</${name}`;
+    let at = lower.indexOf(needle, from);
+    while (at !== -1) {
+        let k = at + needle.length;
+        while (k < s.length && /\s/.test(s[k])) k++;
+        if (s[k] === '>') return k + 1;
+        at = lower.indexOf(needle, at + needle.length);
+    }
+    return -1;
+}
+
+function dropBlocks(s) {
+    const lower = s.replace(/[A-Z]/g, c => String.fromCharCode(c.charCodeAt(0) + 32));
+    const out = [];
+    let i = 0;
+    for (;;) {
+        const lt = s.indexOf('<', i);
+        if (lt === -1) { out.push(s.slice(i)); break; }
+        out.push(s.slice(i, lt));
+        if (lower.startsWith('<!--', lt)) {
+            const end = s.indexOf('-->', lt + 4);
+            if (end === -1) break;
+            i = end + 3;
+            continue;
+        }
+        let k = lt + 1;
+        while (k < s.length && /[a-z0-9]/.test(lower[k])) k++;
+        const name = lower.slice(lt + 1, k);
+        const boundary = k >= s.length || /[\s/>]/.test(s[k]);
+        if (DROP_BLOCKS.has(name) && boundary) {
+            const end = findCloseEnd(s, lower, name, k);
+            if (end === -1) break;
+            i = end;
+            continue;
+        }
+        out.push('<');
+        i = lt + 1;
+    }
+    return out.join('');
 }
 
 function stripHtmlToText(input) {
-    let s = String(input || '');
+    let s = dropBlocks(String(input || ''));
 
-    s = s.replace(/<head[\s\S]*?<\/head>/gi, '');
-    s = s.replace(/<script[\s\S]*?<\/script>/gi, '');
-    s = s.replace(/<style[\s\S]*?<\/style>/gi, '');
+    // Every tag pattern excludes '<' as well as '>', so a stray '<' ends the
+    // scan and the whole function stays linear on hostile input.
 
     // Remove images entirely
-    s = s.replace(/<img\b[^>]*>/gi, '');
+    s = s.replace(/<img\b[^<>]*>/gi, '');
 
     // Links: keep link text only
-    s = s.replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, '$1');
+    s = s.replace(/<\/?a\b[^<>]*>/gi, '');
 
     // Basic formatting
-    s = s.replace(/<(strong|b)\b[^>]*>([\s\S]*?)<\/\1>/gi, '**$2**');
-    s = s.replace(/<(em|i)\b[^>]*>([\s\S]*?)<\/\1>/gi, '*$2*');
+    s = s.replace(/<\/?(?:strong|b)\b[^<>]*>/gi, '**');
+    s = s.replace(/<\/?(?:em|i)\b[^<>]*>/gi, '*');
 
     // Line breaks / blocks
     s = s.replace(/<br\s*\/?>/gi, '\n');
-    s = s.replace(/<\/(p|div|tr|table|thead|tbody|tfoot)>/gi, '\n');
-    s = s.replace(/<(p|div|tr|table|thead|tbody|tfoot)\b[^>]*>/gi, '');
+    s = s.replace(/<\/(p|div|tr|table|thead|tbody|tfoot)\s*>/gi, '\n');
+    s = s.replace(/<(p|div|tr|table|thead|tbody|tfoot)\b[^<>]*>/gi, '');
 
     // Lists
-    s = s.replace(/<li\b[^>]*>/gi, '- ');
-    s = s.replace(/<\/li>/gi, '\n');
-    s = s.replace(/<\/?(ul|ol)\b[^>]*>/gi, '\n');
+    s = s.replace(/<li\b[^<>]*>/gi, '- ');
+    s = s.replace(/<\/li\s*>/gi, '\n');
+    s = s.replace(/<\/?(ul|ol)\b[^<>]*>/gi, '\n');
 
     // Remove remaining tags
-    s = s.replace(/<\/?[^>]+>/g, '');
+    s = s.replace(/<\/?[a-zA-Z!][^<>]*>/g, '');
 
     // Decode entities + normalize whitespace
     s = decodeHtmlEntities(s);
     s = s.replace(/\r\n/g, '\n')
-         .replace(/[ \t]+\n/g, '\n')
+         .split('\n').map(l => l.trimEnd()).join('\n')
          .replace(/\n{3,}/g, '\n\n')
          .trim();
 
@@ -316,6 +375,7 @@ IMPORTANT: Detect the language of the source articles and write in that SAME lan
 
 module.exports = {
     cleanEmail,
+    stripHtmlToText,
     redactPII,
     redactPIIWithCounts,
     isValidBsn,

@@ -1,0 +1,667 @@
+/* Tokens only the signed-in product reads (bubble, PII, chart, step-type, kind
+   and learning colours), then the alternate themes (glass, glass-dark,
+   high-contrast, paper, obsidian, sepia). Split out of ./index.css with
+   ./app.css: a marketing page paints with its own tokens (.marketing-root), so
+   it does not wait for them (issue 245). The default and light themes and every
+   other token stay in ./index.css; the mobile token generator reads both files
+   (mobile/scripts/sync-web-tokens.mjs). */
+
+/* User chat bubble — the prose inside the user message keeps black text by
+   default because the bubble has a fixed light gray background. The token is
+   overridable so embedders (EmbedChat) can pass a `userColor` URL param and
+   have both the bubble and its prose flip in lockstep. */
+.bubble-user-prose,
+.bubble-user-prose :where(h1, h2, h3, h4, h5, h6, p, a, strong, code, li, blockquote) {
+    color: var(--user-bubble-fg, #000) !important;
+}
+
+.bubble-user-prose a {
+    text-decoration: underline;
+}
+
+/* Per-theme user-bubble colour. Without these, every theme falls back to the
+   universal `#e8e8eb` cool gray in MessageItem.jsx — which clashes with warm
+   themes (Paper, Sepia) and reads as a flat slab on dark themes. Glass
+   variants use a translucent tile so they sit on the wallpaper naturally
+   instead of breaking the liquid-glass aesthetic. EmbedChat's `userColor`
+   URL param still wins because it writes to :root with !important. */
+:root                          { --user-bubble-bg: #2a2a36;                 --user-bubble-fg: #f8fafc; }
+[data-theme="light"]           { --user-bubble-bg: #e8e8ee;                 --user-bubble-fg: #0f172a; }
+[data-theme="glass"]           { --user-bubble-bg: rgba(255,255,255,0.55);  --user-bubble-fg: #0f172a; }
+[data-theme="glass-dark"]      { --user-bubble-bg: rgba(15,23,42,0.55);     --user-bubble-fg: #f8fafc; }
+[data-theme="high-contrast"]   { --user-bubble-bg: #ffffff;                 --user-bubble-fg: #000000; }
+[data-theme="paper"]           { --user-bubble-bg: #f0ebe0;                 --user-bubble-fg: #1c1917; }
+[data-theme="obsidian"]        { --user-bubble-bg: #1c1c20;                 --user-bubble-fg: #fafaf9; }
+[data-theme="sepia"]           { --user-bubble-bg: #e8dcc4;                 --user-bubble-fg: #44322c; }
+
+/* PII category colors — the DLP review UI (dlpReview/) badges/highlights a
+   detected span by CATEGORY + color, never a raw confidence percentage. Eight
+   slots from the dataviz skill's validated categorical palette (fixed order,
+   CVD-safe on adjacent pairs — see the skill's references/palette.md), mapped
+   1:1 onto piiCategories.ts's 7 groups plus an 8th slot for manually-marked /
+   custom-term spans. Two value sets (not one per Bee Flow theme): the
+   palette is validated against ONE light and ONE dark reference surface, so
+   themes group by surface lightness rather than getting bespoke, unvalidated
+   re-tunes. Dark-surface themes: default (root), glass-dark, obsidian.
+   Light-surface themes: light, glass, high-contrast, paper, sepia. */
+:root,
+[data-theme="glass-dark"],
+[data-theme="obsidian"] {
+    --pii-cat-1: #3987e5; /* Personal — blue */
+    --pii-cat-2: #d95926; /* Contact — orange */
+    --pii-cat-3: #199e70; /* Financial — aqua */
+    --pii-cat-4: #c98500; /* Identity — yellow */
+    --pii-cat-5: #d55181; /* Digital — magenta */
+    --pii-cat-6: #008300; /* Organization — green */
+    --pii-cat-7: #9085e9; /* EU / Netherlands — violet */
+    --pii-cat-8: #e66767; /* Manually marked / custom term — red */
+}
+[data-theme="light"],
+[data-theme="glass"],
+[data-theme="high-contrast"],
+[data-theme="paper"],
+[data-theme="sepia"] {
+    --pii-cat-1: #2a78d6;
+    --pii-cat-2: #eb6834;
+    --pii-cat-3: #1baf7a;
+    --pii-cat-4: #eda100;
+    --pii-cat-5: #e87ba4;
+    --pii-cat-6: #008300;
+    --pii-cat-7: #4a3aa7;
+    --pii-cat-8: #e34948;
+}
+
+/* Chart series for the product's own dashboards (Studio → Forms → Answers,
+   a datatable's Dashboard tab; components/shared/charts). The same validated
+   categorical palette as --pii-cat-* — one set per surface lightness — with
+   slot 7 on cyan instead of violet: a chart may carry no purple/violet/indigo
+   (house rule, AppStudio.noPurple.test). Series colours only; axes, grid,
+   labels and tooltips stay on the text/border tokens. */
+:root,
+[data-theme="glass-dark"],
+[data-theme="obsidian"] {
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
+    --chart-3: #199e70;
+    --chart-4: #c98500;
+    --chart-5: #d55181;
+    --chart-6: #008300;
+    --chart-7: #0e9ab8;
+    --chart-8: #e66767;
+}
+[data-theme="light"],
+[data-theme="glass"],
+[data-theme="high-contrast"],
+[data-theme="paper"],
+[data-theme="sepia"] {
+    --chart-1: #2a78d6;
+    --chart-2: #eb6834;
+    --chart-3: #1baf7a;
+    --chart-4: #eda100;
+    --chart-5: #e87ba4;
+    --chart-6: #008300;
+    --chart-7: #0891b2;
+    --chart-8: #e34948;
+}
+
+/* Step-type family colours for the automations builder (Bee Flow Builder
+   redesign, Sep 2026). Nine families — trigger, ai, app, branch, loop, data,
+   pause, guard, end — each painted ONLY as the 4px bar and the icon tile on a
+   step card, in the palette, the legend and the minimap; never as a surface.
+   Same two-set model as --pii-cat above: one set validated on a light
+   reference surface, one on a dark one, grouped by surface lightness rather
+   than re-tuned per theme. `end` is the theme's own ink (declared once in
+   :root below) so a paper/sepia end card never carries a foreign near-black.
+   The type→family map lives in components/automation/Builder/flow/nodeDefs.js;
+   the visual recipes in flow/nodeTypeColors.js. */
+:root,
+[data-theme="glass-dark"],
+[data-theme="obsidian"] {
+    --type-trigger: #5cc2b3;
+    --type-ai: #82aaf0;
+    --type-app: #c8ad74;
+    --type-branch: #e08a5e;
+    --type-loop: #63bfe0;
+    --type-data: #9fb0c8;
+    --type-pause: #c2a98a;
+    --type-guard: #6cb8d3;
+}
+[data-theme="light"],
+[data-theme="glass"],
+[data-theme="high-contrast"],
+[data-theme="paper"],
+[data-theme="sepia"] {
+    --type-trigger: #2b7f74;
+    --type-ai: #3f6fc4;
+    --type-app: #7c6a3f;
+    --type-branch: #a8552d;
+    --type-loop: #2a7f9d;
+    --type-data: #5a6b82;
+    --type-pause: #7d6b55;
+    --type-guard: #2e6f86;
+}
+
+/* Object-kind colours for Studio (Bee Flow Builder redesign, Sep 2026). A
+   KIND is a thing you make in Studio — an app, a webpage, a skill, a
+   knowledge base, a meeting note — where a --type-* family above is a step
+   inside an automation. Painted only as the 28/30/36/48px icon tile, the
+   rail glyph, a reference pill or a legend swatch; never as a surface.
+   Same two-set model as --pii-cat and --type-* above. Kinds that already
+   have a step family reuse its token (automation → --type-trigger, table →
+   --type-data, form → --type-pause, agent → --type-ai — artboard 1b says
+   "blauw · zelfde als AI-stap" on purpose); a solution is a container and
+   stays neutral (--text-secondary). The kind→token map and the tile recipes
+   live in components/shared/kindColors.js.
+
+   Two artboard values are RETUNED here, not aliased. The design draws
+   Webpagina as #2a7f9d and Meeting note as #7d6b55 — exactly --type-loop
+   and --type-pause — while artboard 1b puts Formulier (--type-pause) and
+   Meeting note side by side in one nine-tile legend, and the Studio rail
+   tints Webpagina's in a petrol the builder has already taught as "loop".
+   One shared colour would make that legend teach eight kinds, not nine. So
+   each is moved one perceptible step (ΔE*ab ≈ 15–17) from its twin inside
+   its own hue family: web stays petrol but deeper and a touch bluer (loop
+   and guard keep the cyan side), meet stays brown but drops the grey (pause
+   keeps the taupe). Design-owner sign-off pending — recorded in the plan's
+   deviation table.
+
+   A THIRD retune (Compliance Center redesign, 2026-09-14). The Compliance
+   artboards paint the area #2e6f86 — exactly the light --type-guard — and a
+   guard step (DLP, PII shield, approval) is the family a compliance section
+   sits next to most often. Compliance is also the one kind that is an AREA
+   you administer rather than a thing you make; it is on this map so the
+   Studio section header, the settings-nav tile and the hub's own rail read
+   ONE token instead of each choosing a teal. Retuned inside the teal family,
+   one perceptible step darker and greener. Light #1b6067: 7.2:1 on #fff;
+   ΔE*ab 12.1 from --type-guard #2e6f86, 17.0 from --type-trigger #2b7f74,
+   18.5 from --type-loop #2a7f9d, 27.9 from --kind-web #22699b. Dark
+   #3eb3bd: 6.9:1 on the dark --bg-card #1a1a24; ΔE 14.8 from --type-trigger
+   #5cc2b3, 14.6 from --type-guard #6cb8d3, 15.9 from --type-loop #63bfe0.
+   The planned fallback #34a8b2 (6.1:1, ΔE 16.6 / 15.6) was not needed:
+   both bars — contrast ≥ 6:1, ΔE ≥ 12 light / ≥ 10 dark — clear at the
+   first pick. Design-owner sign-off pending — recorded in the plan's
+   deviation table.
+
+   Light set: the artboard values, retunes included. On the light --bg-card:
+   app 6.1:1, web 5.9, kb 4.9, meet 7.4; skill #c2661f is the artboard's own
+   4.0:1 — a glyph and pill colour, never body text. Dark set: derived by
+   eye like --type-* (not a formula — one shift would push the ochre to
+   lemon and the brown to pink), each lifted until it sits at the weight of
+   its --type-* neighbours: 6.3–8.4:1 on the dark --bg-card (#1a1a24), ≥ 5:1
+   on the glass-dark tile, and the retuned pair kept ≥ ΔE 12 from the dark
+   --type-loop / --type-pause. */
+:root,
+[data-theme="glass-dark"],
+[data-theme="obsidian"] {
+    --kind-app: #a996ee;
+    --kind-web: #6db3e6;
+    --kind-skill: #eea052;
+    --kind-kb: #d3b14f;
+    --kind-meet: #c29276;
+    /* Playbooks (2026-09-13): emerald, one step from --success and from the
+       teal --type-trigger (automations) — every blue slot is taken and purple
+       is out; ≥ 6:1 on the dark --bg-card. Design-owner sign-off pending. */
+    --kind-playbook: #6ccf8e;
+    /* Documents (2026-09-15): printable artefacts — invoices, quotes,
+       letters. Rose, because every blue/teal/green slot is taken and a
+       document sits next to Webpages on the rail, where a second blue
+       would read as the same kind. 7.1:1 on the dark --bg-card, ΔE 34.9
+       from its nearest neighbour (--kind-meet). Design-owner sign-off
+       pending, as for --kind-playbook above. */
+    --kind-doc: #e58cae;
+    /* Compliance (2026-09-14): the one kind that is an area you administer,
+       not a thing you make. Teal, one step from the dark --type-trigger and
+       --type-guard; 6.9:1 on the dark --bg-card. Retuned — see above. */
+    --kind-compliance: #3eb3bd;
+    /* Status ink, dark set — see the light set for the rule. The raw status
+       colours already read on a dark chip except the default theme's --error
+       #ef4444 (3.9:1 on its own 16% tint), so this set is the lighter ramp
+       step that glass-dark and obsidian use as their raw value: 6.5 / 7.3 /
+       4.9:1 on a 16% chip over #1a1a24. */
+    --success-ink: #34d399;
+    --warning-ink: #fbbf24;
+    --error-ink: #f87171;
+    /* The fourth status family: an INFORMATIVE note, and the inline "here is
+       the thing that fixes it" link inside one. Added for the Privacy Shield
+       round-2 artboards, which lean on it 20-odd times — a posture row's
+       "See where", the how-it-works footer, the upgrade link. It was five
+       different hardcoded blues before (#3b82f6 in LicenceLock, #1e40af in a
+       warning box, --accent-primary elsewhere), which on the paper and sepia
+       themes read as three unrelated link styles on one screen. Same pairing
+       rule as the three above: raw token for borders, dots and glyphs, ink for
+       words. 6.6:1 on a 16% chip over #1a1a24. */
+    --info: #3b82f6;
+    --info-ink: #93c5fd;
+    /* Learning Center (2026-09-14 handoff): the two FIXED semantic colours of
+       the one progress idiom — green = complete, gold = mastered — are the
+       same in every theme (the artboard names them the only non-token
+       colours). Their -ink partners follow the status-ink rule above: raw
+       token for bars, borders and glyphs, ink for words. */
+    --learn-complete: #15803d;
+    --learn-complete-ink: #4ade80;
+    --learn-mastered: #ca8a04;
+    --learn-mastered-ink: #fbbf24;
+}
+[data-theme="light"],
+[data-theme="glass"],
+[data-theme="high-contrast"],
+[data-theme="paper"],
+[data-theme="sepia"] {
+    --kind-app: #6b4fbb;
+    --kind-web: #22699b;   /* artboard #2a7f9d == --type-loop; retuned, see above */
+    --kind-skill: #c2661f;
+    --kind-kb: #8a6d1f;
+    --kind-meet: #734d33;  /* artboard #7d6b55 == --type-pause; retuned, see above */
+    --kind-playbook: #1e7f4f;  /* Playbooks — emerald; ≥ 4.5:1 on the light --bg-card */
+    --kind-doc: #a83a63;  /* Documents — rose; 6.1:1 on the light --bg-card */
+    --kind-compliance: #1b6067;  /* artboard #2e6f86 == --type-guard; retuned, see above */
+    /* Status INK — the TEXT colour on a status chip. A chip is a 14–16% tint
+       of --success/--warning/--error with a 1px border in the raw token; the
+       raw token as text on that tint measures 2.7–3.8:1 on a light card, so
+       the artboards write a darker ink for the words (#0b7a5a / #8a5a00, 32
+       places in 8 files). Rule: chip TEXT uses the -ink token, borders and
+       dots use the raw token. A token pair rather than a color-mix recipe:
+       no single mix percentage reproduces #0b7a5a in every theme, and a
+       per-theme percentage is exactly the unvalidated re-tune this two-set
+       model exists to forbid. Precedent: --accent-primary / --accent-primary-fg
+       below. --error-ink is --error one ramp step darker (red-600 → red-700),
+       the step the artboards took for the other two. On a 16% chip over the
+       light card: 4.4 / 5.0 / 5.0:1. */
+    --success-ink: #0b7a5a;
+    --warning-ink: #8a5a00;
+    --error-ink: #b91c1c;
+    /* Info, light set — see the dark set for the rule. --info is blue-500 for
+       borders and glyphs; the ink is blue-700, the same one-ramp-step-darker
+       move --error-ink makes, giving 5.9:1 on a 16% chip over the light
+       --bg-card (and 6.4:1 as plain text on it, so it also works as the
+       inline link colour it mostly gets used as). */
+    --info: #3b82f6;
+    --info-ink: #1d4ed8;
+    /* Learning Center, light set — see the dark set for the rule. */
+    --learn-complete: #15803d;
+    --learn-complete-ink: #15803d;
+    --learn-mastered: #ca8a04;
+    --learn-mastered-ink: #854d0e;
+}
+
+/* Glass Theme — iOS 26 "Liquid Glass" inspired. Surfaces become translucent
+   over a chromatic wallpaper, frosted via backdrop-filter, edged with bright
+   specular highlights. Three tiers (subtle / default / opaque) cover sidebar
+   chrome, cards, and modals respectively. Admin's intensity knob drives blur
+   + saturation + brightness via --glass-intensity (0 / 1 / 2). */
+[data-theme="glass"] {
+    /* Scale-factor written by ThemeProvider from admin's intensity slider.
+       0 = subtle, 1 = medium, 2 = strong. Defaults to medium if unset. */
+    --glass-intensity: 1;
+    --glass-blur:       calc(8px + var(--glass-intensity) * 20px);
+    --glass-saturate:   calc(140% + var(--glass-intensity) * 15%);
+    --glass-brightness: calc(0.98 + var(--glass-intensity) * 0.07);
+
+    /* Tier tints — gradients (not flat alpha) so a light catches each surface.
+       Tier 2 picks up a hint of the admin's accent at the corners via color-mix
+       so the brand colour threads through every glass panel. */
+    --glass-tint-tier-1: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.32) 0%,
+        rgba(255, 255, 255, 0.18) 60%,
+        rgba(255, 255, 255, 0.28) 100%);
+    --glass-tint-tier-2: linear-gradient(135deg,
+        color-mix(in srgb, var(--accent-primary) 3%, rgba(255, 255, 255, 0.55)) 0%,
+        rgba(255, 255, 255, 0.40) 60%,
+        color-mix(in srgb, var(--accent-primary) 2%, rgba(255, 255, 255, 0.52)) 100%);
+    --glass-tint-tier-3: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.88) 0%,
+        rgba(255, 255, 255, 0.82) 60%,
+        rgba(255, 255, 255, 0.86) 100%);
+
+    --bg-primary: transparent;
+    --bg-secondary: rgba(255, 255, 255, 0.06);
+    --bg-tertiary: rgba(255, 255, 255, 0.10);
+    --bg-card: rgba(255, 255, 255, 0.55);            /* fallback for inline style consumers */
+    --bg-card-hover: rgba(255, 255, 255, 0.68);
+
+    --accent-primary: #6b7280;
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
+    --accent-secondary: #9ca3af;
+    --accent-primary-hover: #4b5563;
+    --accent-primary-fg: #ffffff;
+    --accent-glow: rgba(107, 114, 128, 0.22);
+
+    --text-primary: #0f172a;
+    --text-secondary: #1e293b;
+    --text-muted: #475569;
+    --text-tertiary: #475569;
+
+    --success: #059669;
+    --warning: #d97706;
+    --stage-uat: #d97706;
+    --stage-prd: #059669;
+    --error: #dc2626;
+    --pinned: #0891b2;
+
+    --border-subtle: rgba(255, 255, 255, 0.40);
+    --border-default: rgba(255, 255, 255, 0.55);
+
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
+    --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.10);
+    --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.14);
+    --shadow-card: 0 8px 32px rgba(15, 23, 42, 0.14);
+    --shadow-card-hover: 0 12px 40px rgba(15, 23, 42, 0.22);
+    --shadow-popover: 0 20px 60px rgba(15, 23, 42, 0.26);
+    --shadow-glow: 0 0 20px var(--accent-glow);
+
+    --brand-primary: var(--accent-primary);
+    --brand-primary-hover: var(--accent-primary-hover);
+    --brand-secondary: var(--accent-secondary);
+    --brand-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+    --brand-gradient-soft: linear-gradient(135deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.10));
+
+    --surface-1: transparent;
+    --surface-2: var(--bg-secondary);
+    --surface-3: var(--bg-tertiary);
+}
+
+/* Glass Dark — mirror of the light Glass theme but on a dark backdrop. Same
+   blob wallpaper + lensing pipeline, but tier tints are dark/translucent and
+   text flips to light. The wallpaper-layer's base swaps to near-black via
+   the [data-theme="glass-dark"] override in the wallpaper section above. */
+[data-theme="glass-dark"] {
+    --glass-intensity: 1;
+    --glass-blur:       calc(8px + var(--glass-intensity) * 20px);
+    --glass-saturate:   calc(140% + var(--glass-intensity) * 15%);
+    --glass-brightness: calc(0.98 + var(--glass-intensity) * 0.07);
+
+    --glass-tint-tier-1: linear-gradient(135deg,
+        rgba(15, 23, 42, 0.45) 0%,
+        rgba(15, 23, 42, 0.25) 60%,
+        rgba(15, 23, 42, 0.40) 100%);
+    --glass-tint-tier-2: linear-gradient(135deg,
+        color-mix(in srgb, var(--accent-primary) 8%, rgba(15, 23, 42, 0.55)) 0%,
+        rgba(15, 23, 42, 0.42) 60%,
+        color-mix(in srgb, var(--accent-primary) 6%, rgba(15, 23, 42, 0.52)) 100%);
+    --glass-tint-tier-3: linear-gradient(135deg,
+        rgba(15, 23, 42, 0.78) 0%,
+        rgba(15, 23, 42, 0.68) 60%,
+        rgba(15, 23, 42, 0.76) 100%);
+
+    --bg-primary: transparent;
+    --bg-secondary: rgba(15, 23, 42, 0.30);
+    --bg-tertiary: rgba(15, 23, 42, 0.40);
+    --bg-card: rgba(15, 23, 42, 0.55);
+    --bg-card-hover: rgba(15, 23, 42, 0.68);
+
+    --accent-primary: #9ca3af;
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
+    --accent-secondary: #cbd5e1;
+    --accent-primary-hover: #d1d5db;
+    --accent-primary-fg: #111827;
+    --accent-glow: rgba(156, 163, 175, 0.30);
+
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-tertiary: #94a3b8;
+
+    --success: #34d399;
+    --warning: #fbbf24;
+    --stage-uat: #fbbf24;
+    --stage-prd: #34d399;
+    --error: #f87171;
+    --pinned: #22d3ee;
+
+    --border-subtle: rgba(255, 255, 255, 0.10);
+    --border-default: rgba(255, 255, 255, 0.20);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.40);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.50);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.60);
+    --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.45);
+    --shadow-card-hover: 0 12px 40px rgba(0, 0, 0, 0.60);
+    --shadow-popover: 0 20px 60px rgba(0, 0, 0, 0.70);
+    --shadow-glow: 0 0 20px var(--accent-glow);
+
+    --brand-primary: var(--accent-primary);
+    --brand-primary-hover: var(--accent-primary-hover);
+    --brand-secondary: var(--accent-secondary);
+    --brand-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+    --brand-gradient-soft: linear-gradient(135deg, rgba(15, 23, 42, 0.45), rgba(15, 23, 42, 0.10));
+
+    --surface-1: transparent;
+    --surface-2: var(--bg-secondary);
+    --surface-3: var(--bg-tertiary);
+}
+
+/* High-Contrast Theme — WCAG AAA color pairs, for accessibility. */
+[data-theme="high-contrast"] {
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-tertiary: #141414;
+    --bg-card: #000000;
+    --bg-card-hover: #1a1a1a;
+
+    --accent-primary: #ffd400;
+    /* Keyboard focus ring: high contrast draws it in full text colour. */
+    --focus-ring: var(--text-primary);
+    --accent-secondary: #ffeb70;
+    --accent-primary-hover: #fff080;
+    --accent-primary-fg: #000000;
+    --accent-glow: rgba(255, 212, 0, 0.35);
+
+    --text-primary: #ffffff;
+    --text-secondary: #e5e5e5;
+    --text-muted: #b0b0b0;
+    --text-tertiary: #b0b0b0;
+
+    --success: #00ff66;
+    --warning: #ffaa00;
+    --stage-uat: #ffaa00;
+    --stage-prd: #00ff66;
+    --error: #ff5252;
+    --pinned: #00e5ff;
+
+    /* The four tokens this theme has to take back from the light set.
+       The two-set blocks at the top of the file group by SURFACE lightness
+       and list high-contrast with the light themes — right for a 4px bar or
+       an icon tile, which is all the --type-* families were when those sets
+       were written, and where the light values still clear the 3:1 a graphic
+       needs on this black card. Four of them are read as TEXT, though:
+       --*-ink is the word on a status chip, and --type-ai became the word
+       "Running" when it stopped being amber (shared/statusTokens.ts, CW-04).
+       On #000000 those four measure 3.3-4.3:1 — under AA, in the one theme
+       that exists for contrast. So this block, which already re-declares
+       every status colour for exactly this reason, re-declares them too:
+
+         - the inks ARE the raw tokens here. An ink exists because the raw
+           colour is too dark to read on a light chip; these three were picked
+           to be read on black in the first place (15.5 / 11.0 / 6.6:1 on this
+           card), so there is no darker step to take and a lighter one would
+           only dilute a palette tuned for AAA pairs.
+         - --type-ai takes the DARK set's value verbatim (8.96:1, against
+           4.28:1 for the light one) — the value the other black-surfaced
+           themes already use, not a bespoke ninth blue. The other eight
+           families stay on the light set: they are still only bars and tiles.
+           mobile/src/theme/tokens.ts mirrors this override and its
+           tokens.test.ts pins the pair. */
+    --success-ink: var(--success);
+    --warning-ink: var(--warning);
+    --error-ink: var(--error);
+    --type-ai: #82aaf0;
+
+    --border-subtle: rgba(255, 255, 255, 0.35);
+    --border-default: rgba(255, 255, 255, 0.65);
+
+    --shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.3);
+    --shadow-md: 0 0 0 2px rgba(255, 255, 255, 0.3);
+    --shadow-lg: 0 0 0 2px rgba(255, 255, 255, 0.5);
+    --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.5);
+    --shadow-card-hover: 0 0 0 2px var(--accent-primary);
+    --shadow-popover: 0 0 0 2px rgba(255, 255, 255, 0.7);
+    --shadow-glow: 0 0 0 3px var(--accent-primary);
+
+    --brand-primary: var(--accent-primary);
+    --brand-primary-hover: var(--accent-primary-hover);
+    --brand-secondary: var(--accent-secondary);
+    --brand-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    --brand-gradient-soft: linear-gradient(135deg, rgba(255, 212, 0, 0.20), rgba(255, 235, 112, 0.10));
+
+    --surface-1: var(--bg-primary);
+    --surface-2: var(--bg-secondary);
+    --surface-3: var(--bg-tertiary);
+}
+
+/* Paper — warm editorial light. The neutral Light theme reads as clinical
+   true-white; Paper sits a shade off, on warm cream, with espresso text and a
+   muted clay accent. Cards lift off the page by being a brighter warm-white,
+   not pure #fff — pure white next to warm cream reads as a tonal clash, not
+   as elevation. */
+[data-theme="paper"] {
+    --bg-primary: #fdfcf8;
+    --bg-secondary: #f7f4ed;
+    --bg-tertiary: #f0ebe0;
+    --bg-card: #fffdf7;
+    --bg-card-hover: #fff9ed;
+
+    --accent-primary: #b45309;             /* amber-700, muted clay */
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
+    --accent-secondary: #d97706;
+    --accent-primary-hover: #92400e;
+    --accent-primary-fg: #ffffff;
+    --accent-glow: rgba(180, 83, 9, 0.18);
+
+    --text-primary: #1c1917;               /* stone-900, espresso */
+    --text-secondary: #292524;
+    --text-muted: #57534e;
+    --text-tertiary: #57534e;
+
+    --success: #15803d;
+    --warning: #b45309;
+    --stage-uat: #b45309;
+    --stage-prd: #15803d;
+    --error: #b91c1c;
+    --pinned: #0e7490;
+
+    --border-subtle: rgba(120, 53, 15, 0.08);
+    --border-default: rgba(120, 53, 15, 0.18);
+
+    --shadow-sm: 0 1px 2px rgba(28, 25, 23, 0.05);
+    --shadow-md: 0 4px 12px rgba(28, 25, 23, 0.07);
+    --shadow-lg: 0 8px 24px rgba(28, 25, 23, 0.10);
+    --shadow-card: 0 1px 3px rgba(28, 25, 23, 0.06), 0 1px 2px rgba(28, 25, 23, 0.04);
+    --shadow-card-hover: 0 4px 12px rgba(28, 25, 23, 0.08), 0 2px 4px rgba(28, 25, 23, 0.04);
+    --shadow-popover: 0 12px 32px rgba(28, 25, 23, 0.12);
+    --shadow-glow: 0 0 0 3px var(--accent-glow);
+
+    --brand-primary: var(--accent-primary);
+    --brand-primary-hover: var(--accent-primary-hover);
+    --brand-secondary: var(--accent-secondary);
+    --brand-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+    --brand-gradient-soft: linear-gradient(135deg, rgba(180, 83, 9, 0.14), rgba(180, 83, 9, 0.04));
+
+    --surface-1: var(--bg-primary);
+    --surface-2: var(--bg-secondary);
+    --surface-3: var(--bg-tertiary);
+}
+
+/* Obsidian — monochrome dark. The default Dark theme has a faint blue
+   undertone; Obsidian goes pure neutral carbon with a warm-pearl accent and
+   hairline 1px borders instead of soft drop shadows. */
+[data-theme="obsidian"] {
+    --bg-primary: #0a0a0c;
+    --bg-secondary: #131316;
+    --bg-tertiary: #1c1c20;
+    --bg-card: #131316;
+    --bg-card-hover: #1c1c20;
+
+    --accent-primary: #e7e5e4;             /* stone-200, warm pearl */
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
+    --accent-secondary: #f5f5f4;
+    --accent-primary-hover: #d6d3d1;
+    --accent-primary-fg: #000000;
+    --accent-glow: rgba(231, 229, 228, 0.15);
+
+    --text-primary: #fafaf9;               /* stone-50 */
+    --text-secondary: #d6d3d1;
+    --text-muted: #a8a29e;
+    --text-tertiary: #a8a29e;
+
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --stage-uat: #fbbf24;
+    --stage-prd: #4ade80;
+    --error: #f87171;
+    --pinned: #22d3ee;
+
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-default: rgba(255, 255, 255, 0.12);
+
+    /* Shadows here are mostly hairline outlines — cards lift via the lightest
+       possible 1px ring catching the page light, not a soft drop shadow. */
+    --shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 2px 4px rgba(0, 0, 0, 0.30);
+    --shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 4px 12px rgba(0, 0, 0, 0.40);
+    --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.30);
+    --shadow-card-hover: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.45);
+    --shadow-popover: 0 0 0 1px rgba(255, 255, 255, 0.10), 0 16px 48px rgba(0, 0, 0, 0.60);
+    --shadow-glow: 0 0 0 3px rgba(231, 229, 228, 0.20);
+
+    --brand-primary: var(--accent-primary);
+    --brand-primary-hover: var(--accent-primary-hover);
+    --brand-secondary: var(--accent-secondary);
+    --brand-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+    --brand-gradient-soft: linear-gradient(135deg, rgba(231, 229, 228, 0.10), rgba(231, 229, 228, 0.02));
+
+    --surface-1: var(--bg-primary);
+    --surface-2: var(--bg-secondary);
+    --surface-3: var(--bg-tertiary);
+}
+
+/* Sepia — warm mid-tone reading. Tan paper background, deep-brown ink text,
+   terracotta accent. The first non-binary-bright theme; best for long reading
+   or focus sessions. */
+[data-theme="sepia"] {
+    --bg-primary: #f4ede0;
+    --bg-secondary: #ebe2d2;
+    --bg-tertiary: #ddd2bd;
+    --bg-card: #fbf6ec;                    /* the "page" — brighter than bg */
+    --bg-card-hover: #f4ede0;
+
+    --accent-primary: #c2410c;             /* orange-700, terracotta */
+    --focus-ring: color-mix(in srgb, var(--text-primary) 55%, transparent);
+    --accent-secondary: #ea580c;
+    --accent-primary-hover: #9a3412;
+    --accent-primary-fg: #ffffff;
+    --accent-glow: rgba(194, 65, 12, 0.18);
+
+    --text-primary: #44322c;               /* deep fountain-pen brown */
+    --text-secondary: #5c443a;
+    --text-muted: #8a6f5e;
+    --text-tertiary: #6f5849;
+
+    --success: #166534;
+    --warning: #a16207;
+    --stage-uat: #a16207;
+    --stage-prd: #166534;
+    --error: #991b1b;
+    --pinned: #155e75;
+
+    --border-subtle: rgba(68, 50, 44, 0.10);
+    --border-default: rgba(68, 50, 44, 0.22);
+
+    --shadow-sm: 0 1px 2px rgba(68, 50, 44, 0.08);
+    --shadow-md: 0 4px 12px rgba(68, 50, 44, 0.10);
+    --shadow-lg: 0 8px 24px rgba(68, 50, 44, 0.14);
+    --shadow-card: 0 1px 3px rgba(68, 50, 44, 0.08);
+    --shadow-card-hover: 0 4px 12px rgba(68, 50, 44, 0.12);
+    --shadow-popover: 0 12px 32px rgba(68, 50, 44, 0.18);
+    --shadow-glow: 0 0 0 3px var(--accent-glow);
+
+    --brand-primary: var(--accent-primary);
+    --brand-primary-hover: var(--accent-primary-hover);
+    --brand-secondary: var(--accent-secondary);
+    --brand-gradient: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover));
+    --brand-gradient-soft: linear-gradient(135deg, rgba(194, 65, 12, 0.14), rgba(194, 65, 12, 0.04));
+
+    --surface-1: var(--bg-primary);
+    --surface-2: var(--bg-secondary);
+    --surface-3: var(--bg-tertiary);
+}
+

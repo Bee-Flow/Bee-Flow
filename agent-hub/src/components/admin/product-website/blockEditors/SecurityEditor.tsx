@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextField, IconField, RepeatableList } from '../fields';
+import { TextField, IconAssetField, RepeatableList } from '../fields';
 import { InlineHint, BackgroundCard } from '../primitives';
 import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields, CardActionFields } from './shared';
@@ -41,7 +41,7 @@ export function SecurityEditor({ data = {}, onChange }: BlockEditorProps<Securit
                 itemLabel={(item) => item.title || t('cms_site.blocks.security.no_title', '(no title)')}
                 renderItem={(item, update) => (
                     <>
-                        <IconField label={t('cms_site.blocks.security.icon', 'Icon')} value={item.icon} onChange={v => update({ ...item, icon: v })} />
+                        <IconAssetField label={t('cms_site.blocks.security.icon', 'Icon')} value={item.icon} onChange={v => update({ ...item, icon: v })} />
                         <TextField
                             label={t('cms_site.blocks.security.title', 'Title')}
                             value={item.title || ''}

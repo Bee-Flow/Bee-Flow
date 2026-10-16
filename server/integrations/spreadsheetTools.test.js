@@ -69,9 +69,13 @@ const TWO_SHEETS = {
     title: 'Budget 2026',
     sheets: [
         { name: 'Q1', rows: [{ Post: 'Huur', Bedrag: 1200 }, { Post: 'Licenties', Bedrag: 349.5 }] },
-        { name: 'Totaal', columns: ['Label', 'Waarde'], rows: [['Som', '=SUM(Q1!B2:B3)'], ['Tekst', 'a < b & c']] },
+        { name: 'Totaal', columns: ['Label', 'Waarde'], rows: [['Som', { formula: '=SUM(Q1!B2:B3)' }], ['Tekst', 'a < b & c'], ['Tekst met =', '=SUM(1,1)'], ['Plus', '+1+1'], ['Apenstaart', '@SUM(A1)'], ['Tab', '\t=1+1']] },
     ],
 };
+
+test('the tool description tells the model how to request a formula', () => {
+    assert.match(SPREADSHEET_TOOLS[0].function.description, /\{"formula": "=SUM\(B2:B10\)"\}/);
+});
 
 test('the tool schema: title + sheets required, fileName and Nextcloud optional', () => {
     const fn = SPREADSHEET_TOOLS[0].function;
@@ -100,6 +104,12 @@ test('a real two-sheet .xlsx, numbers as numbers, formula as formula, under the 
     assert.match(sheets[0], /<c r="B3"><v>349.5<\/v><\/c>/);
     assert.match(sheets[1], /<c r="B2"><f>SUM\(Q1!B2:B3\)<\/f><\/c>/);
     assert.match(sheets[1], /a &lt; b &amp; c/);
+    // Text that merely starts like a formula stays text.
+    assert.match(sheets[1], /<c r="B4" t="inlineStr"><is><t[^>]*>=SUM\(1,1\)<\/t>/);
+    assert.match(sheets[1], /<c r="B5" t="inlineStr"><is><t[^>]*>\+1\+1<\/t>/);
+    assert.match(sheets[1], /<c r="B6" t="inlineStr"><is><t[^>]*>@SUM\(A1\)<\/t>/);
+    assert.match(sheets[1], /<c r="B7" t="inlineStr"><is><t[^>]*>\t=1\+1<\/t>/);
+    assert.strictEqual((sheets[1].match(/<f>/g) || []).length, 1, 'one formula, the marked one');
 
     assert.deepStrictEqual(res.file, {
         kind: 'spreadsheet', name: 'Budget-2026.xlsx', mimeType: uploads[0].contentType, size: res.size, url: res.downloadUrl, source: 'create_spreadsheet',

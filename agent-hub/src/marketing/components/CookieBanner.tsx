@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import AppIcon from '../../components/icons/AppIcon';
 
 // Self-contained cookie consent banner. No external CSS or state deps — it
@@ -18,35 +19,27 @@ import {
     CONSENT_STORAGE_KEY as STORAGE_KEY,
     LEGACY_CONSENT_STORAGE_KEY as LEGACY_STORAGE_KEY,
 } from './consent';
-
-interface CookieStrings {
-    message: string;
-    accept: string;
-    decline: string;
-    privacyLabel: string;
-    privacyUrl: string;
-}
-
-interface CookieBannerProps {
-    enabled?: boolean;
-    language?: string;
-    text?: Record<string, Partial<CookieStrings>>;
-}
-
-type ConsentChoice = 'accepted' | 'declined';
+import {
+    cookieButtonStyle, cookieLayoutStyle, cookieReserve, normalizeCookieLayout,
+} from './cookieBannerLayout';
+import type { CookieLayout } from './cookieBannerLayout';
+import { useCookieReserve } from './useCookieReserve';
 
 // Built-in copy. Caller-supplied `text` is overlaid per language, so a
 // partial override (e.g. just the message) keeps the default button labels.
-const DEFAULT_TEXT: Record<string, CookieStrings> = {
+type Consent = 'accepted' | 'declined';
+type CookieStrings = Record<string, string>;
+
+export const DEFAULT_TEXT: Record<string, CookieStrings> = {
     en: {
-        message: 'We use cookies to improve your experience.',
+        message: 'Cookie settings: choose what you allow.',
         accept: 'Accept',
         decline: 'Decline',
         privacyLabel: 'Privacy Policy',
         privacyUrl: '/privacy',
     },
     nl: {
-        message: 'Wij gebruiken cookies om je ervaring te verbeteren.',
+        message: 'Cookie-instellingen: kies wat je toestaat.',
         accept: 'Accepteren',
         decline: 'Weigeren',
         privacyLabel: 'Privacybeleid',
@@ -54,9 +47,18 @@ const DEFAULT_TEXT: Record<string, CookieStrings> = {
     },
 };
 
+interface CookieBannerProps {
+    enabled?: boolean;
+    language?: string;
+    /** card (default) | bar | corner. Anything else renders as the card. */
+    layout?: CookieLayout | string;
+    text?: Record<string, CookieStrings | undefined>;
+}
+
 export default function CookieBanner({
     enabled = true,
     language = 'en',
+    layout: layoutProp = 'card',
     text = undefined,
 }: CookieBannerProps = {}) {
     // Prefer the requested language when we have strings for it (built-in or
@@ -70,7 +72,7 @@ export default function CookieBanner({
     // 'unset' until we've read localStorage on mount — this avoids a flash of
     // the banner for returning visitors who already chose, and keeps the
     // component SSR-safe. After mount it is 'accepted' | 'declined' | null.
-    const [consent, setConsent] = useState<'unset' | ConsentChoice | null>('unset');
+    const [consent, setConsent] = useState<'unset' | Consent | null>('unset');
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -95,7 +97,7 @@ export default function CookieBanner({
         }
     }, []);
 
-    const choose = (value: ConsentChoice) => {
+    const choose = (value: Consent) => {
         setConsent(value);
         try {
             window.localStorage.setItem(STORAGE_KEY, value);
@@ -113,6 +115,12 @@ export default function CookieBanner({
     };
 
     const reopen = () => setConsent(null);
+
+    const layout = normalizeCookieLayout(layoutProp);
+    const bannerRef = useRef<HTMLDivElement>(null);
+    const open = enabled && (consent === null);
+
+    useCookieReserve(open, layout, bannerRef);
 
     // Render nothing when disabled, or while we're still reading storage.
     if (!enabled) return null;
@@ -134,9 +142,18 @@ export default function CookieBanner({
         );
     }
 
-    // No choice yet → full banner.
+    // No choice yet → the banner, in the configured layout.
+    const boxStyle: CSSProperties = { ...bannerStyle, ...cookieLayoutStyle(layout) };
+    const declineStyle: CSSProperties = { ...declineButtonStyle, ...cookieButtonStyle(layout) };
+    const acceptStyle: CSSProperties = { ...acceptButtonStyle, ...cookieButtonStyle(layout) };
     return (
-        <div role="dialog" aria-live="polite" aria-label="Cookie consent" style={bannerStyle}>
+        <div
+            ref={bannerRef}
+            role="dialog"
+            aria-live="polite"
+            aria-label="Cookie consent"
+            style={boxStyle}
+        >
             <p style={messageStyle}>
                 {strings.message}
                 {strings.privacyUrl ? (
@@ -152,14 +169,14 @@ export default function CookieBanner({
                 <button
                     type="button"
                     onClick={() => choose('declined')}
-                    style={declineButtonStyle}
+                    style={declineStyle}
                 >
                     {strings.decline}
                 </button>
                 <button
                     type="button"
                     onClick={() => choose('accepted')}
-                    style={acceptButtonStyle}
+                    style={acceptStyle}
                 >
                     {strings.accept}
                 </button>
@@ -174,7 +191,7 @@ export default function CookieBanner({
 // fallback so the banner is legible anywhere it's mounted.
 const Z = 2147483000; // above virtually everything, below browser chrome
 
-const bannerStyle: React.CSSProperties = {
+const bannerStyle: CSSProperties = {
     position: 'fixed',
     left: '1rem',
     right: '1rem',
@@ -196,25 +213,25 @@ const bannerStyle: React.CSSProperties = {
     fontFamily: 'var(--font-body, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif)',
 };
 
-const messageStyle: React.CSSProperties = {
+const messageStyle: CSSProperties = {
     margin: 0,
     flex: '1 1 260px',
     fontSize: '0.875rem',
     lineHeight: 1.5,
 };
 
-const linkStyle: React.CSSProperties = {
+const linkStyle: CSSProperties = {
     color: 'var(--brand-primary, #2563eb)',
     textDecoration: 'underline',
 };
 
-const actionsStyle: React.CSSProperties = {
+const actionsStyle: CSSProperties = {
     display: 'flex',
     gap: '0.5rem',
     flexShrink: 0,
 };
 
-const baseButtonStyle: React.CSSProperties = {
+const baseButtonStyle: CSSProperties = {
     appearance: 'none',
     cursor: 'pointer',
     fontSize: '0.8125rem',
@@ -225,13 +242,13 @@ const baseButtonStyle: React.CSSProperties = {
     fontFamily: 'inherit',
 };
 
-const acceptButtonStyle: React.CSSProperties = {
+const acceptButtonStyle: CSSProperties = {
     ...baseButtonStyle,
     background: 'var(--brand-primary, #2563eb)',
     color: '#ffffff',
 };
 
-const declineButtonStyle: React.CSSProperties = {
+const declineButtonStyle: CSSProperties = {
     ...baseButtonStyle,
     background: 'transparent',
     color: 'var(--brand-text, #0f172a)',
@@ -241,7 +258,7 @@ const declineButtonStyle: React.CSSProperties = {
 // Re-open affordance — a subtle surface chip on a hairline border (not a
 // bare emoji floating over the page), quiet enough to live bottom-right
 // permanently while staying an obvious tap target.
-const reopenButtonStyle: React.CSSProperties = {
+const reopenButtonStyle: CSSProperties = {
     position: 'fixed',
     right: '1rem',
     bottom: '1rem',

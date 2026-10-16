@@ -1,38 +1,31 @@
 import React from 'react';
+import type { FooterData, FooterProps } from './Footer.types';
+import SiteChromeGuard from '../components/SiteChromeGuard';
+import { normalizeFooterData } from './footerData';
 import AppIcon from '../../components/icons/AppIcon';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import { inlineTextStyle } from './textStyle';
-import type { SectionDataBase, TextStyleBlob } from './sectionData.types';
-
-interface FooterLink {
-    href?: string;
-    target?: string;
-    rel?: string;
-    label?: string;
-}
-
-interface FooterData extends SectionDataBase {
-    themeSwitcher?: { enabled?: boolean };
-    linkStyle?: TextStyleBlob;
-    accountability?: {
-        address?: string;
-        registration?: string;
-        vat?: string;
-        links?: unknown;
-    };
-    brand?: { logoText?: string; showDot?: boolean; blurb?: string };
-    columns?: { heading?: string; links?: FooterLink[] }[];
-    copyright?: string;
-    showLanguageSwitcher?: boolean;
-    socials?: (FooterLink & { platform?: string })[];
-}
 
 const isPreview = () =>
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).has('preview');
 
-export default function Footer({ data, isDark, onToggleTheme }: { data?: FooterData | null; isDark?: boolean; onToggleTheme?: () => void }) {
+/**
+ * The public footer. A stored setting of the wrong shape (a string where a
+ * list belongs) is read as empty, and anything that still throws while
+ * rendering hides the footer instead of the whole page.
+ */
+export default function Footer(props: FooterProps) {
+    return (
+        <SiteChromeGuard label="footer" resetKey={props.data}>
+            <FooterView {...props} />
+        </SiteChromeGuard>
+    );
+}
+
+function FooterView({ data: rawData, isDark, onToggleTheme }: FooterProps) {
+    const data: FooterData | null = normalizeFooterData(rawData);
     if (!data?.enabled) return null;
     const showThemeSwitcher = !!data.themeSwitcher?.enabled;
     // Master footer-link style — applied to every column link and every
@@ -42,7 +35,7 @@ export default function Footer({ data, isDark, onToggleTheme }: { data?: FooterD
     // Accountability row — the footer is a trust surface. Hidden entirely
     // while every field is empty so old sites are untouched.
     const acc = data.accountability || {};
-    const accLinks = Array.isArray(acc.links) ? acc.links.filter(l => l && l.label) : [];
+    const accLinks = Array.isArray(acc.links) ? acc.links.filter((l) => l && l.label) : [];
     const showAccountability =
         !!(acc.address || acc.registration || acc.vat || accLinks.length) || isPreview();
     // The brand "." flourish is now opt-in (showDot === true); it read as
@@ -187,14 +180,14 @@ function FooterLocaleToggle() {
             return v.toLowerCase().split('-')[0] === 'nl' ? 'nl' : 'en';
         } catch { return 'en'; }
     })();
-    const go = (loc: string) => (e: React.MouseEvent) => {
+    const go = (loc: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
         if (isPreview() || loc === current) return;
         const url = new URL(window.location.href);
         url.searchParams.set('locale', loc);
         window.location.assign(url.toString());
     };
-    const cls = (loc: string) => (loc === current
+    const cls = (loc: string): React.CSSProperties => (loc === current
         ? { fontWeight: 600, color: 'var(--text-primary)' }
         : { color: 'var(--text-muted)' });
     return (

@@ -262,7 +262,7 @@ function TemplateItem({ tpl, confirming, onAskDelete, onConfirmDelete, onCancelD
                     {tpl.createdAt ? ` · ${formatTemplateDate(tpl.createdAt)}` : ''}
                 </div>
             </div>
-            {confirming ? (
+            {tpl.builtin ? null : confirming ? (
                 <div className="flex items-center gap-1 shrink-0">
                     <button
                         type="button"

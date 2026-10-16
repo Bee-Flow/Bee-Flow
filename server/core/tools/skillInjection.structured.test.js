@@ -55,11 +55,12 @@ mock('../../stores/skillActivations', {
 });
 // See the header: `executeActivateSkill` requires both of these on every
 // activation, and the real ones open a database.
+let linkedRuns = null;     // set by a test that links an automation: its executeAutomation calls land here
 mock('../../stores/automationStore', {
-    getAutomation: async () => { throw new Error('no skill here links an automation'); },
+    getAutomation: async (id) => { if (!linkedRuns) throw new Error('no skill here links an automation'); return { id, title: 'Linked' }; },
 });
 mock('../automationRunner', {
-    executeAutomation: async () => { throw new Error('no skill here links an automation'); },
+    executeAutomation: async (automation, o) => { if (!linkedRuns) throw new Error('no skill here links an automation'); linkedRuns.push(o); return { id: 'r1', status: 'success' }; },
 });
 
 const {
@@ -101,7 +102,7 @@ const migratedSkill = (over = {}) => {
 
 const opts = { attachedSkillIds: ['sk1'], orgId: 'org1', userId: 'u1' };
 
-beforeEach(() => { mockSkills = []; activations.length = 0; });
+beforeEach(() => { mockSkills = []; activations.length = 0; linkedRuns = null; });
 
 // ── byte-identical rendering ─────────────────────────────────────────
 test('a migrated skill renders byte-identically to the same skill before the migration', async () => {
@@ -238,6 +239,15 @@ test('nothing static, nothing recorded (an all-dynamic agent must not claim a us
     await new Promise(res => setImmediate(res));
     assert.strictEqual(r.staticCount, 0);
     assert.deepStrictEqual(activations, []);
+});
+
+// ── a skill linked to an automation acts for the member who activated it ──
+test('a skill linked to an automation starts it for the asking member (not for nobody, which would be the owner)', async () => {
+    linkedRuns = [];
+    mockSkills = [legacySkill({ dynamicActivation: true, automationId: 'auto-9' })];
+    await executeActivateSkill({ args: { skill_ids: ['sk1'] }, orgId: 'org1', userId: 'member-7' });
+    assert.strictEqual(linkedRuns.length, 1);
+    assert.strictEqual(linkedRuns[0].startedByUserId, 'member-7');
 });
 
 // ── the hang this file used to have ──────────────────────────────────

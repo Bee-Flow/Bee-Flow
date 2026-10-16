@@ -79,6 +79,24 @@ same stores and validators as the admin panel. After an edit the result carries
 `validation` warnings (an empty page, a link to a page that does not exist, a
 low-contrast colour pair), and a rejected call carries a `_fixHint`.
 
+## Tabs and customer stories
+
+Two blocks you add with `cms_add_blocks` like any other (the block catalogue lists
+them, with their default content):
+
+- **`tabs`**: one section for several audiences ("for IT / Legal / DPO"). Two to six
+  tabs in `items`, each `{ tabId, label, title, body, media, cta }` (`cta` is `null`
+  or `{ label, link }`). All tab text is in the page HTML; `?tab=<tabId>` opens a
+  tab. Send the complete `items` array: arrays replace wholesale.
+- **Customer stories**: a story is an ordinary page that starts with a
+  **`story-header`** block (`customer`, `sector`, `title`, `lead`, `logo`, `quote`,
+  `quoteBy`, and two to four `metrics` of `{ stat, label }`; use the customer's real
+  figures). `cms_create_page` with the built-in template `tpl_builtin_customer_story`
+  (see `cms_list_templates`) seeds one. A **`customer-stories`** block shows every
+  published story as a card with a sector filter, in page order, and lists them in
+  the page HTML; the stories also sit in the sitemap and have translations like any
+  page. A draft story never appears: cards come from the last `cms_publish`.
+
 ## Blog posts
 
 Every site has a blog: the index at `/blog` (newest first, a tag filter at

@@ -1,5 +1,6 @@
-import { useCallback, useMemo } from 'react';
-import { computeRunFocus } from './runFocus';
+import { useCallback, type RefObject } from 'react';
+import type { computeRunFocus } from './runFocus';
+import { useFailedRunBanner, type RunIdentity } from './useFailedRunBanner';
 import type { DiagramDefinition, FlowNode, Rf } from './diagramPaneTypes';
 
 interface RunFocusOptions {
@@ -8,6 +9,10 @@ interface RunFocusOptions {
     definition: DiagramDefinition;
     rf: Rf;
     absPositionOf: (node: FlowNode | null | undefined) => { x: number; y: number } | null;
+    /** Which run the failure banner talks about (flow/useFailedRunBanner). */
+    runIdentity?: RunIdentity | null;
+    /** Gets focus back when the banner is dismissed. */
+    focusRef?: RefObject<HTMLElement | null> | null;
 }
 
 /**
@@ -16,13 +21,11 @@ interface RunFocusOptions {
  * Lives in ./runFocus so the reconciliation against the live graph
  * (BFSF-364 — a deleted node must not keep a "Run failed" banner alive, and
  * `done` must never exceed `total`) can be tested without mounting the
- * whole canvas. Here: the memo, and the jump to the step it names.
+ * whole canvas. A failure is dismissible and goes when its step is edited
+ * (flow/useFailedRunBanner). Here: that banner state, and the jump to the step it names.
  */
-export function useRunFocus({ runSteps, runInFlight, definition, rf, absPositionOf }: RunFocusOptions) {
-    const runFocus = useMemo(
-        () => computeRunFocus({ runSteps, runInFlight, definition }),
-        [runSteps, runInFlight, definition],
-    );
+export function useRunFocus({ runSteps, runInFlight, definition, rf, absPositionOf, runIdentity = null, focusRef = null }: RunFocusOptions) {
+    const { runFocus, dismiss: dismissRunBanner } = useFailedRunBanner({ runSteps, runInFlight, definition, runIdentity, focusRef });
 
     const focusRunStep = useCallback(() => {
         if (!runFocus?.stepId) return;
@@ -38,5 +41,5 @@ export function useRunFocus({ runSteps, runInFlight, definition, rf, absPosition
         );
     }, [rf, runFocus?.stepId, absPositionOf]);
 
-    return { runFocus, focusRunStep };
+    return { runFocus, focusRunStep, dismissRunBanner };
 }

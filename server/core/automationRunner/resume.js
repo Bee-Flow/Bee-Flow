@@ -149,6 +149,9 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
         // A resumed test run is still a test run (the Runs tab's filter).
         isTest: !!original.isTest,
         startedByUserId: original.startedByUserId || null,
+        // A run that began on its starter's own connections keeps them, whatever
+        // the setting says by now.
+        lockedConnectionsMode: original.connectionsMode || null,
     });
 }
 

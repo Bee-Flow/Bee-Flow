@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud triggers.
  *
@@ -22,6 +23,8 @@
  * by organisation. The catalog payload is guarded byte-for-byte by
  * triggerRegistry.golden.test.js — regenerate the golden when editing this file.
  */
+const { FILE_EVENTS } = require('../nextcloudFileEvents');
+
 module.exports = { TRIGGER_SOURCES: [{
         id: 'nextcloud',
         label: 'Nextcloud',
@@ -32,83 +35,7 @@ module.exports = { TRIGGER_SOURCES: [{
             appPrefix: 'nextcloud',
         },
         events: [
-            {
-                id: 'file.new',
-                label: 'New file',
-                fields: ['activityId', 'path', 'name', 'extension', 'kind', 'actor', 'datetime', 'link'],
-                sample: {
-                    activityId: 12345,
-                    path: '/Documents/Invoices/Invoice-2026-001.pdf',
-                    name: 'Invoice-2026-001.pdf',
-                    extension: 'pdf',
-                    kind: 'file',
-                    actor: 'alice',
-                    datetime: '2026-05-13T09:15:00Z',
-                    link: 'https://cloud.example.com/f/12345',
-                },
-                scope: 'org',
-                source: {
-                    kind: 'poller',
-                },
-            },
-            {
-                id: 'file.changed',
-                label: 'File changed',
-                fields: ['activityId', 'path', 'name', 'extension', 'kind', 'actor', 'datetime', 'link'],
-                sample: {
-                    activityId: 12346,
-                    path: '/Documents/Invoices/Invoice-2026-001.pdf',
-                    name: 'Invoice-2026-001.pdf',
-                    extension: 'pdf',
-                    kind: 'file',
-                    actor: 'alice',
-                    datetime: '2026-05-13T10:20:00Z',
-                    link: 'https://cloud.example.com/f/12345',
-                },
-                scope: 'org',
-                source: {
-                    kind: 'poller',
-                },
-            },
-            {
-                id: 'file.deleted',
-                label: 'File deleted',
-                fields: ['activityId', 'path', 'name', 'extension', 'kind', 'actor', 'datetime', 'link'],
-                sample: {
-                    activityId: 12348,
-                    path: '/Documents/Old/Draft.docx',
-                    name: 'Draft.docx',
-                    extension: 'docx',
-                    kind: 'file',
-                    actor: 'alice',
-                    datetime: '2026-05-13T11:30:00Z',
-                    link: 'https://cloud.example.com/f/12348',
-                },
-                scope: 'org',
-                source: {
-                    kind: 'push',
-                },
-            },
-            {
-                id: 'file.renamed',
-                label: 'File renamed',
-                fields: ['activityId', 'path', 'oldPath', 'name', 'extension', 'kind', 'actor', 'datetime', 'link'],
-                sample: {
-                    activityId: 12349,
-                    path: '/Documents/Invoices/Invoice-2026-001.pdf',
-                    oldPath: '/Documents/Invoices/draft.pdf',
-                    name: 'Invoice-2026-001.pdf',
-                    extension: 'pdf',
-                    kind: 'file',
-                    actor: 'alice',
-                    datetime: '2026-05-13T11:45:00Z',
-                    link: 'https://cloud.example.com/f/12345',
-                },
-                scope: 'org',
-                source: {
-                    kind: 'push',
-                },
-            },
+            ...FILE_EVENTS,
             {
                 id: 'share.received',
                 label: 'Share received',
@@ -146,7 +73,7 @@ module.exports = { TRIGGER_SOURCES: [{
                     kind: 'push',
                 },
                 deliverability: 'connector',
-                deliverabilityNote: 'Nextcloud does not expose this event to webhooks (the underlying event class is not IWebhookCompatibleEvent), so it is read from the activity feed on the polling interval rather than delivered instantly.',
+                deliverabilityNote: 'Nothing produces this event: Nextcloud does not expose it to webhooks (the underlying event class is not IWebhookCompatibleEvent) and there is no activity-feed poller for it, so an automation on it never fires. Use a schedule trigger that reads the shares with a tool instead.',
             },
             {
                 id: 'activity.new',
@@ -219,8 +146,10 @@ module.exports = { TRIGGER_SOURCES: [{
             {
                 id: 'calendar.event.created',
                 label: 'Calendar event created',
-                fields: ['uid', 'calendarId', 'summary', 'startsAt', 'endsAt', 'location', 'actor', 'datetime'],
+                fields: ['uid', 'calendarId', 'calendarUri', 'objectUri', 'summary', 'startsAt', 'endsAt', 'location', 'actor', 'datetime'],
                 sample: {
+                    calendarUri: 'personal',
+                    objectUri: 'event-1.ics',
                     uid: 'evt-9f2b',
                     calendarId: 'personal',
                     summary: 'Design review',
@@ -238,8 +167,10 @@ module.exports = { TRIGGER_SOURCES: [{
             {
                 id: 'calendar.event.changed',
                 label: 'Calendar event changed',
-                fields: ['uid', 'calendarId', 'summary', 'startsAt', 'endsAt', 'location', 'actor', 'datetime'],
+                fields: ['uid', 'calendarId', 'calendarUri', 'objectUri', 'summary', 'startsAt', 'endsAt', 'location', 'actor', 'datetime'],
                 sample: {
+                    calendarUri: 'personal',
+                    objectUri: 'event-1.ics',
                     uid: 'evt-9f2b',
                     calendarId: 'personal',
                     summary: 'Design review (moved)',

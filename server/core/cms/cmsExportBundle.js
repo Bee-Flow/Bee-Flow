@@ -28,6 +28,8 @@
 const JSZip = require('jszip');
 const storageStore = require('../../stores/storageStore');
 const { sanitizeSvg } = require('../../utils/svgSanitizer');
+const { scheduleVariants } = require('./assetVariantStore');
+const log = require('../../telemetry/log');
 
 const BUNDLE_ENTRY = 'site.json';
 const ASSET_PREFIX = 'assets/';
@@ -247,6 +249,8 @@ async function restoreAssets(assets, { overwrite = false } = {}) {
             }
 
             await storageStore.uploadFile(asset.key, body, contentType, metadata);
+            scheduleVariants({ key: asset.key, source: body, contentType, storage: storageStore })
+                .catch((e) => log.warn(`[CmsBundle] variants of ${asset.key} not scheduled: ${e.message}`));
             written++;
         } catch (err) {
             failed.push(`${asset.key} (${String(err?.message || err)})`);

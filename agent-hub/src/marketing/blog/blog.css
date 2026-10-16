@@ -353,3 +353,9 @@
 }
 .marketing-root .latest-posts-more:hover { text-decoration: underline; }
 .marketing-root .latest-posts-empty { color: var(--text-muted, var(--brand-text-secondary)); margin-top: var(--space-6); }
+
+.marketing-root .blog-search { margin: 0 0 var(--space-6); }
+.marketing-root .blog-search-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.marketing-root .blog-search-input { width: 100%; max-width: 28rem; padding: var(--space-3) var(--space-4); border: 1px solid var(--border-subtle); border-radius: 8px; background: transparent; color: inherit; font: inherit; }
+.marketing-root .blog-search-results { list-style: none; margin: var(--space-4) 0 0; padding: 0; display: grid; gap: var(--space-3); }
+.marketing-root .blog-search-results a { font-weight: 600; }

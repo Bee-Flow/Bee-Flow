@@ -1,9 +1,11 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Maximize2 } from 'lucide-react';
+import FeatureDemoPoster from './FeatureDemoPoster';
 import SectionFrame from '../components/SectionFrame';
 import SectionHeader from '../components/SectionHeader';
 import { sectionBgClass } from './sectionBg';
 import { DEMO_FEATURE_IDS } from '../../demo/registry';
+import { LOCALE_PREFIXES } from '../../utils/cmsPublicRouting';
 import type { SectionDataBase } from './sectionData.types';
 
 interface FeatureDemoData extends SectionDataBase {
@@ -11,6 +13,8 @@ interface FeatureDemoData extends SectionDataBase {
     height?: number;
     theme?: string;
     note?: string;
+    caption?: string;
+    poster?: string;
     cta?: { label?: string; href?: string; link?: { href?: string; path?: string } };
 }
 
@@ -37,35 +41,26 @@ interface FeatureDemoData extends SectionDataBase {
  * (agent-hub/src/demo/demoTransport.js).
  *
  * LOADING
- * The demo loads on its own — a visitor should not have to press play to see
- * what the product looks like. `loading="lazy"` still defers the boot until
- * the frame is near the viewport, so a demo below the fold costs nothing on
- * first paint. The one exception is the CMS editor's own preview iframe,
- * where booting a second copy of the application inside the page being edited
- * is heavy and confusing; there it renders a labelled placeholder instead.
+ * The block starts as a poster (the authored still image, or a plain panel)
+ * and creates the iframe only after a click or keypress on it. A visitor who
+ * scrolls past therefore costs no /__demo__ request at all; the frame has a
+ * fixed aspect ratio, so activating it shifts nothing. The CMS editor shows an
+ * inert poster, so the builder never boots a second copy of the application.
  *
  * MOBILE (≤768px — the same boundary this block's stylesheet rules flip at)
- * The Studio components are desktop layouts; the product itself refuses to
- * show them on a phone, and a phone-width iframe clipped them to a useless
- * sliver. So on a phone the frame shows the demo at a desktop viewport
- * (1280 logical px) scaled down to fit — the transform sandwich the CMS
- * editor's PreviewStage uses. At ~0.26 scale a tap on a 14px button is a
- * lottery, so the thumbnail is non-interactive and the whole frame is one
- * tap target: it navigates — same tab, so leaving and returning is ordinary
- * browser history — to /__demo__/<feature>?vw=1280, where DemoHost widens
- * the viewport meta and the phone renders the desktop layout natively
- * pinch-zoomable, with a floating close button that comes back here. Both
- * links live out here on purpose — the sandbox has no allow-top-navigation,
- * so nothing inside the frame could navigate this page anywhere.
+ * The Studio components are desktop layouts and a tap on a scaled-down 14px
+ * button is a lottery, so a phone never gets an iframe: the poster is a link —
+ * same tab, so leaving and returning is ordinary browser history — to
+ * /__demo__/<feature>?vw=1280, where DemoHost widens the viewport meta and the
+ * phone renders the desktop layout natively, pinch-zoomable, with a floating
+ * close button that comes back here. Both links live out here on purpose: the
+ * sandbox has no allow-top-navigation, so nothing inside the frame could
+ * navigate this page anywhere.
  */
 
 // Past the app's 1279 isCompact boundary, so lg: styles apply and the demo
 // lays out exactly as it would on a laptop.
 const DEMO_LOGICAL_WIDTH = 1280;
-// Displayed floor for the scaled preview. Met by giving the framed document
-// a TALLER viewport (the thumbnail shows more of the demo), never by
-// stretching anything.
-const MIN_PREVIEW_HEIGHT = 240;
 // Must match the block's rules in marketing.css exactly — at 768 wide, JS
 // and CSS have to agree on which branch owns the frame. (hooks/useViewport
 // flips at 767, which is why it is not used here.)
@@ -76,11 +71,7 @@ export default function FeatureDemo({ data }: { data?: FeatureDemoData }) {
     const known = DEMO_FEATURE_IDS.includes(feature);
     const editing = isPreviewMode();
     const isPhone = useIsPhone();
-    // The editor's poster outranks the phone branch, so the CMS builder's
-    // mobile preview preset never boots a second copy of the app.
-    const scaledPreview = isPhone && known && !editing;
-    const clipRef = useRef<HTMLDivElement>(null);
-    const clipW = useMeasuredWidth(clipRef, scaledPreview);
+    const [activated, setActivated] = useState(false);
 
     if (!data?.enabled) return null;
 
@@ -97,16 +88,14 @@ export default function FeatureDemo({ data }: { data?: FeatureDemoData }) {
     const ctaLabel = data.cta?.label || '';
     const ctaHref = data.cta?.href || data.cta?.link?.href || data.cta?.link?.path || '/app';
 
-    // Measuring the clip itself means clientWidth already accounts for the
-    // container's 24px, the frame's mobile 4px and the border — before the
-    // first measurement lands, a 320px viewport is assumed rather than
-    // flashing an unscaled 1280px canvas. The 680–760 blocks would come out
-    // 156–197px tall at phone widths; the floor extends the logical height
-    // instead (capped at the block schema's own 1200).
-    const scale = clipW > 0 ? Math.min(1, clipW / DEMO_LOGICAL_WIDTH) : 320 / DEMO_LOGICAL_WIDTH;
-    const logicalHeight = Math.max(height, Math.min(1200, Math.round(MIN_PREVIEW_HEIGHT / scale)));
-    const displayHeight = Math.round(logicalHeight * scale);
-    const demoUrl = `/__demo__/${encodeURIComponent(feature)}?theme=${theme}&vw=${DEMO_LOGICAL_WIDTH}`;
+    // The demo is a separate document: tell it which language the page around
+    // it is in, so a Dutch page does not frame an English product.
+    const frameSrc = `/__demo__/${encodeURIComponent(feature)}?theme=${theme}&lang=${pageLocale()}`;
+    const demoUrl = `${frameSrc}&vw=${DEMO_LOGICAL_WIDTH}`;
+    const posterImage = typeof data.poster === 'string' ? data.poster.trim() : '';
+    const showsFullScreenLink = isPhone && known && !editing;
+    const frameStyle = { aspectRatio: `${DEMO_LOGICAL_WIDTH} / ${height}` };
+    const title = data.title || `${feature} demo`;
 
     return (
         <SectionFrame id="feature-demo" name="Live feature demo" enabled={data.enabled}>
@@ -119,10 +108,9 @@ export default function FeatureDemo({ data }: { data?: FeatureDemoData }) {
                         eyebrowAlign={data.eyebrowAlign} titleAlign={data.titleAlign} leadAlign={data.leadAlign} align={data.align}
                     />
 
-                    <div
-                        className={`feature-demo-frame reveal${scaledPreview ? ' feature-demo-frame--scaled' : ''}`}
-                        style={scaledPreview ? undefined : { height: `${height}px` }}
-                    >
+                    {data.caption ? <p className="feature-demo-caption">{data.caption}</p> : null}
+
+                    <div className="feature-demo-frame reveal" style={frameStyle}>
                         {!known ? (
                             <div className="feature-demo-placeholder">
                                 <p>
@@ -133,68 +121,26 @@ export default function FeatureDemo({ data }: { data?: FeatureDemoData }) {
                                 <p className="feature-demo-hint">Available: {DEMO_FEATURE_IDS.join(', ')}</p>
                             </div>
                         ) : editing ? (
-                            <div className="feature-demo-poster" aria-hidden="true">
-                                <span className="feature-demo-poster-play">▶</span>
-                                <span className="feature-demo-poster-label">
-                                    Live demo — runs on the published site
-                                </span>
-                                <span className="feature-demo-hint">
-                                    Not booted here so the builder stays responsive.
-                                </span>
-                            </div>
-                        ) : scaledPreview ? (
-                            <div className="feature-demo-scale-clip" ref={clipRef} style={{ height: `${displayHeight}px` }}>
-                                {/* aria-hidden: the thumbnail is a picture of the
-                                    product; the overlay link carries the semantics.
-                                    tabIndex -1 keeps the framed document out of the
-                                    tab order of a hidden subtree. */}
-                                <div
-                                    className="feature-demo-scale-canvas"
-                                    aria-hidden="true"
-                                    style={{
-                                        width: DEMO_LOGICAL_WIDTH,
-                                        height: logicalHeight,
-                                        transform: `scale(${scale})`,
-                                        transformOrigin: 'top left',
-                                    }}
-                                >
-                                    <iframe
-                                        src={`/__demo__/${encodeURIComponent(feature)}?theme=${theme}`}
-                                        title={data.title || `${feature} demo`}
-                                        className="feature-demo-iframe"
-                                        loading="lazy"
-                                        sandbox="allow-scripts allow-same-origin"
-                                        allow=""
-                                        referrerPolicy="no-referrer"
-                                        tabIndex={-1}
-                                    />
-                                </div>
-                                <a
-                                    className="feature-demo-open-overlay"
-                                    href={demoUrl}
-                                    aria-label={`Open the ${data.title || feature} demo full screen`}
-                                >
-                                    <span className="feature-demo-open-pill">
-                                        <Maximize2 aria-hidden="true" />
-                                        Open full screen
-                                    </span>
-                                </a>
-                            </div>
-                        ) : (
+                            <FeatureDemoPoster mode="inert" image={posterImage} label="Live demo — runs on the published site" />
+                        ) : isPhone ? (
+                            <FeatureDemoPoster mode="link" image={posterImage} label="Open full screen" href={demoUrl} />
+                        ) : activated ? (
                             <iframe
-                                src={`/__demo__/${encodeURIComponent(feature)}?theme=${theme}`}
-                                title={data.title || `${feature} demo`}
+                                src={frameSrc}
+                                title={title}
                                 className="feature-demo-iframe"
                                 loading="lazy"
                                 sandbox="allow-scripts allow-same-origin"
                                 allow=""
                                 referrerPolicy="no-referrer"
                             />
+                        ) : (
+                            <FeatureDemoPoster mode="button" image={posterImage} label="Try it" onActivate={() => setActivated(true)} />
                         )}
                     </div>
 
                     <div className="feature-demo-footer">
-                        {scaledPreview ? (
+                        {showsFullScreenLink ? (
                             <a className="btn btn-secondary feature-demo-open-btn" href={demoUrl}>
                                 <Maximize2 aria-hidden="true" size={16} />
                                 Open full screen
@@ -211,6 +157,17 @@ export default function FeatureDemo({ data }: { data?: FeatureDemoData }) {
             </section>
         </SectionFrame>
     );
+}
+
+// The language of the page the block sits on, by the rule the cookie banner
+// follows (resolveCookieLang): the path prefix (/nl/...) first, then ?locale=.
+// Anything else is English. Only members of LOCALE_PREFIXES come out.
+function pageLocale(): string {
+    if (typeof window === 'undefined') return 'en';
+    const seg = (window.location.pathname.split('/')[1] || '').toLowerCase();
+    if (LOCALE_PREFIXES.has(seg)) return seg;
+    const param = (new URLSearchParams(window.location.search).get('locale') || '').toLowerCase().split('-')[0];
+    return LOCALE_PREFIXES.has(param) ? param : 'en';
 }
 
 function isPreviewMode() {
@@ -237,27 +194,4 @@ function useIsPhone() {
         return () => mql.removeEventListener('change', update);
     }, []);
     return isPhone;
-}
-
-// PreviewStage's measurer (ResizeObserver, resize fallback), with two
-// deliberate differences: useLayoutEffect so the first paint already has the
-// right scale — on a public page a one-frame 1280px flash is visible layout
-// shift — and an `active` flag so the desktop branch observes nothing.
-function useMeasuredWidth(ref: React.RefObject<HTMLDivElement | null>, active: boolean) {
-    const [w, setW] = useState(0);
-    useLayoutEffect(() => {
-        if (!active) return undefined;
-        const el = ref.current;
-        if (!el) return undefined;
-        const measure = () => setW(el.clientWidth);
-        measure();
-        if (typeof ResizeObserver === 'undefined') {
-            window.addEventListener('resize', measure);
-            return () => window.removeEventListener('resize', measure);
-        }
-        const ro = new ResizeObserver(measure);
-        ro.observe(el);
-        return () => ro.disconnect();
-    }, [ref, active]);
-    return w;
 }

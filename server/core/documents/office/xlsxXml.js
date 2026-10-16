@@ -2,8 +2,18 @@
 
 'use strict';
 
+/**
+ * Everything XML 1.0 cannot carry: C0 controls except tab/LF/CR, U+FFFE/U+FFFF
+ * and lone surrogates. A pair of surrogates (an emoji) is valid and stays.
+ */
+const XML_INVALID = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+
+function stripInvalidXmlChars(v) {
+    return String(v).replace(XML_INVALID, '');
+}
+
 function xmlEscape(v) {
-    return String(v)
+    return stripInvalidXmlChars(v)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
@@ -23,4 +33,4 @@ function colLetter(n) {
     return s;
 }
 
-module.exports = { xmlEscape, colLetter };
+module.exports = { xmlEscape, stripInvalidXmlChars, colLetter };

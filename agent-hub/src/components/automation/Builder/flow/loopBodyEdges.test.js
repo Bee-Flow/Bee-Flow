@@ -1,7 +1,7 @@
 // @vitest-environment node
 //
 // The canvas draws a loop's body as a chain. The runtime BUILDS that chain, per
-// iteration, in the automation runner's `buildLinearEdges` (execFlow.js). If
+// iteration, in the automation runner's `buildLinearEdges` (linearEdges.js). If
 // the two disagree the canvas shows a flow that isn't the one that runs — so
 // half of this file pins the pure behaviour, and half reads the runner module
 // as source to prove the rule it mirrors is still there.
@@ -13,7 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { LOOP_ENTRY_ID, loopBodyEdges, orderLoopBody } from './loopBodyEdges';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const ENGINE = path.resolve(HERE, '../../../../../../server/core/automationRunner/execFlow.js');
+const ENGINE = path.resolve(HERE, '../../../../../../server/core/automationRunner/linearEdges.js');
 
 const step = (id, type = 'set', extra = {}) => ({ id, type, ...extra });
 
@@ -111,13 +111,13 @@ describe('orderLoopBody', () => {
 });
 
 describe('lockstep with the runtime', () => {
-    // Reads execFlow.js as SOURCE: the thing under test is the routing rule,
+    // Reads linearEdges.js as SOURCE: the thing under test is the routing rule,
     // not a callable. Asserted piece by piece so a rule that DISAPPEARS fails
     // here rather than in production.
     const body = (() => {
         const src = fs.readFileSync(ENGINE, 'utf8');
         const at = src.indexOf('function buildLinearEdges');
-        expect(at, 'execFlow.js no longer defines buildLinearEdges').toBeGreaterThan(-1);
+        expect(at, 'linearEdges.js no longer defines buildLinearEdges').toBeGreaterThan(-1);
         return src.slice(at, at + 1200);
     })();
 

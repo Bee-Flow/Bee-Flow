@@ -25,6 +25,7 @@ const { seedReplayState, withReplayStale } = require('./replaySeeding');
 const execution = require('./execution');
 const { resolveTriggerPayload } = execution;
 const { automationForRun } = require('./definitionForRun');
+const { runTriggerOnly } = require('./partialTriggerRun');
 const { runVarsFor, isManagedAutomation } = require('./stageVars');
 
 // The init seam for what a partial run hands its synthetic to and seeds its
@@ -139,6 +140,7 @@ async function runPartialInLoopBody(automation, { chain, prefix, localId, body }
             }
             return rootStepIds.has(row.stepId) ? row.stepId : null;
         },
+        { viewerUserId: startedByUserId },
     );
     // Pins win over history — on the steps around the loop and inside the body.
     for (const s of [...(def.steps || []), ...body]) {
@@ -193,6 +195,9 @@ async function runPartialInLoopBody(automation, { chain, prefix, localId, body }
             // Keep flowlets called from the body resolvable, and document vars visible.
             layers: def.layers || {},
             vars: runVars,
+            // The run policy rides along: a partial run is a run, and
+            // runPolicy.connections must still narrow whose connections it uses.
+            ...(def.runPolicy ? { runPolicy: def.runPolicy } : {}),
         },
     };
 
@@ -276,6 +281,7 @@ async function runPartialInLayer(automation, { layerKey, layer }, stepId, { mode
             // surprising of the available answers.)
             return layerStepIds.has(row.stepId) ? row.stepId : null;
         },
+        { viewerUserId: startedByUserId },
     );
 
     // Seed the layer input. Prefer an explicit payload, else the inputs the most
@@ -361,6 +367,8 @@ async function runPartialInLayer(automation, { layerKey, layer }, stepId, { mode
             layers: def.layers || {},
             // The document vars (else the layer's own), with the Solution values over them.
             vars: await runVarsFor(automation, { definition: { vars: def.vars || layer.vars || {} } }),
+            // See the loop-body twin above: the run policy must survive.
+            ...(def.runPolicy ? { runPolicy: def.runPolicy } : {}),
         },
     };
 
@@ -526,50 +534,7 @@ async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'ma
     // run with just the trigger output so the UI's "Run step" on a trigger
     // node returns a real run record (the payload IS the output).
     if (isTrigger && mode === 'only') {
-        // This branch synthesizes its own run and never reaches
-        // executeAutomation, so the pinned-sample rule has to be applied HERE
-        // too. It is the ▶ on the trigger node — the single gesture the whole
-        // feature exists for — and missing it would leave the headline case
-        // showing `{}` while every other entry point had data.
-        const enteredPayload = resolveTriggerPayload({ trigger: triggerNode, triggerPayload, triggerKind, mode: 'live' });
-        const run = await automationStore.createRun({
-            automationId: automation.id,
-            version: automation.version,
-            userId: automation.userId,
-            triggerKind,
-            triggerPayload: enteredPayload,
-            mode: 'live',
-            parentRunId: null,
-            rootStepId: triggerId,
-            startedByUserId,
-        });
-        const triggerOutput = enteredPayload || {};
-        const nowIso = new Date().toISOString();
-        try {
-            await automationStore.recordRunStep({
-                runId: run.id,
-                stepId: triggerId,
-                stepType: 'trigger',
-                attempts: 1,
-                status: 'success',
-                startedAt: nowIso,
-                finishedAt: nowIso,
-                input: enteredPayload ?? null,
-                output: triggerOutput,
-                error: null,
-                // No runState here — a trigger-only synthetic run executes no
-                // steps, so no secret bridge can have populated any secrets.
-                secretValues: [],
-            });
-        } catch (_) { /* recordRunStep is best-effort here */ }
-        await automationStore.updateRun(run.id, {
-            status: 'success',
-            startedAt: nowIso,
-            finishedAt: nowIso,
-            output: triggerOutput,
-            summary: 'Trigger step (no downstream execution)',
-        }).catch(() => {});
-        return { ...run, status: 'success', output: triggerOutput };
+        return runTriggerOnly({ automation, triggerId, triggerNode, triggerPayload, triggerKind, startedByUserId });
     }
 
     // Seed replay from RECENT prior LIVE runs' persisted step rows — the most
@@ -586,6 +551,7 @@ async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'ma
         // aren't parent-graph nodes. A partial run that hits a call_layer step
         // re-runs the whole layer.
         (row) => (row.parentStepId ? null : row.stepId),
+        { viewerUserId: startedByUserId },
     );
     // Pinned outputs override historical replay so the user's "Pin" wins.
     for (const s of steps) {

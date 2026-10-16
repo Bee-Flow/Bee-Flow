@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Bee Flow as an MCP server.
  *
@@ -59,6 +60,8 @@ const { gateRequest: authenticateMcpRequest, rpcDenied } = require('../auth/mcpA
 const { batchTooLarge, rpcBatchTooLarge } = require('../auth/mcpAccess/batch');
 const { scopeAllowsTool, filterToolsByScope } = require('../auth/mcpAccess/scopes');
 
+const { NOTEBOOK_TOOLS } = require('../integrations/notebookToolNames');
+
 const router = express.Router();
 
 // ── Tool surface ────────────────────────────────────────────────────────────
@@ -82,8 +85,13 @@ async function toolsForUser(userId) {
  * "not available to this account".
  */
 function toolListFrom(resolved) {
-    return Array.isArray(resolved?.tools) ? resolved.tools : [];
+    if (!Array.isArray(resolved?.tools)) return [];
+    return resolved.tools.filter(t => !NOTEBOOK_TOOLS.has(t?.function?.name));
 }
+
+// The notebook tools act on the notebook of a chat conversation. An MCP call
+// has no conversation, so they refused every call; they are not offered here
+// (neither listed nor callable, as tools/call re-resolves this same list).
 
 /**
  * MCP tool definition from an OpenAI-shaped function definition. The

@@ -8,7 +8,7 @@ import PageInspector from './PageInspector';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { CmsActivePage } from '../panel/cmsPanelTypes';
 import {
-    ANALYTICS_VIRTUAL_ID, BLOG_VIRTUAL_ID, DESIGN_VIRTUAL_ID, isChromeEntryId, normalizeVirtualId,
+    ANALYTICS_VIRTUAL_ID, BLOG_VIRTUAL_ID, DESIGN_VIRTUAL_ID, REDIRECTS_VIRTUAL_ID, isChromeEntryId, normalizeVirtualId,
 } from '../sentinels';
 
 function CenteredNote({ children }: { children?: ReactNode }) {
@@ -29,6 +29,7 @@ interface InspectorHostProps {
     analyticsProps: ComponentProps<typeof AnalyticsInspector>;
     pageProps: Omit<ComponentProps<typeof PageInspector>, 'page'>;
     blogInspector?: ReactNode;
+    redirectsInspector?: ReactNode;
 }
 
 /**
@@ -52,10 +53,16 @@ export default function InspectorHost({
     analyticsProps,     // { site, onChange, onOpenCookieSettings, onOpenAnalytics }
     pageProps,          // PageInspector props minus `page` (added here)
     blogInspector = null, // the Blog entry's inspector (handles translation mode itself)
+    redirectsInspector = null, // the Redirects entry's inspector
 }: InspectorHostProps) {
     const { t } = useTranslation();
     const entryId = normalizeVirtualId(activePageId);
     if (entryId === BLOG_VIRTUAL_ID && blogInspector) return blogInspector;
+    if (entryId === REDIRECTS_VIRTUAL_ID) {
+        return translationMode
+            ? <CenteredNote>{t('cms_redirects.shared_note', 'Redirects are shared across all languages. Switch to the default language to edit them.')}</CenteredNote>
+            : redirectsInspector;
+    }
     const isChrome = isChromeEntryId(entryId);
     const isDesign = entryId === DESIGN_VIRTUAL_ID;
     const isAnalytics = entryId === ANALYTICS_VIRTUAL_ID;

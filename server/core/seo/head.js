@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The <head> a crawler actually receives.
  *
@@ -14,7 +15,7 @@
  * and JSON-LD.
  */
 
-const { esc, meta, clamp, jsonForScript } = require('./html');
+const { esc, meta, clamp, clampTitle, jsonForScript } = require('./html');
 const { buildJsonLd } = require('./jsonld');
 const { buildPublicPath } = require('./publicPath');
 const { buildFontsHead } = require('./fonts');
@@ -48,20 +49,27 @@ function absolute(origin, urlOrPath) {
  * @param {string} ctx.siteName
  * @param {string} [ctx.ogType]          'website' (default) or 'article' (blog post)
  * @param {object} [ctx.article]         { publishedTime, modifiedTime, author, tags } → article:* tags
- * @param {object[]} [ctx.extraJsonLd]   extra @graph nodes (BlogPosting, Blog)
- * @param {{ name: string, path: string }[]} [ctx.breadcrumbTrail] replaces the Home › page crumbs
+ * @param {object[]} [ctx.extraJsonLd]   extra graph nodes (BlogPosting, Blog)
+ * @param {Array<{ name: string, path: string }>} [ctx.breadcrumbTrail] replaces the Home › page crumbs
  * @param {string[]} [ctx.extraLinks]    pre-built <link> tags (the blog's RSS alternate)
+ * @param {string} [ctx.shareImageVersion] publish-time token: pages without an og:image get the generated card (/api/cms/og/…)
  * @returns {string} tags to splice into <head>
  */
 function buildHead(ctx) {
     const { origin, slug, locale, defaultLocale, locales = [], page = {}, design = {}, siteName = 'Bee Flow' } = ctx;
     const seo = page.seo || {};
 
-    const title = clamp(seo.metaTitle || page.title || siteName, TITLE_MAX);
+    const title = clampTitle(seo.metaTitle || page.title || siteName, TITLE_MAX, siteName);
     const description = clamp(seo.metaDescription || '', DESC_MAX);
     const path = buildPublicPath(locale, slug, defaultLocale);
     const url = `${origin}${path === '/' ? '/' : path}`;
-    const image = absolute(origin, seo.ogImage || design.logo || '');
+    // A page without its own share image gets the generated card
+    // (routes/cmsOgImage.js) when the caller says the site is published; the
+    // ?v= publish time makes every publish a new, long-cacheable URL.
+    const generated = !seo.ogImage && ctx.shareImageVersion && page.slug
+        ? `${origin}/api/cms/og/${encodeURIComponent(locale)}/${encodeURIComponent(page.slug)}.png?v=${encodeURIComponent(ctx.shareImageVersion)}`
+        : '';
+    const image = generated || absolute(origin, seo.ogImage || design.logo || '');
     const favicon = absolute(origin, design.favicon || '/app-icon.svg');
 
     const out = [];
@@ -90,6 +98,11 @@ function buildHead(ctx) {
         out.push(meta('og:locale:alternate', alt, { property: true }));
     }
     if (image) out.push(meta('og:image', image, { property: true }));
+    if (generated) {
+        out.push(meta('og:image:type', 'image/png', { property: true }));
+        out.push(meta('og:image:width', '1200', { property: true }));
+        out.push(meta('og:image:height', '630', { property: true }));
+    }
     if (ctx.ogType === 'article' && ctx.article) {
         const a = ctx.article;
         out.push(meta('article:published_time', a.publishedTime, { property: true }));

@@ -438,6 +438,7 @@ function checkLoopBindings(value, graph, forEach, draftWrap, { label = 'inputs',
  * forEach.overRef. Returns { arrayRef, notes, error }; a non-string comes
  * back untouched for the step's own validation to report. `strictRoot`
  * refuses an unknown root (the set step always did); elsewhere it is a note.
+ * @param {*} raw @param {*} graph @param {{ draftWrap?: *, strictRoot?: boolean }} [opts]
  */
 function sanitizeArrayRef(raw, graph, { draftWrap, strictRoot = false } = {}) {
     if (typeof raw !== 'string' || !raw.trim()) return { arrayRef: raw, notes: [], error: null };
@@ -459,6 +460,7 @@ function sanitizeArrayRef(raw, graph, { draftWrap, strictRoot = false } = {}) {
  * loop) so it self-repairs and errors consistently with everything else.
  *
  * Returns `{ forEach }` (forEach === undefined when `raw` is absent) or `{ error }`.
+ * @returns {import('./bindings.types').SanitizedForEach}
  */
 function sanitizeForEach(raw, graph, draftWrap) {
     if (raw === undefined || raw === null) return { forEach: undefined };
@@ -490,30 +492,8 @@ function sanitizeForEach(raw, graph, draftWrap) {
     return { forEach, ...(notes ? { notes: notes.map(l => l.replace(/^inputs\.overRef/, 'forEach.overRef')) } : {}) };
 }
 
-/**
- * Every `loop.<var>` a set of canonical bindings reads — ref paths and the
- * {{…}} placeholders inside templates — with the var name.
- */
 const { LOOP_RUNTIME_KEYS } = require('../validate/constants');
-
-function loopVarsReadBy(value, out = [], depth = 0) {
-    if (depth > 12 || value === null || value === undefined) return out;
-    if (Array.isArray(value)) { for (const v of value) loopVarsReadBy(v, out, depth + 1); return out; }
-    if (typeof value === 'string') {
-        const t = normalizeAiPath(value, { trimDebris: false }).tokens;
-        if (t && t[0].key === 'loop' && t[1] && t[1].type === 'prop') out.push({ v: String(t[1].key), path: value.trim() });
-        return out;
-    }
-    if (typeof value !== 'object') return out;
-    if (value.kind === 'ref' && typeof value.path === 'string') return loopVarsReadBy(value.path, out, depth + 1);
-    if (value.kind === 'template' && typeof value.value === 'string') {
-        for (const p of scanTemplate(value.value)) if (p.type === 'ref') loopVarsReadBy(p.inner, out, depth + 1);
-        return out;
-    }
-    if (value.kind === 'literal' || value.kind === 'expr') return out;
-    for (const v of Object.values(value)) loopVarsReadBy(v, out, depth + 1);
-    return out;
-}
+const { loopVarsReadBy } = require('./bindings.loopVars');
 
 /**
  * A step that reads `loop.<var>` must be the step that iterates as <var>.

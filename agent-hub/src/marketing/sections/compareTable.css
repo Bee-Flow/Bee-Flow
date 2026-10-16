@@ -77,9 +77,62 @@
     color: var(--text-muted);
 }
 
+/* Phone: one card per row. The label becomes the card heading and each value
+   line is prefixed with its column name (data-label), so no column hides
+   behind a sideways scroll. The head row stays in the DOM for screen readers
+   but is visually hidden. */
 @media (max-width: 640px) {
+    .marketing-root .compare-table-scroll {
+        overflow-x: visible;
+        border: none;
+        background: transparent;
+    }
+    .marketing-root .compare-table {
+        min-width: 0;
+    }
+    .marketing-root .compare-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    .marketing-root .compare-table,
+    .marketing-root .compare-table tbody,
+    .marketing-root .compare-table tr,
+    .marketing-root .compare-table th,
+    .marketing-root .compare-table td {
+        display: block;
+    }
+    .marketing-root .compare-table tbody tr {
+        margin-bottom: var(--space-3);
+        border: 1px solid var(--hairline);
+        border-radius: var(--radius-base, 12px);
+        background: var(--surface-0);
+        overflow: hidden;
+    }
     .marketing-root .compare-table th,
     .marketing-root .compare-table td {
         padding: 12px 14px;
+    }
+    .marketing-root .compare-table tbody th[scope='row'] {
+        width: auto;
+        background: var(--surface-1);
+        border-bottom: 1px solid var(--hairline-strong);
+    }
+    .marketing-root .compare-table tbody td:last-child {
+        border-bottom: none;
+    }
+    .marketing-root .compare-table td::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 2px;
+        font-size: var(--text-small);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    .marketing-root .compare-table td[data-label='']::before {
+        content: none;
     }
 }

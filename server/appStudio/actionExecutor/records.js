@@ -1,47 +1,36 @@
 /**
  * App Studio action executor — RECORD WRITES (extracted verbatim from
- * actionExecutor.js): the writeRecord / writeRecordBatch choke point, the
- * create_record / update_record / delete_record steps and the best-effort
- * data-version + row-count bookkeeping that follows every write.
+ * actionExecutor.js): the writeRecord / writeRecordBatch choke point, the create_record / update_record /
+ * delete_record steps and the best-effort data-version + row-count bookkeeping that follows every write.
  *
  * ── TWEE TABELSOORTEN, TWEE OPSLAGEN ────────────────────────────────
  *
- * Een modeltabel ZONDER `source` bezit haar eigen opslag: dat is `writeRecord`
- * hieronder, met `studioAppDbStore` (de eigenaar-gescoopte per-app-engine) en de
- * per-app quota. Een modeltabel MÉT
- * `source = {kind:'datatable', datatableId, mode}` haalt haar rijen uit een
- * Studio-datatabel, buiten de app: dan gaat het naar het datatabel-pad onderaan
- * dit bestand — `datatableDbStore` op de scope-sleutel en de datatabel-quota.
+ * Een modeltabel ZONDER `source` bezit haar eigen opslag: dat is `writeRecord` hieronder, met `studioAppDbStore`
+ * (de eigenaar-gescoopte per-app-engine) en de per-app quota. Een modeltabel MÉT `source = {kind:'datatable',
+ * datatableId, mode}` haalt haar rijen uit een Studio-datatabel, buiten de app: dan gaat het naar het
+ * datatabel-pad onderaan dit bestand — `datatableDbStore` op de scope-sleutel en de datatabel-quota.
  *
- * DE SPLITSING STAAT OP HET KNOOPPUNT ZELF, niet alleen in de drie
- * stap-handlers. Dat was hier eerst wél zo, en het maakte van het knooppunt het
- * tweede schrijfpad dat de kop hieronder juist uitsluit: `writeRecord` en
- * `writeRecordBatch` schreven een gekoppelde tabel onvoorwaardelijk naar de
- * app-eigen opslag. Alles wat NIET via create_record/update_record/delete_record
- * binnenkomt liep daar langs — de record-API (POST/PATCH/DELETE
- * /:id/data/tables/:tableId/records), ai_extract writeTo, file_intake,
- * dataset_query, de send_email-logrij, de goedkeuringshaak, connectorSync en
- * templateInstall — met drie gevolgen tegelijk: een `mode:'read'`-koppeling was
- * beschrijfbaar, de graad van de kijker werd nooit opgezocht, en de rij landde
- * in een schaduwtabel die het LEESpad (dataReadRunner.readPlan → de datatabel)
- * nooit bevraagt. `success:true`, en de rij daarna nergens te zien.
+ * DE SPLITSING STAAT OP HET KNOOPPUNT ZELF, niet alleen in de drie stap-handlers. Dat was hier eerst wél zo, en
+ * het maakte van het knooppunt het tweede schrijfpad dat de kop hieronder juist uitsluit: `writeRecord` en
+ * `writeRecordBatch` schreven een gekoppelde tabel onvoorwaardelijk naar de app-eigen opslag. Alles wat NIET via
+ * create_record/update_record/delete_record binnenkomt liep daar langs — de record-API (POST/PATCH/DELETE
+ * /:id/data/tables/:tableId/records), ai_extract writeTo, file_intake, dataset_query, de send_email-logrij, de
+ * goedkeuringshaak, connectorSync en templateInstall — met drie gevolgen tegelijk: een `mode:'read'`-koppeling was
+ * beschrijfbaar, de graad van de kijker werd nooit opgezocht, en de rij landde in een schaduwtabel die het LEESpad
+ * (dataReadRunner.readPlan → de datatabel) nooit bevraagt. `success:true`, en de rij daarna nergens te zien.
  *
- * Vandaar: `writeRecord`, `writeRecordBatch` en `eraseRecord` vertakken zelf, en
- * de stap-handlers zijn niets meer dan de bindingen eromheen. Eén tak per
- * knooppunt, geen enkele aanroeper met een eigen kopie.
+ * Vandaar: `writeRecord`, `writeRecordBatch` en `eraseRecord` vertakken zelf, en de stap-handlers zijn niets meer
+ * dan de bindingen eromheen. Eén tak per knooppunt, geen enkele aanroeper met een eigen kopie.
  *
- * WIE ER MAG SCHRIJVEN wordt hier niet beslist. Die vraag staat in
- * `appStudio/datatableSource.js`, samen met het antwoord voor het LEESpad
- * (dataReadRunner): één body, twee ingangen. Twee implementaties van "welke
- * graad geldt door deze deur" lopen uit elkaar, en de kopie die drift is altijd
- * de kopie waar niemand naar kijkt. Wat hier overblijft is compileren en
- * uitvoeren.
+ * WIE ER MAG SCHRIJVEN wordt hier niet beslist. Die vraag staat in `appStudio/datatableSource.js`, samen met het
+ * antwoord voor het LEESpad (dataReadRunner): één body, twee ingangen. Twee implementaties van "welke graad geldt
+ * door deze deur" lopen uit elkaar, en de kopie die drift is altijd de kopie waar niemand naar kijkt. Wat hier
+ * overblijft is compileren en uitvoeren.
  *
- * De twee opslagen delen niets en mogen dus nooit in elkaars pad vallen: een
- * `source` die niet gelezen kan worden is een FOUT en geen terugval op de eigen
- * opslag van de app.
- */
+ * De twee opslagen delen niets en mogen dus nooit in elkaars pad vallen: een `source` die niet gelezen kan worden
+ * is een FOUT en geen terugval op de eigen opslag van de app.
 
+ */
 'use strict';
 
 const queryCompiler = require('../queryCompiler');
@@ -84,6 +73,11 @@ const log = require('../../telemetry/log');
  * erop zijn niet die van de app. De weigering die dan valt is een `readError`
  * (status + `safe:true`) en wordt door de routers letterlijk doorgegeven; hij
  * is nooit een terugval op `studioAppDbStore`.
+ * @param {any} app
+ * @param {any} model
+ * @param {any} table
+ * @param {Record<string, any>} values
+ * @param {{ viewer?: any, recordId?: string, expectedUpdatedAt?: any }} [opts]
  */
 async function writeRecord(app, model, table, values, { viewer, recordId, expectedUpdatedAt = null } = {}) {
     if (datatableSource.isDatatableBacked(table)) {

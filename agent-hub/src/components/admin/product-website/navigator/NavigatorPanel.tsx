@@ -6,7 +6,7 @@ import BlockList from '../BlockList';
 import PageList from '../PageList';
 import {
     DESIGN_VIRTUAL_ID, HEADER_VIRTUAL_ID, FOOTER_VIRTUAL_ID, COOKIE_VIRTUAL_ID,
-    ANNOUNCE_VIRTUAL_ID, ANALYTICS_VIRTUAL_ID, BLOG_VIRTUAL_ID,
+    ANNOUNCE_VIRTUAL_ID, ANALYTICS_VIRTUAL_ID, BLOG_VIRTUAL_ID, REDIRECTS_VIRTUAL_ID,
 } from '../sentinels';
 
 const SITE_ENTRIES = [
@@ -17,6 +17,7 @@ const SITE_ENTRIES = [
     { id: COOKIE_VIRTUAL_ID,    label: 'Cookie banner', labelKey: 'cms_site.site.navigator.cookie',     icon: 'Cookie' },
     { id: ANALYTICS_VIRTUAL_ID, label: 'Analytics', labelKey: 'cms_site.site.navigator.analytics',         icon: 'BarChart3' },
     { id: BLOG_VIRTUAL_ID,      label: 'Blog', labelKey: 'cms_blog.navigator.blog',                       icon: 'Newspaper' },
+    { id: REDIRECTS_VIRTUAL_ID, label: 'Redirects', labelKey: 'cms_redirects.navigator',                  icon: 'ArrowRight' },
 ];
 
 function Caption({ children }: { children?: ReactNode }) {

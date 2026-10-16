@@ -8,6 +8,7 @@
 'use strict';
 
 const automationStore = require('../stores/automationStore');
+const { redactRunForViewer } = require('../core/automationModel/callerRunVisibility');
 const log = require('../telemetry/log');
 const { isRunless, voteSummary } = require('./approvalRulebook');
 
@@ -124,7 +125,7 @@ async function finalizeDecision({ approval, run, deciderId, decision, trimmedRea
             approvalToken: null,
         });
         const fresh = await automationStore.getRun(run.id);
-        return outcome(200, { accepted: true, decision: 'reject', approval: decided, run: fresh });
+        return outcome(200, { accepted: true, decision: 'reject', approval: decided, run: redactRunForViewer(fresh, deciderId) });
     }
 
     // Approve → resume. Clearing the awaiting state FIRST is the run-level
@@ -166,7 +167,7 @@ async function finalizeDecision({ approval, run, deciderId, decision, trimmedRea
     if (timedOut || !newRun) {
         return outcome(202, { accepted: true, pending: true, approval: decided, message: 'Resume started; check run history.' });
     }
-    return outcome(200, { accepted: true, decision: 'approve', approval: decided, run: newRun });
+    return outcome(200, { accepted: true, decision: 'approve', approval: decided, run: redactRunForViewer(newRun, deciderId) });
 }
 
 module.exports = { outcome, recordDeploymentOutcome, userDisplayName, deciderName, finalizeDecision };

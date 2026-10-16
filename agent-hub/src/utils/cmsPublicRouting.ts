@@ -4,10 +4,9 @@
 //
 // Extracted from App.jsx so the CMS editor can warn about unreachable slugs
 // without importing the app root. App.jsx imports these back — behavior
-// unchanged. NOTE: the server's RESERVED_SLUGS
-// (server/i18n/defaults/cmsDefaults.js) is a SUBSET of this list and stays
-// that way on purpose: the server keeps accepting legacy slugs so imports
-// and renames of existing data never break; the client warns instead.
+// unchanged. NOTE: the server's rule lives in
+// server/stores/cms/slugRules.js (RESERVED_TOP_LEVEL there must equal the set
+// below; seo.test.js pins the two).
 
 // Top-level paths claimed by the BeeFlow app shell. Any single-segment
 // pathname starting with one of these (e.g. `/app`, `/api`, `/admin`) is
@@ -18,8 +17,9 @@
 // slug could be created and edited but never rendered — App.jsx served the
 // hardcoded marketing/PricingPage.jsx instead. Pricing copy changes far more
 // often than a deploy cycle, so the CMS page now wins and PricingPage is the
-// FALLBACK for installs with no CMS site (see RootPathGate). `privacy` stays
-// reserved: it frames the public DSR request form.
+// FALLBACK for installs with no CMS site (see RootPathGate). `privacy` is a CMS
+// page too (the legal page); the DSR request form is /privacy/requests, two
+// segments, which is never a slug.
 export const RESERVED_TOP_LEVEL = new Set([
     'app', 'api', 'admin', 'auth', 'login', 'logout', 'register', 'signup',
     'dashboard', 'settings', 'embed', 'oauth', 'callback',
@@ -33,7 +33,6 @@ export const RESERVED_TOP_LEVEL = new Set([
     // catch-all claims the path and every public app URL 404s.
     'p',
     'org-settings',
-    'privacy',
     '__cms_preview__',
 ]);
 
@@ -199,7 +198,7 @@ export interface SlugIssue {
 export function slugIssues(slug?: string | null, { existingSlugs = null, currentSlug = null }: SlugIssueOptions = {}): SlugIssue | null {
     const s = (slug || '').trim().toLowerCase();
     if (!s) return null;
-    if (RESERVED_TOP_LEVEL.has(s) || s === BLOG_BASE) {
+    if (RESERVED_TOP_LEVEL.has(s) || LOCALE_PREFIXES.has(s) || s === BLOG_BASE) {
         return {
             kind: 'reserved',
             blocking: true,

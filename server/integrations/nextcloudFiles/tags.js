@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * System tags — list and create tags, attach or detach them from a file, and
  * find every file carrying one.
@@ -77,6 +78,9 @@ async function executeTagTool(toolName, args, ctx) {
             if (res.status === 401) return { error: authError };
             if (res.status === 404) return { error: 'File or tag not found.' };
             if (res.status === 409) return { error: 'File already has this tag.' };
+            if (res.status === 412) {
+                return { error: `Tag ${args.tagId} does not exist or this account may not assign it. Use nextcloud_list_tags for valid tag ids.` };
+            }
             if (!res.ok && res.status !== 201 && res.status !== 204) {
                 return { error: `Tag attach failed (${res.status})` };
             }

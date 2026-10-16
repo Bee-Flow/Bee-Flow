@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The presentation pair: `slide` (one slide, an object) and `presentation`
  * (slides in, a .pptx or PDF deck out, kept like a generate_document file).
@@ -30,6 +31,7 @@ const {
     DOCUMENT_TTL_MIN_DAYS, DOCUMENT_TTL_MAX_DAYS, DOCUMENT_TTL_DEFAULT_DAYS,
 } = require('./execDocument');
 const log = require('../../telemetry/log');
+const { noteRunWarning } = require('./runWarnings');
 
 const PRESENTATION_FORMATS = new Set(['pptx', 'pdf']);
 const PRESENTATION_CONTENT_TYPES = Object.freeze({
@@ -213,6 +215,7 @@ async function execPresentation(step, ctx, runState, mode) {
 
     if (rendered.degraded) {
         log.warn(`[presentation] ${step.id}: rendered without a browser — the PDF uses the plain fallback layout.`);
+        noteRunWarning(runState, `${step.id}: the PDF was rendered without a browser, so it uses the plain fallback layout`);
     }
 
     // Optionally keep the deck in Studio → Documents as a presentation, so a

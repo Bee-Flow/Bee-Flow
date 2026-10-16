@@ -149,3 +149,39 @@ test('row counts are keyed by table id whichever key the store used', () => {
     assert.deepEqual(mcpBuilder.normalizeRowCounts(model, null), {});
     assert.deepEqual(mcpBuilder.normalizeRowCounts(null, { tbl_a: 3 }), {});
 });
+
+test('app_set_plan over MCP succeeds as a no-op instead of failing', async () => {
+    const { result } = await mcpBuilder.callTool('app_set_plan', { appId: 'app_x', todos: [{ text: 'a' }] }, { userId: 'u1' });
+    assert.equal(result.ok, true);
+    assert.equal(result.error, undefined);
+    const tool = mcpBuilder.buildToolList().find((t) => t.name === 'app_set_plan');
+    assert.match(tool.description, /no-op/);
+});
+
+test('the MCP draft loads linked tables and shows their live row counts', async () => {
+    const appStore = require('../stores/studioAppStore');
+    const dataStore = require('../stores/studioAppDataStore');
+    const linked = require('./linkedTables');
+    const model = { tables: [{ id: 'tbl_l1', key: 'invoices', fields: [] }] };
+    const restore = [];
+    const stub = (mod, key, value) => { restore.push([mod, key, mod[key]]); mod[key] = value; };
+    const seen = [];
+    try {
+        stub(appStore, 'getStudioApp', async () => ({ id: 'app_1', name: 'A', definition: {}, definitionVersion: 1, organizationId: null }));
+        stub(appStore, 'canWriteStudioApp', () => true);
+        stub(dataStore, 'getDataModel', async () => ({ model, modelVersion: 3, rowCounts: { tbl_l1: 0 } }));
+        stub(dataStore, 'listDatasets', async () => []);
+        stub(linked, 'attachLinkedTables', async (wrap, owner) => {
+            seen.push(owner);
+            wrap.linkedTables = new Map([['tbl_l1', { rowCount: 57, mode: 'read' }]]);
+            wrap.rowCounts = { tbl_l1: 57 };
+        });
+        const { draftWrap, error } = await mcpBuilder.loadDraft('app_1', 'u_1');
+        assert.ok(!error, error);
+        assert.deepEqual(seen, ['u_1'], 'the owner is passed through');
+        assert.equal(draftWrap.rowCounts.tbl_l1, 57);
+        assert.ok(draftWrap.linkedTables instanceof Map);
+    } finally {
+        for (const [mod, key, prev] of restore.reverse()) mod[key] = prev;
+    }
+});

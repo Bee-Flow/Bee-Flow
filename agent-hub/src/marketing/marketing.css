@@ -156,7 +156,14 @@
 /* Eyebrows are 13px TEXT, so they use --accent-strong, not the raw accent:
    #F5A623 on white is ~2:1 (WCAG failure); the strong variant is the same
    hue at ≥4.5:1 on light surfaces and re-brightens inside dark scopes. */
-.marketing-root .label       { font-size: 0.8rem;   font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent-strong, var(--accent)); }
+.marketing-root .label {
+    font-family: var(--label-font, inherit);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: var(--label-transform, uppercase);
+    letter-spacing: var(--label-tracking, 0.12em);
+    color: var(--highlight-color, var(--accent-strong, var(--accent)));
+}
 
 .marketing-root .gradient-text {
     background: var(--accent-gradient);
@@ -178,6 +185,8 @@
     position: relative;
 }
 .marketing-root section.alt-bg { background: var(--bg-secondary); }
+/* Two plain sections stacked: one --section-y between them, not two (see blockFlow.ts). */
+.marketing-root .cms-block-wrap--joined > section { padding-top: 0; }
 
 /* ── Buttons ──────────────────────────────────────────────────────────── */
 /* Buttons are token-driven so a theme can pick shape (pill / soft /
@@ -211,9 +220,14 @@
 .marketing-root .btn--md { --btn-pad-y: 14px; --btn-pad-x: 32px; --btn-font-size: 0.95rem; }
 .marketing-root .btn--lg { --btn-pad-y: 17px; --btn-pad-x: 40px; --btn-font-size: 1.0625rem; }
 .marketing-root .btn-primary {
-    background: var(--accent-gradient);
+    background: var(--cta-bg, var(--accent-gradient));
     color: var(--btn-primary-fg, #fff);
     box-shadow: var(--btn-shadow, 0 4px 20px var(--accent-glow));
+}
+/* With a cta colour the keyboard focus ring follows it too. */
+.marketing-root.cms-role-cta :is(a, button, [role="button"]):focus-visible {
+    outline: 2px solid var(--cta-color);
+    outline-offset: 2px;
 }
 .marketing-root .btn-primary:hover {
     transform: translateY(var(--btn-lift, -2px));
@@ -253,7 +267,7 @@
     border: none;
 }
 .marketing-root .btn-ghost:hover {
-    color: var(--accent);
+    color: var(--link-color, var(--accent));
 }
 
 /* Link — plain underlined link, matches body-text rhythm. Useful for
@@ -261,7 +275,7 @@
 .marketing-root .btn-link {
     padding: 0;
     background: transparent;
-    color: var(--accent);
+    color: var(--link-color, var(--accent));
     border: none;
     border-radius: 0;
     text-decoration: underline;
@@ -1090,6 +1104,9 @@
 }
 .marketing-root .hero--split .hero-lead { margin-left: 0; }
 .marketing-root .hero--split .hero-ctas { justify-content: flex-start; }
+.marketing-root .hero--align-left .hero-content { text-align: left; margin-left: 0; }
+.marketing-root .hero--align-left .hero-lead { margin-left: 0; }
+.marketing-root .hero--align-left .hero-ctas { justify-content: flex-start; }
 .marketing-root .hero-split-media {
     position: relative;
     z-index: 1;
@@ -1179,6 +1196,37 @@
     letter-spacing: 0.08em;
     color: var(--text-secondary);
     margin-top: 2px;
+}
+.marketing-root .social-proof-stats:last-child { margin-bottom: 0; }
+
+/* Chips variant — text proof without logos. Body font on purpose (the trust
+   band is the mono-caps register); one wrapping row, centred. */
+.marketing-root .social-proof-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.marketing-root .social-proof-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-xl);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+.marketing-root .social-proof-chip-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--accent);
+    flex-shrink: 0;
 }
 .marketing-root .social-proof-eyebrow {
     text-align: center;
@@ -1320,6 +1368,22 @@
     padding-top: 20px;
 }
 .marketing-root .feature-media .cms-frame { box-shadow: none; }
+/* Bento card media box (items[].mediaHeight / mediaFit, whitelisted by
+   Features.tsx). Default (auto): the whole image at its own ratio. With a
+   height the frame becomes a fixed box; 'natural' and 'contain' then fit the
+   whole image inside it, 'cover' fills it and crops from the top. */
+.marketing-root .feature-media--h-sm .cms-frame { height: 120px; }
+.marketing-root .feature-media--h-md .cms-frame { height: 180px; }
+.marketing-root .feature-media--h-lg .cms-frame { height: 260px; }
+.marketing-root .feature-media--h-xl .cms-frame { height: 360px; }
+.marketing-root .feature-media[class*='feature-media--h-'] .cms-frame { display: flex; flex-direction: column; }
+.marketing-root .feature-media[class*='feature-media--h-'] .cms-frame-body { flex: 1; min-height: 0; }
+.marketing-root .feature-media[class*='feature-media--h-'] .cms-frame-media {
+    width: 100%; height: 100%; object-fit: contain;
+}
+.marketing-root .feature-media--fit-cover[class*='feature-media--h-'] .cms-frame-media {
+    object-fit: cover; object-position: top center;
+}
 
 /* Spotlight hover (opt-in, one grid per page) — a soft radial accent
    highlight tracking the cursor via --mx/--my set inline. */
@@ -1362,17 +1426,18 @@
    looked like it was floating in the padding. 16px below it instead of 20
    also binds it to its title rather than leaving it adrift at the top. */
 .marketing-root .feature-card .icon-tile {
-    width: 44px; height: 44px;
-    border-radius: var(--radius-md);
-    background: var(--accent-tint-08);
-    border: 1px solid var(--hairline-accent);
-    color: var(--accent);
+    width: calc(44px * var(--tile-scale, 1)); height: calc(44px * var(--tile-scale, 1));
+    border-radius: var(--tile-radius, var(--radius-md));
+    clip-path: var(--tile-clip, none);
+    background: var(--tile-bg, var(--accent-tint-08));
+    border: var(--tile-border, 1px solid var(--hairline-accent));
+    color: var(--tile-fg, var(--tile-color, var(--accent)));
     display: flex; align-items: center; justify-content: center;
     margin-bottom: 16px;
     transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 .marketing-root .feature-card:hover .icon-tile {
-    background: var(--accent-tint-22);
+    background: var(--tile-bg-hover, var(--accent-tint-22));
 }
 /* `color` and `hyphens` are declared EXPLICITLY, not left to inherit.
    A since-deleted QuoteRenderer.css once shipped a global
@@ -1751,7 +1816,7 @@
     align-self: flex-start;
     font-size: 0.85rem;
     font-weight: 600;
-    color: var(--accent);
+    color: var(--link-color, var(--accent));
 }
 .marketing-root .roadmap-card-link:hover {
     text-decoration: underline;
@@ -1784,10 +1849,12 @@
     gap: 16px;
 }
 .marketing-root .security-card .icon-tile {
-    width: 44px; height: 44px;
-    border-radius: var(--radius-sm);
-    background: var(--accent-tint-08);
-    color: var(--accent);
+    width: calc(44px * var(--tile-scale, 1)); height: calc(44px * var(--tile-scale, 1));
+    border-radius: var(--tile-radius, var(--radius-sm));
+    clip-path: var(--tile-clip, none);
+    background: var(--tile-bg, var(--accent-tint-08));
+    border: var(--tile-border, 0 none);
+    color: var(--tile-fg, var(--tile-color, var(--accent)));
     flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
 }
@@ -1880,7 +1947,7 @@
     margin-top: 14px;
     font-size: 0.9rem;
     font-weight: 600;
-    color: var(--accent);
+    color: var(--link-color, var(--accent));
     text-decoration: none;
 }
 .marketing-root .security-row-link:hover {
@@ -1975,18 +2042,20 @@
 }
 .marketing-root .integration-item .icon-tile {
     flex: 0 0 auto;
-    width: 26px;
-    height: 26px;
-    border-radius: 7px;
-    background: var(--accent-tint-08);
-    color: var(--accent);
+    width: calc(26px * var(--tile-scale, 1));
+    height: calc(26px * var(--tile-scale, 1));
+    border-radius: var(--tile-radius, 7px);
+    clip-path: var(--tile-clip, none);
+    background: var(--tile-bg, var(--accent-tint-08));
+    border: var(--tile-border, 0 none);
+    color: var(--tile-fg, var(--tile-color, var(--accent)));
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background var(--transition-fast);
 }
 .marketing-root .integration-item:hover .icon-tile {
-    background: var(--accent-tint-22);
+    background: var(--tile-bg-hover, var(--accent-tint-22));
 }
 /* Real logo on the chip — same recipe as the social-proof wall:
    normalized height, grayscale until the chip is hovered. */
@@ -2288,6 +2357,16 @@
    Same on-dark ink every other cms-bg--dark block uses (≈11:1 here). */
 .marketing-root .cta-section.cms-bg--dark .cta-content p {
     color: rgba(255, 255, 255, 0.85);
+}
+.marketing-root .cta-section.cms-bg--dark .btn-secondary {
+    background: transparent;
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.4);
+    backdrop-filter: none;
+}
+.marketing-root .cta-section.cms-bg--dark .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.7);
 }
 /* Thin accent "honeycomb rule" — the page-closing bracket device. */
 .marketing-root .cta-section.cms-motif-hex {
@@ -2640,6 +2719,69 @@
     background-position: center;
     background-repeat: no-repeat;
 }
+/* Background placement (style.backgroundSize / Position / Repeat). Class names
+   only, built from whitelisted enum values by blockWrap.ts; the px width is
+   the one custom property (--cms-bg-size, rebuilt from a validated number).
+   The compound selectors outrank the has-image defaults above. */
+.marketing-root .cms-block-wrap--has-image.cms-bg-size-cover   { background-size: cover; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-size-contain { background-size: contain; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-size-auto    { background-size: auto; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-size-px      { background-size: var(--cms-bg-size, auto); }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-top-left     { background-position: left top; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-top          { background-position: center top; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-top-right    { background-position: right top; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-left         { background-position: left center; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-center       { background-position: center center; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-right        { background-position: right center; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-bottom-left  { background-position: left bottom; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-bottom       { background-position: center bottom; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-bottom-right { background-position: right bottom; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-repeat-no-repeat { background-repeat: no-repeat; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-repeat-repeat    { background-repeat: repeat; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-repeat-repeat-x  { background-repeat: repeat-x; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-repeat-repeat-y  { background-repeat: repeat-y; }
+/* Hide the decorative image on phones. The image is an inline style, so the
+   override needs !important. */
+@media (max-width: 767px) {
+    .marketing-root .cms-block-wrap.cms-bg-hide-mobile { background-image: none !important; }
+}
+
+/* Built-in brand motif (style.motif = 'honeycomb'): hexagon line art, optional
+   filled tiles, painted in the brand colours (primary to accent) through an
+   alpha mask, so no per-site SVG is needed. It sits on ::after behind the
+   content (z-index 0; content is at 1) and fades towards the middle of the
+   block. It shares ::after with .cms-glow; with both set the motif wins. */
+.marketing-root .cms-block-wrap.cms-motif::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.22;
+    background: linear-gradient(to left, var(--brand-primary), var(--brand-accent, var(--brand-primary)));
+    -webkit-mask-image: var(--hex-pattern);
+            mask-image: var(--hex-pattern);
+    -webkit-mask-size: 84px auto;
+            mask-size: 84px auto;
+}
+.marketing-root .cms-block-wrap.cms-motif--right::after  { right: 0;  left: 38%; }
+.marketing-root .cms-block-wrap.cms-motif--left::after   { left: 0;   right: 38%;
+    background: linear-gradient(to right, var(--brand-primary), var(--brand-accent, var(--brand-primary))); }
+.marketing-root .cms-block-wrap.cms-motif--center::after { left: 0;   right: 0;
+    background: radial-gradient(60% 70% at 50% 50%, var(--brand-primary), var(--brand-accent, var(--brand-primary)) 80%); }
+.marketing-root .cms-block-wrap.cms-motif--tiles::after {
+    --hex-tile: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='168' height='192'><path d='M84 36 124 60v48L84 132 44 108V60z' fill='black' fill-opacity='0.7'/></svg>");
+    opacity: 0.3;
+    -webkit-mask-image: var(--hex-pattern), var(--hex-tile);
+            mask-image: var(--hex-pattern), var(--hex-tile);
+    -webkit-mask-size: 84px auto, 252px auto;
+            mask-size: 84px auto, 252px auto;
+}
+@media (max-width: 767px) {
+    .marketing-root .cms-block-wrap.cms-motif--right::after,
+    .marketing-root .cms-block-wrap.cms-motif--left::after { left: 0; right: 0; opacity: 0.12; }
+}
+
 .marketing-root .cms-block-wrap--has-image::before {
     content: '';
     position: absolute;
@@ -3067,6 +3209,84 @@ section.customer-support-block {
 }
 
 /* ────────────────────────────────────────────────────────────────────────
+   Form block (lead capture → a Bee Flow automation). Lives inside the
+   marketing root, so tokens need no hard fallbacks. The honeypot is moved
+   off-screen rather than display:none, which simple bots skip. */
+
+.marketing-root .cms-form-block {
+    padding: var(--section-y, 80px) 0;
+}
+.marketing-root .cms-form-card {
+    max-width: 560px;
+    margin: 0 auto;
+    background: var(--surface-0);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    text-align: left;
+}
+.marketing-root .cms-form-row { margin-bottom: 16px; }
+.marketing-root .cms-form-row--check {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+}
+.marketing-root .cms-form-row--check label { flex: 1 1 0; font-size: 14px; }
+.marketing-root .cms-form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+.marketing-root .cms-form-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--surface-0);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-sm);
+}
+.marketing-root .cms-form-input:focus-visible {
+    outline: 2px solid var(--accent-tint-22);
+    outline-offset: 1px;
+}
+.marketing-root textarea.cms-form-input { resize: vertical; min-height: 96px; }
+.marketing-root .cms-form-error {
+    flex-basis: 100%;
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--danger, #b42318);
+}
+.marketing-root .cms-form-submit {
+    display: inline-flex;
+    padding: 12px 24px;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent-gradient, var(--brand-primary));
+    border: none;
+    border-radius: var(--btn-radius, var(--radius-xl));
+    cursor: pointer;
+}
+.marketing-root .cms-form-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.marketing-root .cms-form-hp {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+.marketing-root .cms-form-success h3 { margin: 0 0 8px; }
+.marketing-root .cms-form-success p,
+.marketing-root .cms-form-note { margin: 0; }
+
+/* ────────────────────────────────────────────────────────────────────────
    CTA Banner block.
    Two layouts:
      centered → text + CTAs stacked, all centered
@@ -3367,11 +3587,11 @@ section.customer-support-block {
     color: var(--text-primary);
 }
 .marketing-root .trust-chip-label {
-    font-family: var(--font-mono);
-    font-size: var(--text-eyebrow);
+    font-family: var(--label-font, var(--font-mono));
+    font-size: var(--label-size, var(--text-eyebrow));
     font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    text-transform: var(--label-transform, uppercase);
+    letter-spacing: var(--label-tracking, 0.08em);
     color: var(--text-primary);
 }
 .marketing-root .trust-chip-sub { display: none; }
@@ -3672,70 +3892,37 @@ section.customer-support-block {
     text-align: center;
 }
 
-@media (max-width: 768px) {
-    /* A phone cannot usefully show a desktop app in a 720px frame. The
-       poster and the unknown-id placeholder still get this capped frame
-       (!important because the renderer puts the block height inline); the
-       scaled live preview below sizes itself from the demo's own aspect. */
-    .feature-demo-frame:not(.feature-demo-frame--scaled) { height: 520px !important; }
+.feature-demo-caption {
+    margin: 24px auto 0;
+    max-width: 640px;
+    text-align: center;
+    color: var(--text-secondary);
 }
 
-/* ── Mobile scaled preview ────────────────────────────────────────────
-   ≤768px only, and only via the --scaled modifier the renderer adds there.
-   The frame shows the demo at a desktop logical width (1280px — past the
-   app's isCompact boundary, so it lays out exactly as on a laptop) scaled
-   down to fit: the same transform sandwich as the CMS editor's
-   PreviewStage. Non-interactive by design — at ~0.26 scale a tap on a 14px
-   button is a lottery — so the whole frame is one tap target that opens
-   the demo full screen in the same tab (DemoHost shows the way back).
-   Ordering is load-bearing: the iframe override below ties the
-   `.feature-demo-frame .feature-demo-iframe` rules above on specificity
-   and must sit later in the file to undo their calc() height. */
-.feature-demo-scale-clip {
-    position: relative;
-    overflow: hidden;
-    border-radius: calc(var(--card-radius, var(--radius-lg)) - 6px);
-    background: var(--surface-0);
-}
-.feature-demo-scale-canvas {
-    /* Thumbnail, not a widget — the overlay link owns all input. */
-    pointer-events: none;
-}
-.feature-demo-scale-canvas .feature-demo-iframe {
-    height: 100%;
-    border-radius: 0; /* the clip carries the radius */
-}
-.feature-demo-open-overlay {
+/* The poster fills the frame, so the frame's aspect-ratio (set inline from
+   the block height) is the only thing that sizes it, before and after the
+   live demo replaces it. */
+.feature-demo-poster { position: relative; overflow: hidden; text-decoration: none; }
+.feature-demo-poster-img {
     position: absolute;
     inset: 0;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding: 14px;
-    text-decoration: none;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
-.feature-demo-open-overlay:focus-visible {
-    outline: 2px solid var(--brand-primary);
-    outline-offset: -4px;
-    border-radius: calc(var(--card-radius, var(--radius-lg)) - 6px);
-}
-.feature-demo-open-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
+.feature-demo-poster-play,
+.feature-demo-poster-label,
+.feature-demo-hint { position: relative; }
+.feature-demo-poster-img ~ .feature-demo-poster-label {
+    padding: 4px 12px;
     border-radius: var(--pill-radius, 999px);
-    background: var(--brand-primary);
-    color: var(--btn-primary-fg, #fff);
-    font-size: 13px;
-    font-weight: 600;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    background: var(--surface-1);
 }
-.feature-demo-open-pill svg { width: 14px; height: 14px; }
 
 @media (max-width: 768px) {
+    .feature-demo-frame { min-height: 200px; }
     /* Mobile-only footer stack for the full-screen button, note and CTA.
-       The footer has no desktop rules today — keep it that way, so the
+       The footer has no desktop rules today, keep it that way, so the
        desktop layout stays byte-identical. */
     .feature-demo-footer {
         display: flex;
@@ -3745,4 +3932,82 @@ section.customer-support-block {
         margin-top: 14px;
     }
     .feature-demo-footer .feature-demo-note { margin-top: 0; }
+}
+
+/* Icon sizes the marketing chrome used to get from Tailwind's `w-4 h-4`, `w-5 h-5`
+   and `w-6 h-6`. The utilities stylesheet arrives after idle on a server-rendered
+   page, so without these the icons render at the SVG default (24px) first and
+   shrink later (layout shift). Scoped to .marketing-root so they never outrank
+   a utility in the app. */
+.marketing-root svg.w-4 { width: 1rem; height: 1rem; }
+.marketing-root svg.w-5 { width: 1.25rem; height: 1.25rem; }
+.marketing-root svg.w-6 { width: 1.5rem; height: 1.5rem; }
+
+/* Silent loop video (LazyLoopVideo): reserve a 16:9 box before the file's
+   metadata is known, so attaching the source on scroll does not resize it. */
+.marketing-root .lazy-loop-video {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+}
+
+/* Placeholder of a lazily loaded section (sections/lazySection.tsx) while its
+   chunk loads: about the height of the motion blocks, so little shifts. */
+.marketing-root .cms-lazy-section { min-height: 480px; }
+
+/* Look switches of a block (style.decor / cardFill / labelStyle). Fixed
+   classes from blockWrap.ts; a stored value never reaches the CSS. */
+
+/* Hero blur blobs off. */
+.marketing-root .cms-decor-none .hero::before,
+.marketing-root .cms-decor-none .hero::after,
+.marketing-root .cms-decor-none.hero::before,
+.marketing-root .cms-decor-none.hero::after {
+    display: none;
+}
+
+/* Card fill: white, or none (transparent, the hairline stays). The default
+   tint has no class. The cards read --card-bg / --card-hover-bg. */
+.marketing-root .cms-cardfill-white :is(.cms-card, .feature-card, .security-card, .testimonial-card, .pricing-card, .arch-layer) {
+    --card-bg: #fff;
+    --card-hover-bg: #fff;
+}
+.marketing-root .cms-cardfill-none :is(.cms-card, .feature-card, .security-card, .testimonial-card, .pricing-card, .arch-layer) {
+    --card-bg: transparent;
+    --card-hover-bg: transparent;
+}
+
+/* Label style of a block (eyebrows and trust-band chip labels). It sets the
+   same properties as the theme-wide Label style, so the block value overrides
+   the theme value for everything inside the block. */
+.marketing-root .cms-label-plain {
+    --label-font: var(--font-body);
+    --label-transform: none;
+    --label-tracking: normal;
+    --label-size: var(--text-small);
+}
+.marketing-root .cms-label-mono {
+    --label-font: var(--font-mono);
+    --label-transform: uppercase;
+    --label-tracking: 0.08em;
+    --label-size: var(--text-eyebrow);
+}
+
+/* Uploaded icon image (IconGlyph). Sized by the tile that holds it, or by the
+   className of the caller; the tile scale token also scales the Lucide glyph. */
+.marketing-root .icon-glyph-img {
+    width: 1.5rem;
+    height: 1.5rem;
+    object-fit: contain;
+    display: block;
+}
+.marketing-root .icon-tile > svg,
+.marketing-root .icon-tile > .icon-glyph-img {
+    transform: scale(var(--tile-scale, 1));
+}
+.marketing-root .header .icon-glyph-img,
+.marketing-root .mobile-nav .icon-glyph-img {
+    width: 1.25rem;
+    height: 1.25rem;
 }

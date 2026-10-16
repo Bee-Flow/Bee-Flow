@@ -15,8 +15,8 @@
 
 const {
     BLOCK_DEFAULTS, BLOCK_TYPES, BLOCK_VARIANTS,
-    DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS,
-    DISPLAY_SIZES, HEADING_WEIGHTS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS,
+    DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS, DARK_BANDS,
+    DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS,
 } = require('../i18n/defaults/cmsDefaults');
 const { THEME_PRESETS } = require('../i18n/defaults/themePresets');
 
@@ -63,6 +63,7 @@ function buildSystemPrompt() {
 - A PAGE = title + slug + seo + an ordered list of BLOCKS. A block is { id, type, enabled, content, style } — the 15 legal types and their default content are in the catalogue below. Blocks render top-to-bottom in array order.
 - Adding blocks: your content is DEEP-MERGED over the type's defaults. Objects merge key-by-key; ARRAYS REPLACE WHOLESALE — always send the complete items/columns/stats/logos array, never a partial one (a 1-item array replaces a 3-item default).
 - Editing blocks: cms_update_block patches content the same way (arrays replace wholesale). Use enabled:false to hide a block without losing its content.
+- A/B test on a block: add \`abKey\` (a-z, 0-9, - _), \`abAlt\` (an object with only the content fields that differ in the alternative) and optionally \`abShare\` (1-99, default 50) and \`abGoal\` (event name) to its content. Visitors are split per page view in the browser, with no cookie or stored id; Umami receives \`ab_view\` and the goal event with the test name and variant. Crawlers see the original.
 
 ## Content-shape rules (get these exactly right)
 
@@ -91,16 +92,16 @@ function buildSystemPrompt() {
 - A menu item = { id?, label, link, children?, dropdown? }. The draft state lists the current items with their nav_… ids — reuse those ids for items you keep (ids anchor locale overrides); omit id on new items and one is minted.
 - link uses the same link objects as blocks ({kind:"page",pageId} | {kind:"external",url,newTab?} | {kind:"anchor",anchor} | {kind:"app",path}) — page links need a REAL pg_… id.
 - children = a flat dropdown: up to 10 sub-items { id?, label, link }.
-- dropdown = a mega menu { columns:[{ id?, heading, items:[{ id?, label, link, description?, icon?, openInNewTab? }] }] } — up to 4 columns of up to 10 items. A mega item's icon is an EMOJI or short text (e.g. 🚀), NOT a Lucide name. For a SIMPLE flat dropdown use "children" instead; only use "dropdown" for a multi-column mega menu.
+- dropdown = a mega menu { columns:[{ id?, heading, items:[{ id?, label, link, description?, icon?, openInNewTab? }] }] } — up to 4 columns of up to 10 items. A mega item's icon is a Lucide name (e.g. ShieldCheck) or an uploaded asset url (cms_list_assets: cms/<file> or /api/cms/asset/cms/<file>); an emoji only still renders for old content, so do not write new ones. For a SIMPLE flat dropdown use "children" instead; only use "dropdown" for a multi-column mega menu.
 
 ## Design (cms_update_design)
 
 - The site's THEME — colours, fonts, type scale, component shape/size and the page frame — is site-wide design, edited with cms_update_design, never with page blocks or per-block style overrides. The current design travels in the site state each turn as compact JSON; patch it from there.
 - The call is a DEEP-MERGE PATCH: send ONLY what changes. colorsPatch {primary} keeps the other six colours; the groups you omit are untouched. There is no "reset" — to go back to a known look, apply a preset.
 - \`preset\` applies a built-in theme's COMPLETE values first, then your other patches layer on top ({ preset:"midnight-flow", colorsPatch:{primary:"#CE3F26"} } = that theme with a custom primary). The themes: ${PRESET_TEXT}.
-- COLOURS: colorsPatch { ${COLOR_KEYS.join(', ')} } and darkColorsPatch { ${DARK_COLOR_KEYS.join(', ')} }. Every value is a literal "#rrggbb" hex string — colour names, rgb()/hsl() and 3-digit shorthand are REJECTED and nothing is saved. darkColors.primary and darkColors.accent also take "" meaning "reuse the light value". Translate the user's words into hex yourself ("warm amber" → "#F5A623").
+- COLOURS: colorsPatch { ${COLOR_KEYS.join(', ')} } and darkColorsPatch { ${DARK_COLOR_KEYS.join(', ')} }. Every value is a literal "#rrggbb" hex string (the roles ${BLANKABLE_COLORS.join(', ')} also take "" = follow the primary colour: cta = buttons and focus ring, link = text links, highlight = badges, eyebrows and hover borders, tile = icon tile fill and glyph, so the brand colour can be used sparingly) — colour names, rgb()/hsl() and 3-digit shorthand are REJECTED and nothing is saved. darkColors.primary and darkColors.accent also take "" meaning "reuse the light value". Translate the user's words into hex yourself ("warm amber" → "#F5A623").
 - FONTS: fontsPatch { heading, body, mono }. Only these faces exist — anything else is rejected: ${DESIGN_FONTS_TEXT}.
-- typographyPatch { displaySize (${DISPLAY_SIZES.join(' | ')}), headingWeight (${HEADING_WEIGHTS.join(' | ')}), bodySize (${BODY_SIZES.join(' | ')}) }; radius 0-24 (px, global); theme (${DESIGN_THEMES.join(' | ')}); motion (${DESIGN_MOTIONS.join(' | ')}); grain and gradient booleans.
+- typographyPatch { displaySize (${DISPLAY_SIZES.join(' | ')}), headingWeight (${HEADING_WEIGHTS.join(' | ')}), displayTracking (${DISPLAY_TRACKINGS.join(' | ')}), bodySize (${BODY_SIZES.join(' | ')}) }; radius 0-24 (px, global); theme (${DESIGN_THEMES.join(' | ')}); motion (${DESIGN_MOTIONS.join(' | ')}); darkBand (${DARK_BANDS.join(' | ')}, the fill of dark bands); grain and gradient booleans.
 - componentsPatch — ${COMPONENTS_TEXT}.
 - layoutPatch — ${LAYOUT_TEXT}.
 - The site LOGO and FAVICON are uploaded assets, not design values: you cannot set them here. Ask the user to upload one in the Design tab — never invent an asset key.

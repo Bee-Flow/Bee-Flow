@@ -9,6 +9,7 @@ const notificationStore = require('../../stores/notificationStore');
 const { guardOutbound } = require('./outboundGuard');
 const safety = require('./safety');
 const { sendRunEmail, emailSkipOf } = require('./runNotifications');
+const { toolIdentity } = require('./toolIdentity');
 // Each outbound call runs in its own capture context (core/http/captureCall.js).
 const { captureCall: captured } = require('../http/captureCall');
 
@@ -54,7 +55,7 @@ function notificationChannels(step) {
  */
 async function sendNotificationEmail(ctx, mode, { title, body, known, guarded, t0 }) {
     const sent = await captured(() => sendRunEmail(
-        { userId: ctx.userId, title: ctx.automationTitle || 'Automation' },
+        { userId: toolIdentity(ctx).userId, title: ctx.automationTitle || 'Automation' },
         { subject: title || 'Automation notification', message: body || '' },
     ));
     if (!sent.ok) {
@@ -93,8 +94,10 @@ async function execNotification(step, ctx, runState, mode) {
     const outBody = guardedNotify.payload.body;
 
     if (wantsBell) {
+        // On a run that uses its starter's own connections the notification
+        // is for the starter, not the owner (toolIdentity.js).
         await notificationStore.createNotification({
-            userId: ctx.userId,
+            userId: toolIdentity(ctx).userId,
             category: 'ai_task',
             title: outTitle || 'Automation notification',
             message: outBody || '',

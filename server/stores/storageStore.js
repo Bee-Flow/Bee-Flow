@@ -17,6 +17,7 @@ const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const fs = require('fs');
 const path = require('path');
 const log = require('../telemetry/log');
+const { s3ClientConfig } = require('./storageClientConfig');
 
 const BUCKET = process.env.S3_BUCKET || 'beeflow-media';
 const DEFAULT_EXPIRY = 3600; // 1 hour
@@ -130,15 +131,7 @@ async function init() {
         }
     }
 
-    s3 = new S3Client({
-        endpoint,
-        region: 'us-east-1', // Required by SDK but ignored by RustFS
-        credentials: {
-            accessKeyId: accessKey,
-            secretAccessKey: secretKey,
-        },
-        forcePathStyle: true, // Required for non-AWS S3 (RustFS, MinIO)
-    });
+    s3 = new S3Client(s3ClientConfig(endpoint, accessKey, secretKey));
 
     // Ensure bucket exists
     try {
@@ -635,7 +628,7 @@ async function deleteFile(key) {
  *   from S3 user-metadata or the .tags sidecar). Always an object — empty
  *   when nothing was stored.
  */
-async function streamFile(key, { range = null } = {}) {
+async function streamFile(key, { range = null, signal = undefined } = {}) {
     if (mode === 'local') {
         const filePath = localPathFor(key);
         let stat;
@@ -686,7 +679,7 @@ async function streamFile(key, { range = null } = {}) {
         Bucket: BUCKET,
         Key: key,
         ...(range ? { Range: `bytes=${range.start}-${range.end}` } : {}),
-    }));
+    }), signal ? { abortSignal: signal } : undefined);
 
     // "bytes 0-99/12345" → 12345. Absent on a non-ranged response, where
     // ContentLength IS the whole object.
@@ -730,13 +723,14 @@ async function headFile(key) {
             const ext = path.extname(filePath).toLowerCase();
             if (MIME_BY_EXT[ext]) contentType = MIME_BY_EXT[ext];
         }
-        return { contentLength: stat.size, contentType };
+        return { contentLength: stat.size, contentType, etag: `${stat.size}-${Math.round(stat.mtimeMs)}` };
     }
     if (!s3) throw new Error('StorageStore not initialized');
     const response = await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }));
     return {
         contentLength: response.ContentLength,
         contentType: response.ContentType || 'application/octet-stream',
+        etag: response.ETag || (response.LastModified ? String(response.LastModified.getTime()) : undefined),
     };
 }
 

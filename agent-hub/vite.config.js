@@ -4,6 +4,7 @@ import path from 'path'
 import react from '@vitejs/plugin-react'
 import { visualizer } from 'rollup-plugin-visualizer'
 import { defineConfig, loadEnv } from 'vite'
+import { lucideEntryTest } from './vite.lucideChunks.mjs'
 
 // Loaded only for a CI shard, so `vite build` and local test runs never import vitest/node.
 const ShardListSequencer = process.env.VITEST_FILE_LIST
@@ -240,6 +241,17 @@ export default defineConfig(({ mode }) => {
                                     return p.includes('vite/preload-helper') || p.includes('commonjsHelpers');
                                 },
                                 priority: 100,
+                            },
+                            // The lucide modules the public entry uses, in a chunk of
+                            // their own (see vite.lucideChunks.mjs): without it every
+                            // marketing pageview preloads all of lucide's icons.
+                            {
+                                name: 'vendor-lucide-core',
+                                priority: 60,
+                                test: lucideEntryTest(
+                                    path.resolve(import.meta.dirname, 'src'),
+                                    path.resolve(import.meta.dirname, 'node_modules/lucide-react/dist/esm'),
+                                ),
                             },
                             ...Object.entries(VENDOR_CHUNKS).map(([name, pkgs]) => ({
                                 name,

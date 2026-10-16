@@ -14,6 +14,7 @@ import LineColorPanel from './LineColorPanel';
 import { miniMapColor } from './nodeTypeColors';
 import type { EdgeColorMode } from './useEdgeColorMode';
 import type { DiagramDefinition, StepId } from './diagramPaneTypes';
+import type { RunIdentity } from './useFailedRunBanner';
 
 // The overlay pieces are untyped .jsx components; their props pass through
 // exactly as DiagramPane handed them before the split.
@@ -34,6 +35,8 @@ export interface DiagramOverlaysProps {
     flowletCount: number;
     // south
     runFocus: any;
+    onDismissRunBanner: () => void;
+    runIdentity: RunIdentity | null;
     focusRunStep: () => void;
     formUrl: string | null;
     onOpenFormOverlay: (() => void) | null;
@@ -123,6 +126,8 @@ export default function DiagramOverlays(p: DiagramOverlaysProps) {
             <Panel position="bottom-center" style={{ maxWidth: 'calc(100% - 440px)' }}>
                 <AnySouthBar
                     runFocus={p.runFocus}
+                    onDismissRun={p.onDismissRunBanner}
+                    runIdentity={p.runIdentity}
                     onShowRun={p.focusRunStep}
                     formUrl={p.formUrl}
                     onOpenFormOverlay={p.onOpenFormOverlay}

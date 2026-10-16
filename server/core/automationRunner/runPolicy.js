@@ -7,6 +7,7 @@
  *     maxDurationMin: 1..60,
  *     concurrency:    'serial' | 'parallel',
  *     retentionDays:  7..365,
+ *     connections:    'owner' | 'caller',
  *   }
  *
  * Every key is optional; a missing one means the platform default:
@@ -24,6 +25,13 @@
  *   concurrency     'serial' (default): one live run at a time, as before.
  *                   'parallel': a live run that finds the automation busy runs
  *                   alongside instead of waiting or being skipped.
+ *   connections     whose integration connections (Google, Microsoft, Nextcloud,
+ *                   ...) a run uses when somebody OTHER than the owner starts it
+ *                   (a shared user, an agent calling the automation).
+ *                   'owner' (default): the owner's, as ever. 'caller': only the
+ *                   starter's own, never the owner's; a starter without the
+ *                   connection stops the run before step 1
+ *                   (callerConnections.js). The option can only NARROW access.
  *   retentionDays   run history for THIS automation is deleted after
  *                   min(platform retention, retentionDays) days
  *                   (jobs/runRetention.js).
@@ -43,6 +51,7 @@ const RETRY_THEN = Object.freeze(['stop_notify', 'continue']);
 const DURATION_MIN = 1;
 const DURATION_MAX = 60;
 const CONCURRENCY = Object.freeze(['serial', 'parallel']);
+const CONNECTIONS = Object.freeze(['owner', 'caller']);
 const RETENTION_MIN = 7;
 const RETENTION_MAX = 365;
 
@@ -51,6 +60,7 @@ const DEFAULT_RUN_POLICY = Object.freeze({
     maxDurationMin: null,
     concurrency: 'serial',
     retentionDays: null,
+    connections: 'owner',
 });
 
 const isInt = (v) => typeof v === 'number' && Number.isInteger(v);
@@ -69,7 +79,7 @@ const issue = (path, message) => ({ code: 'run_policy.invalid', severity: 'error
 function sanitizeRunPolicy(raw) {
     if (raw === undefined || raw === null) return { value: undefined, errors: [] };
     if (typeof raw !== 'object' || Array.isArray(raw)) {
-        return { value: undefined, errors: [issue('', 'runPolicy is an object: retry, maxDurationMin, concurrency, retentionDays.')] };
+        return { value: undefined, errors: [issue('', 'runPolicy is an object: retry, maxDurationMin, concurrency, connections, retentionDays.')] };
     }
     const errors = [];
     const value = {};
@@ -99,6 +109,10 @@ function sanitizeRunPolicy(raw) {
     if (raw.concurrency !== undefined && raw.concurrency !== null) {
         if (!CONCURRENCY.includes(raw.concurrency)) errors.push(issue('concurrency', `concurrency is one of: ${CONCURRENCY.join(', ')}.`));
         else value.concurrency = raw.concurrency;
+    }
+    if (raw.connections !== undefined && raw.connections !== null) {
+        if (!CONNECTIONS.includes(raw.connections)) errors.push(issue('connections', `connections is one of: ${CONNECTIONS.join(', ')}.`));
+        else value.connections = raw.connections;
     }
     if (raw.retentionDays !== undefined && raw.retentionDays !== null) {
         const d = raw.retentionDays;
@@ -139,6 +153,7 @@ function resolveRunPolicy(definition) {
         maxDurationMin: dur,
         concurrency: CONCURRENCY.includes(src.concurrency) ? src.concurrency : DEFAULT_RUN_POLICY.concurrency,
         retentionDays: days,
+        connections: CONNECTIONS.includes(src.connections) ? src.connections : DEFAULT_RUN_POLICY.connections,
     };
 }
 
@@ -156,7 +171,7 @@ function runTimeoutMsFor(policy) {
 
 module.exports = {
     DEFAULT_RUN_POLICY,
-    RETRY_MAX, RETRY_THEN, DURATION_MIN, DURATION_MAX, CONCURRENCY, RETENTION_MIN, RETENTION_MAX,
+    RETRY_MAX, RETRY_THEN, DURATION_MIN, DURATION_MAX, CONCURRENCY, CONNECTIONS, RETENTION_MIN, RETENTION_MAX,
     sanitizeRunPolicy,
     withSanitizedRunPolicy,
     resolveRunPolicy,

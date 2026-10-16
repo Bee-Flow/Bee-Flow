@@ -359,3 +359,17 @@ test('deckToMarkdown: the outline of a normalised deck round-trips — layouts, 
     assert.match(json, /## S\n<!-- style: dark -->\n- a\n  - b\n<!-- notes: n -->/);
     assert.match(json, /## T\n\| k \| v \|\n\| --- \| --- \|\n\| x \| 1 \|/);
 });
+
+test('an empty slide is skipped with a warning, not silently', () => {
+    const d = normalizeDeck({ title: 'T', slides: [{ title: 'a', bullets: ['x'] }, {}, { title: 'b', bullets: ['y'] }] });
+    assert.strictEqual(d.slides.length, 2);
+    assert.ok(d.warnings.some((w) => /slide 2/.test(w) && /empty/.test(w)), d.warnings.join('|'));
+});
+
+test('a storage image reference with a ".." segment is rejected with a warning', () => {
+    for (const image of ['/api/storage/file/users/u/../x.png', 'https://h/api/storage/file/users/u/%2e%2e/x.png']) {
+        const d = normalizeDeck({ title: 'T', slides: [{ title: 'a', bullets: ['x'], image }] });
+        assert.strictEqual(d.slides[0].image, null);
+        assert.ok(d.warnings.some((w) => /was skipped/.test(w)), d.warnings.join('|'));
+    }
+});

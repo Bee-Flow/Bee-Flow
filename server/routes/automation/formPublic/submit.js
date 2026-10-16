@@ -15,7 +15,8 @@ const formAnswers = () => require('../../../automation/formAnswers').write;
 const { collectEnabled } = require('../../../automation/formAnswers/derive');
 const { describeClaimedUpload } = require('../../../automation/formUploadText');
 const formQueue = require('../../../automation/formQueue');
-const { privateHeaders, loadForm, loadSession, pendingPageFor } = require('./access');
+const { privateHeaders, loadForm, loadSession, pendingPageFor, PUBLIC_FORMS_ENABLED } = require('./access');
+const { assertFormStartAllowed } = require('../../../automation/formCallerNotice');
 const { ipLimiter, tokenLimiter, sessionLimiter, contentLengthGuard } = require('./limits');
 const { resolvePicks } = require('./picks');
 const { friendly } = require('./friendly');
@@ -85,6 +86,8 @@ async function submitForm(req, res) {
     // The signed-in submitter — every caller is one while PUBLIC_FORMS is
     // off; null is what an anonymous visitor will read as once it is on.
     const submitterId = req.session?.user?.id || null;
+    // A public form is a system start; only a members-only form has its submitter as the starter.
+    await assertFormStartAllowed({ automation: found.automation, submitterId: PUBLIC_FORMS_ENABLED ? null : submitterId, store: automationStore });
 
     // The answers TABLE gets its row first, before the run is even queued,
     // so the owner sees the submission whatever the run does. `null` when the form does
@@ -121,7 +124,7 @@ async function submitForm(req, res) {
     await formQueue.accept({
         automation: found.automation,
         session,
-        work: { kind: 'submit', payload: { ...values }, submitterId },
+        work: { kind: 'submit', payload: { ...values }, submitterId, publicForm: PUBLIC_FORMS_ENABLED },
     }, res, { sessionId: session.id });
     return undefined;
 }

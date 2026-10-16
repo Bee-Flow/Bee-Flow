@@ -1,8 +1,12 @@
+// @typecheck
 /**
  * Per-tool handlers of the Nextcloud Deck executor (nextcloudDeckTools.js).
  * Each takes (args, { api, ncFetch, authError, baseUrl, toolName }) and answers
  * what the tool returns to the model; HANDLERS maps tool names to them.
  */
+
+const { nextcloudHttpError } = require('./nextcloudHttpError');
+const { toUtcIso, keepDue } = require('./nextcloudDeckDates');
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -193,6 +197,8 @@ async function getCard(args, { api, ncFetch, authError }) {
 
 async function createCard(args, { api, ncFetch, authError }) {
     if (!args.boardId || !args.stackId || !args.title) return { error: 'boardId, stackId, title required' };
+    const due = toUtcIso(args.duedate);
+    if ('error' in due) return due;
     const res = await deckJson(ncFetch, `${api}/boards/${args.boardId}/stacks/${args.stackId}/cards`, {
         method: 'POST',
         headers: REST_HEADERS,
@@ -201,7 +207,7 @@ async function createCard(args, { api, ncFetch, authError }) {
             type: args.type || 'plain',
             order: 999,
             description: args.description || '',
-            duedate: args.duedate || null,
+            duedate: due.iso,
         },
     });
     if (res.status === 401) return { error: authError };
@@ -214,6 +220,8 @@ async function createCard(args, { api, ncFetch, authError }) {
 
 async function updateCard(args, { api, ncFetch, authError }) {
     if (!args.boardId || !args.stackId || !args.cardId) return { error: 'boardId, stackId, cardId required' };
+    const due = toUtcIso(args.duedate);
+    if ('error' in due) return due;
     // Deck's PUT replaces the card — fetch first and merge.
     const cardRes = await ncFetch(`${api}/boards/${args.boardId}/stacks/${args.stackId}/cards/${args.cardId}`, {
         headers: REST_HEADERS,
@@ -223,15 +231,24 @@ async function updateCard(args, { api, ncFetch, authError }) {
     if (!cardRes.ok) return { error: `Could not load card for update (${cardRes.status})` };
     const current = await readJsonSafe(cardRes);
 
+    const moving = Boolean(args.targetStackId) && String(args.targetStackId) !== String(args.stackId);
+    const target = Number(args.targetStackId);
+    const targetStack = Number.isNaN(target) ? args.targetStackId : target;
     const merged = {
         title: args.title !== undefined ? args.title : current.title,
         description: args.description !== undefined ? args.description : current.description,
-        duedate: args.duedate !== undefined ? (args.duedate === '' ? null : args.duedate) : current.duedate,
+        // Deck's PUT replaces the card, so an unchanged due date is sent again (as UTC).
+        duedate: args.duedate !== undefined ? due.iso : keepDue(current.duedate),
         type: current.type || 'plain',
         owner: current.owner?.uid || current.owner,
-        order: args.order !== undefined ? args.order : current.order,
+        order: args.order !== undefined ? args.order : (moving ? 0 : current.order),
+        ...(moving ? { stackId: targetStack } : {}),
     };
-    const putRes = await deckJson(ncFetch, `${api}/boards/${args.boardId}/stacks/${args.stackId}/cards/${args.cardId}`, {
+    // Deck takes the card's stack from the URL of this PUT, not from the body, and its
+    // /reorder endpoint only changes the order inside the current stack. So a move is
+    // this same PUT addressed to the TARGET stack (the way archive_card has always moved it).
+    const putStack = moving ? args.targetStackId : args.stackId;
+    const putRes = await deckJson(ncFetch, `${api}/boards/${args.boardId}/stacks/${putStack}/cards/${args.cardId}`, {
         method: 'PUT',
         headers: REST_HEADERS,
         body: merged,
@@ -243,17 +260,17 @@ async function updateCard(args, { api, ncFetch, authError }) {
     }
     const updated = await readJsonSafe(putRes);
 
-    // Move to a different stack if requested.
-    if (args.targetStackId && args.targetStackId !== args.stackId) {
-        const moveRes = await deckJson(ncFetch, `${api}/boards/${args.boardId}/stacks/${args.stackId}/cards/${args.cardId}/reorder`, {
-            method: 'PUT',
-            headers: REST_HEADERS,
-            body: { order: args.order !== undefined ? args.order : 0, stackId: args.targetStackId },
-        });
-        if (!moveRes.ok) {
-            const body = await readJsonSafe(moveRes);
-            return { success: true, updated, moveError: `Card update succeeded but move failed (${moveRes.status})`, moveDetail: body };
+    if (moving) {
+        // Deck can answer 200 without moving the card: look where it is now.
+        const movedRes = await ncFetch(`${api}/boards/${args.boardId}/stacks/${args.targetStackId}/cards/${args.cardId}`, { headers: REST_HEADERS });
+        if (!movedRes.ok && movedRes.status !== 404) {
+            return { success: true, updated, moveError: `Card updated, but the move could not be verified (${movedRes.status}).` };
         }
+        const moved = movedRes.ok ? await readJsonSafe(movedRes) : null;
+        if (!moved || (moved.stackId !== undefined && String(moved.stackId) !== String(args.targetStackId))) {
+            return { success: true, updated, moveError: `Card updated, but it did not move to stack ${args.targetStackId}.` };
+        }
+        return { success: true, card: moved };
     }
     return { success: true, card: updated };
 }
@@ -272,7 +289,7 @@ async function archiveCard(args, { api, ncFetch }) {
         body: {
             title: current.title,
             description: current.description || '',
-            duedate: current.duedate || null,
+            duedate: keepDue(current.duedate),
             type: current.type || 'plain',
             owner: current.owner?.uid || current.owner,
             order: current.order,
@@ -307,6 +324,9 @@ async function assignLabel(args, { api, ncFetch, authError, toolName }) {
         body: { labelId: args.labelId },
     });
     if (res.status === 401) return { error: authError };
+    if (res.status === 403 || res.status === 404 || res.status >= 500) {
+        return nextcloudHttpError(res, { authError, what: `${op} (check the board, stack, card and label ids)` });
+    }
     if (!res.ok) {
         const body = await readJsonSafe(res);
         return { error: `${op} failed (${res.status})`, detail: body };

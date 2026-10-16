@@ -58,6 +58,7 @@ export const DENYLIST = new Map([
     ['lint:deps:test', 'unit tests of audit-ratchet.mjs (~8 s); `npm run test:scripts` runs them'],
     ['lint:budget', 'full eslint over agent-hub and server (~3 min), needs their node_modules'],
     ['lint:bundle', 'needs a production build of agent-hub'],
+    ['lint:entry-budget', 'needs a production build of agent-hub'],
     ['lint:coverage', 'needs a coverage run of each package'],
     ['lint:duplication', 'jscpd over the whole tree (~7 s), needs the root node_modules'],
     ['lint:gitleaks', 'full-tree scan; the commit hook scans the changed files and scan-secrets --range the commits'],

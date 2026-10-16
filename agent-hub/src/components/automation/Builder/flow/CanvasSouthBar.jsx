@@ -1,7 +1,8 @@
-import { Crosshair, ExternalLink, FileText, Trash2, X } from 'lucide-react';
+import { Crosshair, Trash2, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { enginePill, engineSegments, showsRates } from './engineLine';
 import { statusVar } from './nodeTypeColors';
+import RunBanner from './RunBanner';
 import { formatElapsed } from './runFocus';
 import useTranslation from '../../../../hooks/useTranslation';
 
@@ -210,7 +211,7 @@ function BuildBanner({ building, buildCue, farewell, endedAt, skipped, now, foll
 }
 
 export default function CanvasSouthBar({
-    runFocus = null, onShowRun = null, formUrl = null, onOpenFormOverlay = null,
+    runFocus = null, onDismissRun = null, runIdentity = null, onShowRun = null, formUrl = null, onOpenFormOverlay = null,
     selectedCount = 0, selectionInDrawer = false, onDeleteSelection = null, onClearSelection = null,
     structuralEditsBlocked = false, interactive = true, editable = false,
     buildCue = null, following = true, onFollow = null,
@@ -274,95 +275,11 @@ export default function CanvasSouthBar({
     }, [deadline]);
 
     if (runFocus) {
-        const elapsed = runFocus.startedAt ? formatElapsed(runFocus.startedAt, ticking ? now : Date.now()) : null;
-        const failed = runFocus.state === 'error';
-        // `runFocus.state` is already the run's status word ('running' |
-        // 'error'), so the banner takes its colour from the shared status
-        // table like everything else on this canvas. It used to hard-code
-        // amber for a live run — the colour this product reserves for "needs
-        // your attention" — and sat directly beneath cards that now pulse
-        // blue for the very same run.
-        const tone = statusVar(runFocus.state) || 'var(--text-tertiary)';
-        const doneTone = statusVar('success');
-        const total = Math.max(0, Number(runFocus.total) || 0);
-        const done = Math.min(total, Math.max(0, Number(runFocus.done) || 0));
         return (
-            <div
-                className="flex items-center gap-3 pl-3.5 pr-2 py-2 rounded-xl bg-[var(--bg-card)] text-[12px] text-[var(--text-primary)]"
-                style={{ border: `1px solid ${tone}`, boxShadow: 'var(--shadow-popover)' }}
-                data-testid="canvas-run-banner"
-            >
-                <span className="relative flex h-2 w-2 shrink-0">
-                    {!failed && <span className="absolute inline-flex h-full w-full rounded-full opacity-60 animate-ping" style={{ background: tone }} />}
-                    <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: tone, boxShadow: `0 0 0 3px color-mix(in srgb, ${tone} 30%, transparent)` }} />
-                </span>
-                <span className="whitespace-nowrap">
-                    <b>{failed ? t('automations.canvas.run_failed', 'Run failed at') : t('automations.canvas.run_live', 'Live run')}</b>
-                    {runFocus.label && <span className="text-[var(--text-secondary)]"> · {runFocus.label}</span>}
-                    {runFocus.awaitingForm && (
-                        <span className="text-[var(--text-secondary)]"> · {t('automations.canvas.run_waiting_form', 'waiting for the form')}</span>
-                    )}
-                    {total > 0 && <span className="text-[var(--text-tertiary)] tabular-nums"> · {done}/{total}</span>}
-                    {/* How long this has been going. It is the reason someone
-                        looks at the banner twice — "still running" and "running
-                        for twelve minutes" are different facts. */}
-                    {elapsed && (
-                        <span className="text-[var(--text-tertiary)] tabular-nums" data-testid="canvas-run-elapsed"> · {elapsed}</span>
-                    )}
-                </span>
-                {total > 0 && (
-                    <span className="flex items-center gap-[3px]" aria-hidden="true" data-testid="canvas-run-progress">
-                        {Array.from({ length: Math.min(total, 12) }, (_, i) => {
-                            const slot = total <= 12 ? i : Math.round((i / 11) * (total - 1));
-                            const state = slot < done ? 'done' : slot === done && !failed ? 'current' : slot === done && failed ? 'failed' : 'todo';
-                            // 'current' and 'failed' are the same slot — where
-                            // the run got to — so both wear the banner's tone.
-                            const bg = state === 'done' ? doneTone
-                                : (state === 'current' || state === 'failed') ? tone
-                                : 'var(--bg-tertiary)';
-                            return <span key={i} className="h-1.5 w-3.5 rounded-[3px]" style={{ background: bg }} />;
-                        })}
-                    </span>
-                )}
-                {runFocus.stepId && onShowRun && (
-                    <button
-                        type="button"
-                        onClick={onShowRun}
-                        title={t('automations.canvas_south_bar.centre_the_canvas_on_this_step', 'Centre the canvas on this step')}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[var(--border-default)] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
-                    >
-                        <Crosshair size={12} /> {t('automations.canvas.run_show', 'Go to step')}
-                    </button>
-                )}
-                {/* The one thing that un-parks a run waiting on a form: the
-                    page itself. The primary action shows it over the canvas
-                    (the overlay, attached to this run); the public page stays
-                    reachable as a small secondary link. Absent when neither
-                    exists; never a dead control. */}
-                {runFocus.awaitingForm && onOpenFormOverlay && (
-                    <button
-                        type="button"
-                        onClick={onOpenFormOverlay}
-                        data-testid="canvas-run-open-form"
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition hover:opacity-90 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
-                    >
-                        <FileText size={12} /> {t('automations.canvas.open_form', 'Open the form')}
-                    </button>
-                )}
-                {runFocus.awaitingForm && formUrl && (
-                    <a
-                        href={formUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        data-testid="canvas-run-open-form-tab"
-                        aria-label={t('automations.canvas.open_form_new_tab', 'Open in a new tab')}
-                        title={t('automations.canvas.open_form_new_tab', 'Open in a new tab')}
-                        className="inline-flex items-center justify-center p-1.5 rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition"
-                    >
-                        <ExternalLink size={12} />
-                    </a>
-                )}
-            </div>
+            <RunBanner
+                runFocus={runFocus} now={now} ticking={ticking} runIdentity={runIdentity} onDismissRun={onDismissRun}
+                onShowRun={onShowRun} formUrl={formUrl} onOpenFormOverlay={onOpenFormOverlay}
+            />
         );
     }
 

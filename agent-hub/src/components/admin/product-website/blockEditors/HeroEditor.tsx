@@ -13,13 +13,15 @@ import type { StyleBlob } from '../primitives.types';
 import type { BlockEditorWithPagesProps } from './editorProps';
 import { set } from './shared';
 import VariantPicker from './VariantPicker';
+import { BackgroundVideoCard, TourCard, MediaMotionSelect } from './MotionFields';
+import type { BackgroundVideoValue, TourValue } from './MotionFields';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Hero ──────────────────────────────────────────────────────────────
 
 type HeroCta = { enabled?: boolean; label?: string; link?: CmsLink | null; style?: string };
 type HeroBadge = { enabled?: boolean; text?: string; icon?: string };
-type HeroMedia = { src?: string; srcDark?: string; alt?: string; frame?: string };
+type HeroMedia = { src?: string; srcDark?: string; alt?: string; frame?: string; motion?: string };
 type HeroMockup = { enabled?: boolean; chatBubbles?: { role?: string; text?: string }[] };
 type HeroData = {
     variant?: string;
@@ -38,6 +40,8 @@ type HeroData = {
     secondaryCta?: HeroCta;
     mockup?: HeroMockup;
     media?: HeroMedia;
+    backgroundVideo?: BackgroundVideoValue;
+    tour?: TourValue;
 };
 
 export function HeroEditor({ data = {}, pages = [], onChange }: BlockEditorWithPagesProps<HeroData>) {
@@ -103,7 +107,11 @@ export function HeroEditor({ data = {}, pages = [], onChange }: BlockEditorWithP
                     ]}
                     onChange={v => setMedia({ frame: v })}
                 />
+                <MediaMotionSelect value={media.motion} onChange={v => setMedia({ motion: v })} />
             </CollapsibleCard>
+
+            <BackgroundVideoCard value={data.backgroundVideo} onChange={v => onChange(set(data, 'backgroundVideo', v))} persistKey="blk.hero.background-video" />
+            <TourCard value={data.tour} onChange={v => onChange(set(data, 'tour', v))} persistKey="blk.hero.tour" />
 
             {/* ── Badge ───────────────────────────────────────────── */}
             <CollapsibleCard title={t('cms_site.blocks.hero.badge', 'Badge')} defaultOpen={true} persistKey="blk.hero.badge">

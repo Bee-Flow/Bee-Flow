@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Event dispatch fan-out (§WS5, extracted verbatim from triggerBus.js).
  */
@@ -33,6 +34,13 @@ const ORG_SCOPED_PROVIDERS = new Set(['nextcloud']);
 // installation→org mapping: moving it there would silently drop every GitHub
 // trigger instead of fixing the isolation gap (WS1.2 in events.js).
 const LEGACY_UNSCOPED_PROVIDERS = new Set(['github', 'support']);
+
+// Nextcloud events the activity poller owns (subscriptionSync forces
+// mode='polling' for them). On a connector install the same event is ALSO
+// pushed as a webhook; the push must not fire a polling-mode subscription a
+// second time. Only once the poller has proven it works for that subscription
+// (lastCursor is set after a successful bootstrap); until then the push stays. (Push keeps feeding the side-effect taps and webhook-mode subs.)
+const NC_POLLER_OWNED_EVENTS = new Set(['file.new', 'file.changed']);
 
 // Scope declared by a trigger-source manifest, when there is one. Required
 // lazily and defensively: dispatch.js is on the hot path for every inbound
@@ -183,7 +191,9 @@ async function dispatchEvent({ provider, event, payload = {}, userId = null, org
     // belong to that org.
     const orgScoped = !userId && isOrgScoped(provider);
     const lookupOrg = orgScoped ? makeOrgLookup() : null;
+    const pollerOwned = provider === 'nextcloud' && NC_POLLER_OWNED_EVENTS.has(event);
     for (const sub of subs) {
+        if (pollerOwned && sub.mode === 'polling' && sub.lastCursor) continue;
         if (userId && sub.userId !== userId) continue;
         if (orgScoped) {
             const subOrg = await lookupOrg(sub.userId);

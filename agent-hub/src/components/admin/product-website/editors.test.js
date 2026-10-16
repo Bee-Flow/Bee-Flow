@@ -34,6 +34,7 @@ const EXPORT_NAMES = [
     'FooterEditor',
     'PricingEditor',
     'CustomerSupportEditor',
+    'FormEditor',
     'TestimonialsEditor',
     'FaqEditor',
     'TrustBandEditor',
@@ -44,6 +45,11 @@ const EXPORT_NAMES = [
     'GitHubStatsEditor',
     'ReleaseNotesEditor',
     'LatestPostsEditor',
+    'TabsEditor',
+    'StoryHeaderEditor',
+    'CustomerStoriesEditor',
+    'ProductMockupEditor',
+    'CardCarouselEditor',
     'BLOCK_CATALOGUE',
     'BLOCK_EDITORS',
     'BLOCK_DEFAULTS',
@@ -52,15 +58,15 @@ const EXPORT_NAMES = [
 ];
 
 describe('editors barrel', () => {
-    it('exposes all 32 exports (28 as of the 2026-07 split + compare-table + github-stats + release-notes + blog-latest)', () => {
+    it('exposes all 37 exports (28 as of the 2026-07 split + compare-table + github-stats + release-notes + blog-latest + tabs + story-header + customer-stories + product-mockup + card-carousel)', () => {
         for (const name of EXPORT_NAMES) {
             expect(editors[name], `export "${name}" should be defined`).toBeDefined();
         }
     });
 
-    it('pins exactly 25 block types, each with an editor component and defaults', () => {
+    it('pins exactly 33 block types, each with an editor component and defaults', () => {
         const types = Object.keys(editors.BLOCK_CATALOGUE);
-        expect(types).toHaveLength(25);
+        expect(types).toHaveLength(33);
         for (const type of types) {
             expect(
                 typeof editors.BLOCK_EDITORS[type]?.component,

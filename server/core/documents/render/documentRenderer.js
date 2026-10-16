@@ -1008,17 +1008,17 @@ async function renderDocx(html, { title = '', marking = null, style = null } = {
  * Render `content` to a document.
  *
  * `docxStyle` ({ css, opts, inline } from core/documents/docxHouseStyle.js
- * buildDocxStylingFromHouseStyle) dresses a .docx in the org's Word house
- * style: `inline` (heading fonts, sizes, colours) goes onto the heading tags,
- * the opts (margin, font, header, footer) go to html-to-docx. The CSS joins
- * the print stylesheet, but html-to-docx does not read <style>, so it is not
- * what styles the .docx. Ignored for a PDF.
+ * buildDocxStylingFromHouseStyle) dresses a .docx in the org's Word house style: `inline` (heading
+ * fonts, sizes, colours) goes onto the heading tags, the opts (margin, font, header, footer) go to
+ * html-to-docx. The CSS joins the print stylesheet, but html-to-docx does not read <style>, so it is
+ * not what styles the .docx. Ignored for a PDF.
  *
+ * @param {import('./documentRenderer.types').RenderInput} [input]
  * @returns {Promise<{buffer: Buffer, contentType: string, format: string,
  *                    extension: string, degraded: boolean,
  *                    marking: null | {visible: boolean, metadata: boolean}}>}
- *   `degraded` is true when the PDF came from the pdfkit fallback — the caller
- *   records it so "why does this PDF look plain?" has an answer in the run log.
+ *   `degraded` is true when the PDF came from the pdfkit fallback — the caller records it so
+ *   "why does this PDF look plain?" has an answer in the run log.
  *   `marking` is null for an unmarked document; for a marked one it says
  *   whether the visible line and the file metadata made it into the output.
  */

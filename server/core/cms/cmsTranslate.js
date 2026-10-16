@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * cmsTranslate — AI auto-translation for the Product Website CMS.
  *
@@ -32,11 +33,18 @@ const DENY_KEYS = new Set([
     'backgroundVariant', 'background', 'gradient', 'theme', 'radius',
     'number', 'enabled', 'noIndex', 'ogImage', 'favicon', 'role', 'value',
     'style', 'align', 'variant', 'srcDark', 'frame',
+    // Motion and rich media (issue 244): asset keys, language codes and fixed
+    // vocabularies the renderers switch on. `duration` and `label` are prose.
+    'poster', 'captionsLang', 'fit', 'position', 'overlay', 'tilt', 'numeral',
     // roadmap items: `status` is a fixed vocabulary the renderer buckets on
     // ('shipped' | 'beta' | 'building' | 'exploring'). Translated to 'bèta'
     // it matches no bucket and the item silently disappears from the page.
     // Its prose counterpart, `statusLabels`, is NOT denied and does translate.
     'status',
+    // A/B experiment bookkeeping: the experiment's name and goal event are
+    // identifiers Umami groups on, so a translation would split the report.
+    // `abAlt` (the alternative copy) is prose and does translate.
+    'abKey', 'abGoal',
 ]);
 // Style-ish suffixes (fontSize, titleColor, headingAlign, labelFont, ...).
 const DENY_SUFFIX = /(Style|Color|Font|Align|Size|Variant|Url|Src|Id|Link)$/;

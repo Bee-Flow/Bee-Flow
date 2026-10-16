@@ -1,0 +1,238 @@
+/* Customer-story blocks — owned by StoryHeader.tsx and CustomerStories.tsx
+   (imported there, NOT part of marketing.css). Scoped under .marketing-root so
+   every token resolves and re-derives inside band/dark scopes. */
+
+/* ── Story header ─────────────────────────────────────────────────── */
+
+.marketing-root .story-header-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4) var(--space-6);
+    margin-bottom: var(--space-6);
+}
+
+.marketing-root .story-header-logo {
+    width: 160px;
+    max-width: 40%;
+}
+
+.marketing-root .story-header-meta {
+    margin: 0;
+    font-size: var(--text-eyebrow);
+    letter-spacing: var(--tracking-eyebrow);
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.marketing-root .story-header-sep {
+    margin: 0 var(--space-2);
+}
+
+.marketing-root .story-header-title {
+    max-width: 22ch;
+    margin: 0 0 var(--space-4);
+}
+
+.marketing-root .story-header-lead {
+    max-width: 62ch;
+    margin: 0 0 var(--space-8);
+    font-size: var(--text-lead);
+    line-height: var(--leading-lead);
+    color: var(--text-secondary);
+}
+
+.marketing-root .story-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--space-6);
+    margin: 0 0 var(--space-12);
+    padding: var(--space-6) 0;
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+}
+
+/* dt (what it measures) comes first in the markup for assistive tech and
+   crawlers; the figure is shown above it. */
+.marketing-root .story-metric {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: var(--space-1);
+}
+
+.marketing-root .story-metric-stat {
+    margin: 0;
+    font-size: var(--text-h2);
+    line-height: var(--leading-h2);
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.marketing-root .story-metric-label {
+    font-size: var(--text-small);
+    color: var(--text-secondary);
+}
+
+.marketing-root .story-quote {
+    margin: 0;
+    padding-left: var(--space-6);
+    border-left: 3px solid var(--hairline-accent);
+    max-width: 62ch;
+}
+
+.marketing-root .story-quote blockquote {
+    margin: 0;
+    font-size: var(--text-h3);
+    line-height: var(--leading-h3);
+    color: var(--text-primary);
+}
+
+.marketing-root .story-quote blockquote p {
+    margin: 0;
+}
+
+.marketing-root .story-quote figcaption {
+    margin-top: var(--space-3);
+    font-size: var(--text-small);
+    color: var(--text-secondary);
+}
+
+/* ── Customer stories grid ────────────────────────────────────────── */
+
+.marketing-root .story-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-8);
+}
+
+.marketing-root .story-chip {
+    appearance: none;
+    cursor: pointer;
+    min-height: 44px; /* touch target */
+    padding: 8px 16px;
+    font: inherit;
+    font-size: var(--text-small);
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+}
+
+.marketing-root .story-chip:hover {
+    color: var(--text-primary);
+    background: var(--surface-2);
+}
+
+.marketing-root .story-chip:focus-visible,
+.marketing-root .story-card-link:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+}
+
+.marketing-root .story-chip[aria-pressed='true'] {
+    color: var(--text-primary);
+    background: var(--accent-tint-14);
+    border-color: var(--hairline-accent);
+}
+
+.marketing-root .story-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+    gap: var(--space-6);
+}
+
+.marketing-root .story-card {
+    position: relative; /* anchors the stretched link */
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-6);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border-color);
+    border-radius: var(--radius-base, 12px);
+    transition: background var(--motion-fast, 150ms), border-color var(--motion-fast, 150ms);
+}
+
+.marketing-root .story-card:hover {
+    background: var(--card-hover-bg);
+    border-color: var(--card-hover-border);
+}
+
+.marketing-root .story-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-height: 32px;
+}
+
+.marketing-root .story-card-logo {
+    width: 96px;
+    max-height: 32px;
+}
+
+.marketing-root .story-card-sector {
+    font-size: var(--text-eyebrow);
+    letter-spacing: var(--tracking-eyebrow);
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.marketing-root .story-card-title {
+    margin: 0;
+    font-size: var(--text-h3);
+    line-height: var(--leading-h3);
+}
+
+.marketing-root .story-card-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* The whole card is the click target, through the heading's link. */
+.marketing-root .story-card-link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+}
+
+.marketing-root .story-card-lead {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+.marketing-root .story-card-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-6);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--text-small);
+    color: var(--text-secondary);
+}
+
+.marketing-root .story-card-metrics strong {
+    font-size: var(--text-lead);
+    color: var(--text-primary);
+}
+
+.marketing-root .story-card-more {
+    margin: auto 0 0;
+    padding-top: var(--space-2);
+    font-size: var(--text-small);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.marketing-root .story-empty {
+    color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+    .marketing-root .story-card {
+        padding: var(--space-4);
+    }
+}

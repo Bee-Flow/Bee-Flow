@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — ADDITIONAL triggers (`definition.triggers[]`).
  *
@@ -20,6 +21,7 @@ const { SECONDARY_TRIGGER_KINDS } = require('../validate/constants');
 const { DEFAULT_SCHEDULE_TZ } = require('../triggerColumns');
 const { agentCallFieldsFrom } = require('../agentCallContract');
 const { buildForm, buildAppParams, agentCallIssueLines, NO_ARGS_WARNING, triggerHints } = require('./stepBuilders/triggerApply');
+const { appEventWarnings } = require('./triggerAdvice');
 
 const MAX_LABEL = 80;
 
@@ -39,6 +41,11 @@ function defaultLabel(kind, args = {}) {
  * fields builder_propose_trigger writes for the primary (stepBuilders.js
  * applyTrigger), so a secondary trigger is indistinguishable from a primary
  * one to the validator, the canvas and the dispatcher.
+ */
+/**
+ * @param {string} kind
+ * @param {Record<string, any>} [args]
+ * @param {{ id?: string, label?: unknown }} [opts]
  */
 function buildTriggerNode(kind, args = {}, { id, label = null } = {}) {
     const node = { id, type: 'trigger', kind, output: {} };
@@ -86,8 +93,10 @@ function applyAddTrigger(draft, args = {}) {
     const node = buildTriggerNode(kind, args, { id: newId('trig'), label: args.label || defaultLabel(kind, args) });
     draft.triggers = Array.isArray(draft.triggers) ? draft.triggers : [];
     draft.triggers.push(node);
+    const warnings = node.kind === 'app_event' ? appEventWarnings(node.appEvent) : [];
     return {
         added: node,
+        ...(warnings.length ? { _warnings: warnings } : {}),
         next: `Wire this trigger's first step with afterStepId: "${node.id}" (an omitted afterStepId chains after the LAST step, never after a new trigger). Test it with builder_request_dry_run({triggerStepId: "${node.id}", …}).`,
     };
 }
@@ -137,6 +146,7 @@ function applyUpdateTrigger(draft, args = {}) {
         if (patch.appProvider !== undefined) { node.appEvent.provider = patch.appProvider; changed.push('appProvider'); }
         if (patch.appEvent !== undefined) { node.appEvent.event = patch.appEvent; changed.push('appEvent'); }
         if (patch.filter !== undefined) { node.appEvent.filter = patch.filter || null; changed.push('filter'); }
+        if (changed.some(k => k === 'appProvider' || k === 'appEvent' || k === 'filter')) warnings.push(...appEventWarnings(node.appEvent));
     } else if (node.kind === 'schedule') {
         node.schedule = node.schedule && typeof node.schedule === 'object' ? node.schedule : {};
         if (patch.cron !== undefined) { node.schedule.cron = patch.cron; changed.push('cron'); }

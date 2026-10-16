@@ -29,6 +29,7 @@
  *     PATCH  /api/cms/sites/:siteId                            { name } — rename
  *     DELETE /api/cms/sites/:siteId                            delete site + cascade
  *     *      /api/cms/sites/:siteId/posts[/:postId[/locale/:l]] blog posts (routes/cmsBlog.js)
+ *     *      /api/cms/sites/:siteId/redirects[/:id | /hosts]    redirects (routes/cmsRedirects.js)
  *     PUT    /api/cms/sites/:siteId/live                       { live } — set/clear live
  *     POST   /api/cms/sites/:siteId/duplicate                  deep-copy → new version
  *
@@ -85,6 +86,8 @@ const { requireAdmin, attachSiteIdFromParam } = require('./cmsShared');
 const cmsAnalytics = require('./cmsAnalytics');
 const cmsMedia = require('./cmsMedia');
 const cmsBlog = require('./cmsBlog');
+const cmsStories = require('./cmsStories');
+const { createRedirectsRouter } = require('./cmsRedirects');
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, typeError } = require('../core/http/schemaParts');
 
@@ -223,19 +226,9 @@ async function attachSiteId(req, res, next) {
     next();
 }
 
-// SITE_ID_RE + attachSiteIdFromParam live in ./cmsShared.js (shared with
-// the CMS AI builder).
-
 // The uploader (multer, MIME whitelist, 400 on a rejected file) lives in
 // ./cmsAssets.js with handleUpload; the site-import uploader in
 // ./cmsSitesAdmin.js.
-
-// ── Helpers ──────────────────────────────────────────────────────
-
-// synthesizeLegacyContent now lives in core/cms/legacyContent.js so that
-// routes/publicRender.js can build the SAME payload it inlines into the
-// server-rendered shell. Two implementations would mean the page could
-// render one way on first paint and another after hydration.
 
 // ── Shared handler bodies ────────────────────────────────────────
 //
@@ -245,8 +238,6 @@ async function attachSiteId(req, res, next) {
 // applicable); the same function is wired to both /admin/* and
 // /sites/:siteId/* routes below.
 
-// Analytics handlers moved to ./cmsAnalytics.js (mounted below).
-
 // ══════════════════════════════════════════════════════════════════
 // PUBLIC
 // ══════════════════════════════════════════════════════════════════
@@ -254,12 +245,17 @@ async function attachSiteId(req, res, next) {
 // GET /api/cms/site — the public read of the live site (./cmsPublicSite.js).
 router.get('/site', getPublicSite);
 
-// Public blog read for the "latest posts" block: GET /api/cms/blog/posts.
+// Public reads: GET /api/cms/blog/posts ("latest posts" block), GET /api/cms/stories (customer stories).
 router.use('/blog', cmsBlog.createPublicRouter());
+router.use('/stories', cmsStories.createPublicRouter());
+
+// Website forms, anonymous by design (./cmsForms.js lists what bounds them).
+router.use('/forms', require('./cmsForms').createDefaultPublicRouter());
 
 // Public asset stream (./cmsAssets.js): byte ranges, scriptable types forced
 // to download, sanitized SVG inline under a strict CSP.
 router.get(/^\/asset\/(.+)$/, serveAsset);
+router.get(/^\/og\/([a-z]{2,3})\/([a-z0-9][a-z0-9-]*)\.png$/, require('./cmsOgImage').serveOgImage); // generated share image (routes/cmsOgImage.js)
 
 // ══════════════════════════════════════════════════════════════════
 // ADMIN — /admin/* (single-site bridge, back-compat)
@@ -278,6 +274,8 @@ router.use('/admin/analytics', cmsAnalytics.router);
 // /admin/upload). Registered BEFORE attachSiteId: listing assets never
 // needs a site and must not auto-provision a default CMS project.
 router.get('/admin/assets', listAssetsHandler);
+// Which automations a website form may start (./cmsFormsAdmin.js); touches no project either.
+router.use('/admin', require('./cmsFormsAdmin').createDefaultAdminRouter());
 // Clip upload sits here too (before attachSiteId): it touches no project, so
 // it must not auto-provision one.
 // Clips (video with sound, up to 500 MB): disk-backed, streamed into storage.
@@ -347,6 +345,8 @@ router.use('/sites/:siteId', attachSiteIdFromParam);
 // per-language translations. req.siteId is set by the middleware above.
 router.use('/sites/:siteId/posts', cmsBlog.createAdminRouter());
 
+router.use('/sites/:siteId/redirects', createRedirectsRouter()); // redirect manager (routes/cmsRedirects.js)
+router.use('/sites/:siteId/link-check', require('./cmsLinkCheck').createLinkCheckRouter());
 // Pages — literal '/order' before ':id' wildcard.
 router.post('/sites/:siteId/pages', newPageBody, postPage);
 router.put('/sites/:siteId/pages/order', orderBody, putPagesOrder);

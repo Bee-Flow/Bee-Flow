@@ -109,13 +109,13 @@ test('a broken path still has its step checked', () => {
 
 // ── Expression inputs are parsed ────────────────────────────────────────
 
-test('an expr input that does not parse warns expr.parse, naming the field', () => {
+test('an expr input that does not parse is an expr.parse error, naming the field', () => {
     // {{ }} around a path inside an expression: the spelling without them is offered.
     const v = validateDefinition(def(note({ inputs: { total: { kind: 'expr', value: '{{trigger.output.total}} * 2' } } })));
-    assert.strictEqual(v.ok, true);
+    assert.strictEqual(v.ok, false, 'finalize must not accept a binding that cannot parse');
     const [f] = withCode(v, 'expr.parse');
     assert.ok(f, codes(v).join(', '));
-    assert.strictEqual(f.severity, 'warning');
+    assert.strictEqual(f.severity, 'error');
     assert.match(f.path, /inputs\.total$/);
     assert.match(f.message, /inputs\.total/);
     assert.match(f.hint, /trigger\.output\.total \* 2/);
@@ -124,6 +124,15 @@ test('an expr input that does not parse warns expr.parse, naming the field', () 
     const [g] = withCode(spaced, 'expr.parse');
     assert.ok(g, codes(spaced).join(', '));
     assert.match(g.hint, /\["…"\]/);
+});
+
+test('an object literal in an expr binding is rejected with a hint to use a set step', () => {
+    const v = validateDefinition(def(note({ inputs: { payload: { kind: 'expr', value: '({ Name: trigger.output.name, Amount: steps.s1.output.size })' } } })));
+    assert.strictEqual(v.ok, false);
+    const [f] = withCode(v, 'expr.parse');
+    assert.ok(f, codes(v).join(', '));
+    assert.strictEqual(f.severity, 'error');
+    assert.match(f.hint, /set step/);
 });
 
 test('an expr input in a spelling the engine reads is clean', () => {

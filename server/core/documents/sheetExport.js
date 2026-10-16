@@ -121,7 +121,11 @@ async function buildSheetWorkbook(doc, deps = {}) {
     for (let i = 0; i < tabs.length; i++) raws.push((await sheetCells.readSheet(doc.userId, tabs[i].datatableId)).cells || {});
     const sheets = raws.map((cells, i) => {
         const quoted = {};
-        for (const [k, v] of Object.entries(cells)) quoted[k] = typeof v === 'string' ? quoteSheetRefs(v, names) : v;
+        for (const [k, v] of Object.entries(cells)) {
+            // The document sheet's own convention: "=…" text is a formula.
+            const text = typeof v === 'string' ? quoteSheetRefs(v, names) : v;
+            quoted[k] = typeof text === 'string' && /^=.+/.test(text) ? { formula: text } : text;
+        }
         const mine = charts.filter((c) => (c.tab ? c.tab === tabs[i].id : i === 0));
         const values = mine.length ? computedFor(raws, names, i, deps) : undefined;
         return { name: names[i], matrix: cellsToMatrix(quoted), charts: mine, values };

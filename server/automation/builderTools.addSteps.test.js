@@ -166,6 +166,7 @@ function gatedWrap() {
             ],
         }, dw);
         assert.ok(!r.error, `scoped batch must not error: ${r.error}`);
+        assert.ok(!(r._warnings || []).some(w => /scope/.test(w)), `scope was used, so no warning may call it ignored: ${JSON.stringify(r._warnings)}`);
         const layer = dw.def.layers[key];
         assert.ok(layer.steps.some(s => s.id === r.idMap.a), 'scoped step landed in the flowlet');
         assert.ok(!dw.def.steps.some(s => s.id === r.idMap.a), 'scoped step NOT in root');

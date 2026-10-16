@@ -111,6 +111,12 @@ test('a placeholder left unbound is reported as printing blank', async () => {
     assert.ok(res._warnings.some(w => w.includes('"lines" has no value bound')), JSON.stringify(res._warnings));
 });
 
+test('an unbound placeholder whose parameter has a default is not reported as printing blank', async () => {
+    const withDefault = [{ ...CATALOG[0], parameters: [{ key: 'lines', type: 'list', default: [] }] }];
+    const res = await add(freshWrap(withDefault), { documentId: 'doc_1', values: { 'customer.name': 'x' } });
+    assert.ok(!(res._warnings || []).some(w => w.includes('"lines" has no value bound')), JSON.stringify(res._warnings));
+});
+
 // ── validator ──────────────────────────────────────────────────────────────
 
 test('a step with no document is INCOMPLETE, not broken — the node lands before it is wired', () => {

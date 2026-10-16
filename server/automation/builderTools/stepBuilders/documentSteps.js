@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — the steps that produce a FILE the author keeps: a rendered
  * document (generate_document), a designed one filled with this run's values
@@ -83,7 +84,9 @@ function applyAddFillDocument(draft, args, draftWrap) {
             if (!holes.has(key)) notes.push(`"${key}" is not a placeholder in "${doc.name}" — it will not appear in the document. Its placeholders are: ${[...holes].join(', ') || '(none)'}.`);
         }
         for (const p of (doc.placeholders || [])) {
-            if (!Object.hasOwn(args.values || {}, p.key)) notes.push(`"${p.key}" has no value bound, so it prints blank in "${doc.name}".`);
+            if (Object.hasOwn(args.values || {}, p.key)) continue;
+            const hasDefault = (doc.parameters || []).some(q => q.key === p.key && q.default !== undefined);
+            if (!hasDefault) notes.push(`"${p.key}" has no value bound, so it prints blank in "${doc.name}".`);
         }
     }
 
@@ -152,12 +155,18 @@ function deckLookFields(args) {
 }
 
 /**
+ * @typedef {{ type: string, data?: unknown, series?: unknown, labels?: unknown,
+ *   values?: string, stacked?: boolean, unit?: string }} SlideChart
+ */
+
+/**
  * The visual fields of a slide step: `chart` {type, data, labels?, values?,
  * stacked?, unit?} (data kept as given — a template, a binding, rows), `stats`
  * (lines, a list, or a binding) and `style`. Each only when it holds something.
  */
 function slideVisualFields(args) {
     const { CHART_TYPES, SLIDE_STYLES } = require('../../../core/documents/deckChart');
+    /** @type {{ chart?: SlideChart, stats?: unknown, style?: string }} */
     const out = {};
     const c = args.chart;
     if (c && typeof c === 'object' && !Array.isArray(c)) {

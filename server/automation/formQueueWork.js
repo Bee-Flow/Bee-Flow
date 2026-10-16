@@ -46,7 +46,7 @@ function createFormWork({ automationStore, runner, formAnswers }) {
     // recovered row makes is exactly the call the original request would have
     // made. `work` is what sits in pending_work:
     //
-    //   { kind: 'submit', payload, submitterId }
+    //   { kind: 'submit', payload, submitterId, publicForm }
     //   { kind: 'resume', parentRunId, stepId, values, submitterId }
 
     /** A first submission: start the automation with the visitor's answers. */
@@ -57,6 +57,9 @@ function createFormWork({ automationStore, runner, formAnswers }) {
             triggerKind: 'form',
             triggerPayload: { ...(work.payload || {}) },
             triggerHeaders: session.triggerHeaders,
+            // The signed-in submitter of a members-only form is the person a run on the
+            // caller's own connections acts for; a public form is a system start.
+            startedByUserId: work.publicForm ? null : submitterId,
             rootStepId: session.rootStepId || null,
             // Point the session at the run the MOMENT it exists, not when it
             // returns. executeAutomation resolves only once the automation has

@@ -31,7 +31,8 @@ async function runStepAsTool(blockId, args, ctx, { mode = 'live' } = {}) {
         // Handoff 5: who started it (agentCallableTools.runnerTraceOptions).
         callerAgentId: ctx?.callerAgentId || null,
         callerConversationId: ctx?.callerConversationId || null,
-        ...(ctx?.startedByUserId ? { startedByUserId: ctx.startedByUserId } : {}),
+        // The Step is the caller's own (checked above), so the caller is the starter.
+        startedByUserId: ctx?.startedByUserId || ctx?.userId || null,
     });
     return result?.lastOutput ?? null;
 }

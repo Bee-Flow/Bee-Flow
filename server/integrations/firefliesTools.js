@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Fireflies.ai Tools — Built-in tools for AI to search and read meeting transcripts
  * 
@@ -7,8 +8,8 @@
 
 const configStore = require('../stores/configStore');
 const log = require('../telemetry/log');
+const { FirefliesError, firefliesRequest, formatDuration, parseListFilters } = require('./firefliesApi');
 
-const FIREFLIES_API_URL = 'https://api.fireflies.ai/graphql';
 
 /**
  * Tool definitions in OpenAI function-calling format.
@@ -198,30 +199,6 @@ const GET_TRANSCRIPT_QUERY = `
 
 // ─── API Client ────────────────────────────────────────────────
 
-async function firefliesRequest(apiKey, query, variables = {}) {
-    const response = await fetch(FIREFLIES_API_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({ query, variables }),
-    });
-
-    if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Fireflies API error (${response.status}): ${text}`);
-    }
-
-    const json = await response.json();
-
-    if (json.errors) {
-        throw new Error(`Fireflies GraphQL error: ${json.errors.map(e => e.message).join(', ')}`);
-    }
-
-    return json.data;
-}
-
 // ─── Title Matching ────────────────────────────────────────────
 
 /**
@@ -253,7 +230,22 @@ function classifyTitleMatches(transcripts, wantedTitle) {
 
 // ─── Tool Execution ────────────────────────────────────────────
 
+/** Names of the filters in use, never their values (titles and e-mail addresses are personal data). */
+function setFilters(variables) {
+    const names = ['title', 'hostEmail', 'participantEmail', 'fromDate', 'toDate', 'skip'].filter(k => variables[k]);
+    return names.length ? names.join(', ') : 'none';
+}
+
 async function executeFirefliesTool(toolName, args, userId) {
+    try {
+        return await runFirefliesTool(toolName, args, userId);
+    } catch (err) {
+        if (err instanceof FirefliesError) return { error: err.message };
+        throw err;
+    }
+}
+
+async function runFirefliesTool(toolName, args, userId) {
     if (!userId) return { error: 'User context required for Fireflies.' };
     const apiKey = await configStore.getSecret(`fireflies_api_key_user_${userId}`);
     if (!apiKey) {
@@ -261,17 +253,19 @@ async function executeFirefliesTool(toolName, args, userId) {
     }
 
     if (toolName === 'fireflies_list_transcripts') {
+        const filters = parseListFilters(args);
+        if ('error' in filters) return { error: filters.error };
         const variables = {
             limit: Math.min(Math.max(parseInt(args.limit) || 10, 1), 50),
-            skip: parseInt(args.skip) || 0,
+            skip: filters.skip,
             title: args.title || null,
             hostEmail: args.hostEmail || null,
             participantEmail: args.participantEmail || null,
-            fromDate: args.fromDate || null,
-            toDate: args.toDate || null,
+            fromDate: filters.fromDate,
+            toDate: filters.toDate,
         };
 
-        log.info(`[Fireflies] Listing transcripts`, variables);
+        log.info(`[Fireflies] Listing transcripts (filters set: ${setFilters(variables)})`);
         const data = await firefliesRequest(apiKey, LIST_TRANSCRIPTS_QUERY, variables);
         let transcripts = data.transcripts || [];
 
@@ -282,7 +276,7 @@ async function executeFirefliesTool(toolName, args, userId) {
         let usedFallback = false;
         if (args.title && transcripts.length === 0) {
             const fallbackVariables = { ...variables, title: null, limit: 50, skip: 0 };
-            log.info(`[Fireflies] Listing transcripts (title fallback)`, fallbackVariables);
+            log.info(`[Fireflies] Listing transcripts (title fallback, filters set: ${setFilters(fallbackVariables)})`);
             const fallbackData = await firefliesRequest(apiKey, LIST_TRANSCRIPTS_QUERY, fallbackVariables);
             transcripts = fallbackData.transcripts || [];
             usedFallback = true;
@@ -292,7 +286,7 @@ async function executeFirefliesTool(toolName, args, userId) {
             id: t.id,
             title: t.title,
             date: t.dateString || t.date,
-            duration: t.duration ? `${t.duration} min` : 'unknown',
+            duration: formatDuration(t.duration),
             organizer: t.organizer_email,
             participants: t.participants || [],
             speakers: (t.speakers || []).map(s => s.name),
@@ -359,7 +353,7 @@ async function executeFirefliesTool(toolName, args, userId) {
             id: t.id,
             title: t.title,
             date: t.dateString,
-            duration: t.duration ? `${t.duration} min` : 'unknown',
+            duration: formatDuration(t.duration),
             organizer: t.organizer_email,
             participants: t.participants || [],
             speakers: (t.speakers || []).map(s => s.name),
@@ -395,7 +389,7 @@ async function executeFirefliesTool(toolName, args, userId) {
             id: t.id,
             title: t.title,
             date: t.dateString,
-            duration: t.duration ? `${t.duration} min` : 'unknown',
+            duration: formatDuration(t.duration),
             speakers: (t.speakers || []).map(s => s.name),
             sentenceCount: sentences.length,
             truncated,

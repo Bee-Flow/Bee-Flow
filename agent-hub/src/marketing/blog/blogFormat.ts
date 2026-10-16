@@ -77,6 +77,8 @@ export const DEFAULT_LABELS: BlogLabels = {
     previous_post: 'Previous post',
     next_post: 'Next post',
     tags: 'Tags',
+    search: 'Search posts',
+    search_none: 'No posts match your search.',
     home: 'Home',
     latest_heading: 'Latest posts',
     latest_empty: 'Published posts appear here',

@@ -425,8 +425,8 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
     });
     const runPromise = runner.executeAutomation(automation, {
         triggerKind: 'studio_app',
-        triggerPayload,
-        mode: 'live',
+        triggerPayload, mode: 'live',
+        startedByUserId: userId,
     }).catch(e => { log.error('[StudioAppsRun] execute error:', e.message); return null; });
 
     // Logged when the run settles regardless of client wait/disconnect —
@@ -483,7 +483,7 @@ router.get('/:id/actions/runs/:runId', requireAuth, async (req, res) => {
     // Defense-in-depth beyond the webpages precedent: only runs THIS app
     // started are pollable — not every run the owner has (the bridge
     // stamps _studioAppId into every trigger payload it sends).
-    if (run.triggerPayload?._studioAppId !== app.id) {
+    if (run.triggerPayload?._studioAppId !== app.id || !require('../core/automationModel/callerRunVisibility').canReadRunData(run, req.session.user.id)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     res.json(await runBody(run));

@@ -27,7 +27,10 @@ vi.mock('./VegaLiteRenderer', () => ({ default: () => <div data-testid="vega" />
 import MarkdownRenderer from './MarkdownRenderer';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const INDEX_CSS = fs.readFileSync(path.resolve(HERE, '../../index.css'), 'utf8');
+// The app's rules live in app.css, the tokens in index.css (issue 245).
+const INDEX_CSS = ['index.css', 'app.css']
+    .map((f) => fs.readFileSync(path.resolve(HERE, '../../', f), 'utf8'))
+    .join('\n');
 
 describe('BFSF-259 — ordered/unordered lists', () => {
     it('renders a typed numbered list as a real <ol> with its items intact', () => {

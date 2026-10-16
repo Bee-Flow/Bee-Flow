@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Forms Tools — the intake side of a workflow.
  *
@@ -19,6 +20,8 @@
  */
 
 const ncClient = require('./nextcloudClient');
+const { nextcloudHttpError } = require('./nextcloudHttpError');
+const { addQuestion, updateSettings } = require('./nextcloudFormsWrites');
 
 const FORMS_API = '/ocs/v2.php/apps/forms/api/v3';
 const MAX_SUBMISSIONS = 200;
@@ -77,7 +80,7 @@ const NEXTCLOUD_FORMS_TOOLS = [
                 properties: {
                     formId: { type: 'integer', description: 'Form id.' },
                     text: { type: 'string', description: 'The question itself.' },
-                    type: { type: 'string', description: 'One of "short", "long", "multiple", "multiple_unique", "dropdown", "date", "datetime", "time", "file". Defaults to "short".' },
+                    type: { type: 'string', description: 'One of "short", "long", "multiple", "multiple_unique", "dropdown", "date", "time", "file". Defaults to "short".' },
                     options: { type: 'array', items: { type: 'string' }, description: 'Answer options — required for multiple/multiple_unique/dropdown.' },
                     isRequired: { type: 'boolean', description: 'Whether an answer is mandatory.' },
                     description: { type: 'string', description: 'Optional helper text under the question.' }
@@ -150,19 +153,9 @@ async function readJsonSafe(res) {
     try { return JSON.parse(text); } catch { return text; }
 }
 
+/** @returns {Promise<{ error?: string, ok?: boolean, data?: any }>} */
 async function handle(res, authError, what) {
-    if (res.status === 401 || res.status === 403) return { error: authError };
-    if (res.status === 404) {
-        return {
-            error: `Nextcloud Forms did not answer the ${what} call. Install/enable the "Forms" app `
-                + '(these tools need Forms with its v3 API — Nextcloud 29+).',
-        };
-    }
-    if (!res.ok) {
-        const body = await readJsonSafe(res);
-        const detail = typeof body === 'string' ? body.slice(0, 200) : (body?.ocs?.meta?.message || body?.message || '');
-        return { error: `Nextcloud Forms ${what} failed (${res.status})${detail ? `: ${detail}` : ''}` };
-    }
+    if (!res.ok) return nextcloudHttpError(res, { authError, what: `Forms ${what}`, app: 'Forms' });
     const body = await readJsonSafe(res);
     return { ok: true, data: body?.ocs?.data ?? body };
 }
@@ -228,10 +221,22 @@ function mapSubmission(sub, questions) {
     };
 }
 
+/**
+ * The link a respondent opens. In connector mode `baseUrl` is the AppAPI
+ * proxy, which a person cannot use; the org's public Nextcloud URL is.
+ * Without one there is no honest link, so none is returned.
+ */
+function shareUrlFor(ctx, hash) {
+    if (!hash) return null;
+    const root = ctx.mode === 'connector' ? ctx.publicBaseUrl : ctx.baseUrl;
+    return root ? `${root}/index.php/apps/forms/s/${hash}` : null;
+}
+
 async function executeNextcloudFormsTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
     const { baseUrl, fetch: ncFetch, authError } = ctx;
     const api = `${baseUrl}${FORMS_API}`;
+    const wireDeps = { api, ncFetch, authError, handle, mapQuestion, HEADERS };
 
     switch (toolName) {
         case 'nextcloud_forms_list': {
@@ -257,7 +262,7 @@ async function executeNextcloudFormsTool(toolName, args, userId, session) {
                 form: mapForm(f),
                 questions: Array.isArray(f.questions) ? f.questions.map(mapQuestion) : [],
                 // The public URL is what you send to a respondent.
-                shareUrl: f.hash ? `${baseUrl}/index.php/apps/forms/s/${f.hash}` : null,
+                shareUrl: shareUrlFor(ctx, f.hash),
             };
         }
 
@@ -284,61 +289,12 @@ async function executeNextcloudFormsTool(toolName, args, userId, session) {
             return {
                 success: true,
                 form: mapForm({ ...form, ...keyValuePairs }),
-                shareUrl: form.hash ? `${baseUrl}/index.php/apps/forms/s/${form.hash}` : null,
+                shareUrl: shareUrlFor(ctx, form.hash),
             };
         }
 
-        case 'nextcloud_forms_add_question': {
-            if (!args.formId) return { error: 'formId is required' };
-            if (!args.text) return { error: 'text is required' };
-            const type = args.type || 'short';
-            const needsOptions = ['multiple', 'multiple_unique', 'dropdown'].includes(type);
-            if (needsOptions && (!Array.isArray(args.options) || args.options.length === 0)) {
-                return { error: `Question type "${type}" needs an "options" list.` };
-            }
-
-            const created = await handle(
-                await ncFetch(`${api}/forms/${encodeURIComponent(args.formId)}/questions`, {
-                    method: 'POST', headers: HEADERS, body: JSON.stringify({ type, text: args.text }),
-                }),
-                authError, 'question create',
-            );
-            if (created.error) return created;
-            const question = created.data || {};
-            if (!question.id) return { error: 'Nextcloud Forms did not return a question id' };
-
-            // Properties that are not settable at create time.
-            const keyValuePairs = {};
-            if (args.isRequired !== undefined) keyValuePairs.isRequired = !!args.isRequired;
-            if (args.description) keyValuePairs.description = args.description;
-            if (Object.keys(keyValuePairs).length) {
-                const patched = await handle(
-                    await ncFetch(`${api}/forms/${encodeURIComponent(args.formId)}/questions/${encodeURIComponent(question.id)}`, {
-                        method: 'PATCH', headers: HEADERS, body: JSON.stringify({ keyValuePairs }),
-                    }),
-                    authError, 'question update',
-                );
-                if (patched.error) return patched;
-            }
-
-            const options = [];
-            for (const label of (needsOptions ? args.options : [])) {
-                const opt = await handle(
-                    await ncFetch(`${api}/forms/${encodeURIComponent(args.formId)}/questions/${encodeURIComponent(question.id)}/options`, {
-                        method: 'POST', headers: HEADERS, body: JSON.stringify({ optionTexts: [String(label)] }),
-                    }),
-                    authError, 'option create',
-                );
-                if (opt.error) return opt;
-                options.push(String(label));
-            }
-
-            return {
-                success: true,
-                question: mapQuestion({ ...question, ...keyValuePairs, text: args.text, type }),
-                options,
-            };
-        }
+        case 'nextcloud_forms_add_question':
+            return addQuestion(wireDeps, args);
 
         case 'nextcloud_forms_get_submissions': {
             if (!args.formId) return { error: 'formId is required' };
@@ -376,36 +332,8 @@ async function executeNextcloudFormsTool(toolName, args, userId, session) {
             };
         }
 
-        case 'nextcloud_forms_update_settings': {
-            if (!args.formId) return { error: 'formId is required' };
-            const keyValuePairs = {};
-            if (args.title !== undefined) keyValuePairs.title = args.title;
-            if (args.description !== undefined) keyValuePairs.description = args.description;
-            if (args.isAnonymous !== undefined) keyValuePairs.isAnonymous = !!args.isAnonymous;
-            if (args.submitMultiple !== undefined) keyValuePairs.submitMultiple = !!args.submitMultiple;
-            if (args.state !== undefined) keyValuePairs.state = Number(args.state);
-            if (args.submissionMessage !== undefined) keyValuePairs.submissionMessage = args.submissionMessage;
-            if (args.expires !== undefined) {
-                if (args.expires === '') {
-                    keyValuePairs.expires = 0; // Forms stores "no expiry" as 0
-                } else {
-                    const ts = Date.parse(args.expires);
-                    if (Number.isNaN(ts)) return { error: `Could not parse "expires" as a date: ${args.expires}` };
-                    keyValuePairs.expires = Math.floor(ts / 1000);
-                }
-            }
-            if (!Object.keys(keyValuePairs).length) {
-                return { error: 'Nothing to update — pass at least one setting.' };
-            }
-            const out = await handle(
-                await ncFetch(`${api}/forms/${encodeURIComponent(args.formId)}`, {
-                    method: 'PATCH', headers: HEADERS, body: JSON.stringify({ keyValuePairs }),
-                }),
-                authError, 'settings update',
-            );
-            if (out.error) return out;
-            return { success: true, formId: args.formId, updated: Object.keys(keyValuePairs) };
-        }
+        case 'nextcloud_forms_update_settings':
+            return updateSettings(wireDeps, args);
 
         case 'nextcloud_forms_delete': {
             if (!args.formId) return { error: 'formId is required' };

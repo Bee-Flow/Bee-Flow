@@ -5,7 +5,7 @@
 
 const crypto = require('crypto');
 const { initDB, run, getOne, getAll } = require('./core');
-require('./rowMappers');
+const { rowToAutomation } = require('./rowMappers');
 
 // ── Webhooks ──────────────────────────────────────────
 
@@ -81,4 +81,24 @@ async function checkAndStoreNonce(nonce) {
     }
 }
 
-module.exports = { createWebhook, getWebhook, getWebhooksForAutomation, touchWebhook, rotateWebhookSecret, deleteWebhook, checkAndStoreNonce };
+/**
+ * The live (active, not trashed) automations of one organisation, newest first:
+ * the candidates an admin can enable for website forms. `organizationId` null
+ * matches automations that carry no organisation. Capped; the caller narrows
+ * to those with a webhook trigger.
+ * @param {string | null} organizationId
+ */
+async function listActiveAutomationsOfOrg(organizationId) {
+    await initDB();
+    const rows = await getAll(
+        `SELECT a.* FROM automations a
+          WHERE a.organization_id IS NOT DISTINCT FROM $1
+            AND COALESCE(a.kind, 'automation') = 'automation'
+            AND a.deleted_at IS NULL AND a.is_active = TRUE AND a.is_draft = FALSE
+          ORDER BY a.updated_at DESC LIMIT 500`,
+        [organizationId || null],
+    );
+    return rows.map(rowToAutomation);
+}
+
+module.exports = { listActiveAutomationsOfOrg, createWebhook, getWebhook, getWebhooksForAutomation, touchWebhook, rotateWebhookSecret, deleteWebhook, checkAndStoreNonce };

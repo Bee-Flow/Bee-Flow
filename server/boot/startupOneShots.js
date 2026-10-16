@@ -87,6 +87,16 @@ function runOneShotTasks() {
         require('./bootMigrations').runNlTranslations().catch(e =>
             log.warn('[Server] NL-catalogusladder faalde:', e.message));
     });
+
+    // Resized AVIF/WebP copies of CMS images uploaded before they existed:
+    // at most 50 per boot, one at a time through the upload queue, a minute
+    // after boot so it never competes with start-up. Fail-safe.
+    setTimeout(() => {
+        const storageStore = require('../stores/storageStore');
+        if (!storageStore.isAvailable()) return;
+        require('../core/cms/assetVariantStore').backfillVariants(storageStore).catch(e =>
+            log.warn('[Server] image variant backfill error:', e.message));
+    }, 60 * 1000).unref();
 }
 
 module.exports = { runOneShotTasks };

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Azure Whisper batch transcription (Speech REST API v3.2): the raw diarized
  * segments. Lives in core/voice so the meeting-notes ingest (core) and the
@@ -42,6 +43,10 @@ function formatAzureBatchFailure(pollData) {
     return `Azure Whisper batch job ${status}. Check your Azure Speech resource.`;
 }
 
+const WHISPER_BATCH_BYTES_PER_SECOND = {
+    '.wav': 32000, '.flac': 16000, '.mp3': 16000,
+    '.m4a': 12000, '.mp4': 12000, '.ogg': 8000, '.opus': 8000,
+};
 /**
  * Duration-scaled limits for an Azure Whisper batch run.
  *
@@ -52,13 +57,9 @@ function formatAzureBatchFailure(pollData) {
  * must outlive the job's queue time — Azure may only fetch the audio when the
  * job starts running.
  *
- * @param {{bytes?: number, ext?: string, env?: object}} [opts]
+ * @param {{bytes?: number, ext?: string, env?: NodeJS.ProcessEnv}} [opts]
  * @returns {{pollCapMs: number, urlTtlSeconds: number, estimatedSeconds: number|null}}
  */
-const WHISPER_BATCH_BYTES_PER_SECOND = {
-    '.wav': 32000, '.flac': 16000, '.mp3': 16000,
-    '.m4a': 12000, '.mp4': 12000, '.ogg': 8000, '.opus': 8000,
-};
 function computeWhisperBatchTimeouts({ bytes, ext, env = process.env } = {}) {
     const bps = WHISPER_BATCH_BYTES_PER_SECOND[String(ext || '').toLowerCase()];
     const estimatedSeconds = bps && Number(bytes) > 0 ? Math.round(Number(bytes) / bps) : null;
@@ -180,7 +181,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
                 headers: { 'Ocp-Apim-Subscription-Key': speechKey },
             });
             if (!modelsResp.ok) throw new Error(`Failed to list Azure models: HTTP ${modelsResp.status}`);
-            const modelsData = await modelsResp.json();
+            const modelsData = /** @type {{ values?: Array<{ displayName?: string, self?: string }> }} */ (await modelsResp.json());
             const vals = modelsData.values || [];
             const found = vals.filter(m => /whisper/i.test(m.displayName));
             if (found.length > 0) whisperModels.push(...found);
@@ -227,7 +228,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
             const errText = await createResp.text().catch(() => '');
             throw new Error(`Azure Whisper job creation failed (${createResp.status}): ${errText.replace(/[A-Za-z0-9_\-]{32,}/g, '[REDACTED]').substring(0, 300)}`);
         }
-        const job = await createResp.json();
+        const job = /** @type {{ self?: string }} */ (await createResp.json());
         transcriptionJobUrl = job.self;
         log.info(`[Transcription:AzureWhisper] Job created: ${transcriptionJobUrl.split('/').pop()}`);
 
@@ -241,7 +242,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
             await new Promise(r => setTimeout(r, 5000));
             const pollResp = await fetch(transcriptionJobUrl, { headers: { 'Ocp-Apim-Subscription-Key': speechKey } });
             if (!pollResp.ok) throw new Error(`Polling failed: HTTP ${pollResp.status}`);
-            pollData = await pollResp.json();
+            pollData = /** @type {{ status?: string, properties?: { error?: { code?: string, message?: string } } }} */ (await pollResp.json());
             jobStatus = pollData.status;
             log.info(`[Transcription:AzureWhisper] Status: ${jobStatus} (${Math.round((Date.now() - pollStart) / 1000)}s)`);
         }
@@ -254,12 +255,12 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
         // ── Step 5: Fetch result ──
         const filesResp = await fetch(`${transcriptionJobUrl}/files`, { headers: { 'Ocp-Apim-Subscription-Key': speechKey } });
         if (!filesResp.ok) throw new Error(`Fetching result files failed: HTTP ${filesResp.status}`);
-        const filesData = await filesResp.json();
+        const filesData = /** @type {{ values?: Array<{ kind?: string, links?: { contentUrl?: string } }> }} */ (await filesResp.json());
         const resultFile = (filesData.values || []).find(f => f.kind === 'Transcription');
         if (!resultFile?.links?.contentUrl) throw new Error('No transcription result file in Azure job output.');
         const resultResp = await fetch(resultFile.links.contentUrl);
         if (!resultResp.ok) throw new Error(`Downloading result failed: HTTP ${resultResp.status}`);
-        const resultData = await resultResp.json();
+        const resultData = /** @type {{ recognizedPhrases?: Array<any> }} */ (await resultResp.json());
 
         // ── Step 6: Normalise segments ──
         // recognizedPhrases[].speaker is an integer (1-based), convert to "Guest-N"

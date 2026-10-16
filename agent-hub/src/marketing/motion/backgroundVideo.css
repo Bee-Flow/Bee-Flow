@@ -1,0 +1,45 @@
+/* Full-bleed background video (hero and band blocks). The section is the box. */
+.marketing-root .has-bg-video {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+}
+.marketing-root .has-bg-video > .container {
+    position: relative;
+    z-index: 1;
+}
+.marketing-root .bg-video {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    background: var(--surface-1, #17161d);
+}
+.marketing-root .bg-video-media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    object-fit: cover;
+    object-position: center;
+}
+.marketing-root .bg-video--fit-contain .bg-video-media { object-fit: contain; }
+.marketing-root .bg-video--pos-top .bg-video-media { object-position: top; }
+.marketing-root .bg-video--pos-bottom .bg-video-media { object-position: bottom; }
+.marketing-root .bg-video-overlay {
+    position: absolute;
+    inset: 0;
+    background: #000;
+}
+.marketing-root .bg-video-overlay--light { background: #fff; }
+.marketing-root .bg-video-overlay--gradient {
+    background: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.35) 60%, #000 100%);
+}
+/* Text over a dark video reads light, whatever the page theme. */
+.marketing-root .has-bg-video--on-dark .headline-display,
+.marketing-root .has-bg-video--on-dark .hero-lead,
+.marketing-root .has-bg-video--on-dark .cta-banner-block-heading,
+.marketing-root .has-bg-video--on-dark .cta-banner-block-subheading {
+    color: #fff;
+}

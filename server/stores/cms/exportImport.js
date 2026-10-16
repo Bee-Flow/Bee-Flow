@@ -9,7 +9,10 @@ const { listPosts, collectPostLocaleOverrides } = require('./posts');
 const { extractAssetKeys } = require('./postText');
 const { getProject, mutateProjectsIndex } = require('./projects');
 const { getPage } = require('./pages');
+const { annotatePageLinks } = require('./pageLinks');
+const redirectsStore = require('./redirects');
 const { getDefaultLocale, collectLocaleOverrides } = require('./localeOverrides');
+const { validateSiteChrome } = require('./chromeValidation');
 const {
     validateImport, planPages, makePageLinkRemapper, buildSiteDoc, writePages,
     restoreLocaleOverrides, restoreBlogPosts,
@@ -28,9 +31,10 @@ const {
 //
 // Import generates fresh IDs for the site, every page, and every block,
 // so a re-import never collides with an existing site or any future
-// site that happens to share an old id. Header / footer link references
-// of `kind: 'page'` are remapped to the new page IDs so the imported
-// nav still points at the new pages, not the originals.
+// site that happens to share an old id. Every link of `kind: 'page'` (chrome,
+// block content, locale overrides) carries the target's slug in the bundle and
+// is remapped to the new page IDs on import, so nav, CTAs and footer links
+// still point at the new pages, not the originals.
 //
 // ── Identity across the id regeneration ──
 // Locale overrides are keyed by runtime ids, which import throws away, so
@@ -82,6 +86,11 @@ function collectAssetKeys(node, out = new Set()) {
     return out;
 }
 
+/**
+ * The export bundle: an open JSON document (routes add `assets` / `assetsMissing` to `site`).
+ * @param {string} siteId
+ * @returns {Promise<{ site: Record<string, any> } & Record<string, any>>}
+ */
 async function exportSite(siteId) {
     const site = await getProject(siteId);
     if (!site) throw new Error('Site not found');
@@ -103,6 +112,7 @@ async function exportSite(siteId) {
     // restore the page exactly. The exported page item is the union of
     // both shapes — duplicate fields like slug/title resolve to the
     // index entry's values (authoritative source).
+    const withSlugs = (node) => annotatePageLinks(node, slugByPageId);
     const exportedPages = [];
     for (const entry of site.pages || []) {
         const doc = await getPage(siteId, entry.id) || {};
@@ -114,7 +124,7 @@ async function exportSite(siteId) {
         for (const [locale, override] of Object.entries(pagesByLocale[entry.id] || {})) {
             if (!isPlainObject(override)) continue;
             const out = {};
-            if (isPlainObject(override.blocks)) out.blocks = override.blocks;
+            if (isPlainObject(override.blocks)) out.blocks = withSlugs(override.blocks);
             if (isPlainObject(override.seo)) out.seo = override.seo;
             if (!Object.keys(out).length) continue;
             locales[locale] = out;
@@ -132,7 +142,7 @@ async function exportSite(siteId) {
             noAnalytics: !!entry.noAnalytics,
             // PageDoc-side fields:
             seo: doc.seo || { metaTitle: '', metaDescription: '', ogImage: '', noIndex: false },
-            blocks: Array.isArray(doc.blocks) ? doc.blocks : [],
+            blocks: Array.isArray(doc.blocks) ? withSlugs(doc.blocks) : [],
             ...(Object.keys(locales).length ? { locales } : {}),
         });
     }
@@ -143,8 +153,8 @@ async function exportSite(siteId) {
     for (const [locale, override] of Object.entries(siteByLocale)) {
         if (!isPlainObject(override)) continue;
         const out = {};
-        if (isPlainObject(override.header)) out.header = override.header;
-        if (isPlainObject(override.footer)) out.footer = override.footer;
+        if (isPlainObject(override.header)) out.header = withSlugs(override.header);
+        if (isPlainObject(override.footer)) out.footer = withSlugs(override.footer);
         if (isPlainObject(override.pageTitles)) {
             const bySlug = {};
             for (const [pageId, title] of Object.entries(override.pageTitles)) {
@@ -195,6 +205,12 @@ async function exportSite(siteId) {
         };
     });
 
+    // Redirects ride along as an additive key (an older install ignores it).
+    const redirectDoc = await redirectsStore.getRedirects(siteId, { fresh: true });
+    const exportedRedirects = redirectDoc.redirects.map(({ from, to, status, external, auto }) => ({ from, to, status, external, auto }));
+    /** @type {Record<string, unknown>} */
+    const redirectFields = exportedRedirects.length ? { redirects: exportedRedirects } : {};
+
     return {
         [EXPORT_MARKER]: true,
         version: EXPORT_VERSION,
@@ -221,8 +237,8 @@ async function exportSite(siteId) {
             // complete. (Anyone sharing an export cross-org should clear it.)
             analytics: sanitizeAnalytics(site.analytics),
             chrome: {
-                header: site.header || {},
-                footer: site.footer || {},
+                header: withSlugs(site.header || {}),
+                footer: withSlugs(site.footer || {}),
                 cookieBanner: site.cookieBanner || {},
                 announcement: site.announcement || {},
                 ...(Object.keys(chromeLocaleOverrides).length
@@ -232,8 +248,28 @@ async function exportSite(siteId) {
             pages: exportedPages,
             blog: sanitizeBlogSettings(site.blog),
             posts: exportedPosts,
+            ...redirectFields,
         },
     };
+}
+
+/**
+ * Keep the sections of a bundle's chrome that pass the same shape check as a
+ * save; a bad section falls back to the defaults (buildSiteDoc) and is
+ * reported, so one wrong value does not reject the whole import.
+ * @param {Record<string, any>} chrome
+ * @param {string[]} warnings
+ */
+function keepSoundChrome(chrome, warnings) {
+    /** @type {Record<string, any>} */
+    const kept = { ...chrome };
+    for (const name of ['header', 'footer', 'cookieBanner', 'announcement']) {
+        const problem = validateSiteChrome({ [name]: kept[name] });
+        if (!problem) continue;
+        delete kept[name];
+        warnings.push(`The imported ${name} was not used (${problem}); the default was kept.`);
+    }
+    return kept;
 }
 
 async function importSite(exportData) {
@@ -250,21 +286,39 @@ async function importSite(exportData) {
         ? `${incoming.name} (imported)`
         : 'Imported site';
 
-    const { pagesOut, pagesInAligned, slugToNewId } = planPages(incoming);
-    const remapPageLinks = makePageLinkRemapper(slugToNewId);
+    const { pagesOut, pagesInAligned, slugToNewId, renamedSlugs } = planPages(incoming);
+    const linkStats = { unresolved: 0 };
+    const remapPageLinks = makePageLinkRemapper(slugToNewId, linkStats);
 
-    const incomingChrome = isPlainObject(incoming.chrome) ? incoming.chrome : {};
+    const warnings = renamedSlugs.map(
+        slug => `Page slug "${slug}" is reserved on this site and was renamed to "${slug}-page"`
+    );
+    const incomingChrome = keepSoundChrome(isPlainObject(incoming.chrome) ? incoming.chrome : {}, warnings);
     const newSite = buildSiteDoc({ incoming, incomingChrome, newSiteId, siteName, pagesOut, remapPageLinks });
     await configStore.setConfig(projectKey(newSiteId), newSite);
 
     const { droppedBlocks, blockIdMapByPageIndex } = await writePages({ newSiteId, pagesOut, pagesInAligned, remapPageLinks });
 
     const importedLocales = new Set();
-    const warnings = [];
     await restoreLocaleOverrides({
-        newSiteId, incomingChrome, pagesOut, pagesInAligned, slugToNewId, blockIdMapByPageIndex, importedLocales, warnings,
+        newSiteId, incomingChrome, pagesOut, pagesInAligned, slugToNewId, blockIdMapByPageIndex, importedLocales, warnings, remapPageLinks,
     });
+    // Same rules as a hand-made entry: loops, chains and unsafe targets are dropped.
+    // The allow-list of external hosts is NOT restored: only an administrator
+    // widens it, so redirects to other websites are left out and named instead.
+    await redirectsStore.restoreRedirects(newSiteId, { redirects: incoming.redirects, allowedHosts: [] });
+    const external = (Array.isArray(incoming.redirects) ? incoming.redirects : []).filter((r) => isPlainObject(r) && r.external === true);
+    if (external.length) {
+        const hosts = [...new Set(external.map((r) => { try { return new URL(String(r.to)).hostname; } catch { return ''; } }).filter(Boolean))].slice(0, 10);
+        warnings.push(`${external.length} redirect(s) to other websites were not imported${hosts.length ? ` (${hosts.join(', ')})` : ''}: allow the host under Redirects, then add them again`);
+    }
     const importedPosts = await restoreBlogPosts({ newSiteId, postsPreview, importedLocales, warnings });
+
+    if (linkStats.unresolved) {
+        warnings.push(
+            `${linkStats.unresolved} internal page link(s) could not be matched to a page in this export and stay broken until re-pointed`
+        );
+    }
 
     // The bundle's source language is informational: cms_default_locale is
     // org-wide, so silently repointing it here would retitle every OTHER

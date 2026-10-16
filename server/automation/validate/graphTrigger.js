@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The trigger rules of validateGraph (./graph.js): the primary trigger's id,
  * the contract-scope (layer/Step) trigger, the kind-specific contracts
@@ -156,9 +157,9 @@ if (scope === 'root' && deliverableEvents && trigger.kind === 'app_event') {
         let pushPending = false;
         try { pushPending = prov === 'nextcloud' && require('../deliverableEvents').isPushPending(prov, ev); } catch { /* fall back to generic */ }
         const message = pushPending
-            ? `Trigger event "${prov}.${ev}" requires the Bee Flow ExApp connector and is pending live validation — it will activate but may not fire yet.`
+            ? `Trigger event "${prov}.${ev}" has no producer (Nextcloud exposes no webhook for it and there is no poller) — it will activate but will never fire.`
             : `Trigger event "${prov}.${ev}" has no delivery path on this install — it will activate but may never fire.`;
-        pushW({ code: 'trigger.app_event_undeliverable', severity: 'warning', path: p('trigger.appEvent.event'), message, hint: 'Pick a poller-backed event (e.g. file.new, calendar.event.upcoming) to fire today, or wait for the connector validation before relying on this event.' });
+        pushW({ code: 'trigger.app_event_undeliverable', severity: 'warning', path: p('trigger.appEvent.event'), message, hint: 'Pick a poller-backed event (e.g. file.new, calendar.event.upcoming) to fire today, or use a schedule trigger that reads the data with a tool.' });
     }
 }
 // A provider/event nothing on this install declares can never fire either,

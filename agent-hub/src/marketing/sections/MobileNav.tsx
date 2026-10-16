@@ -1,6 +1,7 @@
 import React, { useEffect, useState, type CSSProperties, type SyntheticEvent } from 'react';
 import { readDropdown, navHandler, type NavLinkData } from './navShared';
 import NavIcon from '../components/NavIcon';
+import GithubStarButton from '../components/GithubStarButton';
 
 interface MobileNavCta {
     id?: string;
@@ -9,6 +10,11 @@ interface MobileNavCta {
     target?: string;
     rel?: string;
     style?: string;
+    kind?: string;
+    repoUrl?: string;
+    starsFallback?: number;
+    starsText?: string;
+    newTabText?: string;
 }
 
 interface MobileNavProps {
@@ -179,7 +185,16 @@ export default function MobileNav({
                             </React.Fragment>
                         );
                     })}
-                    {(ctas || []).map((cta, i) => (
+                    {(ctas || []).map((cta, i) => (cta.kind === 'github' ? (
+                        <GithubStarButton
+                            key={cta.id || i}
+                            repoUrl={cta.repoUrl}
+                            label={cta.label}
+                            starsFallback={cta.starsFallback}
+                            starsText={cta.starsText}
+                            newTabText={cta.newTabText}
+                        />
+                    ) : (
                         <a
                             key={cta.id || i}
                             href={cta.href || '/app'}
@@ -191,7 +206,7 @@ export default function MobileNav({
                         >
                             {cta.label || ''}
                         </a>
-                    ))}
+                    )))}
                 </div>
             </div>
         </>

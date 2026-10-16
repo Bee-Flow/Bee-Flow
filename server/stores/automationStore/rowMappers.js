@@ -167,6 +167,9 @@ function rowToRun(r) {
         outcome: fromJsonb(r.outcome_json) ?? null,
         callerAgentId: r.caller_agent_id ?? null,
         callerConversationId: r.caller_conversation_id ?? null,
+        // 'caller' when the run used the starter's own connections (fixed at its
+        // start; automation/callerRunVisibility.js reads it). Null otherwise.
+        connectionsMode: r.connections_mode ?? null,
     };
 }
 
@@ -207,6 +210,8 @@ function rowToRunStep(r) {
         // server's sentence (stores/automationStore/bindingWarnings.js). Null
         // when none missed, and on rows from before the column.
         bindingWarnings: fromJsonb(r.binding_warnings) ?? null,
+        // The user an integration step ran as (an id, nothing else); null elsewhere.
+        identityUserId: r.identity_user_id ?? null,
     };
     // A failed row from before the runner wrote error_info still gets the
     // plain-language card, classified from its message, its step type and its

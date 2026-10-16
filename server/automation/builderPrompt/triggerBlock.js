@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The `## Triggers` block of the LEAN system prompt.
  *
@@ -86,7 +87,12 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
         fields: ['formId', 'submissionId'],
         note: 'the answers are NOT in the payload: follow with nextcloud_forms_get_submissions.',
     },
-    'nextcloud.tables.row.added': { group: 'nc-tables', filters: ['tableId', 'columnId + valueEquals', 'changedOnly'], fields: ['tableId', 'rowId', 'values (keyed by numeric column id)'] },
+    'nextcloud.tables.row.added': {
+        group: 'nc-tables',
+        filters: ['tableId', 'columnId + valueEquals', 'changedOnly'],
+        note: 'without columnId, valueEquals / valueContains / changedOnly hold when ANY column satisfies them.',
+        fields: ['tableId', 'rowId', 'values (keyed by numeric column id)'],
+    },
     'nextcloud.tables.row.updated': { group: 'nc-tables' },
     'nextcloud.calendar.event.upcoming': {
         filters: ['leadMinutes', 'calendarId', 'summaryContains'],

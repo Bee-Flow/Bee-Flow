@@ -88,6 +88,8 @@
     "cms_blog.public.read_more": "Lees verder",
     "cms_blog.public.rss": "RSS-feed",
     "cms_blog.public.scheduled_badge": "Ingepland",
+    "cms_blog.public.search": "Berichten zoeken",
+    "cms_blog.public.search_none": "Geen berichten gevonden voor deze zoekopdracht.",
     "cms_blog.public.tagged": "Berichten met tag „{tag}”",
     "cms_blog.settings.description": "Inleiding ({language})",
     "cms_blog.settings.description_hint": "Ook de beschrijving die zoekmachines voor /blog tonen.",

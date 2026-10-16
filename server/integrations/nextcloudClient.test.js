@@ -302,3 +302,26 @@ test('connector fetch signs the HMAC v2 vector: ts\\nMETHOD\\npath\\nncUid\\nsha
     assert.equal(sig, expected,
         'HMAC v2 signature drifted — if this change is intentional, update the matching vector in nextcloud-connector/test/ncProxy.test.js IN THE SAME CHANGE');
 });
+
+test('connector fetch sends the %-escaped wire URL but signs the original decoded path', async () => {
+    seedNcOrg();
+    seedBoundUser();
+    const auth = await ncClient.resolveAuth(connectorJwtSession(), USER);
+    const captured = [];
+    const realFetch = global.fetch;
+    global.fetch = async (url, options) => {
+        captured.push({ url, options });
+        return { status: 200, ok: true, headers: { get: () => null } };
+    };
+    try {
+        await auth.fetch(`${auth.baseUrl}/remote.php/dav/files/${NC_UID}/q%3Fmark.txt`, { method: 'PUT', body: 'x' });
+    } finally {
+        global.fetch = realFetch;
+    }
+    const { url, options } = captured[0];
+    assert.ok(url.endsWith(`/remote.php/dav/files/${NC_UID}/q%253Fmark.txt`), url);
+    const [ts, sig] = String(options.headers['X-Beeflow-Sig']).split('.');
+    const bodyHash = crypto.createHash('sha256').update('x').digest('hex');
+    const message = `${ts}\nPUT\n/nc/remote.php/dav/files/${NC_UID}/q%3Fmark.txt\n${NC_UID}\n${bodyHash}\nc1`;
+    assert.equal(sig, crypto.createHmac('sha256', TENANT_KEY).update(message).digest('hex'));
+});

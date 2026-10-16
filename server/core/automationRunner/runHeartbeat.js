@@ -66,8 +66,13 @@ function makeLifecycleEmitter({ run, automation, effectiveMode }) {
     // throw — emission must not break a run. Stamped with userId so the stream
     // route can scope events per-user, + automationId so a single-surface view
     // can filter. Attached to ctx so runDag can emit step.* with the same shape.
-    const emitLifecycle = (type, extra = {}) => {
+    // A run on its starter's own connections streams no data: the stream goes
+    // to the owner, and the run's values belong to the starter.
+    const hideData = run.connectionsMode === 'caller';
+    const DATA_KEYS = ['error', 'output', 'input', 'summary'];
+    const emitLifecycle = (type, rawExtra = {}) => {
         if (effectiveMode === 'dry_run') return;
+        const extra = hideData ? Object.fromEntries(Object.entries(rawExtra).filter(([k]) => !DATA_KEYS.includes(k))) : rawExtra;
         try {
             runEventBus.emitRunEvent(type, {
                 runId: run.id, automationId: automation.id, userId: automation.userId,

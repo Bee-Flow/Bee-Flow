@@ -37,6 +37,7 @@ export { CtaBannerEditor } from './blockEditors/CtaBannerEditor';
 export { LiveComponentEditor } from './blockEditors/LiveComponentEditor';
 export { PricingEditor } from './blockEditors/PricingEditor';
 export { CustomerSupportEditor } from './blockEditors/CustomerSupportEditor';
+export { FormEditor } from './blockEditors/FormEditor';
 export { TestimonialsEditor } from './blockEditors/TestimonialsEditor';
 export { FaqEditor } from './blockEditors/FaqEditor';
 export { TrustBandEditor } from './blockEditors/TrustBandEditor';
@@ -47,6 +48,11 @@ export { CompareTableEditor } from './blockEditors/CompareTableEditor';
 export { GitHubStatsEditor } from './blockEditors/GitHubStatsEditor';
 export { ReleaseNotesEditor } from './blockEditors/ReleaseNotesEditor';
 export { LatestPostsEditor } from './blockEditors/LatestPostsEditor';
+export { TabsEditor } from './blockEditors/TabsEditor';
+export { StoryHeaderEditor } from './blockEditors/StoryHeaderEditor';
+export { CustomerStoriesEditor } from './blockEditors/CustomerStoriesEditor';
+export { ProductMockupEditor } from './blockEditors/ProductMockupEditor';
+export { CardCarouselEditor } from './blockEditors/CardCarouselEditor';
 
 // Registries.
 export { BLOCK_CATALOGUE, BLOCK_EDITORS, BLOCK_DEFAULTS } from './blockEditors/catalogue';

@@ -149,9 +149,10 @@ test('a run that reused nothing says nothing about reuse', async () => {
     const ok = await runner.executeAutomation(succeeding(), { triggerKind: 'manual', mode: 'live' });
     assert.ok(!/reuse|earlier/.test(ok.summary), `summary was "${ok.summary}"`);
 
-    // The failure line keeps its own remediation; what must NOT appear is a
-    // trailing reuse clause on a run that reused nothing.
+    // A stop_error carries no generic remediation (the author's message is the
+    // cause); what must NOT appear is a trailing reuse clause on a run that
+    // reused nothing.
     const bad = await runner.executeAutomation(failing(), { triggerKind: 'manual', mode: 'live' });
-    assert.match(bad.summary, /^Failed: Upstream said no\./);
+    assert.match(bad.summary, /^Failed: Upstream said no$/);
     assert.ok(!/answered from/.test(bad.summary), `summary was "${bad.summary}"`);
 });

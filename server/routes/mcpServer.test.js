@@ -135,3 +135,12 @@ test('tools/call refuses a tool the user does not have, without running it', asy
     assert.equal(res.result.isError, true);
     assert.match(res.result.content[0].text, /not available to this account/);
 });
+
+// The notebook tools are keyed by a chat conversation, which an MCP call never
+// has: advertised, they failed on every call. They are not offered on /mcp.
+test('toolListFrom hides the conversation-bound notebook tools', () => {
+    const names = ['gmail_search', 'notebook_read', 'notebook_write', 'notebook_replace', 'notebook_insert', 'workspace_read'];
+    const tools = names.map(name => ({ type: 'function', function: { name } }));
+    const kept = mcp.toolListFrom({ tools }).map(t => t.function.name);
+    assert.deepEqual(kept, ['gmail_search']);
+});

@@ -209,6 +209,7 @@ const initDB = makeStoreInit('DocumentStore', async () => {
 // Kick init off at require time — migrateDb.js and boot both depend on it.
 
 const { mapRow, mapListRow, mapProjectCard } = require('./document/rowMappers');
+const { librarySearch } = require('./documentSearch');
 
 /**
  * Refuse oversized slot content rather than truncating it. A silently cut-off
@@ -381,10 +382,9 @@ async function listDocumentsPage(context, options = {}) {
     const where = archived ? [accessSql(), 'd.archived = true', 'd.user_id = $2'] : [accessSql(), 'd.archived = false'];
     // The filters a notebook row answers too, by placeholder (notebookLibrary).
     const shared = { query: '', folder: null, folderSet: folderId !== undefined, category: '', visibility };
-    if (query) {
-        shared.query = bind('%' + String(query).slice(0, 200) + '%');
-        where.push(`(d.name ILIKE ${shared.query} OR d.description ILIKE ${shared.query})`);
-    }
+    const search = librarySearch(query, options.onlyFillable === true, bind);
+    where.push(...search.clauses);
+    shared.query = search.phrase;
     if (kind) where.push(`d.kind = ${bind(kind)}`);
     else if (options.onlyFillable) where.push("d.kind != 'section'");
     if (options.onlyFillable) where.push(`d.doc_type <> ${bind(SHEET_DOC_TYPE)}`); // nothing in a sheet is filled in

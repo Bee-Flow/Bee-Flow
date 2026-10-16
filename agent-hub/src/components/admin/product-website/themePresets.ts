@@ -10,7 +10,7 @@
 import type { THEME_PRESETS } from './themePresets.generated.mjs';
 
 type ThemePreset = (typeof THEME_PRESETS)[number];
-type DesignRecord = Record<string, unknown> & { logo?: string; favicon?: string };
+type DesignRecord = { logo?: string; favicon?: string };
 
 export { THEME_PRESETS, THEME_PRESET_IDS, BASE_COMPONENTS, BASE_LAYOUT } from './themePresets.generated.mjs';
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Per-graph validation: the rules that apply to ONE graph — the root
  * definition or a layer/Step mini-definition. Trigger shape and the
@@ -23,6 +24,7 @@ const { checkPrimaryTrigger } = require('./graphTrigger');
 const { collectGraphNodes, checkContractOutputs } = require('./graphNodes');
 const { checkEdges } = require('./graphEdges');
 const { walkGraphSteps, checkFormEndings } = require('./graphWalk');
+const { checkDataRefCycles } = require('./dataRefCycles');
 
 /**
  * Walk a graph (root definition or a layer mini-definition) collecting every
@@ -162,6 +164,7 @@ function validateGraph(graph, pathPrefix, opts) {
     }
 
     walkGraphSteps(ctx, { ids, stepById, order, availableTools, toolRequiredParams, knownConnectionIds, availableAgents, topicClassifier });
+    checkDataRefCycles(ctx);
     checkFormEndings(ctx, stepById);
 }
 

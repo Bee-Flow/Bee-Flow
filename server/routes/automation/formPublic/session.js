@@ -6,6 +6,7 @@
  */
 
 const log = require('../../../telemetry/log');
+const { sendStream } = require('../../../core/http/sendStream');
 const automationStore = require('../../../stores/automationStore');
 const storageStore = require('../../../stores/storageStore');
 const { issueCsrf } = require('../../../auth/publicShareToken');
@@ -224,7 +225,7 @@ async function downloadFile(req, res, next) {
         log.error(`[automation/form] download stream failed: ${e.message}`);
         next(e);
     });
-    return streamed.stream.pipe(res);
+    return sendStream(streamed.stream, res);
 }
 
 /** GET /form/:token/s/:sid, GET /form/:token/s/:sid/file/:fileId — in that order. */

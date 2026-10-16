@@ -125,3 +125,13 @@ test('BFSF-350: a mail that did go out carries no skippedChannels', async () => 
     assert.strictEqual(r.output.delivered.skippedChannels, undefined);
     assert.strictEqual(r.skippedReason, undefined);
 });
+
+test('on a run that uses the caller\'s own connections the notification goes to the CALLER, not the owner', async () => {
+    bellCalls = []; emailCalls = [];
+    const callerCtx = { ...ctx, callerOnly: { userId: 'caller1', session: {}, orgId: null, userGroupIds: [] } };
+    await execNotification({ title: 'Hi', body: 'There', channels: ['notification'] }, callerCtx, state, 'live');
+    assert.strictEqual(bellCalls[0].userId, 'caller1');
+    bellCalls = [];
+    await execNotification({ title: 'Hi', body: 'There', channels: ['notification'] }, ctx, state, 'live');
+    assert.strictEqual(bellCalls[0].userId, 'user1', 'an owner run still notifies the owner');
+});

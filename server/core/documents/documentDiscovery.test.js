@@ -4,7 +4,9 @@ const assert=require('node:assert/strict');
 const {installResolveStub}=require('../../testUtils/stubRequire');
 const fixture={id:'outside-initial-catalog',versionId:'v42',name:'Security',bodyHtml:'<section data-doc-section="cloud"><h2>Cloud responsibilities</h2><p>{{controls}}</p></section>',settings:{contract:{instructions:'Use verified customer facts',parameters:[{key:'cloud',type:'boolean',required:true,summary:'Uses cloud services'},{key:'controls',type:'text',required:true,instructions:'Verified controls'}],sections:[{id:'cloud',title:'Cloud',condition:{parameter:'cloud',operator:'equals',value:true}}]}}};
 const queries=[];
-const restore=installResolveStub({'../../stores/documentStore':{listTemplates:async(user,options)=>{queries.push({user,options});return [{id:fixture.id}];},getDocument:async(id,user)=>id===fixture.id && user==='owner'?fixture:null}});
+let listResult=[{id:fixture.id}];
+const extraDocs={};
+const restore=installResolveStub({'../../stores/documentStore':{listTemplates:async(user,options)=>{queries.push({user,options});return listResult;},getDocument:async(id,user)=>user==='owner'?extraDocs[id]||(id===fixture.id?fixture:null):null}});
 test.after(restore);
 const {execute,inspectBindings}=require('./documentDiscovery');
 test('builders search beyond a prompt cap, read instructions and selected content, then pin',async()=>{
@@ -34,4 +36,30 @@ test('builders require condition inputs even when not marked required, and do no
     assert.match(inspectBindings({documentId:doc.id, values:{controls:'MFA'}},wrap,'builder').error, /cloud/);
     assert.match(inspectBindings({documentId:doc.id, values:{cloud:false}},wrap,'builder').error, /controls/);
     assert.equal(inspectBindings({documentId:doc.id, values:{controls:'MFA'}, sectionOverrides:{cloud:'exclude'}},wrap,'builder'), null);
+});
+
+test('an unknown sectionId answers with the section ids, not the whole contract', async () => {
+    const out = await execute('builder_read_document',{documentId:fixture.id,sectionId:'nope'},{userId:'owner'});
+    assert.equal(out.contract, undefined);
+    assert.equal(JSON.stringify(out).includes('Verified controls'), false);
+    assert.deepEqual(out.sectionIds, ['cloud']);
+    assert.match(out.error, /Section not found/);
+});
+test('includeBody is capped and says so', async () => {
+    extraDocs.big = { ...fixture, id: 'big', bodyHtml: '<p>' + 'x'.repeat(60000) + '</p>' };
+    const out = await execute('builder_read_document',{documentId:'big',includeBody:true},{userId:'owner'});
+    assert.ok(out.bodyHtml.length <= 20000);
+    assert.equal(out.bodyTruncated, true);
+    const small = await execute('builder_read_document',{documentId:fixture.id,includeBody:true},{userId:'owner'});
+    assert.equal(small.bodyTruncated, undefined);
+});
+test('app_list_documents is built from an explicit allow-list of fields', async () => {
+    const { applyListDocuments } = require('../../appStudio/builderTools/dataTools');
+    listResult = [{ id: 'd1', name: 'Quote', docType: 'letter', kind: 'document', versionId: 'v1',
+        userId: 'other-user', updatedBy: 'other-user', projectId: 'p1', htmlSize: 9, schemaVersion: 2,
+        parameters: [{ key: 'a' }], sections: [{ id: 's', title: 'Full section' }],
+        placeholders: [{ key: 'a', kind: 'text' }] }];
+    const out = await applyListDocuments({ userId: 'owner' });
+    assert.deepEqual(out.documents, [{ documentId: 'd1', name: 'Quote', docType: 'letter', kind: 'document', versionId: 'v1', placeholders: [{ key: 'a', kind: 'text' }] }]);
+    listResult = [{ id: fixture.id }];
 });

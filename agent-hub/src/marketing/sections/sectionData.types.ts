@@ -42,4 +42,6 @@ export interface MediaSlot extends ClipMedia {
     kind?: string;
     width?: number;
     height?: number;
+    /** Scroll-linked motion on the frame: 'parallax' | 'scale' (CSS only, off with reduced motion). */
+    motion?: string;
 }

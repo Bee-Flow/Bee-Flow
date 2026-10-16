@@ -27,6 +27,8 @@ export interface BuilderTabUrl {
     tab: BuilderTab;
     setTab: Dispatch<SetStateAction<BuilderTab>>;
     reportBuilderState: (patch?: BuilderRunStatePatch, opts?: { replace?: boolean }) => void;
+    /** Show a run in Runs: the failed-run banner's "View run". */
+    openRunInRuns: (runId: string) => void;
 }
 
 export interface UseBuilderTabUrlOptions {
@@ -93,5 +95,10 @@ export default function useBuilderTabUrl({
         else reportBuilderState({}, { replace: true });
     }, [tab, reportBuilderState]);
 
-    return { tab, setTab, reportBuilderState };
+    const openRunInRuns = useCallback((runId: string) => {
+        setTab('history');
+        reportBuilderState({ runId, stepId: null }, { replace: false });
+    }, [reportBuilderState]);
+
+    return { tab, setTab, reportBuilderState, openRunInRuns };
 }

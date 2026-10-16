@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -51,6 +52,17 @@ const SENSITIVE_KEY_RE = /^(authorization|x-api-key|api[-_]?key|password|passwd|
 function safeOutputKeysForTool(toolName) {
     if (typeof toolName === 'string' && toolName.startsWith('nextcloud_talk_')) return ['token'];
     return [];
+}
+
+// Provenance exemption. A Talk room token also travels through steps with no
+// Talk tool name (loop, filter, set, call_layer, ... carry the output of an
+// earlier nextcloud_talk_* step). `publicValues` are the room tokens that
+// nextcloud_talk_* steps actually emitted during THIS run (see
+// core/automationRunner/publicValues.js): a `token` key whose value is in that
+// set is exempt from the key-name rule. Only `token`, only those exact values;
+// the value is still scanned for secret shapes and known run secrets.
+function preparePublicValues(publicValues) {
+    return new Set((Array.isArray(publicValues) ? publicValues : []).filter((v) => typeof v === 'string' && v));
 }
 
 // Ordered: the PEM block first (its base64 body would otherwise feed the
@@ -108,10 +120,10 @@ function isWholesaleRedactable(v) {
     return typeof v === 'string' || typeof v === 'number';
 }
 
-function walk(value, secrets, counter, allow) {
+function walk(value, secrets, counter, allow, pub) {
     if (value == null) return value;
     if (typeof value === 'string') return redactString(value, secrets, counter);
-    if (Array.isArray(value)) return value.map((v) => walk(v, secrets, counter, allow));
+    if (Array.isArray(value)) return value.map((v) => walk(v, secrets, counter, allow, pub));
     if (typeof value === 'object') {
         // Only walk plain objects: Dates/Buffers/class instances would be
         // flattened to `{}` by a key walk — pass them through untouched.
@@ -123,7 +135,7 @@ function walk(value, secrets, counter, allow) {
             // An exempt key (a known public identifier for this tool) skips the
             // wholesale key-name redaction but is STILL walked — so a real
             // secret shape / known secret value inside it is masked.
-            if (SENSITIVE_KEY_RE.test(k) && isWholesaleRedactable(v) && !allow.has(k.toLowerCase())) {
+            if (SENSITIVE_KEY_RE.test(k) && isWholesaleRedactable(v) && !allow.has(k.toLowerCase()) && !(k.toLowerCase() === 'token' && typeof v === 'string' && pub.has(v))) {
                 if (typeof v === 'string' && REDACTED_MARKER_RE.test(v)) {
                     out[k] = v; // already masked — keep redaction idempotent
                 } else {
@@ -131,7 +143,7 @@ function walk(value, secrets, counter, allow) {
                     out[k] = marker('key');
                 }
             } else {
-                out[k] = walk(v, secrets, counter, allow);
+                out[k] = walk(v, secrets, counter, allow, pub);
             }
         }
         return out;
@@ -142,8 +154,9 @@ function walk(value, secrets, counter, allow) {
 function redactForPersistence(value, opts = {}) {
     const secrets = prepareSecretValues(opts.secretValues);
     const allow = new Set((Array.isArray(opts.allowKeys) ? opts.allowKeys : []).map((k) => String(k).toLowerCase()));
+    const pub = preparePublicValues(opts.publicValues);
     const counter = { n: 0 };
-    return { value: walk(value, secrets, counter, allow), redactions: counter.n };
+    return { value: walk(value, secrets, counter, allow, pub), redactions: counter.n };
 }
 
 module.exports = { redactForPersistence, safeOutputKeysForTool, SECRET_PATTERNS, SENSITIVE_KEY_RE, REDACTED_MARKER_RE };

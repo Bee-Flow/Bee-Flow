@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Per-call site plumbing for the CMS-over-MCP tools (./dispatch.js): which
@@ -6,6 +7,32 @@
  */
 
 const { err } = require('./handlerKit');
+
+/**
+ * Narrow a site-wide validation to what an edit result needs: everything for
+ * the pages this call touched, and ONE summary line for the empty pages it did
+ * not touch (a new site lists a dozen of them on every call otherwise).
+ * @param {{ errors: object[], warnings: any[] }} v
+ * @param {Set<string>} touched
+ */
+function scopeValidation(v, touched) {
+    const isOtherEmpty = (/** @type {any} */ w) => w.code === 'empty_page'
+        && !touched.has(String(w.path || '').replace(/^pages\./, ''));
+    const others = v.warnings.filter(isOtherEmpty);
+    if (others.length < 2) return v;
+    return {
+        errors: v.errors,
+        warnings: [
+            ...v.warnings.filter((w) => !isOtherEmpty(w)),
+            {
+                code: 'other_empty_pages',
+                path: 'pages',
+                message: `${others.length} other pages have no blocks yet.`,
+                hint: 'cms_list_site shows the full site-wide validation.',
+            },
+        ],
+    };
+}
 
 /** @param {{ cmsStore: object, live: object, builder: object, validateDraft: Function }} deps */
 function createSiteContext({ cmsStore, live, builder, validateDraft }) {
@@ -46,8 +73,10 @@ function createSiteContext({ cmsStore, live, builder, validateDraft }) {
         };
     }
 
-    const validationOf = (draftWrap) => {
-        const v = validateDraft(draftWrap);
+    /** @param {object} draftWrap @param {Set<string>} [touched] scope the empty-page warnings to this edit */
+    const validationOf = (draftWrap, touched) => {
+        const raw = validateDraft(draftWrap);
+        const v = touched ? scopeValidation(raw, touched) : raw;
         return (v.errors.length || v.warnings.length) ? { errors: v.errors, warnings: v.warnings } : null;
     };
 
@@ -60,11 +89,11 @@ function createSiteContext({ cmsStore, live, builder, validateDraft }) {
         const result = await builder.applyToolCall(draftWrap, name, rest);
         const ok = !(result && typeof result === 'object' && result.error);
         if (!ok || !builder.MUTATING_TOOLS.has(name)) return { result: ok ? { ...result, siteId: site.siteId } : result };
-        const validation = validationOf(draftWrap);
+        const validation = validationOf(draftWrap, draftWrap.touchedPageIds);
         return { result: { ...result, siteId: site.siteId, ...(validation ? { validation } : {}) } };
     }
 
     return { resolveSite, loadDraft, validationOf, runBuilderTool };
 }
 
-module.exports = { createSiteContext };
+module.exports = { createSiteContext, scopeValidation };

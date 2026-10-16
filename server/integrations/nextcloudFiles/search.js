@@ -1,7 +1,10 @@
+// @typecheck
 /**
  * Nextcloud search — the unified fan-out across every registered search
  * provider, and the files-only provider search.
  */
+
+const { nextcloudHttpError } = require('../nextcloudHttpError');
 
 // Returns undefined when the tool belongs to another Nextcloud file family, so
 // the facade can hand it to the next handler.
@@ -20,7 +23,7 @@ async function executeSearchTool(toolName, args, ctx) {
             // of) becomes searchable without a Bee Flow release.
             const provRes = await ncFetch(`${baseUrl}/ocs/v2.php/search/providers?format=json`, { headers: ocsHeaders });
             if (provRes.status === 401) return { error: authError };
-            if (!provRes.ok) return { error: `Could not list Nextcloud search providers (${provRes.status})` };
+            if (!provRes.ok) return nextcloudHttpError(provRes, { authError, what: 'search provider list' });
             const provBody = await provRes.json().catch(() => null);
             const allProviders = (provBody?.ocs?.data || [])
                 .map(p => ({ id: p.id, name: p.name }))
@@ -89,8 +92,7 @@ async function executeSearchTool(toolName, args, ctx) {
             const res = await ncFetch(url, {
                 headers: { 'OCS-APIRequest': 'true', 'Accept': 'application/json' },
             });
-            if (res.status === 401) return { error: authError };
-            if (!res.ok) return { error: `Nextcloud search failed (${res.status})` };
+            if (!res.ok) return nextcloudHttpError(res, { authError, what: 'file search' });
             const data = await res.json();
             const entries = data?.ocs?.data?.entries || [];
             return {

@@ -392,7 +392,7 @@ test('formatMemoriesForPrompt: golden block', () => {
     assert.ok(out.startsWith('<memories>\nThese are remembered notes'));
     assert.ok(out.includes('### Standing instructions from the user\n'));
     assert.ok(out.includes('- Anna: role = CFO\n'));
-    assert.ok(out.includes('- Tea  please\n'));
+    assert.ok(out.includes('- Tea \u2039/memories\u203a please\n'));
     assert.ok(out.includes('- Home.city: Utrecht\n'));
     assert.ok(out.endsWith('call memory_search.\n</memories>\n'));
 });

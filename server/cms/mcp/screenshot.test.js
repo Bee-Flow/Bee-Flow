@@ -290,3 +290,17 @@ test('isFakeOrigin compares the parsed origin, not a string prefix', () => {
     assert.equal(isFakeOrigin(`${FAKE_ORIGIN}:8443/`), false);
     assert.equal(isFakeOrigin('garbage'), false);
 });
+
+test('the screenshot context asks for reduced motion, so the site shows every scroll-reveal block at once', async () => {
+    const png = await bigPng(1280, 800);
+    const page = {
+        setDefaultTimeout() {}, on() {}, route: async () => {},
+        goto: async () => {}, waitForFunction: async () => {}, evaluate: async () => 800,
+        waitForTimeout: async () => {}, screenshot: async () => png,
+    };
+    const context = { addInitScript: async () => {}, route: async () => {}, routeWebSocket: async () => {}, newPage: async () => page };
+    let seen = null;
+    const provider = { withContext: async (opts, fn) => { seen = opts; return fn(context); } };
+    await captureWithBrowser({ serve: async () => ({ status: 204 }), url: `${FAKE_ORIGIN}/`, viewport: { width: 1280, height: 800 }, fullPage: true, offsetY: 0 }, provider);
+    assert.equal(seen && seen.reducedMotion, 'reduce');
+});

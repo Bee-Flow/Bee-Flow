@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Whitelisted helper functions for the shared expression language.
  *
@@ -17,6 +18,9 @@
  */
 
 import { extractJsonText, getRelativePath, parseJsonText, parsePath, walkTokens } from './path.mjs';
+import { addToEpoch, epochDiff, requireDateUnit, validFields } from './dates.mjs';
+import { padStartCp, splitCp, substringCp } from './codePoints.mjs';
+export { checkDateUnit } from './dates.mjs';
 import { equalsValue, fileTypeOf, isEmptyValue, quantify, textContains, textEndsWith, textStartsWith } from './rules.mjs';
 
 // ── Deterministic ISO date helpers (UTC-only) ──────────────────────────────
@@ -59,10 +63,11 @@ function toEpoch(iso) {
     if (typeof iso === 'number') return inRange(iso);
     const s = String(iso).trim();
     let m = DATE_ONLY.exec(s);
-    if (m) return inRange(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    if (m) return validFields(+m[1], +m[2], +m[3], 0, 0, 0) ? inRange(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null;
     m = DATE_TIME.exec(s);
     if (!m) return null;
     const [, y, mo, d, h, mi, se, zone] = m;
+    if (!validFields(+y, +mo, +d, +h, +mi, se ? +se : 0)) return null;
     let epoch = Date.UTC(+y, +mo - 1, +d, +h, +mi, se ? +se : 0);
     if (zone && zone !== 'Z') {
         const sign = zone[0] === '-' ? -1 : 1;
@@ -71,8 +76,6 @@ function toEpoch(iso) {
     }
     return inRange(epoch);
 }
-
-const UNIT_MS = { second: 1000, minute: 60000, hour: 3600000, day: 86400000, week: 604800000 };
 
 function pad(n, w = 2) { return String(Math.abs(n)).padStart(w, '0'); }
 
@@ -261,6 +264,13 @@ function walkJsonPath(value, path) {
     return tokens ? walkTokens(tokens, value) : undefined;
 }
 
+/** Items of a list, code points of a text (not UTF-16 units), keys of an object. */
+function sizeOf(a) {
+    if (Array.isArray(a)) return a.length;
+    if (typeof a === 'string') return [...a].length;
+    return a != null && typeof a === 'object' ? Object.keys(a).length : 0;
+}
+
 export const FUNCTIONS = {
     // ── Original 7 (kept byte-identical to server/automation/expr.js) ──────
     contains: (a, b) => {
@@ -271,12 +281,7 @@ export const FUNCTIONS = {
     endsWith: (a, b) => textEndsWith(a, b),
     lower: (a) => (a == null ? '' : String(a).toLowerCase()),
     upper: (a) => (a == null ? '' : String(a).toUpperCase()),
-    len: (a) => {
-        if (a == null) return 0;
-        if (Array.isArray(a) || typeof a === 'string') return a.length;
-        if (typeof a === 'object') return Object.keys(a).length;
-        return 0;
-    },
+    len: (a) => sizeOf(a),
     isEmpty: (a) => isEmptyValue(a),
 
     // ── Rules (logic in rules.mjs, shared with the rule rows) ──────────────
@@ -428,14 +433,13 @@ export const FUNCTIONS = {
     trim: (s) => (s == null ? '' : String(s).trim()),
     concat: (...xs) => xs.map((x) => (x == null ? '' : String(x))).join(''),
     replace: (s, find, repl) => (s == null ? '' : String(s).split(find == null ? '' : String(find)).join(repl == null ? '' : String(repl))),
-    split: (s, sep) => (s == null ? [] : String(s).split(sep == null ? '' : String(sep))),
+    split: (s, sep) => (s == null ? [] : splitCp(String(s), sep == null ? '' : String(sep))),
     join: (arr, sep) => (Array.isArray(arr) ? arr.map((x) => (x == null ? '' : String(x))).join(sep == null ? '' : String(sep)) : ''),
     substring: (s, a, b) => {
         if (s == null) return '';
-        const str = String(s); const start = toNum(a) || 0;
-        return b == null ? str.substring(start) : str.substring(start, toNum(b) || 0);
+        return substringCp(String(s), toNum(a) || 0, b == null ? null : toNum(b) || 0);
     },
-    padStart: (s, n, ch) => (s == null ? '' : String(s).padStart(toNum(n) || 0, ch == null ? ' ' : String(ch))),
+    padStart: (s, n, ch) => (s == null ? '' : padStartCp(String(s), toNum(n) || 0, ch == null ? ' ' : String(ch))),
     toStr: (x) => (x == null ? '' : String(x)),
     // Sum the leading multipliers in a "2x M5 + 4x M8" style list — the shape
     // every parts/BOM app writes its per-item breakdowns in. Exists because a
@@ -464,12 +468,7 @@ export const FUNCTIONS = {
     includes: (arr, x) => (Array.isArray(arr)
         ? arr.some((el) => el === x || (typeof el === 'string' && typeof x === 'string' && ciEq(el, x)))
         : false),
-    count: (a) => {
-        if (a == null) return 0;
-        if (Array.isArray(a) || typeof a === 'string') return a.length;
-        if (typeof a === 'object') return Object.keys(a).length;
-        return 0;
-    },
+    count: (a) => sizeOf(a),
     // Positional navigation — at/index_of are the prev/next primitives: find
     // the index of the current selection in a source list, then read the
     // neighbour at index ± 1. Both are list-only (a string is not a list here,
@@ -560,16 +559,16 @@ export const FUNCTIONS = {
     },
 
     // ── Date (operate on ISO strings; UTC + deterministic) ────────────────
+    // Units second..year, singular or plural; unknown throws. Months/years are calendar steps; dateDiff truncates toward zero.
     dateAdd: (iso, n, unit) => {
-        const e = toEpoch(iso); if (e == null) return null;
-        const amt = toNum(n) || 0; const ms = UNIT_MS[unit] || UNIT_MS.day;
-        return new Date(e + amt * ms).toISOString();
+        const u = requireDateUnit('dateAdd', unit);
+        const e = toEpoch(iso);
+        return e == null ? null : addToEpoch(e, toNum(n) || 0, u);
     },
     dateDiff: (a, b, unit) => {
+        const u = requireDateUnit('dateDiff', unit);
         const ea = toEpoch(a); const eb = toEpoch(b);
-        if (ea == null || eb == null) return null;
-        const ms = UNIT_MS[unit] || UNIT_MS.day;
-        return Math.floor((ea - eb) / ms);
+        return ea == null || eb == null ? null : epochDiff(ea, eb, u);
     },
     // formatDate(date, format, locale?) — the six numeric tokens as before,
     // plus MMMM/MMM (month name), dddd/ddd (weekday name) and D/M (no zero
@@ -676,7 +675,7 @@ export const EXPR_FUNCTIONS = [
     { name: 'endsWith', signature: 'endsWith(text, part)', description: 'True when text ends with part. Ignores upper/lower case.' },
     { name: 'lower', signature: 'lower(text)', description: 'Lowercase the text.' },
     { name: 'upper', signature: 'upper(text)', description: 'Uppercase the text.' },
-    { name: 'len', signature: 'len(value)', description: 'Length of text, a list, or an object.' },
+    { name: 'len', signature: 'len(value)', description: 'Length of text in characters (code points), a list, or an object.' },
     { name: 'isEmpty', signature: 'isEmpty(value)', description: 'True for missing values, empty text, lists or objects.' },
     { name: 'equals', signature: 'equals(a, b)', description: 'True when a and b are the same: text ignores upper/lower case and surrounding spaces, "5" equals 5.' },
     { name: 'fileType', signature: 'fileType(file)', description: 'The kind of a file (or of each file in a list): pdf, word, excel, powerpoint, image, text, archive, audio, video or other — from its MIME type, else its extension.' },
@@ -725,23 +724,23 @@ export const EXPR_FUNCTIONS = [
     { name: 'trim', signature: 'trim(text)', description: 'Remove surrounding whitespace.' },
     { name: 'concat', signature: 'concat(a, b, …)', description: 'Join values into one string.' },
     { name: 'replace', signature: 'replace(text, find, with)', description: 'Replace every occurrence of find.' },
-    { name: 'split', signature: 'split(text, sep)', description: 'Split text into a list on sep.' },
+    { name: 'split', signature: 'split(text, sep)', description: 'Split text into a list on sep (an empty sep gives characters, code points).' },
     { name: 'join', signature: 'join(list, sep)', description: 'Join a list into text with sep.' },
-    { name: 'substring', signature: 'substring(text, start, end?)', description: 'Slice of text between start and end.' },
-    { name: 'padStart', signature: 'padStart(text, length, char?)', description: 'Pad the start of text to a length.' },
+    { name: 'substring', signature: 'substring(text, start, end?)', description: 'Slice of text between start and end, counted in characters (code points).' },
+    { name: 'padStart', signature: 'padStart(text, length, char?)', description: 'Pad the start of text to a length in characters (code points).' },
     { name: 'toStr', signature: 'toStr(value)', description: 'Convert any value to text.' },
     { name: 'sumCounts', signature: 'sumCounts(text)', description: 'Add up the quantities in a breakdown like "2x M5 + 4x M8" (gives 6). Dimensions such as "100 x 80" are ignored. Nothing to count gives nothing.' },
     { name: 'first', signature: 'first(list)', description: 'First item of a list.' },
     { name: 'last', signature: 'last(list)', description: 'Last item of a list.' },
     { name: 'includes', signature: 'includes(list, value)', description: 'True when the list contains value (text ignores case).' },
-    { name: 'count', signature: 'count(value)', description: 'Number of items in a list/text/object.' },
+    { name: 'count', signature: 'count(value)', description: 'Number of items in a list, characters (code points) in text, keys in an object.' },
     { name: 'at', signature: 'at(list, index)', description: 'Item at a 0-based index (negative counts from the end). Outside the list gives nothing.' },
     { name: 'index_of', signature: 'index_of(list, value)', description: 'First 0-based index of value in the list (text ignores case), or -1.' },
     { name: 'pluck', signature: 'pluck(list, key)', description: 'One value per item: the value under key — pluck(rows, "id") gives the ids.' },
     { name: 'find', signature: 'find(list, key, value)', description: 'The first item whose key equals value, or null — find(records.orders, "id", vars.selected.id) reads the live row behind a selection.' },
     { name: 'parseJson', signature: 'parseJson(text, path?)', description: 'Parse JSON text and optionally pick a path from it (a.b, items[0].x, items[*].x). Invalid JSON gives null.' },
-    { name: 'dateAdd', signature: 'dateAdd(date, n, unit)', description: 'Add n units (day/hour/…) to an ISO date.' },
-    { name: 'dateDiff', signature: 'dateDiff(a, b, unit)', description: 'Whole units between two ISO dates (a − b).' },
+    { name: 'dateAdd', signature: 'dateAdd(date, n, unit)', description: 'Add n units (second/minute/hour/day/week/month/year) to an ISO date; months and years clamp to the end of the month.' },
+    { name: 'dateDiff', signature: 'dateDiff(a, b, unit)', description: 'Whole units (second…year) between two ISO dates (a − b), truncated toward zero.' },
     { name: 'formatDate', signature: 'formatDate(date, "D MMMM YYYY", locale?)', description: 'Format an ISO date (UTC): YYYY/MM/DD/HH/mm/ss, plus D and M without a zero, MMMM/MMM for the month name and dddd/ddd for the weekday — "D MMMM YYYY" is "2 september 2026". Locale nl/en/de/fr picks the names.' },
     { name: 'formatNumber', signature: 'formatNumber(value, "amount" | "percent" | "plain", locale?, places?)', description: 'Write a number for people: "amount" gives € 1.500.000, "percent" turns 0.125 into 12,5%, "plain" gives 1.500.000. Locale nl/en/de/fr picks the separators; places pins the decimals.' },
     { name: 'yesNoText', signature: 'yesNoText(value, yesText?, noText?)', description: 'The word for a yes/no value — yesNoText(item.paid, "wel", "niet"). Unknown values give nothing.' },

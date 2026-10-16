@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — the LINKED table, seen from the builder.
  *
@@ -214,7 +215,14 @@ function overlayLinkedRowCounts(rowCounts, linked) {
     return out;
 }
 
+/** Load the linked tables of the draft's model and lay their live counts over `draftWrap.rowCounts`. */
+async function attachLinkedTables(draftWrap, ownerId) {
+    draftWrap.linkedTables = await describeLinkedTables(draftWrap.dataModel, ownerId);
+    draftWrap.rowCounts = overlayLinkedRowCounts(draftWrap.rowCounts, draftWrap.linkedTables);
+}
+
 module.exports = {
+    attachLinkedTables,
     resolveLinkableDatatable,
     projectLinkedTable,
     describeLinkedTables,

@@ -1,7 +1,9 @@
 import React from 'react';
-import { resolveAssetUrl } from '../assetUrl';
+import { resolveAssetUrl, assetSrcSet, ASSET_IMG_SIZES } from '../assetUrl';
 import ClipVideo from './ClipVideo';
+import LazyLoopVideo from './LazyLoopVideo';
 import type { MediaSlot } from '../sections/sectionData.types';
+import '../motion/mediaMotion.css';
 
 interface FramedMediaProps {
     media?: MediaSlot | null;
@@ -9,6 +11,8 @@ interface FramedMediaProps {
     fadeMask?: boolean;
     className?: string;
     priority?: boolean;
+    /** `sizes` for the srcset; defaults to the full content width. */
+    sizes?: string;
 }
 
 
@@ -28,7 +32,7 @@ interface FramedMediaProps {
  * - Empty src renders an intentional skeleton panel (never a broken image;
  *   also what the AI builder produces, since it must not invent asset keys).
  */
-export default function FramedMedia({ media, glow = true, fadeMask = false, className = '', priority = false }: FramedMediaProps) {
+export default function FramedMedia({ media, glow = true, fadeMask = false, className = '', priority = false, sizes }: FramedMediaProps) {
     const m: MediaSlot = media || {};
     const frame = (['hairline', 'browser', 'none'] as readonly (string | undefined)[]).includes(m.frame) ? m.frame : 'hairline';
     const kind = m.kind === 'video' || m.kind === 'clip' ? m.kind : 'image';
@@ -57,6 +61,7 @@ export default function FramedMedia({ media, glow = true, fadeMask = false, clas
         `cms-frame--${frame}`,
         glow && frame !== 'none' ? 'cms-frame--glow' : '',
         fadeMask ? 'cms-frame--fade' : '',
+        m.motion === 'parallax' || m.motion === 'scale' ? `cms-frame--motion-${m.motion}` : '',
         className,
     ].filter(Boolean).join(' ');
 
@@ -74,19 +79,17 @@ export default function FramedMedia({ media, glow = true, fadeMask = false, clas
                     kind === 'clip' ? (
                         <ClipVideo className="cms-frame-media" media={m} />
                     ) : kind === 'video' ? (
-                        <video
+                        <LazyLoopVideo
                             className="cms-frame-media"
                             src={resolveAssetUrl(src)}
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
                         />
                     ) : (
                         <>
                             <img
                                 className={`cms-frame-media${srcDark ? ' cms-frame-media--light' : ''}`}
                                 src={resolveAssetUrl(src)}
+                                srcSet={assetSrcSet(resolveAssetUrl(src))}
+                                sizes={assetSrcSet(resolveAssetUrl(src)) ? (sizes || ASSET_IMG_SIZES) : undefined}
                                 alt={m.alt || ''}
                                 {...dims}
                                 {...loadingProps}
@@ -95,6 +98,8 @@ export default function FramedMedia({ media, glow = true, fadeMask = false, clas
                                 <img
                                     className="cms-frame-media cms-frame-media--dark"
                                     src={resolveAssetUrl(srcDark)}
+                                    srcSet={assetSrcSet(resolveAssetUrl(srcDark))}
+                                    sizes={assetSrcSet(resolveAssetUrl(srcDark)) ? (sizes || ASSET_IMG_SIZES) : undefined}
                                     alt={m.alt || ''}
                                     {...dims}
                                     loading="lazy"

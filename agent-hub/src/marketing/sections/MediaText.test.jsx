@@ -129,14 +129,16 @@ describe('clip (video with sound)', () => {
         expect(container.querySelector('video').hasAttribute('poster')).toBe(false);
     });
 
-    it('leaves the silent loop exactly as it was: autoplay, muted, loop, no controls', () => {
+    it('keeps the silent loop (muted, loop, no controls), fetched only once it is on screen', () => {
         const { container } = render(
             <MediaText data={{ ...base, media: { kind: 'video-silent', src: clip.src, alt: '' } }} />
         );
         const video = container.querySelector('video');
-        expect(video.hasAttribute('autoplay')).toBe(true);
         expect(video.hasAttribute('loop')).toBe(true);
+        expect(video.muted).toBe(true);
         expect(video.hasAttribute('controls')).toBe(false);
+        expect(video.getAttribute('preload')).toBe('none');
+        expect(video.getAttribute('src')).toBeNull();
     });
 
     it('shows the upload prompt in the editor preview when empty, nothing on the public site', () => {

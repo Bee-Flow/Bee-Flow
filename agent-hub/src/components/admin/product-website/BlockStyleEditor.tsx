@@ -1,5 +1,8 @@
 import React from 'react';
 import BackgroundControl from './controls/BackgroundControl';
+import BackgroundPlacementControl from './controls/BackgroundPlacementControl';
+import MotifControl from './controls/MotifControl';
+import LookControls from './controls/LookControls';
 import ColorControl from './controls/ColorControl';
 import SpacingStepper from './controls/SpacingStepper';
 import type { Spacing } from './controls/SpacingStepper';
@@ -8,6 +11,7 @@ import { FieldRow, Toggle } from './fields';
 import { SectionDivider, SegmentedControl } from './primitives';
 import type { SegmentedOption } from './primitives.types';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../hooks/useTranslation';
 
 /**
  * Per-block style overrides — Style sub-tab in pane B.
@@ -20,6 +24,11 @@ import { useTranslation } from '../../../hooks/useTranslation';
  *     spacing: { paddingTop, paddingBottom },   // CSS values, e.g. '3rem'
  *     backgroundImage: 'url-or-asset-key',
  *     backgroundOverlay: 'rgba(0,0,0,0.5)',     // single CSS color string
+ *     backgroundSize: 'cover' | 'contain' | 'auto' | '480px',
+ *     backgroundPosition: 'top-left' | 'top' | … | 'bottom-right',   // nine anchors
+ *     backgroundRepeat: 'no-repeat' | 'repeat' | 'repeat-x' | 'repeat-y',
+ *     backgroundHideMobile: true,
+ *     motif: 'none' | 'honeycomb', motifSide: 'right' | 'left' | 'center', motifTiles: true,
  *     maxWidth: 'narrow' | 'medium' | 'wide' | 'full',
  *     align:    'left' | 'center' | 'right',
  *     cssClass: '',
@@ -47,12 +56,23 @@ export interface BlockStyle {
     spacing?: Spacing;
     backgroundImage?: string | null;
     backgroundOverlay?: string | null;
+    backgroundSize?: string;
+    backgroundPosition?: string;
+    backgroundRepeat?: string;
+    backgroundHideMobile?: boolean;
+    motif?: string;
+    motifSide?: string;
+    motifTiles?: boolean;
+    decor?: string;
+    cardFill?: string;
+    labelStyle?: string;
     maxWidth?: string;
     align?: string;
     cssClass?: string;
     columns?: number | '';
     reveal?: 'on' | 'off';
     glow?: boolean;
+    rhythm?: 'tight' | 'compact' | 'spacious';
 }
 
 const COLOR_TOKENS = [
@@ -86,6 +106,14 @@ const COLUMN_OPTIONS: SegmentedOption<number | ''>[] = [
     { value: 4,  label: '4',    hint: '4 columns' },
 ];
 
+// '' = the site's rhythm (removes the key). Same four values as the store enum.
+const rhythmOptions = (t: TranslateFn): SegmentedOption<string>[] => [
+    { value: '',         label: t('cms_site.site.blockstyle.rhythm_default', 'Site default') },
+    { value: 'tight',    label: t('cms_site.site.blockstyle.rhythm_tight', 'Tight') },
+    { value: 'compact',  label: t('cms_site.site.blockstyle.rhythm_compact', 'Compact') },
+    { value: 'spacious', label: t('cms_site.site.blockstyle.rhythm_spacious', 'Spacious') },
+];
+
 interface BlockStyleEditorProps {
     style?: BlockStyle | null;
     enabled?: boolean;
@@ -114,6 +142,11 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
     const setMaxWidth  = (v: string)    => onChange({ ...s, maxWidth: v });
     const setAlign     = (v: string)    => onChange({ ...s, align: v });
     const setCssClass  = (v: string)    => onChange({ ...s, cssClass: v });
+    const setRhythm    = (v: string)    => {
+        const next = { ...s };
+        delete next.rhythm;
+        onChange(v ? { ...next, rhythm: v as NonNullable<BlockStyle['rhythm']> } : next);
+    };
 
     return (
         <div className="px-4 pt-3 pb-6">
@@ -151,6 +184,9 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
                 onChange={(nextSpacing: Spacing) => onChange({ ...s, spacing: nextSpacing })}
             />
 
+            <SectionDivider label={t('cms_site.site.blockstyle.rhythm', 'Section rhythm')} />
+            <SegmentedControl options={rhythmOptions(t)} value={s.rhythm || ''} onChange={setRhythm} />
+
             <SectionDivider label={t('cms_site.site.blockstyle.background', 'Background')} />
             <BackgroundControl
                 image={s.backgroundImage || ''}
@@ -158,6 +194,18 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
                 onChangeImage={setBgImage}
                 onChangeOverlay={setBgOverlay}
             />
+            {s.backgroundImage ? (
+                <BackgroundPlacementControl
+                    value={s}
+                    onChange={(patch) => onChange({ ...s, ...patch })}
+                />
+            ) : null}
+
+            <SectionDivider label={t('cms_site.site.blockstyle.motif', 'Brand motif')} />
+            <MotifControl value={s} onChange={(patch) => onChange({ ...s, ...patch })} />
+
+            <SectionDivider label={t('cms_site.site.blockstyle.look', 'Look')} />
+            <LookControls value={s} onChange={(patch) => onChange({ ...s, ...patch })} />
 
             <SectionDivider label={t('cms_site.site.blockstyle.layout', 'Layout')} />
             <FieldRow label={t('cms_site.site.blockstyle.max_width', 'Max width')}>
@@ -251,12 +299,14 @@ function hasAnyOverride(s: BlockStyle | null | undefined) {
     if (s.colorOverrides && Object.keys(s.colorOverrides).length) return true;
     if (s.spacing && Object.keys(s.spacing).length) return true;
     if (s.backgroundImage || s.backgroundOverlay) return true;
+    if (s.motif && s.motif !== 'none') return true;
     if (s.maxWidth) return true;
     if (s.align) return true;
     if (s.cssClass) return true;
     if (s.columns) return true;
     if (s.reveal) return true;
     if (s.glow) return true;
+    if (s.rhythm) return true;
     return false;
 }
 

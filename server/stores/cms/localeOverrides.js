@@ -10,6 +10,8 @@ const {
     isPlainObject, assertSiteId,
     projectKey, projectLocaleKey, pageKey, pageLocaleKey,
 } = require('./shared');
+const { writeSiteAligned, withConfigGroup } = require('./overrideAlign');
+const { cleanOverrideMedia } = require('./localeMedia');
 
 // ── Locale settings (org-wide) ───────────────────────────────────────
 
@@ -21,6 +23,17 @@ const LOCALE_RE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/;
 
 function isValidLocale(code) {
     return typeof code === 'string' && LOCALE_RE.test(code);
+}
+
+/**
+ * The locale becomes part of a config key (`..._locale_{xx}`) that the sitemap
+ * and publishSite parse back by splitting on `_locale_`, so a malformed one
+ * would be read as something else entirely.
+ * @param {unknown} locale
+ */
+function assertLocale(locale) {
+    if (!locale) throw new Error('Locale required');
+    if (!isValidLocale(locale)) throw new Error('Invalid locale');
 }
 
 async function getDefaultLocale({ fresh = false } = {}) {
@@ -43,17 +56,33 @@ async function getSiteLocaleOverride(siteId, locale, { fresh = false } = {}) {
     const v = await read(projectLocaleKey(siteId, locale));
     return isPlainObject(v) ? v : null;
 }
+const ORPHAN_CAP = 100;
+/** Keep a client-supplied parked-translations bag to a plain object of at most ORPHAN_CAP entries. */
+function cappedOrphans(bag) {
+    if (!isPlainObject(bag)) return undefined;
+    const names = Object.keys(bag).slice(-ORPHAN_CAP);
+    return names.length ? Object.fromEntries(names.map((n) => [n, bag[n]])) : undefined;
+}
+
+function sanitizeSiteOverride(override) {
+    return {
+        version: LOCALE_OVERRIDE_VERSION,
+        header:     isPlainObject(override.header) ? cleanOverrideMedia(override.header) : undefined,
+        footer:     isPlainObject(override.footer) ? cleanOverrideMedia(override.footer) : undefined,
+        pageTitles: isPlainObject(override.pageTitles) ? override.pageTitles : undefined,
+        // Parked translations of removed items (see overrideAlign.js).
+        _orphans:   cappedOrphans(override._orphans),
+    };
+}
+
 async function setSiteLocaleOverride(siteId, locale, override) {
     assertSiteId(siteId);
-    if (!locale) throw new Error('Locale required');
+    assertLocale(locale);
     if (!isPlainObject(override)) throw new Error('Override must be an object');
-    const sanitized = {
-        version: LOCALE_OVERRIDE_VERSION,
-        header:     isPlainObject(override.header) ? override.header : undefined,
-        footer:     isPlainObject(override.footer) ? override.footer : undefined,
-        pageTitles: isPlainObject(override.pageTitles) ? override.pageTitles : undefined,
-    };
-    await configStore.setConfig(projectLocaleKey(siteId, locale), sanitized);
+    const sanitized = sanitizeSiteOverride(override);
+    // Same lock as the site document: a content save re-keys overrides inside it.
+    await withConfigGroup(projectKey(siteId), (io) => io.set(projectLocaleKey(siteId, locale), sanitized));
+    return sanitized;
 }
 async function deleteSiteLocaleOverride(siteId, locale) {
     assertSiteId(siteId);
@@ -66,15 +95,17 @@ async function getPageLocaleOverride(siteId, pageId, locale, { fresh = false } =
     const v = await read(pageLocaleKey(siteId, pageId, locale));
     return isPlainObject(v) ? v : null;
 }
-async function setPageLocaleOverride(siteId, pageId, locale, override) {
-    assertSiteId(siteId);
-    if (!pageId) throw new Error('pageId required');
-    if (!locale) throw new Error('Locale required');
-    if (!isPlainObject(override)) throw new Error('Override must be an object');
-    const sanitized = {
-        version: LOCALE_OVERRIDE_VERSION,
-        blocks: isPlainObject(override.blocks) ? override.blocks : {},
-    };
+function sanitizePageOverride(override) {
+    const blocks = {};
+    if (isPlainObject(override.blocks)) {
+        for (const [id, ov] of Object.entries(override.blocks)) {
+            let clean = isPlainObject(ov) && '_orphans' in ov ? { ...ov, _orphans: cappedOrphans(ov._orphans) } : ov;
+            // Media addresses must be legal ones (see localeMedia.js); text passes through.
+            if (isPlainObject(clean) && 'content' in clean) clean = { ...clean, content: cleanOverrideMedia(clean.content) };
+            blocks[id] = clean;
+        }
+    }
+    const sanitized = { version: LOCALE_OVERRIDE_VERSION, blocks };
     // SEO meta translations (metaTitle / metaDescription) live alongside the
     // block overrides on the page-locale key. Strings only — anything else is
     // dropped so the override stays a pure text patch.
@@ -84,7 +115,17 @@ async function setPageLocaleOverride(siteId, pageId, locale, override) {
         if (typeof override.seo.metaDescription === 'string') seo.metaDescription = override.seo.metaDescription;
         if (Object.keys(seo).length) sanitized.seo = seo;
     }
-    await configStore.setConfig(pageLocaleKey(siteId, pageId, locale), sanitized);
+    return sanitized;
+}
+
+async function setPageLocaleOverride(siteId, pageId, locale, override) {
+    assertSiteId(siteId);
+    if (!pageId) throw new Error('pageId required');
+    assertLocale(locale);
+    if (!isPlainObject(override)) throw new Error('Override must be an object');
+    const sanitized = sanitizePageOverride(override);
+    await withConfigGroup(pageKey(siteId, pageId), (io) => io.set(pageLocaleKey(siteId, pageId, locale), sanitized));
+    return sanitized;
 }
 async function deletePageLocaleOverride(siteId, pageId, locale) {
     assertSiteId(siteId);
@@ -137,26 +178,27 @@ async function collectLocaleOverrides(siteId, { fresh = false } = {}) {
 async function pruneBlockLocaleOverrides(siteId, pageId, blockId) {
     assertSiteId(siteId);
     if (!pageId || !blockId) return [];
-    const rows = await getAll(
-        `SELECT key FROM config WHERE key LIKE $1`,
-        [`${pageKey(siteId, pageId)}${KEY_LOCALE_INFIX}%`]
-    );
-    const pruned = [];
-    for (const r of rows) {
-        const override = await configStore.getConfigFresh(r.key);
-        if (!isPlainObject(override) || !isPlainObject(override.blocks)) continue;
-        if (!Object.prototype.hasOwnProperty.call(override.blocks, blockId)) continue;
-        const blocks = { ...override.blocks };
-        delete blocks[blockId];
-        await configStore.setConfig(r.key, { ...override, blocks });
-        pruned.push(r.key.substring(r.key.lastIndexOf(KEY_LOCALE_INFIX) + KEY_LOCALE_INFIX.length));
-    }
-    return pruned;
+    const prefix = `${pageKey(siteId, pageId)}${KEY_LOCALE_INFIX}`;
+    // One transaction locked on the page key, so a concurrent content save cannot interleave.
+    return withConfigGroup(pageKey(siteId, pageId), async (io) => {
+        const pruned = [];
+        for (const key of (await io.keysLike(`${prefix}%`)).filter((k) => k.startsWith(prefix))) {
+            const override = await io.get(key);
+            if (!isPlainObject(override) || !isPlainObject(override.blocks)) continue;
+            if (!Object.prototype.hasOwnProperty.call(override.blocks, blockId)) continue;
+            const blocks = { ...override.blocks };
+            delete blocks[blockId];
+            await io.set(key, { ...override, blocks });
+            pruned.push(key.substring(key.lastIndexOf(KEY_LOCALE_INFIX) + KEY_LOCALE_INFIX.length));
+        }
+        return pruned;
+    });
 }
 
 module.exports = {
-    isValidLocale, getDefaultLocale, setDefaultLocale,
+    isValidLocale, assertLocale, getDefaultLocale, setDefaultLocale,
     getSiteLocaleOverride, setSiteLocaleOverride, deleteSiteLocaleOverride,
     getPageLocaleOverride, setPageLocaleOverride, deletePageLocaleOverride,
-    collectLocaleOverrides, pruneBlockLocaleOverrides,
+    collectLocaleOverrides, pruneBlockLocaleOverrides, writeSiteAligned,
+    sanitizeSiteOverride, sanitizePageOverride,
 };

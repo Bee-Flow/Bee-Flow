@@ -130,6 +130,49 @@ const T = (id, title) => ({
     assert.strictEqual(fetchCalls.length, 1, 'no fallback without a title');
     assert.strictEqual(r.message, 'No transcripts found matching your criteria.');
 
+    // ── Case 5: bad input never reaches Fireflies ────────────────────
+    for (const bad of [{ skip: -5 }, { skip: 'abc' }, { fromDate: 'not-a-date' }, { toDate: '2025-13-45' },
+        { fromDate: '2025-02-01', toDate: '2025-01-01' }]) {
+        scriptFetch([[]]);
+        r = await executeFirefliesTool('fireflies_list_transcripts', bad, 'u1');
+        assert.ok(r.error, `error for ${JSON.stringify(bad)}`);
+        assert.strictEqual(fetchCalls.length, 0, `no upstream request for ${JSON.stringify(bad)}`);
+    }
+    scriptFetch([[]]);
+    r = await executeFirefliesTool('fireflies_list_transcripts', { skip: 5, fromDate: '2025-01-01' }, 'u1');
+    assert.strictEqual(r.error, undefined);
+    assert.strictEqual(fetchCalls[0].skip, 5);
+    assert.strictEqual(fetchCalls[0].fromDate, '2025-01-01T00:00:00.000Z', 'dates go upstream as ISO');
+
+    // ── Case 6: durations are rounded, not raw floats ────────────────
+    const long = { ...T('d1', 'Long'), duration: 95.91999816894531 };
+    scriptFetch([[long, { ...T('d2', 'Short'), duration: 0.2 }, { ...T('d3', 'Unknown'), duration: 0 }]]);
+    r = await executeFirefliesTool('fireflies_list_transcripts', {}, 'u1');
+    assert.deepStrictEqual(r.results.map(x => x.duration), ['96 min', '<1 min', 'unknown']);
+
+    // ── Case 7: upstream failures become clear messages, no bodies ───
+    const failWith = (status, body) => {
+        global.fetch = async () => ({ ok: false, status, text: async () => body });
+    };
+    failWith(401, 'jane.doe@example.com is not allowed');
+    r = await executeFirefliesTool('fireflies_list_transcripts', {}, 'u1');
+    assert.ok(r.error && !r.error.includes('jane.doe'), 'HTTP error body not echoed');
+    assert.match(r.error, /API key/);
+    failWith(429, 'slow down');
+    r = await executeFirefliesTool('fireflies_list_transcripts', {}, 'u1');
+    assert.match(r.error, /rate limit/i);
+    failWith(500, 'stack trace with secrets');
+    r = await executeFirefliesTool('fireflies_get_summary', { transcriptId: 'x' }, 'u1');
+    assert.ok(r.error && !r.error.includes('secrets'));
+    global.fetch = async () => ({ ok: true, json: async () => ({ errors: [{ message: 'Invalid argument(s) were provided for Jane Doe' }] }) });
+    r = await executeFirefliesTool('fireflies_list_transcripts', {}, 'u1');
+    assert.ok(r.error && !r.error.includes('Jane') && !r.error.includes('GraphQL'), 'GraphQL message not echoed');
+
+    // ── Case 8: a 200 that is not JSON carries no body text ──────────
+    global.fetch = async () => ({ ok: true, status: 200, json: async () => JSON.parse('jane.doe@example.com not json') });
+    r = await executeFirefliesTool('fireflies_list_transcripts', {}, 'u1');
+    assert.ok(r.error && !r.error.includes('jane') && !r.error.includes('JSON'), 'parse error text not echoed');
+
     console.log('firefliesTools.test.js — all checks passed');
 })().catch(err => {
     console.error(err);

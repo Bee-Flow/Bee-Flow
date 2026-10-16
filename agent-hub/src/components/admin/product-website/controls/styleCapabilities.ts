@@ -34,6 +34,7 @@ export const STYLE_CAPABILITIES: Record<string, StyleCapability> = {
     'live-component':   { columns: false, motion: true },
     pricing:            { columns: false, motion: true },
     'customer-support': { columns: false, motion: true },
+    form:               { columns: false, motion: true },
     roadmap:            { columns: true,  motion: true },
 };
 
