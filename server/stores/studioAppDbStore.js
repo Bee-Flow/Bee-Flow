@@ -99,6 +99,7 @@ if (isPg()) {
     const { run } = require('../db');
     const { createSqliteBlobEngine } = require('./lib/sqliteBlobEngine');
     const { applyPlanTolerantly } = require('../appStudio/dataModel');
+    const { assertPageStatement } = require('./lib/sqliteStatementGuard');
 
     const engine = createSqliteBlobEngine({
         workDir: process.env.STUDIO_APP_DB_WORK_DIR || path.join(os.tmpdir(), 'beeflow-studio-app-dbs'),
@@ -167,6 +168,7 @@ if (isPg()) {
         if (entry.poisoned) {
             throw new Error('Studio App DB is stale: another replica has written this database — refresh required');
         }
+        for (const ddl of orderedDDL) assertPageStatement(ddl);
         const tx = entry.db.transaction(() => {
             const res = applyPlanTolerantly(entry.db, orderedDDL);
             if (stampVersion !== null) entry.db.pragma(`user_version = ${stampVersion}`);

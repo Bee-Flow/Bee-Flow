@@ -59,6 +59,7 @@ const router = express.Router();
 const { llmBridgeLimiter, sideEffectBridgeLimiter, integrationBridgeLimiter, dbBridgeLimiter } = require('./webpagesPreviewRateLimits');
 
 const webpageDbStore = require('../stores/webpageDbStore');
+const { publicDbErrorMessage } = require('../stores/lib/publicDbError');
 const webpageStore = require('../stores/webpageStore');
 const automationStore = require('../stores/automationStore');
 const { requirePreviewToken } = require('../auth/webpagePreviewToken');
@@ -84,7 +85,7 @@ router.post('/:id/db/query', requirePreviewToken, dbBridgeLimiter, async (req, r
         const result = await webpageDbStore.query(userId, webpageId, sql, params);
         res.json(result);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        res.status(400).json({ error: publicDbErrorMessage(err) });
     }
 });
 
@@ -95,7 +96,7 @@ router.post('/:id/db/exec', requirePreviewToken, dbBridgeLimiter, async (req, re
         const result = await webpageDbStore.exec(userId, webpageId, sql, params);
         res.json(result);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        res.status(400).json({ error: publicDbErrorMessage(err) });
     }
 });
 
@@ -106,7 +107,7 @@ router.post('/:id/db/batch', requirePreviewToken, dbBridgeLimiter, async (req, r
         const results = await webpageDbStore.batch(userId, webpageId, statements);
         res.json({ results });
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        res.status(400).json({ error: publicDbErrorMessage(err) });
     }
 });
 
@@ -116,7 +117,7 @@ router.get('/:id/db/schema', requirePreviewToken, dbBridgeLimiter, async (req, r
         const schema = await webpageDbStore.schema(userId, webpageId);
         res.json(schema);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        res.status(400).json({ error: publicDbErrorMessage(err) });
     }
 });
 

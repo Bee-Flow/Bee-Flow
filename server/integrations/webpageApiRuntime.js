@@ -24,6 +24,7 @@
 const codeSandbox = require('../automation/codeSandbox');
 const webpageStore = require('../stores/webpageStore');
 const webpageDbStore = require('../stores/webpageDbStore');
+const { publicDbErrorMessage } = require('../stores/lib/publicDbError');
 const { loadAuthorContext } = require('../core/webpages/webpageBridgeAuth');
 const { executeTool } = require('../core/tools/toolDispatcher');
 const webpageEgress = require('../core/webpages/webpageEgress');
@@ -107,9 +108,13 @@ async function executeApiHandler({ webpageId, route, req }) {
             }),
         }),
         db: async (op, a) => {
-            if (op === 'query') return webpageDbStore.query(ctx.authorUserId, webpageId, a.sql, a.params || []);
-            if (op === 'exec') return webpageDbStore.exec(ctx.authorUserId, webpageId, a.sql, a.params || []);
-            if (op === 'batch') return webpageDbStore.batch(ctx.authorUserId, webpageId, a.statements || []);
+            try {
+                if (op === 'query') return await webpageDbStore.query(ctx.authorUserId, webpageId, a.sql, a.params || []);
+                if (op === 'exec') return await webpageDbStore.exec(ctx.authorUserId, webpageId, a.sql, a.params || []);
+                if (op === 'batch') return await webpageDbStore.batch(ctx.authorUserId, webpageId, a.statements || []);
+            } catch (err) {
+                throw new Error(publicDbErrorMessage(err));
+            }
             return { error: `unknown db op "${op}"` };
         },
         // defaultFetchHttp is already HTTPS-only, SSRF-screened and capped;

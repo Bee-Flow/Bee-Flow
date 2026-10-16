@@ -283,3 +283,20 @@ test('_normalizeParams coerces booleans and stringifies objects', () => {
     assert.deepStrictEqual(store._normalizeParams(undefined), []);
     assert.throws(() => store._normalizeParams('nope'), /params must be an array/);
 });
+
+test('statements that reach outside the app database are refused', async (t) => {
+    if (skipIfNoSqlite(t)) return;
+    const appId = freshAppId();
+    t.after(() => store.invalidate(appId));
+    const dir = require('node:fs').mkdtempSync(path.join(os.tmpdir(), 'beeflow-studio-guard-'));
+    t.after(() => require('node:fs').rmSync(dir, { recursive: true, force: true }));
+    const target = path.join(dir, 'x.db');
+    const refused = /This statement is not allowed in a page database/;
+    for (const sql of [`ATTACH '${target}' AS x`, `VACUUM INTO '${target}'`, 'PRAGMA database_list', 'SELECT * FROM pragma_database_list']) {
+        await assert.rejects(() => store.exec(OWNER, appId, sql), refused);
+        await assert.rejects(() => store.query(OWNER, appId, sql), refused);
+        await assert.rejects(() => store.batch(OWNER, appId, [{ sql }]), refused);
+        await assert.rejects(() => store.applyMigration(OWNER, appId, [sql]), refused);
+    }
+    assert.strictEqual(require('node:fs').existsSync(target), false);
+});
