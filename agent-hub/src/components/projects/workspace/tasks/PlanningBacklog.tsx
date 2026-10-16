@@ -2,7 +2,6 @@
 // plus its controls (New sprint, and Plan sprint with poker in an overflow menu).
 
 import React, { useRef, useState } from 'react';
-import type { ComponentType } from 'react';
 import { MoreHorizontal, Plus, Target } from 'lucide-react';
 import type { ProjectTask } from '../../../../api/queries/projectTasks';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -13,7 +12,7 @@ import { storyPoints, workItemType } from './taskPlanning';
 import { Faces, ICON_BUTTON, MENU_ITEM, StatusDot, TOOLBAR_BUTTON, useTaskTooltip } from './planningParts';
 import { MENU_PANEL_CLASS } from './tasksMenu';
 
-const AnchoredMenu = AnchoredMenuJs as unknown as ComponentType<Record<string, unknown>>;
+const AnchoredMenu = AnchoredMenuJs;
 
 /** Right-hand controls of the sub-nav row while the backlog is shown. */
 export function BacklogControls({ onNewSprint, onPlanWithPoker }: { onNewSprint: () => void; onPlanWithPoker: () => void }) {

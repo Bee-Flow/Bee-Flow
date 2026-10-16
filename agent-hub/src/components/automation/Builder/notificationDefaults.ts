@@ -26,13 +26,22 @@ export const MAX_RECIPIENTS = 20;
 export const MAX_PER_HOUR_LIMIT = 60;
 export const DEFAULT_DIGEST_TIME = '17:00';
 
+export type Channel = 'bell' | 'email' | 'talk';
+export type Urgency = 'silent' | 'normal' | 'urgent';
+export type Delivery = 'direct' | 'digest';
+export type Recipient =
+    | { type: 'owner' }
+    | { type: 'approver' }
+    | { type: 'user'; id: string }
+    | { type: 'group'; id: string };
+
 interface NotificationEvent {
     enabled: boolean;
-    channels: readonly string[];
-    recipients: readonly { type: string }[];
-    urgency: string;
+    channels: readonly Channel[];
+    recipients: readonly Recipient[];
+    urgency: Urgency;
     throttle: { maxPerHour: number | null };
-    delivery: string;
+    delivery: Delivery;
 }
 
 const freezeEvent = (e: NotificationEvent) => Object.freeze({

@@ -8,10 +8,11 @@ import { ribbonSections, availableCategories, SUGGESTED_TAB_ENABLED } from './ri
 import { fitsAfterCards, mergeFrequentKeys, resolveFrequent } from './fitsAfter';
 import type { AgentRow, SkillRow } from './ribbonSearch';
 import type { RibbonAnchor } from './ribbonAnchor';
+import type { PaletteLayer } from '../stepPalette.types';
 
 export type RibbonScope = Record<string, unknown> & {
     catalog?: Record<string, unknown> | null;
-    layers?: unknown[];
+    layers?: PaletteLayer[];
     hasFormTrigger?: boolean | null;
 };
 

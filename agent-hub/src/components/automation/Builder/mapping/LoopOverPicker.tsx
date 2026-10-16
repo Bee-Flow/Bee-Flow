@@ -8,7 +8,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import { previewValue } from '../../../../utils/bindingHelpers';
 import { AMBER_NOTE, INLINE_LINK, denseInputClass } from '../flow/settings/formStyles';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
-import type { UpstreamGroup } from './deepFields';
+import type { Group } from './upstream/upstream.types';
 import type { ForEachParent } from './itemRefs';
 import type { LoopListChoice } from './loopLists';
 
@@ -32,7 +32,7 @@ interface LoopOverPickerProps {
     itemVar?: string;
     parents?: ForEachParent[];
     onChange?: (patch: LoopPatch) => void;
-    groups?: UpstreamGroup[];
+    groups?: Group[];
     onFocusField?: (field: { id: string; label: string; insert: (path: string) => void }) => void;
     bindings?: unknown;
     onRebind?: ((bindings: unknown) => void) | null;

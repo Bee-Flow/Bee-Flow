@@ -8,12 +8,10 @@
 
 import { BellOff, CheckCheck, ChevronDown, RotateCcw, ShieldQuestion } from 'lucide-react';
 import React, { useId, useRef, useState } from 'react';
-import type { ComponentType } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
 import AnchoredMenuJs from '../../../../shared/AnchoredMenu';
 
-// A .jsx module whose `= null` defaults would type the props as null-only.
-const AnchoredMenu = AnchoredMenuJs as unknown as ComponentType<Record<string, unknown>>;
+const AnchoredMenu = AnchoredMenuJs;
 
 export type FindingStateName = 'acknowledged' | 'accepted_risk' | 'snoozed';
 

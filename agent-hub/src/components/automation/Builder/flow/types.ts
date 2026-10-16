@@ -16,6 +16,8 @@ export interface FlowStep {
     /** The trigger's flavour ('form', 'webhook', 'app_event', …). */
     kind?: string;
     label?: string;
+    /** An integration action's tool name ('slack.post_message'). */
+    tool?: string;
     /** A hand-written output, replayed instead of running the step. */
     pinnedOutput?: unknown;
     /** A form trigger's or form_page's declared questions. */

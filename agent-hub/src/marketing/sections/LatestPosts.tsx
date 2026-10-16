@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import SectionHeaderJs from '../components/SectionHeader';
 import EditableTextJs from '../components/EditableText';
 import SectionFrameJs from '../components/SectionFrame';
@@ -8,11 +8,9 @@ import { indexHref, label, type BlogLabels, type BlogPostSummary } from '../blog
 import { LOCALE_PREFIXES } from '../../utils/cmsPublicRouting';
 import '../blog/blog.css';
 
-// Plain-JS section components: TypeScript infers every destructured prop as
-// required (same note as admin blockEditors/ClipFields.tsx).
-const SectionHeader = SectionHeaderJs as unknown as ComponentType<Record<string, unknown>>;
-const EditableText = EditableTextJs as unknown as ComponentType<{ path: string; placeholder?: string; children?: ReactNode }>;
-const SectionFrame = SectionFrameJs as unknown as ComponentType<{ id: string; name: string; enabled: boolean; children?: ReactNode }>;
+const SectionHeader = SectionHeaderJs;
+const EditableText = EditableTextJs;
+const SectionFrame = SectionFrameJs;
 
 /**
  * "Latest posts" block — the newest blog posts on any page. Content shape

@@ -1,24 +1,22 @@
 import { Check, ChevronDown, Columns3, LayoutGrid, LayoutList, ListFilter, Workflow, X } from 'lucide-react';
 import { useRef, useState } from 'react';
-import type { ComponentType } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import AnchoredMenuJs from '../../../shared/AnchoredMenu';
 import FilterPillsJs from '../../../shared/FilterPills';
+import type { PillTone } from '../../../shared/FilterPills';
 import SegmentedControl from '../../../shared/SegmentedControl';
 import CreateMenuButton from './CreateMenuButton';
 import { GROUPS, SORTS } from './overviewModel';
 
-// .jsx modules whose `= undefined` / `= null` defaults would type the props as
-// undefined-only or null-only.
-const AnchoredMenu = AnchoredMenuJs as unknown as ComponentType<Record<string, unknown>>;
-const FilterPills = FilterPillsJs as unknown as ComponentType<Record<string, unknown>>;
+const AnchoredMenu = AnchoredMenuJs;
+const FilterPills = FilterPillsJs;
 
 /** One pill: the value it filters on, its word and how many it lets through. */
 export interface PillOption {
     value: string;
     label: string;
     count?: number;
-    tone?: string;
+    tone?: PillTone;
 }
 
 type TFn = ReturnType<typeof useTranslation>['t'];

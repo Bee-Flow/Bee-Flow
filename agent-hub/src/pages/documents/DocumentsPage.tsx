@@ -29,8 +29,7 @@ import { PAGE_SIZE, isNotebookRow, useLibraryActions, useLibraryFilters, type Li
 import { notebookIdOf, notebookRef } from './notebookRef';
 import { messageOf } from '../../utils/caughtError';
 
-// The pager is plain JS (untyped props): typed here for what the library passes.
-const Pager = PagerJs as unknown as React.ComponentType<{ offset: number; limit: number; total: number | null; onOffset: (offset: number) => void; testId?: string }>;
+const Pager = PagerJs;
 // The notebook workspace carries the editor, the sources and the chat: loaded
 // only when a notebook is opened.
 const NotebookDetail = lazy(() => import('./notebook/detail/NotebookDetail')) as unknown as React.ComponentType<{

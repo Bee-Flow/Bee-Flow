@@ -2,7 +2,6 @@
 // controls can sit on the Planning sub-nav row while the grid renders below it.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ComponentType } from 'react';
 import { ArrowRight, Check, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import type { ProjectTask } from '../../../../api/queries/projectTasks';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -12,7 +11,7 @@ import { todayKey } from './taskText';
 import { MENU_ITEM, MENU_SECTION, TOOLBAR_BUTTON } from './planningParts';
 import { MENU_PANEL_CLASS } from './tasksMenu';
 
-const AnchoredMenu = AnchoredMenuJs as unknown as ComponentType<Record<string, unknown>>;
+const AnchoredMenu = AnchoredMenuJs;
 
 export type Zoom = 'weeks' | 'months';
 export type Dates = { startDate: string; dueDate: string };

@@ -17,21 +17,16 @@
  * and a server test keeps the two equal).
  */
 import { NOTIFICATION_DEFAULTS } from '../notificationDefaults';
+import type { Channel, Delivery, Recipient, Urgency } from '../notificationDefaults';
+
+export type { Channel, Delivery, Recipient, Urgency };
 
 export type NotificationEvent = 'onError' | 'onApproval' | 'onSuccess';
-export type Channel = 'bell' | 'email' | 'talk';
-export type Urgency = 'silent' | 'normal' | 'urgent';
-export type Delivery = 'direct' | 'digest';
-export type Recipient =
-    | { type: 'owner' }
-    | { type: 'approver' }
-    | { type: 'user'; id: string }
-    | { type: 'group'; id: string };
 
 export interface EventSettings {
     enabled: boolean;
-    channels: Channel[];
-    recipients: Recipient[];
+    channels: readonly Channel[];
+    recipients: readonly Recipient[];
     urgency: Urgency;
     throttle: { maxPerHour: number | null };
     /** 'digest': only in the daily summary (when that is on). Kept as stored. */
@@ -50,7 +45,7 @@ export const EVENTS: readonly NotificationEvent[] = ['onError', 'onApproval', 'o
 export const CHANNELS: readonly Channel[] = ['bell', 'email', 'talk'];
 export const URGENCIES: readonly Urgency[] = ['silent', 'normal', 'urgent'];
 
-export const NOTIFICATION_SETTINGS_DEFAULTS = NOTIFICATION_DEFAULTS as unknown as NotificationSettings;
+export const NOTIFICATION_SETTINGS_DEFAULTS: NotificationSettings = NOTIFICATION_DEFAULTS;
 
 const LEGACY_CHANNEL: Record<string, Channel> = { inapp: 'bell', nc_notification: 'bell', notification: 'bell', nc_talk: 'talk' };
 const LEGACY_LEVEL: Record<string, Urgency> = { urgent: 'urgent', heads_up: 'normal', ai_task: 'normal', info: 'silent' };

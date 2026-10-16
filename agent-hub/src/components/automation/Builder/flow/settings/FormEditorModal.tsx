@@ -20,9 +20,13 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 
 const SAVE_DELAY_MS = 500;
 
-// The editor and the renderer are JavaScript whose props TypeScript infers from
-// their defaults (`= null` becomes the type `null`), so they are typed here.
+// The editor is JavaScript whose props TypeScript infers from their defaults
+// (`= null` becomes the type `null`), so it is typed here.
 const Fields = FormBuilderFields as unknown as React.ComponentType<Record<string, unknown>>;
+// KEPT: buildPreviewConfig builds from the stored form as read (`Loose`), so its
+// `theme` is `unknown`, a field's `name`/`type` are not proven strings and
+// `maxSizeMb` types as `{}`. Typing the renderer's `form` as FormDef needs guards
+// in buildPreviewConfig first: a runtime change, not part of a types-only commit.
 const Renderer = PublicFormRenderer as unknown as React.ComponentType<Record<string, unknown>>;
 const EndingView = FormEndingView as unknown as React.ComponentType<Record<string, unknown>>;
 

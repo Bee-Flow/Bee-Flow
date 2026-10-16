@@ -11,7 +11,7 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 // The two value editors are untyped JS; their props are checked there.
 const BindingField = BindingFieldJs as unknown as ComponentType<Record<string, unknown>>;
 const ValueBuilder = ValueBuilderJs as unknown as ComponentType<Record<string, unknown>>;
-const AutoMappedPill = AutoMappedPillJs as unknown as ComponentType<{ kind: boolean | 'ai'; title?: string }>;
+const AutoMappedPill = AutoMappedPillJs;
 const toKey = suggestKeyFromPath as (path: string) => string;
 const dropPath = getBindingDropPath as (e: unknown) => string | null;
 const rowInput = rowInputClass as (extra?: string, opts?: { invalid?: boolean }) => string;

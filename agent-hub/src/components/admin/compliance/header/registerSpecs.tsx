@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React from 'react';
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { countFor } from '../data/useComplianceCounts';
 import { dpiaRows } from '../pages/DpiaPage';
 import { DAY_MS } from '../railMeta';
@@ -38,8 +38,7 @@ import type { ExportItem } from './headerParts';
 export type Translate = (key: string, fallback: string, vars?: Record<string, unknown>) => string;
 type Tone = 'success' | 'warning' | 'error' | 'neutral';
 
-// StatusPill is .jsx: its props without defaults would type as required.
-const StatusPill = StatusPillJs as unknown as ComponentType<{ tone?: Tone; icon?: LucideIcon; testId?: string; children: ReactNode }>;
+const StatusPill = StatusPillJs;
 
 export interface HeaderSpec {
     pill: ReactNode;

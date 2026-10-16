@@ -4,7 +4,7 @@ import { getPath } from '@shared/expr/path.mjs';
 import { computeUpstreamGroups as computeUpstreamGroupsJs, collectArrayPaths as collectArrayPathsJs } from './index';
 import { buildRealOutputMap, buildSampleRoot } from '../realOutputs';
 import { loopListChoices } from '../loopLists';
-import type { UpstreamGroup } from '../deepFields';
+import type { Group } from './upstream.types';
 
 /**
  * The lists the Loop picker and the collection editors offer for a Code step
@@ -15,7 +15,7 @@ import type { UpstreamGroup } from '../deepFields';
  * and `…output.logs` is the diagnostics list, not data.
  */
 type Field = { key: string; path: string; sample: unknown };
-const computeUpstreamGroups = computeUpstreamGroupsJs as (...args: unknown[]) => UpstreamGroup[];
+const computeUpstreamGroups = computeUpstreamGroupsJs as (...args: unknown[]) => Group[];
 const collectArrayPaths = collectArrayPathsJs as (...args: unknown[]) => Field[];
 
 const CATALOG = { apps: [{ actions: [{ name: 'list_tool', outputSample: { items: [{ id: 1 }] } }] }], triggerOutputs: {} };

@@ -1,7 +1,5 @@
 import { MoreHorizontal, ShieldAlert, ShieldCheck } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import type { ComponentType, ReactNode } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
 import AnchoredMenuJs from '../../../../shared/AnchoredMenu';
 import { ActionButton as ActionButtonJs } from '../audits/auditForms';
@@ -22,12 +20,8 @@ import { ActionButton as ActionButtonJs } from '../audits/auditForms';
  * focus returns to the overflow button.
  */
 
-// .jsx/.js exports: their `= null` defaults would type the props as null-only.
-const AnchoredMenu = AnchoredMenuJs as unknown as ComponentType<Record<string, unknown>>;
-const ActionButton = ActionButtonJs as unknown as ComponentType<{
-    variant?: string; icon?: LucideIcon; size?: string; disabled?: boolean; onClick?: () => void;
-    className?: string; children?: ReactNode; 'data-testid'?: string;
-}>;
+const AnchoredMenu = AnchoredMenuJs;
+const ActionButton = ActionButtonJs;
 
 export interface SccProcessor {
     operator?: string | null;

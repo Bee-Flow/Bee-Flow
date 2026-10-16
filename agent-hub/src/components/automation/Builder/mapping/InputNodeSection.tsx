@@ -3,7 +3,7 @@ import {
     Zap, Sparkles, Blocks, GitFork, Repeat, FileText, ClipboardList, ShieldCheck, Flag, Workflow,
     type LucideIcon,
 } from 'lucide-react';
-import { useState, type ComponentType } from 'react';
+import { useState } from 'react';
 import { fieldInUse } from './fieldInUse';
 import { planIncomingFields, technicalPreview } from './incomingFields';
 import { FieldRow as FieldRowJs, startPathDrag } from './VariableTree';
@@ -24,8 +24,7 @@ const FAMILY_ICON: Record<string, LucideIcon> = {
     data: FileText, pause: ClipboardList, guard: ShieldCheck, end: Flag,
 };
 
-// Untyped JS row; its props are checked there.
-const FieldRow = FieldRowJs as unknown as ComponentType<Record<string, unknown>>;
+const FieldRow = FieldRowJs;
 
 interface Field { key: string; path: string; sample?: unknown; children?: Field[] }
 export interface InputGroup { id: string; label: string; kind?: string; basePath: string; sample?: unknown; fields?: Field[]; hasRealData?: boolean }

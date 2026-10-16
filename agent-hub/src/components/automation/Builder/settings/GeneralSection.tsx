@@ -1,6 +1,5 @@
 import { Folder } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import type { ComponentType } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { useAutomationFoldersQuery } from '../../../../api/queries/automation/settings';
 import { IconPicker as IconPickerJsx, StepIcon } from '../flow/stepIcons';
@@ -10,8 +9,7 @@ import { FIELD, FieldGrid, FieldLabel, ReadOnlyFieldset, SELECT, SectionHeading,
 import type { SaveFn, SettingsAutomation } from './settingsUi';
 import { messageOf } from '../../../../utils/caughtError';
 
-// The picker is JS with a `null` placeholder default; typed loosely, as in BuilderHeader.
-const IconPicker = IconPickerJsx as unknown as ComponentType<Record<string, unknown>>;
+const IconPicker = IconPickerJsx;
 
 // The four symbols the artboard offers inline; the rest sit behind "More…".
 const QUICK_ICONS = ['Zap', 'Folder', 'Receipt', 'Mail'];
