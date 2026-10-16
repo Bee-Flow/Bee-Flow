@@ -229,6 +229,12 @@ function classifyTitleMatches(transcripts, wantedTitle) {
 
 // ─── Tool Execution ────────────────────────────────────────────
 
+/** Names of the filters in use, never their values (titles and e-mail addresses are personal data). */
+function setFilters(variables) {
+    const names = ['title', 'hostEmail', 'participantEmail', 'fromDate', 'toDate', 'skip'].filter(k => variables[k]);
+    return names.length ? names.join(', ') : 'none';
+}
+
 async function executeFirefliesTool(toolName, args, userId) {
     try {
         return await runFirefliesTool(toolName, args, userId);
@@ -258,7 +264,7 @@ async function runFirefliesTool(toolName, args, userId) {
             toDate: filters.toDate,
         };
 
-        log.info(`[Fireflies] Listing transcripts`, variables);
+        log.info(`[Fireflies] Listing transcripts (filters set: ${setFilters(variables)})`);
         const data = await firefliesRequest(apiKey, LIST_TRANSCRIPTS_QUERY, variables);
         let transcripts = data.transcripts || [];
 
@@ -269,7 +275,7 @@ async function runFirefliesTool(toolName, args, userId) {
         let usedFallback = false;
         if (args.title && transcripts.length === 0) {
             const fallbackVariables = { ...variables, title: null, limit: 50, skip: 0 };
-            log.info(`[Fireflies] Listing transcripts (title fallback)`, fallbackVariables);
+            log.info(`[Fireflies] Listing transcripts (title fallback, filters set: ${setFilters(fallbackVariables)})`);
             const fallbackData = await firefliesRequest(apiKey, LIST_TRANSCRIPTS_QUERY, fallbackVariables);
             transcripts = fallbackData.transcripts || [];
             usedFallback = true;

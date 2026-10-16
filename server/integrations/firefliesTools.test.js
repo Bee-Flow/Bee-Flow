@@ -168,6 +168,11 @@ const T = (id, title) => ({
     r = await executeFirefliesTool('fireflies_list_transcripts', {}, 'u1');
     assert.ok(r.error && !r.error.includes('Jane') && !r.error.includes('GraphQL'), 'GraphQL message not echoed');
 
+    // ── Case 8: a 200 that is not JSON carries no body text ──────────
+    global.fetch = async () => ({ ok: true, status: 200, json: async () => JSON.parse('jane.doe@example.com not json') });
+    r = await executeFirefliesTool('fireflies_list_transcripts', {}, 'u1');
+    assert.ok(r.error && !r.error.includes('jane') && !r.error.includes('JSON'), 'parse error text not echoed');
+
     console.log('firefliesTools.test.js — all checks passed');
 })().catch(err => {
     console.error(err);

@@ -49,7 +49,14 @@ async function firefliesRequest(apiKey, query, variables = {}) {
     }
 
     /** @type {{ data?: any, errors?: unknown[] }} */
-    const json = await response.json();
+    let json;
+    try {
+        json = await response.json();
+    } catch (_) {
+        // The SyntaxError carries the start of the body: log the status only.
+        log.warn(`[Fireflies] API answered ${response.status} with a body that is not JSON`);
+        throw new FirefliesError('Fireflies sent an unreadable answer. Try again later.');
+    }
 
     if (json.errors) {
         log.warn(`[Fireflies] GraphQL answered with ${json.errors.length} error(s)`);

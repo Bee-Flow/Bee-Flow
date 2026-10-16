@@ -59,6 +59,8 @@ const { gateRequest: authenticateMcpRequest, rpcDenied } = require('../auth/mcpA
 const { batchTooLarge, rpcBatchTooLarge } = require('../auth/mcpAccess/batch');
 const { scopeAllowsTool, filterToolsByScope } = require('../auth/mcpAccess/scopes');
 
+const { NOTEBOOK_TOOLS } = require('../integrations/notebookToolNames');
+
 const router = express.Router();
 
 // ── Tool surface ────────────────────────────────────────────────────────────
@@ -83,16 +85,12 @@ async function toolsForUser(userId) {
  */
 function toolListFrom(resolved) {
     if (!Array.isArray(resolved?.tools)) return [];
-    return resolved.tools.filter(t => !CONVERSATION_BOUND_TOOLS.has(t?.function?.name));
+    return resolved.tools.filter(t => !NOTEBOOK_TOOLS.has(t?.function?.name));
 }
 
 // The notebook tools act on the notebook of a chat conversation. An MCP call
 // has no conversation, so they refused every call; they are not offered here
 // (neither listed nor callable, as tools/call re-resolves this same list).
-const CONVERSATION_BOUND_TOOLS = new Set([
-    'notebook_read', 'notebook_write', 'notebook_replace', 'notebook_insert',
-    'workspace_read', 'workspace_write', 'workspace_replace',
-]);
 
 /**
  * MCP tool definition from an OpenAI-shaped function definition. The
