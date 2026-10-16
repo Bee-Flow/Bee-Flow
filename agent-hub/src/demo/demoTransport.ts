@@ -41,9 +41,15 @@ interface CompiledRoute {
  * they die with the tab. Nothing here is persisted anywhere.
  */
 
+/** Rewrites the string values of an answer (language-specific sample text, see demoLocale.ts). */
+export type DemoLocaliser = (text: string) => string;
+
 /** Build a Response the way fetch would, so callers need no special-casing. */
-function json(body: unknown, status = 200) {
-    return new Response(JSON.stringify(body), {
+function json(body: unknown, status = 200, localise?: DemoLocaliser) {
+    const text = localise
+        ? JSON.stringify(body, (_key, value) => (typeof value === 'string' ? localise(value) : value))
+        : JSON.stringify(body);
+    return new Response(text, {
         status,
         headers: { 'Content-Type': 'application/json' },
     });
@@ -116,8 +122,9 @@ function compile(routes: DemoRoutes): CompiledRoute[] {
  *
  * @param routes  { 'GET /api/x': (ctx) => body|Response }
  * @param state   mutable fixture state, handed to every handler
+ * @param localise optional rewrite of every string in a JSON answer
  */
-export function createDemoTransport(routes: DemoRoutes, state: object) {
+export function createDemoTransport(routes: DemoRoutes, state: object, localise?: DemoLocaliser) {
     const compiled = compile(routes);
 
     return async function demoFetch(url: unknown, options: RequestInit = {}) {
@@ -147,7 +154,7 @@ export function createDemoTransport(routes: DemoRoutes, state: object) {
 
             if (result instanceof Response) return result;
             if (result === undefined || result === null) return noContent();
-            return json(result);
+            return json(result, 200, localise);
         }
 
         // Deliberately NOT a passthrough — see the module header.

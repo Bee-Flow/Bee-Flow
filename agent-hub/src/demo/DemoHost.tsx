@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { setDemoTransport } from '../utils/helpers';
 import { createDemoTransport } from './demoTransport';
+import { demoTextLocaliser } from './demoLocale';
+import { demoLangOverride } from '../hooks/demoLang';
 import type { DemoRoutes } from './demoTransport';
 import { getDemoFeature, DEMO_FEATURE_IDS } from './registry';
 import { COMMON_ROUTES, DEMO_USER } from './fixtures/common';
@@ -44,6 +46,8 @@ interface DemoHostProps {
 
 export default function DemoHost({ feature: featureId }: DemoHostProps) {
     const feature = getDemoFeature(featureId);
+    // The sample data is Dutch; a demo framed for another language gets English names.
+    const [localise] = useState(() => demoTextLocaliser(demoLangOverride(window.location.pathname, window.location.search)));
     const [fixtures, setFixtures] = useState<{ state: object } | null>(null);
     const [loadError, setLoadError] = useState<unknown>(null);
 
@@ -61,7 +65,7 @@ export default function DemoHost({ feature: featureId }: DemoHostProps) {
     // the same instance for the life of the host.
     const [installed] = useState(() => {
         if (!feature) return false;
-        setDemoTransport(createDemoTransport({ ...COMMON_ROUTES }, {}));
+        setDemoTransport(createDemoTransport({ ...COMMON_ROUTES }, {}, localise));
         return true;
     });
 
@@ -75,7 +79,7 @@ export default function DemoHost({ feature: featureId }: DemoHostProps) {
             .then((mod: DemoFixtureModule) => {
                 if (cancelled) return;
                 const state = mod.createState();
-                setDemoTransport(createDemoTransport({ ...COMMON_ROUTES, ...mod.ROUTES }, state));
+                setDemoTransport(createDemoTransport({ ...COMMON_ROUTES, ...mod.ROUTES }, state, localise));
                 // Runs BEFORE the feature's first render, so a hook the
                 // component reads in a useState initialiser still sees it.
                 try { feature.beforeMount?.(state); }
@@ -84,7 +88,7 @@ export default function DemoHost({ feature: featureId }: DemoHostProps) {
             })
             .catch((err: unknown) => { if (!cancelled) setLoadError(err); });
         return () => { cancelled = true; };
-    }, [feature]);
+    }, [feature, localise]);
 
     // The demo is framed by the marketing site, which has its own light/dark
     // handling; honour ?theme= so the frame can match its surroundings.
