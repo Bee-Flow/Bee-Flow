@@ -2,7 +2,49 @@ import { Loader2, ShieldCheck, Sparkles, Undo2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { datatablesApi } from './datatablesApi';
 import useTranslation from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { errorCode, errorMessage, errorStatus } from '../../../../utils/caughtError';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+
+/** What the model changed, as the server counts it (only the lengths are read). */
+export interface AiTableChanges {
+    added?: unknown[];
+    renamed?: unknown[];
+    retyped?: unknown[];
+    removed?: unknown[];
+}
+
+/** The table as the AI sees it: sent along on a revise, and kept to undo one. */
+export interface AiTableCurrent {
+    name?: string;
+    description?: string;
+    fields?: unknown[];
+    rowCount?: number;
+    managedKind?: string | null;
+    [key: string]: unknown;
+}
+
+/** A draft the server returned (or, with `undo`, the state before it). */
+export interface AiTableDraft extends AiTableCurrent {
+    notes?: string | null;
+    changes?: AiTableChanges | null;
+    undo?: boolean;
+}
+
+interface AiTableResult {
+    count: number;
+    notes: string | null;
+    changes: AiTableChanges | null;
+    before: AiTableCurrent | null;
+}
+
+interface AiTablePanelProps {
+    mode?: 'create' | 'revise';
+    current?: AiTableCurrent | null;
+    onApply: (draft: AiTableDraft) => void;
+    compact?: boolean;
+    testId?: string;
+}
 
 /**
  * "Build it with AI" for a table — one card, two homes.
@@ -30,21 +72,21 @@ import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
  */
 const BTN = 'px-3 py-2 rounded-[10px] text-sm border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 disabled:opacity-50';
 
-function errorText(t, err) {
-    const code = err?.code;
+function errorText(t: TranslateFn, err: unknown): string {
+    const code = errorCode(err);
     if (code === 'no_model') return t('datatables.ai_err_no_model', 'No AI model is set up for this workspace yet.');
     if (code === 'ai_unusable') return t('datatables.ai_err_unusable', 'The AI did not return a usable table. Try again, or describe it more concretely.');
     if (code === 'schema_locked') return t('datatables.ai_err_locked', 'The columns of this table are not yours to change here.');
     if (code === 'no_brief' || code === 'no_note') return t('datatables.ai_err_no_text', 'Type or paste something first.');
-    if (err?.status === 429) return t('datatables.ai_err_rate', 'Too many drafts in a minute — wait a moment and try again.');
-    return err?.message || t('datatables.ai_err_failed', 'Could not draft the columns.');
+    if (errorStatus(err) === 429) return t('datatables.ai_err_rate', 'Too many drafts in a minute — wait a moment and try again.');
+    return errorMessage(err) || t('datatables.ai_err_failed', 'Could not draft the columns.');
 }
 
 /** "2 added · 1 renamed · 1 retyped · 1 removed", only the parts that happened. */
-function changesText(t, changes) {
+function changesText(t: TranslateFn, changes: AiTableChanges | null | undefined): string {
     if (!changes) return '';
-    const parts = [];
-    const n = (arr) => (Array.isArray(arr) ? arr.length : 0);
+    const parts: string[] = [];
+    const n = (arr: unknown) => (Array.isArray(arr) ? arr.length : 0);
     if (n(changes.added)) parts.push(t('datatables.ai_changes_added', '{n} added', { n: n(changes.added) }));
     if (n(changes.renamed)) parts.push(t('datatables.ai_changes_renamed', '{n} renamed', { n: n(changes.renamed) }));
     if (n(changes.retyped)) parts.push(t('datatables.ai_changes_retyped', '{n} retyped', { n: n(changes.retyped) }));
@@ -52,14 +94,14 @@ function changesText(t, changes) {
     return parts.join(' · ');
 }
 
-export default function AiTablePanel({ mode = 'create', current = null, onApply, compact = false, testId = 'table-ai' }) {
+export default function AiTablePanel({ mode = 'create', current = null, onApply, compact = false, testId = 'table-ai' }: AiTablePanelProps) {
     const { t } = useTranslation();
     const revise = mode === 'revise';
     const [text, setText] = useState('');
     const [allowDestructive, setAllowDestructive] = useState(false);
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState(null);
-    const [result, setResult] = useState(null); // { count, notes, changes, before }
+    const [error, setError] = useState<string | null>(null);
+    const [result, setResult] = useState<AiTableResult | null>(null); // { count, notes, changes, before }
     const alive = useRef(true);
     useEffect(() => () => { alive.current = false; }, []);
 
