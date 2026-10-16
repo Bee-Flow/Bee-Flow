@@ -136,9 +136,9 @@ function modalLabel(node: AppNode): string {
 }
 
 /** Screens as { id, label } — `name` is what the author typed on the tab. */
-export function screenOptions(screens: Array<{ id: string; name?: string }> | null | undefined): RefOption[] {
+export function screenOptions(screens: Array<{ id?: string; name?: string }> | null | undefined): RefOption[] {
     return (Array.isArray(screens) ? screens : [])
-        .filter((s) => s && typeof s.id === 'string')
+        .filter((s): s is { id: string; name?: string } => s && typeof s.id === 'string')
         .map((s) => ({ id: s.id, label: s.name || s.id }));
 }
 
