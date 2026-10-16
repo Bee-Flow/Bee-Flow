@@ -242,6 +242,7 @@ const NL_TRANSLATIONS = [
     'add-nl-learn-content-2026-10-translations',  // Learning Center lesson content for every course but Foundations (2026-10)
     'add-nl-builder-fixes-2026-10',            // Builder fixes Oct 2026: HTTP query parameters and cURL import, who can call an automation as an agent tool, assistant questions/plans/tables, Studio no-access
     'add-nl-cms-blog-translations',            // Website blog: editor Blog entry, Markdown toolbar, Latest posts block, and the public /nl/blog labels
+    'add-nl-cms-tabs-stories-translations',    // Website CMS: Tabs block editor and customer stories
     'update-nl-memory-2026-10',                // Memory: Dutch for the memory manager, chat controls, org Memory admin page and Settings lines; "Conversation memory" becomes "Context in lange gesprekken" (old shipped text only)
     // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
     'add-nl-fix-english-2026-10-translations',

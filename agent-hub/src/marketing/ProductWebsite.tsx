@@ -1,16 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import './marketing.css';
-// Self-hosted Fontshare families — registers @font-face for Satoshi,
-// Cabinet Grotesk, General Sans, Clash Display, Clash Grotesk. No CDN
-// dependency; files live under agent-hub/public/fonts/.
+// Self-hosted Fontshare families (Satoshi, Cabinet Grotesk, General Sans, Clash
+// Display, Clash Grotesk): no CDN, files under agent-hub/public/fonts/.
 import './self-hosted-fonts.css';
 // Editor-only block chrome (outlines, name tag, toolbar, insert zones) is
 // loaded on demand in preview mode only (see the preview listener below), so
 // the published site does not block on it (#245).
 
-// The blog index / post body — rendered in place of the block list when the
-// content carries `blog` (a /blog URL or the admin preview of a post).
+// The blog index / post body: replaces the block list when the content carries `blog`.
 import BlogView     from './blog/BlogView';
 import Header       from './sections/Header';
 import Hero         from './sections/Hero';
@@ -37,6 +35,7 @@ import Showcase     from './sections/Showcase';
 import FeatureDemo  from './sections/FeatureDemo';
 import Roadmap      from './sections/Roadmap';
 import CompareTable from './sections/CompareTable';
+import Tabs from './sections/Tabs';
 import GitHubStats  from './sections/GitHubStats';
 import ReleaseNotes from './sections/ReleaseNotes';
 import Footer       from './sections/Footer';
@@ -122,6 +121,7 @@ export const SECTION_REGISTRY = {
     'github-stats': GitHubStats,
     'release-notes': ReleaseNotes,
     'blog-latest': LatestPosts,
+    tabs: Tabs,
 } as Record<string, SectionComponent>;
 
 const isPreviewMode = () =>

@@ -45,6 +45,7 @@ const EXPORT_NAMES = [
     'GitHubStatsEditor',
     'ReleaseNotesEditor',
     'LatestPostsEditor',
+    'TabsEditor',
     'BLOCK_CATALOGUE',
     'BLOCK_EDITORS',
     'BLOCK_DEFAULTS',
@@ -53,7 +54,7 @@ const EXPORT_NAMES = [
 ];
 
 describe('editors barrel', () => {
-    it('exposes all 32 exports (28 as of the 2026-07 split + compare-table + github-stats + release-notes + blog-latest)', () => {
+    it('exposes all 33 exports (28 as of the 2026-07 split + compare-table + github-stats + release-notes + blog-latest + tabs)', () => {
         for (const name of EXPORT_NAMES) {
             expect(editors[name], `export "${name}" should be defined`).toBeDefined();
         }

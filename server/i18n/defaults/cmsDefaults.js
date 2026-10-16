@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS Defaults — schema-of-record for the website builder.
  *
@@ -557,6 +558,32 @@ const BLOCK_DEFAULTS = {
         footnote: '',
     },
 
+    // Tabs / switcher: one section that serves several audiences ("Bee Flow
+    // for IT / Legal / DPO"). 2-6 tabs, each with a heading, text, an optional
+    // media slot and an optional CTA. `tabId` is the stable key behind the
+    // `?tab=` deep link: it ends in "Id", so the translation denylist keeps it
+    // out of locale overrides (the visible `label` translates, the link does
+    // not change per language). `cta` is null while switched off.
+    tabs: {
+        eyebrow: '',
+        title: 'One platform, every team',
+        lead: '',
+        items: [
+            {
+                tabId: 'tab-1', label: 'Team 1', title: 'Heading for the first team',
+                body: 'Describe how this team uses the product.',
+                media: { src: '', srcDark: '', alt: '', frame: 'hairline', kind: 'image' },
+                cta: null,
+            },
+            {
+                tabId: 'tab-2', label: 'Team 2', title: 'Heading for the second team',
+                body: 'Describe how this team uses the product.',
+                media: { src: '', srcDark: '', alt: '', frame: 'hairline', kind: 'image' },
+                cta: null,
+            },
+        ],
+    },
+
     // Live repository facts (stars, latest release) fetched client-side from
     // /api/public/github-stats. The block itself stores no numbers — stored
     // star counts would be stale the week after publishing.
@@ -648,7 +675,15 @@ const BLOCK_TYPES = [
     // Same rollback caveat: an export with this block imported into an older
     // deployment drops it.
     { type: 'blog-latest',   label: 'Latest posts',     icon: 'Newspaper',          category: 'Content' },
+    // Same rollback caveat: an export with this block imported into an older
+    // deployment drops it.
+    { type: 'tabs',          label: 'Tabs',             icon: 'Layers',           category: 'Content' },
 ];
+
+// Bounds of a tabs block. The editor stops at the maximum; the validator warns
+// outside the range (a stored block is never rewritten for being out of range).
+const TABS_MIN = 2;
+const TABS_MAX = 6;
 
 const BLOCK_TYPE_IDS = BLOCK_TYPES.map(t => t.type);
 
@@ -841,6 +876,7 @@ module.exports = {
     BLOCK_DEFAULTS,
     BLOCK_TYPES,
     BLOCK_TYPE_IDS,
+    TABS_MIN, TABS_MAX,
     BLOCK_VARIANTS,
     DEMO_FEATURE_IDS,
     DESIGN_DEFAULTS,

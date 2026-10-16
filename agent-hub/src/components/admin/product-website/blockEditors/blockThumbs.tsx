@@ -251,6 +251,18 @@ const THUMBS: Record<string, React.ReactElement> = {
             <Line x={26} y={44} w={46} h={4} o={0.35} />
         </Frame>
     ),
+    tabs: (
+        <Frame>
+            <rect x="14" y="10" width="20" height="8" rx="4" fill={ACCENT} fillOpacity="0.35" />
+            <rect x="38" y="10" width="20" height="8" rx="4" fill="none" stroke={MUTED} strokeOpacity="0.4" />
+            <rect x="62" y="10" width="20" height="8" rx="4" fill="none" stroke={MUTED} strokeOpacity="0.4" />
+            <line x1="14" y1="24" x2="106" y2="24" stroke={MUTED} strokeOpacity="0.3" />
+            <Line x={14} y={31} w={40} h={4} o={0.6} />
+            <Line x={14} y={39} w={46} h={3} />
+            <Line x={14} y={45} w={34} h={3} />
+            <Card x={66} y={30} w={40} h={26} />
+        </Frame>
+    ),
 };
 
 export default function BlockThumb({ type }: { type: string }) {

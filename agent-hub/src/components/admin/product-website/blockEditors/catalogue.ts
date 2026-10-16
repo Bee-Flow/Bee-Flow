@@ -24,6 +24,7 @@ import { RoadmapEditor } from './RoadmapEditor';
 import { CompareTableEditor } from './CompareTableEditor';
 import { GitHubStatsEditor } from './GitHubStatsEditor';
 import { ReleaseNotesEditor } from './ReleaseNotesEditor';
+import { TabsEditor } from './TabsEditor';
 
 // ── Catalogue + registries ────────────────────────────────────────────
 //
@@ -77,6 +78,7 @@ export const BLOCK_CATALOGUE: Record<string, BlockCatalogueEntry> = {
     'github-stats':  { type: 'github-stats',  label: 'GitHub stats',     icon: 'Github',           category: 'Trust' },
     'release-notes': { type: 'release-notes', label: 'Release notes',    icon: 'ScrollText',       category: 'Trust' },
     'blog-latest':   { type: 'blog-latest',   label: 'Latest posts',     icon: 'Newspaper',        category: 'Content' },
+    tabs:            { type: 'tabs',          label: 'Tabs',             icon: 'Layers',         category: 'Content' },
 };
 
 export const BLOCK_EDITORS = {
@@ -106,4 +108,5 @@ export const BLOCK_EDITORS = {
     'github-stats':  { component: GitHubStatsEditor,  label: 'GitHub stats',     icon: 'Github' },
     'release-notes': { component: ReleaseNotesEditor, label: 'Release notes',    icon: 'ScrollText' },
     'blog-latest':   { component: LatestPostsEditor,  label: 'Latest posts',     icon: 'Newspaper' },
+    tabs:            { component: TabsEditor,         label: 'Tabs',             icon: 'Layers' },
 };

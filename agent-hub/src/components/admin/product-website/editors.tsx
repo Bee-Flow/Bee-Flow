@@ -48,6 +48,7 @@ export { CompareTableEditor } from './blockEditors/CompareTableEditor';
 export { GitHubStatsEditor } from './blockEditors/GitHubStatsEditor';
 export { ReleaseNotesEditor } from './blockEditors/ReleaseNotesEditor';
 export { LatestPostsEditor } from './blockEditors/LatestPostsEditor';
+export { TabsEditor } from './blockEditors/TabsEditor';
 
 // Registries.
 export { BLOCK_CATALOGUE, BLOCK_EDITORS, BLOCK_DEFAULTS } from './blockEditors/catalogue';

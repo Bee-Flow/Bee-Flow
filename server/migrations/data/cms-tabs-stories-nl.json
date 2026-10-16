@@ -1,0 +1,23 @@
+{
+  "translations": {
+    "cms_site.blocks.tabs.add_tab": "Tabblad toevoegen",
+    "cms_site.blocks.tabs.body": "Tekst",
+    "cms_site.blocks.tabs.body_placeholder": "Beschrijf hoe dit team het product gebruikt.",
+    "cms_site.blocks.tabs.button": "Knop",
+    "cms_site.blocks.tabs.label": "Label van het tabblad",
+    "cms_site.blocks.tabs.label_placeholder": "bijv. IT",
+    "cms_site.blocks.tabs.min_tabs": "Voeg minstens twee tabbladen toe: met één valt er niets om tussen te wisselen.",
+    "cms_site.blocks.tabs.no_label": "(geen label)",
+    "cms_site.blocks.tabs.picture": "Afbeelding",
+    "cms_site.blocks.tabs.picture_alt": "Beschrijving van de afbeelding (alt-tekst)",
+    "cms_site.blocks.tabs.show_button": "Toon een knop",
+    "cms_site.blocks.tabs.tab_id": "Link-id",
+    "cms_site.blocks.tabs.tab_id_hint": "Link naar dit tabblad met ?tab=<link-id> achter het paginaadres. Houd het kort en wijzig het niet meer zodra het gedeeld is.",
+    "cms_site.blocks.tabs.tabs": "Tabbladen",
+    "cms_site.blocks.tabs.tabs_hint": "Eén sectie voor meerdere doelgroepen. Klik in het voorbeeld op het label, de kop of de tekst van een tabblad om die direct aan te passen; gebruik de lijst hieronder voor afbeeldingen, knoppen en het link-id.",
+    "cms_site.blocks.tabs.title": "Kop"
+  },
+  "sameAsEnglish": [
+    "cms_site.blocks.tabs.tab_id_placeholder"
+  ]
+}
