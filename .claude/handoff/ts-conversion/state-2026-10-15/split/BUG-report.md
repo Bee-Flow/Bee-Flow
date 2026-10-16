@@ -7,8 +7,8 @@ One commit per issue (a few follow-up commits for reopened issues), each reviewe
 Opus subagent (security review for signing, scope, redaction, credentials, SQL scoping). Gates before
 every push: tests next to the changed files, server + agent-hub typecheck, `check:fast`,
 `duplication-ratchet`, `lint:budget`, `lint:gitleaks`. No ratchet was `--update`d.
-Separate branch `ts-bugs/sec-webpage-sqlite` (on top of ts-bugs/fixes): page database statement
-guard, spreadsheet cell values, memory prompt framing, plus #210. No public issue for the first three.
+Separate branch `ts-bugs/sec-webpage-sqlite` (on top of ts-bugs/fixes): hardening, details shared
+privately; it also carries #210.
 
 ## Closed (fixed)
 | # | Area | Commit(s) |
@@ -55,7 +55,6 @@ guard, spreadsheet cell values, memory prompt framing, plus #210. No public issu
 ## Owner decisions pending
 - #209: expose memory edit/delete tools, and to whom.
 - #213: should an implicit iteration cap fail the run.
-- Stored memories: run notes through an injection check before storing (no classifier exists).
 - #177 follow-up: legacy-signed requests with several query params remain swappable on a new connector (pre-existing; closing it breaks old servers' special-character queries).
 
-Reviews: `../reviews/BUG-*.md` (first round); later reviews were reported in the session and applied before each push.
+Reviews: `../reviews/BUG-<issue>.md`, one per fixed issue (fixes pushed before their Opus review got a late review round, appended to the same file).
