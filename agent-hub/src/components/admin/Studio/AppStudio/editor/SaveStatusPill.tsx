@@ -1,4 +1,6 @@
 import { AlertTriangle, Check, Loader2, X } from 'lucide-react';
+import type { RefObject } from 'react';
+import type { SaveNotice } from './saveNotices';
 import AnchoredMenu from '../../../../shared/AnchoredMenu';
 import useTranslation from '../../../../../hooks/useTranslation';
 
@@ -23,7 +25,12 @@ import useTranslation from '../../../../../hooks/useTranslation';
  * --warning-ink; the repo's hygiene test forbids the literal).
  */
 
-export function SaveStatusChip({ status, version = null }) {
+interface SaveStatusChipProps {
+    status?: string | null;
+    version?: number | string | null;
+}
+
+export function SaveStatusChip({ status, version = null }: SaveStatusChipProps) {
     const { t } = useTranslation();
     const saving = status === 'saving';
     const label = saving
@@ -46,7 +53,16 @@ export function SaveStatusChip({ status, version = null }) {
     );
 }
 
-export function SaveNoticeCapsule({ status, error, onRetry, noticeCount = 0, noticesOpen = false, onToggleNotices }) {
+interface SaveNoticeCapsuleProps {
+    status?: string | null;
+    error?: string | null;
+    onRetry?: () => void;
+    noticeCount?: number;
+    noticesOpen?: boolean;
+    onToggleNotices?: () => void;
+}
+
+export function SaveNoticeCapsule({ status, error, onRetry, noticeCount = 0, noticesOpen = false, onToggleNotices }: SaveNoticeCapsuleProps) {
     const { t } = useTranslation();
     if (status === 'error') {
         return (
@@ -102,13 +118,24 @@ export function SaveNoticeCapsule({ status, error, onRetry, noticeCount = 0, not
     return null;
 }
 
+/** One row of the panel: a save notice, plus where "Show me" goes (absent when the path no longer resolves). */
+export type PanelNotice = Pick<SaveNotice, 'kind' | 'path' | 'message'> & { hint?: string; target?: unknown };
+
+interface SaveNoticesPanelProps<N extends PanelNotice> {
+    open: boolean;
+    anchorRef: RefObject<HTMLElement | null>;
+    notices: N[];
+    onShow: (entry: N) => void;
+    onClose: () => void;
+}
+
 /**
  * The list behind the capsule: one row per server entry, in the server's
  * words. Portalled (AnchoredMenu) so the center column's overflow-x-clip —
  * and any other ancestor — can never cut it off; the capsule may sit anywhere
  * in a wrapped header row and the panel still lays out fully on screen.
  */
-export function SaveNoticesPanel({ open, anchorRef, notices, onShow, onClose }) {
+export function SaveNoticesPanel<N extends PanelNotice>({ open, anchorRef, notices, onShow, onClose }: SaveNoticesPanelProps<N>) {
     const { t } = useTranslation();
     return (
         <AnchoredMenu

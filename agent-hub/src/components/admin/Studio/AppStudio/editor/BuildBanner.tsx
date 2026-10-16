@@ -1,9 +1,11 @@
 import { Crosshair } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useBuildCue } from './BuildCueContext';
+import type { BuildCueValue, BuildPhaseInfo } from './BuildCueContext';
 import useTranslation from '../../../../../hooks/useTranslation';
 import { enginePill, engineSegments, showsRates } from '../../../../shared/builder/engineLine';
 import { formatElapsed } from '../../../../shared/builder/formatElapsed';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 
 /**
  * The build banner on the App Studio canvas — the sibling of the automation
@@ -25,17 +27,30 @@ const FAREWELL_MS = 4000;
 const TODO_MAX = 48;
 const REASON_MAX = 72;
 
-function elapsedSince(startedAt, now) {
+function elapsedSince(startedAt: number | null | undefined, now: number): string | null {
     return startedAt ? formatElapsed(new Date(startedAt).toISOString(), now) : null;
 }
 
-function shortReason(reason) {
+function shortReason(reason: unknown): string {
     const s = String(reason || '').replace(/\s+/g, ' ').trim();
     return s.length > REASON_MAX ? `${s.slice(0, REASON_MAX - 1).trimEnd()}…` : s;
 }
 
+/** One plan item as the strip reads it: defensively, so an entry may be missing or half-filled. */
+interface PlanTodo {
+    text?: unknown;
+    done?: unknown;
+}
+
+/** The plan progress: how many items are done, and the next open one (null when it repeats the verb). */
+export interface PlanProgress {
+    done: number;
+    total: number;
+    next: string | null;
+}
+
 /** "Plan 2/5 · Koppel de tabel" — only when the model published a plan. */
-export function planStrip(todos, verb) {
+export function planStrip(todos: readonly (PlanTodo | null | undefined)[] | null | undefined, verb: string | null | undefined): PlanProgress | null {
     const list = Array.isArray(todos) ? todos : [];
     const total = list.length;
     if (!total) return null;
@@ -48,7 +63,14 @@ export function planStrip(todos, verb) {
     return { done, total, next: shown && !duplicate ? shown : null };
 }
 
-function PlanStrip({ todos, phaseInfo, verb, t }) {
+interface PlanStripProps {
+    todos: readonly (PlanTodo | null | undefined)[] | null | undefined;
+    phaseInfo: BuildPhaseInfo | null | undefined;
+    verb: string | null;
+    t: TranslateFn;
+}
+
+function PlanStrip({ todos, phaseInfo, verb, t }: PlanStripProps) {
     const plan = planStrip(todos, verb);
     if (plan) {
         return (
@@ -69,7 +91,13 @@ function PlanStrip({ todos, phaseInfo, verb, t }) {
     return null;
 }
 
-function EngineLine({ engine, turn, t }) {
+interface EngineLineProps {
+    engine: BuildCueValue['engine'];
+    turn: BuildCueValue['turn'];
+    t: TranslateFn;
+}
+
+function EngineLine({ engine, turn, t }: EngineLineProps) {
     const pill = enginePill({ engine, t });
     const segments = engineSegments({ engine, turn, t });
     if (!pill && !segments.length) return null;
@@ -87,11 +115,26 @@ function EngineLine({ engine, turn, t }) {
     );
 }
 
+/** What the frozen farewell remembers of the build that just ended. */
+interface Farewell {
+    startedAt: number | null;
+    finalized: boolean;
+    stopped: boolean;
+    componentCount: number;
+    screenCount: number;
+}
+
+/** The banner's state: the live cue, the frozen farewell, or nothing. */
+export type BannerState =
+    | { kind: 'live'; cue: BuildCueValue; endedAt: null; farewell: null }
+    | { kind: 'farewell'; cue: null; endedAt: number; farewell: Farewell }
+    | { kind: 'none'; cue: null; endedAt: null; farewell: null };
+
 /**
  * Whether to show, and what: the live cue while running, then the frozen
  * farewell for FAREWELL_MS after it ends. Pure over (cue, now).
  */
-export function bannerState(cue, prev, now) {
+export function bannerState(cue: BuildCueValue | null | undefined, prev: BannerState | null, now: number): BannerState {
     if (cue && cue.running) return { kind: 'live', cue, endedAt: null, farewell: null };
     if (prev && prev.kind === 'live') {
         // The build just ended: freeze what it was into the farewell.
@@ -101,17 +144,22 @@ export function bannerState(cue, prev, now) {
     return { kind: 'none', cue: null, endedAt: null, farewell: null };
 }
 
+interface BuildBannerProps {
+    following?: boolean;
+    onFollow?: (() => void) | null;
+    screen?: { id?: string; name?: string } | null;
+}
+
 /**
- * @param {{ following?: boolean, onFollow?: Function|null, screen?: {id,name}|null }} props
- *   `screen` — the chapter the camera resolved (useBuildFollow), shown after
- *   the verb as "on Suppliers" so the banner and the canvas agree by
- *   construction; skipped when the verb already names it.
+ * `screen` — the chapter the camera resolved (useBuildFollow), shown after
+ * the verb as "on Suppliers" so the banner and the canvas agree by
+ * construction; skipped when the verb already names it.
  */
-export default function BuildBanner({ following = true, onFollow = null, screen = null }) {
+export default function BuildBanner({ following = true, onFollow = null, screen = null }: BuildBannerProps) {
     const { t } = useTranslation();
     const cue = useBuildCue();
     const [now, setNow] = useState(() => Date.now());
-    const [state, setState] = useState(() => bannerState(cue, null, Date.now()));
+    const [state, setState] = useState<BannerState>(() => bannerState(cue, null, Date.now()));
     useEffect(() => { setState((prev) => bannerState(cue, prev, Date.now())); }, [cue]);
     const live = state.kind === 'live';
     useEffect(() => {
@@ -127,13 +175,13 @@ export default function BuildBanner({ following = true, onFollow = null, screen 
 
     const c = state.cue;
     const lastCall = live && c ? c.lastCall : null;
-    const elapsed = live ? elapsedSince(c.startedAt, now) : elapsedSince(state.farewell && state.farewell.startedAt, state.endedAt);
-    let verb = null;
-    let verbTone = null;
-    if (live && c.skipped) {
-        verb = t('app_studio.builder.banner.build_skipped', 'Skipped: {reason}', { reason: shortReason(c.skipped) });
+    const elapsed = live ? elapsedSince((c as BuildCueValue).startedAt, now) : elapsedSince(state.farewell && state.farewell.startedAt, state.endedAt);
+    let verb: string | null = null;
+    let verbTone: string | null = null;
+    if (live && (c as BuildCueValue).skipped) {
+        verb = t('app_studio.builder.banner.build_skipped', 'Skipped: {reason}', { reason: shortReason((c as BuildCueValue).skipped) });
         verbTone = 'var(--warning)';
-    } else if (live && c.phase === 'checking') {
+    } else if (live && (c as BuildCueValue).phase === 'checking') {
         verb = t('app_studio.builder.banner.checking', 'Checking the app…');
     } else if (live && lastCall && lastCall.title) {
         verb = lastCall.detail ? `${lastCall.title} · ${lastCall.detail}` : lastCall.title;
@@ -149,7 +197,7 @@ export default function BuildBanner({ following = true, onFollow = null, screen 
             className="flex items-center gap-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card,var(--bg-secondary))] py-2 pl-3.5 pr-2 text-[12px] text-[var(--text-primary)]"
             style={{ boxShadow: 'var(--shadow-popover, 0 4px 16px rgba(0,0,0,.12))' }}
             data-testid="app-build-banner"
-            data-phase={live ? c.phase : 'ended'}
+            data-phase={live ? (c as BuildCueValue).phase : 'ended'}
         >
             <span className="relative flex h-2 w-2 shrink-0">
                 {live && <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 motion-reduce:animate-none" style={{ background: dotTone }} />}
@@ -162,7 +210,7 @@ export default function BuildBanner({ following = true, onFollow = null, screen 
                         {elapsed && <span className="tabular-nums text-[var(--text-tertiary)]" data-testid="app-build-elapsed"> · {elapsed}</span>}
                         {verb && <span className="text-[var(--text-secondary)]" style={verbTone ? { color: verbTone } : undefined} data-testid="app-build-verb"> · {verb}</span>}
                         {onScreen && <span className="text-[var(--text-secondary)]" data-testid="app-build-screen"> · {onScreen}</span>}
-                        <PlanStrip todos={c.todos} phaseInfo={c.phaseInfo} verb={verb} t={t} />
+                        <PlanStrip todos={(c as BuildCueValue).todos} phaseInfo={(c as BuildCueValue).phaseInfo} verb={verb} t={t} />
                     </>
                 ) : (
                     <span data-testid="app-build-farewell">
@@ -174,7 +222,7 @@ export default function BuildBanner({ following = true, onFollow = null, screen 
                     </span>
                 )}
             </span>
-            {live && <EngineLine engine={c.engine || null} turn={c.turn || null} t={t} />}
+            {live && <EngineLine engine={(c as BuildCueValue).engine || null} turn={(c as BuildCueValue).turn || null} t={t} />}
             {live && following === false && onFollow && (
                 <button
                     type="button"
