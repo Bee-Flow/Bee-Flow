@@ -32,45 +32,61 @@ export const REVEAL_OBSERVER_OPTIONS = { threshold: 0.1, rootMargin: '0px 0px 15
 export function useScrollReveal(rootRef: RefObject<HTMLElement | null> | null | undefined, contentKey?: unknown) {
     useLayoutEffect(() => {
         const root = rootRef?.current || document;
-        const elements = root.querySelectorAll('.reveal:not(.visible)');
-        if (!elements.length) return;
+        const reduceMotion = typeof window !== 'undefined' &&
+            Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+        let observer: IntersectionObserver | null = null;
+        const seen = new WeakSet<Element>();
 
-        // Reduced motion: no entrance animation — render everything
-        // visible immediately (the CSS guard also zeroes the transition).
-        if (typeof window !== 'undefined' &&
-            window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-            elements.forEach(el => el.classList.add('visible'));
-            return;
-        }
+        const scan = () => {
+            const elements = Array.from(root.querySelectorAll('.reveal:not(.visible)')).filter(el => !seen.has(el));
+            if (!elements.length) return;
 
-        // All reads, then all writes — one layout pass, no thrash.
-        const viewportH = window.innerHeight || document.documentElement.clientHeight;
-        const inView: Element[] = [];
-        const below: Element[] = [];
-        for (const el of elements) {
-            const r = el.getBoundingClientRect();
-            (r.top < viewportH && r.bottom > 0 ? inView : below).push(el);
-        }
-        // `reveal-instant` zeroes the transition for this batch: the rect
-        // reads above flushed style with the element at opacity 0, so adding
-        // `.visible` alone would still FADE everything above the fold in
-        // over ~0.5–0.9s after first paint (stagger delays included). The
-        // first viewport must render visible immediately; the entrance
-        // animation remains for everything below the fold.
-        inView.forEach(el => el.classList.add('reveal-instant', 'visible'));
-        if (!below.length) return;
-
-        const observer = new IntersectionObserver((entries) => {
-            for (const entry of entries) {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                    observer.unobserve(entry.target);
-                }
+            // Reduced motion: no entrance animation — render everything
+            // visible immediately (the CSS guard also zeroes the transition).
+            if (reduceMotion) {
+                elements.forEach(el => el.classList.add('visible'));
+                return;
             }
-        }, REVEAL_OBSERVER_OPTIONS);
 
-        below.forEach(el => observer.observe(el));
-        return () => observer.disconnect();
+            // All reads, then all writes — one layout pass, no thrash.
+            const viewportH = window.innerHeight || document.documentElement.clientHeight;
+            const inView: Element[] = [];
+            const below: Element[] = [];
+            for (const el of elements) {
+                const r = el.getBoundingClientRect();
+                (r.top < viewportH && r.bottom > 0 ? inView : below).push(el);
+            }
+            // `reveal-instant` zeroes the transition for this batch: the rect
+            // reads above flushed style with the element at opacity 0, so adding
+            // `.visible` alone would still FADE everything above the fold in
+            // over ~0.5–0.9s after first paint (stagger delays included). The
+            // first viewport must render visible immediately; the entrance
+            // animation remains for everything below the fold.
+            inView.forEach(el => el.classList.add('reveal-instant', 'visible'));
+            if (!below.length) return;
+
+            observer ??= new IntersectionObserver((entries) => {
+                for (const entry of entries) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer?.unobserve(entry.target);
+                    }
+                }
+            }, REVEAL_OBSERVER_OPTIONS);
+
+            below.forEach((el) => { seen.add(el); observer?.observe(el); });
+        };
+
+        scan();
+        // A lazy section (lazySection) mounts its `.reveal` nodes after this
+        // effect ran, without `contentKey` changing: watch the root for them,
+        // or they would stay at opacity 0 for good.
+        const mutations = typeof MutationObserver === 'undefined' ? null : new MutationObserver(scan);
+        mutations?.observe(root, { childList: true, subtree: true });
+        return () => {
+            mutations?.disconnect();
+            observer?.disconnect();
+        };
     }, [rootRef, contentKey]);
 }
 
