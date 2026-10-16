@@ -1,9 +1,9 @@
+import type { AppAction, AppDefinition, AppNode, AppScreen, AutomationLike, CommonNodeProps, DerivedAutomationOptions, EmitterInputs, LogicRow, LogicRowsOptions, NoticeLike, NoticeScore, RowCommon, RowDraft, RowEmitter, TableIdHolder, TitleFor, TranslateFn, TranslateParams } from './logicRows.types';
 import { eventText } from './nodeLogicSummary';
 import { nOf } from '../../KnowledgeStudio/plural';
 import { describeAction } from '../inspector/actionLabels';
 import { TYPE_EVENT_LISTS } from '../inspector/styleKnobMeta';
 import { NODE_EVENTS } from '../state/definitionOps';
-
 /**
  * De rijen van de Logica-tab: één tabel over ALLE schermen van "wanneer" ×
  * "wat er dan gebeurt".
@@ -33,7 +33,7 @@ import { NODE_EVENTS } from '../state/definitionOps';
  */
 
 /** Zelfde stand-in voor t() als nodeLogicSummary/dryRunIssues — zie daar. */
-const EN_ONLY = (key, en, params) => (params && typeof params === 'object'
+const EN_ONLY = (key: string | undefined, en: string, params?: TranslateParams): string => (params && typeof params === 'object'
     ? Object.entries(params).reduce(
         (out, [k, v]) => out.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v)),
         String(en),
@@ -49,7 +49,7 @@ const EN_ONLY = (key, en, params) => (params && typeof params === 'object'
  */
 const SURFACE_LISTS = ['rowActions', 'itemActions', 'bulkActions', 'toolbarActions'];
 
-function surfaceWhen(t, surface) {
+function surfaceWhen(t: TranslateFn, surface: string): string {
     switch (surface) {
         case 'rowActions': return t('app_studio.logic.when_row_action', 'When a row action is used');
         case 'itemActions': return t('app_studio.logic.when_item_action', 'When an item action is used');
@@ -62,7 +62,7 @@ function surfaceWhen(t, surface) {
 }
 
 /** De triggersoort van een automatisering, in een zin. */
-function triggerWhen(t, kind) {
+function triggerWhen(t: TranslateFn, kind: string): string {
     switch (kind) {
         case 'schedule': return t('app_studio.logic.when_schedule', 'On a schedule');
         case 'webhook': return t('app_studio.logic.when_webhook', 'When a webhook arrives');
@@ -75,7 +75,7 @@ function triggerWhen(t, kind) {
 }
 
 /** Welke events dit componenttype MAG dragen — leeg voor een type zonder events. */
-export function eventsForType(type) {
+export function eventsForType(type: string): string[] {
     const list = TYPE_EVENT_LISTS[type];
     return Array.isArray(list) ? list : [];
 }
@@ -96,7 +96,7 @@ export function eventsForType(type) {
  *
  * De volgorde blijft die van het type; wat er extra in staat komt erachteraan.
  */
-export function eventSlotsOf(node) {
+export function eventSlotsOf(node: AppNode): string[] {
     const slots = eventsForType(node?.type).slice();
     for (const event of NODE_EVENTS) {
         if (slots.includes(event)) continue;
@@ -114,10 +114,10 @@ export function eventSlotsOf(node) {
  * aggregaties). Een object met een string-`tableId` IS een tabelbinding, in
  * welke soort hij ook zit — dat blijft waar als er een soort bij komt.
  */
-export function collectBoundTableIds(root) {
-    const ids = new Set();
-    const seen = new Set();
-    const walk = (value) => {
+export function collectBoundTableIds(root: unknown): Set<string> {
+    const ids = new Set<string>();
+    const seen = new Set<object>();
+    const walk = (value: unknown) => {
         if (!value || typeof value !== 'object') return;
         if (seen.has(value)) return;
         seen.add(value);
@@ -125,10 +125,10 @@ export function collectBoundTableIds(root) {
             for (const item of value) walk(item);
             return;
         }
-        if (typeof value.tableId === 'string' && value.tableId) ids.add(value.tableId);
+        if (typeof (value as TableIdHolder).tableId === 'string' && (value as TableIdHolder).tableId) ids.add((value as TableIdHolder).tableId as string);
         for (const key of Object.keys(value)) {
             if (key === 'tableId') continue;
-            walk(value[key]);
+            walk((value as Record<string, unknown>)[key]);
         }
     };
     walk(root);
@@ -136,9 +136,9 @@ export function collectBoundTableIds(root) {
 }
 
 /** Alle componenten van één scherm, plat, met hun definitiepad erbij. */
-function nodesOfScreen(screen, screenIndex) {
-    const out = [];
-    const walk = (node, path) => {
+function nodesOfScreen(screen: AppScreen | null | undefined, screenIndex: number): Array<{ node: AppNode; path: string }> {
+    const out: Array<{ node: AppNode; path: string }> = [];
+    const walk = (node: AppNode | null | undefined, path: string) => {
         if (!node || typeof node !== 'object') return;
         out.push({ node, path });
         const children = Array.isArray(node.children) ? node.children : [];
@@ -152,7 +152,7 @@ function nodesOfScreen(screen, screenIndex) {
     return out;
 }
 
-function actionsOf(definition) {
+function actionsOf(definition: AppDefinition | null | undefined): Record<string, AppAction> {
     return definition?.actions && typeof definition.actions === 'object' ? definition.actions : {};
 }
 
@@ -161,13 +161,13 @@ function actionsOf(definition) {
  * er niet is, dat gezegd. `describeAction` naamt; dat er NIETS te naamen valt
  * is een andere mededeling en mag niet als naam doorgaan.
  */
-function whatOf(t, actionId, definition, titleFor) {
+function whatOf(t: TranslateFn, actionId: string, definition: AppDefinition | null | undefined, titleFor: TitleFor | null): string {
     const action = actionsOf(definition)[actionId];
     if (!action) return t('app_studio.canvas.mark_missing_action', 'points at an action that no longer exists');
     return describeAction(actionId, action, definition, titleFor);
 }
 
-function baseRow(extra) {
+function baseRow(extra: RowDraft & { what: string }): LogicRow {
     return {
         kind: 'event',
         wired: true,
@@ -205,10 +205,10 @@ function baseRow(extra) {
  * Geen bindingen op het scherm → geen regel. Er gebeurt dan werkelijk niets
  * bij het openen, en "niets gebeurt er" als rij is ruis, geen informatie.
  */
-function screenOpenRow(t, screen, screenIndex, nodes) {
+function screenOpenRow(t: TranslateFn, screen: AppScreen, screenIndex: number, nodes: Array<{ node: AppNode; path: string }>): LogicRow | null {
     const loaders = nodes.filter(({ node }) => collectBoundTableIds(node.props).size > 0);
     if (!loaders.length) return null;
-    const tables = new Set();
+    const tables = new Set<string>();
     for (const { node } of loaders) for (const id of collectBoundTableIds(node.props)) tables.add(id);
     return baseRow({
         key: `screen:${screen.id}`,
@@ -238,13 +238,13 @@ function screenOpenRow(t, screen, screenIndex, nodes) {
  * te bepalen. `plain` is de gestippelde rij: een slot dat bedraad KAN worden en
  * dat niet is.
  */
-function makeEmitter({ rows, definition, titleFor, t, referenced }) {
+function makeEmitter({ rows, definition, titleFor, t, referenced }: EmitterInputs): RowEmitter {
     const actions = actionsOf(definition);
     return {
-        plain(row) {
+        plain(row: RowDraft) {
             rows.push(baseRow({ ...row, wired: false, what: t('app_studio.logic.no_action_yet', 'No action yet') }));
         },
-        wired(row, actionId) {
+        wired(row: RowDraft, actionId: string) {
             const action = actions[actionId];
             referenced.add(actionId);
             rows.push(baseRow({
@@ -267,7 +267,7 @@ function makeEmitter({ rows, definition, titleFor, t, referenced }) {
  * (nodeLogicSummary.js), "Logic n" telt hem niet mee, en de validator zwijgt
  * erover op een knop en een formulier na. Hij blijft hier dus staan.
  */
-function emitEventRows(node, common, emit, t) {
+function emitEventRows(node: AppNode, common: RowCommon, emit: RowEmitter, t: TranslateFn) {
     for (const event of eventSlotsOf(node)) {
         const actionId = typeof node[event] === 'string' && node[event] ? node[event] : null;
         const row = { ...common, key: `${node.id}:${event}`, event, when: eventText(t, event) };
@@ -286,8 +286,8 @@ function emitEventRows(node, common, emit, t) {
  * bedraad"-stand — validate/nodes.js laat hem expliciet toe — dus die telt als
  * onbedraad en niet als kapot.
  */
-function emitSurfaceRows(node, common, emit, t) {
-    const props = (node.props && typeof node.props === 'object') ? node.props : {};
+function emitSurfaceRows(node: AppNode, common: RowCommon, emit: RowEmitter, t: TranslateFn) {
+    const props: CommonNodeProps = (node.props && typeof node.props === 'object') ? node.props : {};
     const { path } = common;
     for (const listKey of SURFACE_LISTS) {
         (Array.isArray(props[listKey]) ? props[listKey] : []).forEach((entry, i) => {
@@ -328,7 +328,7 @@ function emitSurfaceRows(node, common, emit, t) {
 }
 
 /** Het eigen label van een rij-/kolomactie, of niets als er geen is. */
-function labelOf(entry) {
+function labelOf(entry: { label?: unknown } | null | undefined): string | null {
     return typeof entry?.label === 'string' && entry.label.trim() ? entry.label.trim() : null;
 }
 
@@ -338,10 +338,10 @@ function labelOf(entry) {
  * `titleFor(automationId)` naamt een automatisering; wie hem niet heeft krijgt
  * "Run automation" onopgesmukt, zoals overal elders.
  */
-export default function logicRows(definition, { titleFor = null, t = EN_ONLY } = {}) {
-    const rows = [];
+export default function logicRows(definition: AppDefinition | null | undefined, { titleFor = null, t = EN_ONLY }: LogicRowsOptions = {}): LogicRow[] {
+    const rows: LogicRow[] = [];
     /** Elke actie waar iets naar wijst — de reached-set van validate.js. */
-    const referenced = new Set();
+    const referenced = new Set<string>();
     const emit = makeEmitter({ rows, definition, titleFor, t, referenced });
 
     (Array.isArray(definition?.screens) ? definition.screens : []).forEach((screen, screenIndex) => {
@@ -388,20 +388,20 @@ export default function logicRows(definition, { titleFor = null, t = EN_ONLY } =
  * hij staat in dezelfde oplossing, hij hangt nog niet aan een knop (dan staat
  * hij hierboven al) en hij raakt een tabel waar de app aan gebonden is.
  */
-function belongsToApp(row, { projectId, tables, wired }) {
+function belongsToApp(row: AutomationLike | null | undefined, { projectId, tables, wired }: { projectId: string; tables: Set<string>; wired: Set<string> }): boolean {
     if (!row?.id || row.projectId !== projectId) return false;
     if (wired.has(row.id)) return false;
     return automationTouchesTables(row, tables);
 }
 
 /** Een Set van wat er binnenkomt: een Set blijft zichzelf, een lijst wordt er een. */
-function asSet(value) {
+function asSet(value: Set<string> | string[] | null | undefined): Set<string> {
     if (value instanceof Set) return value;
     return new Set(Array.isArray(value) ? value : []);
 }
 
 /** De triggersoort van een routinerij, zoals AutomationPicker hem ook leest. */
-function triggerKindOf(row) {
+function triggerKindOf(row: AutomationLike | null | undefined): string {
     return row?.definition?.trigger?.kind || row?.triggerType || 'manual';
 }
 
@@ -414,12 +414,12 @@ function triggerKindOf(row) {
  * — een automatisering die alleen ín een lus naar de tabel schrijft raakt hem net zo
  * goed.
  */
-export function automationTouchesTables(row, tableIds) {
+export function automationTouchesTables(row: AutomationLike | null | undefined, tableIds: unknown): boolean {
     if (!(tableIds instanceof Set) || tableIds.size === 0) return false;
-    const hit = (v) => typeof v === 'string' && v && tableIds.has(v);
+    const hit = (v: unknown) => typeof v === 'string' && v && tableIds.has(v);
     if (hit(row?.definition?.trigger?.filter?.tableId)) return true;
     let found = false;
-    const walk = (steps) => {
+    const walk = (steps: unknown) => {
         for (const step of Array.isArray(steps) ? steps : []) {
             if (found) return;
             if (!step || typeof step !== 'object') continue;
@@ -465,13 +465,13 @@ export function automationTouchesTables(row, tableIds) {
  * onderscheiden van "die zijn er niet". LogicaTab zet er daarom "Your automatiseringen
  * in this solution" boven en noemt de uitsluiting in de ondertitel.
  */
-export function derivedAutomationRows({ app, automationRows, boundTableIds, wiredAutomationIds = null, t = EN_ONLY } = {}) {
+export function derivedAutomationRows({ app, automationRows, boundTableIds, wiredAutomationIds = null, t = EN_ONLY }: DerivedAutomationOptions = {}): LogicRow[] {
     const projectId = app?.projectId || null;
     if (!projectId) return [];
     const tables = asSet(boundTableIds);
     if (!tables.size) return [];
     const wired = asSet(wiredAutomationIds);
-    const rows = [];
+    const rows: LogicRow[] = [];
     for (const row of Object.values(automationRows || {})) {
         if (!belongsToApp(row, { projectId, tables, wired })) continue;
         rows.push(baseRow({
@@ -496,7 +496,7 @@ export function derivedAutomationRows({ app, automationRows, boundTableIds, wire
  * component; een melding op een dieper pad (`…props.rowActions[1].actionId`)
  * alleen bij de rij die daar precies over gaat.
  */
-export function noticesForRow(notices, row) {
+export function noticesForRow<N extends NoticeLike>(notices: N[] | null | undefined, row: Pick<LogicRow, 'path' | 'descriptive'> | null | undefined): N[] {
     if (!Array.isArray(notices) || !row?.path) return [];
     return notices.filter((n) => matchNotice(row, n) !== null);
 }
@@ -522,7 +522,7 @@ export function noticesForRow(notices, row) {
  * Zulke meldingen horen bij geen enkele rij en blijven in de save-pill staan —
  * precies wat de kop van assignNotices al beweerde.
  */
-function matchNotice(row, notice) {
+function matchNotice(row: Pick<LogicRow, 'path' | 'descriptive'>, notice: NoticeLike | null | undefined): NoticeScore | null {
     const rowPath = typeof row?.path === 'string' ? row.path : '';
     const path = typeof notice?.path === 'string' ? notice.path : '';
     if (!rowPath || !path) return null;
@@ -547,11 +547,11 @@ function matchNotice(row, notice) {
  * (app-brede paden zoals `meta.name`) valt hier weg en blijft in de save-pill
  * staan, waar hij thuishoort.
  */
-export function assignNotices(rows, notices) {
-    const byRow = new Map();
+export function assignNotices<N extends NoticeLike>(rows: LogicRow[] | null | undefined, notices: N[] | null | undefined): Map<string, N[]> {
+    const byRow = new Map<string, N[]>();
     for (const notice of Array.isArray(notices) ? notices : []) {
-        let best = null;
-        let bestScore = null;
+        let best: LogicRow | null = null;
+        let bestScore: NoticeScore | null = null;
         for (const row of Array.isArray(rows) ? rows : []) {
             const score = matchNotice(row, notice);
             if (!score) continue;
@@ -585,6 +585,6 @@ export function assignNotices(rows, notices) {
  * bedraad) en elk onbedraad slot of weesje (die staan in de tabel juist omdat er
  * nog niets gebeurt — ze zijn geen logica die iemand aanzette).
  */
-export function countWiredLogic(definition) {
+export function countWiredLogic(definition: AppDefinition | null | undefined): number {
     return logicRows(definition).filter((row) => row.wired && !row.descriptive).length;
 }

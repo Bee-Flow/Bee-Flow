@@ -9,6 +9,7 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
 import StatusActionPill from '../../../../../shared/StatusActionPill';
 import { SaveNoticeCapsule, SaveNoticesPanel } from '../SaveStatusPill';
+import type { SaveNotice } from '../saveNotices';
 
 interface ViewSegmentsProps {
     view: HeaderView;
@@ -44,15 +45,14 @@ export function ViewSegments({ view, onSelect, isManaged, streamLock, editing, l
     );
 }
 
-export interface HeaderNotice {
+export interface HeaderNotice extends SaveNotice {
     target: RevealTarget | null;
-    [key: string]: unknown;
 }
 
 interface SaveNoticesControlProps {
     status?: string;
-    error?: unknown;
-    onRetry?: unknown;
+    error?: string | null;
+    onRetry?: () => void;
     notices: HeaderNotice[];
     /** "Show me": go to the notice's screen and component. */
     onShow: (target: RevealTarget) => void;

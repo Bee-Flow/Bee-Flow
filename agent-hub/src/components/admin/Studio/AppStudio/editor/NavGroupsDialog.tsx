@@ -2,7 +2,9 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
 import Modal from '../../../../shared/Modal';
+import type { AppDefinition } from '../inspector/appDefinition';
 import { IconField } from '../inspector/panels/kit';
+import type { NavDefinition } from '../runtime/shell/navModel';
 import { updateNav, updateScreen } from '../state/definitionOps';
 
 /**
@@ -25,8 +27,16 @@ const MAX_GROUPS = 10;
 const MAX_LABEL = 40;
 const MAX_DESCRIPTION = 120;
 
-function newGroupId(taken) {
-    let id;
+/** One group in the dialog's working copy: its screens are ids, not screens. */
+interface GroupDraft {
+    id: string;
+    label: string;
+    icon: string | null;
+    screens: string[];
+}
+
+function newGroupId(taken: Set<string>): string {
+    let id: string;
     do {
         let s = '';
         while (s.length < 6) s += Math.random().toString(36).slice(2);
@@ -36,7 +46,7 @@ function newGroupId(taken) {
     return id;
 }
 
-function cloneGroups(definition) {
+function cloneGroups(definition: NavDefinition | null | undefined): GroupDraft[] {
     const groups = Array.isArray(definition?.nav?.groups) ? definition.nav.groups : [];
     return groups.map((g) => ({
         id: g.id,
@@ -46,10 +56,17 @@ function cloneGroups(definition) {
     }));
 }
 
-export default function NavGroupsDialog({ open, definition, onCommit, onClose }) {
+interface NavGroupsDialogProps {
+    open: boolean;
+    definition?: NavDefinition | null;
+    onCommit?: (def: AppDefinition) => void;
+    onClose: () => void;
+}
+
+export default function NavGroupsDialog({ open, definition, onCommit, onClose }: NavGroupsDialogProps) {
     const { t } = useTranslation();
-    const [groups, setGroups] = useState([]);
-    const [descriptions, setDescriptions] = useState({});
+    const [groups, setGroups] = useState<GroupDraft[]>([]);
+    const [descriptions, setDescriptions] = useState<Record<string, string>>({});
 
     // Re-seed the working copy each time the dialog opens — during render,
     // keyed on the open flag, so edits survive re-renders of the definition.
@@ -59,7 +76,7 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
         setSeenOpen(isOpen);
         if (isOpen) {
             setGroups(cloneGroups(definition));
-            const seeded = {};
+            const seeded: Record<string, string> = {};
             for (const s of definition?.screens || []) seeded[s.id] = s.description || '';
             setDescriptions(seeded);
         }
@@ -67,11 +84,11 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
 
     const screens = definition?.screens || [];
 
-    const patchGroup = (id, patch) => {
+    const patchGroup = (id: string, patch: Partial<GroupDraft>) => {
         setGroups((prev) => prev.map((g) => (g.id === id ? { ...g, ...patch } : g)));
     };
 
-    const toggleScreen = (groupId, screenId, checked) => {
+    const toggleScreen = (groupId: string, screenId: string, checked: boolean) => {
         setGroups((prev) => prev.map((g) => {
             if (g.id !== groupId) return g;
             const screens_ = g.screens.filter((s) => s !== screenId);
@@ -92,7 +109,7 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
         });
     };
 
-    const removeGroup = (id) => {
+    const removeGroup = (id: string) => {
         setGroups((prev) => prev.filter((g) => g.id !== id));
     };
 
@@ -117,7 +134,7 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose })
     };
 
     // screenId → owning group (for the one-group-per-screen hint).
-    const owner = new Map();
+    const owner = new Map<string, GroupDraft>();
     for (const g of groups) {
         for (const sid of g.screens) {
             if (!owner.has(sid)) owner.set(sid, g);
