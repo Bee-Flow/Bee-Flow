@@ -55,6 +55,7 @@ const { jsonForScript } = require('../core/seo/html');
 const { sendNotFound } = require('../core/seo/notFound');
 const { synthesizeLegacyContent } = require('../core/cms/legacyContent');
 const { buildBlogHead, renderBlogBody, buildFeed, blogSitemapEntries } = require('../core/seo/blog');
+const { listGalleryItems, integrationSitemapEntries } = require('../core/seo/integrationsDirectory');
 const log = require('../telemetry/log');
 
 const router = express.Router();
@@ -192,7 +193,7 @@ router.get('/sitemap.xml', async (req, res, _next) => {
         const blogEntries = await blogSitemap(siteId, { snapshot, defaultLocale, locales, lastmod });
 
         res.type('application/xml').set('Cache-Control', 'public, max-age=600');
-        return res.send(buildSitemap([...pages, ...blogEntries], { origin, defaultLocale, locales }));
+        return res.send(buildSitemap([...pages, ...blogEntries, ...integrationSitemapEntries(listGalleryItems(), { defaultLocale, lastmod })], { origin, defaultLocale, locales }));
     } catch (err) {
         log.warn('[SEO] sitemap failed:', err.message);
         res.type('application/xml').set('Cache-Control', 'no-store');
@@ -342,6 +343,8 @@ router.get('/llms.txt', async (req, res, next) => {
 });
 
 // ── marketing pages ──────────────────────────────────────────────────
+router.use(require('./publicIntegrationsRender').createIntegrationsRouter({ resolveOrigin, getLiveSiteId }));
+
 router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res, next) => {
     try {
         const origin = resolveOrigin(req);
