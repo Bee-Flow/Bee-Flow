@@ -4,6 +4,8 @@
  */
 
 const { matchFilter } = require('../triggers/dslFilters');
+const { containsCI } = require('./matchUtil');
+const { matchNextcloudTablesRowFilter } = require('./filtersTables');
 
 function matchGmailMailFilter(payload, filter) {
     if (!filter || typeof filter !== 'object') return true;
@@ -69,11 +71,6 @@ function matchGmailMailFilter(payload, filter) {
 //   - unknown filter keys are ignored (forward-compatible).
 //   - regex fields are capped at 200 chars and fail-closed on parse error.
 //   - case-insensitive substring is the default for free-text fields.
-
-function containsCI(haystack, needle) {
-    if (typeof haystack !== 'string' || typeof needle !== 'string') return false;
-    return haystack.toLowerCase().includes(needle.toLowerCase());
-}
 
 /**
  * True when `path` is the folder `prefix` itself or lives inside it, with a
@@ -267,27 +264,6 @@ function matchNextcloudFormsSubmittedFilter(payload, filter) {
     return true;
 }
 
-function matchNextcloudTablesRowFilter(payload, filter) {
-    if (!filter) return true;
-    if (filter.tableId !== undefined && filter.tableId !== null && filter.tableId !== ''
-        && String(payload.tableId) !== String(filter.tableId)) return false;
-    if (filter.actorEquals && payload.actor !== filter.actorEquals) return false;
-    // Values are keyed by numeric column id in the event payload (the webhook
-    // envelope has no column titles), so a value filter names the column id.
-    if (filter.columnId !== undefined && filter.columnId !== null && filter.columnId !== '') {
-        const value = payload?.values?.[String(filter.columnId)] ?? payload?.values?.[filter.columnId];
-        if (filter.valueEquals !== undefined && String(value ?? '') !== String(filter.valueEquals)) return false;
-        if (filter.valueContains && !containsCI(String(value ?? ''), filter.valueContains)) return false;
-        // "Only when this column actually changed" — the whole point of
-        // watching a status column rather than every edit to the row.
-        if (filter.changedOnly) {
-            const prev = payload?.previousValues?.[String(filter.columnId)] ?? payload?.previousValues?.[filter.columnId];
-            if (payload.previousValues && String(prev ?? '') === String(value ?? '')) return false;
-        }
-    }
-    return true;
-}
-
 function matchNextcloudShareGenericFilter(payload, filter) {
     if (!filter) return true;
     if (filter.actorEquals && payload.actor !== filter.actorEquals) return false;
@@ -299,7 +275,11 @@ function matchNextcloudShareGenericFilter(payload, filter) {
 
 function matchNextcloudCalendarFilter(payload, filter) {
     if (!filter) return true;
-    if (filter.calendarId && payload.calendarId !== filter.calendarId) return false;
+    // The webhook carries the numeric calendar id, the poller the URI form
+    // ("personal"): a filter value naming either one matches.
+    if (filter.calendarId && String(payload.calendarId) !== String(filter.calendarId)
+        && String(payload.calendarUri) !== String(filter.calendarId)) return false;
+    if (filter.calendarUri && String(payload.calendarUri) !== String(filter.calendarUri)) return false;
     if (filter.summaryContains && !containsCI(payload.summary, filter.summaryContains)) return false;
     if (filter.attendeeContains) {
         const attendees = Array.isArray(payload.attendees) ? payload.attendees.join(' ') : (payload.attendees || '');

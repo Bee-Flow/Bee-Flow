@@ -188,7 +188,8 @@ APP_EVENT TRIGGERS (pick the most specific; use filters to narrow):
     Filters: tableId, actorEquals, and a value test on one column:
              columnId (NUMERIC) + valueEquals | valueContains, plus
              changedOnly:true to fire only when that column actually changed
-             (tables.row.updated only).
+             (tables.row.updated only). Without columnId, valueEquals /
+             valueContains / changedOnly hold when ANY column satisfies them.
     Payload: {tableId, rowId, values, actor, datetime}; tables.row.updated
              also carries {previousValues}.
     NOTE: values are keyed by NUMERIC column id in the trigger payload, because

@@ -198,10 +198,15 @@ router.post('/events/nextcloud', eventsLimiter, captureRawNc, async (req, res) =
         ? await userStore.getUserByNcUid(org.id, ncUid).catch(() => null)
         : null;
 
+    // The event reaches only the actor's own subscriptions (userId below), so
+    // for a resolved actor it IS their own action: stamp the flags the
+    // excludeOwnUploads / excludeOwnMessages filters read (the poller sets
+    // isOwnAction itself; webhook and bot payloads carried neither flag).
+    const pushPayload = user?.id ? { isOwn: true, isOwnAction: true, ...(payload || {}) } : (payload || {});
     await triggerBus.dispatchEvent({
         provider: 'nextcloud',
         event,
-        payload: payload || {},
+        payload: pushPayload,
         userId: user?.id || null,
         // Carry the org so background side-effects (e.g. Talk recording
         // auto-ingest) can resolve org-scoped settings even when the
