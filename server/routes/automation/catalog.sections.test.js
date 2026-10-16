@@ -15,7 +15,6 @@
  */
 const test = require('node:test');
 const assert = require('node:assert');
-const path = require('path');
 
 const { preloadStubs } = require('../../testUtils/stubRequire');
 
