@@ -2,6 +2,64 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
 import {
     RECENT_STATUS, STUDIO_RECENT_SOURCES, normaliseRecentRows, recentStatusOf,
 } from '../../../../utils/studioRecentSources';
+import type { RecentStatusCode } from '../../../../utils/studioRecentSources';
+import type { RecentPayload } from '../../../../utils/studioRecentSources.types';
+
+/** Het woord, de inkt en (voor de twee "geen status"-gevallen) de uitleg bij een statuscode. */
+export interface StatusLabel {
+    key: string;
+    fallback: string;
+    tone: string;
+    hintKey?: string;
+    hintFallback?: string;
+}
+
+/** Een sectie zoals resolveStudioNav haar geeft; runtime-modules dragen ook een `label()`. */
+interface RecentSection {
+    id?: string;
+    kind?: string | null;
+    urlSegment?: string;
+    label?: unknown;
+    locked?: string | null;
+}
+
+/** Een gevraagde sectie: waar ze staat en welk endpoint haar lijst geeft. */
+interface RecentAsk {
+    sectionId: string;
+    kind: string | null;
+    urlSegment: string;
+    url: string;
+}
+
+/** Eén rij van de lijst, klaar om te tekenen. */
+export interface RecentEntry {
+    key: string;
+    id: string;
+    sectionId: string;
+    kind: string | null;
+    name: string | null;
+    description: string | null;
+    updatedAt: string | null;
+    at: number | null;
+    status: RecentStatusCode;
+    path: string;
+}
+
+interface RecentSectionResult {
+    sectionId: string;
+    entries: RecentEntry[];
+    refused: boolean;
+    gap: boolean;
+}
+
+/** Het resultaat van de hele lijst; zie runRecentWork. */
+export interface RecentWork {
+    items: RecentEntry[];
+    unavailable: string[];
+    skipped: string[];
+    unsupported: string[];
+    complete: boolean;
+}
 
 /**
  * "Laatst bewerkt" op het Startscherm van Studio — het MODEL (Track H3).
@@ -68,7 +126,7 @@ export const RECENT_LIMIT = 8;
  * neutrale inkt als "concept": een groen vinkje op een rij die geen status
  * meldt is precies de verzonnen geruststelling die deze lijst niet mag geven.
  */
-export const STATUS_LABELS = Object.freeze({
+export const STATUS_LABELS: Readonly<Record<string, StatusLabel>> = Object.freeze({
     [RECENT_STATUS.FAILED]: { key: 'studio.recent.status_failed', fallback: 'Failed', tone: 'var(--error)' },
     [RECENT_STATUS.PROCESSING]: { key: 'studio.recent.status_processing', fallback: 'Processing', tone: 'var(--warning)' },
     [RECENT_STATUS.UNPUBLISHED_CHANGES]: { key: 'studio.recent.status_unpublished_changes', fallback: 'Unpublished changes', tone: 'var(--warning)' },
@@ -90,7 +148,7 @@ export const STATUS_LABELS = Object.freeze({
 });
 
 /** Het label bij een code; nooit undefined, want er staat altijd een woord op de rij. */
-export function statusLabel(status) {
+export function statusLabel(status: string): StatusLabel {
     return STATUS_LABELS[status] || STATUS_LABELS[RECENT_STATUS.UNKNOWN];
 }
 
@@ -116,10 +174,14 @@ export function statusLabel(status) {
  *                     Ze gaan dus naar `unsupported`, met naam
  *   - geen id/URL   → stil; een descriptor zonder segment kan nergens heen
  */
-export function recentSourcesFor(sections) {
-    const asked = [];
-    const skipped = [];
-    const unsupported = [];
+export function recentSourcesFor(sections: ReadonlyArray<RecentSection | null | undefined> | null | undefined): {
+    asked: RecentAsk[];
+    skipped: string[];
+    unsupported: string[];
+} {
+    const asked: RecentAsk[] = [];
+    const skipped: string[] = [];
+    const unsupported: string[] = [];
     for (const app of sections || []) {
         if (!app || !app.id) continue;
         const source = STUDIO_RECENT_SOURCES[app.id];
@@ -148,7 +210,7 @@ export function recentSourcesFor(sections) {
 /* ── De pure evaluator ────────────────────────────────────────────────────── */
 
 /** Een leesbare tijdstempel in ms, of null. NaN is geen tijd. */
-export function timeOf(updatedAt) {
+export function timeOf(updatedAt: string | null | undefined): number | null {
     if (!updatedAt) return null;
     const t = new Date(updatedAt).getTime();
     return Number.isFinite(t) ? t : null;
@@ -165,13 +227,13 @@ export function timeOf(updatedAt) {
  * Een body die geen array oplevert is GEEN lege sectie maar een antwoord dat
  * deze client niet kan lezen — `whole: false`, en de caller noemt het gat.
  */
-export function evaluateRecentSection(section, payload) {
+export function evaluateRecentSection(section: RecentAsk, payload: RecentPayload): { entries: RecentEntry[]; whole: boolean } {
     const source = STUDIO_RECENT_SOURCES[section?.sectionId];
     if (!source) return { entries: [], whole: false };
     const rows = source.pick ? source.pick(payload) : payload;
     if (!Array.isArray(rows)) return { entries: [], whole: false };
 
-    const entries = [];
+    const entries: RecentEntry[] = [];
     for (const row of rows) {
         const [item] = normaliseRecentRows(section.sectionId, [row]);
         if (!item) continue;
@@ -201,8 +263,11 @@ export function evaluateRecentSection(section, payload) {
  * een gelijke tijd beslist de sleutel, zodat twee renders van dezelfde data
  * niet van volgorde wisselen.
  */
-export function mergeRecentEntries(lists, limit = RECENT_LIMIT) {
-    const all = [];
+export function mergeRecentEntries(
+    lists: ReadonlyArray<ReadonlyArray<RecentEntry | null | undefined> | null | undefined> | null | undefined,
+    limit = RECENT_LIMIT,
+): RecentEntry[] {
+    const all: RecentEntry[] = [];
     for (const list of lists || []) for (const entry of list || []) if (entry) all.push(entry);
     all.sort((a, b) => {
         if (a.at === b.at) return String(a.key).localeCompare(String(b.key));
@@ -216,7 +281,7 @@ export function mergeRecentEntries(lists, limit = RECENT_LIMIT) {
 /* ── Het netwerk ──────────────────────────────────────────────────────────── */
 
 /** Het ENIGE netwerk in deze module. Gooit bij alles wat geen leesbaar antwoord is. */
-async function fetchSection(section) {
+async function fetchSection(section: RecentAsk): Promise<{ refused: boolean; payload: RecentPayload }> {
     const res = await authFetch(`${API_BASE}${section.url}`);
     // De server weigert in woorden: dit is niet van jou, en dus geen gat.
     if (res.status === 403) return { refused: true, payload: null };
@@ -232,7 +297,7 @@ async function fetchSection(section) {
  *   gelezen     → de rijen die erin zaten
  *   gevallen    → geen rijen, en een gat met de naam van de sectie
  */
-export async function runRecentSection(section) {
+export async function runRecentSection(section: RecentAsk): Promise<RecentSectionResult> {
     try {
         const { refused, payload } = await fetchSection(section);
         if (refused) return { sectionId: section.sectionId, entries: [], refused: true, gap: false };
@@ -258,7 +323,10 @@ export async function runRecentSection(section) {
  *                sectie — het enige recht om "nog niets bewerkt" te zeggen in
  *                plaats van "we konden niet overal kijken"
  */
-export async function runRecentWork(sections, { limit = RECENT_LIMIT, gatesResolved = true } = {}) {
+export async function runRecentWork(
+    sections: ReadonlyArray<RecentSection | null | undefined> | null | undefined,
+    { limit = RECENT_LIMIT, gatesResolved = true }: { limit?: number; gatesResolved?: boolean } = {},
+): Promise<RecentWork> {
     const { asked, skipped: locked, unsupported } = recentSourcesFor(sections);
     const results = await Promise.all(asked.map((section) => runRecentSection(section)));
     const unavailable = results.filter((r) => r.gap).map((r) => r.sectionId).sort();
@@ -293,8 +361,10 @@ export async function runRecentWork(sections, { limit = RECENT_LIMIT, gatesResol
  * op het scherm staan. Het scherm zet er één zin onder; zonder die zin is een
  * rij zonder statuswoord een lege plek zonder uitleg.
  */
-export function statuslessKinds(items) {
-    const out = [];
+export function statuslessKinds(
+    items: ReadonlyArray<Partial<Pick<RecentEntry, 'status' | 'kind' | 'sectionId'>> | null | undefined> | null | undefined,
+): string[] {
+    const out: string[] = [];
     for (const item of items || []) {
         if (item?.status !== RECENT_STATUS.UNSUPPORTED) continue;
         const kind = item.kind || item.sectionId;

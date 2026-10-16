@@ -1,8 +1,9 @@
-import { countFor } from '../../../../hooks/useStudioCounts';
+import { countFor, type StudioCounts } from '../../../../hooks/useStudioCounts';
 import { cardChrome } from '../../../automation/Builder/flow/nodeTypeColors';
 import { cardRadius as kindCardRadius, kindColorVar } from '../../../shared/kindColors';
-import { STUDIO_CATEGORIES } from '../studioGates';
+import { STUDIO_CATEGORIES, type Translate } from '../studioGates';
 import { studioAppForKind } from '../studioNav';
+import type { BlockMeta, CountState, CurveRoute, EdgeGeometry, ElbowRoute, MapBlock, MapEdge, MapNode, Point, Side } from './studioMap.types';
 
 /**
  * De kaart op het Startscherm van Studio: de twaalf bouwstenen en de twaalf
@@ -51,7 +52,7 @@ export const MAP_H = 534;
  * komt straks uit dat register, zodat de laan op de kaart niet anders kan
  * heten dan de kop op de rail. Alleen de band-coördinaten staan hier.
  */
-export const MAP_LANES = Object.freeze([
+export const MAP_LANES: readonly Readonly<{ id: string; y: number; h: number }>[] = Object.freeze([
     Object.freeze({ id: 'build', y: 8, h: 236 }),
     Object.freeze({ id: 'ai', y: 260, h: 158 }),
     Object.freeze({ id: 'bundle', y: 434, h: 92 }),
@@ -68,7 +69,7 @@ export const MAP_LANES = Object.freeze([
  *                staat in kindColors alleen zodat de header, de tegel in de
  *                instellingennav en de eigen rail één token delen.
  */
-export const KINDS_OFF_MAP = Object.freeze(['compliance']);
+export const KINDS_OFF_MAP: readonly string[] = Object.freeze(['compliance']);
 
 /**
  * De twaalf bouwstenen. `kind` is de sleutel uit shared/kindColors.js; kleur,
@@ -76,7 +77,7 @@ export const KINDS_OFF_MAP = Object.freeze(['compliance']);
  * Studio-register (zie blockMeta). x/y zijn handgelegd: kolom a=28, b=262,
  * c=496 en de rij-hoogtes per laan.
  */
-export const MAP_BLOCKS = Object.freeze([
+export const MAP_BLOCKS: readonly MapBlock[] = Object.freeze([
     Object.freeze({ id: 'form', kind: 'form', lane: 'build', x: 28, y: 38 }),
     Object.freeze({ id: 'webpage', kind: 'webpage', lane: 'build', x: 28, y: 100 }),
     Object.freeze({ id: 'app', kind: 'app', lane: 'build', x: 28, y: 162 }),
@@ -106,7 +107,7 @@ export const MAP_BLOCKS = Object.freeze([
  * mens tussen staat. Ze krijgt dus een gestippelde doos zonder kind-kleur, en
  * nooit een teller — goedkeuringen worden niet geteld.
  */
-export const MAP_SYNTHETIC = Object.freeze([
+export const MAP_SYNTHETIC: readonly MapNode[] = Object.freeze([
     Object.freeze({
         id: 'approval', kind: null, synthetic: true, lane: 'build', x: 496, y: 162,
         labelKey: 'studio.map.approval', labelFallback: 'Approval',
@@ -114,12 +115,12 @@ export const MAP_SYNTHETIC = Object.freeze([
 ]);
 
 /** Elke getekende doos, bouwsteen of niet. */
-export const MAP_NODES = Object.freeze([...MAP_BLOCKS, ...MAP_SYNTHETIC]);
+export const MAP_NODES: readonly MapNode[] = Object.freeze([...MAP_BLOCKS, ...MAP_SYNTHETIC]);
 
-const NODE_BY_ID = new Map(MAP_NODES.map((n) => [n.id, n]));
+const NODE_BY_ID = new Map<string, MapNode>(MAP_NODES.map((n): [string, MapNode] => [n.id, n]));
 
 /** De doos met dit id, of null. */
-export function mapNode(id) {
+export function mapNode(id: string): MapNode | null {
     return NODE_BY_ID.get(id) || null;
 }
 
@@ -131,7 +132,7 @@ export function mapNode(id) {
  * risico's op dezelfde verbinding, en graph.js houdt ze om die reden ook
  * apart binnen één paar.
  */
-export const VERB_LABEL = Object.freeze({
+export const VERB_LABEL: Readonly<Record<string, Readonly<{ labelKey: string; labelFallback: string }>>> = Object.freeze({
     runs: Object.freeze({ labelKey: 'studio.map.verb_runs', labelFallback: 'runs' }),
     asks: Object.freeze({ labelKey: 'studio.map.verb_asks', labelFallback: 'asks' }),
     calls: Object.freeze({ labelKey: 'studio.map.verb_calls', labelFallback: 'calls' }),
@@ -158,7 +159,7 @@ export const VERB_LABEL = Object.freeze({
  * erbij, op de tegel, dat het product haar nog nergens vastlegt
  * (studio.map.edge_app_uses_datatable_note).
  */
-export const MAP_EDGES = Object.freeze([
+export const MAP_EDGES: readonly MapEdge[] = Object.freeze([
     Object.freeze({
         id: 'app-runs-automation', from: 'app', to: 'automation', verbs: ['runs'],
         labelKey: 'studio.map.edge_app_runs_automation',
@@ -255,13 +256,13 @@ export const MAP_EDGES = Object.freeze([
 export const NO_EDGE_NODE_ID = 'solution';
 
 /** De randen die deze doos raken — uit of in. Een zelflus telt één keer. */
-export function edgesOf(nodeId) {
+export function edgesOf(nodeId: string | null | undefined): MapEdge[] {
     if (!nodeId) return [];
     return MAP_EDGES.filter((e) => e.from === nodeId || e.to === nodeId);
 }
 
 /** Raakt deze rand deze doos? De zelflus raakt haar eigen doos. */
-export function edgeTouches(edge, nodeId) {
+export function edgeTouches(edge: MapEdge | null | undefined, nodeId: string | null | undefined): boolean {
     return !!edge && !!nodeId && (edge.from === nodeId || edge.to === nodeId);
 }
 
@@ -277,7 +278,7 @@ export function edgeTouches(edge, nodeId) {
  * null voor een soort die het register niet (meer) kent — de drifttest maakt
  * daar herrie over voordat iemand het op het scherm ziet.
  */
-export function blockMeta(kind) {
+export function blockMeta(kind: string | null | undefined): BlockMeta | null {
     const app = studioAppForKind(kind);
     if (!app) return null;
     return {
@@ -295,7 +296,7 @@ export function blockMeta(kind) {
 }
 
 /** De laan (categorie) uit het register, voor het label boven de band. */
-export function laneMeta(laneId) {
+export function laneMeta(laneId: string) {
     return STUDIO_CATEGORIES.find((c) => c.id === laneId) || null;
 }
 
@@ -317,7 +318,7 @@ export function laneMeta(laneId) {
  * studioMap.test.js pint dat vast, zodat een verbouwing van cardChrome hier
  * niet stil de verkeerde laag overschrijft.
  */
-export function kindCardChrome(kind, { selected = false, dimmed = false } = {}) {
+export function kindCardChrome(kind: string | null | undefined, { selected = false, dimmed = false }: { selected?: boolean; dimmed?: boolean } = {}) {
     const { style } = cardChrome({ group: null, selected });
     const layers = String(style.boxShadow).split(', ');
     layers[0] = `inset 4px 0 0 ${kindColorVar(kind)}`;
@@ -336,7 +337,7 @@ export function kindCardChrome(kind, { selected = false, dimmed = false } = {}) 
  * canvas "dit is geen gewone kaart" zegt. Bij selectie gaat de demping eraf —
  * een geselecteerde doos die je niet kunt lezen is geen selectie.
  */
-export function syntheticCardChrome({ selected = false, dimmed = false } = {}) {
+export function syntheticCardChrome({ selected = false, dimmed = false }: { selected?: boolean; dimmed?: boolean } = {}) {
     const { style } = cardChrome({ group: null, disabled: true, selected });
     return {
         ...style,
@@ -347,7 +348,7 @@ export function syntheticCardChrome({ selected = false, dimmed = false } = {}) {
 
 /* ── Paden ────────────────────────────────────────────────────────────────── */
 
-const SIDE_NORMAL = Object.freeze({
+const SIDE_NORMAL: Readonly<Record<Side, Readonly<Point>>> = Object.freeze({
     left: Object.freeze({ x: -1, y: 0 }),
     right: Object.freeze({ x: 1, y: 0 }),
     top: Object.freeze({ x: 0, y: -1 }),
@@ -358,7 +359,7 @@ const SIDE_NORMAL = Object.freeze({
  * Het punt op de rand van een doos. `off` schuift LANGS die rand: twee randen
  * die dezelfde doos aan dezelfde kant verlaten mogen niet op elkaar liggen.
  */
-export function anchorOf(node, side, off = 0) {
+export function anchorOf(node: Point, side: Side | undefined, off = 0): Point {
     const cx = node.x + TILE_W / 2;
     const cy = node.y + TILE_H / 2;
     if (side === 'left') return { x: node.x, y: cy + off };
@@ -368,10 +369,10 @@ export function anchorOf(node, side, off = 0) {
     return { x: cx, y: cy };
 }
 
-const round1 = (n) => Math.round(n * 10) / 10;
+const round1 = (n: number): number => Math.round(n * 10) / 10;
 
 /** De richting waarin de pijlpunt wijst, uit de laatste twee punten. */
-function direction(from, to) {
+function direction(from: Point, to: Point): Point {
     const dx = to.x - from.x;
     const dy = to.y - from.y;
     const len = Math.hypot(dx, dy) || 1;
@@ -383,7 +384,7 @@ function direction(from, to) {
  * SVG-marker — een marker erft de streekkleur niet overal, en op deze kaart
  * verandert die kleur bij elke selectie.
  */
-export function arrowPath(point, dir, size = 6) {
+export function arrowPath(point: Point, dir: Point, size = 6): string {
     const bx = point.x - dir.x * size;
     const by = point.y - dir.y * size;
     const px = -dir.y * size * 0.55;
@@ -392,7 +393,7 @@ export function arrowPath(point, dir, size = 6) {
 }
 
 /** Een orthogonale polylijn met afgeronde hoeken. */
-function roundedPolyline(points, r = 8) {
+function roundedPolyline(points: Point[], r = 8): string {
     if (points.length < 2) return '';
     let d = `M ${round1(points[0].x)} ${round1(points[0].y)}`;
     for (let i = 1; i < points.length - 1; i += 1) {
@@ -413,7 +414,7 @@ function roundedPolyline(points, r = 8) {
 }
 
 /** De zelflus: een boog over de eigen tegel heen. */
-function selfGeometry(node) {
+function selfGeometry(node: Point) {
     const left = { x: node.x + 40, y: node.y };
     const right = { x: node.x + TILE_W - 40, y: node.y };
     const top = node.y - 42;
@@ -427,8 +428,8 @@ function selfGeometry(node) {
 }
 
 /** De omweg: een orthogonale route langs handgelegde knikken. */
-function elbowGeometry(a, b, route, edge) {
-    const pts = [a];
+function elbowGeometry(a: Point, b: Point, route: ElbowRoute, edge: MapEdge): EdgeGeometry {
+    const pts: Point[] = [a];
     for (const via of route.via || []) {
         const last = pts[pts.length - 1];
         pts.push({ x: via.x ?? last.x, y: via.y ?? last.y });
@@ -452,7 +453,7 @@ function elbowGeometry(a, b, route, edge) {
  * lengte van die raaklijn schaalt mee met de afstand, en is begrensd: op een
  * korte rand duwt een lange raaklijn de bocht terug door zichzelf heen.
  */
-function curveGeometry(a, b, route, edge) {
+function curveGeometry(a: Point, b: Point, route: CurveRoute, edge: MapEdge): EdgeGeometry {
     const span = Math.hypot(b.x - a.x, b.y - a.y);
     const bow = route.bow ?? Math.max(20, Math.min(80, span * 0.4));
     const n1 = SIDE_NORMAL[route.fromSide] || SIDE_NORMAL.right;
@@ -477,7 +478,7 @@ function curveGeometry(a, b, route, edge) {
  * meting in de DOM. Daardoor is elk pad in een test na te rekenen, en tekent
  * de kaart in een test hetzelfde als in een browser.
  */
-export function edgeGeometry(edge) {
+export function edgeGeometry(edge: MapEdge): EdgeGeometry | null {
     const from = mapNode(edge?.from);
     const to = mapNode(edge?.to);
     if (!from || !to) return null;
@@ -488,18 +489,16 @@ export function edgeGeometry(edge) {
     }
     const a = anchorOf(from, route.fromSide, route.fromOff || 0);
     const b = anchorOf(to, route.toSide, route.toOff || 0);
-    return route.type === 'elbow'
-        ? elbowGeometry(a, b, route, edge)
-        : curveGeometry(a, b, route, edge);
+    return route.type === 'elbow' ? elbowGeometry(a, b, route, edge) : curveGeometry(a, b, route, edge);
 }
 
 /** Alle randen met hun pad, in tekenvolgorde. Randen zonder doos vallen weg. */
-export function edgeGeometries() {
+export function edgeGeometries(): { edge: MapEdge; geometry: EdgeGeometry | null }[] {
     return MAP_EDGES.map((edge) => ({ edge, geometry: edgeGeometry(edge) })).filter((e) => e.geometry);
 }
 
 /** De soorten die de kaart tekent — waar de drifttest tegenaan legt. */
-export const MAP_KINDS = Object.freeze(MAP_BLOCKS.map((b) => b.kind));
+export const MAP_KINDS: readonly string[] = Object.freeze(MAP_BLOCKS.map((b) => b.kind));
 
 /* ── Tellers ──────────────────────────────────────────────────────────────── */
 
@@ -524,7 +523,7 @@ export const MAP_KINDS = Object.freeze(MAP_BLOCKS.map((b) => b.kind));
  * 'not_counted': "er valt hier niets te tellen" is een vastgesteld feit en
  * hoort alleen bij de synthetische doos, die per constructie niet geteld wordt.
  */
-export function countState(node, counts, { failed = false } = {}) {
+export function countState(node: MapNode | null | undefined, counts: StudioCounts | null | undefined, { failed = false }: { failed?: boolean } = {}): CountState {
     if (!node) return { state: 'unknown' };
     if (node.synthetic) return { state: 'not_counted' };
     const meta = blockMeta(node.kind);
@@ -547,7 +546,7 @@ export function countState(node, counts, { failed = false } = {}) {
  * Counting everything in the organisation" onder de eigen negen automatiseringen van
  * één bouwer.
  */
-export const ORG_WIDE_COUNT_KEYS = Object.freeze(['agents']);
+export const ORG_WIDE_COUNT_KEYS: readonly string[] = Object.freeze(['agents']);
 
 /**
  * De zin die zegt waar het getal over gaat.
@@ -559,10 +558,10 @@ export const ORG_WIDE_COUNT_KEYS = Object.freeze(['agents']);
  * een teller die de server niet org-breed telt krijgt de zichtbare zin, hoe
  * breed de strip erboven ook staat.
  */
-export function scopeSentence(t, scope, countKey = null) {
+export function scopeSentence(t: Translate, scope: string | null | undefined, countKey: string | null = null): string {
     const visible = () => t('studio.map.scope_visible', 'Counting what you can see.');
     if (scope === 'org') {
-        return ORG_WIDE_COUNT_KEYS.includes(countKey)
+        return (ORG_WIDE_COUNT_KEYS as readonly (string | null)[]).includes(countKey)
             ? t('studio.map.scope_org', 'Counting everything in the organisation.')
             : visible();
     }

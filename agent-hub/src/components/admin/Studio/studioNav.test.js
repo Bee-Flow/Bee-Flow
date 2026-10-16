@@ -156,8 +156,8 @@ describe('studioSectionLabel — geen tweede kopie in de boom', () => {
             "if (typeof app.label === 'function') unsupported.push(app.id);\n// een sectie herken je aan haar labelKey",
         ), 'commentaar is geen tweede tak').toBe(false);
         // En de echte boom bevat dat tweede geval, dus dit is geen bedacht risico.
-        const recent = FILES.find(([f]) => f.endsWith('recent/recentWork.js'));
-        expect(recent, 'recentWork.js hoort in de scan te zitten').toBeTruthy();
+        const recent = FILES.find(([f]) => f.endsWith('recent/recentWork.ts'));
+        expect(recent, 'recentWork.ts hoort in de scan te zitten').toBeTruthy();
         expect(computesLabel(recent[1])).toBe(false);
     });
 });

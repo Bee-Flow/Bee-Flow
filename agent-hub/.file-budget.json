@@ -93,7 +93,7 @@
     "src/components/admin/Studio/KnowledgeStudio/KnowledgeOverview.jsx": 436,
     "src/components/admin/Studio/KnowledgeStudio/SettingsTab.jsx": 490,
     "src/components/admin/Studio/KnowledgeStudio/SourceDetail.jsx": 424,
-    "src/components/admin/Studio/map/studioMap.js": 572,
+    "src/components/admin/Studio/map/studioMap.ts": 572,
     "src/components/admin/Studio/Playbooks/NewPlaybookDialog.jsx": 448,
     "src/components/admin/Studio/Playbooks/stages/AccessStage.jsx": 546,
     "src/components/admin/Studio/SkillsStudio/ExamplesTab.jsx": 504,
