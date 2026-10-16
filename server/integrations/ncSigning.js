@@ -98,6 +98,26 @@ function canonicalSignedPath(pathOnly) {
 }
 
 /**
+ * URL to put on the wire. This assumes the AppAPI/HaRP hop decodes the path
+ * exactly once; a deployment that does not would see `%253F` reach Nextcloud
+ * as a literal name. The AppAPI/HaRP hop percent-decodes the path once,
+ * which turns an encoded `%3F`, `%23` or `%25` in a file name back into live
+ * URL syntax (the name is cut at `?`/`#`, or decoded twice). Escaping every
+ * `%` of the path part makes that one decode hand the connector the original
+ * single-encoded path, which it forwards to Nextcloud unchanged. The query is
+ * left alone (the hop re-encodes it; see canonicalQuery). `baseUrl` is the
+ * connector origin + `/nc`, kept verbatim.
+ */
+function connectorWireUrl(url, baseUrl) {
+    const prefix = url.startsWith(baseUrl) ? baseUrl : (url.startsWith('/nc') ? '' : null);
+    if (prefix === null) return url;
+    const rest = url.slice(prefix.length);
+    const q = rest.indexOf('?');
+    const pathPart = (q < 0 ? rest : rest.slice(0, q)).replace(/%/g, '%25');
+    return prefix + pathPart + (q < 0 ? '' : rest.slice(q));
+}
+
+/**
  * The pre-canonical signed path, byte-identical to what releases before the
  * canonical scheme signed: the whole path+query decoded, raw on a bad escape.
  * Connectors that predate `c1` verify exactly this.
@@ -139,4 +159,4 @@ function signedConnectorHeaders({ tenantKey, method, path, ncUid, body = null, t
     };
 }
 
-module.exports = { signedConnectorHeaders, bodyHash, hashableBody, canonicalSignedPath, canonicalQuery, CANONICAL_MARKER };
+module.exports = { signedConnectorHeaders, bodyHash, hashableBody, canonicalSignedPath, canonicalQuery, CANONICAL_MARKER, connectorWireUrl };

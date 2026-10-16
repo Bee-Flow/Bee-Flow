@@ -10,7 +10,7 @@
 const { loadConfig } = require('../auth/permissions');
 const configStore = require('../stores/configStore');
 const { assertAllowedNextcloudHost, isMetadataHost, nextcloudFetch } = require('./nextcloudTarget');
-const { signedConnectorHeaders } = require('./ncSigning');
+const { signedConnectorHeaders, connectorWireUrl } = require('./ncSigning');
 const log = require('../telemetry/log');
 
 const REQUEST_TIMEOUT_MS = 20000;
@@ -445,7 +445,7 @@ async function resolveConnectorAuth(session, userId) {
         // org's connector callback URL (admin-configured, not user-supplied),
         // carries no credentials — the connector signs with the tenant key —
         // and self-host connectors legitimately live on a private network.
-        const doOnce = () => fetch(url, {
+        const doOnce = () => fetch(connectorWireUrl(url, baseUrl), {
             ...options,
             method: wireMethod,
             headers: signedHeaders(),

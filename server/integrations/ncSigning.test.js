@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { canonicalSignedPath, canonicalQuery, signedConnectorHeaders } = require('./ncSigning');
+const { canonicalSignedPath, canonicalQuery, connectorWireUrl, signedConnectorHeaders } = require('./ncSigning');
 
 test('the same query signs identically whether the hop sent %20, + or %26', () => {
     // After the AppAPI/HaRP hop `term=a%20b` arrives as `term=a+b`.
@@ -61,4 +61,17 @@ test('requests the legacy form cannot carry sign the marked canonical message', 
     for (const p of ['/nc/ocs/x?term=a%20b', '/nc/ocs/x?term=a%2Bb', '/nc/x/a%3Fb.txt', '/nc/x/100%25.txt']) {
         assert.notEqual(canonicalSignedPath(p), decodeURIComponent(p), p);
     }
+});
+
+test('wire url escapes % in the path only, so one hop decode restores the real path', () => {
+    const base = 'https://cb.test/nc';
+    const name = encodeURIComponent('q?mark #1 100%.txt');
+    const url = `${base}/remote.php/dav/files/alice/${name}?term=a%20b`;
+    const wire = connectorWireUrl(url, base);
+    assert.equal(wire, `${base}/remote.php/dav/files/alice/${name.replace(/%/g, '%25')}?term=a%20b`);
+    // What the hop hands the connector: the path decoded once.
+    const hopPath = decodeURIComponent(wire.slice(base.length).split('?')[0]);
+    assert.equal(hopPath, `/remote.php/dav/files/alice/${name}`);
+    assert.equal(connectorWireUrl('/nc/a%3Fb', base), '/nc/a%253Fb');
+    assert.equal(connectorWireUrl('https://other.test/a%3F', base), 'https://other.test/a%3F');
 });
