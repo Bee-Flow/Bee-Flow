@@ -674,37 +674,6 @@ const BLOCK_VARIANTS = {
     'release-notes': ['compact', 'full'],
 };
 
-// Reserved slugs that must never become a CMS page (they collide with real
-// app routes or the static marketing pages). Lowercase, no leading slash.
-// Kept in sync with the CLIENT router's claim list in
-// agent-hub/src/utils/cmsPublicRouting.js (RESERVED_TOP_LEVEL) — a slug the
-// client router never routes to the CMS is unreachable even if stored.
-// Enforced on page CREATE and slug RENAME only; the site-import path
-// deliberately bypasses this (importSite → ensureUniqueSlug) so restoring an
-// old export that predates an entry here never fails.
-const RESERVED_SLUGS = new Set([
-    'app', 'api', 'admin', 'auth', 'login', 'logout', 'register', 'signup',
-    'dashboard', 'settings', 'embed', 'oauth', 'callback',
-    // legacy short-id prefixes + app sub-surfaces claimed by App.jsx parsers
-    'chat', 'd', 'a', 'agent',
-    // hosted form-trigger pages: /f/<token> (routes/automation/formPublic.js)
-    'f',
-    // public Studio-app pages: /p/<token> (routes/studioAppPublic.js)
-    'p',
-    'org-settings',
-    // static public pages (served from in-repo markdown / static components)
-    // `pricing` was removed from this list (2026-07): the CMS now owns
-    // /pricing and the hardcoded PricingPage is only the fallback. See
-    // agent-hub/src/utils/cmsPublicRouting.js. `privacy`/`terms`/`legal`
-    // stay — those are served from in-repo markdown at fixed URLs.
-    'privacy', 'terms', 'legal',
-    '__cms_preview__',
-    // The blog index and its posts live at /blog and /blog/<post-slug>
-    // (stores/cms/posts.js, core/seo/publicPath.js). A page here would be
-    // shadowed by the blog — or shadow it — so new pages may not take it.
-    'blog',
-]);
-
 // ── Design system defaults ───────────────────────────────────────────
 //
 // Every site ships with these values on `site.design`. The admin panel
@@ -848,7 +817,6 @@ module.exports = {
     BLOCK_TYPE_IDS,
     BLOCK_VARIANTS,
     DEMO_FEATURE_IDS,
-    RESERVED_SLUGS,
     DESIGN_DEFAULTS,
     DESIGN_COMPONENT_ENUMS,
     DESIGN_LAYOUT_ENUMS,

@@ -35,7 +35,8 @@
  * references under the identical surface this file had before the split.
  */
 
-const { BLOCK_TYPE_IDS, RESERVED_SLUGS } = require('../i18n/defaults/cmsDefaults');
+const { BLOCK_TYPE_IDS } = require('../i18n/defaults/cmsDefaults');
+const { RESERVED_PAGE_SLUGS } = require('./cms/slugRules');
 const {
     makeBlock, sanitizeBlocks,
     getPage, setPage, deletePage,
@@ -105,5 +106,5 @@ module.exports = {
     // helpers / constants for tests
     makeBlock, resolveLink, mergeLocaleContent, sanitizeBlocks,
     sanitizeAnalytics, sanitizePageIndexEntry,
-    BLOCK_TYPE_IDS, RESERVED_SLUGS,
+    BLOCK_TYPE_IDS, RESERVED_PAGE_SLUGS,
 };

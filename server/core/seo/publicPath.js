@@ -15,56 +15,13 @@
  * duplicates rather than a translation.
  */
 
-// Mirrors RESERVED_TOP_LEVEL in agent-hub/src/utils/cmsPublicRouting.js.
-// Kept as a literal rather than imported: that file is browser ESM inside a
-// different package. publicPath.test.js parses it and asserts equality.
-const RESERVED_TOP_LEVEL = new Set([
-    'app', 'api', 'admin', 'auth', 'login', 'logout', 'register', 'signup',
-    'dashboard', 'settings', 'embed', 'oauth', 'callback',
-    'chat', 'd', 'a', 'agent',
-    // `f` is the hosted form-trigger namespace (/f/<token>). Two segments, so
-    // parsePublicPath already rejects it — but a bare `/f` would otherwise be
-    // treated as a CMS slug here and refused by the client, which is exactly
-    // the server/client split the drift test below exists to prevent.
-    'f',
-    // `p` is the public Studio-app namespace (/p/<token>) — the anonymous
-    // intake screens of an app whose back-office stays behind requireAuth.
-    // Same two-segment reasoning as `f` above.
-    'p',
-    'org-settings',
-    // 'terms' and 'legal' were released to the CMS when the static legal-docs
-    // feature was retired; only 'privacy' stays reserved (the /privacy/requests
-    // DSR form owns that namespace). Must match the client set exactly.
-    'privacy',
-    '__cms_preview__',
-]);
-
-// No underscore: cmsStore.normalizeSlug permits `_`, but such a slug is
-// publicly unroutable. Same charset as the client's PUBLIC_SLUG_RE.
-const PUBLIC_SLUG_RE = /^[a-z0-9][a-z0-9-]*$/;
-
-/**
- * Non-default locales the PUBLIC SITE serves under a URL prefix.
- *
- * Deliberately NOT `languageStore.getAvailableLocales()`. That returns every
- * locale the product has interface translations for — de, fr and others — and
- * using it made every page advertise `hreflang="de"` pointing at /de/<slug>.
- * The client router does not claim those prefixes, so the URL resolves to the
- * English page: a search engine follows the alternate, finds the wrong
- * language, and reports the whole hreflang cluster as broken. Advertising a
- * translation that does not exist is worse than advertising none.
- *
- * Mirrors LOCALE_PREFIXES in agent-hub/src/utils/cmsPublicRouting.js; the
- * drift test in seo.test.js pins the two together.
- */
-const LOCALE_PREFIXES = new Set(['nl']);
-
-/**
- * The blog's path segment: /blog is the index, /blog/<post-slug> a post (and
- * /blog/feed.xml the feed, served by its own route). Mirrors BLOG_BASE in the
- * client router; the drift test in seo.test.js pins the two together.
- */
-const BLOG_BASE = 'blog';
+// The reserved paths, the slug shape, the locale prefixes and the blog segment
+// are shared with the CMS store (stores/cms/slugRules.js), so a slug the CMS
+// accepts is a slug this router reaches. RESERVED_TOP_LEVEL mirrors the client
+// set in agent-hub/src/utils/cmsPublicRouting.ts; seo.test.js pins the two.
+const {
+    RESERVED_TOP_LEVEL, PUBLIC_SLUG_RE, LOCALE_PREFIXES, BLOG_BASE,
+} = require('../../stores/cms/slugRules');
 
 /**
  * Parse a pathname into `{ locale, slug }`, or null when it is not a

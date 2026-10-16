@@ -898,6 +898,15 @@ test('validateSiteDraft: duplicate + reserved slugs surface as errors (legacy/im
     assert.ok(v.errors.some((e) => e.code === 'reserved_slug' && e.message.includes('privacy')), JSON.stringify(v.errors));
 });
 
+test('validateSiteDraft: stored slugs the router cannot reach are reported (underscore, locale prefix)', async () => {
+    const draft = await makeDraft();
+    draft.site.pages.push({ id: 'pg_legacy2', slug: 'about_us', title: 'Old', isHomepage: false, hideHeader: false, hideFooter: false, isNotFound: false });
+    draft.site.pages.push({ id: 'pg_legacy3', slug: 'nl', title: 'Dutch', isHomepage: false, hideHeader: false, hideFooter: false, isNotFound: false });
+    const v = validateSiteDraft(draft);
+    assert.ok(v.warnings.some((w) => w.code === 'unroutable_slug' && w.message.includes('about_us')), JSON.stringify(v.warnings));
+    assert.ok(v.errors.some((e) => e.code === 'reserved_slug' && e.message.includes('"nl"')), JSON.stringify(v.errors));
+});
+
 test('validateSiteDraft: header/footer icons exempt from unknown_icon; page blocks still checked; header links still checked', async () => {
     const draft = await makeDraft();
     const home = homeId(draft);

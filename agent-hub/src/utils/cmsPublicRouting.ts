@@ -199,7 +199,7 @@ export interface SlugIssue {
 export function slugIssues(slug?: string | null, { existingSlugs = null, currentSlug = null }: SlugIssueOptions = {}): SlugIssue | null {
     const s = (slug || '').trim().toLowerCase();
     if (!s) return null;
-    if (RESERVED_TOP_LEVEL.has(s) || s === BLOG_BASE) {
+    if (RESERVED_TOP_LEVEL.has(s) || LOCALE_PREFIXES.has(s) || s === BLOG_BASE) {
         return {
             kind: 'reserved',
             blocking: true,

@@ -33,7 +33,8 @@
 
 'use strict';
 
-const { RESERVED_SLUGS, BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS } = require('../i18n/defaults/cmsDefaults');
+const { BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS } = require('../i18n/defaults/cmsDefaults');
+const { slugProblem } = require('../stores/cms/slugRules');
 
 // Lucide component names are PascalCase ASCII (Star, ShieldCheck, BarChart3).
 const LUCIDE_NAME_RE = /^[A-Z][A-Za-z0-9]*$/;
@@ -185,12 +186,20 @@ function validateSiteDraft(draftWrap) {
         } else {
             bySlug.set(entry.slug, entry.id);
         }
-        if (RESERVED_SLUGS.has(String(entry.slug).toLowerCase())) {
+        const problem = slugProblem(entry.slug);
+        if (problem?.code === 'reserved') {
             errors.push({
                 code: 'reserved_slug',
                 path: `pages.${entry.id}`,
-                message: `Slug "${entry.slug}" is reserved (it collides with an app route).`,
+                message: problem.message,
                 hint: 'Rename the page slug with cms_update_page_meta.',
+            });
+        } else if (problem) {
+            warnings.push({
+                code: 'unroutable_slug',
+                path: `pages.${entry.id}`,
+                message: problem.message,
+                hint: 'Rename the page slug with cms_update_page_meta; until then the page is not reachable.',
             });
         }
     }

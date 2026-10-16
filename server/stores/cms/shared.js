@@ -6,12 +6,12 @@
 const crypto = require('crypto');
 const {
     SITE_DEFAULTS,
-    RESERVED_SLUGS,
     DESIGN_DEFAULTS,
     DESIGN_COMPONENT_ENUMS,
     DESIGN_LAYOUT_ENUMS,
 } = require('../../i18n/defaults/cmsDefaults');
 const { THEME_PRESET_IDS } = require('../../i18n/defaults/themePresets');
+const { normalizeSlug, normalizeStoredSlug, isReservedSlug } = require('./slugRules');
 
 const KEY_DEFAULT_LOCALE  = 'cms_default_locale';
 const KEY_PROJECTS_INDEX  = 'cms_projects_index';
@@ -97,20 +97,6 @@ function mergeLocaleContent(base, override) {
     }
     if (typeof override === 'string' && override.trim() !== '') return override;
     return base;
-}
-
-function normalizeSlug(raw) {
-    return String(raw || '')
-        .toLowerCase()
-        .trim()
-        .replace(/^\/+/, '')
-        .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9_-]/g, '')
-        .slice(0, 64);
-}
-
-function isReservedSlug(slug) {
-    return RESERVED_SLUGS.has(String(slug || '').toLowerCase());
 }
 
 function assertSiteId(siteId) {
@@ -251,7 +237,7 @@ module.exports = {
     KEY_PAGE_INFIX, KEY_PUBLISHED_PFX, KEY_TEMPLATES,
     SITE_VERSION, PAGE_VERSION, LOCALE_OVERRIDE_VERSION, INDEX_VERSION, PUBLISHED_VERSION,
     newId, isPlainObject, clone, deepMerge, mergeLocaleContent,
-    normalizeSlug, isReservedSlug, assertSiteId,
+    normalizeSlug, normalizeStoredSlug, isReservedSlug, assertSiteId,
     sanitizeDesign, sanitizeAnalytics, sanitizeBlogSettings,
     projectKey, projectLocaleKey, pageKey, pageLocaleKey, publishedKey,
 };

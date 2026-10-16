@@ -6,7 +6,7 @@
 const { SITE_DEFAULTS } = require('../../i18n/defaults/cmsDefaults');
 const {
     SITE_VERSION,
-    newId, isPlainObject, clone, normalizeSlug,
+    newId, isPlainObject, clone, normalizeSlug, isReservedSlug,
     sanitizeDesign, sanitizeAnalytics, sanitizeBlogSettings,
 } = require('./shared');
 const { restorePosts, POST_LIMITS } = require('./posts');
@@ -94,11 +94,19 @@ function planPages(incoming) {
     // Page links in a bundle carry the target's slug (see exportSite), so
     // they are remapped by slug onto the freshly minted page ids.
     const slugToNewId = new Map();
+    /** @type {string[]} */
+    const renamedSlugs = [];
 
     for (const incomingPage of pagesIn) {
         if (!isPlainObject(incomingPage)) continue;
         const pageId = newId('pg');
-        const slug = normalizeSlug(incomingPage.slug || incomingPage.title || 'page') || 'page';
+        let slug = normalizeSlug(incomingPage.slug || incomingPage.title || 'page') || 'page';
+        // A slug the site can never serve (app route, language prefix, blog)
+        // would import as a page nobody can open: take a free one instead.
+        if (isReservedSlug(slug)) {
+            renamedSlugs.push(slug);
+            slug = `${slug}-page`;
+        }
         const finalSlug = ensureUniqueSlug(slug, pagesOut, null);
         pagesOut.push({
             id: pageId,
@@ -118,7 +126,7 @@ function planPages(incoming) {
             slugToNewId.set(String(incomingPage.slug), pageId);
         }
     }
-    return { pagesOut, pagesInAligned, slugToNewId };
+    return { pagesOut, pagesInAligned, slugToNewId, renamedSlugs };
 }
 
 /**

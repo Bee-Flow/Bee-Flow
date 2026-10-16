@@ -253,7 +253,7 @@ async function importSite(exportData) {
         ? `${incoming.name} (imported)`
         : 'Imported site';
 
-    const { pagesOut, pagesInAligned, slugToNewId } = planPages(incoming);
+    const { pagesOut, pagesInAligned, slugToNewId, renamedSlugs } = planPages(incoming);
     const linkStats = { unresolved: 0 };
     const remapPageLinks = makePageLinkRemapper(slugToNewId, linkStats);
 
@@ -264,7 +264,9 @@ async function importSite(exportData) {
     const { droppedBlocks, blockIdMapByPageIndex } = await writePages({ newSiteId, pagesOut, pagesInAligned, remapPageLinks });
 
     const importedLocales = new Set();
-    const warnings = [];
+    const warnings = renamedSlugs.map(
+        slug => `Page slug "${slug}" is reserved on this site and was renamed to "${slug}-page"`
+    );
     await restoreLocaleOverrides({
         newSiteId, incomingChrome, pagesOut, pagesInAligned, slugToNewId, blockIdMapByPageIndex, importedLocales, warnings, remapPageLinks,
     });

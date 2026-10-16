@@ -6,7 +6,7 @@
 
 const { SITE_DEFAULTS, DESIGN_DEFAULTS } = require('../../i18n/defaults/cmsDefaults');
 const {
-    isPlainObject, clone, deepMerge, mergeLocaleContent, normalizeSlug, sanitizeDesign,
+    isPlainObject, clone, deepMerge, mergeLocaleContent, normalizeStoredSlug, sanitizeDesign,
 } = require('./shared');
 const { getProject } = require('./projects');
 const { getPage } = require('./pages');
@@ -136,7 +136,7 @@ async function resolveEffective(siteId, slug, locale, ctx) {
              || site.pages[0]
              || null;
     } else {
-        const norm = normalizeSlug(slug);
+        const norm = normalizeStoredSlug(slug);
         entry = site.pages.find(p => p.slug === norm) || null;
     }
 

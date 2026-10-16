@@ -9,7 +9,7 @@ const { getAll } = require('../../db');
 const { SITE_DEFAULTS, DESIGN_DEFAULTS } = require('../../i18n/defaults/cmsDefaults');
 const {
     KEY_PROJECTS_INDEX, SITE_VERSION, INDEX_VERSION,
-    newId, isPlainObject, clone, normalizeSlug, isReservedSlug, assertSiteId,
+    newId, isPlainObject, clone, normalizeSlug, normalizeStoredSlug, isReservedSlug, assertSiteId,
     sanitizeDesign, sanitizeAnalytics, sanitizeBlogSettings,
     projectKey, publishedKey,
 } = require('./shared');
@@ -504,7 +504,7 @@ function sanitizePageIndexEntry(entry) {
     // the next save (lazy cleanup, no migration script needed).
     return {
         id: String(entry.id),
-        slug: normalizeSlug(entry.slug || ''),
+        slug: normalizeStoredSlug(entry.slug || ''),
         title: typeof entry.title === 'string' ? entry.title : '',
         isHomepage: !!entry.isHomepage,
         hideHeader: !!entry.hideHeader,

@@ -8,7 +8,7 @@ const { getAll } = require('../../db');
 const { BLOCK_DEFAULTS, BLOCK_TYPE_IDS } = require('../../i18n/defaults/cmsDefaults');
 const {
     PAGE_VERSION, KEY_LOCALE_INFIX,
-    newId, isPlainObject, clone, normalizeSlug, assertSiteId, pageKey,
+    newId, isPlainObject, clone, normalizeStoredSlug, assertSiteId, pageKey,
 } = require('./shared');
 
 // ── Pages ────────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ async function setPage(siteId, page) {
     const sanitized = {
         version: PAGE_VERSION,
         id: String(page.id),
-        slug: normalizeSlug(page.slug || ''),
+        slug: normalizeStoredSlug(page.slug || ''),
         title: typeof page.title === 'string' ? page.title : '',
         seo: isPlainObject(page.seo) ? {
             metaTitle:       typeof page.seo.metaTitle === 'string' ? page.seo.metaTitle : '',
