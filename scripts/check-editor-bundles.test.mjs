@@ -119,7 +119,7 @@ test('building stamps a banner the check accepts, tree-shaken inputs included', 
     const dir = path.join(root, 'agent-hub/src/editor');
     // `unused` is imported but contributes no code: it must still count as an input.
     fs.writeFileSync(path.join(dir, 'unused.js'), 'export const unused = 1;\n');
-    fs.writeFileSync(path.join(dir, 'serialization/index.js'), "import { unused } from '../unused.js';\nexport const a = 1;\nvoid unused;\n");
+    fs.writeFileSync(path.join(dir, 'serialization/index.ts'), "import { unused } from '../unused.js';\nexport const a = 1;\nvoid unused;\n");
     fs.writeFileSync(path.join(dir, 'collab/serverEntry.ts'), "export const b: number = 2;\n");
     const r = await build('md', { esbuild, baseDir: server });
     await build('collab', { esbuild, baseDir: server });

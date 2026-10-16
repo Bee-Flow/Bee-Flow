@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import FindingRow from './FindingRow.jsx';
+import FindingRow from './FindingRow';
 
 /**
  * The shared "this needs a person" row.

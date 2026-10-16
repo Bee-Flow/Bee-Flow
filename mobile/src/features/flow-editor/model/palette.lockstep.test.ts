@@ -33,7 +33,7 @@ const FLOW = path.join(REPO, 'agent-hub/src/components/automation/Builder/flow')
 const web = require(path.join(FLOW, 'stepPalette.ts'));
 const webAppLabels = require(path.join(FLOW, 'appLabels.js'));
 const webRibbon = require(path.join(FLOW, 'appsRibbonLayout.ts'));
-const webIcons = require(path.join(REPO, 'agent-hub/src/utils/integrationIcons.js'));
+const webIcons = require(path.join(REPO, 'agent-hub/src/utils/integrationIcons.ts'));
 const webCatalog = require(path.join(REPO, 'agent-hub/src/config/integrationCatalog.ts'));
 /* eslint-enable @typescript-eslint/no-require-imports */
 

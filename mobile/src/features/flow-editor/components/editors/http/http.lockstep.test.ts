@@ -21,7 +21,7 @@ const SETTINGS = path.join(AGENT_HUB, 'components/automation/Builder/flow/settin
 const src = fs.readFileSync(path.join(SETTINGS, 'actionEditors/httpRequestFields.jsx'), 'utf8');
 const cacheSrc = fs.readFileSync(path.join(SETTINGS, 'actionEditors/cacheIntoRow.tsx'), 'utf8');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
-const kinds = require(path.join(AGENT_HUB, 'utils/httpCredentialTypes.js'));
+const kinds = require(path.join(AGENT_HUB, 'utils/httpCredentialTypes.ts'));
 
 const english = (m: Msg | null): string | null => {
     if (!m) return null;

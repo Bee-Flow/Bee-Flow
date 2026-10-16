@@ -64,7 +64,7 @@ const CLIENT_UTILS = path.join(__dirname, '..', '..', 'agent-hub', 'src', 'utils
 const CLIENT_BRIDGE_FILES = [
     // De platformbruggen staan in server/shared/webpage/; dit is de gegenereerde spiegel die de client laadt.
     path.join(__dirname, '..', '..', 'agent-hub', 'src', 'shared', 'webpage', 'previewBridges.mjs'),
-    path.join(CLIENT_UTILS, 'bfElementsRuntime.js'),
+    path.join(CLIENT_UTILS, 'bfElementsRuntime.ts'),
 ];
 
 /** De brug zoals hij echt wordt uitgezonden. Eén plek, zodat elke test hetzelfde toetst. */
