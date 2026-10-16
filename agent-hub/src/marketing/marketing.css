@@ -3746,3 +3746,21 @@ section.customer-support-block {
     }
     .feature-demo-footer .feature-demo-note { margin-top: 0; }
 }
+
+/* Icon sizes the marketing chrome used to get from Tailwind's `w-4 h-4`, `w-5 h-5`
+   and `w-6 h-6`. The utilities stylesheet arrives after idle on a server-rendered
+   page, so without these the icons render at the SVG default (24px) first and
+   shrink later (layout shift). Scoped to .marketing-root so they never outrank
+   a utility in the app. */
+.marketing-root svg.w-4 { width: 1rem; height: 1rem; }
+.marketing-root svg.w-5 { width: 1.25rem; height: 1.25rem; }
+.marketing-root svg.w-6 { width: 1.5rem; height: 1.5rem; }
+
+/* Silent loop video (LazyLoopVideo): reserve a 16:9 box before the file's
+   metadata is known, so attaching the source on scroll does not resize it. */
+.marketing-root .lazy-loop-video {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { resolveAssetUrl, assetSrcSet, ASSET_IMG_SIZES } from '../assetUrl';
 import ClipVideo from './ClipVideo';
+import LazyLoopVideo from './LazyLoopVideo';
 import type { MediaSlot } from '../sections/sectionData.types';
 
 interface FramedMediaProps {
@@ -76,13 +77,9 @@ export default function FramedMedia({ media, glow = true, fadeMask = false, clas
                     kind === 'clip' ? (
                         <ClipVideo className="cms-frame-media" media={m} />
                     ) : kind === 'video' ? (
-                        <video
+                        <LazyLoopVideo
                             className="cms-frame-media"
                             src={resolveAssetUrl(src)}
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
                         />
                     ) : (
                         <>

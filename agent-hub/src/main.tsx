@@ -17,6 +17,7 @@ import { reportWebVitals } from './utils/webVitalsReporter'
 import { initOpenObserve } from './telemetry/openobserve'
 import { queryClient } from './api/queryClient'
 import './index.css'
+import { ensureAppUtilities } from './styles/appUtilities'
 
 // Nextcloud embed deep link (?ncPath=): must run before anything reads the URL.
 applyNcDeepLink()
@@ -48,6 +49,14 @@ initOpenObserve();
 // owns the real fixture transport, but it is lazy — and the shell's providers
 // mount and fetch while its chunk is still in flight. See sealDemoBeforeBoot.
 sealDemoBeforeBoot(window.location.pathname);
+
+// The Tailwind utilities are a second stylesheet (see index.css): the app waits
+// for them, a server-rendered marketing page does not.
+await ensureAppUtilities(
+    document,
+    () => import('./tailwind-utilities.css'),
+    (e) => console.warn('[main] utilities stylesheet failed to load', e),
+);
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <React.StrictMode>

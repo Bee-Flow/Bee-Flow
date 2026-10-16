@@ -3,43 +3,12 @@ import Button from '../components/Button';
 import EditableText from '../components/EditableText';
 import FramedMedia from '../components/FramedMedia';
 import ClipVideo from '../components/ClipVideo';
+import LazyLoopVideo from '../components/LazyLoopVideo';
 import SectionFrame from '../components/SectionFrame';
 import { migrateLegacyContent, resolveVideoEmbed } from './contentMigration';
-import type { ContentData, ContentElement as ContentElementData } from './contentMigration';
 import { inlineTextStyle } from './textStyle';
-import type { SectionDataBase, TextStyleBlob } from './sectionData.types';
-
-/** A link as the public site leaves it (resolveLinksInTree) or the admin preview does (legacyifyLinks). */
-interface RenderedLink {
-    href?: string;
-    target?: string;
-    rel?: string;
-}
-
-/** An element as the renderer reads it: the migrated shape plus the optional per-kind fields. */
-interface RenderElement extends Omit<ContentElementData, 'link' | 'height'> {
-    /* Published blocks carry the intrinsic size (server/core/cms/mediaDims.js);
-       older ones have neither, and `undefined > 0` is false, which is how the
-       renderer reads them. Typed as numbers for that comparison. */
-    width: number;
-    height: number;
-    headingStyle?: TextStyleBlob;
-    subheadingStyle?: TextStyleBlob;
-    bodyStyle?: TextStyleBlob;
-    headingAlign?: string;
-    subheadingAlign?: string;
-    bodyAlign?: string;
-    frame?: string;
-    fullBleed?: boolean;
-    lightbox?: boolean;
-    source?: string;
-    href?: string;
-    target?: string;
-    rel?: string;
-    link?: RenderedLink;
-}
-
-type ContentBlockData = SectionDataBase & ContentData;
+import type { ContentData } from './contentMigration';
+import type { ContentBlockData, RenderElement } from './Content.types';
 
 /**
  * Flexible Content section. Each block is a grid of N columns, each column
@@ -347,12 +316,8 @@ function VideoElement({ el, pathBase }: ElementProps) {
                 ) : isClip && hasUrl ? (
                     <ClipVideo media={{ ...el, src: el.url }} />
                 ) : hasUrl ? (
-                    <video
-                        src={el.url}
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
+                    <LazyLoopVideo
+                        src={el.url ?? ''}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                 ) : (

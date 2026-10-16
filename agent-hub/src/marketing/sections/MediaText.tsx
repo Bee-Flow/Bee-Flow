@@ -4,6 +4,7 @@ import EditableText from '../components/EditableText';
 import FramedMedia from '../components/FramedMedia';
 import ClipVideo from '../components/ClipVideo';
 import { assetSrcSet } from '../assetUrl';
+import LazyLoopVideo from '../components/LazyLoopVideo';
 import SectionFrame from '../components/SectionFrame';
 import { inlineTextStyle } from './textStyle';
 import type { MediaSlot, SectionDataBase, TextStyleBlob } from './sectionData.types';
@@ -229,14 +230,7 @@ function renderMedia(media: MediaSlot, heading: string) {
         // playsInline is REQUIRED for iOS Safari autoplay; muted is what
         // browsers actually gate autoplay on (audio policy).
         return (
-            <video
-                src={src}
-                autoPlay
-                loop
-                muted
-                playsInline
-                aria-label={alt || undefined}
-            />
+            <LazyLoopVideo src={src} ariaLabel={alt || undefined} />
         );
     }
 

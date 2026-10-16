@@ -1,0 +1,17 @@
+/* Same statement as the top of ./index.css: whichever of the two files a
+   bundle puts first, `utilities` stays the last layer (preflight in `base`
+   must never beat a utility). src/styles/layerOrder.test.ts pins both. */
+@layer properties, theme, base, components, utilities;
+/* The Tailwind `utilities` layer (see the note at the top of ./index.css).
+   It also carries the `dark:` variant definition: variants only apply in the
+   file that generates the utilities. */
+/* The theme is imported by reference: utilities are generated against it (spacing,
+   colours, breakpoints), but its variables are emitted once, by ./index.css. */
+@import "tailwindcss/theme.css" layer(theme) theme(reference);
+@import "tailwindcss/utilities.css" layer(utilities);
+/* Bind the Tailwind `dark:` variant to our theme system (`data-theme`) instead
+   of `prefers-color-scheme`. Without this override the scattered `dark:` classes
+   across the codebase would apply on a dark-mode OS even when the admin picked
+   the Light preset — breaking every page's contrast. Now `dark:bg-white/5`
+   activates exactly when `data-theme` is `dark` or `glass-dark`. */
+@custom-variant dark (&:where([data-theme="dark"] *, [data-theme="glass-dark"] *, [data-theme="obsidian"] *, [data-theme="dark"], [data-theme="glass-dark"], [data-theme="obsidian"]));

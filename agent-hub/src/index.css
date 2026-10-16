@@ -1,11 +1,20 @@
-@import "tailwindcss";
+/* Tailwind is split in two so the public marketing site does not block its
+   first paint on the app's utility classes (issue 245: 459 KB of render-blocking
+   CSS, the bulk of it `utilities`, which only the signed-in product, the embeds
+   and the lazy public pages use).
 
-/* Bind the Tailwind `dark:` variant to our theme system (`data-theme`) instead
-   of `prefers-color-scheme`. Without this override the scattered `dark:` classes
-   across the codebase would apply on a dark-mode OS even when the admin picked
-   the Light preset — breaking every page's contrast. Now `dark:bg-white/5`
-   activates exactly when `data-theme` is `dark` or `glass-dark`. */
-@custom-variant dark (&:where([data-theme="dark"] *, [data-theme="glass-dark"] *, [data-theme="obsidian"] *, [data-theme="dark"], [data-theme="glass-dark"], [data-theme="obsidian"]));
+   This file keeps what every page needs: the layer order, the theme variables
+   (`static`, so a variable only a utility references is still emitted here) and
+   the preflight reset. The utilities layer lives in ./tailwind-utilities.css,
+   which only main.tsx imports (src/styles/appUtilities.ts): before rendering
+   for the app, after idle for a server-rendered marketing page. The full layer
+   order, `properties` included, is declared here AND at the top of that file
+   (src/styles/layerOrder.test.ts pins both), so neither the load order nor the
+   late arrival of the second file can reorder the layers. */
+@layer properties, theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme) theme(static);
+@import "tailwindcss/preflight.css" layer(base);
+
 
 /* User chat bubble — the prose inside the user message keeps black text by
    default because the bubble has a fixed light gray background. The token is
