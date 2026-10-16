@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import AppIcon from '../../../../../icons/AppIcon';
 import Modal from '../../../../../shared/Modal';
 import type { NavModel, NavScreen } from './navModel';
-import type { NavigateFn } from './shell.types';
+import type { NavigateFn } from '../actionRunner/runnerContext';
 
 /**
  * MobileNav — below 640px both shell styles collapse into the same pattern:

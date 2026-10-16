@@ -118,7 +118,9 @@ export interface DefinitionVariable {
 /** The app's identity, as the shell shows it. */
 export interface AppMeta {
     name?: string;
+    description?: string;
     icon?: string;
+    [key: string]: unknown;
 }
 
 export interface AppDefinition {

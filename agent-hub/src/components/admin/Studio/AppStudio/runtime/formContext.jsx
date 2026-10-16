@@ -90,8 +90,9 @@ export function resetAppForm(name) {
  * as required, so a required field the user could not reach blocked submit with
  * an error they could not clear. The wrapper publishes the state here and the
  * field carries it into its registration, where AppForm skips its rules.
+ *
+ * @type {import('react').Context<boolean>}
  */
-/** @type {import('react').Context<boolean>} */
 export const FieldDisabledContext = createContext(false);
 
 /** @returns {FormContextValue | null} */

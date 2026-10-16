@@ -4,7 +4,7 @@ import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 import type { NavGroup, NavModel, NavScreen } from './navModel';
-import type { NavigateFn } from './shell.types';
+import type { NavigateFn } from '../actionRunner/runnerContext';
 
 /**
  * NavMega — the top bar whose GROUPS open a panel (nav.style 'mega').

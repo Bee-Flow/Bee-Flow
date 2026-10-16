@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 import type { NavScreen } from './navModel';
-import type { NavigateFn } from './shell.types';
+import type { NavigateFn } from '../actionRunner/runnerContext';
 
 /**
  * NavTabs — the top-bar tab row (nav.style 'tabs', the default). Groups are
