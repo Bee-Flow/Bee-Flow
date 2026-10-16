@@ -36,7 +36,7 @@ const LABEL_KEYS = new Set(['label', 'name', 'customer', 'sector', 'quoteBy', 's
 // Arrays worth recursing into. Anything else is structural.
 const CHILD_KEYS = new Set([
     'items', 'columns', 'elements', 'categories', 'links', 'cards',
-    'steps', 'features', 'plans', 'entries', 'rows', 'logos', 'tiers', 'metrics',
+    'steps', 'features', 'plans', 'entries', 'rows', 'logos', 'tiers', 'metrics', 'hotspots',
 ]);
 
 // Never emitted, whatever they contain.

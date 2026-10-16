@@ -36,7 +36,7 @@
 'use strict';
 
 const { BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS } = require('../i18n/defaults/cmsDefaults');
-const { checkTabs, checkStoryHeader } = require('./validateBlocks');
+const { checkTabs, checkStoryHeader, checkScrollStory } = require('./validateBlocks');
 const { slugProblem } = require('../stores/cms/slugRules');
 const { checkPageMedia } = require('./validateMedia');
 
@@ -294,6 +294,7 @@ function validateSiteDraft(draftWrap) {
                 }
             }
             if (b?.type === 'tabs') checkTabs(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
+            if (b?.type === 'scrollStory') checkScrollStory(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             if (b?.type === 'story-header') checkStoryHeader(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             // Style v2 enum sanity — invalid values are ignored by the
             // renderer, so warnings only (the model self-corrects).

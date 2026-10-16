@@ -64,9 +64,9 @@ describe('editors barrel', () => {
         }
     });
 
-    it('pins exactly 31 block types, each with an editor component and defaults', () => {
+    it('pins exactly 33 block types, each with an editor component and defaults', () => {
         const types = Object.keys(editors.BLOCK_CATALOGUE);
-        expect(types).toHaveLength(31);
+        expect(types).toHaveLength(33);
         for (const type of types) {
             expect(
                 typeof editors.BLOCK_EDITORS[type]?.component,

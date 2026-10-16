@@ -117,6 +117,8 @@ const BLOCK_TYPE_ALIASES = {
     trustband: 'trust-band', trust_band: 'trust-band',
     productmockup: 'product-mockup', product_mockup: 'product-mockup', mockup: 'product-mockup',
     cardcarousel: 'card-carousel', card_carousel: 'card-carousel', carousel: 'card-carousel',
+    'scroll-story': 'scrollStory', scrollstory: 'scrollStory', scroll_story: 'scrollStory',
+    producttour: 'tour', 'product-tour': 'tour', product_tour: 'tour',
 };
 const BLOCK_STRUCTURAL_KEYS = new Set(['id', 'type', 'enabled', 'content', 'style', 'meta', 'version']);
 

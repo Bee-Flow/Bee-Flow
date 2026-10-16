@@ -1,0 +1,50 @@
+/* Scroll story: a stack of steps by default; the sticky panel is only for wide
+   screens that have not asked for reduced motion (see ScrollStory.tsx). */
+.marketing-root .scroll-story__grid { display: block; }
+.marketing-root .scroll-story__steps { list-style: none; margin: 0; padding: 0; }
+.marketing-root .scroll-story__step { padding: 0 0 48px; outline-offset: 6px; border-radius: var(--radius-base, 12px); }
+.marketing-root .scroll-story__step:focus-visible { outline: 2px solid var(--brand-primary); }
+.marketing-root .scroll-story__inline-media { margin-top: 20px; }
+.marketing-root .scroll-story__panel { display: none; }
+
+@media (min-width: 900px) and (prefers-reduced-motion: no-preference) {
+    .marketing-root .scroll-story:not(.scroll-story--editing) .scroll-story__grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+        gap: 56px;
+        align-items: start;
+    }
+    .marketing-root .scroll-story:not(.scroll-story--editing) .scroll-story__step {
+        min-height: 60vh;
+        padding-bottom: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        opacity: 0.45;
+        transition: opacity 0.3s ease;
+    }
+    .marketing-root .scroll-story:not(.scroll-story--editing) .scroll-story__step.is-active,
+    .marketing-root .scroll-story:not(.scroll-story--editing) .scroll-story__step:focus-within { opacity: 1; }
+    /* Hidden for the eye, still read by a screen reader (the panel repeats it). */
+    .marketing-root .scroll-story:not(.scroll-story--editing) .scroll-story__inline-media {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    .marketing-root .scroll-story:not(.scroll-story--editing) .scroll-story__panel {
+        display: grid;
+        position: sticky;
+        top: calc(var(--header-height, 72px) + 24px);
+        align-self: start;
+    }
+    .marketing-root .scroll-story__slide {
+        grid-area: 1 / 1;
+        opacity: 0;
+        transition: opacity 0.35s ease;
+    }
+    .marketing-root .scroll-story__slide.is-active { opacity: 1; }
+}

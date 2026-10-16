@@ -1,0 +1,31 @@
+.marketing-root .tour__stage { display: grid; gap: 20px; max-width: 960px; margin: 0 auto; }
+.marketing-root .tour__figure { position: relative; }
+.marketing-root .tour__hotspot {
+    position: absolute;
+    left: var(--tour-x, 50%);
+    top: var(--tour-y, 50%);
+    transform: translate(-50%, -50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: var(--brand-primary);
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+.marketing-root .tour__hotspot:focus-visible { outline: 3px solid var(--brand-accent, #fff); outline-offset: 3px; }
+.marketing-root .tour__hotspot.is-open { background: var(--brand-accent, var(--brand-primary)); }
+.marketing-root .tour__panel { min-height: 6.5rem; }
+.marketing-root .tour__nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.marketing-root .tour__count { color: var(--text-secondary); font-size: 0.9rem; }
+
+@media (prefers-reduced-motion: no-preference) {
+    .marketing-root .tour__hotspot:not(.is-open) { animation: tour-pulse 2.4s ease-out infinite; }
+    @keyframes tour-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55), 0 2px 10px rgba(0, 0, 0, 0.35); }
+        70%, 100% { box-shadow: 0 0 0 14px rgba(255, 255, 255, 0), 0 2px 10px rgba(0, 0, 0, 0.35); }
+    }
+}

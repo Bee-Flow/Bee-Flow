@@ -89,4 +89,25 @@ function checkStoryHeader(content, path, warnings) {
     }
 }
 
-module.exports = { checkTabs, checkStoryHeader };
+/**
+ * scrollStory: the sticky panel is inert and hidden from assistive technology,
+ * so the renderer only shows images; a clip or video step is dropped.
+ * @param {unknown} content
+ * @param {string} path
+ * @param {Array<Record<string, unknown>>} warnings
+ */
+function checkScrollStory(content, path, warnings) {
+    const steps = isPlainObject(content) && Array.isArray(content.steps) ? content.steps : [];
+    steps.forEach((step, idx) => {
+        const media = isPlainObject(step) ? step.media : null;
+        if (!isPlainObject(media) || !media.kind || media.kind === 'image') return;
+        warnings.push({
+            code: 'scroll_story_media',
+            path: `${path}.steps[${idx}].media`,
+            message: `Step ${idx + 1} uses ${JSON.stringify(media.kind)} media; a scroll story shows images only.`,
+            hint: 'Use kind "image" (a screenshot or still). Clips and videos have controls and sound that cannot be reached in the sticky panel, so they are not shown.',
+        });
+    });
+}
+
+module.exports = { checkTabs, checkStoryHeader, checkScrollStory };

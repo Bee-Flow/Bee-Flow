@@ -709,6 +709,35 @@ const BLOCK_DEFAULTS = {
             { title: 'Third card', body: 'Describe it in a sentence or two.', gradient: 'dark', numeral: '', linkLabel: '', link: { kind: 'anchor', anchor: '' } },
         ],
     },
+
+    // Scroll story. Steps run down one side; one sticky media panel on the
+    // other changes with the step in view. The same media is also rendered
+    // inside each step for phones, reduced motion and no-JS, so the story
+    // reads in order without any scroll linking. `steps[].media` is the
+    // usual slot ({ kind: 'image' | 'video' | 'clip', src, srcDark, alt }).
+    scrollStory: {
+        eyebrow: '',
+        title: 'How it works',
+        lead: '',
+        steps: [],
+    },
+
+    // Click-through product tour. One screenshot per step, numbered
+    // hotspots on it; a hotspot opens its explanation under the image. The
+    // coordinates `x` and `y` are percentages of the image (0-100). `labels`
+    // is the prose half (button names, "Step 1 of 3") and translates.
+    tour: {
+        eyebrow: '',
+        title: 'Take the tour',
+        lead: '',
+        steps: [],
+        labels: {
+            previous: 'Previous step',
+            next: 'Next step',
+            stepOf: 'Step {n} of {total}',
+            hotspot: 'Hotspot {n}',
+        },
+    },
 };
 
 // ── Block type catalogue (drives the "Add block" picker) ─────────────
@@ -759,6 +788,10 @@ const BLOCK_TYPES = [
     // Same rollback caveat: motion blocks (issue 244).
     { type: 'product-mockup', label: 'Product mockup',  icon: 'AppWindow',          category: 'Content' },
     { type: 'card-carousel',  label: 'Card carousel',   icon: 'Layers',  category: 'Content' },
+    // Same rollback caveat: an export with these blocks imported into an older
+    // deployment drops them.
+    { type: 'scrollStory',   label: 'Scroll story',     icon: 'GalleryVertical',    category: 'Content' },
+    { type: 'tour',          label: 'Product tour',     icon: 'Route',              category: 'Content' },
 ];
 
 // Bounds of a tabs block. The editor stops at the maximum; the validator warns

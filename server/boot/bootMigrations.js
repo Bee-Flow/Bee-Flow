@@ -244,6 +244,7 @@ const NL_TRANSLATIONS = [
     'add-nl-cms-blog-translations',            // Website blog: editor Blog entry, Markdown toolbar, Latest posts block, and the public /nl/blog labels
     'add-nl-cms-redirects-translations',       // Website redirect manager: the Redirects entry and its inspector
     'add-nl-cms-share-image-translations',     // Website design: card style of the generated share image
+    'add-nl-cms-story-tour-2026-10', // Website CMS: scroll story and product tour blocks
     'update-nl-memory-2026-10',                // Memory: Dutch for the memory manager, chat controls, org Memory admin page and Settings lines; "Conversation memory" becomes "Context in lange gesprekken" (old shipped text only)
     // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
     'add-nl-fix-english-2026-10-translations',

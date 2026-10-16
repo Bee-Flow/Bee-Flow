@@ -79,6 +79,12 @@ export const TYPE_ALIASES: Record<string, string> = {
     forms: 'form',
     trustband: 'trust-band',
     'trust_band': 'trust-band',
+    'scroll-story': 'scrollStory',
+    scrollstory: 'scrollStory',
+    'scroll_story': 'scrollStory',
+    producttour: 'tour',
+    'product-tour': 'tour',
+    'product_tour': 'tour',
 };
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {

@@ -7,6 +7,8 @@ import lazySection from './lazySection';
 // stylesheets: they load as their own chunks, off the public entry.
 const ProductMockup = lazySection(() => import('./ProductMockup'));
 const CardCarousel = lazySection(() => import('./CardCarousel'));
+const ScrollStory = lazySection(() => import('./ScrollStory'));
+const Tour = lazySection(() => import('./Tour'));
 
 /**
  * Sections registered by block type outside ProductWebsite.jsx, which sits at
@@ -20,4 +22,6 @@ export const EXTRA_SECTIONS = {
     'customer-stories': CustomerStories,
     'product-mockup': ProductMockup,
     'card-carousel': CardCarousel,
+    scrollStory: ScrollStory,
+    tour: Tour,
 };
