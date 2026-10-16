@@ -33,7 +33,8 @@ const PAGE_SIZE = '20';
 export interface WorkspaceConnectionStatus {
     connected: boolean;
     configured: boolean;
-    user?: string | null;
+    /** The session user the status route echoes back. */
+    user?: { email?: string; displayName?: string } | null;
 }
 
 /** A row in the remote list. Each picker knows its own extra fields. */
@@ -55,6 +56,8 @@ export interface UseGoogleWorkspacePickerOptions {
     /** The key under which the list endpoint returns its array. */
     listKey: string;
     loadErrorMessage: string;
+    /** Named by the callers; the hook itself does not read it. */
+    authWindowName?: string;
     exportItem: (id: string, item: WorkspaceItem | undefined) => Promise<ExportedAttachment>;
 }
 
