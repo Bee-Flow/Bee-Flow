@@ -1,7 +1,5 @@
 import { FileDown, RotateCcw } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import React, { useState } from 'react';
-import type { ComponentType, ReactNode } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import SideDrawerJs, { DrawerSection as DrawerSectionJs } from '../../../../shared/SideDrawer';
@@ -41,23 +39,16 @@ import {
  */
 
 // .jsx/.js exports: their `= null` defaults would type the props as null-only.
-const SideDrawer = SideDrawerJs as unknown as ComponentType<{
-    open?: boolean; onClose?: () => void; mode?: DrawerMode; width?: number; ariaLabel?: string; testId?: string;
-    header?: ReactNode; footer?: ReactNode; children?: ReactNode;
-}>;
-const DrawerSection = DrawerSectionJs as unknown as ComponentType<{ label?: ReactNode; hint?: ReactNode; testId?: string; children?: ReactNode }>;
-const StatusPill = StatusPillJs as unknown as ComponentType<{ tone?: PillTone; title?: string; testId?: string; children: ReactNode }>;
-const ActionButton = ActionButtonJs as unknown as ComponentType<{
-    variant?: string; icon?: LucideIcon; disabled?: boolean; onClick?: () => void; title?: string;
-    className?: string; children?: ReactNode; 'data-testid'?: string;
-}>;
-const Fact = FactJs as unknown as ComponentType<{ label: ReactNode; testId?: string; children?: ReactNode }>;
-const Field = FieldJs as unknown as ComponentType<{ label: ReactNode; hint?: ReactNode; testId?: string; children: ReactNode }>;
-type InputProps = { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number; 'data-testid'?: string };
-const TextInput = TextInputJs as unknown as ComponentType<InputProps>;
-const TextArea = TextAreaJs as unknown as ComponentType<InputProps>;
-const Select = SelectJs as unknown as ComponentType<InputProps & { options: Array<{ value: string; label: string }> }>;
-const Toggle = ToggleJs as unknown as ComponentType<{ checked: boolean; onChange: (v: boolean) => void; label: ReactNode; testId?: string }>;
+const SideDrawer = SideDrawerJs;
+const DrawerSection = DrawerSectionJs;
+const StatusPill = StatusPillJs;
+const ActionButton = ActionButtonJs;
+const Fact = FactJs;
+const Field = FieldJs;
+const TextInput = TextInputJs;
+const TextArea = TextAreaJs;
+const Select = SelectJs;
+const Toggle = ToggleJs;
 const useResource = useResourceJs as unknown as <T>(url: string | null, options?: {
     enabled?: boolean; parse?: (body: unknown) => T | null; onError?: (e: unknown) => T | null;
 }) => { data: T | null; failed: boolean };

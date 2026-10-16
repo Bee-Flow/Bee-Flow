@@ -5,7 +5,7 @@
 // short date format. The work item type chip is TaskFields' TypeChip. Tokens only.
 
 import { Info } from 'lucide-react';
-import React, { type ComponentType } from 'react';
+import React from 'react';
 import type { TaskStatus } from '../../../../api/queries/projectTasks';
 import type { Sprint } from '../../../../api/queries/projectSprints';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
@@ -15,7 +15,7 @@ import { CHIP_CLASS, StatusGlyph } from './TaskFields';
 import { ICON_BUTTON_CLASS, MENU_ITEM_CLASS, MENU_PANEL_CLASS, TOOLBAR_BUTTON_CLASS } from './tasksMenu';
 
 // A .jsx module whose `= null` defaults would type the props as null-only.
-export const AnchoredMenu = AnchoredMenuJs as unknown as ComponentType<Record<string, unknown>>;
+export const AnchoredMenu = AnchoredMenuJs;
 
 export type ChipTone = 'neutral' | 'info' | 'success' | 'warning' | 'error';
 

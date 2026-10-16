@@ -6,7 +6,6 @@
 
 import { Building2, MoreHorizontal, PauseCircle, Search, Users } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import type { ComponentType } from 'react';
 import type { ProjectRole } from '../../../../api/queries/projects';
 import {
     useDeleteProjectChat, useTeamChatAiPolicy, useUpdateProjectChat, type TeamChat, type TeamChatPatch,
@@ -23,7 +22,7 @@ import { SelectField } from '../workspaceUi';
 import AiModeSelector, { aiModeBadge, aiModeHint, effectiveMode } from './AiModeSelector';
 
 // A .jsx module whose `= null` defaults would type the props as null-only.
-const AnchoredMenu = AnchoredMenuJs as unknown as ComponentType<Record<string, unknown>>;
+const AnchoredMenu = AnchoredMenuJs;
 
 const MENU_ITEM = 'w-full text-left px-3 py-1.5 text-[13px] rounded-md text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)] focus:bg-[var(--item-hover-bg)] outline-none';
 

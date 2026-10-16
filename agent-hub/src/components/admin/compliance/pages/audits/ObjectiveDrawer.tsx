@@ -1,7 +1,5 @@
 import { CheckCircle2, RotateCcw } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import React from 'react';
-import type { ComponentType, ReactNode } from 'react';
 import {
     OBJ_STATUS, labelOf, userName, fmtDate, ActionButton as ActionButtonJs, Fact as FactJs,
 } from './auditForms';
@@ -22,19 +20,11 @@ import type { DrawerMode } from '../../shared/useDrawerMode';
  */
 
 // .jsx/.js exports: their `= null` defaults would type the props as null-only.
-const SideDrawer = SideDrawerJs as unknown as ComponentType<{
-    open?: boolean; onClose?: () => void; mode?: DrawerMode; ariaLabel?: string; testId?: string;
-    header?: ReactNode; footer?: ReactNode; children?: ReactNode;
-}>;
-const DrawerFooter = DrawerFooterJs as unknown as ComponentType<{ primary?: ReactNode; testId?: string; children?: ReactNode }>;
-const DeadlineClock = DeadlineClockJs as unknown as ComponentType<{
-    dueAt?: string | null; doneAt?: string | null; variant?: 'row' | 'block' | 'inline' | 'rail'; testId?: string;
-}>;
-const ActionButton = ActionButtonJs as unknown as ComponentType<{
-    variant?: string; icon?: LucideIcon; disabled?: boolean; onClick?: () => void; className?: string;
-    children?: ReactNode; 'data-testid'?: string;
-}>;
-const Fact = FactJs as unknown as ComponentType<{ label: ReactNode; testId?: string; children?: ReactNode }>;
+const SideDrawer = SideDrawerJs;
+const DrawerFooter = DrawerFooterJs;
+const DeadlineClock = DeadlineClockJs;
+const ActionButton = ActionButtonJs;
+const Fact = FactJs;
 
 export type ObjectiveStatus = 'active' | 'achieved' | 'dropped';
 

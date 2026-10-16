@@ -20,13 +20,13 @@
 import { ChevronDown } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React, { useId, useRef, useState } from 'react';
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import AnchoredMenuJs from '../../../shared/AnchoredMenu';
 import { OBJHEAD_FOLD, PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import Tooltip from '../../../shared/Tooltip';
 
 // A .jsx module whose `= null` defaults would type the props as null-only.
-const AnchoredMenu = AnchoredMenuJs as unknown as ComponentType<Record<string, unknown>>;
+const AnchoredMenu = AnchoredMenuJs;
 
 export const HEADER_BUTTON = 'inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] whitespace-nowrap';
 const SECONDARY = `${HEADER_BUTTON} font-medium border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)]`;
