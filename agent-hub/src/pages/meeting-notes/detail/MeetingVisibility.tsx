@@ -4,6 +4,15 @@ import VisibilityCapsule from '../../../components/shared/VisibilityCapsule';
 import { toast } from '../../../components/shared/Toast';
 import useTranslation from '../../../hooks/useTranslation';
 import * as api from '../lib/transcriptionsApi';
+import { errorMessage } from '../../../utils/caughtError';
+import type { OrgGroup } from '../../../components/shared/VisibilityCapsule.types';
+import type { MeetingNote } from './meetingDetailTypes';
+
+interface MeetingVisibilityProps {
+    meeting?: MeetingNote | null;
+    canManage?: boolean;
+    onChange?: (audience: { isPublished: boolean; sharedGroups: string[] }) => void;
+}
 
 /**
  * The meeting's "who can see this" capsule — the shared VisibilityCapsule
@@ -21,11 +30,11 @@ import * as api from '../lib/transcriptionsApi';
  * Non-owners get the capsule disabled: the audience is still readable, the
  * trigger simply cannot open.
  */
-export default function MeetingVisibility({ meeting, canManage = true, onChange }) {
+export default function MeetingVisibility({ meeting, canManage = true, onChange }: MeetingVisibilityProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [orgGroups, setOrgGroups] = useState([]);
+    const [orgGroups, setOrgGroups] = useState<OrgGroup[]>([]);
 
     useEffect(() => {
         if (!canManage) return undefined;
@@ -51,7 +60,7 @@ export default function MeetingVisibility({ meeting, canManage = true, onChange 
     const isPublished = !!meeting?.isPublished;
     const sharedGroups = Array.isArray(meeting?.sharedGroups) ? meeting.sharedGroups : [];
 
-    async function save(nextPublished, groups) {
+    async function save(nextPublished: boolean, groups: string[]) {
         if (!meeting?.id || saving) return;
         const nextGroups = nextPublished ? (groups || []) : [];
         setSaving(true);
@@ -62,13 +71,13 @@ export default function MeetingVisibility({ meeting, canManage = true, onChange 
                 sharedGroups: Array.isArray(data.sharedGroups) ? data.sharedGroups : nextGroups,
             });
         } catch (e) {
-            toast.error(`${t('meeting_notes.publish_failed', 'Publish failed')}: ${e.message}`);
+            toast.error(`${t('meeting_notes.publish_failed', 'Publish failed')}: ${errorMessage(e)}`);
         } finally {
             setSaving(false);
         }
     }
 
-    const toggleGroup = (gid) => {
+    const toggleGroup = (gid: string) => {
         const next = sharedGroups.includes(gid)
             ? sharedGroups.filter((g) => g !== gid)
             : [...sharedGroups, gid];

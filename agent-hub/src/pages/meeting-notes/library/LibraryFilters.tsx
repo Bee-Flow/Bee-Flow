@@ -1,8 +1,10 @@
 import React, { useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { ArrowUpDown, Check, Search } from 'lucide-react';
 import AnchoredMenu from '../../../components/shared/AnchoredMenu';
 import { FilterPill as FilterChip } from '../../../components/shared/FilterPills';
 import useTranslation from '../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../hooks/useTranslation';
 
 /**
  * The library rail's controls (Meeting Notes artboard 1a, the 300px rail):
@@ -26,6 +28,26 @@ export const VISIBLE_TAGS = 5;
 
 const SORT_IDS = ['recent', 'oldest', 'longest', 'title'];
 
+/** One tag chip of the vocabulary: the tag and how many notes carry it. */
+interface TagCount {
+    tag: string;
+    count?: number;
+}
+
+interface LibraryFiltersProps {
+    query: string;
+    onQueryChange: (query: string) => void;
+    sort: string;
+    onSortChange: (sort: string) => void;
+    owner: 'all' | 'mine' | 'shared';
+    onOwnerChange: (owner: 'all' | 'mine' | 'shared') => void;
+    tag: string | null;
+    onTagChange: (tag: string | null) => void;
+    tags?: TagCount[];
+    currentUserId?: string | null;
+    viewSwitch?: ReactNode;
+}
+
 export default function LibraryFilters({
     query, onQueryChange,
     sort, onSortChange,
@@ -34,11 +56,11 @@ export default function LibraryFilters({
     tags = [],
     currentUserId,
     viewSwitch = null,
-}) {
+}: LibraryFiltersProps) {
     const { t } = useTranslation();
     const [expanded, setExpanded] = useState(false);
 
-    const sortLabels = {
+    const sortLabels: Record<string, string> = {
         recent: t('meetings.sort_newest', 'Newest first'),
         oldest: t('meetings.sort_oldest', 'Oldest first'),
         longest: t('meetings.sort_longest', 'Longest first'),
@@ -68,7 +90,7 @@ export default function LibraryFilters({
                     <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
                     <input
                         value={query}
-                        onChange={(e) => onQueryChange(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onQueryChange(e.target.value)}
                         placeholder={t('meetings.search_placeholder', 'Search title, tag or text…')}
                         aria-label={t('meetings.search_label', 'Search meetings')}
                         className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
@@ -141,9 +163,16 @@ export default function LibraryFilters({
  */
 export { FilterChip };
 
-function SortMenu({ sort, onSortChange, labels, t }) {
+interface SortMenuProps {
+    sort: string;
+    onSortChange: (sort: string) => void;
+    labels: Record<string, string>;
+    t: TranslateFn;
+}
+
+function SortMenu({ sort, onSortChange, labels, t }: SortMenuProps) {
     const [open, setOpen] = useState(false);
-    const anchorRef = useRef(null);
+    const anchorRef = useRef<HTMLButtonElement>(null);
     return (
         <>
             <button

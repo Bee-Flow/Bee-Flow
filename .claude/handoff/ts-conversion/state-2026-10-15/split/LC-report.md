@@ -1,8 +1,8 @@
 # L-C report: remaining agent-hub JS sweep (laptop)
 
-Status: round 3 pushed (all checks green). Retry package p9 drafted (3 files); Opus review next.
-Done: 78/314 files, 10 packages merged (round 1: 43; round 2: 26; round 3: p8a 2, p8b 7).
-Next: review + integrate p9 + push (~1 h); then final report. Remaining JS is listed below as blocked / follow-up.
+Status: DONE for this pass. All packages (p1a-p9) merged, reviewed and pushed; branch contains origin/ccr-28820270-xkvwp8 @c02cb12a; all checks green.
+Done: 81/314 files converted by L-C, 11 packages merged (round 1: 43; round 2: 26; round 3: 9; retry p9: 3).
+Next: nothing running. The rest is listed below as blocked (needs a blocker typed first) or "Follow-up: needs runtime rewrite" (owner scope rule).
 
 Branch `ts-laptop/sweep-c`. BASE `0ae29a17` (= origin/ccr-28820270-xkvwp8 at branch time; ts-local/prep2 already in it).
 Final commit: see `git log -1` of the branch (this file is updated with every push).
@@ -45,6 +45,7 @@ runtime-equivalent rewrites.
 | p6 admin, integrations | 16/54 (12 types + RuntimeRow types + localRuntimeApi, LocalModelsCard, RerankerConfig catch recipe; countries reverted by review) | (same gate line) | same |
 | p8a documents, webpages, apps | 2/28 (SourcePicker, BuildBar; documentsApi and AppsHomePage reverted by review) | rounds 2+3 vs 77793e85: 29 identical / 6 different (the 6 = round-2 catch-recipe files) | reviews/LC-round3.md (Opus, CHANGES REQUIRED → fixed in the round-3 fix commit) |
 | p8b marketing, demo, entry files | 7/29 (CookieBanner, LanguageSwitcher, NavIcon, Features, Footer, Integrations, TrustBand; Hero reverted by review) | (same gate line) | same |
+| p9 retry (blocker now TS) | 3/4 (appCatalog, LibraryFilters types; MeetingVisibility catch recipe; sourceMeta stays JS: index by possibly-undefined key) | 779da4b0: 2 identical / 0 different; HEAD: 2 identical / 1 different (MeetingVisibility recipe). hooks/useAppsCatalog.ts (already TS) edited types-only, compiles identical to base (9bee6956) | reviews/LC-p9.md (Opus, APPROVED, no fixes) |
 | p7 settings, login | 2/37 (LearningRail, ConsumerBetaFeaturesSection; 5 reverted by review: bits, OverviewView, ReviewView, widgets, ConsumerUsageSection) | (same gate line) | same |
 
 Catch-recipe commits: downloadWebpageZip `String(err?.message || err)` → `describeError(err)` (// behaviour: a truthy
@@ -86,7 +87,7 @@ Round 2: CoworkPage 3× and VegaLiteRenderer 1× `errorMessage`; ExternalShareSe
 - editor/nodeviews/ImageView — `<img src>` with nullable src
 - editor/serialization/util, astToMd — `parseInt(number)`
 - editor/serialization/htmlToAst, mdToAst — nullable `textContent`/match deref, `last.text += n.text`
-- meeting-notes/lib/sourceMeta, playerData — index by possibly-undefined key; `Map.get(a) - Map.get(b)` (review: sourceMeta may be easy, retry)
+- meeting-notes/lib/sourceMeta — index by possibly-undefined key (retried in p9: callers pass `string | undefined`); playerData — same + `Map.get(a) - Map.get(b)`
 - meeting-notes/lib/transcriptOutputs — `r.lineCount > 0` on optional number
 - meeting-notes/lib/insightsMetrics — model built by later assignment
 - meeting-notes/lib/meetingRules — untyped JSON walk
@@ -127,10 +128,14 @@ Round 2: CoworkPage 3× and VegaLiteRenderer 1× `errorMessage`; ExternalShareSe
 ## Push log
 | Pushed commit | check:fast | server typecheck | duplication (prod / test) | gitleaks | agent-hub tsc | agent-hub vitest | mobile tsc | mobile jest | server npm test |
 |---|---|---|---|---|---|---|---|---|---|
+| p9 + merge of origin/ccr-28820270-xkvwp8 @c02cb12a (L-A round 2 + L-C round 2) as f66e8a1f | 39/39 | 0 errors | 15256 ≤ 15290 / 26228 = 26228 | clean | 0 errors | 1858 files, 21872 pass, 0 errors | 0 errors | 762 suites, 13428 pass | 29058 pass, 0 fail, 0 HUNG |
 | after merging origin/ccr-28820270-xkvwp8 @cfb10394 (L-A round 1 + L-C round 1) as 1c72d170; first vitest run 21872/21872 pass but 2 unhandled 'cancelAnimationFrame is not defined' (recharts' redux timer after teardown) from Studio/Forms/answers/AnswersDashboard.test.jsx, untouched here; that file alone 8/8 ×3; full rerun green | 39/39 | 0 errors | 15172 ≤ 15290 / 26228 = 26228 | clean | 0 errors | 1858 files, 21872 pass, 0 errors (rerun) | 0 errors | 762 suites, 13428 pass | 29058 pass, 0 fail, 0 HUNG |
 | round 3 (at the round-3 fix commit e61d29d8; report-only commit on top) | 39/39 | 0 errors | 15184 ≤ 15290 / 26228 = 26228 | clean | 0 errors | 1858 files, 21872 pass, 0 errors | 0 errors | 762 suites, 13428 pass | 29058 pass, 0 fail, 0 HUNG |
 | round 2 (+ cherry-pick -x cfb10394, the integrator's useBfMarks test mock: first vitest run had 21872/21872 pass but 2 unhandled 'window is not defined' from WebpageIDE.i18n.test.jsx → useBfMarks.ts; full rerun after the cherry-pick green) | 39/39 | 0 errors | 15184 ≤ 15290 / 26228 = 26228 | clean | 0 errors | 1858 files, 21872 pass, 0 errors | 0 errors | 762 suites, 13428 pass | 29058 pass, 0 fail, 0 HUNG |
 | round 1 (checks at the fix commit; then merged c79185eb, a 1-line server test change: that test + check:fast re-run green) | 39/39 | 0 errors | 15225 ≤ 15290 / 26228 = 26228 | clean | 0 errors | 1858 files, 21872 pass | 0 errors | 762 suites, 13428 pass | 29058 pass, 0 fail, 0 HUNG |
+
+## Needs integrator:
+Nothing blocking. Optional: lowering budgets is yours (no --update here); duplication production measured 15256.
 
 ## Integrator: watch at merge
 - Round 1 edited outside agent-hub/src: ci.yml path filters (cmsPublicRouting, utils glob `.{js,ts}`), mobile/scripts/sync-web-tokens.mjs (path + FONT_STACKS regex tolerates an annotation; webTokens.generated.ts regenerated, comment-only), mobile lockstep tests (billing, http, palette, roles, derive, insights), server tests reading bfElements/publicBridgeScript/seo/previewDocument paths, scripts/lib/editor-bundles.mjs + check-editor-bundles.test.mjs + both editor bundles (serialization/index.ts), agent-hub knip.json.
@@ -141,4 +146,6 @@ Round 2: CoworkPage 3× and VegaLiteRenderer 1× `errorMessage`; ExternalShareSe
 - Round 2 type-only edits in TS files outside the packages: hooks/useGoogleWorkspacePicker.ts (status.user = session user object, optional authWindowName), cowork/cowork.types.ts (CoworkPageProps), useProviderConfig.ts, tierTypes.ts (CustomTier budgetTokens, verbosity), AddRuntimeForm.tsx (imports new ProviderCards/local/runtimeTypes.ts). Accepted casts: ExternalShareSection `s.url as string` and OrgAuthSection `as OrgFormData` (value cannot change after the guard).
 - Cherry-picked (-x) the integrator's cfb10394 (WebpageIDE.i18n.test.jsx mocks ./useBfMarks) from ts-int/staging: without it the full vitest run ends red on 2 unhandled rejections. Identical patch, merges cleanly with staging.
 - Load flake, not ours: Studio/Forms/answers/AnswersDashboard.test.jsx can end a full vitest run with an unhandled 'cancelAnimationFrame is not defined' from @reduxjs/toolkit's autoBatch timer (recharts) firing after jsdom teardown; passes alone.
+- p9 follow-ups (review, not blockers): AppsPicker.tsx keeps its own narrower AppDef (one home: appCatalog.tsx); two different TagCount shapes in meeting-notes; a few comments still name `.jsx` paths (AppsPicker → appCatalog.jsx).
+- Duplication slack after the latest convert merge is 34 lines (15256 / 15290): the next mobile-clone conversion can tip it.
 - Mirror candidates (under budget, not mirrored): FilterPills ↔ mobile shared/ui/Chip.tsx; VisibilityCapsule ↔ mobile shared/patterns/AudienceSheet.tsx; subscriptions/access/countries.js ↔ mobile features/org/model/countries.ts (kept JS: converting makes a 105-line clone).
