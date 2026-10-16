@@ -54,8 +54,9 @@ const kit = require('./importJobKit');
 const { codedError, backoffMsFor, meetingEndMs } = kit;
 
 // A Teams recording lands in OneDrive/SharePoint shortly after the meeting;
-// nothing 24 h after the end means it was not recorded (the common case).
-const NO_RECORDING_DEADLINE_MS = 24 * 3600_000;
+// nothing 48 h after the end means it was not recorded (the common case).
+// Processing of long meetings can take a day, so 24 h froze jobs too early.
+const NO_RECORDING_DEADLINE_MS = 48 * 3600_000;
 const INGEST_LEASE_MINUTES = Number(process.env.TEAMS_INGEST_LEASE_MINUTES) || 120;
 const MAX_INGEST_ATTEMPTS = 3;
 const MAX_USERS_PER_TICK = 100;
@@ -306,4 +307,4 @@ async function processDue({ limit = 2 } = {}) {
     });
 }
 
-module.exports = { init, discover, processDue, processJobInline, findArtifact };
+module.exports = { init, discover, processDue, processJobInline, findArtifact, NO_RECORDING_DEADLINE_MS };

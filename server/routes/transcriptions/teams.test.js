@@ -11,6 +11,7 @@ const assert = require('node:assert');
 const http = require('node:http');
 const express = require('express');
 const router = require('./teams');
+const realAutoImport = require('../../core/meetingNotes/teamsAutoImport');
 
 const hoursAgo = (h) => new Date(Date.now() - h * 3600_000).toISOString();
 const fx = {};
@@ -21,6 +22,7 @@ function reset() {
     fx.prefs = {};
     fx.meeting = { id: 'M1' };
     fx.artifact = null;
+    fx.artifactError = false;
     fx.job = null;
 }
 reset();
@@ -37,7 +39,7 @@ router.init({
         listRecentlyEndedTeamsMeetings: async () => fx.ended,
     },
     artifacts: { getOnlineMeetingByJoinUrl: async () => fx.meeting },
-    autoImport: { findArtifact: async () => fx.artifact },
+    autoImport: { findArtifact: async () => { if (fx.artifactError) throw new Error('graph'); return fx.artifact; }, NO_RECORDING_DEADLINE_MS: realAutoImport.NO_RECORDING_DEADLINE_MS },
     importStore: { getJobForEvent: async () => fx.job },
     meetingPrefs: {
         teamsIds: ({ eventId }) => [{ kind: 'event', id: eventId }],
@@ -86,4 +88,29 @@ test('teams-meetings: an opt-out stays excluded', async () => {
     fx.upcoming = [upcoming()];
     fx.prefs.e1 = false;
     assert.strictEqual((await getJson('/teams-meetings')).meetings[0].status, 'excluded');
+});
+
+test('teams-recordings: ended recently without artifact is processing, not none', async () => {
+    fx.ended = [ended()];
+    const out = await getJson('/teams-recordings');
+    assert.strictEqual(out.items[0].recordingState, 'processing');
+});
+
+test('teams-recordings: past the 48 h deadline without artifact is none', async () => {
+    fx.ended = [ended({ start: hoursAgo(50), end: hoursAgo(49) })];
+    assert.strictEqual((await getJson('/teams-recordings')).items[0].recordingState, 'none');
+});
+
+test('teams-recordings: artifact kinds; no online meeting is none; a Graph error stays processing', async () => {
+    fx.ended = [ended()];
+    fx.artifact = { kind: 'recording', id: 'R' };
+    assert.strictEqual((await getJson('/teams-recordings')).items[0].recordingState, 'available');
+    fx.artifact = { kind: 'transcript', id: 'T' };
+    assert.strictEqual((await getJson('/teams-recordings')).items[0].recordingState, 'transcript_only');
+    fx.artifact = null;
+    fx.meeting = null;
+    assert.strictEqual((await getJson('/teams-recordings')).items[0].recordingState, 'none');
+    fx.meeting = { id: 'M1' };
+    fx.artifactError = true;
+    assert.strictEqual((await getJson('/teams-recordings')).items[0].recordingState, 'processing');
 });

@@ -4,7 +4,7 @@
  * Covers: discovery (organizer-only seeding, opt-in, licence and scope skips,
  * per-meeting opt-out, unparking), the per-job pipeline (recording preferred,
  * transcript fallback, transcript switch off = no transcript, waiting with
- * backoff, the 24 h no-recording deadline, not-organizer), ingest retries and
+ * backoff, the 48 h no-recording deadline, not-organizer), ingest retries and
  * terminal codes, claim-time opt-out and needs_reauth parking.
  *
  * Every dependency is injected through init(); the job store is an
@@ -323,8 +323,14 @@ test('transcript API switched off by the tenant counts as "no transcript yet", n
     assert.ok(fx.store.jobs[0].backoffMs > 0);
 });
 
-test('nothing 24 h after the end → terminal no_recording', async () => {
-    await seeded({ meetingStart: hoursAgo(30), meetingEnd: hoursAgo(29) });
+test('no artifact 30 h after the end still waits (deadline is 48 h)', async () => {
+    await seeded({ meetingStart: hoursAgo(31), meetingEnd: hoursAgo(30) });
+    await auto.processDue();
+    assert.strictEqual(fx.store.jobs[0].status, 'awaiting_artifacts');
+});
+
+test('nothing 48 h after the end → terminal no_recording', async () => {
+    await seeded({ meetingStart: hoursAgo(50), meetingEnd: hoursAgo(49) });
     await auto.processDue();
     assert.strictEqual(fx.store.jobs[0].status, 'no_recording');
 });

@@ -183,6 +183,10 @@ export default function TeamsImportPanel({ onComplete }: { onComplete?: () => vo
                                         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                                         {busy ? t('meetings.transcribing', 'Transcribing…') : t('meetings.transcribe', 'Transcribe')}
                                     </button>
+                                ) : item.recordingState === 'processing' ? (
+                                    <span className="flex items-center gap-1 text-xs flex-shrink-0 text-[var(--text-muted)]">
+                                        <Clock className="w-3.5 h-3.5" /> {t('meetings.teams_recording_processing', 'Recording still processing, check again later')}
+                                    </span>
                                 ) : (
                                     <span className="text-xs flex-shrink-0 text-[var(--text-muted)]">{t('meetings.gmeet_no_recording', 'No recording')}</span>
                                 )}

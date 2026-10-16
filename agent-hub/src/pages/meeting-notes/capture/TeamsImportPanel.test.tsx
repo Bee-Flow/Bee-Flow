@@ -25,6 +25,7 @@ const ITEMS = [
     { eventId: 'e1', title: 'Weekly sync', start: '2026-09-30T10:00:00Z', end: '2026-09-30T10:45:00Z', recordingState: 'available', importedNoteId: null },
     { eventId: 'e2', title: 'Board', start: '2026-09-30T12:00:00Z', end: '2026-09-30T13:00:00Z', recordingState: 'transcript_only', importedNoteId: null },
     { eventId: 'e3', title: 'Standup', start: '2026-09-30T09:00:00Z', end: '2026-09-30T09:15:00Z', recordingState: 'none', importedNoteId: null },
+    { eventId: 'e5', title: 'Fresh', start: '2026-09-30T14:00:00Z', end: '2026-09-30T15:00:00Z', recordingState: 'processing', importedNoteId: null },
     { eventId: 'e4', title: 'Retro', start: '2026-09-29T15:00:00Z', end: '2026-09-29T16:00:00Z', recordingState: 'available', importedNoteId: 'n4' },
 ];
 
@@ -52,7 +53,8 @@ describe('TeamsImportPanel', () => {
         render(<TeamsImportPanel />);
         expect(screen.getAllByRole('button', { name: 'Transcribe' })).toHaveLength(2);
         expect(screen.getByText(/transcript only, no audio/)).toBeTruthy();
-        expect(screen.getByText('No recording')).toBeTruthy();
+        expect(screen.getAllByText('No recording')).toHaveLength(1);
+        expect(screen.getByText('Recording still processing, check again later')).toBeTruthy();
         expect(screen.getByText('Note created')).toBeTruthy();
     });
 
