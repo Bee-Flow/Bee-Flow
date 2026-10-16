@@ -18,6 +18,10 @@ import ExpressionInput from './ExpressionInput';
  *
  * `value` is the raw expression string; onChange emits the raw string.
  */
+/**
+ * @param {import('./ExpressionInput').ExpressionInputProps} props Passed to ExpressionInput as is; a caller's `variant` wins over 'block'.
+ * @returns {import('react').ReactElement}
+ */
 export default function FormulaField(props) {
     return <ExpressionInput variant="block" {...props} />;
 }

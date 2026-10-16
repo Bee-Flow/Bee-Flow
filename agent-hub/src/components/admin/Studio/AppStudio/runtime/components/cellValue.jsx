@@ -441,7 +441,7 @@ function textToneStyle(col, row, value) {
     if (!tone || tone === 'neutral' || !ROLE_COLORS[tone]) return undefined;
     return { color: roleTextColor(tone) };
 }
-
+/** @param {import('./cellValue.types').CellValueProps} props */
 export default function CellValue({ value, format = 'text', col = null, row = null, now = null }) {
     const { t } = useTranslation();
     const main = renderMainValue({ value, format, col, row, now, t });

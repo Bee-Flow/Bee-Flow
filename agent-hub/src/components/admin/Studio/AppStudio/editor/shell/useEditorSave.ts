@@ -33,7 +33,7 @@ const useAppAutosave = useAppAutosaveJs as unknown as (options: {
     onSaved: (version: number | string, notices: SaveNotices) => void;
     onConflict: (payload: SaveConflict) => void;
     onInvalid: (payload: SaveNotices) => void;
-}) => { flush: FlushFn; status: string; error: unknown; markSaved: MarkSavedFn };
+}) => { flush: FlushFn; status: string; error: string | null; markSaved: MarkSavedFn };
 
 interface EditorSaveInputs {
     appId: string | undefined;

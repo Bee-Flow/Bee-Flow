@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ComponentType, KeyboardEvent } from 'react';
+import type { KeyboardEvent } from 'react';
 import useTranslation from '../../../../../../../hooks/useTranslation';
 import CellValueJs from '../cellValue';
 import { CLAMP_STYLE } from './gridConstants';
 
-// cellValue.jsx is untyped and its `= null` defaults infer as `null`.
-export const CellValue = CellValueJs as unknown as ComponentType<{
-    value: unknown; format?: string; col?: unknown; row?: unknown; now?: number | null;
-}>;
+// cellValue.jsx is still JavaScript; its JSDoc types the props.
+export const CellValue = CellValueJs;
 
 /**
  * The cell-level pieces of the App Studio data grid: the peek panel for a
