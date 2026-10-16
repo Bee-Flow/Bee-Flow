@@ -32,7 +32,7 @@ function factsLine(run: LogRun, t: TranslateFn, openable: boolean): string {
         trigger ? t(trigger.key, trigger.en) : run.triggerKind?.replace(/_/g, ' '),
         entered,
         run.durationMs !== null ? formatSeconds(run.durationMs / 1000) : null,
-        run.mode === 'dry_run' ? t('mobile.runs.test_run', 'Test run') : null,
+        run.mode === 'dry_run' ? t('automations.canvas.run_kind_test', 'Test run') : null,
         openable ? null : t('mobile.runs.not_yours', 'Started by someone else'),
     ]
         .filter(Boolean)

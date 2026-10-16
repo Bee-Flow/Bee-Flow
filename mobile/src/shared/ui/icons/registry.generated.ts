@@ -115,6 +115,7 @@ import FolderGit2 from 'lucide-react-native/icons/folder-git-2';
 import FolderOpen from 'lucide-react-native/icons/folder-open';
 import FolderSync from 'lucide-react-native/icons/folder-sync';
 import Funnel from 'lucide-react-native/icons/funnel';
+import GalleryVertical from 'lucide-react-native/icons/gallery-vertical';
 import Gauge from 'lucide-react-native/icons/gauge';
 import Gavel from 'lucide-react-native/icons/gavel';
 import Gift from 'lucide-react-native/icons/gift';
@@ -218,6 +219,7 @@ import Rocket from 'lucide-react-native/icons/rocket';
 import RotateCcw from 'lucide-react-native/icons/rotate-ccw';
 import RotateCcwClock from 'lucide-react-native/icons/rotate-ccw-clock';
 import RotateCw from 'lucide-react-native/icons/rotate-cw';
+import Route from 'lucide-react-native/icons/route';
 import Rows3 from 'lucide-react-native/icons/rows-3';
 import Rss from 'lucide-react-native/icons/rss';
 import Save from 'lucide-react-native/icons/save';
@@ -408,6 +410,7 @@ export const ICON_REGISTRY = {
     FolderOpen,
     FolderSync,
     Funnel,
+    GalleryVertical,
     Gauge,
     Gavel,
     Gift,
@@ -519,6 +522,7 @@ export const ICON_REGISTRY = {
     Rocket,
     RotateCcw,
     RotateCw,
+    Route,
     Rows3,
     Rss,
     Save,
@@ -646,6 +650,7 @@ export const WEB_ICON_NAMES = [
     'Folder',
     'FolderOpen',
     'FolderSync',
+    'GalleryVertical',
     'Gauge',
     'Gavel',
     'Gift',
@@ -701,6 +706,7 @@ export const WEB_ICON_NAMES = [
     'Repeat',
     'Rocket',
     'RotateCcw',
+    'Route',
     'RotateCw',
     'Scale',
     'ScrollText',

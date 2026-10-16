@@ -197,7 +197,7 @@ jobs:
               - 'server/compliance/aiAct/{annexIii.js,signals.js}'
               - 'server/compliance/dsr/mask.js'
               - 'server/config/orgRoles.json'
-              - 'server/core/automationRunner/execFlow.js'
+              - 'server/core/automationRunner/{execFlow,linearEdges}.js'
               - 'server/core/documents/documentContract.js'
               - 'server/core/entitlements/entitlements.js'
               - 'server/core/kb/kbUsage.js'
@@ -234,7 +234,7 @@ jobs:
               - 'server/shared/expr/*'
               - 'server/stores/*'
               - 'server/stores/agent/sharedConversations.js'
-              - 'server/stores/automationStore/{folders.js,forms.js,lifecycle.js,runs.js,versions.js,webhooks.js}'
+              - 'server/stores/automationStore/{folders.js,forms.js,lifecycle.js,orgRunRow.js,runs.js,versions.js,webhooks.js}'
               - 'server/stores/datatableStore/{rowMappers.js,usage.js}'
               - 'server/stores/user/{groups.js,users.js}'
               - 'server/stores/webpage/{sources.js,versions.js}'
@@ -350,6 +350,10 @@ jobs:
               - 'agent-hub/src/components/forms/{PublicFormRenderer.tsx,PublicFormRenderer.types.ts,resultFile.ts}'
               - 'agent-hub/src/components/shared/{AnchoredMenu.tsx,illustrations.tsx}'
               - 'agent-hub/src/hooks/{useAutomationApi.ts,useAutomationApi.types.ts,useTranslation.tsx}'
+              # required by useTranslation.tsx, and what those require in turn
+              - 'agent-hub/src/hooks/demoLang.ts'
+              - 'agent-hub/src/i18n/{loadEnglishDefaults,enNamespaces}.ts'
+              - 'agent-hub/src/demo/demoNamespaces.ts'
               - 'agent-hub/src/utils/{appVersion.ts,cmsPublicRouting.ts,copyText.ts,helpers.ts,helpers.types.ts,sseStream.js,storageMigrations.ts}'
             python:
               - 'guard-service/**'

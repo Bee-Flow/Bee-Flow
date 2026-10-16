@@ -19,6 +19,8 @@ import path from 'node:path';
 const REPO = path.resolve(__dirname, '../../../..');
 const VENDOR = path.join(__dirname, 'vendor');
 const ENGINE_FILES = [
+    'codePoints.mjs',
+    'dates.mjs',
     'engine.mjs',
     'fileTypes.mjs',
     'flatten.mjs',
