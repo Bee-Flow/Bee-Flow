@@ -1,5 +1,6 @@
 import type { MutableRefObject } from 'react';
 import type { AutomationBuilderSendOptions, AutomationBuilderState } from '../../../hooks/useAutomationBuilderStream';
+import { errorMessage } from '../../../utils/caughtError';
 import scopedStorage from '../../../utils/scopedStorage';
 import { followUpPlanId } from './chat/planBuild';
 import { isBlankDefinition, normalizeDefinitionShape } from './flow/normalizeDefinition';
@@ -77,9 +78,7 @@ export function makeBuilderSend(c: BuilderSendContext) {
                 seedMetadata: c.seedMetadata || null,
             });
         } catch (error) {
-            // A thrown string or number has no .message; fall back to its text.
-            const message = typeof error === 'object' && error !== null && 'message' in error ? error.message : undefined;
-            c.setError((typeof message === 'string' && message) || String(error));
+            c.setError(errorMessage(error) || String(error));
         }
     };
 }

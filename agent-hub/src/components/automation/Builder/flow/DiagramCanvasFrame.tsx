@@ -3,11 +3,12 @@ import type { ReactFlowProps } from '@xyflow/react';
 import type { ComponentProps, ReactNode, RefObject } from 'react';
 import DiagramOverlays from './DiagramOverlays';
 import { DiagramReactFlow } from './DiagramReactFlow';
-type ReactFlowHandlers = ComponentProps<typeof DiagramReactFlow>['handlers'];
 import { NodeRuntimeContext } from './NodeRuntimeContext';
 import { PresenterContext } from './PresenterContext';
 import RibbonFlightLayer from './RibbonFlightLayer';
 import type { useCanvasEditing } from './useCanvasEditing';
+
+type ReactFlowHandlers = ComponentProps<typeof DiagramReactFlow>['handlers'];
 
 export interface DiagramCanvasFrameProps {
     presenter: boolean;
