@@ -11,6 +11,8 @@ Scope (user decision, mid-session): only types-only and caught-error-recipe conv
 
 Method: packages by dependency layer. Where a JS module must stay JS (react-hooks disable, runtime blocker) but blocks its TS callers through inferred `= null` prop types, it gets JSDoc only (comments, plus a sibling `*.types.ts` where .file-budget.json leaves no room), reviewed against body and callers (checkJs is off, so tsc does not verify JSDoc).
 
+- B3 (caught-error casts) was done by L-C and is merged on staging (075904b9); L-A's duplicate fix-b3 was dropped unpushed.
+
 ## fix-b2: final-review B2 (stale `as unknown as` shims) + non-null part of B3
 Branch `ts-laptop/fix-b2`, BASE 060da5ca (origin/ts-int/staging), origin/ts-int/staging 0058a60e merged before the push. Commits: 2d8c732b (B2), 7b5985fb (B3 `!`), 703440ca (review fixes). Review: reviews/LA-fix-b2.md (Opus, approve with fixes → applied).
 - Types only: emitted JS of every modified .ts/.tsx identical to 060da5ca (esbuild compare, 53/53 + review fixes); `ts-equivalence 060da5ca HEAD` 0 different (no renames). No file deleted.
