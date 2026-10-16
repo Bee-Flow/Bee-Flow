@@ -100,13 +100,17 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
 
         const found = await resolveSite(args);
         if (found.error) return err(found.error);
-        const next = JSON.parse(JSON.stringify(found.project));
+        // What to change, validated first and applied below to the SiteDoc as stored then.
+        /** @type {Record<string, any>} */
+        const sectionPatches = {};
+        let newName;
+        let newAnalytics;
 
         if (args.name !== undefined) {
             if (typeof args.name !== 'string' || !args.name.trim() || args.name.length > 200) {
                 return err('name must be text of 1-200 characters.');
             }
-            next.name = args.name.trim();
+            newName = args.name.trim();
         }
         for (const section of SETTING_SECTIONS) {
             if (args[section] === undefined) continue;
@@ -120,21 +124,33 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
             const bad = Object.keys(patch).filter((k) => !valid.includes(k));
             if (bad.length) return err(`${section} has no setting called ${bad.join(', ')}.`, { _fixHint: `Valid ${section} keys: ${valid.join(', ')}.` });
             if ('enabled' in patch && typeof patch.enabled !== 'boolean') return err(`${section}.enabled must be true or false.`);
-            next[section] = deps.cmsParts.deepMerge(next[section] || deps.defaults.SITE_DEFAULTS[section], patch);
+            sectionPatches[section] = patch;
         }
         if (args.analytics !== undefined) {
             if (!isPlainObject(args.analytics)) return err('analytics must be an object like {gaMeasurementId:"G-XXXXXXXXXX"}.');
             const asked = String(args.analytics.gaMeasurementId ?? '').trim();
             const cleaned = deps.cmsParts.sanitizeAnalytics({ gaMeasurementId: asked });
             if (asked && !cleaned.gaMeasurementId) return err(`"${asked.slice(0, 40)}" is not a Google Analytics 4 id.`, { _fixHint: 'It looks like G-ABC123XYZ (the letter G, a dash, 4-20 letters or digits). Send "" to clear it.' });
-            next.analytics = cleaned;
+            newAnalytics = cleaned;
         }
 
+        const applyPatches = (site) => {
+            if (newName !== undefined) site.name = newName;
+            for (const [section, patch] of Object.entries(sectionPatches)) {
+                site[section] = deps.cmsParts.deepMerge(site[section] || deps.defaults.SITE_DEFAULTS[section], patch);
+            }
+            if (newAnalytics !== undefined) site.analytics = newAnalytics;
+        };
+        // Validate the result of the patch on today's copy before anything is written...
+        const next = JSON.parse(JSON.stringify(found.project));
+        applyPatches(next);
         const chromeProblem = cmsStore.validateSiteChrome(next);
         if (chromeProblem) {
             return err(chromeProblem, { _fixHint: 'Nothing was saved. Lists (columns, links, socials, ctas) must be lists of objects, text fields must be text, and link kinds are page, external, anchor or app. Read the current values with cms_get_site_settings.' });
         }
-        const saved = await cmsStore.setProject(found.siteId, next);
+        // ...then apply it to the SiteDoc as stored under the store's lock: a settings call
+        // running in parallel with another edit keeps both, and the page list is untouched.
+        const { site: saved } = await cmsStore.mutateProject(found.siteId, applyPatches, { bumpRev: true });
         const draftWrap = await loadDraft(found.siteId, ctx);
         const validation = validationOf(draftWrap);
         const changed = { siteId: found.siteId, updated: sent };

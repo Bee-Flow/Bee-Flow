@@ -16,6 +16,7 @@ const languageStore = require('../stores/languageStore');
 const { HttpError } = require('../core/http/errors');
 const { getLiveSiteId, setLiveSiteId, ensurePublishedSnapshot } = require('./cmsShared');
 const { provisionAnalyticsForSite } = require('./cmsAnalytics');
+const { clientRev } = require('../stores/cms/revision');
 
 // ── Shared handler bodies ────────────────────────────────────────
 //
@@ -51,11 +52,18 @@ async function putSiteDoc(req, res) {
     const chromeProblem = cmsStore.validateSiteChrome(site);
     if (chromeProblem) throw new HttpError(400, 'invalid_site_chrome', chromeProblem);
     try {
+        // Chrome only (name, header, footer, design, ...): the page list and the
+        // homepage belong to the page operations, and a copy of them from an
+        // editor that has been open a while would erase pages created since.
+        const expectedRev = clientRev(site.rev, 'site', { route: 'PUT /site', siteId: req.siteId });
         const report = {};
-        const saved = await cmsStore.setProject(req.siteId, site, report);
+        const saved = await cmsStore.updateSiteChrome(req.siteId, site, { expectedRev, report });
         // `localeOverrides`: header/footer translations re-aligned to this save's item order.
         res.json({ success: true, site: saved, localeOverrides: report.localeOverrides });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) {
+        if (err instanceof HttpError) throw err;
+        res.status(400).json({ error: err.message });
+    }
 }
 
 async function putSiteLocale(req, res) {

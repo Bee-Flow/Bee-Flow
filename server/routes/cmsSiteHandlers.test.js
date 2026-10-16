@@ -42,7 +42,7 @@ mock.method(cmsStore, 'getSiteLocaleOverride', async () => ({ kept: 'manual' }))
 mock.method(cmsStore, 'setSiteLocaleOverride', async (...args) => { calls.push(['setSiteLocaleOverride', ...args]); });
 mock.method(cmsStore, 'saveTranslatedSiteOverride', async (...args) => { calls.push(['saveTranslatedSiteOverride', ...args]); return args[2]; });
 mock.method(cmsStore, 'deleteSiteLocaleOverride', async (...args) => { calls.push(['deleteSiteLocaleOverride', ...args]); });
-mock.method(cmsStore, 'setProject', async (id, site) => { calls.push(['setProject', id]); return site; });
+mock.method(cmsStore, 'updateSiteChrome', async (...args) => { calls.push(['updateSiteChrome', ...args]); return { id: args[0], rev: 5 }; });
 mock.method(cmsStore, 'setDefaultLocale', async (code) => { calls.push(['setDefaultLocale', code]); });
 mock.method(languageStore, 'getAvailableLocales', async () => [{ code: 'nl', name: 'Nederlands' }]);
 mock.method(cmsTranslate, 'aiTranslateSite', async (args) => {
@@ -211,5 +211,16 @@ test('putSiteDoc: a footer whose columns is a string is refused, nothing is save
 test('putSiteDoc: a sound site is saved', async () => {
     const res = await call(handlers.putSiteDoc, { siteId: 'pj_aaaa1111', body: { site: { footer: { columns: [] } } } });
     assert.strictEqual(res.body.success, true);
-    assert.deepStrictEqual(calls, [['setProject', 'pj_aaaa1111']]);
+    assert.deepStrictEqual(calls.map((c) => c[0]), ['updateSiteChrome']);
+});
+
+test('putSiteDoc saves the chrome against the revision the editor was based on', async () => {
+    const res = await call(handlers.putSiteDoc, { siteId: 'pj_aaaa1111', body: { site: { name: 'N', rev: 4, pages: [] } } });
+    assert.deepStrictEqual(res.body, { success: true, site: { id: 'pj_aaaa1111', rev: 5 }, localeOverrides: undefined });
+    assert.deepStrictEqual(calls, [['updateSiteChrome', 'pj_aaaa1111', { name: 'N', rev: 4, pages: [] }, { expectedRev: 4, report: {} }]]);
+});
+
+test('putSiteDoc without a revision still saves (soft path for one release), unchecked', async () => {
+    await call(handlers.putSiteDoc, { siteId: 'pj_aaaa1111', body: { site: { name: 'N' } } });
+    assert.deepStrictEqual(calls, [['updateSiteChrome', 'pj_aaaa1111', { name: 'N' }, { expectedRev: undefined, report: {} }]]);
 });

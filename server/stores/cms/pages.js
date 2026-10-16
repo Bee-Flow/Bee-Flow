@@ -4,6 +4,7 @@
 // had to drop.
 
 const configStore = require('../configStore');
+const { revOf, CONFLICT_CODE } = require('./revision');
 const { getAll } = require('../../db');
 const { BLOCK_DEFAULTS, BLOCK_TYPE_IDS } = require('../../i18n/defaults/cmsDefaults');
 const {
@@ -42,10 +43,17 @@ async function getPage(siteId, pageId, { fresh = false } = {}) {
     assertSiteId(siteId);
     const read = fresh ? configStore.getConfigFresh : configStore.getConfig;
     const v = await read(pageKey(siteId, pageId));
-    return isPlainObject(v) ? v : null;
+    // `rev` is always present for the caller (0 for pages saved before revisions).
+    return isPlainObject(v) ? { ...v, rev: revOf(v) } : null;
 }
 
-async function setPage(siteId, page) {
+/**
+ * @param {string} siteId
+ * @param {any} page
+ * @param {{ expectedRev?: number }} [opts] when set, the save is refused with
+ *   409 unless the stored page is still at that revision
+ */
+async function setPage(siteId, page, { expectedRev } = {}) {
     assertSiteId(siteId);
     if (!isPlainObject(page) || !page.id) throw new Error('page.id required');
     const { blocks, dropped } = sanitizeBlocks(Array.isArray(page.blocks) ? page.blocks : []);
@@ -62,12 +70,36 @@ async function setPage(siteId, page) {
         } : { metaTitle: '', metaDescription: '', ogImage: '', noIndex: false },
         blocks,
     };
-    // Content + re-keyed locale overrides land in one transaction.
-    const localeOverrides = await writePageAligned(siteId, sanitized);
+    // Content, re-keyed locale overrides and the revision land in one transaction.
+    const report = {};
+    const localeOverrides = await writePageAligned(siteId, sanitized, { expectedRev, report });
     // Return the dropped blocks alongside the saved page so callers can warn
     // the user (the render + persist layers otherwise discard unknown-type
     // blocks silently — the "import → empty page, no error" failure mode).
-    return { page: sanitized, dropped, localeOverrides };
+    return { page: { ...sanitized, rev: report.rev ?? 0 }, dropped, localeOverrides };
+}
+
+/**
+ * Read-modify-write of one page that never loses a concurrent save: `change`
+ * gets a private copy of the CURRENT stored page and returns the page to save;
+ * if somebody saves in between, the change is applied again to their version.
+ * `change` must be pure (it can run more than once) and may throw to abort.
+ * @param {string} siteId
+ * @param {string} pageId
+ * @param {(page: any) => any} change
+ * @param {{ attempts?: number }} [opts]
+ */
+async function mutatePage(siteId, pageId, change, { attempts = 5 } = {}) {
+    for (let attempt = 1; ; attempt++) {
+        const cur = await getPage(siteId, pageId, { fresh: true });
+        if (!cur) throw new Error('Page not found');
+        const next = change(clone(cur));
+        try {
+            return await setPage(siteId, { ...next, id: pageId }, { expectedRev: cur.rev });
+        } catch (e) {
+            if (e?.code !== CONFLICT_CODE || attempt >= attempts) throw e;
+        }
+    }
 }
 
 // Forgiving aliases for casing/spelling variants of our block type strings —
@@ -153,6 +185,6 @@ async function deletePage(siteId, pageId) {
 }
 
 module.exports = {
-    emptyPage, makeBlock, getPage, setPage,
+    emptyPage, makeBlock, getPage, setPage, mutatePage,
     normalizeBlockRecord, sanitizeBlocks, sanitizeBlock, deletePage,
 };

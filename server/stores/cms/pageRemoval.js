@@ -62,6 +62,9 @@ async function removePage(siteId, pageId) {
     let newHomepage = null;
     /** @type {string[]} */
     let remainingIds = [];
+    // Stripped links change the chrome, so the chrome revision moves too: an
+    // editor tab holding the old copy must not bring a link to the deleted page back.
+    let chromeChanged = false;
     try {
         await mutateProject(siteId, (site) => {
             const entry = site.pages.find(p => p.id === pageId);
@@ -72,10 +75,12 @@ async function removePage(siteId, pageId) {
                 site.homepageId = site.pages[0]?.id || null;
                 if (site.pages[0]) newHomepage = { id: site.pages[0].id, slug: site.pages[0].slug };
             }
+            const chromeBefore = JSON.stringify([site.header, site.footer]);
             if (isPlainObject(site.header)) site.header = stripPageRefsToDeleted(site.header, pageId);
             if (isPlainObject(site.footer)) site.footer = stripPageRefsToDeleted(site.footer, pageId);
+            chromeChanged = JSON.stringify([site.header, site.footer]) !== chromeBefore;
             remainingIds = site.pages.map(p => p.id);
-        });
+        }, { bumpRev: () => chromeChanged });
     } catch (e) {
         if (e instanceof PageNotFound) return null;
         throw e;

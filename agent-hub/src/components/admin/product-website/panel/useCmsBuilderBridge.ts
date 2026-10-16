@@ -2,11 +2,10 @@
 // container — moved verbatim from ProductWebsitePanel.jsx. State stays owned
 // by the panel (threaded in as arguments).
 import { useCallback, useMemo } from 'react';
-import { authFetch } from '../../../../utils/helpers';
 import type useConfirm from '../../../shared/useConfirm';
 import { errorMessage } from '../../../../utils/caughtError';
 import { toast } from '../../../shared/Toast';
-import { cmsApi } from '../cmsApi';
+import { revertBuilderTurn } from './cmsTurnUndo';
 import { HEADER_VIRTUAL_ID, isVirtualPageId } from '../sentinels';
 import type { CmsPageDoc, CmsSiteDoc } from './cmsPanelTypes';
 import type useCmsPanelState from './useCmsPanelState';
@@ -155,48 +154,12 @@ export default function useCmsBuilderBridge({
         });
         if (!ok) return;
         try {
-            // 1. DELETE created pages FIRST — removePage rewrites the site
-            //    index, so restoring the pre-turn site doc afterwards leaves
-            //    the index canonical.
-            for (const id of turn.created) {
-                const res = await authFetch(cmsApi.page(siteId, id), { method: 'DELETE' });
-                if (!res.ok && res.status !== 404) {
-                    const d = await res.json().catch(() => ({}));
-                    throw new Error(d.error || `Failed to delete page (${res.status})`);
-                }
-            }
-            // 2. Restore the pre-turn site doc (index + chrome + design).
-            if (turn.preSite) {
-                const res = await authFetch(cmsApi.site(siteId), {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ site: turn.preSite }),
-                });
-                if (!res.ok) {
-                    const d = await res.json().catch(() => ({}));
-                    throw new Error(d.error || 'Failed to restore site');
-                }
-            }
-            // 3. Restore each touched pre-existing page.
-            for (const id of turn.touched) {
-                if (turn.created.includes(id)) continue;
-                const pre = turn.prePages.find(p => p.id === id);
-                if (!pre) continue;
-                const res = await authFetch(cmsApi.page(siteId, id), {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ page: pre }),
-                });
-                if (!res.ok) {
-                    const d = await res.json().catch(() => ({}));
-                    throw new Error(d.error || 'Failed to restore page');
-                }
-            }
+            const restored = await revertBuilderTurn(siteId, turn);
             // Fold the snapshot back locally WITHOUT scheduling saves.
-            siteStateRef.current = turn.preSite;
-            pagesStateRef.current = turn.prePages;
-            setSiteDoc(turn.preSite);
-            setPages(turn.prePages);
+            siteStateRef.current = restored.site;
+            pagesStateRef.current = restored.pages;
+            setSiteDoc(restored.site);
+            setPages(restored.pages);
             if ((turn.created as readonly (string | null)[]).includes(activePageId)) setActivePageId(HEADER_VIRTUAL_ID);
             builderTurnRef.current = null;
             disarmBuilderUndo();

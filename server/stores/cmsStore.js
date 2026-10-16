@@ -39,7 +39,7 @@ const { BLOCK_TYPE_IDS } = require('../i18n/defaults/cmsDefaults');
 const { RESERVED_PAGE_SLUGS } = require('./cms/slugRules');
 const {
     makeBlock, sanitizeBlocks,
-    getPage, setPage, deletePage,
+    getPage, setPage, mutatePage, deletePage,
 } = require('./cms/pages');
 const {
     isValidLocale, getDefaultLocale, setDefaultLocale,
@@ -49,7 +49,7 @@ const {
 } = require('./cms/localeOverrides');
 const { saveTranslatedPageOverride, saveTranslatedSiteOverride } = require('./cms/translatedOverrides');
 const {
-    listProjects, createProject, getProject, setProject,
+    listProjects, createProject, getProject, setProject, mutateProject, updateSiteChrome,
     deleteProject, renameProject, duplicateProject, sanitizePageIndexEntry,
     createPage, updatePageMeta, setHomepage, reorderPages,
 } = require('./cms/projects');
@@ -76,11 +76,12 @@ module.exports = {
     // locale settings
     getDefaultLocale, setDefaultLocale, isValidLocale,
     // projects
-    listProjects, createProject, getProject, setProject, deleteProject, renameProject, duplicateProject,
+    listProjects, createProject, getProject, setProject, mutateProject, updateSiteChrome,
+    deleteProject, renameProject, duplicateProject,
     // site-locale overrides
     getSiteLocaleOverride, setSiteLocaleOverride, deleteSiteLocaleOverride,
     // pages
-    getPage, setPage, deletePage,
+    getPage, setPage, mutatePage, deletePage,
     getPageLocaleOverride, setPageLocaleOverride, deletePageLocaleOverride,
     saveTranslatedPageOverride, saveTranslatedSiteOverride,
     createPage, removePage, updatePageMeta, setHomepage, reorderPages,

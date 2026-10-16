@@ -954,3 +954,39 @@ test('cmsStore builder session: round-trip + ≤64KB trim drops OLDEST messages 
     assert.ok(!stored.messages.some((m) => m.content.startsWith('0:')), 'oldest dropped first');
     assert.strictEqual(stored.sessionId, 'cms_trim');
 });
+
+// ── Parallel tool calls (the MCP agent issues them concurrently) ─────
+
+test('cms_update_block: two parallel calls on one page each keep the other\'s edit', async () => {
+    const draft = await makeDraft();
+    const home = homeId(draft);
+    const added = await applyToolCall(draft, 'cms_add_blocks', {
+        pageId: home, blocks: [{ type: 'faq' }, { type: 'faq' }],
+    });
+    const [first, second] = added.blockIds;
+
+    const [a, b] = await Promise.all([
+        applyToolCall(draft, 'cms_update_block', { pageId: home, blockId: first, contentPatch: { heading: 'edited A' } }),
+        applyToolCall(draft, 'cms_update_block', { pageId: home, blockId: second, contentPatch: { heading: 'edited B' } }),
+    ]);
+
+    assert.ok(!a.error && !b.error, JSON.stringify([a, b]));
+    const stored = await cmsStore.getPage(draft.siteId, home, { fresh: true });
+    assert.strictEqual(stored.blocks.find((x) => x.id === first).content.heading, 'edited A');
+    assert.strictEqual(stored.blocks.find((x) => x.id === second).content.heading, 'edited B');
+});
+
+test('cms_update_header_nav and cms_update_design in parallel keep each other and a page created meanwhile', async () => {
+    const draft = await makeDraft();
+    const [nav, design, created] = await Promise.all([
+        applyToolCall(draft, 'cms_update_header_nav', { nav: [{ label: 'Home', link: { kind: 'page', pageId: homeId(draft) } }] }),
+        applyToolCall(draft, 'cms_update_design', { colorsPatch: { primary: '#112233' } }),
+        applyToolCall(draft, 'cms_create_page', { slug: 'extra', title: 'Extra' }),
+    ]);
+
+    assert.ok(!nav.error && !design.error && !created.error, JSON.stringify([nav, design, created]));
+    const site = await cmsStore.getProject(draft.siteId, { fresh: true });
+    assert.deepStrictEqual(site.header.nav.map((i) => i.label), ['Home']);
+    assert.strictEqual(site.design.colors.primary, '#112233');
+    assert.deepStrictEqual(site.pages.map((p) => p.slug), ['home', 'extra']);
+});

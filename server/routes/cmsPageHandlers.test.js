@@ -32,7 +32,7 @@ mock.method(cmsStore, 'getPage', async (siteId, id) => (id === state.page?.id ? 
 mock.method(cmsStore, 'getPageLocaleOverride', async () => null);
 mock.method(cmsStore, 'saveTranslatedPageOverride', async (...args) => { calls.push(['saveTranslatedPageOverride', ...args]); return args[3]; });
 mock.method(cmsStore, 'setPageLocaleOverride', async (...args) => { calls.push(['setPageLocaleOverride', ...args]); });
-mock.method(cmsStore, 'setPage', async (siteId, page) => { calls.push(['setPage', siteId, page]); return { page, dropped: 2 }; });
+mock.method(cmsStore, 'setPage', async (siteId, page, opts) => { calls.push(['setPage', siteId, page, opts]); return { page, dropped: 2 }; });
 mock.method(cmsStore, 'removePage', async (siteId, id) => (id === 'pg1'
     ? { removed: { id, slug: 'x' }, newHomepage: null, neutralisedLinks: 3 } : null));
 mock.method(cmsStore, 'reorderPages', async (...args) => { calls.push(['reorderPages', ...args]); });
@@ -76,8 +76,8 @@ test.after(() => {
 });
 
 test('putPage writes to the page in the URL, whatever id the body carries, and reports dropped blocks', async () => {
-    const res = await call(handlers.putPage, { params: { id: 'pg1' }, body: { page: { id: 'pg-other', title: 'T' } } });
-    assert.deepStrictEqual(calls, [['setPage', 'pj_aaaa1111', { id: 'pg1', title: 'T' }]]);
+    const res = await call(handlers.putPage, { params: { id: 'pg1' }, body: { page: { id: 'pg-other', title: 'T', rev: 3 } } });
+    assert.deepStrictEqual(calls, [['setPage', 'pj_aaaa1111', { id: 'pg1', title: 'T', rev: 3 }, { expectedRev: 3 }]]);
     assert.strictEqual(res.body.dropped, 2);
     assert.strictEqual(res.body.page.id, 'pg1');
 });
@@ -129,4 +129,9 @@ test('deletePageHandler answers 404 for an unknown page and reports the outcome 
     const ok = await call(handlers.deletePageHandler, { params: { id: 'pg1' } });
     assert.strictEqual(ok.statusCode, 200);
     assert.strictEqual(ok.body.neutralisedLinks, 3);
+});
+
+test('putPage without a revision still saves (soft path for one release), unchecked', async () => {
+    await call(handlers.putPage, { params: { id: 'pg1' }, body: { page: { title: 'T' } } });
+    assert.deepStrictEqual(calls, [['setPage', 'pj_aaaa1111', { id: 'pg1', title: 'T' }, { expectedRev: undefined }]]);
 });

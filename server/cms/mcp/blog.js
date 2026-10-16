@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Blog tools of the CMS MCP server: list, read, write and delete posts, edit a
  * post's Markdown body in place, translate it, and set the blog index heading.
@@ -441,23 +442,22 @@ function createBlogHandlers(deps) {
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
         if (!takeWriteBudget(ctx.userId)) return budgetSpent();
-        const project = await cmsStore.getProject(site.siteId, { fresh: true });
-        const current = cmsStore.sanitizeBlogSettings(project.blog);
         const merge = (base, patch) => {
-            if (!patch) return base;
             const out = { ...base };
-            for (const [loc, v] of Object.entries(patch)) {
+            for (const [loc, v] of Object.entries(patch || {})) {
                 if (typeof v !== 'string' || !v.trim()) delete out[loc];
                 else out[loc] = v;
             }
             return out;
         };
-        const next = {
-            title: merge(current.title, args.title),
-            description: merge(current.description, args.description),
-            postsPerPage: args.postsPerPage ?? current.postsPerPage,
-        };
-        const saved = await cmsStore.setProject(site.siteId, { ...project, blog: next });
+        const { site: saved } = await cmsStore.mutateProject(site.siteId, (project) => {
+            const current = cmsStore.sanitizeBlogSettings(project.blog);
+            project.blog = {
+                title: merge(current.title, args.title),
+                description: merge(current.description, args.description),
+                postsPerPage: args.postsPerPage ?? current.postsPerPage,
+            };
+        }, { bumpRev: true });
         return { result: { siteId: site.siteId, blogSettings: saved.blog } };
     }
 

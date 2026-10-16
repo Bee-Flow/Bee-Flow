@@ -149,12 +149,18 @@ async function getPageDoc(draftWrap, pageId) {
 
 /** Refresh the SiteDoc after a site-index mutation. */
 async function refreshSite(draftWrap) {
-    draftWrap.site = await cmsStore.getProject(draftWrap.siteId);
+    draftWrap.site = await cmsStore.getProject(draftWrap.siteId, { fresh: true });
 }
 
-/** Persist a PageDoc through the store's sanitizer and refresh the cache. */
-async function persistPage(draftWrap, pageDoc) {
-    const { page, dropped } = await cmsStore.setPage(draftWrap.siteId, pageDoc);
+/**
+ * Apply `change` to the CURRENT stored PageDoc (not the per-turn cache copy)
+ * and persist it through the store's sanitizer and revision check, so two
+ * tool calls running in parallel on one page each keep the other's edit.
+ * `change(doc)` gets a private copy, returns the page to save, may run again
+ * on a newer version, and throws to abort.
+ */
+async function persistPage(draftWrap, pageId, change) {
+    const { page, dropped } = await cmsStore.mutatePage(draftWrap.siteId, pageId, change);
     draftWrap.pages.set(page.id, page);
     draftWrap.touchedPageIds.add(page.id);
     return { page, dropped };
@@ -333,8 +339,9 @@ async function applyUpdatePageSeo(draftWrap, args) {
     }
     const doc = await getPageDoc(draftWrap, pageId);
     if (!doc) return { error: `Page document for ${pageId} is missing.`, _fixHint: pageIdsHint(draftWrap) };
-    const next = { ...clone(doc), seo: { ...(isPlainObject(doc.seo) ? doc.seo : {}), ...patch } };
-    const { page } = await persistPage(draftWrap, next);
+    const { page } = await persistPage(draftWrap, pageId, (d) => ({
+        ...d, seo: { ...(isPlainObject(d.seo) ? d.seo : {}), ...patch },
+    }));
     return { pageId, seo: clone(page.seo) };
 }
 
@@ -406,9 +413,16 @@ async function applyAddBlocks(draftWrap, args) {
         };
     }
 
-    const blocks = [...(doc.blocks || [])];
-    blocks.splice(pos.index, 0, ...minted);
-    const { page } = await persistPage(draftWrap, { ...clone(doc), blocks });
+    const { page } = await persistPage(draftWrap, pageId, (d) => {
+        const blocks = [...(d.blocks || [])];
+        // The index was resolved against the copy this turn loaded; on a newer
+        // version keep the same anchor when it still exists, else clamp.
+        const anchor = isPlainObject(args.position) && typeof args.position.afterBlockId === 'string'
+            ? resolveInsertIndex(blocks, args.position, d) : null;
+        const at = anchor && !anchor.error ? anchor.index : Math.min(pos.index, blocks.length);
+        blocks.splice(at, 0, ...minted);
+        return { ...d, blocks };
+    });
     const survivors = new Set(page.blocks.map((b) => b.id));
     const result = {
         pageId,
@@ -442,31 +456,43 @@ async function applyUpdateBlock(draftWrap, args) {
         return { error: 'Nothing to change — pass contentPatch, stylePatch and/or enabled.' };
     }
 
-    const block = doc.blocks[idx];
-    const next = clone(block);
     let styleHints = [];
-    if (hasContent) next.content = deepMerge(block.content, args.contentPatch);
+    let validatedStyle = null;
     if (hasStyle) {
         const validated = validateStylePatch(args.stylePatch);
         if (validated.error) return validated;
         styleHints = validated.hints;
-        const mergedStyle = { ...(isPlainObject(block.style) ? clone(block.style) : {}) };
-        for (const [k, v] of Object.entries(validated.style)) {
-            if ((k === 'colorOverrides' || k === 'spacing') && isPlainObject(mergedStyle[k])) {
-                mergedStyle[k] = { ...mergedStyle[k], ...v };
-            } else {
-                mergedStyle[k] = v;
-            }
-        }
-        next.style = mergedStyle;
+        validatedStyle = validated.style;
     }
-    if (hasEnabled) next.enabled = args.enabled;
+    // Applied to the block as stored NOW, so a patch on one field never undoes
+    // a patch another call made to the same block a moment ago.
+    const patchBlock = (block) => {
+        const next = clone(block);
+        if (hasContent) next.content = deepMerge(block.content, args.contentPatch);
+        if (validatedStyle) {
+            const mergedStyle = { ...(isPlainObject(block.style) ? clone(block.style) : {}) };
+            for (const [k, v] of Object.entries(validatedStyle)) {
+                if ((k === 'colorOverrides' || k === 'spacing') && isPlainObject(mergedStyle[k])) {
+                    mergedStyle[k] = { ...mergedStyle[k], ...v };
+                } else {
+                    mergedStyle[k] = v;
+                }
+            }
+            next.style = mergedStyle;
+        }
+        if (hasEnabled) next.enabled = args.enabled;
+        return next;
+    };
 
-    const blocks = [...doc.blocks];
-    blocks[idx] = next;
-    const { page } = await persistPage(draftWrap, { ...clone(doc), blocks });
+    const { page } = await persistPage(draftWrap, pageId, (d) => {
+        const at = (d.blocks || []).findIndex((b) => b.id === blockId);
+        if (at < 0) throw new Error(`Block ${JSON.stringify(blockId)} was removed from page ${pageId} by another edit.`);
+        const blocks = [...d.blocks];
+        blocks[at] = patchBlock(d.blocks[at]);
+        return { ...d, blocks };
+    });
     const saved = page.blocks.find((b) => b.id === blockId);
-    const result = { pageId, blockId, type: saved?.type, enabled: saved ? saved.enabled : next.enabled };
+    const result = { pageId, blockId, type: saved?.type, enabled: saved ? saved.enabled : patchBlock(doc.blocks[idx]).enabled };
     if (styleHints.length) result._hints = styleHints;
     return result;
 }
@@ -482,8 +508,7 @@ async function applyRemoveBlock(draftWrap, args) {
     if (!(doc.blocks || []).some((b) => b.id === blockId)) {
         return { error: `Unknown blockId ${JSON.stringify(blockId)} on page ${pageId}.`, _fixHint: blockIdsHint(doc) };
     }
-    const blocks = doc.blocks.filter((b) => b.id !== blockId);
-    await persistPage(draftWrap, { ...clone(doc), blocks });
+    await persistPage(draftWrap, pageId, (d) => ({ ...d, blocks: (d.blocks || []).filter((b) => b.id !== blockId) }));
     // Server twin of the admin panel's client-side pruning: drop every
     // locale's translation entry for the removed block.
     const prunedLocales = await cmsStore.pruneBlockLocaleOverrides(draftWrap.siteId, pageId, blockId);
@@ -515,9 +540,14 @@ async function applyReorderBlocks(draftWrap, args) {
             _fixHint: blockIdsHint(doc),
         };
     }
-    const byId = new Map(doc.blocks.map((b) => [b.id, b]));
-    const blocks = ordered.map((id) => byId.get(id));
-    await persistPage(draftWrap, { ...clone(doc), blocks });
+    await persistPage(draftWrap, pageId, (d) => {
+        const byId = new Map((d.blocks || []).map((b) => [b.id, b]));
+        // Blocks another edit added meanwhile are not in `ordered`: keep them, at the end.
+        const placed = ordered.filter((id) => byId.has(id));
+        const placedSet = new Set(placed);
+        const blocks = [...placed.map((id) => byId.get(id)), ...(d.blocks || []).filter((b) => !placedSet.has(b.id))];
+        return { ...d, blocks };
+    });
     return { pageId, order: ordered };
 }
 
@@ -714,23 +744,14 @@ function sanitizeHeaderNav(draftWrap, rawNav) {
 async function applyUpdateHeaderNav(draftWrap, args) {
     const sanitized = sanitizeHeaderNav(draftWrap, args?.nav);
     if (sanitized.error) return sanitized;
-    // Re-read the SiteDoc IMMEDIATELY before the write. draftWrap.site is
-    // loaded once at turn start and only refreshed after an earlier
-    // site-index tool, so it can be minutes stale by the time the model
-    // calls this — and setProject rewrites the WHOLE doc (name, pages
-    // index, homepageId, chrome, design, analytics) with no CAS. Without
-    // this refresh, a concurrent edit by another admin (sessions are
-    // site-scoped and shared) would be silently reverted and any page they
-    // created mid-turn would be dropped from the index. Every sibling tool
-    // gets this for free by re-reading inside the store at call time.
-    await refreshSite(draftWrap);
-    if (!isPlainObject(draftWrap.site)) {
-        return { error: 'No site loaded — reload the builder.' };
-    }
-    const site = clone(draftWrap.site);
-    site.header = { ...(isPlainObject(site.header) ? site.header : {}), nav: sanitized.nav };
+    // The edit is applied to the SiteDoc as stored NOW, under the store's lock
+    // (draftWrap.site can be minutes stale, and sessions are shared between
+    // admins): only header.nav changes, so a page another admin created
+    // meanwhile, or any other chrome they saved, stays.
     try {
-        await cmsStore.setProject(draftWrap.siteId, site);
+        await cmsStore.mutateProject(draftWrap.siteId, (site) => {
+            site.header = { ...(isPlainObject(site.header) ? site.header : {}), nav: sanitized.nav };
+        }, { bumpRev: true });
     } catch (e) {
         return { error: e.message };
     }
@@ -881,42 +902,30 @@ function sanitizeDesignPatch(args) {
 async function applyUpdateDesign(draftWrap, args) {
     const sanitized = sanitizeDesignPatch(args);
     if (sanitized.error) return sanitized;
-    // Re-read the SiteDoc IMMEDIATELY before the write. draftWrap.site is
-    // loaded once at turn start and only refreshed after an earlier
-    // site-index tool, so it can be minutes stale by the time the model
-    // calls this — and setProject rewrites the WHOLE doc (name, pages
-    // index, homepageId, chrome, design, analytics) with no CAS. Without
-    // this refresh, a concurrent edit by another admin (sessions are
-    // site-scoped and shared) would be silently reverted and any page they
-    // created mid-turn would be dropped from the index. Every sibling tool
-    // gets this for free by re-reading inside the store at call time.
-    await refreshSite(draftWrap);
-    if (!isPlainObject(draftWrap.site)) {
-        return { error: 'No site loaded — reload the builder.' };
-    }
-    const site = clone(draftWrap.site);
-    let design = isPlainObject(site.design) ? clone(site.design) : {};
-    const { preset, ...groups } = sanitized.patch;
-
-    // A preset MATERIALIZES its concrete values first (the renderer never
-    // looks a preset up), mirroring applyPreset() on the client: nested
-    // groups are re-cloned wholesale so nothing leaks from the old theme,
-    // and the uploaded logo/favicon are kept.
-    if (preset) {
-        const entry = THEME_PRESETS.find((p) => p.id === preset);
-        design = { ...design, ...clone(entry.design), logo: design.logo || '', favicon: design.favicon || '', preset };
-    }
-    // Then the explicit patches layer on top, DEEP-MERGED per group so
-    // { colorsPatch:{primary} } keeps the other six colours.
-    for (const [key, value] of Object.entries(groups)) {
-        design[key] = isPlainObject(value) && isPlainObject(design[key])
-            ? { ...design[key], ...value }
-            : value;
-    }
-    site.design = design;
-
+    // Applied to the SiteDoc as stored NOW, under the store's lock: only
+    // `design` changes, so pages and chrome saved meanwhile by another admin stay.
     try {
-        await cmsStore.setProject(draftWrap.siteId, site);
+        await cmsStore.mutateProject(draftWrap.siteId, (site) => {
+            let design = isPlainObject(site.design) ? clone(site.design) : {};
+            const { preset, ...groups } = sanitized.patch;
+
+            // A preset MATERIALIZES its concrete values first (the renderer never
+            // looks a preset up), mirroring applyPreset() on the client: nested
+            // groups are re-cloned wholesale so nothing leaks from the old theme,
+            // and the uploaded logo/favicon are kept.
+            if (preset) {
+                const entry = THEME_PRESETS.find((p) => p.id === preset);
+                design = { ...design, ...clone(entry.design), logo: design.logo || '', favicon: design.favicon || '', preset };
+            }
+            // Then the explicit patches layer on top, DEEP-MERGED per group so
+            // { colorsPatch:{primary} } keeps the other six colours.
+            for (const [key, value] of Object.entries(groups)) {
+                design[key] = isPlainObject(value) && isPlainObject(design[key])
+                    ? { ...design[key], ...value }
+                    : value;
+            }
+            site.design = design;
+        }, { bumpRev: true });
     } catch (e) {
         return { error: e.message };
     }
@@ -924,7 +933,7 @@ async function applyUpdateDesign(draftWrap, args) {
     // CRITICAL: report what was PERSISTED, never the request. sanitizeDesign
     // coerces silently, so echoing the patch back would tell the model an
     // edit succeeded that the store had already dropped.
-    const saved = isPlainObject(draftWrap.site?.design) ? draftWrap.site.design : design;
+    const saved = isPlainObject(draftWrap.site?.design) ? draftWrap.site.design : {};
     return { design: clone(saved), summary: summariseDesign(saved) };
 }
 

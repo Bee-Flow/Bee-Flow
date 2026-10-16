@@ -24,6 +24,7 @@
 
 const crypto = require('crypto');
 const configStore = require('../configStore');
+const { revOf, assertRevMatches } = require('./revision');
 
 /** configStore.withConfigGroup is attached at load time (configStoreGroup.js). */
 const store = /** @type {typeof configStore & { withConfigGroup: ReturnType<typeof import('../configStoreGroup').createWithConfigGroup> }} */ (configStore);
@@ -206,32 +207,45 @@ async function realignSiteOverrides(io, siteId, prevSite, nextSite) {
  * Write a site document and re-align its site-locale overrides in ONE
  * transaction locked on the site key. `report.localeOverrides` receives the
  * overrides that moved (locale -> override) so the caller can hand them to the editor.
+ * With `expectedRev`, the stored site must still be at that chrome revision
+ * (409 otherwise); the stored revision is raised when `bumpRev`, and the one
+ * stored is reported as `report.rev`.
  * @param {string} siteId
  * @param {any} sanitized
- * @param {{ localeOverrides?: Record<string, any> }} [report]
+ * @param {{ localeOverrides?: Record<string, any>, rev?: number }} [report]
+ * @param {{ expectedRev?: number, bumpRev?: boolean }} [opts]
  */
-async function writeSiteAligned(siteId, sanitized, report) {
+async function writeSiteAligned(siteId, sanitized, report, { expectedRev, bumpRev = true } = {}) {
     const key = projectKey(siteId);
-    const moved = await withConfigGroup(key, async (io) => {
+    const { moved, rev } = await withConfigGroup(key, async (io) => {
         const previous = await io.get(key);
-        await io.set(key, sanitized);
-        return realignSiteOverrides(io, siteId, previous, sanitized);
+        assertRevMatches(previous, expectedRev, 'site');
+        const nextRev = bumpRev ? revOf(previous) + 1 : revOf(previous);
+        await io.set(key, { ...sanitized, rev: nextRev });
+        return { moved: await realignSiteOverrides(io, siteId, previous, sanitized), rev: nextRev };
     });
-    if (report) report.localeOverrides = moved;
+    if (report) { report.localeOverrides = moved; report.rev = rev; }
 }
 
 /**
  * Write a page document and re-align its locale overrides in ONE transaction
  * locked on the page key. Returns the overrides that moved (locale -> override).
+ * With `expectedRev`, the stored page must still be at that revision (409
+ * otherwise, and nothing, overrides included, is written). The revision is
+ * raised on every write; the one stored is reported as `report.rev`.
  * @param {string} siteId
  * @param {any} sanitized
+ * @param {{ expectedRev?: number, report?: { rev?: number } }} [opts]
  * @returns {Promise<Record<string, any>>}
  */
-function writePageAligned(siteId, sanitized) {
+function writePageAligned(siteId, sanitized, { expectedRev, report } = {}) {
     const key = pageKey(siteId, sanitized.id);
     return withConfigGroup(key, async (io) => {
         const previous = await io.get(key);
-        await io.set(key, sanitized);
+        assertRevMatches(previous, expectedRev, 'page');
+        const rev = revOf(previous) + 1;
+        await io.set(key, { ...sanitized, rev });
+        if (report) report.rev = rev;
         return realignPageOverrides(io, siteId, previous, sanitized);
     });
 }

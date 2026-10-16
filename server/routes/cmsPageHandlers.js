@@ -12,6 +12,8 @@
 const cmsStore = require('../stores/cmsStore');
 const cmsTranslate = require('../core/cms/cmsTranslate');
 const { localeName } = require('./cmsSiteHandlers');
+const { HttpError } = require('../shared/httpErrors');
+const { clientRev } = require('../stores/cms/revision');
 
 async function postPageAiTranslate(req, res) {
     const locale = String(req.params.locale || '').toLowerCase();
@@ -67,7 +69,10 @@ async function putPagesOrder(req, res) {
 async function putPageMeta(req, res) {
     try {
         const updated = await cmsStore.updatePageMeta(req.siteId, req.params.id, req.body || {});
-        res.json({ success: true, page: updated });
+        // A slug/title change is mirrored into the PageDoc and raises its revision;
+        // the editor needs the new one for its next save of this page.
+        const doc = await cmsStore.getPage(req.siteId, req.params.id, { fresh: true });
+        res.json({ success: true, page: updated, pageRev: doc?.rev });
     } catch (err) { res.status(400).json({ error: err.message }); }
 }
 
@@ -142,14 +147,20 @@ async function putPage(req, res) {
     try {
         const incoming = req.body?.page;
         if (!incoming) return res.status(400).json({ error: 'page object required' });
+        // The editor says which revision it based the page on; a save on top of
+        // somebody else's newer one is a 409, never a silent overwrite.
+        const expectedRev = clientRev(incoming.rev, 'page', { route: 'PUT /pages/:id', siteId: req.siteId });
         // Force the URL id onto the body so callers can't quietly write to a
         // different page than the one they targeted.
-        const { page: saved, dropped, localeOverrides } = await cmsStore.setPage(req.siteId, { ...incoming, id: req.params.id });
+        const { page: saved, dropped, localeOverrides } = await cmsStore.setPage(req.siteId, { ...incoming, id: req.params.id }, { expectedRev });
         // `dropped` lets the client warn when unknown-type blocks were stripped
         // on save (otherwise a silent data loss).
         // `localeOverrides`: translations re-aligned to this save's item order (locale -> override).
         res.json({ success: true, page: saved, dropped, localeOverrides });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) {
+        if (err instanceof HttpError) throw err;
+        res.status(400).json({ error: err.message });
+    }
 }
 
 async function putPageLocale(req, res) {

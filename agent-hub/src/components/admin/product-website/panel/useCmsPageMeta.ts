@@ -8,6 +8,7 @@ import { errorMessage, messageOf } from '../../../../utils/caughtError';
 import { authFetch } from '../../../../utils/helpers';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
+import { noteSavedRev } from './cmsRevisions';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 
@@ -55,6 +56,9 @@ export default function useCmsPageMeta({
                 const d = await res.json().catch(() => ({}));
                 throw new Error(d.error || `Save failed (${res.status})`);
             }
+            // A slug/title change raises the PageDoc's revision: the next block save must name it.
+            const answer: unknown = await res.json().catch(() => null);
+            if (typeof answer === 'object' && answer !== null && 'pageRev' in answer) noteSavedRev(siteId, pageId, answer.pageRev);
             setSaveStatus('saved');
             setDirtySincePublish(true);
             if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);

@@ -65,7 +65,13 @@ function makeHarness(over = {}) {
         getDefaultLocale: async () => 'en',
         isValidLocale: (c) => /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/.test(c),
         validateSiteChrome: require('../../stores/cms/chromeValidation').validateSiteChrome,
-        setProject: async (id, site) => { calls.setProject.push([id, site]); projects[id] = site; return site; },
+        mutateProject: async (id, fn) => {
+            const draft = structuredClone(projects[id]);
+            const result = fn(draft);
+            calls.setProject.push([id, draft]);
+            projects[id] = draft;
+            return { site: draft, result };
+        },
         publishSite: async (id) => { calls.publish.push(id); return { publishedAt: '2026-10-10T10:00:00.000Z' }; },
         removePage: async (id, pageId) => { calls.removed.push([id, pageId]); return { removed: { id: pageId, slug: 'x' }, newHomepage: { id: 'pg_1', slug: 'home' }, neutralisedLinks: 2 }; },
         duplicateProject: async (id) => ({ id: 'pj_cccc3333', copiedFrom: id }),
@@ -357,7 +363,7 @@ test('cms_get_site_settings returns the requested sections only', async () => {
     assert.equal(body.defaultLocale, 'en');
 });
 
-test('cms_update_site_settings merges a footer patch, validates and saves through setProject', async () => {
+test('cms_update_site_settings merges a footer patch, validates and saves through mutateProject', async () => {
     const { mcp, calls } = makeHarness();
     const res = await rpcCall(mcp, ctxOf(FULL), 'cms_update_site_settings', {
         footer: { copyright: '© Acme', blurb: 'We build' }, analytics: { gaMeasurementId: 'g-abc123xyz' }, name: ' Renamed ',
