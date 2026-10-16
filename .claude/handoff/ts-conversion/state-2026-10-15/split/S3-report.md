@@ -90,3 +90,9 @@ Also: fix 593cfcd4 (server eslint error from my earlier LF-S7 test fix: unused `
 - Mirror candidates (13 lines each): web Playbooks/stages/accessView.ts:175 ↔ mobile accessView.ts:126; web Studio/map/studioMap.ts:375 ↔ mobile edgePath.ts:40.
 - Path edits: ci.yml path filter (SB3), mobile access.lockstep.test.ts, releases.lockstep.test.ts, sources.lockstep, describeIt.lockstep, server add-nl-solution-overview-translations test, i18nGuard.test.js, studioNav/StudioRail/studioRegistry.boundary tests; .file-budget.json keys renamed (studioMap, AddSourcePanel, SkillStepEditor). Three files sat exactly at their file-budget ceiling (AddSourcePanel 714, studioMap 572, SkillStepEditor 419): two whitespace-only line joins were used to fit (emitted JS identical).
 - LF-A8 optional tidy-ups: NewDatatableDialog.flows.test.tsx JSON.parse fixture (JS `scope = null` prop), accessScreenTypes.ts restating AccessPlan/AccessMember from accessApply.ts.
+
+## Round 2 push log
+| Pushed | Verified at | check:fast | lint:budget | server tsc | duplication (prod / test) | gitleaks | agent-hub tsc | vitest | mobile jest | mobile tsc | server npm test |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 593cfcd4 | 593cfcd4 | 39/39 | green | 0 | 15100 / 26228 | clean | 0 | 21872 | 13428 | 0 | 29058 / 0 fail |
+| SWEEP-B 2-4 + LF-A8 | 202bda88 | 39/39 | green (agent-hub 4764/6674, server 0) | 0 | 15152 / 26228 | clean | 0 | 21892 | 13428 | 0 | 29058 / 0 fail / 0 HUNG |
