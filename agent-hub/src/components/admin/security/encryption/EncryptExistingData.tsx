@@ -11,6 +11,7 @@ import { useBackfillJobQuery, useStartBackfill, type BackfillSurfaceStats } from
 import { useTranslation } from '../../../../hooks/useTranslation';
 import ConfirmDialog from '../../../shared/ConfirmDialog';
 import { toast } from '../../../shared/Toast';
+import { messageOf } from '../../../../utils/caughtError';
 
 interface Props {
     orgId: string;
@@ -68,7 +69,7 @@ export default function EncryptExistingData({ orgId, dirty }: Props) {
         try {
             await start.mutateAsync({ dryRun });
         } catch (err) {
-            toast.error((err as Error).message || t('admin.encryption.backfill_start_failed', 'Could not start the run'));
+            toast.error(messageOf(err, t('admin.encryption.backfill_start_failed', 'Could not start the run')));
         }
     };
 

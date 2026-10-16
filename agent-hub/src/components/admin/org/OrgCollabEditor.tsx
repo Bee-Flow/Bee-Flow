@@ -11,6 +11,7 @@ import { useOrgCollab, useSaveOrgCollab, type OrgCollabSettings } from '../../..
 import { useTranslation } from '../../../hooks/useTranslation';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import Toggle from '../../shared/Toggle';
+import { errorStatus } from '../../../utils/caughtError';
 
 function Switch({ orgId, server }: { orgId: string; server: OrgCollabSettings }) {
     const { t } = useTranslation();
@@ -23,7 +24,7 @@ function Switch({ orgId, server }: { orgId: string; server: OrgCollabSettings })
         setStatus(null);
         save.mutate(next, {
             onSuccess: () => { setStatus('saved'); resolve(); },
-            onError: (e) => { setStatus((e as { status?: number }).status === 403 ? 'forbidden' : 'failed'); resolve(); },
+            onError: (e) => { setStatus(errorStatus(e) === 403 ? 'forbidden' : 'failed'); resolve(); },
         });
     });
     const onChange = (next: boolean) => {

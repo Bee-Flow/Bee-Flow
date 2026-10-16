@@ -340,7 +340,7 @@ jobs:
               # the form editor's options, run by form.lockstep.test.ts (BFSF-483)
               - 'agent-hub/src/components/forms/formOptions.ts'
               - 'agent-hub/src/shared/expr/**'
-              - 'agent-hub/src/utils/{bindingHelpers,scopedStorage}.*'
+              - 'agent-hub/src/utils/{bindingHelpers,scopedStorage,caughtError}.*'
               - 'agent-hub/src/hooks/useUpstreamVariables.ts'
               - 'agent-hub/src/api/client.*'
               - 'agent-hub/src/components/admin/Studio/AppStudio/runtime/{resolveBinding.ts,resolveBinding.types.ts,themeVars.js,uiBits.jsx}'

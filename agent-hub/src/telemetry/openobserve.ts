@@ -37,6 +37,7 @@ import { consentAccepted } from '../marketing/components/consent';
 import { APP_BUILD_SHA } from '../utils/appVersion';
 import { redactSecrets } from '../utils/clientErrorReporter';
 import { isPublicMarketingPath } from '../utils/cmsPublicRouting';
+import { errorMessage } from '../utils/caughtError';
 
 declare global {
     interface Window {
@@ -211,7 +212,7 @@ export async function initOpenObserve() {
         // Chunk fetch failed (offline, blocked, cache miss on a stale deploy).
         // Telemetry must never break the app.
         started = false;
-        try { console.warn('[openobserve] sdk load failed:', e && (e as Error).message); } catch { /* noop */ }
+        try { console.warn('[openobserve] sdk load failed:', e && errorMessage(e)); } catch { /* noop */ }
         return;
     }
 
@@ -257,7 +258,7 @@ export async function initOpenObserve() {
     } catch (e) {
         // Telemetry must never break the app.
         started = false;
-        try { console.warn('[openobserve] init failed:', e && (e as Error).message); } catch { /* noop */ }
+        try { console.warn('[openobserve] init failed:', e && errorMessage(e)); } catch { /* noop */ }
     }
 }
 

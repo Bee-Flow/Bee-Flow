@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle2, Link2, MessageSquare, Send, ShieldAlert } 
 import { useCallback, useEffect, useState } from 'react';
 import { authFetch, API_BASE } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
+import { errorMessage } from '../../utils/caughtError';
 
 /**
  * Where support connects to the outside world: YouTrack, and the team chat
@@ -90,12 +91,12 @@ export default function SupportConnectionsConfig() {
     const [ytToken, setYtToken] = useState<string>('');
     const [ytProject, setYtProject] = useState<string>('');
     const [ytSaving, setYtSaving] = useState<boolean>(false);
-    const [ytError, setYtError] = useState<string | null>(null);
+    const [ytError, setYtError] = useState<string | null | undefined>(null);
 
     const [chat, setChat] = useState<ChatNotifications | null>(null);
     const [hook, setHook] = useState<string>('');
     const [chatSaving, setChatSaving] = useState<boolean>(false);
-    const [chatError, setChatError] = useState<string | null>(null);
+    const [chatError, setChatError] = useState<string | null | undefined>(null);
     const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null);
 
     const [includeSubject, setIncludeSubject] = useState<boolean>(false);
@@ -110,7 +111,7 @@ export default function SupportConnectionsConfig() {
                 setIncludeSubject(!!d.includeSubject);
             }
         } catch (e) {
-            setYtError((e as Error).message);
+            setYtError(errorMessage(e));
         }
     }, []);
 
@@ -119,7 +120,7 @@ export default function SupportConnectionsConfig() {
             const res = await authFetch(`${API_BASE}/api/support/notifications`);
             if (res.ok) setChat(await res.json());
         } catch (e) {
-            setChatError((e as Error).message);
+            setChatError(errorMessage(e));
         }
     }, []);
 
@@ -147,7 +148,7 @@ export default function SupportConnectionsConfig() {
             setYtUrl('');
             setYt(d.status);
         } catch (e) {
-            setYtError((e as Error).message);
+            setYtError(errorMessage(e));
         } finally {
             setYtSaving(false);
         }
@@ -170,7 +171,7 @@ export default function SupportConnectionsConfig() {
             setHook('');
             setChat(d.settings);
         } catch (e) {
-            setChatError((e as Error).message);
+            setChatError(errorMessage(e));
         } finally {
             setChatSaving(false);
         }
@@ -192,7 +193,7 @@ export default function SupportConnectionsConfig() {
             // detail is why nobody trusts a test button.
             setTestResult(res.ok ? { ok: true } : { ok: false, error: d.error || 'Delivery failed' });
         } catch (e) {
-            setTestResult({ ok: false, error: (e as Error).message });
+            setTestResult({ ok: false, error: errorMessage(e) });
         }
     };
 

@@ -1,11 +1,26 @@
 # L-C report: remaining agent-hub JS sweep (laptop)
 
-Status: DONE for this pass. All packages (p1a-p9) merged, reviewed and pushed; branch contains origin/ccr-28820270-xkvwp8 @c02cb12a; all checks green.
-Done: 81/314 files converted by L-C, 11 packages merged (round 1: 43; round 2: 26; round 3: 9; retry p9: 3).
-Next: nothing running. The rest is listed below as blocked (needs a blocker typed first) or "Follow-up: needs runtime rewrite" (owner scope rule).
+Status: final-review B3 pushed on ts-laptop/fix-b3 (all checks green; contains origin/ts-int/staging @0058a60e). B2 (shims + non-null) drafting on ts-laptop/fix-b2.
+Done: sweep 81/314 files (merged); B3: one commit aaf2e646 on 060da5ca. LF-A8 rest: replaced by B3 (branch ts-laptop/lf-a8 local, reviewed, not pushed).
+Next: ts-laptop/fix-b2 (B2 shims + non-null `!`): Opus review, full checks, push.
 
 Branch `ts-laptop/sweep-c`. BASE `0ae29a17` (= origin/ccr-28820270-xkvwp8 at branch time; ts-local/prep2 already in it).
 Final commit: see `git log -1` of the branch (this file is updated with every push).
+
+## Final-review B3: caught-error casts (branch ts-laptop/fix-b3, BASE 060da5ca = origin/ts-int/staging)
+- One commit aaf2e646 `refactor(ts): read caught errors through the caughtError helpers (final-review B3)`.
+- Every caught-error cast in non-test agent-hub source → catch-recipe helper (errorMessage, messageOf with a string/t() fallback only, describeError, errorStatus, errorCode, errorBody/errorBodyRecord, errorName, isAbortError). Caught values passed or stored whole are `unknown` with helper reads (15b/15c). Fields without a helper (retryAfter, serverMessage, fields, FormulaThrow.e) use local guards that accept any object (= `e?.field`). Also the casts the grep pattern misses (`const err = e as ApiError`, `error: err as …`), found by the review.
+- The B3 grep now finds 13 matches, none a caught error: 11 DOM Event casts (`(e as CustomEvent).detail`), aiAutoMap.ts:120 (an enum parameter), useAiFill.ts:71 (a parsed response body).
+- `any` leaks: hooks/appBuilderStream/session.ts fixed (RestoredSnapshot.messages: BuilderMessage[]; compiled JS identical). compliance settingsFields.ts:333 `asArray` NOT fixed: see Needs integrator.
+- Behaviour (documented helper differences): a thrown null/undefined gives undefined/the fallback instead of a TypeError; a non-string message/code and a numeric-string status are dropped.
+- Side effects: editor bundles rebuilt (formula.ts is an input; generated only); 16 files lose blank lines to stay at their file-budget ceilings (whitespace only).
+- ci.yml: the mobile filter lists agent-hub/src/utils/caughtError.ts (30cd6837): B3 made FormTriggerFields.tsx, which mobile reads, import it (mobile serverClosure.test.ts).
+- Merged origin/ts-int/staging @0058a60e (595b8c8c): on 060da5ca mobile serverShapes.lockstep.test.ts failed (fixed upstream by 0058a60e).
+- Checks at 595b8c8c: check:fast 39/39; server typecheck 0; duplication 15166 ≤ 15290 / 26188 ≤ 26228; gitleaks clean; agent-hub tsc 0; vitest 1864 files, 22004 pass, 0 errors; mobile tsc 0; mobile jest 762 suites, 13428 pass; server 29101 pass, 0 fail, 0 HUNG.
+- Review: reviews/LC-fix-b3.md (Opus; every changed file compiled base vs head and diffed: 10 identical, the rest only the substitutions; APPROVED with fixes → the 15 missed casts, applied). Nine caught-error casts already on main (outside B3) are listed there for a later sweep.
+
+## Needs integrator:
+- compliance/pages/settings/settingsFields.ts:333 `asArray` (any[] from Array.isArray flows into T[]): an honest `unknown[]` breaks two callers (:349 `.filter((c: Contact) => …).map(…)`, :383 `.map((c: Contact | null | undefined) => …)`) that cannot be typed without a runtime-visible predicate (`isContactLike(c): c is Contact`, honest because Contact has only optional unknown fields). Your call: allow that runtime change (+ test), or keep the leak.
 
 ## Scope
 Every agent-hub JS file outside components/admin/Studio/**, components/admin/compliance/**,
@@ -134,8 +149,6 @@ Round 2: CoworkPage 3× and VegaLiteRenderer 1× `errorMessage`; ExternalShareSe
 | round 2 (+ cherry-pick -x cfb10394, the integrator's useBfMarks test mock: first vitest run had 21872/21872 pass but 2 unhandled 'window is not defined' from WebpageIDE.i18n.test.jsx → useBfMarks.ts; full rerun after the cherry-pick green) | 39/39 | 0 errors | 15184 ≤ 15290 / 26228 = 26228 | clean | 0 errors | 1858 files, 21872 pass, 0 errors | 0 errors | 762 suites, 13428 pass | 29058 pass, 0 fail, 0 HUNG |
 | round 1 (checks at the fix commit; then merged c79185eb, a 1-line server test change: that test + check:fast re-run green) | 39/39 | 0 errors | 15225 ≤ 15290 / 26228 = 26228 | clean | 0 errors | 1858 files, 21872 pass | 0 errors | 762 suites, 13428 pass | 29058 pass, 0 fail, 0 HUNG |
 
-## Needs integrator:
-Nothing blocking. Optional: lowering budgets is yours (no --update here); duplication production measured 15256.
 
 ## Integrator: watch at merge
 - Round 1 edited outside agent-hub/src: ci.yml path filters (cmsPublicRouting, utils glob `.{js,ts}`), mobile/scripts/sync-web-tokens.mjs (path + FONT_STACKS regex tolerates an annotation; webTokens.generated.ts regenerated, comment-only), mobile lockstep tests (billing, http, palette, roles, derive, insights), server tests reading bfElements/publicBridgeScript/seo/previewDocument paths, scripts/lib/editor-bundles.mjs + check-editor-bundles.test.mjs + both editor bundles (serialization/index.ts), agent-hub knip.json.

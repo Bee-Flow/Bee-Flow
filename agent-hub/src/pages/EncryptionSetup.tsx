@@ -3,6 +3,7 @@ import { Shield, Key, Copy, Check, Eye, EyeOff, AlertTriangle, Lock, ArrowLeft }
 import { API_BASE, authFetch } from '../utils/helpers';
 import { opaquePinRegister, opaquePinLogin } from '../lib/opaque';
 import { useTranslation } from '../hooks/useTranslation';
+import { errorMessage } from '../utils/caughtError';
 
 /**
  * EncryptionSetup — Intercepts SSO login when encryption PIN is needed.
@@ -26,7 +27,6 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
     const [recoveryInput, setRecoveryInput] = useState('');
     const [newPin, setNewPin] = useState('');
     const [confirmNewPin, setConfirmNewPin] = useState('');
-
     const isSetup = mode === 'setup';
 
     const handleSetup = async () => {
@@ -49,7 +49,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
                 return;
             }
         } catch (opaqueErr) {
-            console.warn('[Encryption] OPAQUE PIN setup failed, falling back to legacy:', (opaqueErr as Error).message);
+            console.warn('[Encryption] OPAQUE PIN setup failed, falling back to legacy:', errorMessage(opaqueErr));
         }
 
         // Legacy fallback — PIN sent to server (for users without OPAQUE support)
@@ -98,7 +98,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
             // fallback. Fall through and let the legacy endpoint decide; it
             // reports genuine first-time setup via its own needsSetup.
         } catch (opaqueErr) {
-            console.warn('[Encryption] OPAQUE PIN unlock failed, falling back to legacy:', (opaqueErr as Error).message);
+            console.warn('[Encryption] OPAQUE PIN unlock failed, falling back to legacy:', errorMessage(opaqueErr));
         }
 
         // Legacy fallback

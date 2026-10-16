@@ -17,7 +17,8 @@ import {
     runCountOf,
     triggerConditionOf,
 } from '../lib/meetingRules';
-import type { TranslateFn, RuleRow, RuleError, RuleIdea, SuggestDone, RulesState, RunFacets, RunsState, RunFacetsBody, IdeasState, CreatedAutomation, RunLabelInput, RuleFooterProps, RuleCardProps, ComposerProps, RulesPanelProps, TriggerCondition, Consequences } from './RulesPanel.types';
+import type { TranslateFn, RuleRow, RuleIdea, SuggestDone, RulesState, RunFacets, RunsState, RunFacetsBody, IdeasState, CreatedAutomation, RunLabelInput, RuleFooterProps, RuleCardProps, ComposerProps, RulesPanelProps, TriggerCondition, Consequences } from './RulesPanel.types';
+import { describeError, errorCode, errorMessage, errorStatus, messageOf } from '../../../utils/caughtError';
 
 /**
  * "Rules" (Regels) — de automations die op een AFGERONDE vergadernotitie
@@ -85,11 +86,16 @@ const list = <T,>(v: T[] | null | undefined): T[] => (Array.isArray(v) ? v : [])
  */
 const LICENCE_TOKENS = new Set(['feature_locked', 'tier_required', 'license_required', 'licence_required']);
 
-export function licenceMessage(err: RuleError | null | undefined, t: TranslateFn): string | null {
-    const message = String(err?.message || err || '').trim();
+/** True for any object, which is where `retryAfter` can be read; a primitive has none. */
+function hasRetryAfter(v: unknown): v is { retryAfter?: unknown } {
+    return typeof v === 'object' && v !== null;
+}
+
+export function licenceMessage(err: unknown, t: TranslateFn): string | null {
+    const message = String(errorMessage(err) || err || '').trim();
     const locked = LICENCE_TOKENS.has(message)
-        || err?.code === 'feature_locked' || err?.code === 'tier_required'
-        || err?.status === 402 || err?.status === 403
+        || errorCode(err) === 'feature_locked' || errorCode(err) === 'tier_required'
+        || errorStatus(err) === 402 || errorStatus(err) === 403
         || /\blicen[cs]e\b|\bforbidden\b/i.test(message);
     return locked
         ? t('meetings.rules_not_licensed', 'Automations are not part of this plan, so a rule cannot be made here.')
@@ -407,7 +413,7 @@ export default function RulesPanel({
         } catch (err) {
             // Geen lege lijst bij een fout: "geen regels" en "ik kon het niet
             // lezen" zijn verschillende antwoorden.
-            setRules({ loading: false, error: err as RuleError, rows: null });
+            setRules({ loading: false, error: err, rows: null });
         }
     }, [api]);
 
@@ -426,7 +432,7 @@ export default function RulesPanel({
             const hours = Number.isFinite(body?.rangeHours) ? (body.rangeHours as number) : RANGE_HOURS;
             setRuns({ loading: false, error: null, facets: body?.facets ?? null, hours });
         } catch (err) {
-            setRuns({ loading: false, error: err as RuleError, facets: null, hours: RANGE_HOURS });
+            setRuns({ loading: false, error: err, facets: null, hours: RANGE_HOURS });
         }
     }, [api]);
 
@@ -464,7 +470,7 @@ export default function RulesPanel({
             await loadRules();
             if (id) openRule(id);
         } catch (err) {
-            setCreateError(licenceMessage(err as RuleError, t) || String((err as RuleError)?.message || err));
+            setCreateError(licenceMessage(err, t) || describeError(err));
         } finally {
             setCreating(false);
         }
@@ -505,15 +511,15 @@ export default function RulesPanel({
             }));
         } catch (err) {
             if (controller.signal.aborted) return;
-            const retry = Number((err as RuleError)?.retryAfter);
+            const retry = Number(hasRetryAfter(err) ? err.retryAfter : undefined);
             setIdeas({
                 busy: false,
                 ran: true,
                 reason: null,
                 items: [],
-                error: (err as RuleError)?.status === 429 || Number.isFinite(retry)
+                error: errorStatus(err) === 429 || Number.isFinite(retry)
                     ? t('meetings.rules_ai_busy', 'Too many scans just now — try again in a moment.')
-                    : ((err as RuleError)?.message || t('meetings.rules_ai_failed', 'Could not come up with ideas right now.')),
+                    : messageOf(err, t('meetings.rules_ai_failed', 'Could not come up with ideas right now.')),
             });
         }
     }, [api, composerText, t]);
@@ -578,7 +584,6 @@ export default function RulesPanel({
                     {createError}
                 </div>
             )}
-
             {composerOpen && (
                 <Composer
                     text={composerText} onText={setComposerText}
@@ -586,7 +591,6 @@ export default function RulesPanel({
                     creating={creating} t={t}
                 />
             )}
-
             <div className="flex-1 overflow-y-auto px-3 pb-3">
                 {loading && (
                     <div className="flex items-center gap-2 px-3 py-6 justify-center">
@@ -594,16 +598,14 @@ export default function RulesPanel({
                         <span className="text-xs text-[var(--text-secondary)]">{t('meetings.rules_loading', 'Loading rules…')}</span>
                     </div>
                 )}
-
-                {!loading && rules.error && (
+                {!loading && Boolean(rules.error) && (
                     <div className="flex flex-col gap-1 px-3 py-2.5 rounded-lg border text-[11px] mb-1" style={ERROR_BANNER} data-testid="rules-error">
                         <div className="font-semibold">{t('meetings.rules_failed', 'Couldn’t load the rules for meeting notes')}</div>
                         <div className="text-[var(--text-secondary)]">
-                            {licenceMessage(rules.error, t) || rules.error.message}
+                            {licenceMessage(rules.error, t) || errorMessage(rules.error)}
                         </div>
                     </div>
                 )}
-
                 {/* Eén keer bovenaan, niet per kaart: de tellingen ontbreken
                     allemaal om dezelfde reden, en een 0 per kaart zou een
                     bewering zijn over runs die niemand heeft kunnen tellen. */}
@@ -613,7 +615,6 @@ export default function RulesPanel({
                         <span>{t('meetings.rules_runs_unreadable', 'Couldn’t read how often these ran, so no rule shows a count.')}</span>
                     </div>
                 )}
-
                 {!loading && !rules.error && emptyRules && (
                     <div className="flex flex-col items-center gap-2 px-3 py-8 text-center" data-testid="rules-empty">
                         <div className="w-12 h-12 rounded-2xl grid place-items-center"
@@ -626,7 +627,6 @@ export default function RulesPanel({
                         </div>
                     </div>
                 )}
-
                 {list(rows).map((row: RuleRow) => (
                     <RuleCard
                         key={row.id}

@@ -4,6 +4,7 @@ import { useTheme } from '../../ThemeContext';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import type { Dispatch, SetStateAction } from 'react';
 import type { GlassTier, ThemeSettings } from '../../ThemeContext.types';
+import { messageOf } from '../../../../utils/caughtError';
 
 /** The draft the Look editor edits: the theme knobs minus the uploaded wallpaper and its source. */
 export interface LookForm {
@@ -71,7 +72,7 @@ export function useLookForm() {
             setForm((prev: LookForm | null) => prev ? prev : buildFormFromTheme(raw));
             return raw;
         } catch (e) {
-            setError((e as Error)?.message || 'Could not load org theme');
+            setError(messageOf(e, 'Could not load org theme'));
             throw e;
         } finally {
             setLoading(false);
@@ -101,7 +102,7 @@ export function useLookForm() {
             setForm(buildFormFromTheme(fresh));
             toast.success('Theme saved as organisation default');
         } catch (e) {
-            const msg = (e as Error)?.message || 'Save failed';
+            const msg = messageOf(e, 'Save failed');
             console.error('[Look] save failed:', e);
             setError(msg);
             toast.error(msg);
@@ -125,7 +126,7 @@ export function useLookForm() {
             await theme.reload();
             toast.info('Reloaded from server');
         } catch (e) {
-            const msg = (e as Error)?.message || 'Reload failed';
+            const msg = messageOf(e, 'Reload failed');
             setError(msg);
             toast.error(msg);
         }

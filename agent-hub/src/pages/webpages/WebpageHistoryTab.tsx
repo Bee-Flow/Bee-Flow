@@ -3,6 +3,7 @@ import { useVersionList, useVersionViewer, type VersionRow } from './history/use
 import { Chip, VersionListRow, VersionViewer } from './history/VersionParts';
 import useConfirm from '../../components/shared/useConfirm';
 import useTranslation from '../../hooks/useTranslation';
+import { errorMessage } from '../../utils/caughtError';
 
 export { formatLineDelta } from './history/VersionParts';
 
@@ -75,7 +76,7 @@ export default function WebpageHistoryTab({ webpageId, onRestore, onLoaded }: {
             // action), so the list on screen is out of date at once.
             await load();
         } catch (err) {
-            if (mountedRef.current) setError((err as Error).message);
+            if (mountedRef.current) setError(errorMessage(err));
         }
     }, [confirm, coverage, load, onRestore, t, mountedRef, setError, setViewing]);
 

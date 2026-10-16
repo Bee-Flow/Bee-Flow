@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Cloud, Save, Loader2, Check, AlertTriangle, ChevronRight, Users } from 'lucide-react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { errorMessage } from '../../../utils/caughtError';
 
 interface NcCatalogItem {
     id: string;
@@ -24,7 +25,7 @@ interface NcGroup {
 
 interface FlashMessage {
     type: 'ok' | 'error';
-    text: string;
+    text: string | undefined;
 }
 
 interface OrgNcIntegrationsPanelProps {
@@ -91,7 +92,7 @@ const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
             if (!res.ok) throw new Error('Save failed');
             setMessage({ type: 'ok', text: 'Saved' });
         } catch (e) {
-            setMessage({ type: 'error', text: (e as Error).message });
+            setMessage({ type: 'error', text: errorMessage(e) });
         } finally { setSaving(false); }
     };
 
@@ -114,7 +115,7 @@ const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
         } catch (e) {
             // Revert on failure
             setGroups((gs: NcGroup[]) => gs.map((g: NcGroup) => g.id === groupId ? { ...g, disabledIntegrations: cur } : g));
-            setMessage({ type: 'error', text: (e as Error).message });
+            setMessage({ type: 'error', text: errorMessage(e) });
         }
     };
 

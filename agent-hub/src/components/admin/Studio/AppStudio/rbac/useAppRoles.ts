@@ -4,6 +4,7 @@ import useTranslation from '../../../../../hooks/useTranslation';
 import type { AuthFetchOptions } from '../../../../../utils/helpers';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import type { AccessPerm, RuleTable } from './rowRuleModel.types';
+import { errorStatus, errorBodyRecord } from '../../../../../utils/caughtError';
 
 /**
  * App Studio RBAC — the authoring hooks for the per-app role model.
@@ -222,12 +223,14 @@ export default function useAppRoles(appId: string | null | undefined) {
                 }),
             });
         } catch (err) {
-            if ((err as ApiError).status === 409) {
-                serverVersionRef.current = Number.isInteger((err as ApiError).body?.currentVersion)
-                    ? ((err as ApiError).body as ApiBody).currentVersion as number
+            if (errorStatus(err) === 409) {
+                const errBody = errorBodyRecord(err);
+                const currentVersion = errBody?.currentVersion;
+                serverVersionRef.current = Number.isInteger(currentVersion)
+                    ? currentVersion as number
                     : null;
-                if ((err as ApiError).body?.model && typeof ((err as ApiError).body as ApiBody).model === 'object') {
-                    qc.setQueryData(schemaKey, ((err as ApiError).body as ApiBody).model);
+                if (errBody?.model && typeof errBody.model === 'object') {
+                    qc.setQueryData(schemaKey, errBody.model);
                 }
                 qc.invalidateQueries({ queryKey: schemaKey });
                 const conflict: ApiError = new Error(t('studio_apps_edit.roles_api.conflict', "The app's data changed somewhere else while this panel was open — it has been reloaded, so try again."));

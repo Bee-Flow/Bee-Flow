@@ -4,6 +4,7 @@ import { postConnector } from './connectorHttp';
 import { INPUT, LABEL, previewGrid, testFailureMessage } from './connectorModel';
 import type { Connector } from './connectorModel';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import { messageOf } from '../../../../../../utils/caughtError';
 
 type TestResult = { status: 'running' } | { status: 'done'; rows: unknown[] } | { status: 'error'; message: string };
 
@@ -92,7 +93,7 @@ export default function TestPanel({ connector, appId, disabled, problem }: TestP
             if (!res.ok) { setResult({ status: 'error', message: testFailureMessage(res.status, body, t) }); return; }
             setResult({ status: 'done', rows: Array.isArray(body?.rows) ? body.rows : [] });
         } catch (e) {
-            setResult({ status: 'error', message: (e as { message?: string }).message || t('studio_apps_bi.sync.err_unreachable', 'Could not reach the server.') });
+            setResult({ status: 'error', message: messageOf(e, t('studio_apps_bi.sync.err_unreachable', 'Could not reach the server.')) });
         }
     };
 

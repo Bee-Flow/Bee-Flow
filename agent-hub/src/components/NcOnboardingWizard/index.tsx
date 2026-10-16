@@ -3,7 +3,7 @@ import { CheckCircle2, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import beeFlowLogo from '../../assets/bee-flow-logo.svg';
 import { useTranslation } from '../../hooks/useTranslation';
-
+import { errorMessage } from '../../utils/caughtError';
 /**
  * Bee Flow ↔ Nextcloud App Store onboarding wizard.
  *
@@ -42,7 +42,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
     const orgId = user?.organizationId;
     const [stepIdx, setStepIdx] = useState(0);
     const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
 
     // Organisation form. Pre-fill happens once on mount via GET /auth/organizations/:id.
     const [org, setOrg] = useState({
@@ -159,7 +159,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
 
             onComplete?.();
         } catch (e) {
-            setError((e as Error).message);
+            setError(errorMessage(e));
             setSubmitting(false);
         }
     };

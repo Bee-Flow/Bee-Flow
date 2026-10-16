@@ -4,6 +4,7 @@ import { useLicenseContext } from './LicenseContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import useConfirm from '../shared/useConfirm';
+import { messageOf } from '../../utils/caughtError';
 
 interface ServerLicenseRecord {
     tier?: string;
@@ -78,7 +79,7 @@ export default function ServerLicensePanel() {
             setActionError(null);
         } catch (e) {
             console.warn('[ServerLicensePanel] reload failed', e);
-            setActionError((e as Error).message || 'Failed to load licence status');
+            setActionError(messageOf(e, 'Failed to load licence status'));
         } finally {
             setLoading(false);
         }
@@ -132,7 +133,7 @@ export default function ServerLicensePanel() {
             // Bubble out so the rest of the UI re-derives features.
             reloadLicenseContext && reloadLicenseContext();
         } catch (e) {
-            setActionError((e as Error).message || 'Activation failed');
+            setActionError(messageOf(e, 'Activation failed'));
         } finally {
             setBusy(null);
         }
@@ -158,7 +159,7 @@ export default function ServerLicensePanel() {
             await reload();
             reloadLicenseContext && reloadLicenseContext();
         } catch (e) {
-            setActionError((e as Error).message || 'Deactivation failed');
+            setActionError(messageOf(e, 'Deactivation failed'));
         } finally {
             setBusy(null);
         }

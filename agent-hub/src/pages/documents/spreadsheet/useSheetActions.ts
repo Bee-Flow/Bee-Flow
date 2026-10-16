@@ -7,6 +7,7 @@ import type { StudioDocument } from '../documentQueries';
 import { getDocument, updateDocument } from '../documentsApi';
 import { downloadSheetCsv, downloadSheetXlsx } from './sheetApi';
 import type { SheetState } from './useSheet';
+import { messageOf } from '../../../utils/caughtError';
 
 export default function useSheetActions({ initial, sheet, onBack, onRenamed }: {
     initial: StudioDocument; sheet: SheetState; onBack?: () => void; onRenamed?: (doc: StudioDocument) => void;
@@ -26,7 +27,7 @@ export default function useSheetActions({ initial, sheet, onBack, onRenamed }: {
             const saved = await updateDocument(initial.id, { name: trimmed, expectedVersionId: latest.versionId }) as StudioDocument;
             setName(saved.name || trimmed);
             onRenamed?.(saved);
-        } catch (e) { setNotice((e as Error).message || t('spreadsheet.rename_failed', 'Could not rename the spreadsheet.')); }
+        } catch (e) { setNotice(messageOf(e, t('spreadsheet.rename_failed', 'Could not rename the spreadsheet.'))); }
     };
     const download = async (format: 'csv' | 'xlsx' = 'csv') => {
         setDownloading(true);
@@ -38,7 +39,7 @@ export default function useSheetActions({ initial, sheet, onBack, onRenamed }: {
                 ? downloadSheetCsv(initial.id, name, sheet.activeTab)
                 : downloadSheetCsv(initial.id, name));
         } catch (e) {
-            setNotice((e as Error).message || (format === 'xlsx'
+            setNotice(messageOf(e, format === 'xlsx'
                 ? t('spreadsheet.download_xlsx_failed', 'Could not download the Excel file.')
                 : t('spreadsheet.download_failed', 'Could not download the CSV.')));
         } finally { setDownloading(false); }

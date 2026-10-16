@@ -12,6 +12,7 @@ import { downloadPdf, fetchRendered, getDocument, updateDocument } from '../docu
 import type { StudioDocument } from '../documentQueries';
 import useDocumentAutosave from '../useDocumentAutosave';
 import usePageRecovery from './usePageRecovery';
+import { errorMessage } from '../../../utils/caughtError';
 
 // A page embeds its pictures (the PDF renderer fetches nothing), so each is
 // kept small; the whole page has the store's 512 KB cap. The same cap holds
@@ -93,7 +94,7 @@ export default function usePageDocument({ initial, currentUser, editorRef, onRen
     const [downloading, setDownloading] = useState(false);
     const [readOnly, setReadOnly] = useState(initial.editable === false);
     const apply = useCallback((next: StudioDocument) => { docRef.current = next; setDoc(next); }, []);
-    const errorText = useCallback((e: unknown) => (typeof e === 'string' ? e : projectErrorText(t, e as Error) || (e as Error)?.message || ''), [t]);
+    const errorText = useCallback((e: unknown) => (typeof e === 'string' ? e : projectErrorText(t, e) || errorMessage(e) || ''), [t]);
 
     const collab = useCollab({
         projectId: initial.projectId || null, kind: 'document', resourceId: initial.id,

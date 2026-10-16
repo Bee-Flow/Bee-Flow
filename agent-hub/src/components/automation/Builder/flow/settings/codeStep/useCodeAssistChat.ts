@@ -8,6 +8,7 @@
 // question: the draft autosaves like any other edit.
 import { useCallback, useRef, useState } from 'react';
 import { streamCodeAssist, type AssistMessage } from '../../../../../../api/queries/automation/codeStep';
+import { messageOf } from '../../../../../../utils/caughtError';
 
 export type TurnStatus = 'streaming' | 'done' | 'failed' | 'stopped';
 
@@ -92,7 +93,7 @@ export function useCodeAssistChat(ctx: CodeAssistContext) {
             patch(id, (t) => ({ ...t, status: t.error ? 'failed' : 'done' }));
         } catch (err) {
             const stopped = ac.signal.aborted;
-            patch(id, (t) => ({ ...t, status: stopped ? 'stopped' : 'failed', error: stopped ? null : ((err as Error)?.message || 'failed') }));
+            patch(id, (t) => ({ ...t, status: stopped ? 'stopped' : 'failed', error: stopped ? null : (messageOf(err, 'failed')) }));
         } finally {
             abortRef.current = null;
             setBusy(false);

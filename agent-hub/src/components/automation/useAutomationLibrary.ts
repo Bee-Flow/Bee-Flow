@@ -7,7 +7,7 @@ import {
     duplicateAutomationOnServer,
     invalidateAutomationTrash,
 } from '../../api/queries/automation/library';
-
+import { errorStatus } from '../../utils/caughtError';
 /** One row of the sidebar's automation list. */
 export interface AutomationListRow {
     id: string;
@@ -213,7 +213,7 @@ export default function useAutomationLibrary({
             if (builderStepId === step.id) setBuilderStepId(null);
             await fetchSteps();
         } catch (err) {
-            if ((err as AutomationApiError | null)?.status === 409) {
+            if (errorStatus(err) === 409) {
                 toast.error('This Step is still used by one or more automations. Remove it there first.');
             } else {
                 toast.error(`Could not delete the Step: ${failureText(err)}`);

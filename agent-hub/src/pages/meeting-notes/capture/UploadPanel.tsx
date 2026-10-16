@@ -3,6 +3,7 @@ import { Upload, Loader2 } from 'lucide-react';
 import useTranslation from '../../../hooks/useTranslation';
 import CaptureControls from './CaptureControls';
 import { useRecorder } from '../hooks/RecorderContext';
+import { errorMessage, errorCode as caughtErrorCode } from '../../../utils/caughtError';
 
 export default function UploadPanel({ onComplete }: { onComplete?: () => void }) {
     const { t } = useTranslation();
@@ -25,7 +26,7 @@ export default function UploadPanel({ onComplete }: { onComplete?: () => void })
         if (outcome?.ok) onComplete?.();
     };
 
-    const errorCode = uploadError?.code || null;
+    const errorCode = caughtErrorCode(uploadError) || null;
     const isTooLongNoFallback = errorCode === 'local_whisper_too_long_no_fallback';
 
     return (
@@ -67,13 +68,13 @@ export default function UploadPanel({ onComplete }: { onComplete?: () => void })
                     <span className="text-sm text-[var(--text-secondary)]">{uploadStage || t('meetings.upload_working', 'Working…')}</span>
                 </div>
             )}
-            {uploadError && isTooLongNoFallback && (
+            {Boolean(uploadError) && isTooLongNoFallback && (
                 <div
                     className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs"
                     style={{ background: 'color-mix(in srgb, var(--warning) 8%, var(--bg-secondary))', borderColor: 'var(--warning)', color: 'var(--text-primary)' }}
                 >
                     <div className="font-semibold">{t('meetings.upload_too_long_title', 'Recording too long for on-device transcription')}</div>
-                    <div className="text-[var(--text-secondary)]">{uploadError.message}</div>
+                    <div className="text-[var(--text-secondary)]">{errorMessage(uploadError)}</div>
                     {canRetry && (
                         <button
                             type="button"
@@ -86,13 +87,13 @@ export default function UploadPanel({ onComplete }: { onComplete?: () => void })
                     )}
                 </div>
             )}
-            {uploadError && !isTooLongNoFallback && (
+            {Boolean(uploadError) && !isTooLongNoFallback && (
                 <div
                     className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs"
                     style={{ background: 'color-mix(in srgb, var(--error) 8%, var(--bg-secondary))', borderColor: 'var(--error)', color: 'var(--text-primary)' }}
                 >
                     <div className="font-semibold">{t('meetings.upload_failed', 'Upload failed')}</div>
-                    <div className="text-[var(--text-secondary)]">{uploadError.message}</div>
+                    <div className="text-[var(--text-secondary)]">{errorMessage(uploadError)}</div>
                     <div className="flex items-center gap-2">
                         {canRetry && (
                             <button

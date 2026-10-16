@@ -30,6 +30,8 @@ type FuncArg = { range: number[]; scalar?: undefined } | { scalar: number; range
 interface EvalCtx { numberAt(r: number, c: number): number; collectRange(a: string, b: string): number[] }
 type NumCell = { isNumber: false } | { isNumber: true; num: number };
 interface FormulaThrow { e?: string }
+/** Every value this engine throws is a `{ e: '#CODE' }` object; anything else (a stray Error) reads as no code. */
+function isFormulaThrow(v: unknown): v is FormulaThrow { return typeof v === 'object' && v !== null; }
 
 // Re-exported so existing importers of formula.js keep working.
 export { colLabel, colToIndex, parseAnyRef };
@@ -298,7 +300,7 @@ export function evaluateTable(table: DocNode | null | undefined): Map<string, Fo
       if (!expr.trim()) res = { blank: true }; // a bare "=" is an empty formula, not an error
       else res = { value: evalExpr(tokenize(expr), { numberAt, collectRange }) };
     } catch (e) {
-      res = { error: ((e as FormulaThrow | null) && (e as FormulaThrow).e) || '#ERR!' };
+      res = { error: (isFormulaThrow(e) ? e.e : undefined) || '#ERR!' };
     }
     evaluating.delete(key);
     memo.set(key, res);

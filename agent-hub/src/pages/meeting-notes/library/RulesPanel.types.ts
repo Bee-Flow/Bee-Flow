@@ -34,7 +34,7 @@ export interface SuggestDone {
 
 export interface RulesState {
     loading: boolean;
-    error: RuleError | null;
+    error: unknown;
     rows: RuleRow[] | null;
 }
 
@@ -44,7 +44,7 @@ export interface RunFacets {
 
 export interface RunsState {
     loading: boolean;
-    error: RuleError | null;
+    error: unknown;
     facets: RunFacets | null;
     hours: number;
 }

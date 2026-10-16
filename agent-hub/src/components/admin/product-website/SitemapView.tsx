@@ -13,6 +13,7 @@ import { EdgePopover, NodeCard, SitemapLegend, SitemapToolbar } from './sitemap/
 import useSitemapDrag from './sitemap/useSitemapDrag';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { authFetch } from '../../../utils/helpers';
+import { describeError } from '../../../utils/caughtError';
 
 /**
  * SitemapView — top-down tree of the site's pages.
@@ -77,7 +78,7 @@ function useSitemapPayload(siteId: string | null) {
             const data = await res.json();
             setAdminPayload(data);
         } catch (err) {
-            setError(String((err as Error).message || err));
+            setError(describeError(err));
         } finally {
             setLoading(false);
         }

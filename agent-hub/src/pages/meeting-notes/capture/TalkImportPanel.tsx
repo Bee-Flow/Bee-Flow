@@ -4,6 +4,7 @@ import useTranslation from '../../../hooks/useTranslation';
 import CaptureControls from './CaptureControls';
 import { useRecorder } from '../hooks/RecorderContext';
 import { listNextcloudTalkRecordings } from '../lib/transcriptionsApi';
+import { errorMessage } from '../../../utils/caughtError';
 
 interface TalkRecording {
     path: string;
@@ -43,7 +44,7 @@ export default function TalkImportPanel({ onComplete }: { onComplete?: () => voi
     const { t } = useTranslation();
     const { uploadFromNextcloud, uploading, uploadStage, uploadError, clearError } = useRecorder();
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<Error | null>(null);
+    const [error, setError] = useState<unknown>(null);
     const [rooms, setRooms] = useState<TalkRoom[]>([]);
     const [busyPath, setBusyPath] = useState<string | null>(null);
 
@@ -54,7 +55,7 @@ export default function TalkImportPanel({ onComplete }: { onComplete?: () => voi
             const data = await listNextcloudTalkRecordings();
             setRooms(Array.isArray(data?.rooms) ? data.rooms : []);
         } catch (err) {
-            setError(err as Error);
+            setError(err);
         } finally {
             setLoading(false);
         }
@@ -98,10 +99,10 @@ export default function TalkImportPanel({ onComplete }: { onComplete?: () => voi
                 </div>
             )}
 
-            {!loading && error && (
+            {!loading && Boolean(error) && (
                 <div className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs" style={{ background: 'color-mix(in srgb, var(--error) 8%, var(--bg-secondary))', borderColor: 'var(--error)', color: 'var(--text-primary)' }}>
                     <div className="font-semibold">{t('meetings.talk_load_failed', 'Couldn’t load recordings')}</div>
-                    <div className="text-[var(--text-secondary)]">{error.message}</div>
+                    <div className="text-[var(--text-secondary)]">{errorMessage(error)}</div>
                 </div>
             )}
 
@@ -170,10 +171,10 @@ export default function TalkImportPanel({ onComplete }: { onComplete?: () => voi
                 </div>
             )}
 
-            {uploadError && (
+            {Boolean(uploadError) && (
                 <div className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs" style={{ background: 'color-mix(in srgb, var(--error) 8%, var(--bg-secondary))', borderColor: 'var(--error)', color: 'var(--text-primary)' }}>
                     <div className="font-semibold">{t('meetings.import_failed', 'Import failed')}</div>
-                    <div className="text-[var(--text-secondary)]">{uploadError.message}</div>
+                    <div className="text-[var(--text-secondary)]">{errorMessage(uploadError)}</div>
                     <button
                         type="button"
                         onClick={clearError}

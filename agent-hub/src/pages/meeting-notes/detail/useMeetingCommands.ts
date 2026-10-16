@@ -4,7 +4,8 @@ import { toast } from '../../../components/shared/Toast';
 import type { TranslateFn } from '../../../hooks/useTranslation';
 import * as api from '../lib/transcriptionsApi';
 import type { RegenerateArg } from '../lib/transcriptionsApi.types';
-import type { ApiError, MeetingActionItem, MeetingNote, MeetingRowPatch, SetMeeting } from './meetingDetailTypes';
+import type { MeetingActionItem, MeetingNote, MeetingRowPatch, SetMeeting } from './meetingDetailTypes';
+import { errorCode, errorMessage } from '../../../utils/caughtError';
 
 interface RegenerateAnswer {
     summary?: string;
@@ -111,18 +112,17 @@ export default function useMeetingCommands({ data, setLocal, refresh, onChanged,
             await refresh();
             onChanged?.(data.id, {});
         } catch (e) {
-            const err = e as ApiError;
             // Branch on the server's stable code, not on prose. 503 means the
             // storage service is briefly unreachable and the recording is fine;
             // 410 means it is genuinely gone — and for a browser recording there
             // is no original file to ask for.
-            if (err.code === 'audio_storage_unavailable') {
+            if (errorCode(e) === 'audio_storage_unavailable') {
                 toast.error(t('meetings.audio_storage_unavailable', 'Audio storage is temporarily unavailable. Try again in a minute — your recording is safe.'));
-            } else if (err.code === 'audio_gone_recorded' || err.code === 'audio_gone_uploaded') {
+            } else if (errorCode(e) === 'audio_gone_recorded' || errorCode(e) === 'audio_gone_uploaded') {
                 await refresh();   // surfaces the AudioUnavailable panel
-                toast.error(err.message);
+                toast.error(errorMessage(e));
             } else {
-                toast.error(t('meetings.reprocess_failed', 'Reprocess failed: {message}', { message: err.message }));
+                toast.error(t('meetings.reprocess_failed', 'Reprocess failed: {message}', { message: errorMessage(e) }));
             }
         } finally {
             setBusy(false);
@@ -140,7 +140,7 @@ export default function useMeetingCommands({ data, setLocal, refresh, onChanged,
             a.click();
             URL.revokeObjectURL(url);
         } catch (err) {
-            toast.error(t('meetings.export_failed', 'Export failed: {message}', { message: (err as Error).message }));
+            toast.error(t('meetings.export_failed', 'Export failed: {message}', { message: errorMessage(err) }));
         }
     };
 
@@ -186,7 +186,7 @@ export default function useMeetingCommands({ data, setLocal, refresh, onChanged,
             }
             announceRegenerateOutcome(t, res);
         } catch (err) {
-            toast.error(t('meetings.regenerate_failed', 'Regenerate failed: {message}', { message: (err as Error).message }));
+            toast.error(t('meetings.regenerate_failed', 'Regenerate failed: {message}', { message: errorMessage(err) }));
         } finally {
             setRegenerating(false);
         }

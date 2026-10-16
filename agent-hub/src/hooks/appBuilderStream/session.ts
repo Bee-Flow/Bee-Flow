@@ -5,7 +5,7 @@ import type { AppBuilderSendOptions } from './types';
 
 /** The saved-session snapshot GET /builder/session/:appId hands back. */
 interface RestoredSnapshot {
-    messages?: unknown;
+    messages?: BuilderMessage[];
     sessionId?: string | null;
     lastValidation?: BuilderValidation | null;
     pendingPlan?: unknown;

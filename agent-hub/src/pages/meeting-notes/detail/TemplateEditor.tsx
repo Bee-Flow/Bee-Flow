@@ -5,8 +5,8 @@ import Modal from '../../../components/shared/Modal';
 import useConfirm from '../../../components/shared/useConfirm';
 import useTranslation from '../../../hooks/useTranslation';
 import * as api from '../lib/transcriptionsApi';
-import type { ApiError } from './meetingDetailTypes';
 import type { BuiltinTemplate, CustomTemplate, OrgGroup } from './summaryTemplates.types';
+import { errorMessage } from '../../../utils/caughtError';
 
 interface TemplateEditorProps {
     open: boolean;
@@ -128,7 +128,7 @@ export default function TemplateEditor({
             onSaved?.(saved);
             onClose?.();
         } catch (e) {
-            setError((e as ApiError).message || String(e));
+            setError(errorMessage(e) || String(e));
         } finally {
             setSaving(false);
         }
@@ -152,7 +152,7 @@ export default function TemplateEditor({
             onDeleted?.(initial.id);
             onClose?.();
         } catch (e) {
-            setError((e as ApiError).message || String(e));
+            setError(errorMessage(e) || String(e));
             setDeleting(false);
         }
     }

@@ -2,6 +2,7 @@ import React, { useEffect, useEffectEvent, useState } from 'react';
 import { Loader2, Eye, FileText } from 'lucide-react';
 import InvoicePdfModal from './InvoicePdfModal';
 import { useTranslation } from '../../hooks/useTranslation';
+import { messageOf } from '../../utils/caughtError';
 
 interface Invoice {
     id: string;
@@ -79,7 +80,7 @@ export default function InvoicesPanel({ fetcher, pdfFetcher, title }: Props) {
             const list = await fetcher();
             if (isAlive()) setInvoices(Array.isArray(list) ? list : []);
         } catch (e) {
-            if (isAlive()) { setError((e as Error)?.message || t('billing.invoices_load_failed', 'Failed to load invoices')); setInvoices([]); }
+            if (isAlive()) { setError(messageOf(e, t('billing.invoices_load_failed', 'Failed to load invoices'))); setInvoices([]); }
         }
     });
     useEffect(() => {

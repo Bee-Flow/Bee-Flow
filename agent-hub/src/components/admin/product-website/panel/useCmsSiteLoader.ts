@@ -5,6 +5,7 @@ import { ACTIVE_SITE_LS_KEY } from './helpers';
 import { authFetch } from '../../../../utils/helpers';
 import { cmsApi } from '../cmsApi';
 import { HEADER_VIRTUAL_ID } from '../sentinels';
+import { errorMessage } from '../../../../utils/caughtError';
 
 type Setter<T> = (value: T) => void;
 
@@ -22,7 +23,7 @@ interface SitePayload {
 interface SitesListInput {
     activeSiteIdRef: MutableRefObject<string | null>;
     setActiveSiteId: Setter<string | null>;
-    setError: Setter<string | null>;
+    setError: Setter<string | null | undefined>;
     setLiveSiteId: Setter<string | null>;
     setLoading: Setter<boolean>;
     setSites: Setter<CmsSiteListEntry[]>;
@@ -47,7 +48,7 @@ interface SitePayloadInput extends Pick<SitesListInput, 'setError' | 'setLiveSit
     setSiteDoc: Setter<CmsSiteDoc | null>;
 }
 
-const errorText = (err: unknown) => (err as Error).message;
+const errorText = (err: unknown) => errorMessage(err);
 
 function rememberedSiteId(): string | null {
     try { return localStorage.getItem(ACTIVE_SITE_LS_KEY); } catch { return null; }

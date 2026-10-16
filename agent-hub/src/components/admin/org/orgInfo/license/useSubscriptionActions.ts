@@ -4,6 +4,7 @@ import type { BillingPlan, ChangePreview, OrgSubscription, SubMessage } from './
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { cloudFetch } from '../../../../../utils/cloudFetch';
 import { API_BASE } from '../../../../../utils/helpers';
+import { errorMessage } from '../../../../../utils/caughtError';
 
 export interface SubscriptionActions {
     checkoutLoading: string | null;
@@ -44,7 +45,7 @@ interface ApiError {
     error?: string;
 }
 
-const errorText = (e: unknown) => (e as Error).message;
+const errorText = (e: unknown) => errorMessage(e);
 
 /** POST without a body; the answer is the updated subscription. Throws the server's wording on refusal. */
 async function postSubscriptionAction(deploymentMode: string, orgId: string, action: string, fallback: string): Promise<OrgSubscription> {

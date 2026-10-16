@@ -3,6 +3,7 @@ import { ExternalLink, RefreshCw, X } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import useTranslation from '../../hooks/useTranslation';
 import type { GammaPreview } from '../../hooks/useChatEngine/sse/gammaPreview';
+import { messageOf } from '../../utils/caughtError';
 
 function toGammaEmbedUrl(url: unknown): string | null {
     if (!url || typeof url !== 'string') return null;
@@ -65,7 +66,7 @@ export default function GammaPreviewPanel({ preview, onClose, onUpdate }: Props)
             if (!res.ok) throw new Error(data.error || `Gamma status check failed (${res.status})`);
             onUpdateRef.current?.({ ...previewRef.current, ...data });
         } catch (err) {
-            setError((err as Error).message || 'Could not refresh Gamma status');
+            setError(messageOf(err, 'Could not refresh Gamma status'));
         } finally {
             setLoading(false);
         }

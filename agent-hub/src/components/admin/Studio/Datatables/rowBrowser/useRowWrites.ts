@@ -6,12 +6,12 @@
  * irreversible decision on).
  */
 import { useState } from 'react';
-import { messageOf } from '../../../../../utils/caughtError';
 import { BULK_DELETE_MAX, rowsApi } from './rowBrowserModel';
-import type { ApiError, DtRow, DtTable } from './rowBrowserModel';
+import type { DtRow, DtTable } from './rowBrowserModel';
 import { sourceErrorMessage } from './typedViews';
 import type { RowPages } from './useRowPages';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import { messageOf, errorCode, errorBodyRecord } from '../../../../../utils/caughtError';
 
 interface RowWriteInputs {
     table: DtTable;
@@ -83,9 +83,8 @@ export function useRowWrites({ table, t, pages, isMirror, onChanged }: RowWriteI
             }
         } catch (e) {
             setBusy(false);
-            const err = e as ApiError;
-            setError(err.code === 'too_many_ids'
-                ? t('datatables.bulk_too_many', 'You can delete at most {limit} rows at a time.', { limit: err.body?.limit ?? BULK_DELETE_MAX })
+            setError(errorCode(e) === 'too_many_ids'
+                ? t('datatables.bulk_too_many', 'You can delete at most {limit} rows at a time.', { limit: errorBodyRecord(e)?.limit ?? BULK_DELETE_MAX })
                 : messageOf(e, t('datatables.err_bulk_delete', 'Could not delete those rows')));
         }
     };
@@ -100,7 +99,7 @@ export function useRowWrites({ table, t, pages, isMirror, onChanged }: RowWriteI
             stopEditing();
             await afterWrite(body);
         } catch (e) {
-            const conflict = (e as ApiError).code === 'row_conflict';
+            const conflict = errorCode(e) === 'row_conflict';
             // The refresh FIRST, the message after: load() clears the error as
             // it starts, so setting the message before reloading wipes the very
             // sentence that explains what just happened.

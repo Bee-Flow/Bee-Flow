@@ -9,6 +9,7 @@ import useConfirm from '../../components/shared/useConfirm';
 import useTranslation from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import type { ApiOptions } from './webpagesApi';
+import { errorMessage } from '../../utils/caughtError';
 
 /**
  * WebpageDbViewer — three-tab UI on top of the per-webpage SQLite DB.
@@ -78,7 +79,7 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
             setCols([{ name: 'id', type: 'INTEGER', pk: true, notnull: true }]);
             onRefresh();
         } catch (e) {
-            onError((e as Error).message);
+            onError(errorMessage(e));
         } finally {
             setSubmitting(false);
         }
@@ -92,7 +93,7 @@ function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = f
             if (selected === tname) setSelected(null);
             onRefresh();
         } catch (e) {
-            onError((e as Error).message);
+            onError(errorMessage(e));
         }
     };
 
@@ -319,7 +320,7 @@ function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
                 setTotal((data.rows || []).length);
             }
         } catch (e) {
-            onError((e as Error).message);
+            onError(errorMessage(e));
         } finally {
             setLoading(false);
         }
@@ -355,7 +356,7 @@ function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
             setEditing(null);
             await load();
         } catch (e) {
-            onError((e as Error).message);
+            onError(errorMessage(e));
         }
     };
 
@@ -370,7 +371,7 @@ function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
             if (!r.ok) { onError(data.error || t('webpages.db.err_delete', 'Delete failed')); return; }
             await load();
         } catch (e) {
-            onError((e as Error).message);
+            onError(errorMessage(e));
         }
     };
 
@@ -399,7 +400,7 @@ function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
             setInsertValues({});
             await load();
         } catch (e) {
-            onError((e as Error).message);
+            onError(errorMessage(e));
         }
     };
 
@@ -583,7 +584,7 @@ function SqlTab({ webpageId, onError, onSchemaChanged }: SqlTabProps) {
                     onSchemaChanged?.();
             }
         } catch (e) {
-            setResult({ error: (e as Error).message });
+            setResult({ error: errorMessage(e) });
         } finally {
             setRunning(false);
         }
@@ -601,7 +602,7 @@ function SqlTab({ webpageId, onError, onSchemaChanged }: SqlTabProps) {
                     onSchemaChanged?.();
             }
         } catch (e) {
-            onError((e as Error).message);
+            onError(errorMessage(e));
         } finally {
             setResetting(false);
         }
@@ -730,7 +731,7 @@ export default function WebpageDbViewer({ webpageId }: Props) {
     // "De scan is omgevallen" — een andere stand dan "er zijn geen tabellen".
     const [unreadable, setUnreadable] = useState(false);
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
 
     const loadSchema = useCallback(async () => {
         if (!webpageId) return;
@@ -750,7 +751,7 @@ export default function WebpageDbViewer({ webpageId }: Props) {
                 setUnreadable(false);
             }
         } catch (e) {
-            setError((e as Error).message);
+            setError(errorMessage(e));
             setUnreadable(true);
         } finally {
             setBusy(false);
@@ -808,7 +809,6 @@ export default function WebpageDbViewer({ webpageId }: Props) {
                     {error}
                 </div>
             )}
-
             <div className="flex-1 min-h-0">
                 {tab === 'schema' && (
                     <SchemaTab webpageId={webpageId} schema={schema} onRefresh={loadSchema} busy={busy} onError={setError} unreadable={unreadable} />

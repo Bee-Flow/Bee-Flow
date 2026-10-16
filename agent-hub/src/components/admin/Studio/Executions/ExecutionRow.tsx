@@ -12,6 +12,7 @@ import { StepBars } from '../../../automation/Builder/runs/RunStatusIcon';
 import { enteredTriggerLabel, runTitle } from './runLanguage';
 import { runLogSentence, sentenceTooltip } from './runLogSentence';
 import type { RunLogRow } from './runLogSentence';
+import { messageOf } from '../../../../utils/caughtError';
 
 /**
  * The log's columns by the list's OWN width (@container/runlog, set by
@@ -92,7 +93,7 @@ function useRowActions({ run, api, patchRow, refresh, onOpen, onOpenEditor }: Ex
         if (optimistic) patchRow(run.id, optimistic);
         try { await fn(); } catch (e) {
             // Swallowing left the button silently resetting: say what failed.
-            setActionError(t('studio_misc.runrow.couldnt', 'Couldn\'t do that: {message}', { message: (e as Error)?.message || t('studio_misc.runrow.unknown_error', 'unknown error') }));
+            setActionError(t('studio_misc.runrow.couldnt', 'Couldn\'t do that: {message}', { message: messageOf(e, t('studio_misc.runrow.unknown_error', 'unknown error')) }));
         } finally { setPending(false); refresh(); }
     };
 

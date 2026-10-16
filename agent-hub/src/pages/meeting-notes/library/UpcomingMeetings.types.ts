@@ -59,7 +59,7 @@ export interface TeamsData {
 /** One source's load state. */
 export interface SourceState<D> {
     loading: boolean;
-    error: TranscriptionsApiError | null;
+    error: unknown;
     data: D | null;
 }
 

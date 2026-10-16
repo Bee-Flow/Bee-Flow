@@ -9,6 +9,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Send, ArrowLeft, Bot, User, AlertTriangle } from 'lucide-react';
 import { authFetch, API_BASE } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
+import { errorMessage } from '../../utils/caughtError';
 
 export const STATUS_LABELS: Record<string, string> = {
     open: 'Open',
@@ -35,7 +36,7 @@ export function NewThreadForm({ onCreated, onCancel }: { onCreated?: (threadId: 
     const [subject, setSubject] = useState<string>('');
     const [message, setMessage] = useState<string>('');
     const [submitting, setSubmitting] = useState<boolean>(false);
-    const [err, setErr] = useState<string | null>(null);
+    const [err, setErr] = useState<string | null | undefined>(null);
 
     const submit = async () => {
         setErr(null);
@@ -57,7 +58,7 @@ export function NewThreadForm({ onCreated, onCancel }: { onCreated?: (threadId: 
             }
             onCreated && onCreated(data.threadId);
         } catch (e) {
-            setErr((e as Error).message);
+            setErr(errorMessage(e));
         } finally {
             setSubmitting(false);
         }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { authFetch, API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { errorMessage } from '../../../utils/caughtError';
 
 interface Insights {
     csat: { avg7d: number | null; avg30d: number | null; responseRate?: number; responses: number };
@@ -40,7 +41,7 @@ function Stat({ label, value, sub }: StatProps) {
 export default function SupportInsightsTab() {
     const { t } = useTranslation();
     const [data, setData] = useState<Insights | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
 
     useEffect(() => {
         (async () => {
@@ -48,7 +49,7 @@ export default function SupportInsightsTab() {
                 const res = await authFetch(`${API_BASE}/api/support/insights`);
                 if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Failed'); }
                 setData(await res.json());
-            } catch (e) { setError((e as Error).message); }
+            } catch (e) { setError(errorMessage(e)); }
         })();
     }, []);
 

@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { errorMessage } from '../../../../utils/caughtError';
 
 interface TrainingArea {
     id: string;
@@ -20,7 +21,7 @@ interface TrainingCourse {
 
 interface TrainingState {
     loading: boolean;
-    error: string | null;
+    error: string | null | undefined;
     catalog: TrainingArea[];
     courses: TrainingCourse[];
     areas: Record<string, string>;
@@ -54,7 +55,7 @@ export default function RequiredTrainingPanel() {
             setState({ loading: false, error: null, catalog: body.catalog || [], courses: body.courses || [], areas: body.areas || {} });
             setDraft(body.areas || {});
         } catch (e) {
-            setState((s) => ({ ...s, loading: false, error: (e as Error).message }));
+            setState((s) => ({ ...s, loading: false, error: errorMessage(e) }));
         }
     }, []);
 

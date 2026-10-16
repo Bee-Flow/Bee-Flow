@@ -9,6 +9,7 @@ import ScheduleInWords from './ScheduleInWords';
 import { PRIMARY_BTN, SECONDARY_BTN } from './settingsUi';
 import { START_CARDS, cardFromTrigger, cronFromWords, triggerFromChoice, wordsFromCron } from './startChoice';
 import type { ScheduleWords, StartCard, TriggerStep } from './startChoice';
+import { messageOf } from '../../../../utils/caughtError';
 
 export const START_CARD_ICON: Record<StartCard, LucideIcon> = {
     manual: MousePointerClick, schedule: CalendarClock, file: FilePlus, form: ClipboardList, email: Mail, app: Zap,
@@ -63,7 +64,7 @@ export default function StartDialog({ open, trigger, onClose, onApply }: Props) 
             }));
             onClose();
         } catch (e) {
-            setError((e as Error)?.message || t('automations.settings.save_failed', 'Could not save this change.'));
+            setError(messageOf(e, t('automations.settings.save_failed', 'Could not save this change.')));
         }
         setSaving(false);
     };

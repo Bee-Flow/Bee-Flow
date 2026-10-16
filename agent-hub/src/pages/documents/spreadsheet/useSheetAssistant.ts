@@ -12,6 +12,7 @@ import { askSheetAssistant, type AssistantChange, type AssistantTurn } from './s
 import type { SelectionKind } from './sheetModel';
 import type { SheetChartsState } from './useSheetCharts';
 import type { SheetState } from './useSheet';
+import { messageOf } from '../../../utils/caughtError';
 
 export const FLASH_MS = 3000;
 const HISTORY_TURNS = 6;
@@ -106,7 +107,7 @@ export default function useSheetAssistant(docId: string, sheet: SheetState, char
                 reply = push({ role: 'assistant', error: true, content: t('spreadsheet.assistant.stopped', 'Stopped. The sheet was reloaded in case some changes were already saved.') });
                 sheetRef.current.refresh().catch(() => undefined);
             } else {
-                reply = push({ role: 'assistant', error: true, content: (e as Error).message || t('spreadsheet.assistant.failed', 'The assistant could not answer.') });
+                reply = push({ role: 'assistant', error: true, content: messageOf(e, t('spreadsheet.assistant.failed', 'The assistant could not answer.')) });
             }
         } finally {
             abort.current = null;

@@ -6,6 +6,7 @@ import { kindTileStyle } from '../../../../../shared/kindColors';
 import toast from '../../../../../shared/Toast';
 import { studioAppsApi } from '../../studioAppsApi';
 import AppIcon from '../../../../../icons/AppIcon';
+import { errorMessage } from '../../../../../../utils/caughtError';
 
 interface AppNameFieldProps {
     app: HeaderApp;
@@ -39,7 +40,7 @@ function AppNameField({ app, locked, isManaged, noteRefusal, onAppUpdated }: App
         } catch (err) {
             noteRefusal(err);
             setNameDraft(app?.name || '');
-            const message = (err as { message?: unknown } | null)?.message;
+            const message = errorMessage(err);
             toast.error((typeof message === 'string' && message) || t('app_studio.header.rename_failed', 'Could not rename the app.'));
         }
     };

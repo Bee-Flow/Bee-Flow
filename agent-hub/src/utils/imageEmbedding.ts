@@ -7,6 +7,8 @@
 // Failures (CORS, 404, timeout) are best-effort: the original <img> tag
 // is left in place so the export still references the original URL.
 
+import { errorMessage } from './caughtError';
+
 interface ImageReplacement {
     fullMatch: string;
     newTag: string;
@@ -60,7 +62,7 @@ export async function embedImagesAsBase64(html: string): Promise<string> {
             } catch (err) {
                 // Console-warn here matches the original inline behaviour: export
                 // is best-effort and the caller doesn't need to know.
-                console.warn('[imageEmbedding] failed to embed', src, (err as Error)?.message);
+                console.warn('[imageEmbedding] failed to embed', src, errorMessage(err));
                 return { fullMatch, newTag: fullMatch };
             }
         }),

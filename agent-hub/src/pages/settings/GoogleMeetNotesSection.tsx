@@ -4,6 +4,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { LANGS, Toggle, Row, Select } from './shared/settingsPrimitives';
 import { openGoogleOAuthPopup } from '../../lib/googleOAuthPopup';
 import { useTranslation } from '../../hooks/useTranslation';
+import { errorMessage, messageOf } from '../../utils/caughtError';
 
 interface GmeetConfig {
     autoImport: boolean;
@@ -20,7 +21,7 @@ interface GmeetConnection {
 
 interface SaveMessage {
     type: 'success' | 'error';
-    text: string;
+    text: string | undefined;
 }
 
 // Google Meet brand colour, for the header icon only; the Save button uses the accent.
@@ -64,7 +65,7 @@ export default function GoogleMeetNotesSection() {
             });
             if (res.ok) setMessage({ type: 'success', text: t('common.saved', 'Saved') });
             else { const e = await res.json().catch(() => ({})); setMessage({ type: 'error', text: e.error || `HTTP ${res.status}` }); }
-        } catch (e) { setMessage({ type: 'error', text: (e as Error).message }); }
+        } catch (e) { setMessage({ type: 'error', text: errorMessage(e) }); }
         finally { setSaving(false); }
     };
 
@@ -73,7 +74,7 @@ export default function GoogleMeetNotesSection() {
         try {
             const result = await openGoogleOAuthPopup({ authFetch, apiBase: API_BASE });
             if (result.success) await load();
-        } catch (e) { setMessage({ type: 'error', text: (e as Error).message || 'Could not start the Google re-authorization. Try again.' }); }
+        } catch (e) { setMessage({ type: 'error', text: messageOf(e, 'Could not start the Google re-authorization. Try again.') }); }
         finally { setReauthing(false); }
     };
 

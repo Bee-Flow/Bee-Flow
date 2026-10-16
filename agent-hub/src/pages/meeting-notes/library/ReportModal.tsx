@@ -5,6 +5,7 @@ import MarkdownRenderer from '../../../components/renderers/MarkdownRenderer';
 import useTranslation from '../../../hooks/useTranslation';
 import { reportMeetings } from '../lib/transcriptionsApi';
 import type { LibraryMeeting } from './MeetingRow';
+import { errorMessage } from '../../../utils/caughtError';
 
 interface ReportResult {
     report: string;
@@ -27,7 +28,7 @@ export default function ReportModal({ open, onClose, meetings = [] }: ReportModa
     const { t } = useTranslation();
     const [prompt, setPrompt] = useState('');
     const [result, setResult] = useState<ReportResult | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
     const [busy, setBusy] = useState(false);
     const [copied, setCopied] = useState(false);
 
@@ -56,7 +57,7 @@ export default function ReportModal({ open, onClose, meetings = [] }: ReportModa
             const res = await reportMeetings({ ids: meetings.map((m: LibraryMeeting) => m.id), prompt: question });
             setResult(res);
         } catch (err) {
-            setError((err as Error).message);
+            setError(errorMessage(err));
         } finally {
             setBusy(false);
         }

@@ -4,6 +4,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import WebhookPanel from '../WebhookPanel';
 import { Choice, FieldGrid, ReadOnlyFieldset, SELECT, useDebouncedSave, withDefinition } from './settingsUi';
 import type { SaveFn, SettingsAutomation } from './settingsUi';
+import { messageOf } from '../../../../utils/caughtError';
 
 /** `definition.runPolicy` (server: core/automationRunner/runPolicy.js). */
 export interface RunPolicy {
@@ -55,7 +56,7 @@ export default function AdvancedSection({ automation, onSave, defaultOpen = fals
     const savePolicy = async (patch: Partial<RunPolicy>) => {
         setError(null);
         const next: RunPolicy = { ...readRunPolicy(automation), ...patch };
-        try { await onSave(withDefinition(automation, 'runPolicy', next)); } catch (e) { setError((e as Error)?.message || t('automations.settings.save_failed', 'Could not save this change.')); }
+        try { await onSave(withDefinition(automation, 'runPolicy', next)); } catch (e) { setError(messageOf(e, t('automations.settings.save_failed', 'Could not save this change.'))); }
     };
     const durationSave = useDebouncedSave<string>((v) => void savePolicy({ maxDurationMin: parseDuration(v) }));
 

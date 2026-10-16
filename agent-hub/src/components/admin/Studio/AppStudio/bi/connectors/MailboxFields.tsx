@@ -5,6 +5,7 @@ import { TextField } from './ConnectorFields';
 import { INPUT, LABEL } from './connectorModel';
 import type { Connector } from './connectorModel';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import { errorMessage } from '../../../../../../utils/caughtError';
 
 /** Sets (or, for '' / null, removes) one optional connector field. */
 export type SetOpt = (key: string, value: unknown) => void;
@@ -30,7 +31,7 @@ function useVerify(connector: Connector, appId: string | null) {
             const body = await res.json().catch(() => null);
             setVerify(body || { ok: false, error: t('studio_apps_bi.connectors.check_failed', 'Check failed ({status})', { status: res.status }) });
         } catch (e) {
-            setVerify({ ok: false, error: (e as { message?: string }).message });
+            setVerify({ ok: false, error: errorMessage(e) });
         } finally {
             setVerifying(false);
         }

@@ -11,6 +11,7 @@ import type { AppDefinition } from '../../inspector/appDefinition';
 import type { AppEditorAction } from '../../state/appEditorState';
 import useAppAutosaveJs from '../../state/useAppAutosave';
 import { studioAppsApi } from '../../studioAppsApi';
+import { messageOf } from '../../../../../../utils/caughtError';
 
 /** The server's newer definition, when a save lost the race. */
 export interface SaveConflict {
@@ -114,7 +115,7 @@ export function useEditorSave({ appId, definition, version, enabled, dispatch, d
                     || t('app_studio.shell.definition_invalid', 'The app definition is invalid.'));
             }
         } catch (err) {
-            toast.error((err as { message?: string } | null)?.message || t('app_studio.shell.save_failed', 'Saving failed.'));
+            toast.error(messageOf(err, t('app_studio.shell.save_failed', 'Saving failed.')));
         } finally {
             overwriteInFlightRef.current = false;
         }

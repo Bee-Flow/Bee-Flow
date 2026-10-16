@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import StateChip from './IssueStateChip';
 import { authFetch, API_BASE } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
+import { errorMessage } from '../../utils/caughtError';
 
 interface IssueSearchResult {
     id: string;
@@ -44,7 +45,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
     const [searching, setSearching] = useState<boolean>(false);
     const [picked, setPicked] = useState<Set<string>>(() => new Set<string>());
     const [attaching, setAttaching] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
 
     const [creating, setCreating] = useState<boolean>(false);
     const [summary, setSummary] = useState<string>('');
@@ -64,7 +65,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
             if (!res.ok) { setError(d.error || 'Search failed'); setResults([]); return; }
             setResults(d.issues || []);
         } catch (e) {
-            setError((e as Error).message);
+            setError(errorMessage(e));
         } finally {
             setSearching(false);
         }
@@ -94,7 +95,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
             setResults([]);
             onAttached?.();
         } catch (e) {
-            setError((e as Error).message);
+            setError(errorMessage(e));
         } finally {
             setAttaching(false);
         }
@@ -120,7 +121,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
             setDescription('');
             onAttached?.();
         } catch (e) {
-            setError((e as Error).message);
+            setError(errorMessage(e));
         } finally {
             setSubmitting(false);
         }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { errorName, messageOf } from '../../utils/caughtError';
 
 /**
  * Press-to-talk dictation for a composer.
@@ -89,7 +90,7 @@ export default function useDictation({ onText, language = 'nl' }: UseDictationOp
             setState('idle');
         } catch (err) {
             if (!mountedRef.current) return;
-            setError((err as Error).message || 'Could not transcribe that.');
+            setError(messageOf(err, 'Could not transcribe that.'));
             setState('idle');
         }
     }, [language, onText]);
@@ -152,9 +153,9 @@ export default function useDictation({ onText, language = 'nl' }: UseDictationOp
         } catch (err) {
             cleanup();
             setState('idle');
-            setError((err as Error)?.name === 'NotAllowedError'
+            setError(errorName(err) === 'NotAllowedError'
                 ? 'Microphone access was blocked. Allow it in your browser settings.'
-                : ((err as Error)?.message || 'Could not start recording.'));
+                : (messageOf(err, 'Could not start recording.')));
         }
     }, [supported, cleanup, transcribe, stop]);
 

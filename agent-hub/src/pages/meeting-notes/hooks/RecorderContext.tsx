@@ -3,6 +3,7 @@ import useAudioRecorder from './useAudioRecorder';
 import * as api from '../lib/transcriptionsApi';
 import { generateAutoTitle } from '../lib/format';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
+import { errorCode } from '../../../utils/caughtError';
 
 /** Why an upload was moved to another engine (server/routes/transcriptions/upload.js). */
 export interface ProviderFallback {
@@ -25,8 +26,6 @@ export interface UploadOutcome {
     error?: unknown;
     pending?: boolean;
 }
-
-export type UploadError = Error & { code?: string };
 
 export interface CaptureSettings {
     language: string;
@@ -60,7 +59,7 @@ export interface RecorderValue {
     setSettings: Dispatch<SetStateAction<CaptureSettings>>;
     uploading: boolean;
     uploadStage: string;
-    uploadError: UploadError | null;
+    uploadError: unknown;
     lastResultId: string | null;
     lastResultMeta: { providerFallback: ProviderFallback | null } | null;
     consumeLastResult: () => { id: string | null; meta: { providerFallback: ProviderFallback | null } | null };
@@ -103,7 +102,7 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
     const [settings, setSettings] = useState<CaptureSettings>(DEFAULT_SETTINGS);
     const [uploading, setUploading] = useState(false);
     const [uploadStage, setUploadStage] = useState('');
-    const [uploadError, setUploadError] = useState<UploadError | null>(/** @type {(Error & { code?: string }) | null} */ (null));
+    const [uploadError, setUploadError] = useState<unknown>(null);
     const [lastResultId, setLastResultId] = useState<string | null>(null);
     const [lastResultMeta, setLastResultMeta] = useState<{ providerFallback: ProviderFallback | null } | null>(null);
     const [lastFailedFile, setLastFailedFile] = useState<File | null>(null);
@@ -152,7 +151,7 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
         } catch (err) {
             setLastFailedFile(file);
             setLastFailedCapture(captureMode);
-            setUploadError(err as UploadError);
+            setUploadError(err);
             return { ok: false, error: err };
         } finally {
             clearInterval(stageTimer);
@@ -189,7 +188,7 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
             setVersion((v) => v + 1);
             return { ok: true, result };
         } catch (err) {
-            setUploadError(err as UploadError);
+            setUploadError(err);
             return { ok: false, error: err };
         } finally {
             setUploading(false);
@@ -214,7 +213,7 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
             setVersion((v) => v + 1);
             return { ok: true, result };
         } catch (err) {
-            setUploadError(err as UploadError);
+            setUploadError(err);
             return { ok: false, error: err };
         } finally {
             setUploading(false);
@@ -240,7 +239,7 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
             setVersion((v) => v + 1);
             return { ok: true, result };
         } catch (err) {
-            setUploadError(err as UploadError);
+            setUploadError(err);
             return { ok: false, error: err };
         } finally {
             setUploading(false);
@@ -275,7 +274,7 @@ export function RecorderProvider({ children }: { children?: ReactNode }) {
         // over the same proxy limit fails identically, and switching engine
         // cannot help a request that was refused before routing. The error text
         // carries the actual way forward.
-        canRetry: !!lastFailedFile && uploadError?.code !== 'payload_too_large',
+        canRetry: !!lastFailedFile && errorCode(uploadError) !== 'payload_too_large',
         version,
         clearError: () => { setUploadError(null); setLastFailedFile(null); },
     }), [recorder, settings, uploading, uploadStage, uploadError, lastResultId, lastResultMeta, consumeLastResult, uploadFile, uploadFromNextcloud, importFromGoogleMeet, importFromTeams, retryWithProvider, lastFailedFile, version]);

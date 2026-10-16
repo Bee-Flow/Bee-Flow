@@ -27,7 +27,7 @@ export interface BulkOptions {
 
 export interface BulkResult {
     ok: boolean;
-    message: string;
+    message: string | undefined;
 }
 
 export type NanoSettings = { image?: { model?: string } } | null | undefined;

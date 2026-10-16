@@ -5,6 +5,7 @@ import useAiTranslate, { translateRequest } from '../../../hooks/useAiTranslate'
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../hooks/useTranslation';
 import { LANGUAGES_API, getLanguages, sendLanguagesJson } from '../../../api/languages';
+import { errorMessage } from '../../../utils/caughtError';
 
 // Structured-field editor for the verification + welcome emails, per locale.
 // Fields are plain text rendered into the branded shell; a live preview shows
@@ -113,7 +114,7 @@ function TestEmailSender({ locale, selected, result, setResult }: {
             const d = await res.json();
             setResult(res.ok ? { ok: true } : { error: d.error || t('admin_languages.email_error_send', 'Failed to send') });
         } catch (err) {
-            setResult({ error: (err as Error).message });
+            setResult({ error: errorMessage(err) });
         }
         setTesting(false);
     };

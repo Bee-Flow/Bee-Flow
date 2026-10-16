@@ -27,6 +27,7 @@ import type { NotebookSaveMode } from './NotebookSaveStatus';
 import type { NoticeWithAction } from './NotebookNotice';
 import useNotebookCollab from './useNotebookCollab';
 import useSessionJoin from './useSessionJoin';
+import { errorMessage } from '../../../../utils/caughtError';
 
 interface Options {
     data: NotebookDetailData;
@@ -148,7 +149,7 @@ export default function useNotebookDocument({ data, user, readOnly, onNotice, on
             keptLater = await keepLaterTyping(conflict);
         } catch (e) {
             // Nothing is replaced while that text has no copy.
-            setConflictError(t('notebooks.conflict_keep_failed', 'Your newer text could not be kept, so nothing was replaced: {message}', { message: (e as Error).message }));
+            setConflictError(t('notebooks.conflict_keep_failed', 'Your newer text could not be kept, so nothing was replaced: {message}', { message: errorMessage(e) }));
             setConflictBusy(false);
             return;
         }
@@ -167,7 +168,7 @@ export default function useNotebookDocument({ data, user, readOnly, onNotice, on
                 });
             }
         } catch (e) {
-            setConflictError(t('notebooks.conflict_load_failed', 'The saved version could not be loaded: {message}', { message: (e as Error).message }));
+            setConflictError(t('notebooks.conflict_load_failed', 'The saved version could not be loaded: {message}', { message: errorMessage(e) }));
         } finally {
             setConflictBusy(false);
         }

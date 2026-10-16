@@ -10,6 +10,7 @@ import {
 } from '../../../api/queries/teamsMeetingNotes';
 import { openMicrosoftOAuthPopup } from '../../../lib/microsoftOAuthPopup';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { errorMessage } from '../../../utils/caughtError';
 
 /**
  * Manual import of a finished Microsoft Teams meeting. Lists the meetings the
@@ -53,7 +54,7 @@ export default function TeamsImportPanel({ onComplete }: { onComplete?: () => vo
     const [busyKey, setBusyKey] = useState<string | null>(null);
     const [pendingKeys, setPendingKeys] = useState<Set<string>>(() => new Set());
     const [reauthBusy, setReauthBusy] = useState(false);
-    const [reauthError, setReauthError] = useState<Error | null>(null);
+    const [reauthError, setReauthError] = useState<unknown>(null);
 
     const connection = recordings.data?.connection;
     const items = recordings.data?.items || [];
@@ -78,7 +79,7 @@ export default function TeamsImportPanel({ onComplete }: { onComplete?: () => vo
             const result = await openMicrosoftOAuthPopup({ authFetch, apiBase: API_BASE });
             if (result?.success) await invalidate();
         } catch (err) {
-            setReauthError(err as Error);
+            setReauthError(err);
         } finally {
             setReauthBusy(false);
         }
@@ -98,7 +99,7 @@ export default function TeamsImportPanel({ onComplete }: { onComplete?: () => vo
                 <div className="text-xs max-w-sm text-[var(--text-muted)]">
                     {t('meetings.teams_reconsent_desc', 'Your Microsoft 365 account was connected before Teams recordings were supported. Reconnect to let Bee Flow list and import the meetings you organise — your Outlook and OneDrive access keeps working. Your Microsoft 365 admin may need to approve the new permissions.')}
                 </div>
-                {reauthError && <div className="text-xs text-[var(--error)]">{reauthError.message}</div>}
+                {Boolean(reauthError) && <div className="text-xs text-[var(--error)]">{errorMessage(reauthError)}</div>}
                 <button type="button" onClick={handleReauthorize} disabled={reauthBusy} className={PRIMARY_BTN}>
                     {reauthBusy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                     {t('meetings.teams_reauthorize', 'Reconnect Microsoft 365')}
@@ -135,7 +136,7 @@ export default function TeamsImportPanel({ onComplete }: { onComplete?: () => vo
             {!recordings.isLoading && recordings.error && (
                 <div className={ERROR_BOX}>
                     <div className="font-semibold">{t('meetings.talk_load_failed', 'Couldn’t load recordings')}</div>
-                    <div className="text-[var(--text-secondary)]">{recordings.error.message}</div>
+                    <div className="text-[var(--text-secondary)]">{errorMessage(recordings.error)}</div>
                 </div>
             )}
 
@@ -203,10 +204,10 @@ export default function TeamsImportPanel({ onComplete }: { onComplete?: () => vo
                 </div>
             )}
 
-            {uploadError && (
+            {Boolean(uploadError) && (
                 <div className={ERROR_BOX}>
                     <div className="font-semibold">{t('meetings.import_failed', 'Import failed')}</div>
-                    <div className="text-[var(--text-secondary)]">{uploadError.message}</div>
+                    <div className="text-[var(--text-secondary)]">{errorMessage(uploadError)}</div>
                     <button
                         type="button"
                         onClick={clearError}

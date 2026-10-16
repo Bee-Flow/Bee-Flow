@@ -18,6 +18,7 @@ import type {
     CreateTeamChat, PendingTeamChatMessage, SendTeamChatMessage, TeamChat, TeamChatAiPolicy, TeamChatAiResult,
     TeamChatMessage, TeamChatMessages, TeamChatTrace,
 } from './projectChatTypes';
+import { errorCode } from '../../utils/caughtError';
 
 export type {
     CreateTeamChat, PendingTeamChatMessage, SendTeamChatMessage, TeamChat, TeamChatAiMode, TeamChatAiPolicy, TeamChatAiResult,
@@ -304,7 +305,7 @@ export function useSendTeamChatMessage(projectId: string, chatId: string, curren
             return list;
         }),
         onError: (e, vars) => setPending(qc, key, vars.clientMsgId, list => list.map(p => (
-            p.clientMsgId === vars.clientMsgId ? { ...p, status: 'failed', error: e.message, errorCode: (e as { code?: string | null }).code ?? null } : p))),
+            p.clientMsgId === vars.clientMsgId ? { ...p, status: 'failed', error: e.message, errorCode: errorCode(e) ?? null } : p))),
         onSuccess: ({ message }, vars) => {
             qc.setQueryData<TeamChatMessages>(key, (prev) => {
                 const next = foldIn(prev, [message]);
@@ -385,7 +386,6 @@ export function useTeamChatFeedback(projectId: string, chatId: string) {
 export function useTeamChatAiPolicy(projectId: string): TeamChatAiPolicy | null {
     return useProjectChatsQuery(projectId).data?.aiPolicy ?? null;
 }
-
 /** How one answer was made (what the Privacy Shield replaced), read only when asked for. */
 export function useTeamChatTrace(projectId: string, chatId: string, messageId: string, enabled: boolean) {
     return useQuery<TeamChatTrace, Error>({

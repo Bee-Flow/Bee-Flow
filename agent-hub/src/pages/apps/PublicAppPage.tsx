@@ -8,6 +8,7 @@ import { CANVAS_GROUND, themeVars } from '../../components/admin/Studio/AppStudi
 import EmptyState from '../../components/shared/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, setPublicAppTransport } from '../../utils/helpers';
+import { errorMessage, errorStatus } from '../../utils/caughtError';
 
 /** A load failure; `status` is the HTTP status when the server answered. */
 type PublicAppError = Error & { status?: number };
@@ -23,7 +24,7 @@ interface PublicAppPayload {
 interface PageState {
     status: 'loading' | 'ready' | 'error';
     payload: PublicAppPayload | null;
-    error: PublicAppError | null;
+    error: unknown;
 }
 
 /**
@@ -84,9 +85,9 @@ function LoadingSkeleton() {
  * unpublished, unknown token — so there is exactly one thing that can honestly
  * be said here, and a retry button would be a lie.
  */
-function NotAvailable({ error, onRetry }: { error: PublicAppError | null; onRetry: () => void }) {
+function NotAvailable({ error, onRetry }: { error: unknown; onRetry: () => void }) {
     const { t } = useTranslation();
-    const notFound = error?.status === 404 || error?.message === 'not_found';
+    const notFound = errorStatus(error) === 404 || errorMessage(error) === 'not_found';
     return (
         <div className="min-h-screen flex items-center justify-center p-6">
             <EmptyState
@@ -146,7 +147,7 @@ export default function PublicAppPage({ token }: { token: string }) {
             setScreenId(payload?.entryScreenId || payload?.definition?.homeScreenId || null);
             setState({ status: 'ready', payload, error: null });
         } catch (err) {
-            setState({ status: 'error', payload: null, error: err as PublicAppError });
+            setState({ status: 'error', payload: null, error: err });
         }
     }, [token]);
 

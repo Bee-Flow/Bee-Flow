@@ -3,13 +3,14 @@ import { Plus, Trash2, Save } from 'lucide-react';
 import { authFetch, API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { CannedResponse } from '../SupportInboxPanel.types';
+import { errorMessage } from '../../../utils/caughtError';
 
 const VARS = ['{{requester_name}}', '{{requester_email}}', '{{org_name}}', '{{thread_subject}}', '{{staff_first_name}}'];
 
 export default function SupportCannedResponsesTab() {
     const { t } = useTranslation();
     const [items, setItems] = useState<CannedResponse[]>([]);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
     const [draft, setDraft] = useState({ title: '', shortcut: '', body: '' });
     const [busy, setBusy] = useState(false);
 
@@ -17,7 +18,7 @@ export default function SupportCannedResponsesTab() {
         try {
             const res = await authFetch(`${API_BASE}/api/support/canned`);
             if (res.ok) setItems((await res.json()).responses || []);
-        } catch (e) { setError((e as Error).message); }
+        } catch (e) { setError(errorMessage(e)); }
     }, []);
     useEffect(() => { load(); }, [load]);
 
@@ -32,7 +33,7 @@ export default function SupportCannedResponsesTab() {
             if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Create failed'); }
             setDraft({ title: '', shortcut: '', body: '' });
             await load();
-        } catch (e) { setError((e as Error).message); }
+        } catch (e) { setError(errorMessage(e)); }
         finally { setBusy(false); }
     };
 

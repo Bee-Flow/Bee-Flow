@@ -7,6 +7,7 @@
 import type { TranslateParams } from '../../../../../../hooks/useTranslation';
 import toast from '../../../../../shared/Toast';
 import type { RunStep } from './stepWalk';
+import { errorMessage } from '../../../../../../utils/caughtError';
 
 export {
     MAX_LOOP_ITERATIONS, SERVER_STEP_KINDS, buildStepIndexMap, caseMatches, normalizeSequence, resolveNavParams,
@@ -113,7 +114,7 @@ export function defaultConfirm(step: RunStep | null | undefined, tr: Translate):
 
 /** An error's message, or the generic "The action failed." */
 export function failureMessage(err: unknown, tr: Translate): string {
-    const message = (err as { message?: unknown } | null | undefined)?.message;
+    const message = errorMessage(err);
     return (typeof message === 'string' && message) || tr('studio_apps_runtime.actions.failed', 'The action failed.');
 }
 

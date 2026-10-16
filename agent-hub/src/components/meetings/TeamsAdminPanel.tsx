@@ -7,6 +7,7 @@ import {
     useSaveTeamsNotesOrgSettings,
     type TeamsNotesSettings,
 } from '../../api/queries/teamsMeetingNotes';
+import { errorMessage } from '../../utils/caughtError';
 
 /**
  * Org-level Microsoft Teams → Meeting Notes settings, next to the Google Meet
@@ -22,7 +23,7 @@ export default function TeamsAdminPanel({ user }: { user?: { organizationId?: st
     const query = useTeamsNotesOrgSettings(orgId);
     const save = useSaveTeamsNotesOrgSettings(orgId);
     const [cfg, setCfg] = useState<TeamsNotesSettings>({ autoImport: false, autoRecordConfig: false, language: 'nl', lookbackHours: 24 });
-    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string | undefined } | null>(null);
 
     useEffect(() => {
         if (query.data) setCfg((prev) => ({ ...prev, ...query.data }));
@@ -37,7 +38,7 @@ export default function TeamsAdminPanel({ user }: { user?: { organizationId?: st
             await save.mutateAsync(cfg);
             setMessage({ type: 'success', text: t('settings.teams_notes_saved', 'Saved') });
         } catch (e) {
-            setMessage({ type: 'error', text: (e as Error).message });
+            setMessage({ type: 'error', text: errorMessage(e) });
         }
     };
 

@@ -12,6 +12,7 @@
 
 import type { AuthFetchOptions } from '../utils/helpers';
 import { API_BASE, authFetch } from '../utils/helpers';
+import { errorStatus, isAbortError } from '../utils/caughtError';
 
 export interface ApiErrorInit {
     status?: number;
@@ -108,7 +109,7 @@ async function request<T>(method: string, path: string, opts: AttemptOptions = {
             return await attempt<T>(method, path, opts);
         } catch (e) {
             // Don't retry user-cancelled or 4xx (except 408/429).
-            if ((e as Error)?.name === 'AbortError') throw e;
+            if (isAbortError(e)) throw e;
             if (e instanceof ApiError && e.status && e.status < 500 && e.status !== 408 && e.status !== 429) throw e;
             lastErr = e;
             if (!retry || i === retry.attempts) break;
@@ -236,8 +237,8 @@ export function createJsonResource(base = '', options: JsonResourceOptions = {})
             try {
                 return await once<T>(url, init);
             } catch (e) {
-                if ((e as Error)?.name === 'AbortError') throw e;
-                const status = (e as JsonResourceError)?.status;
+                if (isAbortError(e)) throw e;
+                const status = errorStatus(e);
                 if (status && status < 500 && status !== 408 && status !== 429) throw e;
                 lastErr = e;
                 if (i === r.attempts) break;

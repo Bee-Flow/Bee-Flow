@@ -4,6 +4,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import { toast } from '../../../shared/Toast';
 import useConfirm from '../../../shared/useConfirm';
 import { apiJson } from '../hooks/useApi';
+import { messageOf } from '../../../../utils/caughtError';
 
 export type GeoMode = 'off' | 'allowlist' | 'blocklist';
 
@@ -129,7 +130,7 @@ export default function useSignupSettings() {
             });
             toast.success(t('admin_subscriptions.access_saved', 'Signup settings saved.'));
         } catch (e) {
-            toast.error((e as Error).message || t('admin_subscriptions.access_save_failed', 'Save failed'));
+            toast.error(messageOf(e, t('admin_subscriptions.access_save_failed', 'Save failed')));
         } finally {
             setSaving(false);
         }

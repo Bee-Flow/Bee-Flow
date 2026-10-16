@@ -1,5 +1,6 @@
 import { parseExpr } from '@shared/expr/engine.mjs';
 import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
+import { errorMessage } from '../../../../../utils/caughtError';
 
 /**
  * App Studio RBAC — client mirror of the server's row-filter subset validator.
@@ -142,20 +143,20 @@ function describeKind(kind: string, t: TranslateFn | null | undefined): string {
  * @param expr the raw expression (empty = "no rule", always valid)
  * @param table the data-model table (for record.<field> resolution)
  */
-export function validateRowFilterExpr(expr: unknown, table?: RowFilterTable | null, t: TranslateFn | null = null): { ok: boolean; error: string | null } {
+export function validateRowFilterExpr(expr: unknown, table?: RowFilterTable | null, t: TranslateFn | null = null): { ok: boolean; error: string | null | undefined } {
     const src = String(expr ?? '').trim();
     if (!src) return { ok: true, error: null };
     let ast;
     try {
         ast = parseExpr(src);
     } catch (e) {
-        return { ok: false, error: tr(t, 'studio_apps_edit.row_filter.unreadable', 'This rule could not be read — {detail}', { detail: (e as Error)?.message || tr(t, 'studio_apps_edit.row_filter.unreadable_hint', 'check the spelling and the brackets.') }) };
+        return { ok: false, error: tr(t, 'studio_apps_edit.row_filter.unreadable', 'This rule could not be read — {detail}', { detail: errorMessage(e) || tr(t, 'studio_apps_edit.row_filter.unreadable_hint', 'check the spelling and the brackets.') }) };
     }
     try {
         checkNode(ast, fieldKeySet(table), t);
         return { ok: true, error: null };
     } catch (e) {
-        return { ok: false, error: (e as Error).message };
+        return { ok: false, error: errorMessage(e) };
     }
 }
 

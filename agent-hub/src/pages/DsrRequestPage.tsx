@@ -1,6 +1,7 @@
 import React, { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
 import { ShieldCheck, CheckCircle2, Search, BadgeCheck, CircleAlert } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
+import { errorMessage } from '../utils/caughtError';
 
 const API = (import.meta.env.VITE_API_URL || '') + '/api/dsr';
 
@@ -126,7 +127,7 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
     const [notes, setNotes] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [result, setResult] = useState<DsrReceipt | null>(null);   // { id, ack }
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
 
     // Status check widget
     const [checkId, setCheckId] = useState('');
@@ -148,7 +149,7 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
             if (!r.ok) throw new Error(body.error || `${r.status}`);
             setResult(body);
         } catch (err) {
-            setError((err as Error).message);
+            setError(errorMessage(err));
         } finally { setSubmitting(false); }
     };
 

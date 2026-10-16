@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as api from '../lib/transcriptionsApi';
-import type { ApiError, MeetingNote, MeetingRowPatch } from '../detail/meetingDetailTypes';
+import type { MeetingNote, MeetingRowPatch } from '../detail/meetingDetailTypes';
 
 export default function useTranscriptions() {
     const [items, setItems] = useState<MeetingNote[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<ApiError | null>(null);
+    const [error, setError] = useState<unknown>(null);
     const mounted = useRef(true);
 
     // React 18 Strict Mode runs effects mount → unmount → mount in dev. A naïve
@@ -28,7 +28,7 @@ export default function useTranscriptions() {
                 setError(null);
             }
         } catch (err) {
-            if (mounted.current) setError(err as ApiError);
+            if (mounted.current) setError(err);
         } finally {
             if (mounted.current && showSpinner) setLoading(false);
         }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TranslateFn } from '../../../hooks/useTranslation';
 import type { PrimaryContent } from '../webpageEditorTypes';
 import { api } from '../webpagesApi';
+import { errorMessage } from '../../../utils/caughtError';
 
 /** One row of `GET /:id/versions` (routes/webpages.js + core/webpages/versionFacts.js). */
 export interface VersionRow {
@@ -30,7 +31,7 @@ export interface VersionCoverage {
     extraFiles?: boolean;
 }
 
-const errorText = (err: unknown) => (err as Error).message;
+const errorText = (err: unknown) => errorMessage(err);
 
 /** The version list of one page: load, page on, and the read-only viewer. */
 export function useVersionList(webpageId: string, onLoaded: ((n: number) => void) | undefined) {
@@ -40,7 +41,7 @@ export function useVersionList(webpageId: string, onLoaded: ((n: number) => void
     const [coverage, setCoverage] = useState<VersionCoverage | null>(null);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
 
     const mountedRef = useRef(true);
     useEffect(() => {
@@ -102,7 +103,7 @@ export function useVersionList(webpageId: string, onLoaded: ((n: number) => void
 export function useVersionViewer(webpageId: string, t: TranslateFn, mountedRef: { current: boolean }) {
     const [viewing, setViewing] = useState<ViewedVersion | null>(null);
     const [viewSlot, setViewSlot] = useState<keyof PrimaryContent>('html');
-    const [viewError, setViewError] = useState<string | null>(null);
+    const [viewError, setViewError] = useState<string | null | undefined>(null);
 
     const handleView = useCallback(async (version: VersionRow) => {
         setViewError(null);

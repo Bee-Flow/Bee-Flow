@@ -3,11 +3,12 @@ import { Globe, Search, Loader2 } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { WebpageRow } from './webpageRow.types';
+import { errorMessage } from '../../utils/caughtError';
 
 interface PickerState {
     loading: boolean;
     items: WebpageRow[];
-    error: string | null;
+    error: string | null | undefined;
 }
 
 interface WebpagePickerPopoverProps {
@@ -63,7 +64,7 @@ export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelec
                 const items = Array.isArray(data?.webpages) ? data.webpages : [];
                 if (!cancelled) setState({ loading: false, items, error: null });
             } catch (err) {
-                if (!cancelled) setState({ loading: false, items: [], error: (err as Error).message });
+                if (!cancelled) setState({ loading: false, items: [], error: errorMessage(err) });
             }
         })();
         return () => { cancelled = true; };

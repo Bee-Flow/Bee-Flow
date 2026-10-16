@@ -4,6 +4,7 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 import { matchCounts } from './routeIntents';
 import { hostFromPreview, planTopicPreview } from './topicPreview';
 import type { PreviewRule, TopicPreviewResponse } from './topicPreview';
+import { errorStatus } from '../../../../../utils/caughtError';
 
 /**
  * "Check the sample rows" for "is about" rules: ask the topic classifier to
@@ -46,7 +47,7 @@ export default function useTopicPreview({ rules, rows, root = null, itemVar = 'i
             const res = await api.previewTopics({ texts: plan.texts, labels: plan.labels }) as TopicPreviewResponse;
             setState({ key, host: hostFromPreview(res), error: '', loading: false });
         } catch (e) {
-            const status = (e as { status?: number })?.status;
+            const status = errorStatus(e);
             const error = status === 409
                 ? t('automations.builder.topics.check_not_installed', 'No topic classifier is installed on this server, so these rules cannot be checked.')
                 : t('automations.builder.topics.check_failed', 'The topic classifier did not answer. Try again in a moment.');

@@ -3,6 +3,7 @@ import { takePendingPlan } from '../../../components/billing/pendingPlan';
 import type { TranslateFn } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { isPaidPlan, type CheckoutMessage, type ConsumerPlan, type ConsumerUsageData } from './consumerBilling';
+import { errorMessage } from '../../../utils/caughtError';
 
 /** The checkout result Stripe sends back on the URL, read once and cleaned off. */
 function readCheckoutResult(): CheckoutMessage | null {
@@ -62,7 +63,7 @@ async function redirectVia(path: string, body: Record<string, unknown>, fallback
 export default function useConsumerBilling(t: TranslateFn) {
     const [data, setData] = useState<ConsumerUsageData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
     const [plans, setPlans] = useState<ConsumerPlan[]>([]);
     const [stripeEnabled, setStripeEnabled] = useState(false);
     const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null); // planId being loaded
@@ -95,7 +96,7 @@ export default function useConsumerBilling(t: TranslateFn) {
             }
         } catch (e) {
             console.error('[ConsumerLicense] fetch error:', e);
-            setError((e as Error).message);
+            setError(errorMessage(e));
         } finally {
             setLoading(false);
         }
