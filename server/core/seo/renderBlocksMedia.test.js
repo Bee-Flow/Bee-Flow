@@ -86,3 +86,15 @@ test('an image with stored dimensions carries width and height; bad values are d
     assert.match(html, /<img src="\/a\.png" alt="a" width="1200" height="630" loading="lazy">/);
     assert.match(html, /<img src="\/b\.png" alt="b" loading="lazy">/);
 });
+
+test('a product mockup gives the crawler its prompt and every step, not only what the animation shows', () => {
+    const html = renderBlocks([block({
+        title: 'See it work',
+        prompt: 'Summarise my inbox <daily>',
+        steps: [{ role: 'assistant', text: 'Which mailbox?' }, { role: 'card', title: 'Morning summary', text: 'Runs at 08:00' }],
+    }, 'product-mockup')]);
+    assert.match(html, /<p>Summarise my inbox &lt;daily&gt;<\/p>/);
+    assert.match(html, /Which mailbox\?/);
+    assert.match(html, /Morning summary/);
+    assert.doesNotMatch(html, /assistant|card/);
+});

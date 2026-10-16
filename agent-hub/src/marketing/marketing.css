@@ -3842,3 +3842,7 @@ section.customer-support-block {
     height: auto;
     aspect-ratio: 16 / 9;
 }
+
+/* Placeholder of a lazily loaded section (sections/lazySection.tsx) while its
+   chunk loads: about the height of the motion blocks, so little shifts. */
+.marketing-root .cms-lazy-section { min-height: 480px; }

@@ -26,7 +26,8 @@ const { esc } = require('./html');
 const HEADING_KEYS = new Set(['title', 'heading', 'question']);
 const SUBHEAD_KEYS = new Set(['subheading', 'sublabel']);
 const LEAD_KEYS = new Set(['lead', 'blurb', 'intro', 'description']);
-const BODY_KEYS = new Set(['body', 'answer', 'text', 'note', 'quote', 'example', 'disclaimer', 'footnote']);
+// `prompt`: the product-mockup block's typed request, prose a crawler should read.
+const BODY_KEYS = new Set(['body', 'answer', 'text', 'note', 'quote', 'example', 'disclaimer', 'footnote', 'prompt']);
 const EYEBROW_KEYS = new Set(['eyebrow']);
 // customer-stories / story-header: who, in which sector, the attribution and the
 // headline figure of a metric ({ stat, label }).
