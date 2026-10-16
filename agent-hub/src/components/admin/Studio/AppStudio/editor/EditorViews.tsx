@@ -44,7 +44,7 @@ interface DataViewProps {
     app: HeaderApp;
     definition: AppDefinition | null;
     screenId: string | null;
-    onCommit?: (definition: AppDefinition) => void;
+    onCommit: (definition: AppDefinition) => void;
     dispatch: Dispatch<AppEditorAction>;
     disabled?: boolean;
     onLeave?: () => void;

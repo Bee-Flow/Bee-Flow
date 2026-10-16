@@ -2,13 +2,13 @@ import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 import type { BuiltView } from '../inspector/panels/BindingField.types';
 
 /**
- * Props of QueryBuilder (QueryBuilder.jsx). Every prop may be left out: the
- * body calls `onClose` and `onSave` through `?.`, and without an `appId` it
- * loads no tables.
+ * Props of QueryBuilder (QueryBuilder.jsx). `onClose` is required: the Modal
+ * calls it without a guard on a backdrop click. The rest may be left out:
+ * `onSave` is called through `?.`, and without an `appId` no tables load.
  */
 export interface QueryBuilderProps {
     open?: boolean;
-    onClose?: (() => void) | null;
+    onClose: () => void;
     appId?: string | null;
     /** 'chart' also hands a column mapping to `onSave`; the title differs. */
     componentType?: string;

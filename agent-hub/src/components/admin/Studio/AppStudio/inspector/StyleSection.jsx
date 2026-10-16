@@ -53,8 +53,8 @@ export function findSectionById(def, sectionId) {
     return null;
 }
 
-/** Shallow-merge a style patch into a section (structural sharing; same def when a no-op). */
 /**
+ * Shallow-merge a style patch into a section (structural sharing; same def when a no-op).
  * @param {import('./appDefinition').AppDefinition} def
  * @param {string} sectionId
  * @param {Record<string, unknown> | null | undefined} patch

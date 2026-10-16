@@ -62,10 +62,8 @@ export interface AppEditorShellProps {
 // Typed views of .jsx/.js siblings whose defaults would mistype their props.
 const Canvas = CanvasJs as unknown as ComponentType<{ app: HeaderApp; onCommit: (def: AppDefinition) => void; editActionState: Record<string, unknown> }>;
 const CanvasPlanPanel = CanvasPlanPanelJs as unknown as ComponentType<{ todos: unknown[]; running: boolean; t: TranslateFn; idPrefix: string; placement: string }>;
-const InspectorPanel = InspectorPanelJs as unknown as ComponentType<{
-    onCommit: (def: AppDefinition) => void;
-    onTestActionResult: (actionId: string, entry: unknown) => void;
-}>;
+// inspector/InspectorPanel.tsx is TypeScript now; the alias keeps the compiled text.
+const InspectorPanel = InspectorPanelJs;
 const useEditorHotkeys = useEditorHotkeysJs as unknown as (options: {
     enabled: boolean;
     onUndo: () => void;
@@ -183,7 +181,7 @@ function EditorChrome({ app, onClose, onAppUpdated, chatSlot }: AppEditorShellPr
 
     // ---- inspector test-action results feed the edit canvas ------------------
     const [testActionState, setTestActionState] = useState<Record<string, unknown>>({});
-    const onTestActionResult = useCallback((actionId: string, entry: unknown) => {
+    const onTestActionResult = useCallback((actionId: string | null, entry: unknown) => {
         if (!actionId) return;
         setTestActionState((prev) => ({ ...prev, [actionId]: entry }));
     }, []);
