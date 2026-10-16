@@ -185,6 +185,11 @@ async function executeFileOperationTool(toolName, args, ctx) {
                 return { error: 'Either sourceHandle (preferred for binary) or content (for inline text) is required.' };
             }
 
+            // A folder path is only fine for a generated file, which takes its own name.
+            if (/\/$/.test(String(args.path)) && !(hasHandle && args.sourceHandle.kind === 'generated_file')) {
+                return { error: `path "${args.path}" is a folder. Give a file name, e.g. "${args.path}report.txt".` };
+            }
+
             // Resolve to bytes. Handles stay opaque to the model — this is what
             // keeps a PDF attachment out of the conversation entirely, and it is
             // why binding base64 into `content` was never a real option: the
@@ -221,11 +226,22 @@ async function executeFileOperationTool(toolName, args, ctx) {
                     return { error: `Unsupported sourceHandle.kind: ${kind}` };
                 }
             } else if (args.isBase64) {
-                body = Buffer.from(args.content, 'base64');
+                // Buffer.from(..., 'base64') never throws: it skips what it
+                // cannot read and stores the rest, so check the text first.
+                const b64 = args.content.replace(/\s+/g, '');
+                if (!/^[A-Za-z0-9+/_-]*={0,2}$/.test(b64) || b64.length % 4 === 1) {
+                    return { error: 'content is not valid base64. Send base64 text, or set isBase64 to false for plain text.' };
+                }
+                body = Buffer.from(b64, 'base64');
             } else {
                 body = args.content;
             }
 
+            // joinDavPath drops a trailing slash, so "/Docs/" would PUT a file
+            // named "Docs" and fail on its missing parent. A folder is not a file.
+            if (/\/$/.test(String(args.path))) {
+                return { error: `path "${args.path}" is a folder. Give a file name, e.g. "${args.path}report.txt".` };
+            }
             const url = joinDavPath(root, args.path);
             const put = () => ncFetch(url, {
                 method: 'PUT',
@@ -237,16 +253,19 @@ async function executeFileOperationTool(toolName, args, ctx) {
                 body,
             });
             let res = await put();
-            // 409 = a parent folder is missing. Create the chain once and retry,
+            let retried = false;
+            // 409 or 404 = a parent folder is missing (Nextcloud answers 404 for
+            // a PUT into a missing folder, 409 on older servers). Create the chain once and retry,
             // so an automation saving into "/Invoices/Vendor/" needs no create-folder
             // steps (which fail with "already exists" on every later run). The
             // happy path still costs a single PUT.
-            if (res.status === 409) {
+            if (res.status === 409 || res.status === 404) {
                 await ensureParentFolders(ncFetch, root, args.path);
                 res = await put();
+                retried = true;
             }
             if (res.status === 401) return { error: authError };
-            if (res.status === 409) return { error: `Parent folder for ${args.path} does not exist and could not be created.` };
+            if (res.status === 409 || (retried && res.status === 404)) return { error: `Parent folder for ${args.path} does not exist and could not be created.` };
             if (!res.ok && res.status !== 201 && res.status !== 204) {
                 const text = await res.text().catch(() => '');
                 return { error: `Upload failed (${res.status}): ${text.slice(0, 200)}` };

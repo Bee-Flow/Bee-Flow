@@ -74,7 +74,12 @@ const PROPFIND_BODY = `<?xml version="1.0"?>
 function joinDavPath(root, path) {
     const cleaned = String(path || '/').replace(/^\/+/, '').replace(/\/+$/, '');
     if (!cleaned) return root + '/';
-    const encoded = cleaned.split('/').map(encodeURIComponent).join('/');
+    const segments = cleaned.split('/');
+    // "." and ".." would walk out of the user's folder or alias another path.
+    if (segments.some((seg) => seg === '.' || seg === '..')) {
+        throw Object.assign(new Error(`Invalid path "${path}": "." and ".." segments are not allowed.`), { code: 'NC_BAD_PATH' });
+    }
+    const encoded = segments.map(encodeURIComponent).join('/');
     return `${root}/${encoded}`;
 }
 

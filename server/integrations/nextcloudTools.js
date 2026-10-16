@@ -62,7 +62,14 @@ async function executeNextcloudTool(toolName, args, userId, session, extra = {})
     };
 
     for (const handler of TOOL_HANDLERS) {
-        const result = await handler(toolName, args, handlerCtx);
+        let result;
+        try {
+            result = await handler(toolName, args, handlerCtx);
+        } catch (e) {
+            // joinDavPath refuses "." and ".." segments: a bad argument, not a crash.
+            if (e && e.code === 'NC_BAD_PATH') return { error: e.message };
+            throw e;
+        }
         if (result !== undefined) return result;
     }
     return { error: `Unknown Nextcloud tool: ${toolName}` };
