@@ -65,9 +65,10 @@ test('written steps are not placeholders', () => {
     assert.ok(!has(warningsFor('steps', { ...BLOCK_DEFAULTS.steps, items }), 'placeholder_content'));
 });
 
-test('trust-band columns is reported as unsupported', () => {
-    const ws = warningsFor('trust-band', BLOCK_DEFAULTS['trust-band'], { columns: 4 });
+test('style.columns is reported on a block without a column grid, not on trust-band', () => {
+    const ws = warningsFor('faq', BLOCK_DEFAULTS.faq, { columns: 4 });
     assert.ok(has(ws, 'style_columns_unused'));
+    assert.ok(!has(warningsFor('trust-band', BLOCK_DEFAULTS['trust-band'], { columns: 4 }), 'style_columns_unused'));
     assert.ok(!has(warningsFor('features', BLOCK_DEFAULTS.features, { columns: 3 }), 'style_columns_unused'));
 });
 

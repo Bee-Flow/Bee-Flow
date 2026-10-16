@@ -32,7 +32,7 @@ const COMMON_CONTENT_KEYS = ['enabled', 'backgroundVariant', 'variant', 'align',
 const TEXT_DESIGN_KEY = /(Style|Align)$/;
 
 /** Block types whose renderer reads style.columns (--cms-cols). */
-const COLUMN_GRID_TYPES = ['features', 'steps', 'security', 'techStats'];
+const COLUMN_GRID_TYPES = ['features', 'steps', 'security', 'techStats', 'trust-band'];
 
 /**
  * @param {unknown} v

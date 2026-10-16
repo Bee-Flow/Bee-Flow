@@ -2355,16 +2355,6 @@
 .marketing-root .cta-section.cms-bg--dark .cta-content p {
     color: rgba(255, 255, 255, 0.85);
 }
-.marketing-root .cta-section.cms-bg--dark .btn-secondary {
-    background: transparent;
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.4);
-    backdrop-filter: none;
-}
-.marketing-root .cta-section.cms-bg--dark .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.7);
-}
 /* Thin accent "honeycomb rule" — the page-closing bracket device. */
 .marketing-root .cta-section.cms-motif-hex {
     border-top: 2px solid var(--accent);
@@ -3343,6 +3333,7 @@ section.customer-support-block {
     background: rgba(255, 255, 255, 0.92);
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
 }
+.marketing-root .cta-section.cms-bg--dark .btn-secondary,
 .marketing-root .cta-banner-block.cms-bg--primary .btn-secondary,
 .marketing-root .cta-banner-block.cms-bg--dark    .btn-secondary {
     background: transparent;
@@ -3350,6 +3341,7 @@ section.customer-support-block {
     border-color: rgba(255, 255, 255, 0.4);
     backdrop-filter: none;
 }
+.marketing-root .cta-section.cms-bg--dark .btn-secondary:hover,
 .marketing-root .cta-banner-block.cms-bg--primary .btn-secondary:hover,
 .marketing-root .cta-banner-block.cms-bg--dark    .btn-secondary:hover {
     background: rgba(255, 255, 255, 0.12);
