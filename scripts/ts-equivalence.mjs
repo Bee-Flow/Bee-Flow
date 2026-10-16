@@ -21,7 +21,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const esbuild = createRequire(path.join(ROOT, 'server', 'package.json'))('esbuild');
+// Loaded on first use: the policy job runs this file's unit tests with only the
+// root packages installed, and importing the module must not need server/.
+let esbuild;
+const loadEsbuild = () => (esbuild ??= createRequire(path.join(ROOT, 'server', 'package.json'))('esbuild'));
+
+/** Whether server/'s esbuild is installed (the compile half of the gate needs it). */
+export function hasEsbuild() {
+    try { loadEsbuild(); return true; } catch { return false; }
+}
 
 const git = (...args) => execFileSync('git', ['-C', ROOT, ...args], { encoding: 'utf8', maxBuffer: 1 << 28 });
 
@@ -35,7 +43,7 @@ export function normalise(code) {
 }
 
 export async function compile(source) {
-    const { code } = await esbuild.transform(source, { loader: 'tsx', jsx: 'preserve', legalComments: 'none', format: 'esm', target: 'esnext' });
+    const { code } = await loadEsbuild().transform(source, { loader: 'tsx', jsx: 'preserve', legalComments: 'none', format: 'esm', target: 'esnext' });
     return normalise(code);
 }
 
