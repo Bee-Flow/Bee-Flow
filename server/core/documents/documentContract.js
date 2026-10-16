@@ -147,10 +147,14 @@ function typeValid(p, value) {
  * stored defaults are strings, so without this a constant could never fill a
  * number parameter.
  */
+/** "1,000" / "12.345" (one separator, exactly 3 digits after it) or two separators: ambiguous, never guessed. */
+function hasThousandsSeparator(t) {
+    return /^-?\d{1,3}[.,]\d{3}$/.test(t) || /[.,].*[.,]/.test(t);
+}
 function coerceNumber(value) {
     if (typeof value !== 'string') return value;
     const t = value.trim();
-    if (!/^-?\d+(?:[.,]\d+)?$/.test(t)) return value;
+    if (!/^-?\d+(?:[.,]\d+)?$/.test(t) || hasThousandsSeparator(t)) return value;
     const n = Number(t.replace(',', '.'));
     return Number.isFinite(n) ? n : value;
 }
@@ -162,7 +166,10 @@ function coerceNumberParams(params, scope) {
             const n = coerceNumber(value);
             if (n !== value) setPath(scope, p.key, n);
         } else if (p.type === 'list' && Array.isArray(value)) {
-            for (const item of value) if (item && typeof item === 'object') coerceNumberParams(p.fields, item);
+            // Copy each item: the list may be the caller's input or a contract default.
+            const copy = value.map(item => (item && typeof item === 'object' && !Array.isArray(item) ? { ...item } : item));
+            for (const item of copy) if (item && typeof item === 'object') coerceNumberParams(p.fields, item);
+            setPath(scope, p.key, copy);
         }
     }
 }
@@ -205,7 +212,7 @@ function prepareDocument(doc, supplied = {}, overrides = {}) {
             if (p.required) issues.push({ code: 'required', key, message: `${p.label || key} is required` });
             return;
         }
-        if (!typeValid(p, value)) issues.push({ code: 'type', key, message: p.type === 'number' && typeof value === 'string' ? `${key} must be a number, got "${value.slice(0, 40)}"` : `${key} must be ${p.type}` });
+        if (!typeValid(p, value)) issues.push({ code: 'type', key, message: p.type === 'number' && typeof value === 'string' ? `${key} must be a number${hasThousandsSeparator(value.trim()) ? ' without a thousands separator' : ''}, got "${value.slice(0, 40)}"` : `${key} must be ${p.type}` });
         else if (p.type === 'list') value.forEach((item, i) => (p.fields || []).forEach(f => check(f, item, `${key}[${i}].`)));
     }
     const ruleKeys = new Set(); const activeRuleKeys = new Set();

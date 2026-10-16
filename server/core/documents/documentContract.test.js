@@ -79,3 +79,19 @@ test('number parameters accept numeric strings, defaults and list fields; "abc" 
     assert.equal(bad.valid, false);
     assert.match(bad.issues[0].message, /btw must be a number, got "abc"/);
 });
+
+test('ambiguous thousands separators are refused, plain decimals accepted, list input not mutated', () => {
+    const doc = { bodyHtml: '{{n}}', settings: { contract: { parameters: [
+        { key: 'n', type: 'number' },
+        { key: 'lines', type: 'list', fields: [{ key: 'amount', type: 'number' }] },
+    ] } } };
+    for (const v of ['1,000', '1.000', '12,345', '1.234,5']) {
+        const r = prepareDocument(doc, { n: v });
+        assert.equal(r.valid, false, v);
+        assert.match(r.issues[0].message, /without a thousands separator, got/);
+    }
+    for (const v of ['21,5', '3.5']) assert.equal(prepareDocument(doc, { n: v }).valid, true, v);
+    const lines = [{ amount: '3.5' }];
+    assert.equal(prepareDocument(doc, { lines }).valid, true);
+    assert.equal(lines[0].amount, '3.5');
+});
