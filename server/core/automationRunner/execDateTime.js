@@ -5,10 +5,11 @@
 
 const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
 const { impliedListMode } = require('../automationModel/datetimeListMode');
+const { resolveTimezone, partsInZone, toDateStrict, addWallDays } = require('./dateTimeTz');
 
 /**
  * Apply ONE date/time operation. We accept ISO strings and JS-parseable
- * date strings; ints (epoch ms) too. Output normalises to ISO + a
+ * date strings; numbers as epoch seconds or ms (see `epochUnit`) too. Output normalises to ISO + a
  * formatted `value` (matches the format string when op === 'format',
  * otherwise equal to ISO).
  *
@@ -114,13 +115,13 @@ function datetimeResult(step, runState) {
     const inputAt = resolveDateInput(step.input);
     const inputAt2 = resolveDateInput(step.input2);
 
-    const toDate = (v) => {
-        if (v == null) return null;
-        if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v;
-        if (typeof v === 'number') return new Date(v);
-        if (typeof v === 'string') { const d = new Date(v); return Number.isNaN(d.getTime()) ? null : d; }
-        return null;
-    };
+    // `timezone` (IANA, default UTC) decides how a zone-less string is read and
+    // which wall clock `format` and `extract` use. `epochUnit` is seconds, ms or
+    // auto (default: a number below 1e11 is seconds). Dates that do not exist
+    // ("2026-02-30") are refused instead of rolling into the next month.
+    const explicitTz = typeof step.timezone === 'string' && step.timezone.trim() !== '';
+    const tz = resolveTimezone(step.timezone);
+    const toDate = (v) => toDateStrict(v, { tz, epochUnit: step.epochUnit });
 
     if (op === 'now') {
         const d = new Date();
@@ -141,16 +142,22 @@ function datetimeResult(step, runState) {
         // Lightweight token formatter — enough for the common patterns
         // (yyyy-MM-dd HH:mm) without pulling in date-fns just for this.
         const pad = (n, w = 2) => String(n).padStart(w, '0');
+        const p = partsInZone(d, tz);
         const tokens = {
-            yyyy: d.getFullYear(),
-            MM: pad(d.getMonth() + 1),
-            dd: pad(d.getDate()),
-            HH: pad(d.getHours()),
-            mm: pad(d.getMinutes()),
-            ss: pad(d.getSeconds()),
+            yyyy: p.year,
+            MM: pad(p.month),
+            dd: pad(p.day),
+            HH: pad(p.hour),
+            mm: pad(p.minute),
+            ss: pad(p.second),
         };
         const out = String(step.format).replace(/yyyy|MM|dd|HH|mm|ss/g, m => tokens[m]);
         return { iso: d.toISOString(), value: out };
+    }
+    if (op === 'addDays' && explicitTz) {
+        // With a timezone set, a day keeps the wall-clock time across a DST change.
+        const next = addWallDays(d, Number(step.amount || 0), tz);
+        return { iso: next.toISOString(), value: next.toISOString() };
     }
     if (op === 'addDays' || op === 'addHours' || op === 'addMinutes') {
         const ms = op === 'addDays' ? 86_400_000 : op === 'addHours' ? 3_600_000 : 60_000;
@@ -169,14 +176,15 @@ function datetimeResult(step, runState) {
         return { value: diffMs / div, unit: step.unit };
     }
     if (op === 'extract') {
+        const p = partsInZone(d, tz);
         const map = {
-            year: d.getFullYear(),
-            month: d.getMonth() + 1,
-            day: d.getDate(),
-            hour: d.getHours(),
-            minute: d.getMinutes(),
-            second: d.getSeconds(),
-            dayOfWeek: d.getDay(),
+            year: p.year,
+            month: p.month,
+            day: p.day,
+            hour: p.hour,
+            minute: p.minute,
+            second: p.second,
+            dayOfWeek: p.dayOfWeek,
         };
         return { value: map[step.part], part: step.part };
     }

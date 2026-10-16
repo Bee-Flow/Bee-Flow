@@ -161,6 +161,8 @@ function applyAddDateTime(draft, args) {
         // table and writes its result into a new `target` column on every row.
         arrayRef: typeof args.arrayRef === 'string' ? args.arrayRef : undefined,
         target: typeof args.target === 'string' ? args.target : undefined,
+        timezone: typeof args.timezone === 'string' && args.timezone.trim() ? args.timezone.trim() : undefined,
+        epochUnit: typeof args.epochUnit === 'string' ? args.epochUnit : undefined,
         label: args.label || 'Date & time',
     };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });

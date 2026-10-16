@@ -106,7 +106,7 @@ const FULL_PROMPT_STEP_MENU = `
                      (steps.h.output.body.order.total); in an expr,
                      parseJson(text, "order.total") does the same. Free at run
                      time — prefer this over an ai_step for restructuring data.
-  datetime         — date/time op (now, parse, format, addDays/Hours/Minutes, diff, extract)
+  datetime         — date/time op (now, parse, format, addDays/Hours/Minutes, diff, extract; optional timezone (IANA, default UTC) and epochUnit)
   wait             — pause for N seconds (1..86400)
   approval         — pause until a PERSON approves or rejects: builder_add_approval.
                      "prompt" is what the approver reads and is template-interpolated, so

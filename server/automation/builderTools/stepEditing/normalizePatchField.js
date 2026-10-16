@@ -246,7 +246,7 @@ function normalizePatchField(type, key, value) {
         if (key === 'color') return (typeof value === 'string' && NOTE_COLOR_KEYS.has(value)) ? value : undefined;
     }
     if (type === 'datetime') {
-        if (['input', 'input2', 'format', 'part', 'unit', 'target'].includes(key)) return typeof value === 'string' ? value : undefined;
+        if (['input', 'input2', 'format', 'part', 'unit', 'target', 'timezone', 'epochUnit'].includes(key)) return typeof value === 'string' ? value : undefined;
         // '' is meaningful for arrayRef: list mode with the source not picked yet.
         if (key === 'arrayRef') return typeof value === 'string' ? value : undefined;
         if (key === 'amount') return typeof value === 'number' ? value : undefined;

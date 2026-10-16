@@ -73,7 +73,7 @@ const PATCHABLE_FIELDS = {
     data_extraction: ['source', 'fields', 'instructions', 'label', 'forEach'],
     set: ['fields', 'label', 'forEach', 'arrayRef', 'operations', 'maxItems'],
     parse_json: ['sourceRef', 'itemsRef', 'mode', 'fields', 'label'],
-    datetime: ['op', 'input', 'input2', 'amount', 'format', 'part', 'unit', 'arrayRef', 'target', 'label'],
+    datetime: ['op', 'input', 'input2', 'amount', 'format', 'part', 'unit', 'arrayRef', 'target', 'timezone', 'epochUnit', 'label'],
     wait: ['seconds', 'label'],
     // `forEach` is deliberately absent (unlike notification/ai_step): an
     // approval that runs once per item pauses on the first one and the rest
