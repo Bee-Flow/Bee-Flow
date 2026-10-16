@@ -2894,9 +2894,7 @@
 .marketing-root .content-el-text--align-center { text-align: center; }
 .marketing-root .content-el-text--align-right  { text-align: right;  }
 
-.marketing-root .content-el-heading    { margin: 0 0 12px; font-weight: 700; }
-.marketing-root .content-el-heading:is(h2) { font-size: clamp(1.6rem, 2.5vw, 2.25rem); line-height: 1.2; }
-.marketing-root .content-el-heading:is(h3) { font-size: clamp(1.25rem, 2vw, 1.6rem); line-height: 1.25; }
+.marketing-root .content-el-heading    { margin: 0 0 12px; font-weight: 700; font-size: clamp(1.6rem, 2.5vw, 2.25rem); line-height: 1.2; }
 .marketing-root .content-el-subheading { margin: 0 0 12px; font-size: 1.125rem; opacity: 0.9; }
 .marketing-root .content-el-body       { margin: 0; line-height: 1.6; white-space: pre-wrap; }
 
