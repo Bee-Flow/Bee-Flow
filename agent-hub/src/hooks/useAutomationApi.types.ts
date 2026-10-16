@@ -2,7 +2,8 @@
 export interface HttpConnection {
     id: string;
     label?: string;
-    kind?: string;
+    /** Always set for provider 'http': the server rejects a credential without a valid kind (sanitizeHttpSecret). */
+    kind: string;
     /** 'lent' for a credential shared with the caller, 'own' for their own. */
     access?: 'own' | 'lent';
 }

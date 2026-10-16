@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 import { summariseDeleteBlock } from './deleteBlock';
+import type { DeleteBlockBody } from './deleteBlock';
 import { deleteAgentRequest } from '../../../api/agentStudio';
 import { errorMessage } from '../../../utils/caughtError';
 
@@ -53,7 +54,7 @@ export default function useAgentDelete({ onDeleted, fetchAgents }: Options) {
             // it must never turn an unparsable body into "nothing uses this":
             // summariseDeleteBlock reports every kind as unchecked instead.
             if (res.status === 409) {
-                let body: unknown = null;
+                let body: DeleteBlockBody | null = null;
                 try { body = await res.json(); } catch (_) { /* leave null: unreadable */ }
                 setDeleteBlocked(summariseDeleteBlock(body));
                 return;
