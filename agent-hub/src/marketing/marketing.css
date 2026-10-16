@@ -3993,3 +3993,21 @@ section.customer-support-block {
     --label-tracking: 0.08em;
     --label-size: var(--text-eyebrow);
 }
+
+/* Uploaded icon image (IconGlyph). Sized by the tile that holds it, or by the
+   className of the caller; the tile scale token also scales the Lucide glyph. */
+.marketing-root .icon-glyph-img {
+    width: 1.5rem;
+    height: 1.5rem;
+    object-fit: contain;
+    display: block;
+}
+.marketing-root .icon-tile > svg,
+.marketing-root .icon-tile > .icon-glyph-img {
+    transform: scale(var(--tile-scale, 1));
+}
+.marketing-root .header .icon-glyph-img,
+.marketing-root .mobile-nav .icon-glyph-img {
+    width: 1.25rem;
+    height: 1.25rem;
+}

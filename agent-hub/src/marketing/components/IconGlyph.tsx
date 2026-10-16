@@ -1,6 +1,5 @@
 import AppIcon from '../../components/icons/AppIcon';
 import { resolveAssetUrl } from '../assetUrl';
-import './iconGlyph.css';
 
 // An icon field holds a Lucide name or an uploaded asset of this site. The
 // asset test mirrors the server's safeIconAsset (stores/cms/localeMedia.js):
