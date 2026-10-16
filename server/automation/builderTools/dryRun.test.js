@@ -120,3 +120,44 @@ test('the watcher hears the run as soon as it exists, and never fails the run', 
     await applyRequestDryRun(wrapOf({ _stagedDryRun: true }), {}, d2);
     assert.deepEqual(quiet, [null], 'no watcher (MCP): no hook');
 });
+
+const ncWrap = (filter) => {
+    const w = wrapOf();
+    w.def.trigger = { id: 'trg', type: 'trigger', kind: 'app_event', appEvent: { provider: 'nextcloud', event: 'file.new', filter } };
+    return w;
+};
+
+test('an app_event dry run without a payload runs on the declared sample', async () => {
+    const out = await applyRequestDryRun(ncWrap(null), {}, deps());
+    assert.equal(executed[0].opts.triggerPayload.name, 'Invoice-2026-001.pdf');
+    assert.ok(out._warnings.some(m => /declared sample/.test(m)));
+    assert.equal(out.triggerPayloadSource, 'declared_sample');
+    // An explicit empty payload is replaced by the sample too.
+    executed.length = 0;
+    const empty = await applyRequestDryRun(ncWrap(null), { triggerPayload: {} }, deps());
+    assert.equal(empty.triggerPayloadSource, 'declared_sample');
+});
+
+test('an app_event dry run reports a filter that does not let the payload through', async () => {
+    const given = { path: '/a.pdf', extension: 'pdf', name: 'a.pdf' };
+    const out = await applyRequestDryRun(ncWrap({ extension: 'docx' }), { triggerPayload: given }, deps());
+    assert.equal(out.triggerPayloadSource, 'given');
+    assert.equal(out.triggerFilterMatched, false);
+    assert.ok(out._warnings.some(m => /would NOT let this payload through/.test(m)));
+    const ok = await applyRequestDryRun(ncWrap({ extension: 'pdf' }), { triggerPayload: given }, deps());
+    assert.equal(ok.triggerFilterMatched, true);
+    // On the declared sample a mismatch is advice, not a verdict.
+    const sample = await applyRequestDryRun(ncWrap({ extension: 'docx' }), {}, deps());
+    assert.equal(sample.triggerFilterMatched, undefined);
+    assert.ok(sample._warnings.some(m => /declared sample does not pass your filter/.test(m)));
+});
+
+test('a given triggerPayload is used as is, and a non-app_event dry run is untouched', async () => {
+    await applyRequestDryRun(ncWrap(null), { triggerPayload: { name: 'x.txt' } }, deps());
+    assert.deepEqual(executed[0].opts.triggerPayload, { name: 'x.txt' });
+    executed.length = 0;
+    const out = await applyRequestDryRun(wrapOf(), {}, deps());
+    assert.equal(executed[0].opts.triggerPayload, null);
+    assert.equal(out._warnings, undefined);
+    assert.equal(out.triggerPayloadSource, undefined);
+});

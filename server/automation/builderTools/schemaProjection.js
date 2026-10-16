@@ -328,7 +328,7 @@ const LEAN = Object.freeze({
     builder_request_dry_run: {
         description: 'Run the draft once in test mode. Call it ONCE, when every step exists. Side-effect steps are simulated. Returns ok + note, and per step its status and a _hint with the real output keys and shape — trust those; only a failed step carries its error and input, a forEach reports its failed items, a step that produced nothing says empty:true. ok:true = nothing to fix: finalize. Otherwise fix each failed step with builder_update_step and dry-run again in the same reply.',
         props: {
-            triggerPayload: { description: 'Optional sample payload for an app_event or webhook trigger.' },
+            triggerPayload: { description: 'Optional sample payload for an app_event or webhook trigger. Omitted or {} on an app_event trigger: the declared sample is used.' },
             triggerStepId: null,
         },
     },

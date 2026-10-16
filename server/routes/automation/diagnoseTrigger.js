@@ -107,7 +107,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
         if (pollerBacked) {
             checks.push({ name: 'deliverability', status: 'ok', message: 'Poller-backed — fires on the poll tick with no connector dependency.' });
         } else if (isPushPending('nextcloud', event)) {
-            checks.push({ name: 'deliverability', status: 'warn', message: 'This event requires the Bee Flow ExApp connector and is pending live validation.' });
+            checks.push({ name: 'deliverability', status: 'warn', message: 'This event has no producer (no webhook, no poller): it will never fire.' });
         } else {
             checks.push({ name: 'deliverability', status: 'warn', message: 'No producer for this event yet — it will not fire until a poller or the connector delivers it.' });
         }

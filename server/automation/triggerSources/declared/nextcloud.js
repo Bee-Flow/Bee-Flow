@@ -72,7 +72,7 @@ module.exports = { TRIGGER_SOURCES: [{
                     kind: 'push',
                 },
                 deliverability: 'connector',
-                deliverabilityNote: 'Nextcloud does not expose this event to webhooks (the underlying event class is not IWebhookCompatibleEvent), so it is read from the activity feed on the polling interval rather than delivered instantly.',
+                deliverabilityNote: 'Nothing produces this event: Nextcloud does not expose it to webhooks (the underlying event class is not IWebhookCompatibleEvent) and there is no activity-feed poller for it, so an automation on it never fires. Use a schedule trigger that reads the shares with a tool instead.',
             },
             {
                 id: 'activity.new',
