@@ -22,6 +22,7 @@
 
 const { BLOG_TOOLS } = require('./blog');
 const { REDIRECT_TOOLS } = require('./redirects');
+const { LINK_TOOLS } = require('./linkHandlers');
 
 const SITE_ID_PROP = Object.freeze({
     type: 'string',
@@ -295,6 +296,8 @@ const MCP_ONLY_TOOLS = [
     ...BLOG_TOOLS,
     // Redirects: cms/mcp/redirects.js (list, set, delete).
     ...REDIRECT_TOOLS,
+    // Link check: cms/mcp/linkHandlers.js.
+    ...LINK_TOOLS,
 ];
 
 /**

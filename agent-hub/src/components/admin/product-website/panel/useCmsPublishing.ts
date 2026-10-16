@@ -11,7 +11,9 @@ import { authFetch } from '../../../../utils/helpers';
 import { mutate } from '../../../../api/mutate';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { AI_LOCK_MSG } from './helpers';
+import { confirmPublishDespiteBrokenLinks } from './publishLinkCheck';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 type History = ReturnType<typeof useCmsHistory>;
@@ -33,6 +35,8 @@ export default function useCmsPublishing({
     setPublishing, setPublishedAt, setDirtySincePublish, setError,
     locales, setDefaultLocale,
 }: PublishingInput) {
+    const { t } = useTranslation();
+
     // ── site chrome mutations ────────────────────────────────────────
 
     // The history object is rebuilt per render; its commit is a stable callback.
@@ -128,14 +132,14 @@ export default function useCmsPublishing({
             try { await inFlightSaveRef.current; } catch { /* error already surfaced */ }
             inFlightSaveRef.current = null;
         }
-        const drainedOk = await flushSaves();
         // Never snapshot a site that still has unsaved edits — publishing here
         // would push stale content live while the UI shows "just published".
         // flushSaves already surfaced the save error and kept the retry batch.
-        if (!drainedOk || failedSavesRef.current) {
+        if (!(await flushSaves()) || failedSavesRef.current) {
             toast.error('Not published — some changes failed to save. Fix the error and retry.');
             return;
         }
+        if (!(await confirmPublishDespiteBrokenLinks(siteId, confirm, t))) return;
         setPublishing(true);
         try {
             const res = await authFetch(cmsApi.sitePublish(siteId), { method: 'POST' });
@@ -148,7 +152,7 @@ export default function useCmsPublishing({
         } finally {
             setPublishing(false);
         }
-    }, [flushSaves, activeSiteIdRef, builderRunningRef, failedSavesRef, inFlightSaveRef, saveTimerRef, setDirtySincePublish, setError, setPublishedAt, setPublishing]);
+    }, [flushSaves, confirm, t, activeSiteIdRef, builderRunningRef, failedSavesRef, inFlightSaveRef, saveTimerRef, setDirtySincePublish, setError, setPublishedAt, setPublishing]);
 
     // "Set as default locale" — an org-wide switch of the site's source
     // language; consequential enough to confirm (it flips translate mode).

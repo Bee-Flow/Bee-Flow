@@ -8,9 +8,22 @@
 
 const { err } = require('./handlerKit');
 const log = require('../../telemetry/log');
+const { runLinkCheck, asValidationWarnings } = require('../../core/cms/linkReport');
 
 /** Publish and go-live, both audited. */
 function createPublishHandlers({ deps, cmsStore, live, resolveSite, loadDraft, validationOf }) {
+    /** The internal broken links as warnings; the publish already happened, so a failure here is only logged. */
+    async function withLinkWarnings(siteId, validation) {
+        try {
+            const report = await runLinkCheck(siteId, { external: false }, { cmsStore });
+            if (!report.problems.length) return validation;
+            return { errors: validation?.errors || [], warnings: [...(validation?.warnings || []), ...asValidationWarnings(report)] };
+        } catch (e) {
+            log.warn('[CMS] link check after publish failed:', e.message);
+            return validation;
+        }
+    }
+
     async function publish(args, ctx) {
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
@@ -19,7 +32,7 @@ function createPublishHandlers({ deps, cmsStore, live, resolveSite, loadDraft, v
         await deps.audit('cms.publish.mcp', 'cms_site', site.siteId, ctx.userId, null, { tokenName: ctx.token.name }, ctx.orgId || null);
         const liveSiteId = await live.getLiveSiteId();
         const draftWrap = await loadDraft(site.siteId, ctx);
-        const validation = validationOf(draftWrap);
+        const validation = await withLinkWarnings(site.siteId, validationOf(draftWrap));
         return {
             result: {
                 published: true,

@@ -29,6 +29,7 @@ const { ANALYTICS_TOOLS, MCP_ONLY_TOOLS, PUBLISH_TOOLS, buildToolList: buildList
 const { createAnalyticsHandlers } = require('./analytics');
 const { createBlogHandlers } = require('./blog');
 const { createRedirectHandlers } = require('./redirects');
+const { createLinkHandlers } = require('./linkHandlers');
 const { isPlainObject, createTakeBudget } = require('./handlerKit');
 const { createSiteContext } = require('./siteContext');
 const { createSiteHandlers, createLocaleHandlers } = require('./siteHandlers');
@@ -60,6 +61,8 @@ const INSTRUCTIONS = [
     'Blog: cms_list_posts / cms_get_post / cms_create_post / cms_update_post (Markdown body; bodyEdits for small changes) / cms_delete_post / cms_set_post_translation / cms_update_blog_settings. Posts live at /blog/<slug>; cms_screenshot {postSlug} shows one. They go live with cms_publish like everything else.',
     '',
     'Redirects: cms_list_redirects / cms_set_redirect / cms_delete_redirect (301/302 from an old path to a new one; a renamed page already gets its own 301). Draft until cms_publish.',
+    '',
+    'Links: cms_check_links lists broken internal links (missing page, address that answers nothing); external:true also asks the external URLs. cms_publish returns the internal ones in `validation`.',
 ].join('\n');
 
 const rpcResult = (id, result) => ({ jsonrpc: '2.0', id, result });
@@ -182,7 +185,10 @@ function createCmsMcp(deps) {
 
     const redirectHandlers = createRedirectHandlers({ cmsStore, resolveSite, audit: deps.audit }).handlers;
 
+    const linkHandlers = createLinkHandlers({ deps, cmsStore, resolveSite, takeBudget }).handlers;
+
     const HANDLERS = {
+        ...linkHandlers,
         ...analyticsHandlers,
         ...blogHandlers,
         ...redirectHandlers,

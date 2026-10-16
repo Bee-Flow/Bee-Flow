@@ -346,7 +346,7 @@ router.use('/sites/:siteId', attachSiteIdFromParam);
 router.use('/sites/:siteId/posts', cmsBlog.createAdminRouter());
 
 router.use('/sites/:siteId/redirects', createRedirectsRouter()); // redirect manager (routes/cmsRedirects.js)
-
+router.use('/sites/:siteId/link-check', require('./cmsLinkCheck').createLinkCheckRouter());
 // Pages — literal '/order' before ':id' wildcard.
 router.post('/sites/:siteId/pages', newPageBody, postPage);
 router.put('/sites/:siteId/pages/order', orderBody, putPagesOrder);
