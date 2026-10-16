@@ -21,6 +21,10 @@
 // each section keeps its own sizing. The embed HTML gets the shared
 // HEIGHT_SCRIPT shim prepended, so a freshly pasted snippet auto-sizes
 // without needing to know the reportHeight contract.
+//
+// Focus: on mount the close button takes focus, and Tab / Shift+Tab cycle
+// inside the dialog (aria-modal promises the page behind it is inert). The
+// caller returns focus to its opener on close.
 
 import React, { useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
@@ -30,14 +34,46 @@ import useOutsideDismiss from '../../hooks/useOutsideDismiss';
 interface PopupModalProps {
     title?: string;
     embedHtml?: string;
+    /** Rendered instead of the sandboxed iframe, e.g. the product-tour video player. */
+    children?: React.ReactNode;
     onClose: () => void;
     modalStyle?: React.CSSProperties;
     iframeStyle?: React.CSSProperties;
 }
 
-export default function PopupModal({ title, embedHtml, onClose, modalStyle, iframeStyle }: PopupModalProps) {
+const TABBABLE = [
+    'a[href]', 'button:not([disabled])', 'input:not([disabled])', 'select:not([disabled])',
+    'textarea:not([disabled])', 'iframe', 'video[controls]', 'audio[controls]', '[tabindex]:not([tabindex="-1"])',
+].join(',');
+
+/** Keeps Tab and Shift+Tab inside `dialog`: past the last control focus wraps to the first, and back. */
+export function trapTab(e: React.KeyboardEvent<HTMLElement>, dialog: HTMLElement | null): void {
+    if (e.key !== 'Tab' || !dialog) return;
+    const items = Array.from(dialog.querySelectorAll<HTMLElement>(TABBABLE));
+    if (items.length === 0) {
+        e.preventDefault();
+        return;
+    }
+    const first = items[0];
+    const last = items[items.length - 1];
+    const active = document.activeElement;
+    const inside = active instanceof Node && dialog.contains(active);
+    if (e.shiftKey && (active === first || !inside)) {
+        e.preventDefault();
+        last.focus();
+    } else if (!e.shiftKey && (active === last || !inside)) {
+        e.preventDefault();
+        first.focus();
+    }
+}
+
+export default function PopupModal({ title, embedHtml, children, onClose, modalStyle, iframeStyle }: PopupModalProps) {
     const dialogRef = useRef<HTMLDivElement>(null);
+    const closeRef = useRef<HTMLButtonElement>(null);
     const iframeRef = usePopupIframeHeight();
+
+    // Focus moves into the dialog when it opens, onto the close button.
+    useEffect(() => { closeRef.current?.focus(); }, []);
 
     // Escape and any interaction outside the dialog (i.e. on the
     // overlay) close the popup. The component is only mounted while
@@ -59,8 +95,10 @@ export default function PopupModal({ title, embedHtml, onClose, modalStyle, ifra
                 role="dialog"
                 aria-modal="true"
                 aria-label={title || 'Card details'}
+                onKeyDown={(e) => trapTab(e, dialogRef.current)}
             >
                 <button
+                    ref={closeRef}
                     type="button"
                     onClick={onClose}
                     style={closeStyle}
@@ -69,13 +107,15 @@ export default function PopupModal({ title, embedHtml, onClose, modalStyle, ifra
                     ×
                 </button>
                 <div style={iframeWrapStyle}>
-                    <iframe
-                        ref={iframeRef}
-                        srcDoc={embedHtml ? HEIGHT_SCRIPT + embedHtml : ''}
-                        sandbox="allow-scripts"
-                        title={title || 'Card details'}
-                        style={{ ...baseIframeStyle, ...iframeStyle }}
-                    />
+                    {children ?? (
+                        <iframe
+                            ref={iframeRef}
+                            srcDoc={embedHtml ? HEIGHT_SCRIPT + embedHtml : ''}
+                            sandbox="allow-scripts"
+                            title={title || 'Card details'}
+                            style={{ ...baseIframeStyle, ...iframeStyle }}
+                        />
+                    )}
                 </div>
             </div>
         </div>,

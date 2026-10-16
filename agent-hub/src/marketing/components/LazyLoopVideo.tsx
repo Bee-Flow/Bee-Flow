@@ -18,6 +18,8 @@ import { useEffect, useRef, type CSSProperties } from 'react';
 
 export interface LazyLoopVideoProps {
     src: string;
+    /** WebM twin of `src`; used instead of it when the browser plays WebM. */
+    webmSrc?: string;
     poster?: string;
     className?: string;
     style?: CSSProperties;
@@ -32,7 +34,12 @@ function prefersReducedMotion(): boolean {
         && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-export default function LazyLoopVideo({ src, poster, className, style, ariaLabel }: LazyLoopVideoProps) {
+/** The WebM twin when the browser can play it, else the MP4. */
+function pickSource(video: HTMLVideoElement, src: string, webmSrc?: string): string {
+    return webmSrc && video.canPlayType('video/webm') ? webmSrc : src;
+}
+
+export default function LazyLoopVideo({ src, webmSrc, poster, className, style, ariaLabel }: LazyLoopVideoProps) {
     const ref = useRef<HTMLVideoElement>(null);
     const reduced = typeof window !== 'undefined' && prefersReducedMotion();
 
@@ -40,14 +47,14 @@ export default function LazyLoopVideo({ src, poster, className, style, ariaLabel
         const video = ref.current;
         if (!video || reduced) return;
         if (typeof IntersectionObserver !== 'function') {
-            video.src = src;
+            video.src = pickSource(video, src, webmSrc);
             void video.play().catch(() => undefined);
             return;
         }
         const observer = new IntersectionObserver((entries) => {
             for (const entry of entries) {
                 if (entry.isIntersecting) {
-                    if (!video.getAttribute('src')) video.src = src;
+                    if (!video.getAttribute('src')) video.src = pickSource(video, src, webmSrc);
                     // A rejected play() is the browser's autoplay policy; the poster stays.
                     void video.play().catch(() => undefined);
                 } else {
@@ -57,7 +64,7 @@ export default function LazyLoopVideo({ src, poster, className, style, ariaLabel
         }, { rootMargin: ROOT_MARGIN });
         observer.observe(video);
         return () => observer.disconnect();
-    }, [src, reduced]);
+    }, [src, webmSrc, reduced]);
 
     return (
         <video

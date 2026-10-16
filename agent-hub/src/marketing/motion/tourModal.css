@@ -1,0 +1,2 @@
+/* The tour player inside its modal (TourModal.tsx, a lazy chunk). */
+.tour-player { display: block; width: 100%; max-height: 90vh; background: #000; aspect-ratio: 16 / 9; }

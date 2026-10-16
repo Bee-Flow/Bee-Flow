@@ -7,6 +7,8 @@ import { assetSrcSet } from '../assetUrl';
 import LazyLoopVideo from '../components/LazyLoopVideo';
 import SectionFrame from '../components/SectionFrame';
 import { inlineTextStyle } from './textStyle';
+import TourPill from '../motion/TourPill';
+import type { TourData } from '../motion/motion.types';
 import type { MediaSlot, SectionDataBase, TextStyleBlob } from './sectionData.types';
 
 // The image sits in one of two columns on desktop, full width on a phone.
@@ -25,6 +27,7 @@ interface MediaTextData extends SectionDataBase {
     body?: string;
     cta?: MediaTextCta | null;
     media?: MediaSlot;
+    tour?: TourData;
     mediaPosition?: string;
     mediaSize?: string;
     headingStyle?: TextStyleBlob;
@@ -169,6 +172,7 @@ export default function MediaText({ data }: { data?: MediaTextData }) {
                                     </Button>
                                 </div>
                             ) : null}
+                            <TourPill tour={data.tour} />
                         </div>
                     </div>
                 </div>

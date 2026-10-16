@@ -5,6 +5,9 @@ import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import FramedMedia from '../components/FramedMedia';
 import { inlineTextStyle } from './textStyle';
+import BackgroundVideo from '../motion/BackgroundVideo';
+import { backgroundVideoSectionClass } from '../motion/backgroundVideo';
+import TourPill, { TourTeaser, hasTeaser, hasTour } from '../motion/TourPill';
 import type { HeroData } from './Hero.types';
 
 const HERO_VARIANTS: readonly (string | undefined)[] = ['classic', 'panel', 'split', 'video'];
@@ -82,6 +85,7 @@ export default function Hero({ data }: { data?: HeroData }) {
         'hero',
         variant !== 'classic' ? `hero--${variant}` : '',
         bgVariant !== 'default' ? `cms-bg--${bgVariant}` : '',
+        backgroundVideoSectionClass(data.backgroundVideo),
     ].filter(Boolean).join(' ');
 
     // Copy column — identical markup (and EditableText paths) across all
@@ -153,6 +157,11 @@ export default function Hero({ data }: { data?: HeroData }) {
                     ) : null}
                 </div>
             ) : null}
+            {hasTour(data.tour) && (hasMedia || !hasTeaser(data.tour)) ? (
+                <div className="hero-tour reveal reveal-delay-3">
+                    <TourPill tour={data.tour} onDark={backgroundVideoSectionClass(data.backgroundVideo).includes('on-dark')} />
+                </div>
+            ) : null}
         </div>
     );
 
@@ -190,13 +199,16 @@ export default function Hero({ data }: { data?: HeroData }) {
     // way FramedMedia's default lazy loading works everywhere else.
     const visual = hasMedia
         ? <FramedMedia media={panelMedia} fadeMask={variant !== 'split'} className="reveal reveal-delay-4" priority />
-        : legacyMockup || ((variant === 'panel' || variant === 'video')
+        : hasTeaser(data.tour)
+            ? <div className="reveal reveal-delay-4"><TourTeaser tour={data.tour} /></div>
+            : legacyMockup || ((variant === 'panel' || variant === 'video')
             ? <FramedMedia media={panelMedia} fadeMask className="reveal reveal-delay-4" priority />
             : null);
 
     return (
         <SectionFrame id="hero" name="Hero" enabled={data.enabled}>
             <section className={sectionClass} id="hero">
+                <BackgroundVideo video={data.backgroundVideo} />
                 <div className="container">
                     {variant === 'split' ? (
                         <div className="hero-inner">

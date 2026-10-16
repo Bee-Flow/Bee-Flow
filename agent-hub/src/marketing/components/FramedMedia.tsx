@@ -3,6 +3,7 @@ import { resolveAssetUrl, assetSrcSet, ASSET_IMG_SIZES } from '../assetUrl';
 import ClipVideo from './ClipVideo';
 import LazyLoopVideo from './LazyLoopVideo';
 import type { MediaSlot } from '../sections/sectionData.types';
+import '../motion/mediaMotion.css';
 
 interface FramedMediaProps {
     media?: MediaSlot | null;
@@ -60,6 +61,7 @@ export default function FramedMedia({ media, glow = true, fadeMask = false, clas
         `cms-frame--${frame}`,
         glow && frame !== 'none' ? 'cms-frame--glow' : '',
         fadeMask ? 'cms-frame--fade' : '',
+        m.motion === 'parallax' || m.motion === 'scale' ? `cms-frame--motion-${m.motion}` : '',
         className,
     ].filter(Boolean).join(' ');
 

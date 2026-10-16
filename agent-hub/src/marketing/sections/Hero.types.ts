@@ -1,5 +1,6 @@
 import type { MediaSlot, SectionDataBase } from './sectionData.types';
 import type { TextStyleBlob } from './sectionData.types';
+import type { BackgroundVideoData, TourData } from '../motion/motion.types';
 
 export interface HeroCta {
     enabled?: boolean;
@@ -31,5 +32,7 @@ export interface HeroData extends SectionDataBase {
     mockup?: { enabled?: boolean; chatBubbles?: HeroBubble[] };
     variant?: string;
     media?: MediaSlot;
+    backgroundVideo?: BackgroundVideoData;
+    tour?: TourData;
 }
 
