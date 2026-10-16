@@ -169,7 +169,6 @@ export function TourCard({ value, onChange, persistKey }: CardProps<TourValue>) 
                 label={t('cms_site.blocks.motion.tour_captions_lang', 'Captions language')}
                 value={v.captionsLang || DEFAULT_CAPTIONS_LANG}
                 onChange={(x: string) => patch({ captionsLang: x.trim() })}
-                placeholder="en"
                 />
             ) : null}
             <TextField

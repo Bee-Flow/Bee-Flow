@@ -40,13 +40,11 @@ export function CardCarouselEditor({ data = {}, pages = [], onChange }: BlockEdi
                 label={t('cms_site.blocks.card_carousel.prev_label', 'Previous button (screen readers)')}
                 value={data.prevLabel || ''}
                 onChange={(v: string) => onChange(set(data, 'prevLabel', v))}
-                placeholder="Previous"
             />
             <TextField
                 label={t('cms_site.blocks.card_carousel.next_label', 'Next button (screen readers)')}
                 value={data.nextLabel || ''}
                 onChange={(v: string) => onChange(set(data, 'nextLabel', v))}
-                placeholder="Next"
             />
             <RepeatableList
                 label={t('cms_site.blocks.card_carousel.cards', 'Cards')}

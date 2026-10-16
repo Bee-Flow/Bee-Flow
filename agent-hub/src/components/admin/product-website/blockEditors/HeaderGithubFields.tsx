@@ -41,7 +41,6 @@ export function HeaderGithubFields<T extends GithubCtaValue>({ item, update }: {
                 label={t('cms_site.blocks.header.github_label', 'Label (optional)')}
                 value={item.label || ''}
                 onChange={(v: string) => update({ ...item, label: v })}
-                placeholder="GitHub"
             />
             <TextField
                 label={t('cms_site.blocks.header.github_repo', 'Repository URL')}

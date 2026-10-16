@@ -4,7 +4,7 @@ import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavIcon from '../components/NavIcon';
-import GithubStarButton from '../components/GithubStarButton';
+import HeaderCtas from './HeaderCtas';
 import MobileNav from './MobileNav';
 import { readDropdown, navHandler } from './navShared';
 import { inlineTextStyle } from './textStyle';
@@ -346,42 +346,7 @@ export default function HeaderView({ data, showLanguageSwitcher = true }: Header
                     </nav>
                     <div className="header-actions">
                         {showLanguageSwitcher ? <LanguageSwitcher /> : null}
-                        {(data.ctas || []).map((cta, i) => {
-                            // Per-button label styling. The Button component
-                            // owns the variant background / border / radius;
-                            // typography overrides ride on an inner span so
-                            // they don't fight the variant's color rules.
-                            const labelStyle = inlineTextStyle({
-                                fontFamily: cta.labelFont,
-                                fontSize:   cta.labelSize,
-                                color:      cta.labelColor,
-                            });
-                            if (cta.kind === 'github') {
-                                return (
-                                    <GithubStarButton
-                                        key={cta.id || i}
-                                        repoUrl={cta.repoUrl}
-                                        label={cta.label}
-                                        starsFallback={cta.starsFallback}
-                                    />
-                                );
-                            }
-                            return (
-                            <Button
-                                key={cta.id || i}
-                                variant={cta.style || 'primary'}
-                                href={cta.href || '/app'}
-                                target={cta.target}
-                                rel={cta.rel}
-                            >
-                                <span style={labelStyle}>
-                                    <EditableText path={`header.ctas.${i}.label`} placeholder="Button">
-                                        {cta.label || ''}
-                                    </EditableText>
-                                </span>
-                            </Button>
-                            );
-                        })}
+                        <HeaderCtas ctas={data.ctas} />
                         <button
                             type="button"
                             aria-label="Toggle menu"

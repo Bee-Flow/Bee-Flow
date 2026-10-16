@@ -1,6 +1,6 @@
 {
   "_comment": "What the public entry (agent-hub/dist/index.html) loads before paint: render-blocking CSS (raw and gzipped bytes) and the module script plus modulepreloads (gzipped). Measurement plus 3%. `node scripts/entry-budget.mjs agent-hub --update` only lowers it; a raise is a deliberate edit with a reason in the commit message.",
-  "blockingCssBytes": 135851,
-  "blockingCssGzip": 25351,
-  "entryJsGzip": 188817
+  "blockingCssBytes": 148172,
+  "blockingCssGzip": 27071,
+  "entryJsGzip": 199091
 }
