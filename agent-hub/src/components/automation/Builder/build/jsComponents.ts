@@ -17,6 +17,7 @@ import type { FlowDefinition, FlowStep, RunStepRow } from '../flow/types';
 import FlowletsPanelJs from '../FlowletsPanel';
 import FormRunOverlayJs from '../FormRunOverlay';
 import NodeDetailViewJs from '../NodeDetailView';
+import type { RunIdentity } from '../flow/useFailedRunBanner';
 
 type Callback<A extends unknown[] = []> = ((...args: A) => void) | null;
 
@@ -59,6 +60,7 @@ export interface DiagramPaneProps {
     onExecuteStep?: (...args: never[]) => unknown;
     executingStepId?: string | null;
     runInFlight?: boolean;
+    runIdentity?: RunIdentity | null;
     onDiagnose?: Callback;
     realOutputById?: unknown;
     autoMapEnabled?: boolean;

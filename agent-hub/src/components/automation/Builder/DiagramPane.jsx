@@ -18,7 +18,7 @@ import { applyDeleteNodes, canDeleteNode, canDuplicateNode, canDetachNode } from
 import { NODE_TYPES } from './flow/nodeTypes';
 import RibbonFlightLayer from './flow/RibbonFlightLayer';
 import { buildRuntimeContext } from './flow/buildRuntimeContext';
-import { computeRunFocus } from './flow/runFocus';
+import { useFailedRunBanner } from './flow/useFailedRunBanner';
 import { effectiveRunByStep } from './flow/runStatus';
 import { useBuildChoreography } from './flow/useBuildChoreography';
 import { useCanvasHotkeys } from './flow/useCanvasHotkeys';
@@ -138,6 +138,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     onExecuteStep,      // (stepId) — n8n-style per-node ▶ button
     executingStepId = null,
     runInFlight = false,
+    runIdentity = null,       // flow/useFailedRunBanner RunIdentity — which run the failure banner talks about
     catalog = null,           // tool catalog — needed for auto-mapping on connect
     realOutputById = null,    // Map<stepId, output> (mapping/realOutputs) — real run/pinned data for auto-map + chips
     autoMapEnabled = true,    // auto-map inputs when an edge is drawn
@@ -294,11 +295,8 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     // Lives in ./flow/runFocus so the reconciliation against the live graph
     // (BFSF-364 — a deleted node must not keep a "Run failed" banner alive, and
     // `done` must never exceed `total`) can be tested without mounting the
-    // whole canvas.
-    const runFocus = useMemo(
-        () => computeRunFocus({ runSteps, runInFlight, definition }),
-        [runSteps, runInFlight, definition],
-    );
+    // whole canvas. A failure is dismissible and goes when its step is edited.
+    const { runFocus, dismiss: dismissRunBanner } = useFailedRunBanner({ runSteps, runInFlight, definition, runIdentity, focusRef: wrapperRef });
 
     const focusRunStep = useCallback(() => {
         if (!runFocus?.stepId) return;
@@ -735,6 +733,8 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
                     flowletsOpen={flowletsOpen}
                     flowletCount={flowletCount}
                     runFocus={runFocus}
+                    onDismissRunBanner={dismissRunBanner}
+                    runIdentity={runIdentity}
                     focusRunStep={focusRunStep}
                     formUrl={formUrl}
                     onOpenFormOverlay={onOpenFormOverlay}

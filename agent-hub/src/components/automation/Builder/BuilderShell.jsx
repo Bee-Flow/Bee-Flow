@@ -16,6 +16,7 @@ import useBuilderLifecycle from './useBuilderLifecycle';
 import useBuilderReview from './useBuilderReview';
 import useBuilderRuns from './useBuilderRuns';
 import useBuilderTabUrl from './useBuilderTabUrl';
+import { unwrapRow } from './unwrapRow';
 import UsedByButtonsCapsule from './UsedByButtonsCapsule';
 import useFlowletActions from './useFlowletActions';
 import useFlowletScope from './useFlowletScope';
@@ -85,13 +86,6 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     const apiGetOne = isStep ? api.getStep : api.getAutomation;
     const apiCreateOne = isStep ? api.createStep : api.createAutomation;
     const apiUpdateOne = isStep ? api.updateStep : api.updateAutomation;
-    // `managed` sits BESIDE the row in a GET answer ({ automation, summary,
-    // managed }); it is carried onto the row so the header and the read-only
-    // switch below see it wherever they read the automation from.
-    const unwrapRow = (r) => {
-        const row = (r && (r.automation || r.step)) || r;
-        return row && r && r.automation && r.managed !== undefined ? { ...row, managed: r.managed } : row;
-    };
     const { state, send, stop: stopBuild, hydrate, hydrateLastRun, setDraft, markServerConfirmed, acceptExternalDraft, dismissExternalDraft, dismissProposal, dismissPlan, executeStep, retryFromStep, stopRun, pollRunProgress, setRunResult, watchActiveRun, clearDryRun, clearError, setValidation, settleRun } = useAutomationBuilderStream({ automationId });
     const { serverAutomation, setServerAutomation } = useBuilderHydration({
         state, automationId, apiGetOne, unwrapRow, isStep, hydrate, hydrateLastRun, onAutomationIdResolved,
@@ -121,7 +115,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
      */
     const handleDismissFatal = useCallback(() => { setError(null); clearError(); }, [clearError]);
 
-    const { tab, setTab, reportBuilderState } = useBuilderTabUrl({
+    const { tab, setTab, reportBuilderState, openRunInRuns } = useBuilderTabUrl({
         initialTab, initialRunId, initialRunStepId, onBuilderStateChange,
     });
 
@@ -472,6 +466,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
                     onFormTestRun={onFormTestRun}
                     onCloseFormTest={closeFormTest}
                     onOpenFormOverlay={openFormOverlay}
+                    onOpenRun={openRunInRuns}
                     state={state}
                     // The persisted row — the webhook trigger's node panel
                     // needs its id to list/create webhook URLs (BFSF-320).

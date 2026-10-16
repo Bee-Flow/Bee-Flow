@@ -44,7 +44,7 @@ interface FocusStep {
     [key: string]: unknown;
 }
 
-interface FocusDefinition {
+export interface FocusDefinition {
     trigger?: FocusStep | null;
     steps?: FocusStep[];
     [key: string]: unknown;

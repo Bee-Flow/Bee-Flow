@@ -1,6 +1,7 @@
 // The build tab's diagram column: the canvas with its furniture, the flowlets
 // drawer, the step drawer and the form-test overlay. Split out of BuildTab
 // without a change in behaviour.
+import { runIdentityOf } from './runIdentity';
 import { autoMapToastMessage } from './addStepModel';
 import type { BuildTabProps } from './buildTabTypes';
 import { AssistantLauncher, ContextAddPopover, ExternalDraftBanner, ProposalPreviewOverlay } from './CanvasOverlays';
@@ -146,6 +147,7 @@ function canvasRunProps(p: BuildTabProps, m: BuildTabModel): DiagramPaneProps {
         onExecuteStep: p.onExecuteStep,
         executingStepId: state.executingStepId,
         runInFlight: m.run.liveRunInFlight,
+        runIdentity: runIdentityOf(state.dryRun, p.onOpenRun || null),
         onDiagnose: p.scopedDef?.trigger?.kind === 'app_event' ? p.onDiagnose : null,
         fatalError: p.fatalError,
         aborted: state.aborted,
