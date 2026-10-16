@@ -7,6 +7,24 @@ import VariablePicker from '../../../../../automation/Builder/mapping/VariablePi
 import { FORMULA_SCOPE_ROOTS } from '../styleKnobMeta';
 
 /**
+ * @typedef {object} ExpressionInputProps
+ * @property {string | null} [value] The raw expression string.
+ * @property {(next: string) => void} [onChange] Emits the raw string.
+ * @property {'block' | 'inline'} [variant] Default 'block'.
+ * @property {string | null} [label] Visible label (block variant, condition mode).
+ * @property {string} [placeholder]
+ * @property {string | null} [ariaLabel] Falls back to `label`, then 'Formula'.
+ * @property {Record<string, unknown> | null} [previewSample]
+ * @property {import('../appDefinition').AppDefinition | null} [definition]
+ * @property {import('../appDefinition').AppNode | null} [node]
+ * @property {number} [rows] Textarea rows (block variant).
+ * @property {boolean} [disabled]
+ * @property {boolean} [expectsBoolean] Offers the condition builder (needs `definition` and `node`).
+ * @property {boolean} [showPicker] Default true.
+ * @property {string[] | null} [roots] Scope roots for the picker; defaults to FORMULA_SCOPE_ROOTS.
+ */
+
+/**
  * ExpressionInput — the one expression editor App Studio uses everywhere.
  *
  * Before this, two of them existed. FormulaField had a variable picker, live
@@ -38,6 +56,10 @@ import { FORMULA_SCOPE_ROOTS } from '../styleKnobMeta';
  * caller storing `{kind:'formula', expr}` unwraps and re-wraps around it.
  *
  * No purple: accent, border and text all come from the platform CSS vars.
+ */
+/**
+ * @param {ExpressionInputProps} props Every prop may be left out.
+ * @returns {import('react').ReactElement}
  */
 export default function ExpressionInput({
     value = '',
