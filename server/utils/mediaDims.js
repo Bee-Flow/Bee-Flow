@@ -55,10 +55,13 @@ function isMediaImage(o) {
  * that lacks them and whose src resolves to a CMS asset.
  *
  * @param {object|Array} tree   mutated in place (callers pass fresh clones)
- * @param {(key: string) => Promise<{width:number,height:number}|null>} probe
+ * @param {(key: string, opts?: { signal?: AbortSignal }) => Promise<{width:number,height:number}|null>} probe
+ * @param {{ probeTimeoutMs?: number, budgetMs?: number }} [limits]  one probe may take
+ *   probeTimeoutMs and the whole walk budgetMs; past the budget the remaining images are
+ *   skipped. Best-effort enrichment must never hold a publish up on a stalled storage call.
  * @returns {Promise<number>} how many media objects were enriched
  */
-async function enrichMediaDims(tree, probe) {
+async function enrichMediaDims(tree, probe, { probeTimeoutMs = 3000, budgetMs = 15000 } = {}) {
     const jobs = [];
     const seen = new Set();
 
@@ -82,9 +85,11 @@ async function enrichMediaDims(tree, probe) {
 
     let enriched = 0;
     const cache = new Map();
+    const deadline = Date.now() + budgetMs;
     for (const { node, key } of jobs) {
+        if (Date.now() >= deadline) break;
         try {
-            if (!cache.has(key)) cache.set(key, await probe(key));
+            if (!cache.has(key)) cache.set(key, await probeWithTimeout(probe, key, Math.min(probeTimeoutMs, Math.max(1, deadline - Date.now()))));
             const dims = cache.get(key);
             if (dims && dims.width > 0 && dims.height > 0) {
                 node.width = Math.round(dims.width);
@@ -96,6 +101,20 @@ async function enrichMediaDims(tree, probe) {
     return enriched;
 }
 
+/** Run one probe, aborting it (and resolving null) after timeoutMs. */
+async function probeWithTimeout(probe, key, timeoutMs) {
+    const ctrl = new AbortController();
+    let timer;
+    const timeout = new Promise((resolve) => {
+        timer = setTimeout(() => { ctrl.abort(); resolve(null); }, timeoutMs);
+    });
+    try {
+        return await Promise.race([probe(key, { signal: ctrl.signal }), timeout]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 /**
  * Default probe: read the asset from storage and ask sharp.
  *
@@ -104,10 +123,12 @@ async function enrichMediaDims(tree, probe) {
  * comes from the viewBox/width attributes, which our hand-written brand SVGs
  * all carry.
  */
+/** @param {{ streamFile: (key: string, opts?: { signal?: AbortSignal }) => Promise<{ stream: import("stream").Readable }> }} storageStore */
 function makeStorageProbe(storageStore) {
     let sharp = null;
     let sharpFailed = false;
-    return async (key) => {
+    return async (key, opts) => {
+        const signal = opts && opts.signal;
         if (sharpFailed) return null;
         if (!sharp) {
             try { sharp = require('sharp'); } catch (e) {
@@ -120,7 +141,12 @@ function makeStorageProbe(storageStore) {
             // streamFile is the only body-reading API storageStore exposes
             // (the asset route streams too); buffer it — CMS assets are
             // screenshots and SVGs, not videos.
-            const { stream } = await storageStore.streamFile(key);
+            const { stream } = await storageStore.streamFile(key, { signal });
+            // A timed-out probe must give the socket back, not just stop waiting.
+            if (signal) {
+                if (signal.aborted) stream.destroy();
+                else signal.addEventListener('abort', () => stream.destroy(), { once: true });
+            }
             const chunks = [];
             for await (const chunk of stream) chunks.push(chunk);
             const meta = await sharp(Buffer.concat(chunks)).metadata();

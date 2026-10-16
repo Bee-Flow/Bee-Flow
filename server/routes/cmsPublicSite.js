@@ -9,12 +9,31 @@
 
 const { synthesizeLegacyContent } = require('../core/cms/legacyContent');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const cmsStore = require('../stores/cmsStore');
 const { getLiveSiteId } = require('./cmsShared');
 const cmsAnalytics = require('./cmsAnalytics');
 const {
     getAnalyticsSettings, getAnalyticsSiteMap, getRecorderMap,
 } = cmsAnalytics;
+
+// One background publish per site at a time (a visitor burst must not start
+// many), and after a failure none for HEAL_BACKOFF_MS (a broken storage must not
+// be hammered by every visitor retry).
+const HEAL_BACKOFF_MS = 60000;
+const healing = new Map(); // siteId → 0 while running, else the time it may run again
+function healSnapshotInBackground(siteId, now = Date.now()) {
+    const state = healing.get(siteId);
+    if (state === 0 || (state && now < state)) return;
+    healing.set(siteId, 0);
+    Promise.resolve()
+        .then(() => cmsStore.publishSite(siteId))
+        .then(() => healing.delete(siteId))
+        .catch((e) => {
+            log.warn(`[CMS] background publish for live site ${siteId} failed: ${e.message}`);
+            healing.set(siteId, Date.now() + HEAL_BACKOFF_MS);
+        });
+}
 
 /**
  * GET /api/cms/site
@@ -88,15 +107,16 @@ async function getPublicSite(req, res) {
     }
 
     // The public site serves the last-published snapshot only — never the
-    // in-progress draft. A legacy live site with no snapshot yet (live
-    // before publish-on-Live landed) self-heals: freeze its current draft
-    // as the snapshot once, then serve that. This keeps such sites from
-    // blanking while ensuring later draft edits stay private until Publish.
-    let eff = await cmsStore.getEffectivePublished(siteId, slug || null, locale);
+    // in-progress draft. Going Live publishes first (cmsShared), so a live
+    // site without a snapshot is a legacy one (live before publish-on-Live).
+    // A visitor request must never run a publish itself (it can be slow or hang
+    // on storage and would hold the request open): heal it in the background,
+    // once, and answer 503 until the snapshot exists.
+    const eff = await cmsStore.getEffectivePublished(siteId, slug || null, locale);
     if (!eff) {
-        try { await cmsStore.publishSite(siteId); } catch (_) { /* keep serving below */ }
-        eff = await cmsStore.getEffectivePublished(siteId, slug || null, locale)
-            || await cmsStore.getEffective(siteId, slug || null, locale);
+        healSnapshotInBackground(siteId);
+        res.setHeader('Retry-After', '10');
+        throw new HttpError(503, 'cms_not_published', 'The site is being prepared. Please try again shortly.');
     }
 
     // Canonical URL for the served page: '' for the homepage, otherwise

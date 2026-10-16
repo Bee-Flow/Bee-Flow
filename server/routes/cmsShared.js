@@ -12,6 +12,7 @@ const cmsStore = require('../stores/cmsStore');
 const configStore = require('../stores/configStore');
 const { hasPermission } = require('../auth/permissions');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 
 const SITE_ID_RE = /^pj_[a-f0-9]{4,}$/;
 
@@ -86,16 +87,36 @@ async function setLiveSiteId(siteId) {
 }
 
 // A site that is Live must always serve a PUBLISHED snapshot — never its
-// in-progress draft. Publishing on the Live transition guarantees
-// "public == published": once live, later edits stay private until the user
-// clicks Publish again. Idempotent + best-effort (a publish hiccup must not
-// block the Live toggle; the public route self-heals as a backstop).
-async function ensurePublishedSnapshot(siteId) {
+// in-progress draft, and never nothing. So going Live PUBLISHES FIRST and only
+// then switches the live id (callers: ensurePublishedSnapshot, then
+// setLiveSiteId). When the publish fails or stalls this throws and the previous
+// live site stays untouched; the public site must never be blanked by a
+// half-finished go-live. Idempotent: an existing snapshot is kept.
+const PUBLISH_TIMEOUT_MS = 30000;
+
+async function ensurePublishedSnapshot(siteId, { timeoutMs = PUBLISH_TIMEOUT_MS } = {}) {
+    if (typeof siteId !== 'string' || !SITE_ID_RE.test(siteId)) {
+        throw new HttpError(400, 'cms_invalid_site_id', 'Invalid siteId');
+    }
+    let timer;
     try {
+        const project = await cmsStore.getProject(siteId);
+        if (!project) throw new HttpError(404, 'cms_site_not_found', 'Site not found');
         const snap = await cmsStore.getPublishedSnapshot(siteId, { fresh: true });
-        if (!snap) await cmsStore.publishSite(siteId);
+        if (snap) return;
+        await Promise.race([
+            cmsStore.publishSite(siteId),
+            new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error('publish timed out')), timeoutMs);
+            }),
+        ]);
     } catch (e) {
-        log.warn(`[CMS] ensurePublishedSnapshot failed for ${siteId}: ${e.message}`);
+        if (e instanceof HttpError) throw e;
+        log.warn(`[CMS] publish before going live failed for ${siteId}: ${e.message}`);
+        throw new HttpError(502, 'cms_publish_failed',
+            'This version could not be published, so it was not set live. The current live site is unchanged. Publish it first and try again.');
+    } finally {
+        clearTimeout(timer);
     }
 }
 

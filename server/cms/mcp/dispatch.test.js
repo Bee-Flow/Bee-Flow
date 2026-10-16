@@ -98,7 +98,10 @@ function makeHarness(over = {}) {
         live: {
             getLiveSiteId: async () => liveSiteId,
             setLiveSiteId: async (id) => { liveSiteId = id; return id; },
-            ensurePublishedSnapshot: async (id) => { calls.live.push(['snapshot', id]); },
+            ensurePublishedSnapshot: async (id) => {
+                if (calls.failSnapshot) throw new Error('storage unavailable');
+                calls.live.push(['snapshot', id]);
+            },
             SITE_ID_RE: /^pj_[a-f0-9]{4,}$/,
         },
         tickets,
@@ -251,6 +254,18 @@ test('cms_set_live_site goes live, snapshots, and audits as cms.live.mcp', async
     assert.equal(JSON.parse(textOf(res)).liveSiteId, OTHER);
     assert.ok(calls.live.some((c) => c[0] === 'snapshot' && c[1] === OTHER));
     assert.deepEqual(calls.audit[0].slice(0, 6), ['cms.live.mcp', 'cms_site', OTHER, 'u1', null, { tokenName: 'laptop', live: true }]);
+});
+
+test('cms_set_live_site refuses when the publish fails and the live site stays', async () => {
+    const { mcp, calls } = makeHarness();
+    calls.failSnapshot = true;
+    const res = await rpcCall(mcp, ctxOf(FULL), 'cms_set_live_site', { siteId: OTHER });
+    assert.match(textOf(res), /not set live/);
+    assert.doesNotMatch(textOf(res), /storage unavailable/);
+    assert.deepEqual(calls.audit, []);
+    calls.failSnapshot = false;
+    const miss = JSON.parse(textOf(await rpcCall(mcp, ctxOf(FULL), 'cms_set_live_site', { siteId: OTHER, live: false })));
+    assert.equal(miss.liveSiteId, SITE);
 });
 
 test('cms_set_live_site live:false only clears the live site when it is the live one', async () => {

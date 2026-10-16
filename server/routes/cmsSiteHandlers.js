@@ -11,6 +11,7 @@
  */
 
 const cmsStore = require('../stores/cmsStore');
+const { HttpError } = require('../core/http/errors');
 const cmsTranslate = require('../core/cms/cmsTranslate');
 const languageStore = require('../stores/languageStore');
 const { getLiveSiteId, setLiveSiteId, ensurePublishedSnapshot } = require('./cmsShared');
@@ -136,13 +137,14 @@ async function putSiteLive(req, res) {
             return res.status(400).json({ error: 'live must be a boolean' });
         }
         if (live) {
+            // Publish FIRST: a version without a snapshot must never become the
+            // live one (it would blank the public site), and it must not leak
+            // its draft either. A failed publish throws here and the current
+            // live site stays as it is.
+            await ensurePublishedSnapshot(req.siteId);
             // Setting this site live implicitly takes any other live site
             // offline — only one project can be live at a time.
             await setLiveSiteId(req.siteId);
-            // Snapshot now so going Live can't publish a not-yet-published
-            // draft to the world (the "toggle Live before first Publish leaks
-            // the draft" bug).
-            await ensurePublishedSnapshot(req.siteId);
             return res.json({ success: true, liveSiteId: req.siteId });
         }
         // Clearing only matters when *this* site is the currently-live
@@ -154,7 +156,10 @@ async function putSiteLive(req, res) {
             return res.json({ success: true, liveSiteId: null });
         }
         res.json({ success: true, liveSiteId: current });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) {
+        if (err instanceof HttpError) return res.status(err.status).json({ error: err.message, code: err.code });
+        res.status(400).json({ error: err.message });
+    }
 }
 
 // Org-wide handlers (only mounted on /admin/*).
@@ -171,17 +176,20 @@ async function putEnabled(req, res) {
     // omit it to keep the currently-live one (or fall back to the
     // first project if none has ever been live before).
     if (siteId) {
+        await ensurePublishedSnapshot(siteId);
         const next = await setLiveSiteId(siteId);
-        if (next) await ensurePublishedSnapshot(next);
         return res.json({ success: true, enabled: true, liveSiteId: next });
     }
     let next = await getLiveSiteId();
     if (!next) {
         const projects = await cmsStore.listProjects();
         next = projects[0]?.id || null;
-        if (next) await setLiveSiteId(next);
     }
-    if (next) await ensurePublishedSnapshot(next);
+    if (next) {
+        // Publish before (re)setting the live id, like putSiteLive.
+        await ensurePublishedSnapshot(next);
+        await setLiveSiteId(next);
+    }
     res.json({ success: true, enabled: next !== null, liveSiteId: next });
 }
 

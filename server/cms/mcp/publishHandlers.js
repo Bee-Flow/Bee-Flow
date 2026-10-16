@@ -37,8 +37,14 @@ function createPublishHandlers({ deps, cmsStore, live, resolveSite, loadDraft, v
         if (site.error) return err(site.error);
         const goLive = args.live !== false;
         if (goLive) {
+            // Publish first: a version without a snapshot must never become
+            // the live one. On failure the current live site stays.
+            try {
+                await live.ensurePublishedSnapshot(site.siteId);
+            } catch (e) {
+                return err(e && e.expose ? e.message : 'This version could not be published, so it was not set live. The current live site is unchanged.');
+            }
             await live.setLiveSiteId(site.siteId);
-            await live.ensurePublishedSnapshot(site.siteId);
         } else {
             const current = await live.getLiveSiteId();
             if (current === site.siteId) await live.setLiveSiteId(null);

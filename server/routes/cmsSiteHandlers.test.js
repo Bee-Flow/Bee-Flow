@@ -82,10 +82,46 @@ test.after(() => {
     assert.deepStrictEqual(db.queries.slice(queriesAtLoad), [], 'every store call was stubbed');
 });
 
-test('putSiteLive: going live takes the site live and snapshots it', async () => {
+test('putSiteLive: going live publishes first, then takes the site live', async () => {
     const res = await call(handlers.putSiteLive, { siteId: 'pj_aaaa1111', body: { live: true } });
     assert.deepStrictEqual(res.body, { success: true, liveSiteId: 'pj_aaaa1111' });
-    assert.deepStrictEqual(calls, [['setConfig', LIVE, 'pj_aaaa1111'], ['publishSite', 'pj_aaaa1111']]);
+    assert.deepStrictEqual(calls, [['publishSite', 'pj_aaaa1111'], ['setConfig', LIVE, 'pj_aaaa1111']]);
+});
+
+test('putSiteLive: a failed publish refuses going live and keeps the old live site', async () => {
+    state.config[LIVE] = 'pj_bbbb2222';
+    cmsStore.publishSite.mock.mockImplementationOnce(async () => { throw new Error('s3 connect ETIMEDOUT bucket/key'); });
+    const res = await call(handlers.putSiteLive, { siteId: 'pj_aaaa1111', body: { live: true } });
+    assert.strictEqual(res.statusCode, 502);
+    assert.strictEqual(res.body.code, 'cms_publish_failed');
+    assert.doesNotMatch(JSON.stringify(res.body), /s3|bucket|ETIMEDOUT/);
+    assert.strictEqual(state.config[LIVE], 'pj_bbbb2222');
+    assert.deepStrictEqual(calls, []);
+});
+
+test('putSiteLive: a publish that never returns is cut off and the old live site stays', async () => {
+    state.config[LIVE] = 'pj_bbbb2222';
+    cmsStore.publishSite.mock.mockImplementationOnce(() => new Promise(() => {}));
+    await assert.rejects(
+        require('./cmsShared').ensurePublishedSnapshot('pj_aaaa1111', { timeoutMs: 20 }),
+        (e) => e.status === 502 && e.code === 'cms_publish_failed',
+    );
+    assert.strictEqual(state.config[LIVE], 'pj_bbbb2222');
+});
+
+test('ensurePublishedSnapshot: a malformed siteId is a 400, not a publish failure', async () => {
+    await assert.rejects(
+        require('./cmsShared').ensurePublishedSnapshot('not-a-site'),
+        (e) => e.status === 400 && e.code === 'cms_invalid_site_id',
+    );
+    assert.deepStrictEqual(calls, []);
+});
+
+test('putEnabled with a siteId publishes before switching and keeps the old site on failure', async () => {
+    state.config[LIVE] = 'pj_bbbb2222';
+    cmsStore.publishSite.mock.mockImplementationOnce(async () => { throw new Error('boom'); });
+    await assert.rejects(call(handlers.putEnabled, { body: { enabled: true, siteId: 'pj_aaaa1111' } }), (e) => e.status === 502);
+    assert.strictEqual(state.config[LIVE], 'pj_bbbb2222');
 });
 
 test('putSiteLive: switching off a site that is not live leaves the live site alone', async () => {
@@ -111,7 +147,7 @@ test('putSiteLive: a non-boolean is a 400', async () => {
 test('putEnabled: on without a siteId falls back to the first project and snapshots it', async () => {
     const res = await call(handlers.putEnabled, { body: { enabled: true } });
     assert.deepStrictEqual(res.body, { success: true, enabled: true, liveSiteId: 'pj_aaaa1111' });
-    assert.deepStrictEqual(calls, [['setConfig', LIVE, 'pj_aaaa1111'], ['publishSite', 'pj_aaaa1111']]);
+    assert.deepStrictEqual(calls, [['publishSite', 'pj_aaaa1111'], ['setConfig', LIVE, 'pj_aaaa1111']]);
 });
 
 test('putEnabled: off clears the live site', async () => {

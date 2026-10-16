@@ -628,7 +628,7 @@ async function deleteFile(key) {
  *   from S3 user-metadata or the .tags sidecar). Always an object — empty
  *   when nothing was stored.
  */
-async function streamFile(key, { range = null } = {}) {
+async function streamFile(key, { range = null, signal = undefined } = {}) {
     if (mode === 'local') {
         const filePath = localPathFor(key);
         let stat;
@@ -679,7 +679,7 @@ async function streamFile(key, { range = null } = {}) {
         Bucket: BUCKET,
         Key: key,
         ...(range ? { Range: `bytes=${range.start}-${range.end}` } : {}),
-    }));
+    }), signal ? { abortSignal: signal } : undefined);
 
     // "bytes 0-99/12345" → 12345. Absent on a non-ranged response, where
     // ContentLength IS the whole object.
