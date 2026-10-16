@@ -11,12 +11,13 @@ import path from 'node:path';
 import { ORG_ROLE_IDS, PERMISSION_IDS } from './roles';
 
 const REPO = path.resolve(__dirname, '../../../../..');
-const web = fs.readFileSync(path.join(REPO, 'agent-hub/src/config/orgRoles.js'), 'utf8');
+const web = fs.readFileSync(path.join(REPO, 'agent-hub/src/config/orgRoles.ts'), 'utf8');
 
 /** From `export const NAME =` to its closing bracket at column 0. */
 function block(name: string, close: '};' | '];'): string {
-    const start = web.indexOf(`export const ${name} =`);
-    if (start < 0) throw new Error(`${name} not found in orgRoles.js`);
+    // The declaration may carry a type annotation: `export const NAME: Type =`.
+    const start = web.search(new RegExp(`export const ${name}(?::[^=]+)? =`));
+    if (start < 0) throw new Error(`${name} not found in orgRoles.ts`);
     return web.slice(start, web.indexOf(`\n${close}`, start));
 }
 

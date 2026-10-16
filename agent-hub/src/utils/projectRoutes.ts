@@ -13,12 +13,18 @@
 // Project ids are UUIDs server-side, so the literal `new` can never collide
 // with a real id.
 
+/** Where a projects URL points: a project (`''` is the create form), a section, an item. */
+export interface ProjectUrl {
+    projectId: string | null;
+    tab: string | null;
+    sub: string | null;
+}
+
 /**
- * @returns {{projectId: string|null, tab: string|null, sub: string|null}|null}
- *   null when the path isn't a projects path at all, so callers can tell
+ * @returns null when the path isn't a projects path at all, so callers can tell
  *   "no project" apart from "the project list". `''` means the create form.
  */
-export function parseProjectUrl(pathname) {
+export function parseProjectUrl(pathname: string): ProjectUrl | null {
     if (!/^\/app\/projects(\/|$)/.test(pathname)) return null;
     const m = pathname.match(/^\/app\/projects\/([a-zA-Z0-9_-]+)(?:\/([a-zA-Z0-9_-]+))?(?:\/([a-zA-Z0-9_-]+))?/);
     if (!m) return { projectId: null, tab: null, sub: null };
@@ -27,7 +33,7 @@ export function parseProjectUrl(pathname) {
 }
 
 /** Inverse of parseProjectUrl. `''` → the create form, null/undefined → the list. */
-export function projectRoutePath(projectId, tab, sub) {
+export function projectRoutePath(projectId?: string | null, tab?: string | null, sub?: string | null): string {
     if (projectId === '') return '/app/projects/new';
     if (!projectId) return '/app/projects';
     if (!tab) return `/app/projects/${projectId}`;

@@ -13,6 +13,23 @@
  * "who in my organisation can use this" cannot answer it wrongly again.
  */
 
+/** The words for one permission. */
+export interface PermissionCopy {
+    label: string;
+    desc: string;
+}
+
+/** One role's grant, as GET /auth/org-roles returns it. */
+export interface OrgRoleMapping {
+    id: string;
+    permissions?: string[];
+}
+
+/** A permission ready to render: its id, its words, and (in the editor) whether it is on. */
+export interface DescribedPermission extends PermissionCopy {
+    id: string;
+}
+
 /**
  * Permission id → how to say it to a person. Mirrors SYSTEM_PERMISSIONS in
  * server/auth/permissions.js; a permission missing here still renders (the
@@ -21,7 +38,7 @@
  * COPY ONLY. Adding an entry grants nothing — the grant lives in
  * server/config/orgRoles.json, which is what the resolver reads.
  */
-export const PERMISSION_CATALOG = {
+export const PERMISSION_CATALOG: Record<string, PermissionCopy> = {
     all: { label: 'Full Access', desc: 'Every permission on the platform' },
 
     // ── Studio ──
@@ -70,10 +87,10 @@ export const PERMISSION_CATALOG = {
 const ROLE_MARKER_IDS = new Set(['org_admin', 'dpo', 'isms_auditor', 'agent_admin', 'agent_editor', 'member']);
 
 /** "use_meeting_notes" → "Use Meeting Notes", for an id we have no copy for. */
-const prettify = (id) => String(id).replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()).trim();
+const prettify = (id: string): string => String(id).replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()).trim();
 
 /** One catalog entry, with a fallback for an id we have no copy for. */
-const describe = (id) => ({
+const describe = (id: string): DescribedPermission => ({
     id,
     label: PERMISSION_CATALOG[id]?.label || prettify(id),
     desc: PERMISSION_CATALOG[id]?.desc || '',
@@ -87,7 +104,7 @@ const describe = (id) => ({
  * being dropped: a permission the frontend has no copy for is still a
  * permission the role grants, and hiding it is how the old list went wrong.
  */
-export function permissionsForRole(roleId, mapping) {
+export function permissionsForRole(roleId: string, mapping?: OrgRoleMapping[] | null): DescribedPermission[] {
     const ids = (mapping || []).find((r) => r.id === roleId)?.permissions || [];
     const granted = new Set(ids.filter((id) => !ROLE_MARKER_IDS.has(id)));
     const known = Object.keys(PERMISSION_CATALOG).filter((id) => granted.has(id));
@@ -104,7 +121,7 @@ export function permissionsForRole(roleId, mapping) {
  * would silently drop. Ordered by PERMISSION_CATALOG like the chips above, so
  * the editor reads in the same sequence as the summary it edits.
  */
-export function editablePermissionsForRole(roleId, mapping, editable) {
+export function editablePermissionsForRole(roleId: string, mapping?: OrgRoleMapping[] | null, editable?: string[] | null): Array<DescribedPermission & { granted: boolean }> {
     const allowed = Array.isArray(editable) ? editable : [];
     if (allowed.length === 0) return [];
     const granted = new Set((mapping || []).find((r) => r.id === roleId)?.permissions || []);
@@ -162,7 +179,7 @@ export const ORG_ROLES = [
  * Helper for permission checks — returns true if a permission array includes
  * 'all' (full admin) or the specific permission ID.
  */
-export const hasPermissionCheck = (permissions, permId) => {
+export const hasPermissionCheck = (permissions: string[] | null | undefined, permId: string): boolean => {
     if (!Array.isArray(permissions)) return false;
     return permissions.includes('all') || permissions.includes(permId);
 };

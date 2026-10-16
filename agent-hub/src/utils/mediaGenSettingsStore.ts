@@ -12,32 +12,41 @@
 
 import scopedStorage from './scopedStorage';
 
+/** One panel's persisted settings. */
+export type SettingsSection = Record<string, unknown>;
+
+/** Every panel's settings, keyed by section ('image', 'elevenlabs', 'sfx', 'video', 'lyria'). */
+export type SettingsBlob = Record<string, SettingsSection>;
+
+/** Hooks of {@link createSettingsStore}. */
+export interface SettingsStoreOptions {
+    /** Called when the key is empty; may return settings recovered from a legacy key. */
+    migrate?: () => SettingsBlob | null;
+    /** Called after every persist, e.g. to mirror a section into a legacy key. */
+    onSave?: (settings: SettingsBlob) => void;
+}
+
 /**
  * Build a sectioned settings store on top of a scopedStorage JSON key.
  *
- * @param {string} storageKey scopedStorage key holding the settings object
- * @param {object} [options]
- * @param {() => (object|null)} [options.migrate] called when the key is empty;
- *        may return an initial settings object recovered from a legacy key
- * @param {(settings: object) => void} [options.onSave] called after every
- *        persist — e.g. to mirror a section into a legacy key
+ * `storageKey` is the scopedStorage key holding the settings object.
  */
-export function createSettingsStore(storageKey, { migrate, onSave } = {}) {
-    const getAll = () => {
-        const stored = scopedStorage.getJSON(storageKey, null);
+export function createSettingsStore(storageKey: string, { migrate, onSave }: SettingsStoreOptions = {}) {
+    const getAll = (): SettingsBlob => {
+        const stored = scopedStorage.getJSON<SettingsBlob>(storageKey, null);
         if (stored) return stored;
         return (migrate && migrate()) || {};
     };
 
-    const saveAll = (settings) => {
+    const saveAll = (settings: SettingsBlob): SettingsBlob => {
         scopedStorage.setJSON(storageKey, settings);
         if (onSave) onSave(settings);
         return settings;
     };
 
-    const getSection = (section) => getAll()[section] || {};
+    const getSection = (section: string): SettingsSection => getAll()[section] || {};
 
-    const saveSection = (section, data) => saveAll({ ...getAll(), [section]: data });
+    const saveSection = (section: string, data: SettingsSection): SettingsBlob => saveAll({ ...getAll(), [section]: data });
 
     return { getAll, saveAll, getSection, saveSection };
 }
@@ -47,7 +56,7 @@ export function createSettingsStore(storageKey, { migrate, onSave } = {}) {
 // because the useChatEngine payload path still reads it directly.
 export const mediaGenSettingsStore = createSettingsStore('nanoBananaSettings', {
     migrate: () => {
-        const old = scopedStorage.getJSON('imageGenSettings', null);
+        const old = scopedStorage.getJSON<SettingsSection>('imageGenSettings', null);
         return old ? { image: old } : null;
     },
     onSave: (settings) => {

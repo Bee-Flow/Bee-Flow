@@ -16,16 +16,32 @@
  * No external dependency.
  */
 
+/** One line of a diff; `gap` marks skipped context. */
+export interface DiffHunk {
+    type: 'context' | 'add' | 'remove' | 'gap';
+    text: string;
+}
+
+/** The result of {@link computeWebpageDiff}. */
+export interface WebpageDiff {
+    hunks: DiffHunk[];
+    added: number;
+    removed: number;
+    /** e.g. "+12 −4" */
+    summary: string;
+    truncated: boolean;
+}
+
 const MAX_LINES = 120;
 const CONTEXT_LINES = 2;
 
-function splitLines(s) {
+function splitLines(s: string): string[] {
     if (!s) return [];
     // Preserve a trailing newline as an empty entry only if the original ended in \n
     return s.split('\n');
 }
 
-function buildLcsTable(a, b) {
+function buildLcsTable(a: string[], b: string[]): Uint32Array[] {
     const m = a.length, n = b.length;
     const dp = Array.from({ length: m + 1 }, () => new Uint32Array(n + 1));
     for (let i = m - 1; i >= 0; i--) {
@@ -36,9 +52,9 @@ function buildLcsTable(a, b) {
     return dp;
 }
 
-function diffOps(oldLines, newLines) {
+function diffOps(oldLines: string[], newLines: string[]): DiffHunk[] {
     const dp = buildLcsTable(oldLines, newLines);
-    const ops = [];
+    const ops: DiffHunk[] = [];
     let i = 0, j = 0;
     const m = oldLines.length, n = newLines.length;
     while (i < m && j < n) {
@@ -62,7 +78,7 @@ function diffOps(oldLines, newLines) {
  * Trim the ops list to interesting hunks (changes ± CONTEXT_LINES of context).
  * Returns a single flat list with the same shape as `diffOps`, but shorter.
  */
-function trimToHunks(ops) {
+function trimToHunks(ops: DiffHunk[]): DiffHunk[] {
     if (ops.length === 0) return ops;
     const keep = new Array(ops.length).fill(false);
     for (let i = 0; i < ops.length; i++) {
@@ -72,7 +88,7 @@ function trimToHunks(ops) {
             }
         }
     }
-    const out = [];
+    const out: DiffHunk[] = [];
     let lastKept = -2;
     for (let i = 0; i < ops.length; i++) {
         if (!keep[i]) continue;
@@ -85,16 +101,8 @@ function trimToHunks(ops) {
 
 /**
  * Compute a hunked diff between two strings.
- *
- * @returns {{
- *   hunks: Array<{type:'context'|'add'|'remove'|'gap', text:string}>,
- *   added:   number,
- *   removed: number,
- *   summary: string,           // e.g. "+12 −4"
- *   truncated: boolean,
- * }}
  */
-export default function computeWebpageDiff(oldText, newText) {
+export default function computeWebpageDiff(oldText?: string | null, newText?: string | null): WebpageDiff {
     const a = splitLines(oldText || '');
     const b = splitLines(newText || '');
 

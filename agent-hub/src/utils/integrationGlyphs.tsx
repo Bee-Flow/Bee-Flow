@@ -2,7 +2,14 @@ import {
     Activity, Bell, BookUser, Calendar, CircleUser, ClipboardList, Folder, ListTodo, Mail, MessagesSquare, SquareKanban,
     StickyNote, Table2, Users,
 } from 'lucide-react';
+import type { LucideIcon, LucideProps } from 'lucide-react';
 import { INTEGRATION_META } from './integrationIcons';
+
+/** An app's own glyph and the tint it is drawn in. */
+export interface IntegrationGlyph {
+    Icon: LucideIcon;
+    color: string;
+}
 
 /**
  * A glyph of its own for an app whose vendor draws every app with the one
@@ -20,7 +27,7 @@ import { INTEGRATION_META } from './integrationIcons';
 
 // Keyed by the underscore spelling; `getIntegrationGlyph` normalises the
 // dashed catalog ids ('nextcloud-talk') onto it.
-const GLYPHS = {
+const GLYPHS: Record<string, LucideIcon | undefined> = {
     nextcloud: Folder,
     nextcloud_talk: MessagesSquare,
     nextcloud_calendar: Calendar,
@@ -40,13 +47,13 @@ const GLYPHS = {
 const NEXTCLOUD_TINT = INTEGRATION_META.nextcloud.color;
 
 /** `{ Icon, color }` for an app drawn with its own glyph, else null. */
-export function getIntegrationGlyph(integrationId) {
+export function getIntegrationGlyph(integrationId?: string | null): IntegrationGlyph | null {
     const Icon = GLYPHS[String(integrationId || '').replace(/-/g, '_')];
     return Icon ? { Icon, color: NEXTCLOUD_TINT } : null;
 }
 
 /** The glyph as an element, sized like the brand SVG it stands in for. */
-export function renderIntegrationGlyph(glyph, size, props = null) {
+export function renderIntegrationGlyph(glyph: IntegrationGlyph, size: number, props: LucideProps | null = null): React.ReactElement {
     const { Icon, color } = glyph;
     return <Icon size={size} style={{ color, flexShrink: 0 }} aria-hidden="true" {...(props || null)} />;
 }

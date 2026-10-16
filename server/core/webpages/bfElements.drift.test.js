@@ -54,7 +54,7 @@ const bfTable = require('../../services/webpageBfTable');
 const REPO = path.join(__dirname, '..', '..', '..');
 const CLIENT = path.join(REPO, 'agent-hub', 'src', 'utils');
 /** De gegenereerde spiegel: de enige plek waar de client het vocabulaire opsomt. */
-const MIRROR = path.join(CLIENT, 'bfElements.js');
+const MIRROR = path.join(CLIENT, 'bfElements.ts');
 /**
  * De client-bestanden die uit de spiegel horen te lezen in plaats van zelf te
  * weten: de twee composers plus de RUNTIME die het vocabulaire uitvoert. Die
@@ -62,9 +62,9 @@ const MIRROR = path.join(CLIENT, 'bfElements.js');
  * is de plek die de hele boom bewaakt.
  */
 const CLIENT_COMPOSERS = [
-    path.join(CLIENT, 'composeWebpageDocument.js'),
+    path.join(CLIENT, 'composeWebpageDocument.ts'),
     path.join(CLIENT, 'buildWebpagePreview.js'),
-    path.join(CLIENT, 'bfElementsRuntime.js'),
+    path.join(CLIENT, 'bfElementsRuntime.ts'),
 ];
 /** De twee serverbruggen die het vocabulaire uitzenden, plus hun gedeelde motor. */
 const BRIDGE = path.join(REPO, 'server', 'services', 'publicBridgeScript.js');
@@ -99,20 +99,20 @@ function mirrorBlock() {
     const start = src.indexOf(bf.CLIENT_MIRROR_BEGIN);
     const end = src.indexOf(bf.CLIENT_MIRROR_END);
     // Een hernoemde marker moet ROOD worden, niet stil een lege sectie opleveren.
-    assert.ok(start !== -1, 'agent-hub/src/utils/bfElements.js draagt de beginmarker van de spiegel');
-    assert.ok(end !== -1, 'agent-hub/src/utils/bfElements.js draagt de eindmarker van de spiegel');
+    assert.ok(start !== -1, 'agent-hub/src/utils/bfElements.ts draagt de beginmarker van de spiegel');
+    assert.ok(end !== -1, 'agent-hub/src/utils/bfElements.ts draagt de eindmarker van de spiegel');
     assert.ok(end > start, 'de eindmarker staat na de beginmarker');
     return { src, start, end, block: src.slice(start, end + bf.CLIENT_MIRROR_END.length) };
 }
 
 // ── (d) de client-spiegel ─────────────────────────────────────────────
 
-test('client-spiegel — het blok in agent-hub/src/utils/bfElements.js IS de registry', () => {
+test('client-spiegel — het blok in agent-hub/src/utils/bfElements.ts IS de registry', () => {
     const { block } = mirrorBlock();
     const expected = bf.renderClientMirror();
     assert.strictEqual(
         block, expected,
-        'de gegenereerde spiegel in agent-hub/src/utils/bfElements.js loopt achter op '
+        'de gegenereerde spiegel in agent-hub/src/utils/bfElements.ts loopt achter op '
         + 'server/core/webpages/bfElements.js. De preview en een ingelogde lezer krijgen dan een ander '
         + 'vocabulaire dan de publieke snapshot — precies de asymmetrie die W4 dicht. Vervang alles '
         + 'tussen de twee markers (inclusief de markers) door de uitvoer van:\n'
@@ -136,7 +136,7 @@ test('geen tweede lijst — de spiegel bevat niets BUITEN het gegenereerde blok'
     const outside = src.slice(0, start) + src.slice(end + bf.CLIENT_MIRROR_END.length);
     const strays = outside.match(TAG_WORD) || [];
     assert.deepStrictEqual(strays, [],
-        'agent-hub/src/utils/bfElements.js noemt een bf-element buiten het gegenereerde blok om; alles wat '
+        'agent-hub/src/utils/bfElements.ts noemt een bf-element buiten het gegenereerde blok om; alles wat '
         + 'daar staat, ontsnapt aan de vergelijking met de registry');
 });
 
