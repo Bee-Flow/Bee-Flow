@@ -12,9 +12,9 @@
 // findings, capabilities. When it cannot (offline, an older server), this is
 // the author's view and nothing is lost.
 import { Maximize2 } from 'lucide-react';
-import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
-import AccordionSectionJs from '../../AccordionSection';
+import AccordionSection from '../../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
 import CapabilityLine from '../codeStep/CapabilityLine';
 import CodeParamsForm from '../codeStep/CodeParamsForm';
@@ -27,9 +27,6 @@ import { useStepCodeAnalysis, type StepCodeAnalysis } from '../codeStep/useStepC
 import { hintTextClass } from '../formPrimitives';
 
 export { readCodeContract } from '../codeStep/readCodeContract';
-
-// The section is untyped JS; its props are checked there.
-const AccordionSection = AccordionSectionJs as unknown as ComponentType<Record<string, unknown> & { children?: ReactNode }>;
 
 type Obj = Record<string, unknown>;
 export interface CodeDraft extends Obj {

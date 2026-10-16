@@ -331,7 +331,12 @@ jobs:
               - 'agent-hub/src/components/automation/Builder/build/addStepModel.ts'
               - 'agent-hub/src/components/shared/builder/revealSchedule.js'
               - 'agent-hub/src/components/automation/Builder/{flow,mapping,utils}/**'
-              - 'agent-hub/src/components/agents/AgentWizard/state/refineMerge.js'
+              - 'agent-hub/src/components/agents/AgentWizard/state/{refineMerge,refineMerge.types}.ts'
+              # what refineMerge.ts names through `import type` (erased at run time, but in the closure scan)
+              - 'agent-hub/src/components/agents/AgentWizard/role/{personaFacts,personaFacts.types}.ts'
+              - 'agent-hub/src/components/agents/AgentWizard/canUse/canUseFacts.*'
+              - 'agent-hub/src/components/admin/Studio/SkillsStudio/{skillModel,skillModel.types}.ts'
+              - 'agent-hub/src/components/admin/Studio/KnowledgeStudio/plural.ts'
               # the form editor's options, run by form.lockstep.test.ts (BFSF-483)
               - 'agent-hub/src/components/forms/formOptions.ts'
               - 'agent-hub/src/shared/expr/**'

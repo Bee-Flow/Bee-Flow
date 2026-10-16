@@ -1,17 +1,11 @@
-import { useState, type ComponentType, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { AlertTriangle, ListTree } from 'lucide-react';
-import JsonTreeJs from '../debug/JsonTree';
+import JsonTree from '../debug/JsonTree';
 import { mapAttrs, type MapCtx } from './mapAttrs';
 import { scalarText } from './valueHelpers';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
-interface JsonTreeProps {
-    value: unknown;
-    basePath?: string;
-    onCopyPath?: ((path: string) => void) | null;
-    emptyMessage?: string;
-}
-export const JsonTree = JsonTreeJs as unknown as ComponentType<JsonTreeProps>;
+export { JsonTree };
 
 /**
  * A scalar, usually text. Long text used to be cut off at 600 characters with

@@ -6,7 +6,7 @@ import type { AdminOrganization } from './types';
 
 export interface OrganizationsSectionProps {
     organizations: AdminOrganization[];
-    isFullAdmin: boolean;
+    isFullAdmin: boolean | undefined;
     onAddOrg: () => void;
     onEditOrg: (org: AdminOrganization) => void;
     onDeleteOrg: (orgId: string) => void;

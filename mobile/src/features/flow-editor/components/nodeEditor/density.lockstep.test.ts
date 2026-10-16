@@ -1,5 +1,5 @@
 /**
- * Simple / All options, pinned to the web's flow/settings/formDensity.js. That
+ * Simple / All options, pinned to the web's flow/settings/formDensity.ts. That
  * module imports React (it holds a context too), so it is read as TEXT: the
  * advanced-section list and the per-type rule are compared, and the rule is
  * run over every type and section nodeDefs knows.
@@ -13,16 +13,16 @@ import { NODE_DEFS, NODE_TYPE_KEYS } from '@/features/flow-editor/model';
 import { ADVANCED_SECTION_KEYS, hiddenInSimple, hiddenSectionCount, sectionShown } from './density';
 
 const REPO = path.resolve(__dirname, '../../../../../..');
-const SRC = fs.readFileSync(path.join(REPO, 'agent-hub/src/components/automation/Builder/flow/settings/formDensity.js'), 'utf8');
+const SRC = fs.readFileSync(path.join(REPO, 'agent-hub/src/components/automation/Builder/flow/settings/formDensity.ts'), 'utf8');
 
-describe('against formDensity.js', () => {
+describe('against formDensity.ts', () => {
     it('hides the same section keys by default', () => {
         const block = /ADVANCED_SECTION_KEYS = new Set\(\[([\s\S]*?)\]\)/.exec(SRC)?.[1] ?? '';
         expect([...ADVANCED_SECTION_KEYS]).toEqual([...block.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]));
     });
 
     it('decides per type from simpleSections, and falls back to the global rule', () => {
-        expect(SRC).toMatch(/const simple = NODE_DEFS\[stepType\]\?\.simpleSections;/);
+        expect(SRC).toMatch(/const simple = (?:\(NODE_DEFS as [^)]*\)|NODE_DEFS)\[stepType\]\?\.simpleSections;/);
         expect(SRC).toMatch(/if \(Array\.isArray\(simple\)\) return !simple\.includes\(sectionKey\);/);
         expect(SRC).toMatch(/return isAdvancedSection\(sectionKey\);/);
     });

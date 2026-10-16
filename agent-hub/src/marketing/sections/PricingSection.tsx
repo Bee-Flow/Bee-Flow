@@ -10,7 +10,7 @@ type PricingInterval = 'monthly' | 'yearly';
 type PricingTextStyle = TextStyleBlob & { fontWeight?: number };
 
 /** A plan as `GET /api/billing/public-plans` sends it (server toPublicPlan). */
-interface PublicPlan {
+export interface PublicPlan {
     id: string;
     name: string;
     planType: string;

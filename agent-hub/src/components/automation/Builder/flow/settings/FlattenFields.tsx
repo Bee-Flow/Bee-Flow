@@ -16,7 +16,7 @@ import {
     outerListOf, refreshPlan, routeOf, routePatch, sampleRows, sourcePatch, sourceResolves,
     type FlattenDraft, type FlattenParent, type Translate,
 } from './flattenEditorModel';
-import { FormRow as FormRowJs, inputClass as inputClassJs } from './formPrimitives';
+import { FormRow, inputClass } from './formPrimitives';
 import LevelChooser from './LevelChooser';
 
 /**
@@ -38,8 +38,6 @@ interface Props {
 
 // Untyped JS component; its props are checked there.
 const PathField = PathFieldJs as unknown as ComponentType<Record<string, unknown>>;
-const FormRow = FormRowJs as unknown as ComponentType<Record<string, unknown>>;
-const inputClass = inputClassJs as () => string;
 const collectArrayPaths = collectArrayPathsJs as (groups: unknown, sample?: unknown) => { key: string; path: string; sample: unknown }[];
 
 const MUTED = 'text-[11px] text-[var(--text-tertiary)]';

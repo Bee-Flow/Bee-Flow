@@ -1,5 +1,5 @@
 /**
- * Differential lockstep: the web's refineMerge.js and this port run on the
+ * Differential lockstep: the web's refineMerge.ts and this port run on the
  * same fixtures and must agree. When this fails the web side changed — update
  * the port, never the fixtures.
  */
@@ -7,7 +7,7 @@
 import * as port from './refineMerge';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const web = require('../../../../../agent-hub/src/components/agents/AgentWizard/state/refineMerge.js');
+const web = require('../../../../../agent-hub/src/components/agents/AgentWizard/state/refineMerge.ts');
 
 const base: port.RefineState = {
     name: 'Helpdesk',

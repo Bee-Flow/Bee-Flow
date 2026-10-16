@@ -1,10 +1,9 @@
-import type { ComponentType } from 'react';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { canonicalPath, getPath } from '@shared/expr/path.mjs';
 import OutputView from '../OutputView';
-import JsonTreeJs from '../debug/JsonTree';
+import JsonTree from '../debug/JsonTree';
 
 /**
  * The Comes-in "Table" view maps a whole column or a single cell, and the Run
@@ -13,8 +12,6 @@ import JsonTreeJs from '../debug/JsonTree';
  * carry (`content-type`, `Story Points`, `@odata.etag`, `Größe`, "0") used to
  * be glued on with a dot: the preview showed the value, the run got nothing.
  */
-const JsonTree = JsonTreeJs as unknown as ComponentType<Record<string, unknown>>;
-
 const OUTPUT = {
     headers: { 'content-type': 'application/json', 'x-request-id': 'r1', Größe: 'XL', 0: 'zero' },
     rows: [
