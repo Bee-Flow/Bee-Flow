@@ -21,6 +21,11 @@
  */
 
 const { esc } = require('./html');
+const { variantSrcSet, columnSizes, preloadLink, DEFAULT_SIZES } = require('../cms/imageDelivery');
+
+/** The LCP candidate is looked for in this many leading blocks. */
+const HERO_BLOCKS = 2;
+const MAX_GRID_COLUMNS = 4;
 
 // Keys whose string value is prose, and what to render it as.
 const HEADING_KEYS = new Set(['title', 'heading', 'question']);
@@ -65,11 +70,14 @@ function imageSrc(src) {
 /**
  * `{ kind: 'image', src, alt }` (block media, logos) as an <img>. An empty alt
  * stays `alt=""` — a decorative image — instead of being dropped, so the
- * crawler still gets the file.
+ * crawler still gets the file. The first image of the leading blocks is the
+ * LCP candidate: eager, high priority, and recorded in `state.heroImage` for
+ * the head preload. Every other image stays lazy.
  * @param {Record<string, any>} node
+ * @param {{ blockIndex?: number, heroImage?: {src: string, srcset?: string, sizes: string} | null, columns?: number }} [state]
  * @returns {string} the tag, or '' when this is not a renderable image
  */
-function imageTag(node) {
+function imageTag(node, state = {}) {
     if (node.kind !== undefined && node.kind !== 'image') return '';
     const src = imageSrc(node.src);
     if (!src) return '';
@@ -80,7 +88,13 @@ function imageTag(node) {
     const w = dim(node.width);
     const h = dim(node.height);
     const size = w && h ? ` width="${w}" height="${h}"` : '';
-    return `<img src="${esc(src)}" alt="${esc(node.alt || '')}"${size} loading="lazy">`;
+    const srcset = variantSrcSet(src);
+    const sizes = columnSizes(state.columns || 1);
+    const hero = !state.heroImage && (state.blockIndex ?? HERO_BLOCKS) < HERO_BLOCKS;
+    if (hero) state.heroImage = { src, srcset, sizes: srcset ? sizes : DEFAULT_SIZES };
+    const set = srcset ? ` srcset="${esc(srcset)}" sizes="${esc(sizes)}"` : '';
+    const load = hero ? 'loading="eager" fetchpriority="high" decoding="async"' : 'loading="lazy"';
+    return `<img src="${esc(src)}"${set} alt="${esc(node.alt || '')}"${size} ${load}>`;
 }
 
 /** An own-origin href on a link-carrying node (`link: { href }` after link resolution, or a bare `href`), else ''. */
@@ -160,7 +174,7 @@ function walk(node, out, depth, state) {
         return; // a button carries no other content worth walking
     }
 
-    const img = imageTag(node);
+    const img = imageTag(node, state);
     if (img) out.push(img);
 
     // Headline fragments first so the h1 is the real headline, not a later key.
@@ -184,7 +198,11 @@ function walk(node, out, depth, state) {
         }
 
         if (Array.isArray(value) && CHILD_KEYS.has(key)) {
+            // Siblings share a row on a wide screen: their images get column sizes.
+            const outer = state.columns;
+            state.columns = Math.min(value.length, MAX_GRID_COLUMNS);
             walk(value, out, depth + 1, state);
+            state.columns = outer;
             continue;
         }
         // A nested object that is not in CHILD_KEYS is usually a config blob
@@ -242,9 +260,26 @@ function emitHeading(text, out, depth, state) {
  * @param {{ header?: unknown, footer?: unknown } | null} [opts.chrome] site header/footer, for the navigation links
  * @returns {string} HTML for the inside of #root
  */
-function renderBlocks(blocks, { fallbackTitle = '', chrome = null } = {}) {
+/**
+ * @param {Array<Record<string, any>>} blocks
+ * @param {{ fallbackTitle?: string, chrome?: { header?: unknown, footer?: unknown } | null }} [opts]
+ * @returns {string}
+ */
+function renderBlocks(blocks, opts = {}) {
+    return renderBlocksWithHints(blocks, opts).html;
+}
+
+/**
+ * Same as {@link renderBlocks}, plus the LCP candidate so the head can
+ * preload it (`preloadLink` in core/cms/imageDelivery.js).
+ * @param {Array<Record<string, any>>} blocks
+ * @param {{ fallbackTitle?: string, chrome?: { header?: unknown, footer?: unknown } | null }} [opts]
+ * @returns {{ html: string, heroImage: { src: string, srcset?: string, sizes: string } | null, headLinks: string[] }}
+ */
+function renderBlocksWithHints(blocks, { fallbackTitle = '', chrome = null } = {}) {
     const out = [];
-    const state = { h1Used: false };
+    /** @type {{ h1Used: boolean, blockIndex: number, columns: number, heroImage: { src: string, srcset?: string, sizes: string } | null }} */
+    const state = { h1Used: false, blockIndex: 0, columns: 1, heroImage: null };
 
     for (const block of blocks || []) {
         if (!block || block.enabled === false) continue;
@@ -254,6 +289,7 @@ function renderBlocks(blocks, { fallbackTitle = '', chrome = null } = {}) {
             out.splice(before, 0, `<section data-block="${esc(block.type || '')}">`);
             out.push('</section>');
         }
+        state.blockIndex++;
     }
 
     const links = new Map();
@@ -264,12 +300,13 @@ function renderBlocks(blocks, { fallbackTitle = '', chrome = null } = {}) {
     }
 
     if (!state.h1Used && fallbackTitle) out.unshift(`<h1>${esc(fallbackTitle)}</h1>`);
-    if (!out.length) return '';
+    if (!out.length) return { html: '', heroImage: null, headLinks: [] };
     // `.marketing-root` pulls in the design tokens and typography, `.container`
     // the same max-width and gutters every real section uses. Without them this
     // rendered as a full-bleed stack of headings, which read as "the CSS failed
     // to load" for the moment before React mounted. See PREHYDRATE_CSS.
-    return `<div class="marketing-root cms-prehydrate">\n<div class="container">\n${out.join('\n')}\n</div>\n</div>`;
+    const html = `<div class="marketing-root cms-prehydrate">\n<div class="container">\n${out.join('\n')}\n</div>\n</div>`;
+    return { html, heroImage: state.heroImage, headLinks: state.heroImage ? [preloadLink(state.heroImage)] : [] };
 }
 
 /**
@@ -313,4 +350,4 @@ const PREHYDRATE_CSS = `
 .cms-prehydrate .label { font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; opacity: .7; margin: 0 0 8px; }
 `.trim();
 
-module.exports = { renderBlocks, PREHYDRATE_CSS };
+module.exports = { renderBlocks, renderBlocksWithHints, PREHYDRATE_CSS };

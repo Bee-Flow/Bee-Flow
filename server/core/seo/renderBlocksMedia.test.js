@@ -10,12 +10,12 @@ test('block media becomes an <img> with its alt text and a resolved asset URL', 
         title: 'Editor',
         media: { kind: 'image', src: 'cms/shots/editor one.png', alt: 'The assistant editor', srcDark: '', frame: 'hairline' },
     })]);
-    assert.match(html, /<img src="\/api\/cms\/asset\/cms\/shots\/editor%20one\.png" alt="The assistant editor" loading="lazy">/);
+    assert.match(html, /<img src="\/api\/cms\/asset\/cms\/shots\/editor%20one\.png" srcset="[^"]+" sizes="[^"]+" alt="The assistant editor" loading="eager" fetchpriority="high" decoding="async">/);
 });
 
 test('an image without alt text is rendered decorative (alt="") rather than skipped', () => {
     const html = renderBlocks([block({ media: { kind: 'image', src: '/img/a.png', alt: '' } })]);
-    assert.match(html, /<img src="\/img\/a\.png" alt="" loading="lazy">/);
+    assert.match(html, /<img src="\/img\/a\.png" alt="" loading="eager" fetchpriority="high" decoding="async">/);
 });
 
 test('empty, non-image and script-scheme sources are not rendered', () => {
@@ -83,7 +83,7 @@ test('an image with stored dimensions carries width and height; bad values are d
         { media: { kind: 'image', src: '/a.png', alt: 'a', width: 1200, height: 630 } },
         { media: { kind: 'image', src: '/b.png', alt: 'b', width: '12"x', height: -4 } },
     ] })]);
-    assert.match(html, /<img src="\/a\.png" alt="a" width="1200" height="630" loading="lazy">/);
+    assert.match(html, /<img src="\/a\.png" alt="a" width="1200" height="630" loading="eager" fetchpriority="high" decoding="async">/);
     assert.match(html, /<img src="\/b\.png" alt="b" loading="lazy">/);
 });
 

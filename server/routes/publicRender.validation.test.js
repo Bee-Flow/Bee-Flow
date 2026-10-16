@@ -38,7 +38,7 @@ const MOCKS = {
     '../stores/configStore': { getConfig: async () => 'site-1' },
     '../stores/languageStore': { getAvailableLocales: async () => [{ code: 'en' }, { code: 'nl' }] },
     '../core/seo/head': { buildHead: () => '<title>Pricing</title>' },
-    '../core/seo/renderBlocks': { renderBlocks: () => '<main>Pricing</main>', PREHYDRATE_CSS: '' },
+    '../core/seo/renderBlocks': { renderBlocksWithHints: () => ({ html: '<main>Pricing</main>', heroImage: null, headLinks: [] }), PREHYDRATE_CSS: '' },
     '../core/seo/shell': { getShell: async () => '<html><head></head><body><div id="root"></div></body></html>' },
     '../core/seo/inject': { injectIntoShell: (shell, { body }) => shell.replace('<div id="root"></div>', `<div id="root">${body}</div>`) },
     '../core/seo/sitemap': { buildSitemap: () => '', buildRobots: () => '', buildLlmsTxt: () => '' },

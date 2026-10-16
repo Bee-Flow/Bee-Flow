@@ -45,7 +45,7 @@ const languageStore = require('../stores/languageStore');
 const { parsePublicPath, buildPublicPath, LOCALE_PREFIXES } = require('../core/seo/publicPath');
 const { legalRedirectTarget } = require('../core/seo/legalPaths');
 const { buildHead } = require('../core/seo/head');
-const { renderBlocks, PREHYDRATE_CSS } = require('../core/seo/renderBlocks');
+const { renderBlocksWithHints, PREHYDRATE_CSS } = require('../core/seo/renderBlocks');
 const { getShell } = require('../core/seo/shell');
 const { injectIntoShell } = require('../core/seo/inject');
 const { buildSitemap, buildRobots, buildLlmsTxt } = require('../core/seo/sitemap');
@@ -457,12 +457,13 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res
             return res.redirect(301, qs ? `${target}?${qs}` : target);
         }
 
+        await require('../stores/cms/stories').fillCustomerStories(siteId, eff.page, locale);
+        const { html: body, headLinks } = renderBlocksWithHints(eff.page.blocks, { fallbackTitle: eff.page.title, chrome: { header: eff.header, footer: eff.footer } });
         const head = buildHead({
             origin, slug: parsed.slug, locale, defaultLocale, locales: pageLocales,
             page: eff.page, design: eff.design || {}, siteName, shareImageVersion: versionOf(snapshot && snapshot.publishedAt),
+            extraLinks: headLinks,
         });
-        await require('../stores/cms/stories').fillCustomerStories(siteId, eff.page, locale);
-        const body = renderBlocks(eff.page.blocks, { fallbackTitle: eff.page.title, chrome: { header: eff.header, footer: eff.footer } });
 
         /* The same payload GET /api/cms/site would return, inlined.
          *
