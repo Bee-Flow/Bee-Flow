@@ -8,6 +8,19 @@ import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { ReadState } from '../agentEditor.types';
 import type { skillRows } from './canUseFacts';
 
+/** One attached skill, as `canUseFacts.skillRows` builds it. */
+export type SkillCardRow = ReturnType<typeof skillRows>[number];
+
+export interface SkillsCardProps {
+    t: TranslateFn;
+    ro?: boolean;
+    rows?: SkillCardRow[];
+    state?: ReadState;
+    onRetry?: () => void;
+    usageState?: ReadState;
+    onOpenChooser?: (request: ReturnType<typeof chooserRequest>) => void;
+}
+
 /**
  * De Skills-kaart van de tab "Kan gebruiken" — de werkwijzen die de agent
  * volgt (Agents-artboard 1a, A2 stap 2).
@@ -30,19 +43,6 @@ import type { skillRows } from './canUseFacts';
  * gewoon, en ontbreekt alleen de bijzin. Eén gedeelde "er ging iets mis" zou
  * feiten weggooien die we wél hebben.
  */
-/** One attached skill, as `canUseFacts.skillRows` builds it. */
-export type SkillCardRow = ReturnType<typeof skillRows>[number];
-
-export interface SkillsCardProps {
-    t: TranslateFn;
-    ro?: boolean;
-    rows?: SkillCardRow[];
-    state?: ReadState;
-    onRetry?: () => void;
-    usageState?: ReadState;
-    onOpenChooser?: (request: ReturnType<typeof chooserRequest>) => void;
-}
-
 export default function SkillsCard({
     t, ro = false,
     rows = [], state = READ.OK, onRetry,

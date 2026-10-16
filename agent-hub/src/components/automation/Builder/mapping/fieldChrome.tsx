@@ -1,9 +1,11 @@
 import React, { useMemo } from 'react';
+import type { GroupField } from './deepFields';
 import { describeField, kindFits, KIND_WORD } from './fieldKinds';
 import { useVariablePickerContext } from './VariablePickerContext';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import FieldHint from '../flow/FieldHint';
 import { fieldLabelClass, requiredMarkClass } from '../flow/settings/formStyles';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 /**
  * The two pieces of chrome that belong to a value SLOT rather than to the
@@ -16,8 +18,16 @@ import { fieldLabelClass, requiredMarkClass } from '../flow/settings/formStyles'
  * words, so nothing that already reads them notices the move.
  */
 
+interface FieldLabelRowProps {
+    label?: string | null;
+    required?: boolean;
+    expectKind?: string | null;
+    hint?: React.ReactNode;
+    autoMapped?: boolean | 'ai';
+}
+
 /** Label · required mark · "expects: date" · hint · the auto-mapped pill. */
-export function FieldLabelRow({ label, required = false, expectKind = null, hint = null, autoMapped = false }) {
+export function FieldLabelRow({ label, required = false, expectKind = null, hint = null, autoMapped = false }: FieldLabelRowProps) {
     const { t } = useTranslation();
     if (!label) return null;
     const expectWord = expectWordFor(expectKind, t);
@@ -36,12 +46,18 @@ export function FieldLabelRow({ label, required = false, expectKind = null, hint
     );
 }
 
+interface AutoMappedPillProps {
+    kind?: boolean | 'ai';
+    className?: string;
+    title?: string | null;
+}
+
 /**
  * The calm "auto" pill on a slot the Auto-map wand filled. `kind === 'ai'`:
  * its AI fallback chose this one, not the deterministic matcher — same pill,
  * but it says so, because an AI pick is the one worth a second look.
  */
-export function AutoMappedPill({ kind = true, className = '', title = null }) {
+export function AutoMappedPill({ kind = true, className = '', title = null }: AutoMappedPillProps) {
     const { t } = useTranslation();
     const ai = kind === 'ai';
     return (
@@ -57,13 +73,20 @@ export function AutoMappedPill({ kind = true, className = '', title = null }) {
     );
 }
 
+interface EmptySlotNoteProps {
+    expectKind?: string | null;
+    empty?: boolean;
+    required?: boolean;
+    onPick?: React.MouseEventHandler<HTMLButtonElement> | null;
+}
+
 /**
  * "still empty · expects: date · pick ▸ 2 fit" — shown only for a REQUIRED
  * slot with a known kind that holds nothing. The count is how many upstream
  * fields would fit, through fieldKinds.kindFits — the same "fits" the mismatch
  * box reasons with, so the two can never disagree.
  */
-export function EmptySlotNote({ expectKind, empty, required = true, onPick = null }) {
+export function EmptySlotNote({ expectKind, empty, required = true, onPick = null }: EmptySlotNoteProps) {
     const { t } = useTranslation();
     const ctx = useVariablePickerContext();
     const groups = ctx.groups;
@@ -71,7 +94,7 @@ export function EmptySlotNote({ expectKind, empty, required = true, onPick = nul
     const fitCount = useMemo(() => {
         if (!expectKind || expectKind === 'unknown') return 0;
         let n = 0;
-        const walk = (fields) => {
+        const walk = (fields: GroupField[] | undefined): void => {
             for (const f of fields || []) {
                 if (kindFits(describeField(f, previewSample).kind, expectKind)) n += 1;
                 if (Array.isArray(f.children) && f.children.length) walk(f.children);
@@ -104,6 +127,6 @@ export function EmptySlotNote({ expectKind, empty, required = true, onPick = nul
     );
 }
 
-function expectWordFor(expectKind, t) {
+function expectWordFor(expectKind: string | null | undefined, t: TranslateFn): string {
     return expectKind && KIND_WORD[expectKind] ? t(KIND_WORD[expectKind].key, KIND_WORD[expectKind].en) : '';
 }

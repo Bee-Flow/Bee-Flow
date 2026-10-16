@@ -2,10 +2,24 @@ import { Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { cardClass, inputClass, FormRow } from './formPrimitives';
 import { SET_OP_DEFS, SET_OP_TITLES, columnsAfterOps } from '../setOperations';
+import type { SetOpDef, SetOperation } from '../setOperations';
 import { humanizeFieldKey } from '../displayHelpers';
 import FieldKeyCombobox from '../../mapping/FieldKeyCombobox';
+import type { FieldKeyOption } from '../../mapping/FieldKeyCombobox';
+import type { OnFocusField } from '../../mapping/focusField.types';
 import AnchoredMenu from '../../../../shared/AnchoredMenu';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+
+/** An operation as the editor holds it: `start` belongs to the row-number op and may be mid-edit. */
+type EditableOp = SetOperation & { start?: number | '' };
+
+interface SetOperationsEditorProps {
+    ops?: EditableOp[];
+    onChange: (next: EditableOp[]) => void;
+    baseColumns?: string[];
+    columnSamples?: Record<string, unknown>;
+    onFocusField?: OnFocusField | null;
+}
 
 /**
  * The "Table tools" editor for the Edit data (set) step — one card per
@@ -25,24 +39,24 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
  *                   the Fields section's keys)
  *   columnSamples — {col: sampleValue} for the pickers' preview column
  */
-export default function SetOperationsEditor({ ops = [], onChange, baseColumns = [], columnSamples = {}, onFocusField = null }) {
+export default function SetOperationsEditor({ ops = [], onChange, baseColumns = [], columnSamples = {}, onFocusField = null }: SetOperationsEditorProps) {
     const { t } = useTranslation();
     const [menuOpen, setMenuOpen] = useState(false);
-    const menuRef = useRef(null);
+    const menuRef = useRef<HTMLDivElement>(null);
     const closeMenu = useCallback(() => setMenuOpen(false), []);
 
-    const update = (i, patch) => onChange(ops.map((o, j) => (j === i ? { ...o, ...patch } : o)));
-    const remove = (i) => onChange(ops.filter((_, j) => j !== i));
-    const move = (i, dir) => {
+    const update = (i: number, patch: Partial<EditableOp>) => onChange(ops.map((o, j) => (j === i ? { ...o, ...patch } : o)));
+    const remove = (i: number) => onChange(ops.filter((_, j) => j !== i));
+    const move = (i: number, dir: number) => {
         const j = i + dir;
         if (j < 0 || j >= ops.length) return;
         const next = ops.slice();
         [next[i], next[j]] = [next[j], next[i]];
         onChange(next);
     };
-    const add = (def) => { onChange([...ops, def.makeDefault()]); setMenuOpen(false); };
+    const add = (def: SetOpDef) => { onChange([...ops, def.makeDefault()]); setMenuOpen(false); };
 
-    const optionsAt = (i) => columnsAfterOps(baseColumns, ops, i)
+    const optionsAt = (i: number): FieldKeyOption[] => columnsAfterOps(baseColumns, ops, i)
         .map(k => ({ key: k, sample: columnSamples[k] }));
 
     return (
@@ -94,12 +108,23 @@ export default function SetOperationsEditor({ ops = [], onChange, baseColumns = 
     );
 }
 
-function OpCard({ op, index, count, options, onChange, onRemove, onMove, onFocusField }) {
+interface OpCardProps {
+    op: EditableOp;
+    index: number;
+    count: number;
+    options: FieldKeyOption[];
+    onChange: (patch: Partial<EditableOp>) => void;
+    onRemove: () => void;
+    onMove: (dir: number) => void;
+    onFocusField?: OnFocusField | null;
+}
+
+function OpCard({ op, index, count, options, onChange, onRemove, onMove, onFocusField }: OpCardProps) {
     const { t } = useTranslation();
     const existing = options.map(o => o.key);
     // Writing into a column that already exists replaces its values — legal
     // and sometimes wanted, but never silently.
-    const collision = (name) => (name && existing.includes(name)
+    const collision = (name?: string) => (name && existing.includes(name)
         ? `Replaces the existing “${humanizeFieldKey(name)}” values on every row.`
         : null);
 
@@ -197,7 +222,7 @@ function OpCard({ op, index, count, options, onChange, onRemove, onMove, onFocus
     );
 }
 
-function MiniRow({ label, children }) {
+function MiniRow({ label, children }: { label: string; children?: React.ReactNode }) {
     return (
         <div className="space-y-0.5">
             <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{label}</div>
@@ -206,13 +231,20 @@ function MiniRow({ label, children }) {
     );
 }
 
+interface NameInputProps {
+    value?: string;
+    onCommit: (next: string) => void;
+    placeholder?: string;
+    warning?: string | null;
+}
+
 /**
  * Column-name input that commits on blur/Enter — the CaseNameInput pattern.
  * Live-controlled names would feed the 600 ms autosave half-typed states;
  * committing whole names keeps every flushed patch clean. Incomplete ('') is
  * fine — the validator marks it as a completeness problem, never a lost row.
  */
-function NameInput({ value, onCommit, placeholder, warning = null }) {
+function NameInput({ value, onCommit, placeholder, warning = null }: NameInputProps) {
     const [text, setText] = useState(value || '');
     useEffect(() => { setText(value || ''); }, [value]);
     const commit = () => { const v = text.trim(); if (v !== (value || '')) onCommit(v); };
@@ -232,16 +264,24 @@ function NameInput({ value, onCommit, placeholder, warning = null }) {
     );
 }
 
+interface KeyListProps {
+    keys: string[];
+    options: FieldKeyOption[];
+    onChange: (next: string[]) => void;
+    onFocusField?: OnFocusField | null;
+    addLabel: string;
+}
+
 /** One combobox per key + add/remove — composite keys and keep/remove lists. */
-function KeyList({ keys, options, onChange, onFocusField, addLabel }) {
+function KeyList({ keys, options, onChange, onFocusField, addLabel }: KeyListProps) {
     const { t } = useTranslation();
     const rows = keys.length ? keys : [''];
-    const setAt = (i, v) => {
+    const setAt = (i: number, v: string) => {
         const next = rows.slice();
         next[i] = v;
         onChange(next.filter((k, j) => k || j === i)); // keep the row being edited
     };
-    const removeAt = (i) => onChange(rows.filter((_, j) => j !== i));
+    const removeAt = (i: number) => onChange(rows.filter((_, j) => j !== i));
     return (
         <div className="space-y-1">
             {rows.map((k, i) => (

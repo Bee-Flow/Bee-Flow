@@ -5,8 +5,8 @@ import useAutomationApi from '../../../../../hooks/useAutomationApi';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { nOf } from '../../../../admin/Studio/KnowledgeStudio/plural';
 import { AMBER_NOTE, hintTextClass, inputClass, sectionHeaderClass, FormRow } from './formPrimitives';
-
-export function GmailFilterFields({ filter, setFilter }) {
+import type { FilterFieldsProps } from './triggerFilters.types';
+export function GmailFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <div className="rounded-md border border-[var(--border-subtle)] p-3 space-y-3">
@@ -57,7 +57,7 @@ export function GmailFilterFields({ filter, setFilter }) {
 // input is empty (`undefined`) so the persisted filter object stays
 // minimal and the matcher's "if filter.X is set" checks short-circuit.
 
-function FilterShell({ title, children }) {
+function FilterShell({ title, children }: { title: string; children?: React.ReactNode }) {
     return (
         <div className="rounded-md border border-[var(--border-subtle)] p-3 space-y-3">
             <div className={sectionHeaderClass()}>{title}</div>
@@ -67,9 +67,9 @@ function FilterShell({ title, children }) {
 }
 
 /** A comma-separated line as the list we persist. */
-const splitCsv = (text) => text.split(',').map(s => s.trim()).filter(Boolean);
+const splitCsv = (text: string) => text.split(',').map(s => s.trim()).filter(Boolean);
 
-export function GmailLabelFilterFields({ filter, setFilter }) {
+export function GmailLabelFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     // The exclude box keeps its OWN text. The stored list is trimmed and
     // blank-free, so re-joining it would swallow the comma the moment it is
@@ -111,7 +111,7 @@ export function GmailLabelFilterFields({ filter, setFilter }) {
     );
 }
 
-export function CalendarChangedFilterFields({ filter, setFilter }) {
+export function CalendarChangedFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.calendar_event_changed_filter_all_optional', 'Calendar event.changed filter (all optional)')}>
@@ -139,7 +139,7 @@ export function CalendarChangedFilterFields({ filter, setFilter }) {
     );
 }
 
-export function CalendarUpcomingFilterFields({ filter, setFilter }) {
+export function CalendarUpcomingFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.calendar_event_upcoming_filter', 'Calendar event.upcoming filter')}>
@@ -179,7 +179,7 @@ export function CalendarUpcomingFilterFields({ filter, setFilter }) {
  * of every spreadsheet you can reach. The hint says so in the field, because
  * the two modes read identically otherwise.
  */
-export function SheetsChangedFilterFields({ filter, setFilter }) {
+export function SheetsChangedFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.google_sheets_filter_all_optional', 'Google Sheets filter (all optional)')}>
@@ -204,7 +204,7 @@ export function SheetsChangedFilterFields({ filter, setFilter }) {
     );
 }
 
-export function DriveFileNewFilterFields({ filter, setFilter }) {
+export function DriveFileNewFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.drive_file_new_filter_all_optional', 'Drive file.new filter (all optional)')}>
@@ -230,7 +230,7 @@ export function DriveFileNewFilterFields({ filter, setFilter }) {
     );
 }
 
-export function NextcloudFileFilterFields({ filter, setFilter }) {
+export function NextcloudFileFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_file_filter_all_optional', 'Nextcloud file filter (all optional)')}>
@@ -259,7 +259,7 @@ export function NextcloudFileFilterFields({ filter, setFilter }) {
     );
 }
 
-export function NextcloudShareFilterFields({ filter, setFilter }) {
+export function NextcloudShareFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_share_received_filter', 'Nextcloud share.received filter')}>
@@ -286,7 +286,7 @@ export function NextcloudShareFilterFields({ filter, setFilter }) {
     );
 }
 
-export function NextcloudActivityFilterFields({ filter, setFilter }) {
+export function NextcloudActivityFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_activity_filter_advanced', 'Nextcloud activity filter (advanced)')}>
@@ -306,7 +306,7 @@ export function NextcloudActivityFilterFields({ filter, setFilter }) {
     );
 }
 
-export function NextcloudNotificationFilterFields({ filter, setFilter }) {
+export function NextcloudNotificationFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_notification_filter', 'Nextcloud notification filter')}>
@@ -322,7 +322,7 @@ export function NextcloudNotificationFilterFields({ filter, setFilter }) {
     );
 }
 
-export function SupportTicketResolvedFilterFields({ filter, setFilter }) {
+export function SupportTicketResolvedFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.support_inbox_ticket_resolved_filter_all', 'Support Inbox ticket.resolved filter (all optional)')}>
@@ -386,7 +386,7 @@ export function SupportTicketResolvedFilterFields({ filter, setFilter }) {
 }
 
 // Lookup used by AppEventFields — `<provider>.<event>` → filter sub-form.
-export function NextcloudFormsSubmittedFilterFields({ filter, setFilter }) {
+export function NextcloudFormsSubmittedFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_form_filter_all_optional', 'Nextcloud form filter (all optional)')}>
@@ -415,7 +415,7 @@ export function NextcloudFormsSubmittedFilterFields({ filter, setFilter }) {
     );
 }
 
-export function NextcloudTablesRowFilterFields({ filter, setFilter }) {
+export function NextcloudTablesRowFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_tables_row_filter_all_optional', 'Nextcloud Tables row filter (all optional)')}>
@@ -449,7 +449,7 @@ export function NextcloudTablesRowFilterFields({ filter, setFilter }) {
     );
 }
 
-export function NextcloudTagFilterFields({ filter, setFilter }) {
+export function NextcloudTagFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_tag_filter_all_optional', 'Nextcloud tag filter (all optional)')}>
@@ -465,7 +465,7 @@ export function NextcloudTagFilterFields({ filter, setFilter }) {
     );
 }
 
-export function NextcloudCalendarMutationFilterFields({ filter, setFilter }) {
+export function NextcloudCalendarMutationFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_calendar_filter_all_optional', 'Nextcloud calendar filter (all optional)')}>
@@ -499,7 +499,7 @@ export function NextcloudCalendarMutationFilterFields({ filter, setFilter }) {
  * intypt zonder eerst een tweede rechtenvraag te stellen; het scherm zegt
  * daarom expliciet dat er exact en hoofdlettergevoelig vergeleken wordt.
  */
-export function MeetingNotesProcessedFilterFields({ filter, setFilter }) {
+export function MeetingNotesProcessedFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     // Eigen tekststaat, net als het Gmail-uitsluitvak: de opgeslagen lijst is
     // getrimd en blanco-vrij, dus terug-joinen slikt de komma op het moment
@@ -592,7 +592,7 @@ export function MeetingNotesProcessedFilterFields({ filter, setFilter }) {
 
 // Unmapped combos render no filter form (the runtime still applies the DSL
 // filter via applyDslFilter). Individual exports above stay for tests.
-export const FILTER_FORM_BY_KEY = {
+export const FILTER_FORM_BY_KEY: Record<string, React.ComponentType<FilterFieldsProps>> = {
     'gmail.mail.new': GmailFilterFields,
     'gmail.label.added': GmailLabelFilterFields,
     'google-calendar.event.changed': CalendarChangedFilterFields,

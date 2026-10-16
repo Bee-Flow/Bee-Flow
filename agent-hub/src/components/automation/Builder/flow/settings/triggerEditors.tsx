@@ -17,9 +17,9 @@ import { defaultFormPageDeclaration, defaultFormEndingDeclaration } from './Form
 import { FormRow, inputClass } from './formPrimitives';
 import FormTriggerFields from './FormTriggerFields';
 import { FILTER_FORM_BY_KEY } from './triggerFilters';
+import type { AppEventFieldsProps, FormPageFieldsProps, ParamFieldsProps, TriggerFieldsProps } from './triggerEditors.types';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-
-function TriggerFields({ draft, set, setNested, errorSections = new Set(), catalog = null, automation = null, stepId = null, isSecondaryTrigger = false, onTestSubmit = null, onRenameField = null, formEditor = null }) {
+function TriggerFields({ draft, set, setNested, errorSections = new Set(), catalog = null, automation = null, stepId = null, isSecondaryTrigger = false, onTestSubmit = null, onRenameField = null, formEditor = null }: TriggerFieldsProps) {
     const { t } = useTranslation();
     const kind = draft.kind || 'manual';
     // A flowlet's trigger declares its input contract instead of firing — no
@@ -82,7 +82,7 @@ function TriggerFields({ draft, set, setNested, errorSections = new Set(), catal
                         <ScheduleBuilder
                             cron={draft.scheduleCron || ''}
                             tz={draft.scheduleTz || 'Europe/Amsterdam'}
-                            onChange={({ cron, tz }) => {
+                            onChange={({ cron, tz }: { cron: string; tz: string }) => {
                                 set('scheduleCron', cron);
                                 set('scheduleTz', tz);
                             }}
@@ -109,7 +109,7 @@ function TriggerFields({ draft, set, setNested, errorSections = new Set(), catal
 // Labels for providers that can appear in SAVED configs but are absent from
 // the dynamic catalog list (hidden, e.g. github; or availability revoked).
 // Fallback for anything else: the raw id. Never used to LIST a provider.
-const LEGACY_PROVIDER_LABELS = {
+const LEGACY_PROVIDER_LABELS: Record<string, string> = {
     'gmail': 'Gmail',
     'google-calendar': 'Google Calendar',
     'google-drive': 'Google Drive',
@@ -128,7 +128,7 @@ const LEGACY_PROVIDER_LABELS = {
  * filter — different events have incompatible filter shapes, so carrying old
  * fields over would just produce validation warnings.
  */
-function AppEventFields({ draft, set, setNested, catalog = null }) {
+function AppEventFields({ draft, set, setNested, catalog = null }: AppEventFieldsProps) {
     const { t } = useTranslation();
     // Normalizer: tolerate a stale/cached backend that still serves string[].
     const rawProviders = catalog?.triggers?.find(t => t.kind === 'app_event')?.providers || [];
@@ -143,13 +143,13 @@ function AppEventFields({ draft, set, setNested, catalog = null }) {
     const knownEvent = events.some(ev => ev.id === event);
     const selectedEvent = events.find(ev => ev.id === event) || null;
 
-    const onProviderChange = (next) => {
+    const onProviderChange = (next: string) => {
         const def = providerDefs.find(p => p.id === next);
         set('appProvider', next);
         set('appEventName', def?.defaultEvent || def?.events?.[0]?.id || '');
         set('filter', {});
     };
-    const onEventChange = (next) => {
+    const onEventChange = (next: string) => {
         set('appEventName', next);
         set('filter', {});
     };
@@ -175,7 +175,7 @@ function AppEventFields({ draft, set, setNested, catalog = null }) {
     }
 
     const providerListed = !!currentDef;
-    const setF = (k, v) => setNested('filter', k, v);
+    const setF = (k: string, v: unknown) => setNested('filter', k, v);
     const filter = draft.filter || {};
     const FilterForm = FILTER_FORM_BY_KEY[`${provider}.${event}`] || null;
 
@@ -273,7 +273,7 @@ const APP_TRIGGER_TYPES = [
  * `step.params` verbatim and buildPatch writes `description` back — it simply
  * had no box.
  */
-function LayerInputFields({ draft, set, onRenameField = null }) {
+function LayerInputFields({ draft, set, onRenameField = null }: ParamFieldsProps) {
     const { t } = useTranslation();
     return (
         <FormRow label={t('automations.trigger_editors.flowlet_inputs', 'Flowlet inputs')} hint={t('automations.trigger_editors.parameters_this_flowlet_accepts_inside_the', 'Parameters this flowlet accepts. Inside the flowlet, bind to them as trigger.output.<name>.')}>
@@ -301,7 +301,7 @@ function LayerInputFields({ draft, set, onRenameField = null }) {
  * the same row editor as the flowlet's and the Studio App trigger's rather
  * than a third copy of one that looked like it.
  */
-function AgentCallFields({ draft, set, onRenameField = null, automationId = null }) {
+function AgentCallFields({ draft, set, onRenameField = null, automationId = null }: ParamFieldsProps & { automationId?: string | null }) {
     const { t } = useTranslation();
     return (
         <>
@@ -355,7 +355,7 @@ function AgentCallFields({ draft, set, onRenameField = null, automationId = null
  * the file). Server contract: server/automation/appTriggerContract.js —
  * identifier names, no leading underscore.
  */
-function AppTriggerFields({ draft, set, onRenameField = null }) {
+function AppTriggerFields({ draft, set, onRenameField = null }: ParamFieldsProps) {
     const { t } = useTranslation();
     return (
         <FormRow label={t('automations.trigger_editors.app_inputs', 'App inputs')} hint={t('automations.trigger_editors.inputs_the_app_action_must_provide', 'Inputs the app action must provide. Bind them in steps as trigger.output.<name>; a file input arrives as { fileId, name, mime, size, url }.')}>
@@ -398,7 +398,7 @@ const FORM_WAIT_CHOICES = [
  * moment it is shown, so the slots get the {} picker and the Input panel can
  * drop values from earlier steps straight into them.
  */
-function FormPageFields({ draft, set, stepId, onFocusField, previewSample, errorSections = new Set(), onRenameField = null, formEditor = null }) {
+function FormPageFields({ draft, set, stepId, onFocusField, previewSample, errorSections = new Set(), onRenameField = null, formEditor = null }: FormPageFieldsProps) {
     const { t } = useTranslation();
     const isEnding = draft.mode === 'ending';
     const form = draft.form || null;

@@ -123,7 +123,7 @@ export interface BuildTabProps {
     selectedTier: unknown;
     setSelectedTier: unknown;
     user: unknown;
-    onSend: (text: string, attachments?: unknown[], opts?: { answers?: unknown }) => unknown;
+    onSend: (text: string, attachments?: unknown[], opts?: { answers?: unknown; approvedPlanId?: string | null; pauseAfterStep?: boolean }) => unknown;
     onStopBuild?: Fn;
     messagesContainerRef: RefObject<HTMLDivElement | null>;
     messagesBodyRef?: RefObject<HTMLDivElement | null> | null;

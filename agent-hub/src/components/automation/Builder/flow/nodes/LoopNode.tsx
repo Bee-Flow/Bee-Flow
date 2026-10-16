@@ -8,16 +8,27 @@ import { CONTAINER_HEADER } from '../inlineFlowlets';
 import { useNodeRuntime } from '../NodeRuntimeContext';
 import { statusVar, typeColorVar, typeTint } from '../nodeTypeColors';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { HumanizeExpression, NodeRunStep, NodeStep, StepNodeProps } from './nodeProps';
 
-export default function LoopNode({ id, data }) {
+type ToggleHandler = ((e?: React.MouseEvent) => void) | null;
+
+interface LoopCardProps {
+    id: string;
+    step: NodeStep;
+    runStep?: NodeRunStep | null;
+    friendlyOver: string;
+    onToggle: ToggleHandler;
+}
+
+export default function LoopNode({ id, data }: StepNodeProps) {
     const { step, runStep, issues, onAddAfter, stepLabelById, inlineExpanded: container } = data;
     const { onToggleInline } = useNodeRuntime();
-    const friendlyOver = humanizeExpression(step.overRef || '', stepLabelById);
+    const friendlyOver = (humanizeExpression as HumanizeExpression)(step.overRef || '', stepLabelById);
     // A loop's body is inline data, not a reference — so unlike a flowlet there
     // is no cycle to guard against and nothing to look up. It can always open.
     // The second argument is the flowlet key the toggle would collapse a rival
     // expansion of; a body is never shared, so there is none.
-    const toggle = onToggleInline ? (e) => { e?.stopPropagation?.(); onToggleInline(id, null); } : null;
+    const toggle = onToggleInline ? (e?: React.MouseEvent) => { e?.stopPropagation?.(); onToggleInline(id, null); } : null;
 
     if (container) {
         return <ExpandedLoop id={id} step={step} runStep={runStep} friendlyOver={friendlyOver} onToggle={toggle} />;
@@ -36,7 +47,7 @@ export default function LoopNode({ id, data }) {
  * has no room for a separate Expand link, and the tile is already the one
  * thing on the card that says "this is a loop".
  */
-function CollapsedLoop({ id, step, runStep, issues, onAddAfter, friendlyOver, onToggle }) {
+function CollapsedLoop({ id, step, runStep, issues, onAddAfter, friendlyOver, onToggle }: LoopCardProps & Pick<StepNodeProps['data'], 'issues' | 'onAddAfter'>) {
     const { t } = useTranslation();
     const overRef = step.overRef || '';
     const itemVar = step.itemVar || 'item';
@@ -123,7 +134,7 @@ function CollapsedLoop({ id, step, runStep, issues, onAddAfter, friendlyOver, on
  * a tall container the middle is nowhere near where the eye expects the flow to
  * leave, and "Done" leaving from beside the title reads as "after all this".
  */
-function ExpandedLoop({ id, step, runStep, friendlyOver, onToggle }) {
+function ExpandedLoop({ id, step, runStep, friendlyOver, onToggle }: LoopCardProps) {
     const { t } = useTranslation();
     const itemVar = step.itemVar || 'item';
     const batchSize = step.batchSize ?? 1;

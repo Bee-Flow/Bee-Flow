@@ -3,6 +3,7 @@ import { ShieldAlert } from 'lucide-react';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase from './StepNodeBase';
 import { humanizeExpression } from '../displayHelpers';
+import type { HumanizeExpression, StepNodeProps } from './nodeProps';
 
 /**
  * The guard step on the canvas — "does this contain personal data?".
@@ -11,9 +12,9 @@ import { humanizeExpression } from '../displayHelpers';
  * what this step actually decided. A guard whose ports read "match" /
  * "otherwise" tells a reader nothing about which line carries the alert.
  */
-export default function GuardNode({ id, data }) {
+export default function GuardNode({ id, data }: StepNodeProps) {
     const { step, runStep, issues, onAddAfter, stepLabelById } = data;
-    const source = humanizeExpression(step.sourceRef || '', stepLabelById);
+    const source = (humanizeExpression as HumanizeExpression)(step.sourceRef || '', stepLabelById);
     const onFound = step.onFound || {};
     const consequences = [onFound.stop ? 'stops the run' : null, onFound.mask ? 'masks a copy' : null].filter(Boolean);
     const sub = source

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { Handle, Position, useStore } from '@xyflow/react';
-import { Plus, Play, Pin, PinOff, Loader2, Repeat, Copy as CopyIcon, Trash2, Unlink } from 'lucide-react';
-import { useNodeRuntime } from '../NodeRuntimeContext';
-import { StepIcon } from '../stepIcons';
-import { type CardStyle, type ChromeBadge, cardChrome, cardHeightForPorts, typeColorVar, typeTileStyle, CARD_W, PORT_PAD, PORT_PITCH } from '../nodeTypeColors';
-import { describeStepResult } from '../stepResultChip';
-import { humanizeIssueText } from '../displayHelpers';
+import { Handle, Position } from '@xyflow/react';
+import { Repeat } from 'lucide-react';
+import { stepNodeLook } from './stepNodeLook';
+import { AddAfterButton, BadgeSlot, StepActionToolbar, ValidationDot } from './StepNodeChrome';
+import { StepNodeText, StepNodeTile } from './StepNodeFace';
+import { SourcePorts, ToolPort } from './StepNodePorts';
+import { useStepNodeRuntime } from './useStepNodeRuntime';
 import { useZoomLod, LOD_FAR, LOD_NEAR } from '../useZoomLod';
 import useTranslation from '../../../../../hooks/useTranslation';
-import type { Binding, CardText, NodeRuntime, NodeStep, SourceHandleSpec, StepIssue, StepIssues, StepNodeBaseProps } from './StepNodeBase.types';
+import type { Binding, NodeStep, StepNodeBaseProps } from './StepNodeBase.types';
 /**
  * Shared chrome for every step-type node — the 240×72 card of the Bee Flow
  * Builder redesign (Sep 2026, artboard 1g).
@@ -105,77 +105,15 @@ export default function StepNodeBase({
         ? 'opacity-100 transition-opacity duration-150'
         : 'opacity-0 pointer-events-none transition-opacity duration-150';
 
-    const rt = useNodeRuntime() as NodeRuntime;
-    const pinned = nodeId ? rt.pinnedById?.has?.(nodeId) : false;
-    const disabled = nodeId ? rt.disabledById?.has?.(nodeId) : false;
-    const customIconName = nodeId ? rt.customIconById?.get?.(nodeId) : null;
-    const onExecuteStep = rt.onExecuteStep;
-    const executingThis = nodeId && rt.executingStepId === nodeId;
-    const runInFlight = !!rt.runInFlight;
-    const runIndex = nodeId ? rt.runIndexById?.get?.(nodeId) : null;
-    const runTotal = rt.runTotal ?? null;
-    const highlighted = nodeId && rt.highlightedStepId === nodeId;
-    const errCount = issues?.errors?.length || 0;
-    const warnCount = issues?.warnings?.length || 0;
-    const status = runStep?.status;
-
-    // The family and the step number — computed once per canvas in
-    // DiagramPane's runtime context, so no node file has to pass them.
-    const family = familyProp || (nodeId ? rt.typeGroupById?.get?.(nodeId) : null) || null;
-    const stepType = stepTypeProp || (nodeId ? rt.stepTypeById?.get?.(nodeId) : null) || null;
-    const stepNumber = nodeId ? rt.stepNumberById?.get?.(nodeId) : null;
     const errorTone = tone === 'error';
-
-    // Selection straight from React Flow's store: a boolean selector, so the
-    // card re-renders only when ITS selection flips — not on every pan, and
-    // not on every other node's selection. No prop, no context, no node-file
-    // change needed.
-    const selected = useStore((s) => !!(nodeId && s.nodeLookup?.get?.(nodeId)?.selected));
-    // The author's own step names, read from the same store for the same
-    // reason: flow/layout.js already puts `stepLabelById` (buildStepLabelMap —
-    // the very map the canvas validation pill humanises with) on every node's
-    // data, so the card can pick it up without all 36 node files threading one
-    // more prop through to here.
-    const stepLabelById = useStore((s) => (nodeId ? s.nodeLookup?.get?.(nodeId)?.data?.stepLabelById : null) || null);
-    // While the drawer edits a step (design 1h): the edited card reads as
-    // selected, its direct source is drawn dashed in the family colour with
-    // "· source" in the kicker, and what comes next is dimmed.
-    const editing = !!nodeId && rt.editingStepId === nodeId;
-    const isSource = nodeId ? !!rt.editingSourceIds?.has?.(nodeId) : false;
-    const isTarget = nodeId ? !!rt.editingTargetIds?.has?.(nodeId) : false;
-
-    const isPrimaryTrigger = nodeId && rt.primaryTriggerId === nodeId;
-    const isAnyTrigger = nodeId ? !!rt.triggerIds?.has?.(nodeId) : false;
-    const showDelete = !!rt.onDeleteNode && !!nodeId && !isPrimaryTrigger && !rt.undeletableIds?.has?.(nodeId);
-    const showDuplicate = !!rt.onDuplicateNode && !!nodeId && !isAnyTrigger;
-    const showDetach = !!rt.onDetachNode && !!nodeId && !isAnyTrigger && !!rt.attachedIds?.has?.(nodeId);
-    // Pin needs a captured output to freeze (or an existing pin to release).
-    // A trigger never has a run row, so it never gets the button.
-    const pinnable = nodeId ? !!rt.pinnableIds?.has?.(nodeId) : false;
-    const showPin = !!rt.onPinNode && !!nodeId && !isAnyTrigger && (pinnable || pinned);
-
-    const chrome = cardChrome({
-        group: family, type: stepType, status, pinned, disabled, selected: selected || editing, error: errorTone,
+    const status = runStep?.status;
+    const r = useStepNodeRuntime({ nodeId, issues, familyProp, stepTypeProp });
+    const { rt, family, stepNumber, isSource, errCount, warnCount } = r;
+    const { chrome, tileStyle, glyphStyle, familyColor, cardStyle } = stepNodeLook({
+        family, stepType: r.stepType, status, pinned: r.pinned, disabled: r.disabled, selected: r.selected, editing: r.editing,
+        isSource, isTarget: r.isTarget, errorTone, tileColor, far, dim, branchHandleCount: branchHandles ? branchHandles.length : 0,
     });
-    const { tile: tileStyle, glyph: glyphStyle } = typeTileStyle(family, { type: stepType, error: errorTone });
-    if (tileColor && !errorTone) {
-        tileStyle.background = `color-mix(in srgb, ${tileColor} 16%, transparent)`;
-        tileStyle.color = tileColor;
-    }
-    if (far) {
-        // Zoomed out, the tile IS the card: 48px, and the glyph grows with it.
-        tileStyle.width = 48;
-        tileStyle.height = 48;
-        if (tileStyle.borderRadius === 9) tileStyle.borderRadius = 12;
-        glyphStyle.width = 20;
-        glyphStyle.height = 20;
-    }
-    const familyColor = errorTone ? 'var(--error)' : typeColorVar(family);
     const glyphSize = far ? 20 : 16;
-
-    const glyph = customIconName
-        ? <StepIcon name={customIconName} size={glyphSize} fallback={icon} />
-        : (React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<{ size?: number }>, { size: glyphSize }) : icon);
 
     const handleClass = [
         '!w-3 !h-3 !rounded-full !border-2',
@@ -185,48 +123,9 @@ export default function StepNodeBase({
         'hover:!border-[var(--text-primary)] hover:!scale-110',
     ].join(' ');
 
-    // More than two output ports: the card grows a row per port (nodeTypeColors).
-    const cardH = cardHeightForPorts(branchHandles ? branchHandles.length : 0);
-    const cardStyle: CardStyle = {
-        width: CARD_W,
-        height: cardH,
-        boxSizing: 'border-box',
-        background: 'var(--bg-card)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: far ? 12 : 10,
-        padding: far ? '0 12px 0 16px' : (branchHandles ? '0 30px 0 14px' : '0 10px 0 14px'),
-        ...chrome.style,
-    };
-    if (dim && cardStyle.opacity === 1) cardStyle.opacity = 0.7;
-    if (isSource && !selected && !status) cardStyle.border = `2px dashed ${familyColor}`;
-    if (isTarget && !editing && cardStyle.opacity === 1) cardStyle.opacity = 0.7;
-
     const badgeText = chrome.badge
-        ? `${t(chrome.badge.key, chrome.badge.en)}${status === 'running' && runIndex != null && runTotal != null ? ` ${runIndex}/${runTotal}` : ''}`
+        ? `${t(chrome.badge.key, chrome.badge.en)}${status === 'running' && r.runIndex != null && r.runTotal != null ? ` ${r.runIndex}/${r.runTotal}` : ''}`
         : null;
-
-    // What the step PRODUCED, once its row has settled (flow/stepResultChip.js):
-    // "3 items", "done", "failed". Sits at the head of the summary line at mid
-    // and near LOD — the card keeps its 72px, the summary truncates beside it.
-    // Null while running (the badge already says so) and with no row at all,
-    // so a card without a run renders exactly as before.
-    const resultText = describeStepResult(runStep, t);
-    // Keyed on its text: a new result remounts the chip and its wipe plays
-    // again (`.bf-result-chip`, index.css). Wraps the summary line in a row
-    // only when there IS a chip, so the card's markup is untouched otherwise.
-    const resultChip = resultText ? (
-        <span
-            key={resultText}
-            className="bf-result-chip shrink-0 text-[10px] leading-[14px] font-semibold tabular-nums whitespace-nowrap text-[var(--text-tertiary)]"
-            data-testid="node-result-chip"
-        >
-            {resultText}
-        </span>
-    ) : null;
-    const withResultChip = (subEl: React.ReactNode) => (resultChip
-        ? <div className="flex items-baseline gap-1.5 min-w-0" data-testid="node-sub-row">{resultChip}{subEl}</div>
-        : subEl);
 
     // ── Build choreography (flow/useBuildChoreography.js) ───────────────
     // While the AI builds, the card wears ONE presentation flag on its root:
@@ -240,29 +139,13 @@ export default function StepNodeBase({
     // when it could not show — a dry run mid-build owns the canvas.
     const fx = nodeId ? rt.buildFxById?.get?.(nodeId) : null;
     const live = !!nodeId && rt.frontierId === nodeId;
-    const buildState = fx?.kind || ((live && !status && !runInFlight) ? 'live' : undefined);
+    const buildState = fx?.kind || ((live && !status && !r.runInFlight) ? 'live' : undefined);
     // The delay is a <time> because it sits inside calc() in the stylesheet;
     // the ring is the family colour so a fresh card announces its identity
     // before its kicker is legible.
     const rootStyle = buildState
         ? { ...cardStyle, '--bf-reveal-delay': `${fx?.delayMs ?? 0}ms`, '--bf-ring': familyColor }
         : cardStyle;
-
-    const subIsMuted = sub != null && typeof sub === 'object' && !React.isValidElement(sub) && 'muted' in sub;
-    const subText = subIsMuted ? sub.muted : sub;
-    const detail = summaryLine(subDetail);
-    const nameClamp = detail ? 'line-clamp-1' : 'line-clamp-2';
-    const detailLine = (size: string) => (detail ? (
-        <div
-            className={`${size} leading-[14px] truncate ${detail.muted ? 'italic text-[var(--text-tertiary)]' : 'text-[var(--text-secondary)]'}`}
-            title={subTitle || (typeof detail.text === 'string' ? detail.text : undefined)}
-            data-testid="node-sub-detail"
-        >
-            {detail.text}
-        </div>
-    ) : null);
-
-    const actionBtn = 'h-6 w-6 rounded-md flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:cursor-not-allowed';
 
     /**
      * What a screen reader says when the card takes focus.
@@ -285,7 +168,7 @@ export default function StepNodeBase({
 
     return (
         <div
-            className={`group relative cursor-pointer outline-none ${highlighted ? 'animate-[pulse_1s_ease-in-out_2]' : ''}`}
+            className={`group relative cursor-pointer outline-none ${r.highlighted ? 'animate-[pulse_1s_ease-in-out_2]' : ''}`}
             style={rootStyle}
             data-family={family || undefined}
             data-status={status || undefined}
@@ -295,17 +178,13 @@ export default function StepNodeBase({
                no way to OPEN it from the keyboard: a step is opened by React
                Flow's `onNodeClick` (DiagramPane), which is a mouse event on
                the wrapper this div sits inside. So a keyboard-only user could
-               reach every step on the canvas and enter none of them — the
-               five action buttons above are individually reachable, but the
-               step itself, the thing the whole canvas is for, was not.
+               reach every step on the canvas and enter none of them.
 
                Enter and Space click the card, which is what a `role="button"`
                promises, and the click bubbles to the wrapper so React Flow's
                own handler runs — no second code path that could drift from
                what a mouse does. Key events from a control INSIDE the card
-               (an action button, the tile) are left alone; they have their
-               own handlers and re-opening the step under them is not what
-               was asked. */
+               (an action button, the tile) are left alone. */
             role="button"
             aria-label={a11yLabel}
             onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -323,340 +202,57 @@ export default function StepNodeBase({
             onPointerUp={(e: React.PointerEvent<HTMLDivElement>) => { if (e.pointerType === 'touch') setTapped((v: boolean) => !v); }}
         >
             <Handle type="target" position={Position.Left} className={handleClass} style={{ left: -6 }} />
-            {branchHandles ? (
-                // One source port per branch, stacked down the right edge, each
-                // with an always-visible label pill that overlaps the card's
-                // edge (design 1a: `ja · 1 record` / `nee · 0`).
-                branchHandles.map((h: SourceHandleSpec, i: number) => {
-                    // Two ports spread over the card; three or more sit on
-                    // their own 22px rows, which is what the card grew for.
-                    const top = branchHandles.length > 2
-                        ? PORT_PAD + PORT_PITCH * (i + 0.5)
-                        : `${((i + 1) / (branchHandles.length + 1)) * 100}%`;
-                    return (
-                        <React.Fragment key={h.id}>
-                            <Handle
-                                type="source"
-                                id={h.id}
-                                position={Position.Right}
-                                className={handleClass}
-                                style={{ right: -6, top }}
-                            />
-                            {!far && (
-                                <span
-                                    className="absolute pointer-events-none -translate-y-1/2 max-w-[120px] truncate text-[10px] font-bold leading-3 px-2 py-0.5 rounded-full"
-                                    style={{ left: 'calc(100% - 24px)', top, ...branchToneStyle(h.tone, familyColor) }}
-                                    title={h.label}
-                                >
-                                    {h.label}
-                                </span>
-                            )}
-                        </React.Fragment>
-                    );
-                })
-            ) : (
-                <Handle type="source" position={Position.Right} className={handleClass} style={{ right: -6 }} isConnectable={sourceConnectable} />
-            )}
-
-            {/* The AI step's tool port: a labelled drop zone under the card in
-                the family colour. `data-tool-port` is what the ribbon's drop
-                hit-test looks for (flow/stepDrag.js). NOT pointer-events-none:
-                `elementFromPoint` skips such elements, and this IS the target. */}
+            <SourcePorts branchHandles={branchHandles} handleClass={handleClass} far={far} familyColor={familyColor} sourceConnectable={sourceConnectable} />
             {bottomPort && nodeId && (
-                <>
-                    <Handle
-                        type="source"
-                        id={bottomPort.handleId}
-                        position={Position.Bottom}
-                        isConnectable={false}
-                        className="!w-2.5 !h-2.5 !rounded-full !border-2 !bg-[var(--bg-primary)] !border-[var(--text-tertiary)] !opacity-70"
-                        style={{ bottom: -5 }}
-                    />
-                    {!far && (() => {
-                        const toolChip = (
-                            <span
-                                data-tool-port={nodeId}
-                                title={bottomPort.hint || undefined}
-                                className={`${portsRow ? 'relative' : 'absolute left-1/2 -translate-x-1/2 z-10'} inline-flex items-center gap-1 px-2 text-[10px] font-semibold whitespace-nowrap leading-4`}
-                                style={{
-                                    bottom: portsRow ? undefined : -17,
-                                    borderRadius: '0 0 8px 8px',
-                                    border: `1px solid ${bottomPort.active ? 'var(--text-primary)' : familyColor}`,
-                                    borderTop: 0,
-                                    background: bottomPort.active ? 'var(--bg-tertiary)' : 'var(--bg-card)',
-                                    color: bottomPort.active ? 'var(--text-primary)' : familyColor,
-                                }}
-                            >
-                                {bottomPort.label}
-                            </span>
-                        );
-                        // With a ports row (an AI step's agent / skill /
-                        // knowledge), the tool port is the row's last chip.
-                        return portsRow ? (
-                            <div className="absolute left-1/2 -translate-x-1/2 bottom-[-17px] z-10 flex items-start gap-1" data-testid="node-ports-row">
-                                {portsRow}
-                                {toolChip}
-                            </div>
-                        ) : toolChip;
-                    })()}
-                </>
+                <ToolPort bottomPort={bottomPort} nodeId={nodeId} far={far} familyColor={familyColor} portsRow={portsRow} />
             )}
-
-            {/* Action chrome — ONE centred row 8px above the card, five actions
-                in a fixed order so it never jumps from node to node (BFSF-346).
-                R / D / U / P / Del do the same on the selected card. */}
-            {(onExecuteStep || showDuplicate || showDetach || showPin || showDelete) && nodeId && (
-                <div
-                    className={`absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5 px-1 py-0.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-default)] shadow-sm z-[2] ${chromeVisibility}`}
-                    style={{ top: -30 }}
-                    data-testid="node-hover-toolbar"
-                >
-                    {onExecuteStep && (
-                        <button
-                            type="button"
-                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onExecuteStep(nodeId, { mode: 'upTo' }); }}
-                            onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => e.stopPropagation()}
-                            disabled={runInFlight || (executingThis as boolean)}
-                            title={runInFlight ? 'Run in progress' : 'Run the flow up to here (pinned steps reuse their data) — R'}
-                            className={actionBtn}
-                            aria-label={t('automations.step_node_base.execute_step', 'Execute step')}
-                        >
-                            {executingThis ? <Loader2 size={12} className="animate-spin" /> : <Play size={11} fill="currentColor" />}
-                        </button>
-                    )}
-                    {showDuplicate && (
-                        <button
-                            type="button"
-                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); (rt.onDuplicateNode as (stepId: string) => void)(nodeId); }}
-                            onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => e.stopPropagation()}
-                            title={t('automations.step_node_base.duplicate_this_step_d', 'Duplicate this step — D')}
-                            aria-label={t('automations.step_node_base.duplicate_step', 'Duplicate step')}
-                            className={actionBtn}
-                        >
-                            <CopyIcon size={11} />
-                        </button>
-                    )}
-                    {showDetach && (
-                        <button
-                            type="button"
-                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); (rt.onDetachNode as (stepId: string) => void)(nodeId); }}
-                            onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => e.stopPropagation()}
-                            title={t('automations.step_node_base.take_this_step_out_of_the', 'Take this step out of the flow (it stays on the canvas, its neighbours reconnect) — U')}
-                            aria-label={t('automations.step_node_base.disconnect_step', 'Disconnect step')}
-                            className={actionBtn}
-                        >
-                            <Unlink size={11} />
-                        </button>
-                    )}
-                    {showPin && (
-                        <button
-                            type="button"
-                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); (rt.onPinNode as (stepId: string) => void)(nodeId); }}
-                            onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => e.stopPropagation()}
-                            title={pinned ? 'Release the frozen output — P' : 'Freeze the last output so later runs reuse it — P'}
-                            aria-label={pinned ? 'Unpin step' : 'Pin step'}
-                            className={actionBtn}
-                            style={pinned ? { color: 'var(--pinned)' } : undefined}
-                        >
-                            {pinned ? <PinOff size={11} /> : <Pin size={11} />}
-                        </button>
-                    )}
-                    {showDelete && (
-                        <button
-                            type="button"
-                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); (rt.onDeleteNode as (stepId: string) => void)(nodeId); }}
-                            onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => e.stopPropagation()}
-                            title={t('automations.step_node_base.delete_this_step_reconnects_its_neighbours', 'Delete this step (reconnects its neighbours) — Del')}
-                            aria-label={t('automations.step_node_base.delete_step', 'Delete step')}
-                            className={`${actionBtn} hover:!text-[var(--error)]`}
-                        >
-                            <Trash2 size={11} />
-                        </button>
-                    )}
-                </div>
-            )}
-
-            {/* Quick-add "+" — past the right handle, filled in the theme ink.
-                Suppressed on branch nodes, where "add after" is ambiguous. */}
+            <StepActionToolbar
+                nodeId={nodeId}
+                rt={rt}
+                chromeVisibility={chromeVisibility}
+                pinned={r.pinned}
+                runInFlight={r.runInFlight}
+                executingThis={r.executingThis}
+                showDuplicate={r.showDuplicate}
+                showDetach={r.showDetach}
+                showPin={r.showPin}
+                showDelete={r.showDelete}
+            />
+            {/* Suppressed on branch nodes, where "add after" is ambiguous. */}
             {onAddAfter && nodeId && !branchHandles && (
-                <button
-                    type="button"
-                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onAddAfter(nodeId); }}
-                    onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => e.stopPropagation()}
-                    className={`absolute top-1/2 -translate-y-1/2 -right-7 h-[22px] w-[22px] rounded-full flex items-center justify-center shadow-sm ${chromeVisibility}`}
-                    style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
-                    title={t('automations.step_node_base.add_next_step', 'Add next step')}
-                    aria-label={t('automations.step_node_base.add_next_step', 'Add next step')}
-                >
-                    <Plus size={13} />
-                </button>
+                <AddAfterButton nodeId={nodeId} onAddAfter={onAddAfter} chromeVisibility={chromeVisibility} />
             )}
-
-            {/* The icon tile. A button when the type has something to do with
-                it (a container expands from here — the 72px card has no room
-                for a separate chevron). */}
-            {onTileClick ? (
-                <button
-                    type="button"
-                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onTileClick(e); }}
-                    onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => e.stopPropagation()}
-                    aria-label={tileLabel || 'Expand'}
-                    title={tileLabel || 'Expand'}
-                    className="outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)]"
-                    style={tileStyle}
-                >
-                    <span style={glyphStyle}>{glyph}</span>
-                </button>
-            ) : (
-                <span style={tileStyle} aria-hidden="true">
-                    <span style={glyphStyle}>{glyph}</span>
-                </span>
-            )}
-
-            <div
-                className="flex-1 min-w-0 flex flex-col gap-px"
-                // Native, so it cannot cover the neighbouring cards or the
-                // action chrome. The step's own editor says it properly.
-                title={[typeLabel, help].filter(Boolean).join(' — ') || undefined}
-            >
-                {body && name == null ? (
-                    <div className="text-xs text-[var(--text-primary)] leading-snug min-w-0">{body}</div>
-                ) : far ? (
-                    // Zoomed right out: the NAME, big enough to read at 30%, on up
-                    // to two lines. Design 1g showed the family word here; the tile's
-                    // colour and glyph already say that, and a title you cannot read
-                    // is what the user finds first (feedback 2026-09-03).
-                    <div
-                        className="text-[22px] font-bold leading-[24px] text-[var(--text-primary)] line-clamp-2 break-words"
-                        title={typeLabel || undefined}
-                        data-testid="node-far-label"
-                    >
-                        {name ?? typeLabel}
-                        {stepNumber != null && <span className="ml-2 text-[14px] font-medium text-[var(--text-tertiary)]">{stepNumber}</span>}
-                    </div>
-                ) : !near ? (
-                    // Middle distance: the name on up to two lines, the number to
-                    // find it by, and the description in one line beneath.
-                    <>
-                        <div className={`text-[16px] font-semibold leading-5 text-[var(--text-primary)] ${nameClamp} break-words`} data-testid="node-name">
-                            {name ?? typeLabel}
-                            {stepNumber != null && <span className="ml-2 text-[12px] font-medium text-[var(--text-tertiary)]" data-testid="node-step-number">{stepNumber}</span>}
-                        </div>
-                        {(resultChip || (subText != null && subText !== '')) && withResultChip(
-                            subText != null && subText !== '' ? (
-                                <div className={`text-[12px] leading-[14px] truncate ${subIsMuted ? 'italic text-[var(--text-tertiary)]' : 'text-[var(--text-secondary)]'}`} data-testid="node-sub">
-                                    {subText}
-                                </div>
-                            ) : null,
-                        )}
-                        {detailLine('text-[12px]')}
-                    </>
-                ) : (
-                    <>
-                        {(typeLabel || stepNumber != null) && (
-                            <div className="flex items-center gap-1.5 text-[10px] leading-3 font-semibold uppercase tracking-[.06em] whitespace-nowrap overflow-hidden">
-                                {typeLabel && <span className="truncate" style={{ color: familyColor }}>{typeLabel}</span>}
-                                {stepNumber != null && <span className="shrink-0 text-[var(--text-tertiary)]" data-testid="node-step-number">· {stepNumber}</span>}
-                                {isSource && <span className="shrink-0 text-[var(--text-tertiary)]" data-testid="node-source-tag">· {t('automations.card.source', 'source')}</span>}
-                            </div>
-                        )}
-                        <div className={`text-[13px] font-semibold leading-[17px] text-[var(--text-primary)] ${nameClamp} break-words`} data-testid="node-name">
-                            {name ?? typeLabel}
-                        </div>
-                        {(resultChip || (subText != null && subText !== '')) && withResultChip(
-                            subText != null && subText !== '' ? (
-                                // `bf-rv-sub` is the wipe-in hook for the build
-                                // choreography ("inputs filling in"), near LOD only —
-                                // further out the whole card fades instead. Keyed on
-                                // the touch time so a second edit remounts the line
-                                // and the wipe plays again.
-                                <div
-                                    key={fx?.touchedAt ?? 'sub'}
-                                    className={`bf-rv-sub text-[11px] leading-[14px] truncate ${subIsMuted ? 'italic text-[var(--text-tertiary)]' : 'text-[var(--text-secondary)]'}`}
-                                    title={subTitle || (typeof subText === 'string' ? subText : undefined)}
-                                    data-testid="node-sub"
-                                >
-                                    {subText}
-                                </div>
-                            ) : null,
-                        )}
-                        {detailLine('text-[11px]')}
-                    </>
-                )}
-            </div>
-
-            {/* ONE badge slot: the run status wins; otherwise the type's own.
-                Only up close — further out the border and ring already say it.
-                In the top-right CORNER, over the border, so the name row keeps
-                its full width ("1. Modus be…" was the badge's doing). */}
-            {near && (badgeText || badges) && (
-                <div className="absolute flex items-center gap-1 max-w-[96px] overflow-hidden" style={{ top: -9, right: 10 }} data-testid="node-badge-slot">
-                    {badgeText ? (
-                        <span
-                            className="text-[10px] font-bold leading-4 px-1.5 rounded-md whitespace-nowrap"
-                            style={{ background: (chrome.badge as ChromeBadge).bg, color: (chrome.badge as ChromeBadge).fg }}
-                            data-testid="node-status-badge"
-                        >
-                            {badgeText}
-                        </span>
-                    ) : badges}
-                </div>
-            )}
-
-            {/* Validation dot — 12px, outside the bottom-right corner. Two tones
-                on purpose: a warning-only node must not read as broken. The
-                card itself stays neutral; the message lives in the tooltip and
-                in the step editor. */}
-            {(errCount > 0 || warnCount > 0) && (
-                <span
-                    className="absolute rounded-full border-2 border-[var(--bg-primary)]"
-                    style={{ right: -5, bottom: -5, width: 12, height: 12, background: errCount > 0 ? 'var(--error)' : 'var(--warning)' }}
-                    data-testid="node-validation-dot"
-                    data-tone={errCount > 0 ? 'error' : 'warning'}
-                    title={validationDotTitle(issues, stepLabelById)}
-                />
-            )}
+            <StepNodeTile
+                icon={icon}
+                customIconName={r.customIconName}
+                glyphSize={glyphSize}
+                tileStyle={tileStyle}
+                glyphStyle={glyphStyle}
+                onTileClick={onTileClick}
+                tileLabel={tileLabel}
+            />
+            <StepNodeText
+                far={far}
+                near={near}
+                name={name}
+                typeLabel={typeLabel}
+                help={help}
+                body={body}
+                sub={sub}
+                subTitle={subTitle}
+                subDetail={subDetail}
+                runStep={runStep}
+                stepNumber={stepNumber}
+                isSource={isSource}
+                familyColor={familyColor}
+                touchedAt={fx?.touchedAt}
+            />
+            {near && (badgeText || badges) && <BadgeSlot badgeText={badgeText} badge={chrome.badge} badges={badges} />}
+            {(errCount > 0 || warnCount > 0) && <ValidationDot issues={issues} errCount={errCount} stepLabelById={r.stepLabelById} />}
         </div>
     );
 }
 
-/**
- * What the validation dot says on hover. Two rules, both paid for:
- *
- * The SENTENCE comes first, and it says the names the author gave their steps.
- * The tooltip used to open with the server's validation code
- * (`ai_step.agent_unavailable: …`) — the one token in the line that explains
- * nothing to the person reading it — and the message behind it still carried
- * raw step ids (`Step code_a3f91b: …`) while the canvas pill, one pane away,
- * had already swapped those for labels (FloatingValidationPill →
- * humanizeIssueText). The same failure spoke two languages depending on where
- * you read it, so the author who clicked a pill BECAUSE it named their step
- * landed on a card talking about a hex id and reasonably concluded there were
- * two problems. Same helper on both surfaces now, so they cannot drift again.
- *
- * The CODE stays — demoted to the tail, in parentheses. It is what support
- * asks for, and this tooltip is the only place on the card with room for it;
- * deleting it would cap the power user to serve the beginner.
- */
-function validationDotTitle(issues: StepIssues | undefined, stepLabelById: unknown): string {
-    return [...(issues?.errors || []), ...(issues?.warnings || [])]
-        .map((r: StepIssue) => {
-            const sentence = humanizeIssueText(r.message, stepLabelById) || r.message || '';
-            return r.code ? `${sentence} (${r.code})` : sentence;
-        })
-        .join('\n');
-}
-
-/**
- * A branch port label. The node's family colour by default (a condition's
- * `match`/`otherwise`, a guard's `personal data`/`clean`), `--error` for an
- * on-error port, and a quiet italic for the catch-all `default`.
- */
-function branchToneStyle(tone: string, familyColor: string): React.CSSProperties {
-    if (tone === 'error') return { background: 'var(--bg-card)', color: 'var(--error)', border: '1.5px solid var(--error)' };
-    if (tone === 'default') return { background: 'var(--bg-card)', color: 'var(--text-tertiary)', border: '1px solid var(--border-default)', fontStyle: 'italic' };
-    return { background: 'var(--bg-card)', color: familyColor, border: `1.5px solid ${familyColor}` };
-}
 
 /** Small reusable chip — used by per-type nodes for tier / channel pills. */
 export function NodeChip({ children, tone = 'neutral', title }: { children?: React.ReactNode; tone?: string; title?: string }) {
@@ -717,12 +313,4 @@ function previewBinding(v: Binding | string | number | boolean | null | undefine
     if (v.kind === 'template') return `"${(v.value || '').slice(0, 40)}"`;
     if (v.kind === 'expr') return `expr: ${v.value || ''}`;
     return JSON.stringify(v).slice(0, 40);
-}
-
-/** A summary line's text and tone: a string, a React node, or `{ muted }`; null when empty. */
-function summaryLine(value: CardText) {
-    if (value == null || value === '') return null;
-    const muted = typeof value === 'object' && !React.isValidElement(value) && 'muted' in value;
-    const text = muted ? value.muted : value;
-    return text == null || text === '' ? null : { text, muted };
 }

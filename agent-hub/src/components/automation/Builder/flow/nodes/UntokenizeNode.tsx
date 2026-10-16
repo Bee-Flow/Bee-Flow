@@ -4,6 +4,7 @@ import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import { humanizeExpression } from '../displayHelpers';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import type { HumanizeExpression, StepNodeProps } from './nodeProps';
 
 /**
  * "Show real values again".
@@ -16,10 +17,10 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
  * seeing: a leftover `[person_5]` reads as ordinary text and travels onward
  * looking deliberate.
  */
-export default function UntokenizeNode({ id, data }) {
+export default function UntokenizeNode({ id, data }: StepNodeProps) {
     const { t } = useTranslation();
     const { step, runStep, issues, onAddAfter, stepLabelById } = data;
-    const source = humanizeExpression(step.sourceRef || '', stepLabelById);
+    const source = (humanizeExpression as HumanizeExpression)(step.sourceRef || '', stepLabelById);
     const out = runStep?.output;
     const outcome = out
         ? (out.unresolved ? `${out.restored} back · ${out.unresolved} unresolved` : `${out.restored || 0} put back`)

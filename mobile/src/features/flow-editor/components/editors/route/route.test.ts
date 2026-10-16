@@ -245,7 +245,10 @@ describe('the fields a rule is built from', () => {
 });
 
 describe('accepting "Suggest outputs"', () => {
-    const WEB = fs.readFileSync(path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings/routeEditors.jsx'), 'utf8');
+    // The split moved the handler out of routeEditors.jsx into useRouteEdits.ts.
+    const WEB = ['routeEditors.jsx', 'useRouteEdits.ts']
+        .map((f) => fs.readFileSync(path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings', f), 'utf8'))
+        .join('\n');
 
     it('replaces the outputs, clears the old default, and fans out only when growing from one', () => {
         const one = { rules: [{ name: 'rule1', expr: 'x', value: '' }], defaultBranch: 'rule1' } as unknown as Route;

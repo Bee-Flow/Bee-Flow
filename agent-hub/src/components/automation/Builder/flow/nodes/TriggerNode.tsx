@@ -2,6 +2,7 @@ import {
     Clock, Zap, Webhook, MousePointer2, Mail, Calendar,
     Tag, BellRing, FileUp, FilePlus, FilePen, Share2, Activity, Bell,
     Stethoscope, LogIn, Bot, AppWindow, ClipboardList,
+    type LucideIcon,
 } from 'lucide-react';
 import React from 'react';
 import IntegrationLogo from './IntegrationLogo';
@@ -12,13 +13,15 @@ import { humanizeFieldKey } from '../displayHelpers';
 import { nodeTypeLabel } from '../nodeDefs';
 import { describeCron } from '../scheduleBuilderUtils';
 import { APP_EVENT_TYPE_LABEL, triggerTypeLabel } from '../triggerLabels';
+import type { AppRef } from '../../../../admin/Studio/AppStudio/inspector/appDefinition';
+import type { AppEventConfig, AppEventFilter, StepNodeProps, SummaryText, TFn } from './nodeProps';
 
 /**
  * Trigger provider id → integration id used by INTEGRATION_META.
  * Map only providers whose event surface is a brand the user recognises;
  * `manual` / `schedule` / `webhook` triggers stay on lucide glyphs.
  */
-const PROVIDER_TO_INTEGRATION = {
+const PROVIDER_TO_INTEGRATION: Record<string, string> = {
     'gmail':            'gmail',
     'google-calendar':  'google_calendar',
     'google-drive':     'google_drive',
@@ -29,7 +32,7 @@ const PROVIDER_TO_INTEGRATION = {
 
 // Icons only — the label strings live in ../triggerLabels so the palette,
 // the settings form and the node all name a trigger the same way (BFSF-339).
-const KIND_ICON = {
+const KIND_ICON: Record<string, LucideIcon> = {
     schedule:    Clock,
     manual:      MousePointer2,
     webhook:     Webhook,
@@ -44,7 +47,7 @@ const KIND_ICON = {
  * Sub-icon per (provider, event) so a Gmail-new-email trigger gets a Mail
  * glyph instead of the generic app-event lightning bolt.
  */
-const APP_EVENT_ICON = {
+const APP_EVENT_ICON: Record<string, LucideIcon> = {
     'gmail.mail.new':                  Mail,
     'gmail.label.added':               Tag,
     'google-calendar.event.changed':   Calendar,
@@ -57,7 +60,7 @@ const APP_EVENT_ICON = {
     'nextcloud.notification.new':      Bell,
 };
 
-export default function TriggerNode({ id, data }) {
+export default function TriggerNode({ id, data }: StepNodeProps) {
     const { step, runStep, issues, onAddAfter, onDiagnose } = data;
     const { t } = useTranslation();
     const kind = step.kind || 'manual';
@@ -87,7 +90,7 @@ export default function TriggerNode({ id, data }) {
     // The one summary line under the name, per kind. Chips where the values
     // are discrete (a cadence and its timezone, a tool's parameters), plain
     // words otherwise.
-    let sub = null;
+    let sub: React.ReactNode | SummaryText = null;
     if (kind === 'schedule') {
         // "Every day at 09:00", not `0 9 * * *`. A schedule the author can't
         // read at a glance is a schedule they can't check.
@@ -235,9 +238,9 @@ export default function TriggerNode({ id, data }) {
  * fires from an app action — so this says so on the card instead of falling
  * silently back to a nameless trigger.
  */
-function AppRefPlace({ record, appRef, t }) {
+function AppRefPlace({ record, appRef, t }: { record: unknown; appRef: AppRef | null; t: TFn }) {
     if (!appRef || record === undefined) return null;
-    const d = appRefDisplay(record, appRef);
+    const d = (appRefDisplay as (record: unknown, ref?: AppRef | null) => ReturnType<typeof appRefDisplay>)(record, appRef);
 
     if (d.gone === 'app') {
         return <span className="italic text-[var(--text-tertiary)]" title={d.appId || undefined}>{t('automations.trigger.app_gone', 'App is gone')} · </span>;
@@ -272,7 +275,7 @@ function AppRefPlace({ record, appRef, t }) {
  * invented name: "Mail new (Gmail)" is clumsy, but it is true, and a
  * made-up label on a trigger is worse than a clumsy one — nobody can check it.
  */
-function appEventText(appEvent) {
+function appEventText(appEvent: AppEventConfig | null | undefined): string {
     const provider = appEvent?.provider || '';
     const event = appEvent?.event || '';
     const curated = APP_EVENT_TYPE_LABEL[`${provider}.${event}`];
@@ -288,13 +291,13 @@ function appEventText(appEvent) {
  * keep the language idiomatic — "labels: Label_3" reads naturally for a
  * Gmail user but would be confusing in a Drive trigger.
  */
-function summariseFilter(filter, appEvent) {
+function summariseFilter(filter: AppEventFilter, appEvent: AppEventConfig | null | undefined): Array<{ key: string; label: string }> {
     const provider = appEvent?.provider;
     const event = appEvent?.event;
     const key = `${provider}.${event}`;
 
-    const out = [];
-    const push = (k, label) => out.push({ key: k, label });
+    const out: Array<{ key: string; label: string }> = [];
+    const push = (k: string, label: string) => out.push({ key: k, label });
 
     // Gmail (mail.new + label.added share most fields)
     if (provider === 'gmail') {
@@ -368,7 +371,7 @@ function summariseFilter(filter, appEvent) {
     return out;
 }
 
-function truncate(s, n) {
+function truncate(s: string | number | null | undefined, n: number): string {
     s = String(s ?? '');
     return s.length > n ? s.slice(0, n - 1) + '…' : s;
 }
