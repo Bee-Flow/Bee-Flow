@@ -1,6 +1,6 @@
-Status: 3 fixes pushed (#160, #175, #162); #158/#159 are applying review fixes; #174 is blocked (needs an owner decision).
-Done: 3 fixed + 2 already fixed / 8 open bugs
-Next: #158 and #159 after the review fixes, then #174 once the owner decides; check for new `bug` issues every 30 min.
+Status: 5 fixes pushed (#158, #159, #160, #162, #175); #163 and #165 were already fixed; #174 is blocked (needs an owner decision).
+Done: 5 fixed + 2 already fixed / 8 open bugs
+Next: #174 once the owner decides; check for new `bug` issues every 30 min.
 
 Branch `ts-bugs/fixes`, base `origin/ccr-28820270-xkvwp8` @ cfb10394c. One commit per issue, each
 reviewed by a separate read-only Opus subagent (security review for #162). Reviews are in
@@ -9,8 +9,8 @@ reviewed by a separate read-only Opus subagent (security review for #162). Revie
 
 | # | Title | Status | Commit | Test file | Review | Behaviour notes |
 |---|---|---|---|---|---|---|
-| 158 | Teams meeting marked 'record' never imported with autoImport off | in progress (review fixes) | – | server/core/meetingNotes/teamsAutoImport.test.js, server/routes/transcriptions/teams.test.js, server/stores/meetingPrefsStore.test.js | reviews/BUG-158-159.md | A user's own mark now imports that meeting even when org autoImport is off; an opt-out still wins. The failed-import UI ("Related") is left out: it needs a new UI surface. |
-| 159 | Teams list shows 'No recording' while processing | in progress (review fixes) | – | same as #158, plus agent-hub TeamsImportPanel.test.tsx | reviews/BUG-158-159.md | New `processing` state within a 48 h deadline (was 24 h); new i18n key `meetings.teams_recording_processing`. |
+| 158 | Teams meeting marked 'record' never imported with autoImport off | fixed | 4cd7286ad | server/core/meetingNotes/teamsAutoImport.test.js, server/routes/transcriptions/teams.test.js, server/stores/meetingPrefsOptIn.test.js | reviews/BUG-158-159.md | Opt-in queries are in the new stores/meetingPrefsOptIn.js. The mark is checked before any token refresh, DB write or Graph call. Series marks always count; event marks count for 10 days. Inactive or deleted users are skipped. A user's own mark now imports that meeting even when org autoImport is off; an opt-out still wins. The failed-import UI ("Related") is left out: it needs a new UI surface. |
+| 159 | Teams list shows 'No recording' while processing | fixed | fcb063b0d | same as #158, plus agent-hub TeamsImportPanel.test.tsx | reviews/BUG-158-159.md | New `processing` state within a 48 h deadline (was 24 h); a meeting Graph does not know reads as `none`; the configured lookback is unchanged; new i18n key `meetings.teams_recording_processing`. |
 | 160 | Meeting imports ignore Azure engines | fixed | 304e39752 | server/core/meetingNotes/ingestRecordingCore.test.js, ingestGmeetRecording.test.js | reviews/BUG-160.md | runAzureWhisperBatch moved to core/voice/azureWhisperBatch.js (re-exported from integrations). Meet follows the workspace engine (the whisperx pin is gone). An Azure-truncated transcript is noted in the summary. |
 | 162 | KB detail shows 0 documents for pre-source-model docs | fixed | e06395996 | server/stores/kb/adoptOrphanDocuments.test.js, server/routes/knowledgeBases/sources.validation.test.js | reviews/BUG-162.md (security) | Lazy adoption on GET /:id/sources, scoped to that KB, under a per-KB advisory lock; skipped for system, project-files and managed (stage) bases. The migration stays manual. The SQL was checked by hand against the DDL but has only run against fakes: watch the CI Postgres tests. |
 | 163 | Chat cannot give an .xlsx file | already fixed on the convert branch | 389d441fe | server/integrations/officeFileDelivery.test.js (7/7), core/integrations/integrationToolMap.test.js (12/12) | – | create_spreadsheet plus officeFileDelivery (download / OneDrive / Nextcloud). Issue commented. |
