@@ -78,3 +78,17 @@ test('integration tiles with neither logoId nor logoSrc are flagged', () => {
     assert.strictEqual(hits.length, 1);
     assert.match(hits[0].path, /items\[1\]/);
 });
+
+test('a content key the block type does not have is flagged as unknown_content_key', () => {
+    const ws = warningsFor('faq', { ...BLOCK_DEFAULTS.faq, bogusOption: 1 });
+    const hits = ws.filter((x) => x.code === 'unknown_content_key');
+    assert.strictEqual(hits.length, 1);
+    assert.match(hits[0].path, /content\.bogusOption$/);
+});
+
+test('default keys, common design keys and style-in-content keys are not unknown_content_key', () => {
+    const content = { ...BLOCK_DEFAULTS.faq, backgroundVariant: 'surface', titleStyle: {}, leadAlign: 'center', labelStyle: 'mono' };
+    const ws = warningsFor('faq', content);
+    assert.ok(!has(ws, 'unknown_content_key'));
+    assert.ok(has(ws, 'style_key_in_content'));
+});

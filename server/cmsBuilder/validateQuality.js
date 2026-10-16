@@ -9,6 +9,7 @@
  *   placeholder_content     list items still holding the seeded default text
  *   style_columns_unused    style.columns on a block that has no column grid
  *   integration_without_logo integration tile with no brand mark
+ *   unknown_content_key     content key the block type does not have
  */
 
 'use strict';
@@ -23,6 +24,12 @@ const MISPLACED_STYLE_KEYS = [
     'labelStyle', 'band', 'rhythm', 'motif', 'motifSide', 'motifTiles', 'decor', 'cardFill',
     'tileShape', 'tileFill', 'tileSize', 'tileIconColor', 'glow', 'reveal', 'columns',
 ];
+
+/** Content keys every block may carry besides its type's own (design and chrome keys). */
+const COMMON_CONTENT_KEYS = ['enabled', 'backgroundVariant', 'variant', 'align', 'anchor'];
+
+/** Keys like titleStyle / leadAlign are per-text design overrides on every block. */
+const TEXT_DESIGN_KEY = /(Style|Align)$/;
 
 /** Block types whose renderer reads style.columns (--cms-cols). */
 const COLUMN_GRID_TYPES = ['features', 'steps', 'security', 'techStats'];
@@ -82,6 +89,18 @@ function checkBlockQuality(block, path, warnings) {
     }
 
     const defaults = /** @type {Record<string, any>} */ (BLOCK_DEFAULTS)[type] || {};
+    if (Object.keys(defaults).length) {
+        for (const key of Object.keys(content)) {
+            if (key in defaults || COMMON_CONTENT_KEYS.includes(key) || TEXT_DESIGN_KEY.test(key)) continue;
+            if (MISPLACED_STYLE_KEYS.includes(key)) continue;
+            warnings.push({
+                code: 'unknown_content_key',
+                path: `${path}.content.${key}`,
+                message: `"${key}" is not a content field of a "${type}" block, so it does nothing.`,
+                hint: `Content fields of ${type}: ${Object.keys(defaults).join(', ')}.`,
+            });
+        }
+    }
     for (const key of MISPLACED_STYLE_KEYS) {
         if (!(key in content) || key in defaults) continue;
         warnings.push({
