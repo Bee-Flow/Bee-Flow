@@ -4,6 +4,7 @@ import { Loader2, Merge, Undo2, Sparkles } from 'lucide-react';
 import Modal from '../../../components/shared/Modal';
 import { formatSpeakerLabel } from '../lib/format';
 import { buildSpeakerColorMap, speakerColor } from '../lib/playerData';
+import { messageOf } from '../../../utils/caughtError';
 
 /**
  * Owner-only modal to clean up speaker labels on a transcription:
@@ -17,19 +18,47 @@ import { buildSpeakerColorMap, speakerColor } from '../lib/playerData';
  *   - `mergedInto`         — original id → original id of the merge target
  * On save we collapse those into the route payload { renames, merges }.
  */
-export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDetect }) {
+/** A stored speaker; the roster is read defensively, so only `id` is relied on. */
+interface RosterSpeaker {
+    id: string;
+    speakingSeconds?: number;
+}
+
+/** What the route takes: names to change, and groups of speakers to fold into one. */
+interface SpeakerPayload {
+    renames: Record<string, string>;
+    merges: Array<{ from: string[]; into: string }>;
+}
+
+/** One surviving speaker row in the editor. */
+interface SpeakerRow {
+    targetId: string;
+    name: string;
+    speakingSeconds: number;
+    sources: string[];
+}
+
+interface SpeakerEditorProps {
+    open: boolean;
+    onClose: () => void;
+    meeting?: { speakers?: RosterSpeaker[] } | null;
+    onSave: (payload: SpeakerPayload) => Promise<unknown>;
+    onAutoDetect?: (attendees: string) => Promise<unknown>;
+}
+
+export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDetect }: SpeakerEditorProps) {
     const { t } = useTranslation();
     const speakers = useMemo(() => Array.isArray(meeting?.speakers) ? meeting.speakers : [], [meeting]);
     // Shared rank-based colors — a merge preview naturally shows the target's color.
     const colorMap = useMemo(() => buildSpeakerColorMap(speakers), [speakers]);
 
     // Original ids → stable; staged edits are keyed by these.
-    const [nameByOriginal, setNameByOriginal] = useState(() => Object.fromEntries(speakers.map(s => [s.id, s.id])));
-    const [mergedInto, setMergedInto] = useState({}); // sourceId → targetId
-    const [autoNames, setAutoNames] = useState('');
-    const [autoDetecting, setAutoDetecting] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState(null);
+    const [nameByOriginal, setNameByOriginal] = useState<Record<string, string>>(() => Object.fromEntries(speakers.map(s => [s.id, s.id])));
+    const [mergedInto, setMergedInto] = useState<Record<string, string>>({}); // sourceId → targetId
+    const [autoNames, setAutoNames] = useState<string>('');
+    const [autoDetecting, setAutoDetecting] = useState<boolean>(false);
+    const [saving, setSaving] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
 
     // Reset staged state when the modal (re-)opens with new data.
     React.useEffect(() => {
@@ -40,8 +69,8 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
     }, [open, speakers]);
 
     /** The current effective target for a source id, following any merge chain. */
-    const resolveTarget = useCallback((id) => {
-        const seen = new Set();
+    const resolveTarget = useCallback((id: string) => {
+        const seen = new Set<string>();
         let cur = id;
         while (mergedInto[cur] && !seen.has(cur)) {
             seen.add(cur);
@@ -55,7 +84,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
     // name, total speakingSeconds (sum of merged), and the original ids
     // that fold into it (so we know what to put in `from`).
     const rows = useMemo(() => {
-        const byTarget = new Map();
+        const byTarget = new Map<string, SpeakerRow>();
         for (const s of speakers) {
             const target = resolveTarget(s.id);
             if (!byTarget.has(target)) {
@@ -66,7 +95,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                     sources: [],
                 });
             }
-            const row = byTarget.get(target);
+            const row = byTarget.get(target) as SpeakerRow;
             row.speakingSeconds += Number(s.speakingSeconds || 0);
             row.sources.push(s.id);
         }
@@ -82,11 +111,11 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
         return false;
     }, [speakers, nameByOriginal, mergedInto]);
 
-    function rename(targetId, newName) {
+    function rename(targetId: string, newName: string) {
         setNameByOriginal(prev => ({ ...prev, [targetId]: newName }));
     }
 
-    function mergeInto(sourceTargetId, destTargetId) {
+    function mergeInto(sourceTargetId: string, destTargetId: string) {
         if (sourceTargetId === destTargetId) return;
         setMergedInto(prev => ({ ...prev, [sourceTargetId]: destTargetId }));
         // Use the longer-speaking name as the default for the merged row.
@@ -97,7 +126,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
         }
     }
 
-    function undoMerge(sourceTargetId) {
+    function undoMerge(sourceTargetId: string) {
         setMergedInto(prev => {
             const next = { ...prev };
             delete next[sourceTargetId];
@@ -113,15 +142,15 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
         // Build payload. Merges first (collapse all source originals into
         // their final target original id). Renames second (final name per
         // surviving target).
-        const merges = [];
-        const renames = {};
+        const merges: SpeakerPayload['merges'] = [];
+        const renames: Record<string, string> = {};
 
-        const finalTargetByOriginal = {};
+        const finalTargetByOriginal: Record<string, string> = {};
         for (const s of speakers) {
             finalTargetByOriginal[s.id] = resolveTarget(s.id);
         }
         // Group originals by their final target.
-        const groups = {};
+        const groups: Record<string, string[]> = {};
         for (const [orig, target] of Object.entries(finalTargetByOriginal)) {
             if (!groups[target]) groups[target] = [];
             groups[target].push(orig);
@@ -131,7 +160,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
         // same name. Collapsing them is irreversible — the server rebuilds
         // every segment from the merged list — so catch it here, where the user
         // can still see which two rows clash. (The server refuses it too.)
-        const nameOwner = new Map();
+        const nameOwner = new Map<string, string>();
         for (const target of Object.keys(groups)) {
             const finalName = (nameByOriginal[target] ?? target).trim() || target;
             if (nameOwner.has(finalName)) {
@@ -157,7 +186,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
             const updated = await onSave({ renames, merges });
             if (updated) onClose?.();
         } catch (e) {
-            setError(e?.message || 'Save failed');
+            setError(messageOf(e, 'Save failed'));
         } finally {
             setSaving(false);
         }
@@ -171,13 +200,13 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
             const updated = await onAutoDetect(autoNames.trim());
             if (updated) onClose?.();
         } catch (e) {
-            setError(e?.message || 'Auto-detect failed');
+            setError(messageOf(e, 'Auto-detect failed'));
         } finally {
             setAutoDetecting(false);
         }
     }
 
-    const formatSec = (secs) => {
+    const formatSec = (secs: number) => {
         if (!secs || !Number.isFinite(secs)) return '0:00';
         const h = Math.floor(secs / 3600);
         const m = Math.floor((secs % 3600) / 60);
@@ -228,7 +257,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                         <div className="flex items-center gap-2">
                             <input
                                 value={autoNames}
-                                onChange={(e) => setAutoNames(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAutoNames(e.target.value)}
                                 placeholder={t('meeting_notes.speaker_autodetect_ph', 'Gerard, Tom, René… (optional)')}
                                 className="flex-1 px-3 py-1.5 rounded-lg text-sm border outline-none"
                                 style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
@@ -262,7 +291,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                             <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
                             <input
                                 value={row.name}
-                                onChange={(e) => rename(row.targetId, e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => rename(row.targetId, e.target.value)}
                                 placeholder={formatSpeakerLabel(row.targetId)}
                                 className="flex-1 min-w-0 px-2 py-1 rounded text-sm border outline-none"
                                 style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
@@ -302,14 +331,14 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
     );
 }
 
-function MergeSelect({ others, onPick }) {
+function MergeSelect({ others, onPick }: { others: SpeakerRow[]; onPick: (destId: string) => void }) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
-    const ref = React.useRef(null);
+    const ref = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
         if (!open) return undefined;
-        const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+        const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, [open]);

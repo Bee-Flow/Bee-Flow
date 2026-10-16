@@ -5,13 +5,47 @@ import * as api from '../../pages/meeting-notes/lib/transcriptionsApi';
 import { formatRelativeDate } from '../../pages/meeting-notes/lib/format';
 import Modal from '../shared/Modal';
 import useTranslation from '../../hooks/useTranslation';
+import type { LibraryMeeting } from '../../pages/meeting-notes/library/MeetingRow';
+import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
+
+declare global {
+    interface Window {
+        /** The id of the note MeetingNotesPage opens on its next mount (it clears it on read). */
+        __beeflowPendingMeetingId?: string | null;
+    }
+}
+
+interface PaletteUser {
+    featureFlags?: { meeting_notes?: boolean };
+    betaFeatures?: unknown[];
+    isAdmin?: boolean;
+    permissions?: string[];
+}
+
+interface PaletteAction {
+    id: string;
+    label: string;
+    icon: LucideIcon;
+    accent: string;
+    run: () => void;
+}
+
+type PaletteItem =
+    | { kind: 'action'; payload: PaletteAction }
+    | { kind: 'recent'; payload: LibraryMeeting };
+
+interface MeetingCommandPaletteProps {
+    user?: PaletteUser | null;
+    onNavigate?: (page: string) => void;
+}
 
 /**
  * Scoped command palette opened with Ctrl/Cmd + Shift + M. Lists three quick
  * capture actions and the five most-recent meetings, so the user can jump back
  * to a meeting from anywhere without leaving the keyboard.
  */
-export default function MeetingCommandPalette({ user, onNavigate }) {
+export default function MeetingCommandPalette({ user, onNavigate }: MeetingCommandPaletteProps) {
     const { t } = useTranslation();
     const { openCapture } = useCapture();
     const flagsOn = user?.featureFlags?.meeting_notes !== false;
@@ -21,14 +55,14 @@ export default function MeetingCommandPalette({ user, onNavigate }) {
 
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
-    const [recent, setRecent] = useState([]);
+    const [recent, setRecent] = useState<LibraryMeeting[]>([]);
     const [activeIdx, setActiveIdx] = useState(0);
-    const inputRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     // Hotkey
     useEffect(() => {
         if (!allowed) return undefined;
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'M' || e.key === 'm')) {
                 e.preventDefault();
                 setOpen((o) => !o);
@@ -47,7 +81,7 @@ export default function MeetingCommandPalette({ user, onNavigate }) {
         return () => clearTimeout(timer);
     }, [open]);
 
-    const actions = useMemo(() => ([
+    const actions = useMemo<PaletteAction[]>(() => ([
         { id: 'record', label: 'Start recording', icon: Mic, accent: '#ffd400', run: () => { openCapture('record'); setOpen(false); } },
         { id: 'upload', label: 'Upload audio file', icon: Upload, accent: 'var(--accent-primary)', run: () => { openCapture('upload'); setOpen(false); } },
         // Bee Flow has no meeting bot (removed): this opens the source picker,
@@ -65,12 +99,12 @@ export default function MeetingCommandPalette({ user, onNavigate }) {
             : recent.filter((r) => (r.title || '').toLowerCase().includes(query.toLowerCase())).slice(0, 5)
     ), [recent, query]);
 
-    const flat = useMemo(() => [
-        ...filteredActions.map((a) => ({ kind: 'action', payload: a })),
-        ...filteredRecent.map((r) => ({ kind: 'recent', payload: r })),
+    const flat = useMemo<PaletteItem[]>(() => [
+        ...filteredActions.map((a): PaletteItem => ({ kind: 'action', payload: a })),
+        ...filteredRecent.map((r): PaletteItem => ({ kind: 'recent', payload: r })),
     ], [filteredActions, filteredRecent]);
 
-    const runItem = (item) => {
+    const runItem = (item: PaletteItem) => {
         if (item.kind === 'action') item.payload.run();
         else {
             window.__beeflowPendingMeetingId = item.payload.id;
@@ -79,7 +113,7 @@ export default function MeetingCommandPalette({ user, onNavigate }) {
         }
     };
 
-    const onKey = (e) => {
+    const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx((i) => Math.min(flat.length - 1, i + 1)); }
         else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx((i) => Math.max(0, i - 1)); }
         else if (e.key === 'Enter') {
@@ -167,7 +201,7 @@ export default function MeetingCommandPalette({ user, onNavigate }) {
     );
 }
 
-function Section({ label, children }) {
+function Section({ label, children }: { label: string; children?: ReactNode }) {
     return (
         <div className="py-1.5">
             <div className="px-4 pt-1 pb-1 text-[10px] uppercase tracking-wide font-semibold text-[var(--text-muted)]">
@@ -178,7 +212,7 @@ function Section({ label, children }) {
     );
 }
 
-function Row({ active, onClick, onMouseEnter, children }) {
+function Row({ active, onClick, onMouseEnter, children }: { active: boolean; onClick: () => void; onMouseEnter: () => void; children?: ReactNode }) {
     return (
         <button
             type="button"

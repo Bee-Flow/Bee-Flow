@@ -1,4 +1,26 @@
 import { mergeTurns, fuseSpans, segmentSpeakerId } from './playerData';
+import type { Interactivity, TalkSpeaker, TalkStats } from '../detail/insights/insights.types';
+
+/** The fields of a stored speaker this module reads. */
+interface RosterSpeaker {
+    id?: string | number | null;
+    speakingSeconds?: number;
+    summary?: string;
+}
+
+/**
+ * A well-formed segment, as findNameMentions uses it. Entries that are not one
+ * (null, or without a string `text`) are skipped by the guards in the loop.
+ */
+interface MentionSegment {
+    text: string;
+    start?: unknown;
+}
+
+interface Span {
+    start: number;
+    end: number;
+}
 
 /**
  * Pure derivations for the meeting Insights panel — no DOM, fully testable.
@@ -23,31 +45,19 @@ const SWITCHES_PER_MINUTE_LIVELY = 3;
  * source the legend shows) and fall back to summed merged turns for a speaker
  * missing from the roster, mirroring buildSpeakerRows.
  *
- * @param {Array<{speaker?: string, speakerId?: string, start: number, end: number}>} segments
- * @param {Array<{id: string, speakingSeconds?: number, summary?: string}>} speakers
- * @param {number} durationSeconds
- * @returns {null | {
- *   speakers: Array<{speakerId: string, speakingSeconds: number, share: number,
- *                    turnCount: number, summary?: string,
- *                    longestMonologue: null | {start: number, end: number, seconds: number, flagged: boolean}}>,
- *   totalSpeakingSeconds: number,
- *   silenceSeconds: number,
- *   topShare: number,
- *   balance: number,
- * }}
  */
-export function buildTalkStats(segments, speakers, durationSeconds) {
+export function buildTalkStats(segments: unknown, speakers: RosterSpeaker[] | null | undefined, durationSeconds: unknown): TalkStats | null {
     const duration = Number(durationSeconds) || 0;
     const turns = mergeTurns(segments);
     if (!duration || !turns.length) return null;
 
-    const spansById = new Map();
+    const spansById = new Map<string, Span[]>();
     for (const t of turns) {
         if (!spansById.has(t.speakerId)) spansById.set(t.speakerId, []);
-        spansById.get(t.speakerId).push({ start: t.start, end: t.end });
+        (spansById.get(t.speakerId) as Span[]).push({ start: t.start, end: t.end });
     }
 
-    const roster = new Map();
+    const roster = new Map<string | number, RosterSpeaker>();
     for (const s of speakers || []) {
         if (s && s.id != null) roster.set(s.id, s);
     }
@@ -57,7 +67,7 @@ export function buildTalkStats(segments, speakers, durationSeconds) {
         const summed = Math.round(fused.reduce((acc, s) => acc + (s.end - s.start), 0));
         // Compare raw lengths, not raw-against-rounded: a 95.6s incumbent
         // rounds to 96 and would beat a genuinely longer 95.8s span.
-        const longestSpan = fused.reduce(
+        const longestSpan = fused.reduce<Span | null>(
             (best, s) => ((s.end - s.start) > (best ? best.end - best.start : 0) ? s : best),
             null,
         );
@@ -65,7 +75,7 @@ export function buildTalkStats(segments, speakers, durationSeconds) {
             ? { start: longestSpan.start, end: longestSpan.end, seconds: Math.round(longestSpan.end - longestSpan.start) }
             : null;
         const rosterRow = roster.get(speakerId);
-        const stat = {
+        const stat: Omit<TalkSpeaker, 'share'> = {
             speakerId,
             speakingSeconds: rosterRow ? (Number(rosterRow.speakingSeconds) || 0) : summed,
             turnCount: fused.length,
@@ -111,7 +121,7 @@ export function buildTalkStats(segments, speakers, durationSeconds) {
  * even, 0 = a single voice. Defined as 1 for a solo recording (a monologue
  * can't be "unbalanced" — there was nobody to crowd out).
  */
-function balanceScore(shares) {
+function balanceScore(shares: number[]): number {
     const active = shares.filter((p) => p > 0);
     if (active.length <= 1) return 1;
     const entropy = -active.reduce((acc, p) => acc + p * Math.log(p), 0);
@@ -127,18 +137,13 @@ function balanceScore(shares) {
  * {@link SWITCHES_PER_MINUTE_LIVELY} speaker changes per minute; `windows`
  * gives switch counts per interval for the sparkline.
  *
- * @param {Array} segments
- * @param {number} durationSeconds
- * @param {{windowSeconds?: number}} [opts]
- * @returns {null | {score: number, switches: number, switchesPerMinute: number,
- *                   windows: Array<{start: number, switches: number}>}}
  */
-export function buildInteractivity(segments, durationSeconds, { windowSeconds = 300 } = {}) {
+export function buildInteractivity(segments: unknown, durationSeconds: unknown, { windowSeconds = 300 }: { windowSeconds?: number } = {}): Interactivity | null {
     const duration = Number(durationSeconds) || 0;
     const turns = mergeTurns(segments);
     if (!duration || turns.length < 2) return null;
 
-    const windows = [];
+    const windows: Interactivity['windows'] = [];
     for (let start = 0; start < duration; start += windowSeconds) {
         windows.push({ start, switches: 0 });
     }
@@ -165,10 +170,8 @@ export function buildInteractivity(segments, durationSeconds, { windowSeconds = 
  * time" list next to the stacked bar (the bar itself renders the chronological
  * normalizeChapters output directly; widthFraction IS the time share).
  *
- * @param {Array<{title: string, seconds: number, widthFraction: number}>} normalizedChapters
- * @param {number} [count]
  */
-export function topTopics(normalizedChapters, count = 3) {
+export function topTopics(normalizedChapters: Array<{ title: string; seconds: number; widthFraction: number }> | null | undefined, count = 3) {
     return (Array.isArray(normalizedChapters) ? normalizedChapters : [])
         .slice()
         .sort((a, b) => b.widthFraction - a.widthFraction)
@@ -183,11 +186,9 @@ export function topTopics(normalizedChapters, count = 3) {
  * own stats to the top — a wrong match would silently show someone ELSE's
  * numbers as "you", hence the conservative rules.
  *
- * @param {Array<{id: string}>} speakers
- * @param {string} viewerName
- * @returns {string|null}
  */
-export function matchViewerSpeaker(speakers, viewerName) {
+// Elements are read defensively (`s && s.id != null`), so a null entry is tolerated at runtime.
+export function matchViewerSpeaker(speakers: Array<{ id?: string | number | null }> | null | undefined, viewerName: unknown): string | null {
     const viewer = normalizeName(viewerName);
     if (!viewer) return null;
     const ids = (Array.isArray(speakers) ? speakers : [])
@@ -204,7 +205,7 @@ export function matchViewerSpeaker(speakers, viewerName) {
     return byFirst.length === 1 ? byFirst[0] : null;
 }
 
-function normalizeName(value) {
+function normalizeName(value: unknown): string {
     return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
@@ -218,11 +219,11 @@ function normalizeName(value) {
  * Computed per viewer at render time and never persisted or shared — keep it
  * that way; a persisted variant becomes a colleague-mention index.
  *
- * @param {Array | undefined} segments
- * @param {string | undefined} viewerName
- * @returns {Array<{seconds: number, speakerId: string, text: string}>}
  */
-export function findNameMentions(segments, viewerName) {
+export function findNameMentions(
+    segments: unknown[] | undefined,
+    viewerName: unknown,
+): Array<{ seconds: number; speakerId: string; text: string }> {
     const full = String(viewerName || '').trim();
     if (!full || !Array.isArray(segments)) return [];
 
@@ -239,8 +240,8 @@ export function findNameMentions(segments, viewerName) {
 
     const viewerNorm = normalizeName(full);
     const viewerFirst = normalizeName(first);
-    const mentions = [];
-    for (const seg of segments) {
+    const mentions: Array<{ seconds: number; speakerId: string; text: string }> = [];
+    for (const seg of segments as MentionSegment[]) {
         if (!seg || typeof seg.text !== 'string') continue;
         const speaker = normalizeName(segmentSpeakerId(seg));
         if (speaker === viewerNorm || speaker.split(' ')[0] === viewerFirst) continue;
@@ -252,11 +253,11 @@ export function findNameMentions(segments, viewerName) {
     return mentions;
 }
 
-function capitalize(value) {
+function capitalize(value: unknown): string {
     const s = String(value);
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function escapeRegExp(value) {
+function escapeRegExp(value: unknown): string {
     return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
