@@ -121,7 +121,7 @@ function checkBlockQuality(block, path, warnings) {
                 code: 'placeholder_content',
                 path: `${path}.content.${listKey}[${idx}]`,
                 message: `${listKey}[${idx}] still holds the seeded placeholder text (${left.join(', ')}).`,
-                hint: `Send the complete ${listKey} array with real text; cms_add_blocks seeds example items when none are given.`,
+                hint: `Send the complete ${listKey} array with real text.`,
             });
         });
     }
@@ -152,4 +152,4 @@ function checkBlockQuality(block, path, warnings) {
     }
 }
 
-module.exports = { checkBlockQuality, CONTENT_ELEMENT_KINDS };
+module.exports = { checkBlockQuality, CONTENT_ELEMENT_KINDS, PLACEHOLDER_LISTS };

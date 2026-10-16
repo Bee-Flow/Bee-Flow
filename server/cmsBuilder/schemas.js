@@ -138,7 +138,7 @@ const TOOL_SCHEMAS = [
                             type: 'object',
                             properties: {
                                 type: { type: 'string', description: 'A block type from the catalogue (e.g. hero, features, media-text, cta-banner).' },
-                                content: { type: 'object', description: 'Partial content merged over the type\'s defaults. Arrays replace wholesale, so send the complete items/cards array: a list you leave out keeps the seeded example text and validation reports it as placeholder_content. A content block holds columns[].elements[] of kind text, image, video, iframe or cta (button and link are accepted as cta); any other kind is dropped and reported as unknown_element_kind. Style keys (labelStyle, band, rhythm, columns, …) belong in style, not here.' },
+                                content: { type: 'object', description: 'Partial content merged over the type\'s defaults. Arrays replace wholesale, so send the complete items/cards array: a steps items or security cards list you leave out is seeded empty (with a warning), not with example text. A content block holds columns[].elements[] of kind text, image, video, iframe or cta (button and link are accepted as cta); any other kind is dropped and reported as unknown_element_kind. Style keys (labelStyle, band, rhythm, columns, …) belong in style, not here.' },
                                 style: { type: 'object', description: 'Optional block style wrapper (band, rhythm, colorOverrides, cssClass, … — the same closed key set as cms_update_block\'s stylePatch). An invalid value drops that entry and says why.' },
                             },
                             required: ['type'],

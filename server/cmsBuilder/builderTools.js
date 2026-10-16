@@ -34,6 +34,7 @@ const {
     DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS, DARK_BANDS,
     DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS,
 } = require('../i18n/defaults/cmsDefaults');
+const { PLACEHOLDER_LISTS } = require('./validateQuality');
 const { THEME_PRESETS, THEME_PRESET_IDS } = require('../i18n/defaults/themePresets');
 const { TOOL_SCHEMAS, LINK_HINT, DESIGN_HINT } = require('./schemas');
 
@@ -403,7 +404,14 @@ async function applyAddBlocks(draftWrap, args) {
         }
         const type = probe.blocks[0].type;
         if (type !== entry.type) warnings.push(`blocks[${i}]: type "${entry.type}" was normalized to "${type}".`);
-        const content = deepMerge(BLOCK_DEFAULTS[type] || {}, isPlainObject(entry.content) ? entry.content : {});
+        const given = isPlainObject(entry.content) ? entry.content : {};
+        const content = deepMerge(BLOCK_DEFAULTS[type] || {}, given);
+        // Example items are for the manual editor; an authored block never ships them.
+        for (const { type: t, listKey } of PLACEHOLDER_LISTS) {
+            if (t !== type || given[listKey] !== undefined) continue;
+            content[listKey] = [];
+            warnings.push(`blocks[${i}]: no ${listKey} given, so the block has none (the editor's example ${listKey} are not seeded). Send content.${listKey} as a complete array.`);
+        }
         let style = {};
         if (entry.style !== undefined) {
             const validated = validateStylePatch(entry.style);

@@ -996,3 +996,22 @@ test('cms_update_header_nav and cms_update_design in parallel keep each other an
     assert.strictEqual(site.design.colors.primary, '#112233');
     assert.deepStrictEqual(site.pages.map((p) => p.slug), ['home', 'extra']);
 });
+
+test('cms_add_blocks: a steps/security block without its own list gets an empty list and a hint, not example items', async () => {
+    const draft = await makeDraft();
+    const home = homeId(draft);
+    const r = await applyToolCall(draft, 'cms_add_blocks', {
+        pageId: home,
+        blocks: [
+            { type: 'steps', content: { title: 'How it works' } },
+            { type: 'steps', content: { items: [{ number: '1', title: 'Connect', body: 'Link your tools.' }] } },
+            { type: 'security', content: {} },
+        ],
+    });
+    assert.ok(!r.error, JSON.stringify(r));
+    const blocks = draft.pages.get(home).blocks;
+    assert.deepStrictEqual(blocks[0].content.items, []);
+    assert.strictEqual(blocks[1].content.items.length, 1, 'own items kept');
+    assert.deepStrictEqual(blocks[2].content.cards, []);
+    assert.strictEqual(r.warnings.filter((w) => /no items|no cards|empty/i.test(w)).length, 2);
+});
