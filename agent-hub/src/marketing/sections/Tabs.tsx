@@ -150,7 +150,7 @@ function TabPanel({ item, index: i, baseId, selected }: { item: TabItem; index: 
                 </EditableText>
                 {cta ? (
                     <div className="tabs-panel-cta">
-                        <Button variant={cta.style || 'primary'} href={ctaHref}>
+                        <Button variant={cta.style || 'secondary'} href={ctaHref}>
                             <EditableText path={`tabs.items.${i}.cta.label`} placeholder="Button label">
                                 {cta.label || ''}
                             </EditableText>

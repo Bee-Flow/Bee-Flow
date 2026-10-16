@@ -7,6 +7,7 @@ import { resolveAssetUrl } from '../assetUrl';
 import { sectionBgClass } from './sectionBg';
 import { inlineTextStyle } from './textStyle';
 import { getIntegrationLogo } from '../../utils/integrationLogos';
+import { resolveIntegrationLogoId } from './integrationLogoId';
 import type { SectionDataBase } from './sectionData.types';
 
 interface IntegrationItem {
@@ -33,6 +34,27 @@ interface IntegrationsData extends SectionDataBase {
    integrations" while looking like one. Reusing the product's registry keeps
    the two surfaces honest: if the app grows a mark, the website gets it. */
 const brandLogo = (id: string | undefined) => (id ? getIntegrationLogo(id) : null);
+
+function IntegrationTile({ item, path }: { item: IntegrationItem; path: string }) {
+    const logoId = resolveIntegrationLogoId(item);
+    return (
+        <span className="integration-item">
+            {/* Real logo (grayscale, color on hover — the social-proof wall
+                recipe) beats the Lucide icon; both absent ⇒ label-only chip.
+                An empty logoId is matched on the label, then the icon. */}
+            {item.logoSrc ? (
+                <img className="integration-logo" src={resolveAssetUrl(item.logoSrc)} alt="" loading="lazy" />
+            ) : brandLogo(logoId) ? (
+                <BrandMark id={logoId} />
+            ) : item.icon ? (
+                <span className="icon-tile"><IconGlyph icon={item.icon} className="w-4 h-4" /></span>
+            ) : null}
+            <EditableText path={path} placeholder="Tool name">
+                {item.label || ''}
+            </EditableText>
+        </span>
+    );
+}
 
 function BrandMark({ id }: { id: string | undefined }) {
     const Logo = brandLogo(id);
@@ -79,29 +101,7 @@ export default function Integrations({ data }: { data?: IntegrationsData | null 
                                 </div>
                                 <div className="integration-logos">
                                     {(cat.items || []).map((item, j) => (
-                                        <span key={j} className="integration-item">
-                                            {/* Real logo (grayscale, color on hover — the
-                                                social-proof wall recipe) beats the Lucide
-                                                icon; both absent ⇒ label-only chip. */}
-                                            {item.logoSrc ? (
-                                                <img
-                                                    className="integration-logo"
-                                                    src={resolveAssetUrl(item.logoSrc)}
-                                                    alt=""
-                                                    loading="lazy"
-                                                />
-                                            ) : brandLogo(item.logoId) ? (
-                                                <BrandMark id={item.logoId} />
-                                            ) : item.icon ? (
-                                                <span className="icon-tile"><IconGlyph icon={item.icon} className="w-4 h-4" /></span>
-                                            ) : null}
-                                            <EditableText
-                                                path={`integrations.categories.${i}.items.${j}.label`}
-                                                placeholder="Tool name"
-                                            >
-                                                {item.label || ''}
-                                            </EditableText>
-                                        </span>
+                                        <IntegrationTile key={j} item={item} path={`integrations.categories.${i}.items.${j}.label`} />
                                     ))}
                                 </div>
                             </div>

@@ -54,7 +54,7 @@ import { BlockIdContext } from './components/EditableText';
 import { PreviewBlockChrome, InsertZone } from './components/PreviewBlockChrome';
 import { resolveAssetUrl } from './assetUrl';
 import ExperimentSection, { experimentAttrs } from './experiments/ExperimentSection';
-import { designStyleClasses, designStyleVars } from './blockWrap';
+import { designStyleClasses, designStyleVars, withFlatBand } from './blockWrap';
 import { cleanAnchor } from './blockStyleEnums.generated.mjs';
 import { blockFlowOptions } from './blockFlow';
 import { applyTileVars, TILE_VAR_PROPS } from './designTiles';
@@ -946,7 +946,7 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
                                     {/* Stamp this block's id onto every EditableText inside so inline edits
                                         write back to THIS block, not the first one of its type. */}
                                     <BlockIdContext.Provider value={b.id}>
-                                        <ExperimentSection Comp={Comp} block={b} preview={inPreview} />
+                                        <ExperimentSection Comp={Comp} block={withFlatBand(b)} preview={inPreview} />
                                     </BlockIdContext.Provider>
                                     {/* Name tag + floating toolbar (preview only) —
                                         a view of the panel's selection/lock state. */}

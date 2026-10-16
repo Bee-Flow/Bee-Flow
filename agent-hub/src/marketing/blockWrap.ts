@@ -53,3 +53,18 @@ const DISPLAY_TRACKING_EM = new Map<string, string>([
 export function displayTrackingEm(name: unknown): string | undefined {
     return typeof name === 'string' ? DISPLAY_TRACKING_EM.get(name) : undefined;
 }
+
+/**
+ * `style.band: 'default'` means a flat background. Legacy block types
+ * (steps, integrations, techStats, pricing) paint their own grey when
+ * content.backgroundVariant is missing, so an explicit default band is handed
+ * to them as backgroundVariant 'default'. An explicit variant in the content wins.
+ */
+export function withFlatBand<T extends { style?: { band?: unknown } | null; content?: unknown }>(block: T): T {
+    if (block.style?.band !== 'default') return block;
+    const content = block.content;
+    if (!content || typeof content !== 'object' || Array.isArray(content)) return block;
+    const current = (content as { backgroundVariant?: unknown }).backgroundVariant;
+    if (current !== undefined && current !== null && current !== '') return block;
+    return { ...block, content: { ...content, backgroundVariant: 'default' } };
+}

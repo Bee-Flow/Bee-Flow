@@ -33,6 +33,13 @@ describe('Tabs', () => {
         expect(panel?.getAttribute('aria-labelledby')).toBe(tabs[0].id);
     });
 
+    it('renders a tab cta as a secondary button unless its style says otherwise', () => {
+        const { container } = render(<Tabs data={data} />);
+        const cta = container.querySelector('.tabs-panel-cta a');
+        expect(cta?.className).toContain('btn-secondary');
+        expect(cta?.className).not.toContain('btn-primary');
+    });
+
     it('keeps every tab\'s text in the DOM, hiding only the inactive panels', () => {
         const { container } = render(<Tabs data={data} />);
         expect(container.textContent).toContain('Legal body');

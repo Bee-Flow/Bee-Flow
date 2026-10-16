@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { designStyleClasses, designStyleVars, displayTrackingEm } from './blockWrap';
+import { designStyleClasses, designStyleVars, displayTrackingEm, withFlatBand } from './blockWrap';
 
 describe('designStyleClasses', () => {
     it('emits nothing for a style without design keys', () => {
@@ -64,5 +64,21 @@ describe('displayTrackingEm', () => {
         expect(displayTrackingEm('default')).toBeUndefined();
         expect(displayTrackingEm('constructor')).toBeUndefined();
         expect(displayTrackingEm('toString')).toBeUndefined();
+    });
+});
+
+describe('withFlatBand', () => {
+    it('hands an explicit default band to legacy blocks as backgroundVariant default', () => {
+        const block = { type: 'steps', style: { band: 'default' }, content: { title: 'x' } };
+        expect(withFlatBand(block).content).toEqual({ title: 'x', backgroundVariant: 'default' });
+    });
+
+    it('leaves other bands, a set variant and a missing band alone', () => {
+        const dark = { style: { band: 'dark' }, content: {} };
+        const surface = { style: { band: 'default' }, content: { backgroundVariant: 'surface' } };
+        const none = { content: {} };
+        expect(withFlatBand(dark)).toBe(dark);
+        expect(withFlatBand(surface)).toBe(surface);
+        expect(withFlatBand(none)).toBe(none);
     });
 });
