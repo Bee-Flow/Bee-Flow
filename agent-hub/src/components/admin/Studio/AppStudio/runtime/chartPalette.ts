@@ -36,6 +36,7 @@ export function chartColorAt(index: number) {
  * hue and there is no purple in the palette, so this can never emit one.
  */
 export function resolveSeriesColor(color: unknown, index: number, palette: string[] | null = null) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- HEX_RE is anchored with a fixed-length class: linear
     if (typeof color === 'string' && HEX_RE.test(color.trim())) return color.trim();
     // A brand palette (App Design v2, design.chartPalette:'brand') is derived
     // from the app's primary colour — charts then belong to the app instead of

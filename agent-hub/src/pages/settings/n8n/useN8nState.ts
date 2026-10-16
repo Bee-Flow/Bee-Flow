@@ -173,6 +173,7 @@ export function useN8nConnection(flash: Flash, wf: Pick<N8nWorkflows, 'setWorkfl
 
     const loadConfig = async () => {
         setLoading(true);
+        // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
         try {
             const res = await authFetch(`${API_BASE}/ai/n8n/config`);
             if (res.ok) {

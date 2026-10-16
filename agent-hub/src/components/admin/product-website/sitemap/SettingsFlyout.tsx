@@ -61,6 +61,7 @@ function useSitemapPageActions({ page, site, siteId, onChanged }: Pick<SettingsF
             nextNav = navItems.some(isNavEntryFor(page.id)) ? navItems : [
                 ...navItems,
                 {
+                    // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a CMS nav-item id, not a secret or a token
                     id: `nav_${Math.random().toString(36).slice(2, 8)}`,
                     label: page.title || page.slug || 'Page',
                     link: { kind: 'page', pageId: page.id },

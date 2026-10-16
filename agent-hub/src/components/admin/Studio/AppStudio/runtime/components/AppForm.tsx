@@ -96,6 +96,7 @@ function ruleFails(rule: ValidationRule, value: unknown, fieldScope: Record<stri
         case 'min': return Number.isFinite(Number(value)) && Number(value) < Number(rule.value);
         case 'max': return Number.isFinite(Number(value)) && Number(value) > Number(rule.value);
         case 'pattern':
+            // nosemgrep: ajinabraham.njsscan.dos.regex_injection.regex_injection_dos -- the app author's own validation pattern, run in the browser of the person filling the form; an invalid one is caught
             try { return !new RegExp(String(rule.value)).test(String(value)); } catch { return false; }
         case 'expr': {
             const expr = typeof rule.expr === 'string' ? rule.expr.trim() : '';

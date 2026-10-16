@@ -75,6 +75,7 @@ export function refKindKey(refKind: string): string | null {
 let seq = 0;
 export function newLocalId(prefix = 'x'): string {
     seq += 1;
+    // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a local row id in the editor, not a secret or a token
     const rand = Math.random().toString(36).slice(2, 8);
     return `${prefix}_${Date.now().toString(36)}${seq.toString(36)}${rand}`;
 }

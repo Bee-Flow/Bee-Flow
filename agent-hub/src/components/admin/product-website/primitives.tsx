@@ -341,4 +341,5 @@ export function MonoTextarea({ value, onChange, rows = 6, minHeight = null, plac
 
 // Short random id minting for repeat-list items (`cta_x1y2z3`, `nav_…`).
 // Same recipe the editors used inline everywhere.
+// nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a CMS list-item id, not a secret or a token
 export const mintId = (prefix: string) => `${prefix}_${Math.random().toString(36).slice(2, 8)}`;

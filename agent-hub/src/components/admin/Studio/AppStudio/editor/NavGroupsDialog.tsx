@@ -39,6 +39,7 @@ function newGroupId(taken: Set<string>): string {
     let id: string;
     do {
         let s = '';
+        // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a local id for a new nav group, not a secret or a token
         while (s.length < 6) s += Math.random().toString(36).slice(2);
         id = `nvg_${s.slice(0, 6)}`;
     } while (taken.has(id));

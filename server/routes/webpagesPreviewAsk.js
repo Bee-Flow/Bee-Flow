@@ -167,6 +167,7 @@ function makeRoundState(ask) {
             ask.send('text', { text: data.text });
         } else if (type === 'tool_use' || type === 'tool_call') {
             state.streamToolCalls.push({
+                // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- fallback tool-call id that pairs a call with its result in the history, not a secret or a token
                 id: data.id || `call_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
                 type: 'function',
                 function: {

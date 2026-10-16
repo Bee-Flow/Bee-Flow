@@ -204,7 +204,7 @@ function namedField(lower: string, fields?: IntentField[] | null) {
         for (const c of candidates) {
             if (c.length < 3 || c.length <= bestLen) continue;
             const re = new RegExp(`(?:^|[^a-z0-9])${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:[^a-z0-9]|$)`);
-            if (re.test(lower)) { best = f; bestLen = c.length; }
+            if (re.test(lower)) { best = f; bestLen = c.length; } // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an escaped literal between single-character classes, no quantifier: linear
         }
     }
     return best;

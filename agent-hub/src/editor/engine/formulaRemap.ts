@@ -56,7 +56,7 @@ export function remapSrc(src: string, { rowMap = identity, colMap = identity }: 
     if (L1 === undefined) return m;                                   // #REF!-style sentinel
     // Part of a longer identifier (e.g. the "B2" inside "A1B2") — the
     // tokenizer reads that as ONE ident, so it is not a reference here.
-    if (offset > 0 && /[A-Za-z0-9]/.test(src[offset - 1])) return m;
+    if (offset > 0 && /[A-Za-z0-9]/.test(src[offset - 1])) return m; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a single-character class tested on one character: linear
     const after = src.slice(offset + m.length);
     if (/^[A-Za-z0-9]/.test(after)) return m;
 

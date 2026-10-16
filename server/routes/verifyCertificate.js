@@ -59,9 +59,11 @@ function notFoundPage(res) {
 
 // ── Image (og:image) ──────────────────────────────────────────────────────────
 router.get('/:token/image.png', limiter, async (req, res) => {
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- sends a rendered PNG buffer with an explicit image/png Content-Type and nosniff, not HTML
     const record = await resolve(req.params.token);
     if (!record || !record.isPublic) { res.status(404).end(); return; }
     const base = getPublicBaseUrl();
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the URL is drawn into the PNG, not sent as HTML; the token matched a stored hash above
     const verifyUrl = base ? `${base}/verify/${req.params.token}` : null;
     const png = await renderCertificatePng(record, { verifyUrl });
     res.setHeader('Content-Type', 'image/png');
@@ -71,9 +73,11 @@ router.get('/:token/image.png', limiter, async (req, res) => {
 
 // ── PDF ───────────────────────────────────────────────────────────────────────
 router.get('/:token/certificate.pdf', limiter, async (req, res) => {
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- sends a rendered PDF buffer with an explicit application/pdf Content-Type and nosniff, not HTML
     const record = await resolve(req.params.token);
     if (!record || !record.isPublic) { res.status(404).end(); return; }
     const base = getPublicBaseUrl();
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the URL is drawn into the PDF, not sent as HTML; the token matched a stored hash above
     const verifyUrl = base ? `${base}/verify/${req.params.token}` : null;
     const pdf = await renderCertificatePdf(record, { verifyUrl });
     res.setHeader('Content-Type', 'application/pdf');

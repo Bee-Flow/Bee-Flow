@@ -77,7 +77,7 @@ export default function IconsEditor() {
     };
 
     const handleActivatePack = async (id: string | null) => {
-        try {
+        try { // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
             const res = await authFetch(`${API}/${id || 'default'}/activate`, { method: 'POST' });
             if (res.ok) {
                 setActivePackId(id);
@@ -90,7 +90,7 @@ export default function IconsEditor() {
 
     const handleDeletePack = async (id: string) => {
         if (!(await confirm({ title: 'Delete this icon pack?', description: 'This cannot be undone.', confirmLabel: 'Delete', destructive: true }))) return;
-        try {
+        try { // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
             const res = await authFetch(`${API}/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 if (activePackId === id) {
@@ -395,7 +395,7 @@ const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPack
 
     const handleResetAll = async () => {
         if (!(await confirm({ title: 'Remove ALL custom icons from this pack?', confirmLabel: 'Remove all', destructive: true }))) return;
-        try {
+        try { // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
             const res = await authFetch(`${API}/${(pack as IconPack).id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },

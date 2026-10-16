@@ -16,6 +16,7 @@ function bridgeCore(B) {
     var MM = 96 / 25.4;
     var PAGE_PX = 297 * MM;
 
+    // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- runs in the editor's sandboxed srcdoc frame (opaque origin, frame-ancestors 'self'); the editor checks event.source
     function post(message) { try { parent.postMessage(message, '*'); } catch (_) { /* parent gone */ } }
     function later(name, ms, fn) { clearTimeout(timers[name]); timers[name] = setTimeout(fn, ms); }
 

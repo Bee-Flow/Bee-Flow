@@ -87,6 +87,7 @@ export function usePreviewToken(webpageId: string | undefined, refreshKey: numbe
             // above, and the token is scoped to this preview.
             const respond = (body: Record<string, unknown>) => {
                 try {
+                    // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- targetOrigin '*' is intended: the sandboxed preview's opaque origin cannot be named; the reply goes to event.source, which isFromPreviewIframe checks above
                     (event.source as Window | null)?.postMessage({ __beeflowTokenResponse: true, requestId: reqId, ...body }, '*');
                 } catch { /* ignore */ }
             };

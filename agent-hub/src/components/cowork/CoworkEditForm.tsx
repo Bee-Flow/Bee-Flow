@@ -116,6 +116,7 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
 
     const toggleDay = (token: string) => set({
         daysOfWeek: draft.daysOfWeek.includes(token)
+            // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack -- a weekday token ('mon', 'tue', ...), not a secret
             ? draft.daysOfWeek.filter(d => d !== token)
             : [...draft.daysOfWeek, token],
     });

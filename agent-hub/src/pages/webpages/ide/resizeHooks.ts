@@ -28,6 +28,7 @@ export function useDragResize(initialSize: number, min: number, max: number) {
         startX.current = e.clientX;
         startSize.current = size;
         document.body.style.cursor = 'col-resize';
+        // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- the CSS user-select property, not a username
         document.body.style.userSelect = 'none';
     }, [size]);
 
@@ -70,6 +71,7 @@ export function useRowDragResize(initialPct: number, min: number, containerRef: 
         startY.current = e.clientY;
         startPct.current = pct;
         document.body.style.cursor = 'row-resize';
+        // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- the CSS user-select property, not a username
         document.body.style.userSelect = 'none';
     }, [pct]);
 

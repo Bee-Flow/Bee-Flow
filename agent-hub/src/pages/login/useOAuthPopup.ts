@@ -9,6 +9,17 @@ const isEmbedded = (() => {
 })();
 
 /**
+ * The id the OAuth callback deposits the session token under (see
+ * openOAuthPopup below), so it comes from the platform CSPRNG. randomUUID
+ * exists only in a secure context; getRandomValues is there in every context.
+ */
+export function newPickupId(cryptoApi: Crypto = window.crypto): string {
+    if (typeof cryptoApi.randomUUID === 'function') return cryptoApi.randomUUID();
+    const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
  * The three SSO buttons. Outside an iframe they redirect; inside one they open
  * a popup and poll for the finished login. Hook order: useRef, useCallback,
  * useEffect (the unmount cleanup).
@@ -41,9 +52,7 @@ export function useOAuthPopup(onLogin: OnLogin, serverUrl: string) {
 
         // Generate pickup id; append to URL so the OAuth callback can deposit
         // a token under it.
-        const pickupId = (window.crypto && window.crypto.randomUUID)
-            ? window.crypto.randomUUID()
-            : Math.random().toString(36).slice(2) + Date.now().toString(36);
+        const pickupId = newPickupId();
         const sep = urlBase.includes('?') ? '&' : '?';
         const url = `${urlBase}${sep}pickup=${encodeURIComponent(pickupId)}`;
 
