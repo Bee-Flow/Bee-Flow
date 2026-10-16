@@ -16,6 +16,7 @@ import { StepsEditor } from './StepsEditor';
 import { TechStatsEditor } from './TechStatsEditor';
 import { TestimonialsEditor } from './TestimonialsEditor';
 import { FaqEditor } from './FaqEditor';
+import { FormEditor } from './FormEditor';
 import { TrustBandEditor } from './TrustBandEditor';
 import { ShowcaseEditor } from './ShowcaseEditor';
 import { FeatureDemoEditor } from './FeatureDemoEditor';
@@ -62,6 +63,7 @@ export const BLOCK_CATALOGUE: Record<string, BlockCatalogueEntry> = {
     'live-component': { type: 'live-component', label: 'Live Component', icon: 'Code',         category: 'Content' },
     pricing:      { type: 'pricing',      label: 'Pricing',        icon: 'CreditCard',       category: 'Conversion' },
     'customer-support': { type: 'customer-support', label: 'Customer Support', icon: 'LifeBuoy', category: 'Conversion' },
+    form:         { type: 'form',        label: 'Form',           icon: 'ListChecks',       category: 'Conversion' },
     // ROLLBACK CAVEAT: exports containing the four types below, imported
     // into an OLDER deployment, silently drop those blocks (unknown-type in
     // normalizeBlockRecord) — land schema + renderer as one deploy unit.
@@ -93,6 +95,7 @@ export const BLOCK_EDITORS = {
     'live-component': { component: LiveComponentEditor, label: 'Live Component', icon: 'Code'        },
     pricing:      { component: PricingEditor,      label: 'Pricing',        icon: 'CreditCard'        },
     'customer-support': { component: CustomerSupportEditor, label: 'Customer Support', icon: 'LifeBuoy' },
+    form:         { component: FormEditor,         label: 'Form',           icon: 'ListChecks'        },
     testimonials: { component: TestimonialsEditor, label: 'Testimonials', icon: 'Quote'                 },
     faq:          { component: FaqEditor,          label: 'FAQ',          icon: 'MessageCircleQuestion' },
     'trust-band': { component: TrustBandEditor,    label: 'Trust band',   icon: 'ShieldCheck'           },

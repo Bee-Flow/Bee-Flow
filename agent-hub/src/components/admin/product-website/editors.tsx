@@ -37,6 +37,7 @@ export { CtaBannerEditor } from './blockEditors/CtaBannerEditor';
 export { LiveComponentEditor } from './blockEditors/LiveComponentEditor';
 export { PricingEditor } from './blockEditors/PricingEditor';
 export { CustomerSupportEditor } from './blockEditors/CustomerSupportEditor';
+export { FormEditor } from './blockEditors/FormEditor';
 export { TestimonialsEditor } from './blockEditors/TestimonialsEditor';
 export { FaqEditor } from './blockEditors/FaqEditor';
 export { TrustBandEditor } from './blockEditors/TrustBandEditor';

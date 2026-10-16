@@ -407,6 +407,31 @@ const BLOCK_DEFAULTS = {
         backgroundVariant: 'surface',
     },
 
+    // Form — a lead-capture form (demo request, newsletter, gated download)
+    // that posts to a Bee Flow automation of the SAME install, so the visitor's
+    // details never leave it (routes/cmsForms.js). `fields[].id` is the name
+    // the answer arrives under in the automation (trigger.output.<id>) and is
+    // structural (never translated); select `options[].value` likewise.
+    // `automationId` only takes effect once an admin has enabled that
+    // automation for website forms. Kept in sync with core/cms/websiteForms.js.
+    form: {
+        eyebrow: '',
+        title: 'Request a demo',
+        lead: 'Tell us a little about your team and we will get back to you.',
+        fields: [
+            { id: 'name', type: 'text', label: 'Name', placeholder: '', required: true },
+            { id: 'email', type: 'email', label: 'Work email', placeholder: 'you@company.com', required: true },
+            { id: 'message', type: 'textarea', label: 'How can we help?', placeholder: '', required: false },
+        ],
+        consent: { enabled: true, text: 'I agree that my details are used to answer my request.' },
+        submitLabel: 'Send',
+        successTitle: 'Thank you',
+        successBody: 'We have received your request and will be in touch.',
+        errorText: 'Something went wrong. Please try again.',
+        automationId: '',
+        backgroundVariant: 'surface',
+    },
+
     // Testimonials — quantified social proof (name + role + company always;
     // NEVER star ratings). 'quotes' (default) = 3-up hairline cards; 'case'
     // leads each card with metric.number/label; 'spotlight' renders only the
@@ -603,6 +628,7 @@ const BLOCK_TYPES = [
     { type: 'live-component', label: 'Live Component', icon: 'Code',           category: 'Content' },
     { type: 'pricing',      label: 'Pricing',        icon: 'CreditCard',    category: 'Conversion' },
     { type: 'customer-support', label: 'Customer Support', icon: 'LifeBuoy', category: 'Conversion' },
+    { type: 'form', label: 'Form', icon: 'ListChecks', category: 'Conversion' },
     // ROLLBACK CAVEAT: site exports containing the five types below,
     // imported into an OLDER deployment that doesn't know them, silently
     // drop those blocks (normalizeBlockRecord → unknown-type). Land schema

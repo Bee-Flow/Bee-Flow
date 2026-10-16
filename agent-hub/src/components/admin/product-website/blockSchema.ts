@@ -76,6 +76,7 @@ export const TYPE_ALIASES: Record<string, string> = {
     calltoaction: 'cta',
     testimonial: 'testimonials',
     faqs: 'faq',
+    forms: 'form',
     trustband: 'trust-band',
     'trust_band': 'trust-band',
 };

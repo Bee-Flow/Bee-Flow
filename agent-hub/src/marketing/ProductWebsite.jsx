@@ -29,6 +29,7 @@ import CtaBanner    from './sections/CtaBanner';
 import LiveComponent from './sections/LiveComponent';
 import Pricing      from './sections/PricingSection';
 import CustomerSupport from './sections/CustomerSupport';
+import FormBlock from './sections/FormBlock';
 import Testimonials from './sections/Testimonials';
 import Faq          from './sections/Faq';
 import TrustBand    from './sections/TrustBand';
@@ -39,11 +40,9 @@ import CompareTable from './sections/CompareTable';
 import GitHubStats  from './sections/GitHubStats';
 import ReleaseNotes from './sections/ReleaseNotes';
 import Footer       from './sections/Footer';
-// "Skip to content" — first focusable element, targets the <main id="main">
-// landmark below. Chrome like the cookie banner, so it lives in components/.
+// "Skip to content": first focusable element, targets <main id="main"> below.
 import SkipLink     from './components/SkipLink';
-// Site-wide cookie consent banner. Lives outside ./sections because it's
-// chrome (fixed-position overlay), not an in-flow page section.
+// Site-wide cookie consent banner: chrome (fixed overlay), not an in-flow section.
 import CookieBanner from './components/CookieBanner';
 // Site-wide announcement strip. Also chrome, and also fixed — it sits ABOVE
 // the header and publishes --announce-height so the header/hero/drawer
@@ -108,6 +107,7 @@ export const SECTION_REGISTRY = {
     'live-component': LiveComponent,
     pricing: Pricing,
     'customer-support': CustomerSupport,
+    form: FormBlock,
     testimonials: Testimonials,
     faq: Faq,
     'trust-band': TrustBand,

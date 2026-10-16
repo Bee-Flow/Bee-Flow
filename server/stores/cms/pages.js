@@ -113,7 +113,7 @@ const BLOCK_TYPE_ALIASES = {
     livecomponent: 'live-component', live_component: 'live-component',
     customersupport: 'customer-support', customer_support: 'customer-support',
     'call-to-action': 'cta', calltoaction: 'cta',
-    testimonial: 'testimonials', faqs: 'faq',
+    testimonial: 'testimonials', faqs: 'faq', forms: 'form',
     trustband: 'trust-band', trust_band: 'trust-band',
 };
 const BLOCK_STRUCTURAL_KEYS = new Set(['id', 'type', 'enabled', 'content', 'style', 'meta', 'version']);

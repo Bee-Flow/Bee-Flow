@@ -230,13 +230,6 @@ async function attachSiteId(req, res, next) {
 // ./cmsAssets.js with handleUpload; the site-import uploader in
 // ./cmsSitesAdmin.js.
 
-// ── Helpers ──────────────────────────────────────────────────────
-
-// synthesizeLegacyContent now lives in core/cms/legacyContent.js so that
-// routes/publicRender.js can build the SAME payload it inlines into the
-// server-rendered shell. Two implementations would mean the page could
-// render one way on first paint and another after hydration.
-
 // ── Shared handler bodies ────────────────────────────────────────
 //
 // The handler bodies live in ./cmsSiteHandlers.js, ./cmsPageHandlers.js,
@@ -256,6 +249,9 @@ router.get('/site', getPublicSite);
 
 // Public blog read for the "latest posts" block: GET /api/cms/blog/posts.
 router.use('/blog', cmsBlog.createPublicRouter());
+
+// Website forms, anonymous by design (./cmsForms.js lists what bounds them).
+router.use('/forms', require('./cmsForms').createDefaultPublicRouter());
 
 // Public asset stream (./cmsAssets.js): byte ranges, scriptable types forced
 // to download, sanitized SVG inline under a strict CSP.
@@ -278,6 +274,8 @@ router.use('/admin/analytics', cmsAnalytics.router);
 // /admin/upload). Registered BEFORE attachSiteId: listing assets never
 // needs a site and must not auto-provision a default CMS project.
 router.get('/admin/assets', listAssetsHandler);
+// Which automations a website form may start (./cmsFormsAdmin.js); touches no project either.
+router.use('/admin', require('./cmsFormsAdmin').createDefaultAdminRouter());
 // Clip upload sits here too (before attachSiteId): it touches no project, so
 // it must not auto-provision one.
 // Clips (video with sound, up to 500 MB): disk-backed, streamed into storage.

@@ -3067,6 +3067,84 @@ section.customer-support-block {
 }
 
 /* ────────────────────────────────────────────────────────────────────────
+   Form block (lead capture → a Bee Flow automation). Lives inside the
+   marketing root, so tokens need no hard fallbacks. The honeypot is moved
+   off-screen rather than display:none, which simple bots skip. */
+
+.marketing-root .cms-form-block {
+    padding: var(--section-y, 80px) 0;
+}
+.marketing-root .cms-form-card {
+    max-width: 560px;
+    margin: 0 auto;
+    background: var(--surface-0);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    text-align: left;
+}
+.marketing-root .cms-form-row { margin-bottom: 16px; }
+.marketing-root .cms-form-row--check {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+}
+.marketing-root .cms-form-row--check label { flex: 1 1 0; font-size: 14px; }
+.marketing-root .cms-form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+.marketing-root .cms-form-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--surface-0);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-sm);
+}
+.marketing-root .cms-form-input:focus-visible {
+    outline: 2px solid var(--accent-tint-22);
+    outline-offset: 1px;
+}
+.marketing-root textarea.cms-form-input { resize: vertical; min-height: 96px; }
+.marketing-root .cms-form-error {
+    flex-basis: 100%;
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--danger, #b42318);
+}
+.marketing-root .cms-form-submit {
+    display: inline-flex;
+    padding: 12px 24px;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent-gradient, var(--brand-primary));
+    border: none;
+    border-radius: var(--btn-radius, var(--radius-xl));
+    cursor: pointer;
+}
+.marketing-root .cms-form-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.marketing-root .cms-form-hp {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+.marketing-root .cms-form-success h3 { margin: 0 0 8px; }
+.marketing-root .cms-form-success p,
+.marketing-root .cms-form-note { margin: 0; }
+
+/* ────────────────────────────────────────────────────────────────────────
    CTA Banner block.
    Two layouts:
      centered → text + CTAs stacked, all centered

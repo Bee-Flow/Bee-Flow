@@ -34,6 +34,7 @@ const EXPORT_NAMES = [
     'FooterEditor',
     'PricingEditor',
     'CustomerSupportEditor',
+    'FormEditor',
     'TestimonialsEditor',
     'FaqEditor',
     'TrustBandEditor',
@@ -58,9 +59,9 @@ describe('editors barrel', () => {
         }
     });
 
-    it('pins exactly 25 block types, each with an editor component and defaults', () => {
+    it('pins exactly 26 block types, each with an editor component and defaults', () => {
         const types = Object.keys(editors.BLOCK_CATALOGUE);
-        expect(types).toHaveLength(25);
+        expect(types).toHaveLength(26);
         for (const type of types) {
             expect(
                 typeof editors.BLOCK_EDITORS[type]?.component,

@@ -175,6 +175,15 @@ const THUMBS: Record<string, React.ReactElement> = {
             <Btn x={80} y={49} w={24} h={8} />
         </Frame>
     ),
+    form: (
+        <Frame>
+            <Line x={20} y={8} w={40} h={3} o={0.6} />
+            <Card x={20} y={14} w={80} h={7} />
+            <Card x={20} y={24} w={80} h={7} />
+            <Card x={20} y={34} w={80} h={11} />
+            <Btn x={20} y={49} w={24} h={7} />
+        </Frame>
+    ),
     testimonials: (
         <Frame>
             {[10, 45, 80].map((x, i) => (
