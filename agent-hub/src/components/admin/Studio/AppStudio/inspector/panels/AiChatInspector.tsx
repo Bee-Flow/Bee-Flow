@@ -4,8 +4,7 @@ import FormField from '../../../../../shared/FormField';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
 import { KbMultiSelect, ModelTierRow } from '../AiActionEditors';
 import { registerInspector } from '../registry';
-import type { CommonNodeProps } from '../appDefinition';
-import type { NodePanelProps } from './NodePanelProps.types';
+import type { PanelProps } from '../appDefinition';
 import { INPUT_CLS, TextAreaField, TextField, usePatch } from './kit';
 
 /**
@@ -17,7 +16,7 @@ import { INPUT_CLS, TextAreaField, TextField, usePatch } from './kit';
 
 const MAX_STARTERS = 6;
 
-interface AiChatInspectorProps extends CommonNodeProps {
+interface AiChatInspectorProps {
     systemPrompt?: string | null;
     modelTier?: string | null;
     knowledgeBaseIds?: string[];
@@ -27,7 +26,7 @@ interface AiChatInspectorProps extends CommonNodeProps {
     starters?: string[];
 }
 
-export default function AiChatInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<AiChatInspectorProps>) {
+export default function AiChatInspector({ node, definition, onCommit, disabled = false }: PanelProps<AiChatInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const MODES = [

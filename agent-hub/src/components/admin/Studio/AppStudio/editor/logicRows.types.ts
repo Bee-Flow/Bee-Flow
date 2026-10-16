@@ -1,9 +1,11 @@
+import type { AutomationRow } from './automationTitles';
 import type { TitleFor } from './nodeLogicSummary';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import type { AppDefinition } from '../inspector/appDefinition';
 
 // Re-exported so logicRows.ts takes all its types from one import: the file is at its line ceiling.
 export type { TitleFor } from './nodeLogicSummary';
+export type { AutomationRow } from './automationTitles';
 export type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
 export type { AppAction, AppDefinition, AppNode, AppScreen, CommonNodeProps } from '../inspector/appDefinition';
 
@@ -52,18 +54,6 @@ export interface EmitterInputs {
     referenced: Set<string>;
 }
 
-/** An automation row as the list endpoint returns it, as far as this module reads it. */
-export interface AutomationLike {
-    id?: string;
-    title?: string;
-    projectId?: string | null;
-    triggerType?: string;
-    definition?: {
-        trigger?: { kind?: string; filter?: { tableId?: string } };
-        steps?: unknown;
-    };
-}
-
 /** The part of a save notice (or any message) that points at a definition path. */
 export interface NoticeLike {
     path?: unknown;
@@ -89,7 +79,7 @@ export interface LogicRowsOptions {
 /** Options of `derivedAutomationRows`. */
 export interface DerivedAutomationOptions {
     app?: { projectId?: string | null } | null;
-    automationRows?: Record<string, AutomationLike> | null;
+    automationRows?: Record<string, AutomationRow> | null;
     boundTableIds?: Set<string> | string[] | null;
     wiredAutomationIds?: Set<string> | string[] | null;
     t?: TranslateFn;

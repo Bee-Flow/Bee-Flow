@@ -7,7 +7,7 @@ import { TextField , usePatch } from './kit';
 import type { PanelProps } from '../appDefinition';
 
 interface ModalProps {
-    title?: string;
+    title?: string | null;
     size?: string;
     triggerLabel?: string | null;
 }

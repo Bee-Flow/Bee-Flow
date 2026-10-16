@@ -5,6 +5,12 @@ import useAutomationApi from '../../../../../hooks/useAutomationApi';
 export interface AutomationRow {
     id?: string;
     title?: string;
+    projectId?: string | null;
+    triggerType?: string;
+    definition?: {
+        trigger?: { kind?: string; filter?: { tableId?: string } };
+        steps?: unknown;
+    } | null;
     [key: string]: unknown;
 }
 

@@ -11,8 +11,7 @@ import Toggle from '../../../../../shared/Toggle';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
 import { actionOptions } from '../actionLabels';
 import { registerInspector } from '../registry';
-import type { CommonNodeProps } from '../appDefinition';
-import type { NodePanelProps } from './NodePanelProps.types';
+import type { PanelProps } from '../appDefinition';
 
 function getAlignsOptions(t: TranslateFn) {
     return [
@@ -73,7 +72,6 @@ const FORMATS = [
 // first value is the default and renders exactly what the grid always
 // rendered; a set `look` wins over the legacy zebra flag).
 
-/** Content panel for data_grid. Props mirror componentSpecs.js (authoritative). */
 /** One column of the grid; the panel reads every member defensively. */
 interface GridColumn {
     key?: string;
@@ -93,7 +91,7 @@ interface RowAction {
     actionId?: string;
 }
 
-interface DataGridInspectorProps extends CommonNodeProps {
+interface DataGridInspectorProps {
     source?: FieldKeyFieldProps['source'];
     columns?: GridColumn[];
     selectable?: string;
@@ -105,7 +103,8 @@ interface DataGridInspectorProps extends CommonNodeProps {
     emptyText?: string | null;
 }
 
-export default function DataGridInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<DataGridInspectorProps>) {
+/** Content panel for data_grid. Props mirror componentSpecs.js (authoritative). */
+export default function DataGridInspector({ node, definition, onCommit, disabled = false }: PanelProps<DataGridInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const ALIGNS = getAlignsOptions(t);

@@ -3,18 +3,17 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import FormField from '../../../../../shared/FormField';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
 import { registerInspector } from '../registry';
-import type { CommonNodeProps } from '../appDefinition';
-import type { NodePanelProps } from './NodePanelProps.types';
+import type { PanelProps } from '../appDefinition';
 import { TOAST_TONES } from '../styleKnobMeta';
 import { TextField, TextAreaField , usePatch } from './kit';
 
-interface CalloutInspectorProps extends CommonNodeProps {
-    title?: string;
+interface CalloutInspectorProps {
+    title?: string | null;
     text?: string | null;
     tone?: string;
 }
 
-export default function CalloutInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<CalloutInspectorProps>) {
+export default function CalloutInspector({ node, definition, onCommit, disabled = false }: PanelProps<CalloutInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const TONE_LABELS: Record<string, string | undefined> = {

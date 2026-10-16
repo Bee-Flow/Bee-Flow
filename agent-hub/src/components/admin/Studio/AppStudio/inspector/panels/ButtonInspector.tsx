@@ -3,22 +3,21 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import FormField from '../../../../../shared/FormField';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
 import { registerInspector } from '../registry';
-import type { CommonNodeProps } from '../appDefinition';
-import type { NodePanelProps } from './NodePanelProps.types';
+import type { PanelProps } from '../appDefinition';
 import { TextField, IconField, SelectField, usePatch } from './kit';
 
-// Mirror of the button `variant` enum (componentSpecs.js, authoritative —
-// order matters: 'primary' is first and stays the default). The look pass
-// appended outline/soft; six variants no longer fit a segmented row in the
-// 320px inspector, so this is a select now.
-interface ButtonInspectorProps extends CommonNodeProps {
+interface ButtonInspectorProps {
     label?: string;
     variant?: string;
     iconLeft?: string | null;
     role?: string;
 }
 
-export default function ButtonInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<ButtonInspectorProps>) {
+// Mirror of the button `variant` enum (componentSpecs.js, authoritative —
+// order matters: 'primary' is first and stays the default). The look pass
+// appended outline/soft; six variants no longer fit a segmented row in the
+// 320px inspector, so this is a select now.
+export default function ButtonInspector({ node, definition, onCommit, disabled = false }: PanelProps<ButtonInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const VARIANTS = [

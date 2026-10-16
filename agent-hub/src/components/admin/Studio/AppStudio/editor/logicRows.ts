@@ -1,4 +1,4 @@
-import type { AppAction, AppDefinition, AppNode, AppScreen, AutomationLike, CommonNodeProps, DerivedAutomationOptions, EmitterInputs, LogicRow, LogicRowsOptions, NoticeLike, NoticeScore, RowCommon, RowDraft, RowEmitter, TableIdHolder, TitleFor, TranslateFn, TranslateParams } from './logicRows.types';
+import type { AppAction, AppDefinition, AppNode, AppScreen, AutomationRow, CommonNodeProps, DerivedAutomationOptions, EmitterInputs, LogicRow, LogicRowsOptions, NoticeLike, NoticeScore, RowCommon, RowDraft, RowEmitter, TableIdHolder, TitleFor, TranslateFn, TranslateParams } from './logicRows.types';
 import { eventText } from './nodeLogicSummary';
 import { nOf } from '../../KnowledgeStudio/plural';
 import { describeAction } from '../inspector/actionLabels';
@@ -388,7 +388,7 @@ export default function logicRows(definition: AppDefinition | null | undefined, 
  * hij staat in dezelfde oplossing, hij hangt nog niet aan een knop (dan staat
  * hij hierboven al) en hij raakt een tabel waar de app aan gebonden is.
  */
-function belongsToApp(row: AutomationLike | null | undefined, { projectId, tables, wired }: { projectId: string; tables: Set<string>; wired: Set<string> }): boolean {
+function belongsToApp(row: AutomationRow | null | undefined, { projectId, tables, wired }: { projectId: string; tables: Set<string>; wired: Set<string> }): boolean {
     if (!row?.id || row.projectId !== projectId) return false;
     if (wired.has(row.id)) return false;
     return automationTouchesTables(row, tables);
@@ -401,7 +401,7 @@ function asSet(value: Set<string> | string[] | null | undefined): Set<string> {
 }
 
 /** De triggersoort van een routinerij, zoals AutomationPicker hem ook leest. */
-function triggerKindOf(row: AutomationLike | null | undefined): string {
+function triggerKindOf(row: AutomationRow | null | undefined): string {
     return row?.definition?.trigger?.kind || row?.triggerType || 'manual';
 }
 
@@ -414,7 +414,7 @@ function triggerKindOf(row: AutomationLike | null | undefined): string {
  * — een automatisering die alleen ín een lus naar de tabel schrijft raakt hem net zo
  * goed.
  */
-export function automationTouchesTables(row: AutomationLike | null | undefined, tableIds: unknown): boolean {
+export function automationTouchesTables(row: AutomationRow | null | undefined, tableIds: unknown): boolean {
     if (!(tableIds instanceof Set) || tableIds.size === 0) return false;
     const hit = (v: unknown) => typeof v === 'string' && v && tableIds.has(v);
     if (hit(row?.definition?.trigger?.filter?.tableId)) return true;

@@ -3,8 +3,7 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import FormField from '../../../../../shared/FormField';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
 import { registerInspector } from '../registry';
-import type { CommonNodeProps } from '../appDefinition';
-import type { NodePanelProps } from './NodePanelProps.types';
+import type { PanelProps } from '../appDefinition';
 import { TextField, SelectField, usePatch } from './kit';
 
 const LEVELS = [
@@ -13,13 +12,13 @@ const LEVELS = [
     { value: 3, label: 'H3' },
 ];
 
-interface HeadingInspectorProps extends CommonNodeProps {
+interface HeadingInspectorProps {
     text?: string | null;
     level?: number;
     accent?: string;
 }
 
-export default function HeadingInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<HeadingInspectorProps>) {
+export default function HeadingInspector({ node, definition, onCommit, disabled = false }: PanelProps<HeadingInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     // Mirror of the heading `accent` enum (componentSpecs.js, authoritative —

@@ -4,8 +4,7 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../../../../hooks/useTranslation';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
 import { registerInspector } from '../registry';
-import type { CommonNodeProps } from '../appDefinition';
-import type { NodePanelProps } from './NodePanelProps.types';
+import type { PanelProps } from '../appDefinition';
 
 /**
  * Content panel for filter_bar. Props mirror componentSpecs.js (authoritative):
@@ -38,11 +37,11 @@ interface FilterField {
     options?: FilterOption[];
 }
 
-interface FilterBarInspectorProps extends CommonNodeProps {
+interface FilterBarInspectorProps {
     fields?: FilterField[];
 }
 
-export default function FilterBarInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<FilterBarInspectorProps>) {
+export default function FilterBarInspector({ node, definition, onCommit, disabled = false }: PanelProps<FilterBarInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const FIELD_TYPES = getFieldTypesOptions(t);

@@ -4,12 +4,10 @@ import FormField from '../../../../../shared/FormField';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
 import Toggle from '../../../../../shared/Toggle';
 import { registerInspector } from '../registry';
-import type { CommonNodeProps } from '../appDefinition';
-import type { NodePanelProps } from './NodePanelProps.types';
+import type { PanelProps } from '../appDefinition';
 import { TextField , usePatch } from './kit';
 
-/** Content panel for input_datetime. Props mirror componentSpecs.js (authoritative). */
-interface InputDatetimeInspectorProps extends CommonNodeProps {
+interface InputDatetimeInspectorProps {
     name?: string;
     label?: string;
     withTime?: boolean;
@@ -17,7 +15,8 @@ interface InputDatetimeInspectorProps extends CommonNodeProps {
     required?: boolean;
 }
 
-export default function InputDatetimeInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<InputDatetimeInspectorProps>) {
+/** Content panel for input_datetime. Props mirror componentSpecs.js (authoritative). */
+export default function InputDatetimeInspector({ node, definition, onCommit, disabled = false }: PanelProps<InputDatetimeInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const DEFAULTS = [

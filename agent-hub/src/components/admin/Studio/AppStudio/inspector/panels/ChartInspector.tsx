@@ -11,8 +11,7 @@ import Toggle from '../../../../../shared/Toggle';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
 import { CHART_COLORS } from '../../runtime/chartPalette';
 import { registerInspector } from '../registry';
-import type { CommonNodeProps } from '../appDefinition';
-import type { NodePanelProps } from './NodePanelProps.types';
+import type { PanelProps } from '../appDefinition';
 
 const VALUE_FORMATS = [
     { value: 'number', label: '#' },
@@ -51,7 +50,6 @@ function getXTypesOptions(t: TranslateFn) {
     ];
 }
 
-/** Content panel for chart. Props mirror componentSpecs.js (authoritative). */
 /** One plotted series. */
 interface ChartSeries {
     key?: string;
@@ -74,10 +72,10 @@ interface ReferenceLine {
     color?: string;
 }
 
-interface ChartInspectorProps extends CommonNodeProps {
+interface ChartInspectorProps {
     chartType?: string;
     source?: FieldKeyFieldProps['source'];
-    title?: string;
+    title?: string | null;
     xKey?: string;
     xType?: string;
     series?: ChartSeries[];
@@ -92,7 +90,8 @@ interface ChartInspectorProps extends CommonNodeProps {
     referenceLines?: ReferenceLine[];
 }
 
-export default function ChartInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<ChartInspectorProps>) {
+/** Content panel for chart. Props mirror componentSpecs.js (authoritative). */
+export default function ChartInspector({ node, definition, onCommit, disabled = false }: PanelProps<ChartInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const CHART_TYPES = getChartTypesOptions(t);

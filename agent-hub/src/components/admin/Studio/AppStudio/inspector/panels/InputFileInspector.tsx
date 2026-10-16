@@ -2,12 +2,10 @@ import React from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import Toggle from '../../../../../shared/Toggle';
 import { registerInspector } from '../registry';
-import type { CommonNodeProps } from '../appDefinition';
-import type { NodePanelProps } from './NodePanelProps.types';
+import type { PanelProps } from '../appDefinition';
 import { TextField , usePatch } from './kit';
 
-/** Content panel for input_file. Props mirror componentSpecs.js (authoritative). */
-interface InputFileInspectorProps extends CommonNodeProps {
+interface InputFileInspectorProps {
     name?: string;
     label?: string;
     accept?: string | null;
@@ -15,7 +13,8 @@ interface InputFileInspectorProps extends CommonNodeProps {
     required?: boolean;
 }
 
-export default function InputFileInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<InputFileInspectorProps>) {
+/** Content panel for input_file. Props mirror componentSpecs.js (authoritative). */
+export default function InputFileInspector({ node, definition, onCommit, disabled = false }: PanelProps<InputFileInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);
