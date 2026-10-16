@@ -1,11 +1,45 @@
-import React from 'react';
+import React, { type CSSProperties } from 'react';
 import Button from '../components/Button';
 import EditableText from '../components/EditableText';
 import FramedMedia from '../components/FramedMedia';
 import ClipVideo from '../components/ClipVideo';
 import SectionFrame from '../components/SectionFrame';
 import { migrateLegacyContent, resolveVideoEmbed } from './contentMigration';
+import type { ContentData, ContentElement as ContentElementData } from './contentMigration';
 import { inlineTextStyle } from './textStyle';
+import type { SectionDataBase, TextStyleBlob } from './sectionData.types';
+
+/** A link as the public site leaves it (resolveLinksInTree) or the admin preview does (legacyifyLinks). */
+interface RenderedLink {
+    href?: string;
+    target?: string;
+    rel?: string;
+}
+
+/** An element as the renderer reads it: the migrated shape plus the optional per-kind fields. */
+interface RenderElement extends Omit<ContentElementData, 'link' | 'height'> {
+    /* Published blocks carry the intrinsic size (server/core/cms/mediaDims.js);
+       older ones have neither, and `undefined > 0` is false, which is how the
+       renderer reads them. Typed as numbers for that comparison. */
+    width: number;
+    height: number;
+    headingStyle?: TextStyleBlob;
+    subheadingStyle?: TextStyleBlob;
+    bodyStyle?: TextStyleBlob;
+    headingAlign?: string;
+    subheadingAlign?: string;
+    bodyAlign?: string;
+    frame?: string;
+    fullBleed?: boolean;
+    lightbox?: boolean;
+    source?: string;
+    href?: string;
+    target?: string;
+    rel?: string;
+    link?: RenderedLink;
+}
+
+type ContentBlockData = SectionDataBase & ContentData;
 
 /**
  * Flexible Content section. Each block is a grid of N columns, each column
@@ -20,9 +54,9 @@ import { inlineTextStyle } from './textStyle';
  *   content.columns.{colIdx}.elements.{elIdx}.caption
  *   content.columns.{colIdx}.elements.{elIdx}.label   (cta)
  */
-export default function Content({ data }) {
+export default function Content({ data }: { data?: ContentBlockData }) {
     if (!data?.enabled) return null;
-    const c = migrateLegacyContent(data);
+    const c = migrateLegacyContent(data) as Required<ContentData>;
 
     const layoutClass = `content-block-grid--layout-${c.columnLayout}`;
     const alignClass  = `content-block-grid--valign-${c.verticalAlign || 'top'}`;
@@ -52,7 +86,7 @@ export default function Content({ data }) {
                                     {(col.elements || []).map((el, elIdx) => (
                                         <ContentElement
                                             key={el.id || elIdx}
-                                            el={el}
+                                            el={el as RenderElement}
                                             colIdx={colIdx}
                                             elIdx={elIdx}
                                             // First text element on the first
@@ -75,7 +109,20 @@ export default function Content({ data }) {
 
 // ── Element renderers ──────────────────────────────────────────────────
 
-function ContentElement({ el, colIdx, elIdx, firstHeading, fullWidth }) {
+interface ElementProps {
+    el: RenderElement;
+    pathBase: string;
+}
+
+interface ContentElementProps {
+    el?: RenderElement;
+    colIdx: number;
+    elIdx: number;
+    firstHeading: boolean;
+    fullWidth: boolean;
+}
+
+function ContentElement({ el, colIdx, elIdx, firstHeading, fullWidth }: ContentElementProps) {
     const pathBase = `content.columns.${colIdx}.elements.${elIdx}`;
     switch (el?.kind) {
         case 'text':   return <TextElement   el={el} pathBase={pathBase} firstHeading={firstHeading} />;
@@ -87,8 +134,8 @@ function ContentElement({ el, colIdx, elIdx, firstHeading, fullWidth }) {
     }
 }
 
-function TextElement({ el, pathBase, firstHeading }) {
-    const align = ['left', 'center', 'right'].includes(el.align) ? el.align : 'left';
+function TextElement({ el, pathBase, firstHeading }: ElementProps & { firstHeading: boolean }) {
+    const align = (['left', 'center', 'right'] as Array<string | undefined>).includes(el.align) ? el.align : 'left';
     const HeadingTag = firstHeading ? 'h2' : 'h3';
     // Per-text inline overrides from the editor's StyleTriplet — empty
     // values fall through to CSS / Design tab defaults. Alignment is
@@ -144,8 +191,8 @@ function TextElement({ el, pathBase, firstHeading }) {
     );
 }
 
-function ImageElement({ el, pathBase, fullWidth }) {
-    const ratio = ['16/9', '4/3', '1/1', '3/4'].includes(el.aspectRatio) ? el.aspectRatio : 'auto';
+function ImageElement({ el, pathBase, fullWidth }: ElementProps & { fullWidth: boolean }) {
+    const ratio = (['16/9', '4/3', '1/1', '3/4'] as Array<string | undefined>).includes(el.aspectRatio) ? el.aspectRatio : 'auto';
     const wrapStyle = ratio !== 'auto' ? { aspectRatio: ratio } : undefined;
 
     // Opt-in premium frame ('hairline' | 'browser') — renders through
@@ -159,14 +206,14 @@ function ImageElement({ el, pathBase, fullWidth }) {
     // defines the box and the image covers it; with the intrinsic ratio the
     // image keeps its proportions (height: auto) at full column width. Set
     // inline so it wins over the generic `.content-el-image-wrap img` rule.
-    const imgStyle = ratio !== 'auto'
+    const imgStyle: CSSProperties = ratio !== 'auto'
         ? { width: '100%', height: '100%', objectFit: 'cover', display: 'block' }
         : { width: '100%', height: 'auto', display: 'block' };
 
     const [lightboxOpen, setLightboxOpen] = React.useState(false);
     React.useEffect(() => {
         if (!lightboxOpen) return undefined;
-        const onKey = (e) => { if (e.key === 'Escape') setLightboxOpen(false); };
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setLightboxOpen(false); };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [lightboxOpen]);
@@ -276,8 +323,8 @@ function ImageElement({ el, pathBase, fullWidth }) {
     );
 }
 
-function VideoElement({ el, pathBase }) {
-    const ratio = ['16/9', '4/3', '1/1'].includes(el.aspectRatio) ? el.aspectRatio : '16/9';
+function VideoElement({ el, pathBase }: ElementProps) {
+    const ratio = (['16/9', '4/3', '1/1'] as Array<string | undefined>).includes(el.aspectRatio) ? el.aspectRatio : '16/9';
     const embed = el.source === 'clip' ? null : resolveVideoEmbed(el.url);
     // Anything that isn't a recognised YouTube/Vimeo URL but is still a
     // non-empty URL is treated as a self-hosted file (the editor's "Upload
@@ -328,7 +375,7 @@ function VideoElement({ el, pathBase }) {
     );
 }
 
-function IframeElement({ el }) {
+function IframeElement({ el }: ElementProps) {
     const heightPx = Number.isFinite(el.height) ? el.height : 480;
     return (
         <div className="content-el content-el-iframe">
@@ -356,8 +403,8 @@ function IframeElement({ el }) {
     );
 }
 
-function CtaElement({ el, pathBase }) {
-    const align = ['left', 'center', 'right'].includes(el.align) ? el.align : 'left';
+function CtaElement({ el, pathBase }: ElementProps) {
+    const align = (['left', 'center', 'right'] as Array<string | undefined>).includes(el.align) ? el.align : 'left';
     // Mirror Footer/Header link reading: legacyifyLinks (admin preview)
     // turns link → href; resolveLinksInTree (public site) leaves href on
     // link.href. Read both shapes so the same component works on either.
