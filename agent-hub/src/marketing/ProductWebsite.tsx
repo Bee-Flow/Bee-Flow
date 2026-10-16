@@ -1005,6 +1005,7 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
             <CookieBanner
                 enabled={content.cookieBanner?.enabled !== false}
                 language={resolveCookieLang()}
+                layout={content.cookieBanner?.layout}
                 text={content.cookieBanner?.text}
             />
             {/* Usage trackers — render nothing; inject <script> tags only on

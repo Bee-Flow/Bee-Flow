@@ -7,6 +7,8 @@
 // the first wrong value and where it sits. Read paths never call it, so a
 // site saved before the gate existed can still be opened and repaired.
 
+const { COOKIE_BANNER_LAYOUTS } = require('../../i18n/defaults/cmsDefaults');
+
 const LINK_KINDS = ['page', 'external', 'anchor', 'app'];
 const LABEL_MAX = 200;
 const URL_MAX = 2048;
@@ -125,6 +127,15 @@ function textBlobProblem(section, name) {
     return null;
 }
 
+/** The cookie banner: a text blob plus a layout from the fixed set. */
+function cookieBannerProblem(section) {
+    const layout = section.layout;
+    if (layout !== undefined && !COOKIE_BANNER_LAYOUTS.includes(layout)) {
+        return `cookieBanner.layout must be one of ${COOKIE_BANNER_LAYOUTS.join(', ')}.`;
+    }
+    return textBlobProblem(section, 'cookieBanner');
+}
+
 /**
  * First problem in the chrome of a SiteDoc, as a sentence a person can act on,
  * or null when it is sound. Sections that are absent are fine (the defaults
@@ -138,7 +149,7 @@ function validateSiteChrome(site) {
     const sections = [
         ['header', headerProblem],
         ['footer', footerProblem],
-        ['cookieBanner', (s) => textBlobProblem(s, 'cookieBanner')],
+        ['cookieBanner', cookieBannerProblem],
         ['announcement', (s) => textBlobProblem(s, 'announcement')],
     ];
     for (const [name, check] of sections) {

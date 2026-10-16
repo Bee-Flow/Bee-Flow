@@ -97,7 +97,7 @@ const MCP_ONLY_TOOLS = [
                 name: { type: 'string', description: 'New site name (max 200 chars).' },
                 header: { type: 'object', description: 'Patch for the header (logoText, logo, ctas, enabled, …). Not nav.' },
                 footer: { type: 'object', description: 'Patch for the footer (brandText, blurb, columns, socials, copyright, accountability, showLanguageSwitcher, …).' },
-                cookieBanner: { type: 'object', description: 'Patch for the cookie banner (enabled, text per language).' },
+                cookieBanner: { type: 'object', description: 'Patch for the cookie banner (enabled, layout card|bar|corner — bar is a slim full-width strip at the bottom that leaves the hero buttons uncovered, corner a small bottom-left card — and text per language).' },
                 announcement: { type: 'object', description: 'Patch for the announcement bar (enabled, text per language, link, …).' },
                 analytics: {
                     type: 'object',

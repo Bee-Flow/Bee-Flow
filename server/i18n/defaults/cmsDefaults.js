@@ -80,6 +80,7 @@ const SITE_DEFAULTS = {
     // means a fresh site shows the banner until the visitor chooses.
     cookieBanner: {
         enabled: true,
+        layout: 'card',
         text: {
             en: {
                 message: 'Cookie settings: choose what you allow.',
@@ -961,6 +962,9 @@ const DESIGN_COMPONENT_ENUMS = {
     cardPadding:     ['compact', 'default', 'roomy'],
     shadow:          ['none', 'soft', 'medium', 'strong'],
 };
+// Where the cookie banner sits: today's floating card, a slim full-width bar
+// along the bottom edge, or a small card in the bottom-left corner.
+const COOKIE_BANNER_LAYOUTS = ['card', 'bar', 'corner'];
 const DESIGN_LAYOUT_ENUMS = {
     containerWidth: ['narrow', 'default', 'wide', 'full'],
     sectionRhythm:  ['tight', 'default', 'airy'],
@@ -1014,6 +1018,7 @@ module.exports = {
     DESIGN_DEFAULTS,
     DESIGN_COMPONENT_ENUMS,
     DESIGN_LAYOUT_ENUMS,
+    COOKIE_BANNER_LAYOUTS,
     DESIGN_THEMES,
     SHARE_IMAGE_TEMPLATES,
     DESIGN_MOTIONS,

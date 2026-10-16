@@ -152,6 +152,8 @@ export interface SiteContent {
     };
     cookieBanner?: {
         enabled?: boolean;
+        /** card (default) | bar | corner */
+        layout?: string;
         text?: Record<string, Record<string, string> | undefined>;
     };
     // Legacy keyed shape, rendered by the public site at "/" when there is no blocks[].

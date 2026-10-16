@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import AppIcon from '../../components/icons/AppIcon';
 
@@ -19,6 +19,11 @@ import {
     CONSENT_STORAGE_KEY as STORAGE_KEY,
     LEGACY_CONSENT_STORAGE_KEY as LEGACY_STORAGE_KEY,
 } from './consent';
+import {
+    cookieButtonStyle, cookieLayoutStyle, cookieReserve, normalizeCookieLayout,
+} from './cookieBannerLayout';
+import type { CookieLayout } from './cookieBannerLayout';
+import { useCookieReserve } from './useCookieReserve';
 
 // Built-in copy. Caller-supplied `text` is overlaid per language, so a
 // partial override (e.g. just the message) keeps the default button labels.
@@ -45,12 +50,15 @@ export const DEFAULT_TEXT: Record<string, CookieStrings> = {
 interface CookieBannerProps {
     enabled?: boolean;
     language?: string;
+    /** card (default) | bar | corner. Anything else renders as the card. */
+    layout?: CookieLayout | string;
     text?: Record<string, CookieStrings | undefined>;
 }
 
 export default function CookieBanner({
     enabled = true,
     language = 'en',
+    layout: layoutProp = 'card',
     text = undefined,
 }: CookieBannerProps = {}) {
     // Prefer the requested language when we have strings for it (built-in or
@@ -108,6 +116,12 @@ export default function CookieBanner({
 
     const reopen = () => setConsent(null);
 
+    const layout = normalizeCookieLayout(layoutProp);
+    const bannerRef = useRef<HTMLDivElement>(null);
+    const open = enabled && (consent === null);
+
+    useCookieReserve(open, layout, bannerRef);
+
     // Render nothing when disabled, or while we're still reading storage.
     if (!enabled) return null;
     if (consent === 'unset') return null;
@@ -128,9 +142,18 @@ export default function CookieBanner({
         );
     }
 
-    // No choice yet → full banner.
+    // No choice yet → the banner, in the configured layout.
+    const boxStyle: CSSProperties = { ...bannerStyle, ...cookieLayoutStyle(layout) };
+    const declineStyle: CSSProperties = { ...declineButtonStyle, ...cookieButtonStyle(layout) };
+    const acceptStyle: CSSProperties = { ...acceptButtonStyle, ...cookieButtonStyle(layout) };
     return (
-        <div role="dialog" aria-live="polite" aria-label="Cookie consent" style={bannerStyle}>
+        <div
+            ref={bannerRef}
+            role="dialog"
+            aria-live="polite"
+            aria-label="Cookie consent"
+            style={boxStyle}
+        >
             <p style={messageStyle}>
                 {strings.message}
                 {strings.privacyUrl ? (
@@ -146,14 +169,14 @@ export default function CookieBanner({
                 <button
                     type="button"
                     onClick={() => choose('declined')}
-                    style={declineButtonStyle}
+                    style={declineStyle}
                 >
                     {strings.decline}
                 </button>
                 <button
                     type="button"
                     onClick={() => choose('accepted')}
-                    style={acceptButtonStyle}
+                    style={acceptStyle}
                 >
                     {strings.accept}
                 </button>

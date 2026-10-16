@@ -50,3 +50,15 @@ test('stored footer links are kind-checked through their link object; null logo 
     assert.match(String(validateSiteChrome({ footer: { socials: [{ platform: 'x', link: 5 }] } })), /link must be a link object/);
     assert.strictEqual(validateSiteChrome({ header: { logo: null }, footer: { accountability: null } }), null);
 });
+
+test('the cookie banner layout is one of card, bar and corner', () => {
+    for (const layout of ['card', 'bar', 'corner']) {
+        assert.strictEqual(validateSiteChrome({ cookieBanner: { layout } }), null);
+    }
+    assert.match(String(validateSiteChrome({ cookieBanner: { layout: 'fullscreen' } })), /cookieBanner\.layout must be one of card, bar, corner/);
+    assert.match(String(validateSiteChrome({ cookieBanner: { layout: 3 } })), /cookieBanner\.layout must be one of/);
+});
+
+test('the seeded cookie banner keeps today\'s card layout', () => {
+    assert.strictEqual(SITE_DEFAULTS.cookieBanner.layout, 'card');
+});

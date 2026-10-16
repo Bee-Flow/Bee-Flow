@@ -1,6 +1,8 @@
 import React from 'react';
-import { Toggle, TextField } from './fields';
-import { CollapsibleCard } from './primitives';
+import { Toggle, TextField, FieldRow } from './fields';
+import { CollapsibleCard, SegmentedControl } from './primitives';
+import type { TranslateFn } from '../../../hooks/useTranslation';
+import { COOKIE_BANNER_LAYOUTS } from './blockEditors/blockData.generated.mjs';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { BlockEditorProps } from './blockEditors/editorProps';
 
@@ -30,9 +32,17 @@ const FALLBACK_LOCALES = [
 type CookieCopy = Record<string, string | undefined>;
 type CookieBannerData = {
     enabled?: boolean;
+    /** card (default) | bar | corner */
+    layout?: string;
     /** Every locale's copy, keyed by locale code. */
     text?: Record<string, CookieCopy>;
 };
+
+const layoutOptions = (t: TranslateFn) => [
+    { value: 'card',   label: t('cms_site.site.cookie.layout_card', 'Card'),     hint: t('cms_site.site.cookie.layout_card_hint', 'Floating card, centred at the bottom') },
+    { value: 'bar',    label: t('cms_site.site.cookie.layout_bar', 'Bar'),       hint: t('cms_site.site.cookie.layout_bar_hint', 'Slim full-width strip along the bottom edge; leaves the hero buttons uncovered') },
+    { value: 'corner', label: t('cms_site.site.cookie.layout_corner', 'Corner'), hint: t('cms_site.site.cookie.layout_corner_hint', 'Small card in the bottom-left corner') },
+].filter(o => (COOKIE_BANNER_LAYOUTS as string[]).includes(o.value));
 
 interface LocaleCardProps {
     code: string;
@@ -86,6 +96,7 @@ export default function CookieBannerEditor({ data = {}, onChange, locales = null
     const { t } = useTranslation();
     const enabled = data.enabled !== false;
     const text = data.text || {};
+    const layout = (COOKIE_BANNER_LAYOUTS as string[]).includes(data.layout ?? '') ? data.layout : 'card';
 
     // The site's locale list (org language system) drives the sections;
     // hosts that don't pass `locales` keep the historic en/nl pair.
@@ -118,6 +129,14 @@ export default function CookieBannerEditor({ data = {}, onChange, locales = null
             <p className="text-[10px] text-[var(--text-muted)] mb-3 -mt-1">
                 {t('cms_site.site.cookie.visitors_see', 'Visitors see the copy for their language; languages without copy fall back to English.')}
             </p>
+
+            <FieldRow label={t('cms_site.site.cookie.layout', 'Banner layout')}>
+                <SegmentedControl
+                    value={layout}
+                    onChange={v => onChange({ ...data, layout: v })}
+                    options={layoutOptions(t)}
+                />
+            </FieldRow>
 
             {siteLocales.map(({ code, name }) => (
                 <LocaleCard
