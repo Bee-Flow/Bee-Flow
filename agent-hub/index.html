@@ -34,7 +34,7 @@
        single React instance from window.__BEEFLOW_SHARED__. The app's own code
        never uses bare specifiers at runtime — Vite resolves those at build time —
        so this map only affects dynamically-imported module bundles. It must
-       precede the /src/main.jsx module script below. -->
+       precede the /src/main.tsx module script below. -->
   <script type="importmap">
     {
       "imports": {
@@ -104,7 +104,7 @@
        missing file as "no runtime opinion". Relative to the build's base, so the
        Nextcloud embed asks its own proxy for it, not Nextcloud's root. -->
   <script src="%BASE_URL%beeflow-runtime.js"></script>
-  <script type="module" src="/src/main.jsx"></script>
+  <script type="module" src="/src/main.tsx"></script>
 </body>
 
 </html>
