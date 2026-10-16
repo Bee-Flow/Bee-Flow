@@ -32,7 +32,8 @@ const MAX_CHARTS = 40;
 function chartsFrom(list, tabId, existing, remove) {
     const have = Array.isArray(existing) ? existing : [];
     const items = Array.isArray(list) ? list : [];
-    const removed = Array.isArray(remove) ? remove.map(String) : [];
+    // Deduplicated: a repeated id is one removal, or it would count twice against MAX_CHARTS.
+    const removed = Array.isArray(remove) ? [...new Set(remove.map(String))] : [];
     if (!items.length && !removed.length) return { error: '`charts` is a list of { type, dataRange, categoriesRange?, anchor, title?, size?: { cols, rows } } (an item with the `id` of a chart updates it); `removeCharts` is a list of ids.' };
     for (const id of removed) {
         if (!have.some((c) => c.id === id && (!c.tab || c.tab === tabId))) return { error: `removeCharts: no chart "${id}" on this tab.` };

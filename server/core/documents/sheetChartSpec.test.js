@@ -28,6 +28,15 @@ test('wrong types, ranges, anchors and too many charts are explained', () => {
     assert.match(chartsFrom([], 't', []).error, /list/);
 });
 
+test('a repeated id in removeCharts counts once against the chart cap', () => {
+    const full = Array.from({ length: MAX_CHARTS }, (_, i) => ({ id: `c${i}` }));
+    const three = Array.from({ length: 3 }, () => ({ type: 'bar', dataRange: 'B2:B5', anchor: 'E2' }));
+    assert.match(chartsFrom(three, 't', full, ['c0', 'c0', 'c0']).error, /at most/);
+    const one = chartsFrom(three.slice(0, 1), 't', full, ['c0', 'c0']);
+    assert.deepEqual(one.removed, ['c0']);
+    assert.equal(one.charts.length, 1);
+});
+
 test('stored on the newest settings, keeping the charts already there', async () => {
     const updates = [];
     const documents = {
