@@ -476,6 +476,7 @@ const TEXT_HELPERS = [
     { rel: 'pages/meeting-notes/lib/format.ts', pending: 'MTG — the same ladder again' },
     { rel: 'utils/helpers.ts', pending: 'shared — "Just now" (capital J: the copy that drifted) and the demo notices' },
     { rel: 'utils/dateFormatters.ts', pending: 'shared — durations and byte sizes; the unit suffix is copy too' },
+    { rel: 'components/support/supportInboxLabels.ts', pending: 'SUP — formatRelative ("Nm ago" ladder), moved out of SupportInboxPanel.tsx unchanged by LF-A7' },
     { rel: 'pages/settings/usage/format.ts', pending: 'USE — billing-period ranges, browser locale' },
     { rel: 'components/cowork/coworkSchedule.ts', pending: 'CW — "Run now" / "In an hour" / "Tomorrow morning" presets' },
     // Registered CLEAN, with no pending: every English string in its two
