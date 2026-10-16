@@ -1,7 +1,9 @@
 import React from 'react';
 import BindingField from './BindingField';
 import { FieldKeyField, TextField, SelectField, usePatch } from './kit';
+import type { FieldKeyFieldProps } from './kit';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../../hooks/useTranslation';
 import FormField from '../../../../../shared/FormField';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
 import Slider from '../../../../../shared/Slider';
@@ -9,8 +11,10 @@ import Toggle from '../../../../../shared/Toggle';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
 import { actionOptions } from '../actionLabels';
 import { registerInspector } from '../registry';
+import type { CommonNodeProps } from '../appDefinition';
+import type { NodePanelProps } from './NodePanelProps.types';
 
-function getAlignsOptions(t) {
+function getAlignsOptions(t: TranslateFn) {
     return [
         { value: 'auto', label: t('studio_apps_panels.common.auto', 'Auto') },
         { value: 'left', label: t('studio_apps_panels.data_grid.align_left', 'Left') },
@@ -19,7 +23,7 @@ function getAlignsOptions(t) {
     ];
 }
 
-function getSelectableOptions(t) {
+function getSelectableOptions(t: TranslateFn) {
     return [
         { value: 'none', label: t('studio_apps_panels.data_grid.select_none', 'None') },
         { value: 'single', label: t('studio_apps_panels.data_grid.select_single', 'Single') },
@@ -27,7 +31,7 @@ function getSelectableOptions(t) {
     ];
 }
 
-function getDensityOptions(t) {
+function getDensityOptions(t: TranslateFn) {
     return [
         { value: 'compact', label: t('studio_apps_panels.data_grid.density_compact', 'Compact') },
         { value: 'comfortable', label: t('studio_apps_panels.data_grid.density_cozy', 'Cozy') },
@@ -35,7 +39,7 @@ function getDensityOptions(t) {
     ];
 }
 
-function getLooksOptions(t) {
+function getLooksOptions(t: TranslateFn) {
     return [
         { value: 'default', label: t('studio_apps_panels.common.look_default', 'Default') },
         { value: 'striped', label: t('studio_apps_panels.data_grid.look_striped', 'Striped') },
@@ -44,7 +48,7 @@ function getLooksOptions(t) {
     ];
 }
 
-function getFormatLabels(t) {
+function getFormatLabels(t: TranslateFn): Record<string, string> {
     return {
         text: t('studio_apps_panels.data_grid.format_text', 'Text'), number: t('studio_apps_panels.data_grid.format_number', 'Number'), date: t('studio_apps_panels.data_grid.format_date', 'Date'), badge: t('studio_apps_panels.data_grid.format_badge', 'Badge'), link: t('studio_apps_panels.data_grid.format_link', 'Link'), boolean: t('studio_apps_panels.data_grid.format_boolean', 'Boolean'), relation: t('studio_apps_panels.data_grid.format_relation', 'Relation'),
         currency: t('studio_apps_panels.data_grid.format_currency', 'Currency'), percent: t('studio_apps_panels.data_grid.format_percent', 'Percent'), datetime: t('studio_apps_panels.data_grid.format_datetime', 'Datetime'), relative: t('studio_apps_panels.data_grid.format_relative', 'Relative'), check: t('studio_apps_panels.data_grid.format_check', 'Check'), tags: t('studio_apps_panels.data_grid.format_tags', 'Tags'),
@@ -70,7 +74,38 @@ const FORMATS = [
 // rendered; a set `look` wins over the legacy zebra flag).
 
 /** Content panel for data_grid. Props mirror componentSpecs.js (authoritative). */
-export default function DataGridInspector({ node, definition, onCommit, disabled = false }) {
+/** One column of the grid; the panel reads every member defensively. */
+interface GridColumn {
+    key?: string;
+    label?: string;
+    format?: string;
+    align?: string;
+    width?: number;
+    toneFrom?: string;
+    sortable?: boolean;
+    filterable?: boolean;
+    editable?: boolean;
+}
+
+/** One row action: a button label and the action it runs. */
+interface RowAction {
+    label?: string;
+    actionId?: string;
+}
+
+interface DataGridInspectorProps extends CommonNodeProps {
+    source?: FieldKeyFieldProps['source'];
+    columns?: GridColumn[];
+    selectable?: string;
+    density?: string;
+    look?: string;
+    pageSize?: number;
+    searchable?: boolean;
+    rowActions?: RowAction[];
+    emptyText?: string | null;
+}
+
+export default function DataGridInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<DataGridInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const ALIGNS = getAlignsOptions(t);
@@ -184,7 +219,7 @@ export default function DataGridInspector({ node, definition, onCommit, disabled
             />
             <Slider
                 label={t('studio_apps_panels.data_grid.page_size', 'Page size')}
-                value={Number.isFinite(props.pageSize) ? props.pageSize : 25}
+                value={Number.isFinite(props.pageSize) ? props.pageSize as number : 25}
                 onChange={(v) => patch({ pageSize: Math.max(5, Math.min(100, Math.round(v))) })}
                 min={5}
                 max={100}

@@ -4,6 +4,8 @@ import FormField from '../../../../../shared/FormField';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
 import { KbMultiSelect, ModelTierRow } from '../AiActionEditors';
 import { registerInspector } from '../registry';
+import type { CommonNodeProps } from '../appDefinition';
+import type { NodePanelProps } from './NodePanelProps.types';
 import { INPUT_CLS, TextAreaField, TextField, usePatch } from './kit';
 
 /**
@@ -15,7 +17,17 @@ import { INPUT_CLS, TextAreaField, TextField, usePatch } from './kit';
 
 const MAX_STARTERS = 6;
 
-export default function AiChatInspector({ node, definition, onCommit, disabled = false }) {
+interface AiChatInspectorProps extends CommonNodeProps {
+    systemPrompt?: string | null;
+    modelTier?: string | null;
+    knowledgeBaseIds?: string[];
+    mode?: string;
+    greeting?: string | null;
+    placeholder?: string | null;
+    starters?: string[];
+}
+
+export default function AiChatInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<AiChatInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const MODES = [
@@ -43,8 +55,8 @@ export default function AiChatInspector({ node, definition, onCommit, disabled =
                 placeholder={t('studio_apps_panels.ai_chat.system_prompt_placeholder', 'You are a support assistant for our returns policy…')}
                 disabled={disabled}
             />
-            <ModelTierRow value={props.modelTier} onChange={(tier) => patch({ modelTier: tier })} disabled={disabled} />
-            <KbMultiSelect value={props.knowledgeBaseIds} onChange={(ids) => patch({ knowledgeBaseIds: ids })} disabled={disabled} />
+            <ModelTierRow value={props.modelTier} onChange={(tier: string) => patch({ modelTier: tier })} disabled={disabled} />
+            <KbMultiSelect value={props.knowledgeBaseIds} onChange={(ids: string[]) => patch({ knowledgeBaseIds: ids })} disabled={disabled} />
             <FormField label={t('studio_apps_panels.ai_chat.mode', 'Mode')} hint={t('studio_apps_panels.ai_chat.mode_hint', 'A conversation keeps history; a single question answers each one on its own.')}>
                 <SegmentedControl
                     value={props.mode ?? 'chat'}
@@ -77,7 +89,7 @@ export default function AiChatInspector({ node, definition, onCommit, disabled =
                     onChange={(e) => {
                         setStartersText(e.target.value);
                         patch({
-                            starters: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean).slice(0, MAX_STARTERS),
+                            starters: e.target.value.split('\n').map((s: string) => s.trim()).filter(Boolean).slice(0, MAX_STARTERS),
                         });
                     }}
                     rows={3}

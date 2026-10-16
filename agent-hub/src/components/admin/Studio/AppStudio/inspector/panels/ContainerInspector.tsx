@@ -1,6 +1,8 @@
 import React from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import { registerInspector } from '../registry';
+import type { CommonNodeProps } from '../appDefinition';
+import type { NodePanelProps } from './NodePanelProps.types';
 import { SelectField, usePatch } from './kit';
 
 // Mirror of the container `look` enum (componentSpecs.js, authoritative —
@@ -13,7 +15,11 @@ import { SelectField, usePatch } from './kit';
  * runtime registry's defaultProps now mirror `look`, so the SpecPanel
  * fallback would also work, but this registration wins in the registry.
  */
-export default function ContainerInspector({ node, definition, onCommit, disabled = false }) {
+interface ContainerInspectorProps extends CommonNodeProps {
+    look?: string;
+}
+
+export default function ContainerInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<ContainerInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const LOOKS = [

@@ -1,13 +1,18 @@
 import React from 'react';
 import BindingField from './BindingField';
 import { FieldKeyField, NumberField, TextField , usePatch } from './kit';
+import type { FieldKeyFieldProps } from './kit';
+import type { BuiltView } from './BindingField.types';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../../hooks/useTranslation';
 import FormField from '../../../../../shared/FormField';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
 import Toggle from '../../../../../shared/Toggle';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
 import { CHART_COLORS } from '../../runtime/chartPalette';
 import { registerInspector } from '../registry';
+import type { CommonNodeProps } from '../appDefinition';
+import type { NodePanelProps } from './NodePanelProps.types';
 
 const VALUE_FORMATS = [
     { value: 'number', label: '#' },
@@ -19,8 +24,8 @@ const VALUE_FORMATS = [
  * A view built inside the Data block also prefills the drawing — source and
  * mapping travel in ONE patch so the chart lands as a single history entry.
  */
-function builtViewPatch({ datasetId, chart }) {
-    const p = { source: { kind: 'dataset', datasetId } };
+function builtViewPatch({ datasetId, chart }: BuiltView) {
+    const p: Record<string, unknown> = { source: { kind: 'dataset', datasetId } };
     if (chart?.chartType) p.chartType = chart.chartType;
     if (chart?.xKey) p.xKey = chart.xKey;
     if (Array.isArray(chart?.series) && chart.series.length) {
@@ -29,7 +34,7 @@ function builtViewPatch({ datasetId, chart }) {
     return p;
 }
 
-function getChartTypesOptions(t) {
+function getChartTypesOptions(t: TranslateFn) {
     return [
         { value: 'bar', label: t('studio_apps_panels.chart.type_bar', 'Bar') },
         { value: 'line', label: t('studio_apps_panels.chart.type_line', 'Line') },
@@ -39,7 +44,7 @@ function getChartTypesOptions(t) {
     ];
 }
 
-function getXTypesOptions(t) {
+function getXTypesOptions(t: TranslateFn) {
     return [
         { value: 'category', label: t('studio_apps_panels.chart.x_categories', 'Categories') },
         { value: 'time', label: t('studio_apps_panels.chart.x_dates', 'Dates') },
@@ -47,7 +52,47 @@ function getXTypesOptions(t) {
 }
 
 /** Content panel for chart. Props mirror componentSpecs.js (authoritative). */
-export default function ChartInspector({ node, definition, onCommit, disabled = false }) {
+/** One plotted series. */
+interface ChartSeries {
+    key?: string;
+    label?: string;
+    color?: string;
+}
+
+/** A shaded band across the plot. */
+interface ReferenceBand {
+    from?: number | null;
+    to?: number | null;
+    label?: string;
+    color?: string;
+}
+
+/** A horizontal line across the plot. */
+interface ReferenceLine {
+    value?: number | null;
+    label?: string;
+    color?: string;
+}
+
+interface ChartInspectorProps extends CommonNodeProps {
+    chartType?: string;
+    source?: FieldKeyFieldProps['source'];
+    title?: string;
+    xKey?: string;
+    xType?: string;
+    series?: ChartSeries[];
+    stacked?: boolean;
+    showLegend?: boolean;
+    showGrid?: boolean;
+    valueFormat?: string;
+    unitLabel?: string | null;
+    yMin?: number | null;
+    yMax?: number | null;
+    referenceBands?: ReferenceBand[];
+    referenceLines?: ReferenceLine[];
+}
+
+export default function ChartInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<ChartInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const CHART_TYPES = getChartTypesOptions(t);
@@ -183,7 +228,7 @@ export default function ChartInspector({ node, definition, onCommit, disabled = 
 }
 
 /** The same swatch row the series list uses, shared by both reference lists. */
-function ColourRow({ value, onPick }) {
+function ColourRow({ value, onPick }: { value?: string; onPick: (colour: string | undefined) => void }) {
     const { t } = useTranslation();
     return (
         <div className="flex items-center gap-1.5 flex-wrap">

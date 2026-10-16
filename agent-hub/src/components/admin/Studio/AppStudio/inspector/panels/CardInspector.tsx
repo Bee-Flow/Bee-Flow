@@ -1,11 +1,19 @@
 import React from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import { registerInspector } from '../registry';
+import type { CommonNodeProps } from '../appDefinition';
+import type { NodePanelProps } from './NodePanelProps.types';
 import { TextField, TextAreaField, SelectField, usePatch } from './kit';
 
 // Mirror of the card `look` enum (componentSpecs.js, authoritative — first
 // value is the default and renders exactly what card always rendered).
-export default function CardInspector({ node, definition, onCommit, disabled = false }) {
+interface CardInspectorProps extends CommonNodeProps {
+    title?: string;
+    description?: string | null;
+    look?: string;
+}
+
+export default function CardInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<CardInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const LOOKS = [

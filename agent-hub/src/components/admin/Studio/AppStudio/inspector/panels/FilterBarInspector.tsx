@@ -1,8 +1,11 @@
 import React from 'react';
 import { usePatch } from './kit';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../../hooks/useTranslation';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
 import { registerInspector } from '../registry';
+import type { CommonNodeProps } from '../appDefinition';
+import type { NodePanelProps } from './NodePanelProps.types';
 
 /**
  * Content panel for filter_bar. Props mirror componentSpecs.js (authoritative):
@@ -12,7 +15,7 @@ import { registerInspector } from '../registry';
  * beyond the generic SpecPanel list editor.
  */
 
-function getFieldTypesOptions(t) {
+function getFieldTypesOptions(t: TranslateFn) {
     return [
         { value: 'search', label: t('studio_apps_panels.filter_bar.type_search', 'Search') },
         { value: 'select', label: t('studio_apps_panels.filter_bar.type_select', 'Select') },
@@ -21,7 +24,25 @@ function getFieldTypesOptions(t) {
     ];
 }
 
-export default function FilterBarInspector({ node, definition, onCommit, disabled = false }) {
+/** One option of a select filter; the panel reads both members defensively. */
+interface FilterOption {
+    value?: string;
+    label?: string;
+}
+
+/** One control of the bar. */
+interface FilterField {
+    name?: string;
+    label?: string;
+    type?: string;
+    options?: FilterOption[];
+}
+
+interface FilterBarInspectorProps extends CommonNodeProps {
+    fields?: FilterField[];
+}
+
+export default function FilterBarInspector({ node, definition, onCommit, disabled = false }: NodePanelProps<FilterBarInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const FIELD_TYPES = getFieldTypesOptions(t);
