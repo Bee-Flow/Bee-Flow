@@ -1,9 +1,11 @@
 import { Loader2, Sparkles, Table, Workflow, X } from 'lucide-react';
 import React from 'react';
 import SourcePicker from './SourcePicker';
+import type { BuildSource } from './SourcePicker';
 import { kindColorVar, kindTint } from '../../components/shared/kindColors';
 import { PRIMARY_ACTION_STYLE } from '../../components/shared/StudioSectionHeader';
 import useTranslation from '../../hooks/useTranslation';
+import type { TranslateFn } from '../../hooks/useTranslation';
 
 /**
  * The describe-to-build bar above the cards (Webpages artboard 1a, plan W1).
@@ -26,6 +28,16 @@ import useTranslation from '../../hooks/useTranslation';
  *   building                  request in flight
  *   inputRef                  so a preset click can focus the box it filled
  */
+interface BuildBarProps {
+    prompt: string;
+    onPromptChange: (value: string) => void;
+    sources?: BuildSource[];
+    onSourcesChange?: (sources: BuildSource[]) => void;
+    onBuild?: () => void;
+    building?: boolean;
+    inputRef?: React.Ref<HTMLInputElement> | null;
+}
+
 export default function BuildBar({
     prompt,
     onPromptChange,
@@ -34,11 +46,11 @@ export default function BuildBar({
     onBuild,
     building = false,
     inputRef = null,
-}) {
+}: BuildBarProps) {
     const { t } = useTranslation();
     const canBuild = !!onBuild && !!prompt.trim() && !building;
 
-    const submit = (e) => {
+    const submit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!canBuild) return;
         onBuild();
@@ -120,7 +132,7 @@ export default function BuildBar({
     );
 }
 
-function SourceChip({ source, onRemove, t }) {
+function SourceChip({ source, onRemove, t }: { source: BuildSource; onRemove: () => void; t: TranslateFn }) {
     const Icon = source.kind === 'automation' ? Workflow : Table;
     return (
         <span

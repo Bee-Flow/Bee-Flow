@@ -202,7 +202,7 @@
     "src/pages/AdvancedSettings.jsx": 959,
     "src/pages/AdvancedSettings.test.jsx": 1383,
     "src/pages/apps/AppRunPage.jsx": 435,
-    "src/pages/apps/AppsHomePage.jsx": 656,
+    "src/pages/apps/AppsHomePage.tsx": 656,
     "src/pages/documents/HouseStylePanel.jsx": 402,
     "src/pages/documents/notebook/MermaidBlock.jsx": 567,
     "src/pages/EmbedChat.jsx": 528,
