@@ -28,6 +28,7 @@ const log = require('../../telemetry/log');
 const { ANALYTICS_TOOLS, MCP_ONLY_TOOLS, PUBLISH_TOOLS, buildToolList: buildList } = require('./tools');
 const { createAnalyticsHandlers } = require('./analytics');
 const { createBlogHandlers } = require('./blog');
+const { createRedirectHandlers } = require('./redirects');
 const { isPlainObject, createTakeBudget } = require('./handlerKit');
 const { createSiteContext } = require('./siteContext');
 const { createSiteHandlers, createLocaleHandlers } = require('./siteHandlers');
@@ -57,6 +58,8 @@ const INSTRUCTIONS = [
     'Publishing (cms_publish, cms_set_live_site) needs the cms.publish scope on the token and is audited. Only publish when asked to.',
     '',
     'Blog: cms_list_posts / cms_get_post / cms_create_post / cms_update_post (Markdown body; bodyEdits for small changes) / cms_delete_post / cms_set_post_translation / cms_update_blog_settings. Posts live at /blog/<slug>; cms_screenshot {postSlug} shows one. They go live with cms_publish like everything else.',
+    '',
+    'Redirects: cms_list_redirects / cms_set_redirect / cms_delete_redirect (301/302 from an old path to a new one; a renamed page already gets its own 301). Draft until cms_publish.',
 ].join('\n');
 
 const rpcResult = (id, result) => ({ jsonrpc: '2.0', id, result });
@@ -177,9 +180,12 @@ function createCmsMcp(deps) {
     // Blog posts: same resolveSite, same audit sink.
     const blogHandlers = createBlogHandlers({ cmsStore, resolveSite, audit: deps.audit, now }).handlers;
 
+    const redirectHandlers = createRedirectHandlers({ cmsStore, resolveSite, audit: deps.audit }).handlers;
+
     const HANDLERS = {
         ...analyticsHandlers,
         ...blogHandlers,
+        ...redirectHandlers,
         cms_list_sites: listSites,
         cms_get_site_settings: getSiteSettings,
         cms_update_site_settings: updateSiteSettings,

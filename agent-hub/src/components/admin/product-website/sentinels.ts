@@ -19,12 +19,14 @@ export const ANALYTICS_VIRTUAL_ID = '__analytics__';
 // NOT a chrome id either: the Blog entry swaps the navigator for the post
 // list and previews the blog index / the selected post on the canvas.
 export const BLOG_VIRTUAL_ID      = '__blog__';
+// NOT a chrome id: the redirect manager has nothing to show in the preview.
+export const REDIRECTS_VIRTUAL_ID = '__redirects__';
 
 const CHROME_IDS = new Set<string | null | undefined>([
     SITE_VIRTUAL_ID, HEADER_VIRTUAL_ID, FOOTER_VIRTUAL_ID,
     COOKIE_VIRTUAL_ID, ANNOUNCE_VIRTUAL_ID,
 ]);
-const VIRTUAL_IDS = new Set<string | null | undefined>([...CHROME_IDS, DESIGN_VIRTUAL_ID, ANALYTICS_VIRTUAL_ID, BLOG_VIRTUAL_ID]);
+const VIRTUAL_IDS = new Set<string | null | undefined>([...CHROME_IDS, DESIGN_VIRTUAL_ID, ANALYTICS_VIRTUAL_ID, BLOG_VIRTUAL_ID, REDIRECTS_VIRTUAL_ID]);
 
 /** True for any virtual entry (chrome or design) — i.e. NOT a real page id. */
 export function isVirtualPageId(id: string | null | undefined): boolean {

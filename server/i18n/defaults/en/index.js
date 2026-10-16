@@ -44,6 +44,7 @@ const NAMESPACES = {
     "checkout":        require('./checkout.js'),
     "cms_blog":        require('./cms_blog.js'),
     "cms_site":         require('./cms_site.js'),
+    "cms_redirects":    require('./cms_redirects.js'),
     "code_step":       require('./code_step.js'),
     "comments":        require('./comments.js'),
     "common":          require('./common.js'),

@@ -102,9 +102,15 @@ async function putPageHomepage(req, res) {
 
 async function deletePageHandler(req, res) {
     try {
+        // Optional ?redirectTo=/path: the deleted address should lead there (301).
+        const redirectTo = typeof req.query?.redirectTo === 'string' ? req.query.redirectTo.trim() : '';
+        const site = redirectTo ? await cmsStore.getProject(req.siteId, { fresh: true }) : null;
+        const entry = site?.pages.find((p) => p.id === req.params.id);
+        const wasHomepage = site?.homepageId === req.params.id;
         const outcome = await cmsStore.removePage(req.siteId, req.params.id);
         if (!outcome) return res.status(404).json({ error: 'Page not found' });
-        res.json({ success: true, ...outcome });
+        const redirect = entry && !wasHomepage ? await cmsStore.redirectDeletedPage(req.siteId, entry.slug, redirectTo) : null;
+        res.json({ success: true, ...outcome, ...(redirect ? { redirect: redirect.entry || null, redirectError: redirect.error || null } : {}) });
     } catch (err) { res.status(400).json({ error: err.message }); }
 }
 

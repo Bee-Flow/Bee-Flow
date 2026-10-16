@@ -51,12 +51,14 @@ const { injectIntoShell } = require('../core/seo/inject');
 const { buildSitemap, buildRobots, buildLlmsTxt } = require('../core/seo/sitemap');
 const { localesForPage } = require('../core/seo/locales');
 const { LEGACY_SLUGS, GONE_SLUGS } = require('../core/seo/legacySlugs');
+const { resolveSiteRedirect } = require('../core/seo/siteRedirect');
 const { jsonForScript } = require('../core/seo/html');
 const { sendNotFound } = require('../core/seo/notFound');
 const { synthesizeLegacyContent } = require('../core/cms/legacyContent');
-const { buildBlogHead, renderBlogBody, buildFeed, blogSitemapEntries } = require('../core/seo/blog');
+const { buildBlogHead, renderBlogBody, buildFeed } = require('../core/seo/blog');
 const { buildAtomFeed } = require('../core/seo/blogAtom');
 const { listGalleryItems, integrationSitemapEntries } = require('../core/seo/integrationsDirectory');
+const { blogSitemap } = require('./publicRenderBlogSitemap');
 const log = require('../telemetry/log');
 
 const router = express.Router();
@@ -202,19 +204,6 @@ router.get('/sitemap.xml', async (req, res, _next) => {
     }
 });
 
-async function blogSitemap(siteId, { snapshot, defaultLocale, locales, lastmod }) {
-    if (!snapshot?.posts || !Object.keys(snapshot.posts).length) return [];
-    // A legacy page slugged "blog" owns /blog; the posts below it still list.
-    const { posts } = await cmsStore.getLatestPublishedPosts(siteId, { locale: defaultLocale, limit: 50_000 });
-    const { localesForPost } = require('../stores/cms/blogEffective');
-    const overrides = snapshot.postLocaleOverrides || {};
-    const byPost = {};
-    for (const p of posts) byPost[p.id] = localesForPost(overrides, p.id, defaultLocale, locales);
-    const index = [defaultLocale, ...locales.filter(l => l !== defaultLocale && posts.some(p => byPost[p.id].includes(l)))];
-    const full = posts.map(p => ({ ...p, seo: snapshot.posts[p.id]?.seo || {} }));
-    return blogSitemapEntries({ posts: full, overridesLocales: { index, byPost }, lastmod });
-}
-
 // ── blog feeds (RSS 2.0 at feed.xml, Atom 1.0 at atom.xml) ──────────────────────────────────────────────
 // /blog/feed.xml and /<locale>/blog/feed.xml. Like the sitemap, never falls
 // through to the SPA: a feed reader that got HTML would report a broken feed.
@@ -355,6 +344,15 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res
         if (!siteId) return next();
 
         const { defaultLocale, locales } = await siteLocales();
+
+        // Editor-managed redirects (renamed or merged pages), answered before this address is taken for a page, a 410 or the SPA.
+        // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- the target was validated when saved (stores/cms/redirectRules.js): a site path, or an https URL on the site's allow-list
+        const managed = resolveSiteRedirect(await cmsStore.getPublishedSnapshot(siteId), req.path, locales, rawQuery(req));
+        if (managed) {
+            res.set('Cache-Control', 'public, max-age=60, s-maxage=300');
+            return res.redirect(managed.status, managed.location);
+        }
+
         // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect, ajinabraham.njsscan.xss.xss_node.express_xss -- parsePublicPath only yields [a-z0-9-] slugs; every redirect target below is buildPublicPath(...), a same-site path starting with one "/", and pages are rendered through the escaping head/body builders
         const legalTarget = legalRedirectTarget(req.path, locales, defaultLocale);
         if (legalTarget) {

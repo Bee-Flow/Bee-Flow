@@ -231,6 +231,7 @@ function projectLocaleKey(siteId, locale)          { return `${KEY_PROJECT_PFX}$
 function pageKey(siteId, pageId)                   { return `${KEY_PROJECT_PFX}${siteId}${KEY_PAGE_INFIX}${pageId}`; }
 function pageLocaleKey(siteId, pageId, locale)     { return `${KEY_PROJECT_PFX}${siteId}${KEY_PAGE_INFIX}${pageId}${KEY_LOCALE_INFIX}${locale}`; }
 function publishedKey(siteId)                      { return `${KEY_PUBLISHED_PFX}${siteId}`; }
+function redirectsKey(siteId)                      { return `${KEY_PROJECT_PFX}${siteId}_redirects`; }
 
 module.exports = {
     KEY_DEFAULT_LOCALE, KEY_PROJECTS_INDEX, KEY_PROJECT_PFX, KEY_LOCALE_INFIX,
@@ -239,5 +240,5 @@ module.exports = {
     newId, isPlainObject, clone, deepMerge, mergeLocaleContent,
     normalizeSlug, normalizeStoredSlug, isReservedSlug, assertSiteId,
     sanitizeDesign, sanitizeAnalytics, sanitizeBlogSettings,
-    projectKey, projectLocaleKey, pageKey, pageLocaleKey, publishedKey,
+    projectKey, projectLocaleKey, pageKey, pageLocaleKey, publishedKey, redirectsKey,
 };

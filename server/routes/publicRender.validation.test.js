@@ -24,7 +24,7 @@ const assert = require('node:assert');
 const Module = require('module');
 const querystring = require('node:querystring');
 
-const page = { translations: ['en', 'nl'] };
+const page = { translations: ['en', 'nl'], snapshot: {} };
 
 const MOCKS = {
     '../stores/cmsStore': {
@@ -33,7 +33,7 @@ const MOCKS = {
             found: true, design: {}, header: {},
             page: { id: 'p1', slug, title: 'Pricing', blocks: [], isHomepage: false },
         }),
-        getPublishedSnapshot: async () => ({}),
+        getPublishedSnapshot: async () => page.snapshot,
     },
     '../stores/configStore': { getConfig: async () => 'site-1' },
     '../stores/languageStore': { getAvailableLocales: async () => [{ code: 'en' }, { code: 'nl' }] },
@@ -86,7 +86,7 @@ function get(url) {
     });
 }
 
-test.beforeEach(() => { page.translations = ['en', 'nl']; });
+test.beforeEach(() => { page.translations = ['en', 'nl']; page.snapshot = {}; });
 
 test('a parameter the route has never heard of still gets the page', async () => {
     const res = await get('/pricing?gclid=abc&utm_source=news');
@@ -149,4 +149,19 @@ test('only a slug on the retired list answers 410', async () => {
     const res = await get('/nl/retired-page');
     assert.strictEqual(res.statusCode, 410);
     assert.strictEqual(res.headers['x-beeflow-render'], 'not-found');
+});
+
+test('a managed redirect answers before the page, carries the query and the locale prefix', async () => {
+    page.snapshot = { redirects: [{ from: '/pricing', to: '/plans', status: 301, external: false }], site: { pages: [] } };
+    const res = await get('/pricing?utm_source=news');
+    assert.strictEqual(res.statusCode, 301);
+    assert.strictEqual(res.location, '/plans?utm_source=news');
+    const nl = await get('/nl/pricing');
+    assert.strictEqual(nl.location, '/nl/plans');
+});
+
+test('a page that exists at the address wins over a redirect from it', async () => {
+    page.snapshot = { redirects: [{ from: '/pricing', to: '/plans', status: 301, external: false }], site: { pages: [{ slug: 'pricing' }] } };
+    const res = await get('/pricing');
+    assert.strictEqual(res.statusCode, 200);
 });

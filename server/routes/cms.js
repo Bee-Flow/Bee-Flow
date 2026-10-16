@@ -29,6 +29,7 @@
  *     PATCH  /api/cms/sites/:siteId                            { name } — rename
  *     DELETE /api/cms/sites/:siteId                            delete site + cascade
  *     *      /api/cms/sites/:siteId/posts[/:postId[/locale/:l]] blog posts (routes/cmsBlog.js)
+ *     *      /api/cms/sites/:siteId/redirects[/:id | /hosts]    redirects (routes/cmsRedirects.js)
  *     PUT    /api/cms/sites/:siteId/live                       { live } — set/clear live
  *     POST   /api/cms/sites/:siteId/duplicate                  deep-copy → new version
  *
@@ -86,6 +87,7 @@ const cmsAnalytics = require('./cmsAnalytics');
 const cmsMedia = require('./cmsMedia');
 const cmsBlog = require('./cmsBlog');
 const cmsStories = require('./cmsStories');
+const { createRedirectsRouter } = require('./cmsRedirects');
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, typeError } = require('../core/http/schemaParts');
 
@@ -224,9 +226,6 @@ async function attachSiteId(req, res, next) {
     next();
 }
 
-// SITE_ID_RE + attachSiteIdFromParam live in ./cmsShared.js (shared with
-// the CMS AI builder).
-
 // The uploader (multer, MIME whitelist, 400 on a rejected file) lives in
 // ./cmsAssets.js with handleUpload; the site-import uploader in
 // ./cmsSitesAdmin.js.
@@ -238,8 +237,6 @@ async function attachSiteId(req, res, next) {
 // attachSiteId or attachSiteIdFromParam) and req.params.{id,locale} (where
 // applicable); the same function is wired to both /admin/* and
 // /sites/:siteId/* routes below.
-
-// Analytics handlers moved to ./cmsAnalytics.js (mounted below).
 
 // ══════════════════════════════════════════════════════════════════
 // PUBLIC
@@ -346,6 +343,8 @@ router.use('/sites/:siteId', attachSiteIdFromParam);
 // Blog posts (routes/cmsBlog.js): list / create / read / patch / delete and
 // per-language translations. req.siteId is set by the middleware above.
 router.use('/sites/:siteId/posts', cmsBlog.createAdminRouter());
+
+router.use('/sites/:siteId/redirects', createRedirectsRouter()); // redirect manager (routes/cmsRedirects.js)
 
 // Pages — literal '/order' before ':id' wildcard.
 router.post('/sites/:siteId/pages', newPageBody, postPage);

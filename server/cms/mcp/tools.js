@@ -21,6 +21,7 @@
 'use strict';
 
 const { BLOG_TOOLS } = require('./blog');
+const { REDIRECT_TOOLS } = require('./redirects');
 
 const SITE_ID_PROP = Object.freeze({
     type: 'string',
@@ -140,7 +141,11 @@ const MCP_ONLY_TOOLS = [
         description: 'Delete a page from the DRAFT (not the live site until it is published). Cannot be undone. Links to it in the header and footer are removed; if it was the homepage, the first remaining page becomes the homepage (set another with cms_set_homepage).',
         parameters: {
             type: 'object',
-            properties: { siteId: SITE_ID_PROP, pageId: { type: 'string', description: 'The page id (pg_…).' } },
+            properties: {
+                siteId: SITE_ID_PROP,
+                pageId: { type: 'string', description: 'The page id (pg_…).' },
+                redirectTo: { type: 'string', description: 'Optional: a path on this site (e.g. "/pricing") the deleted page\'s address should 301 to, so its links and ranking are kept. Not used for the homepage.' },
+            },
             required: ['pageId'],
         },
         readOnly: false,
@@ -288,6 +293,8 @@ const MCP_ONLY_TOOLS = [
     },
     // Blog posts: cms/mcp/blog.js (list, get, create, update, delete, translate, index settings).
     ...BLOG_TOOLS,
+    // Redirects: cms/mcp/redirects.js (list, set, delete).
+    ...REDIRECT_TOOLS,
 ];
 
 /**

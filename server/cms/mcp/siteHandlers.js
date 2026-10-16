@@ -63,8 +63,12 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
         const pageId = String(args.pageId || '');
         const entry = site.project.pages.find((p) => p.id === pageId);
         if (!entry) return err(`Page "${pageId.slice(0, 60)}" is not in this site.`, { _fixHint: `Known page ids: ${site.project.pages.map((p) => `${p.id} (${p.slug})`).join(', ') || 'none'}.` });
+        const redirectTo = typeof args.redirectTo === 'string' ? args.redirectTo.trim() : '';
+        const wasHomepage = site.project.homepageId === pageId;
         const outcome = await cmsStore.removePage(site.siteId, pageId);
         if (!outcome) return err(`Page "${pageId.slice(0, 60)}" is not in this site.`);
+        // The deleted address may lead somewhere (301); the homepage's address is "/", which has no redirect.
+        const made = redirectTo && !wasHomepage ? await cmsStore.redirectDeletedPage(site.siteId, entry.slug, redirectTo) : null;
         const validation = validationOf(await loadDraft(site.siteId, ctx));
         return {
             result: {
@@ -72,6 +76,8 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
                 deleted: { id: pageId, slug: entry.slug },
                 ...(outcome.newHomepage ? { newHomepage: outcome.newHomepage } : {}),
                 ...(outcome.neutralisedLinks ? { neutralisedLinks: outcome.neutralisedLinks } : {}),
+                ...(made && made.entry ? { redirect: made.entry } : {}),
+                ...(made && made.error ? { redirectError: `The page is deleted, but no redirect was made: ${made.error}` } : {}),
                 ...(validation ? { validation } : {}),
             },
         };

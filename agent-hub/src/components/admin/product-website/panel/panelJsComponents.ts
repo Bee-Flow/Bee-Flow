@@ -31,6 +31,7 @@ export const InspectorHost = InspectorHostJs as unknown as ComponentType<{
     analyticsProps: Props;
     pageProps: Props;
     blogInspector?: ReactNode;
+    redirectsInspector?: ReactNode;
 }>;
 
 export const PreviewStage = PreviewStageJs as unknown as ComponentType<{

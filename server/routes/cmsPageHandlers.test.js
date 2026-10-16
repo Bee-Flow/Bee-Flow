@@ -154,3 +154,18 @@ test('putPageLocale refuses an unknown page (404) and a malformed locale (400)',
     assert.strictEqual(bad.statusCode, 400);
     assert.deepStrictEqual(calls, []);
 });
+
+test('deleting a page with ?redirectTo leaves a 301 from its address (never for the homepage)', async () => {
+    const made = [];
+    mock.method(cmsStore, 'getProject', async () => ({ homepageId: 'pg_home', pages: [{ id: 'pg_old', slug: 'old' }, { id: 'pg_home', slug: 'start' }] }));
+    mock.method(cmsStore, 'removePage', async () => ({}));
+    mock.method(cmsStore, 'redirectDeletedPage', async (siteId, slug, to) => { made.push([slug, to]); return { entry: { from: `/${slug}`, to } }; });
+    const res = await call(handlers.deletePageHandler, { params: { id: 'pg_old' }, query: { redirectTo: '/new' } });
+    assert.deepStrictEqual(made, [['old', '/new']]);
+    assert.strictEqual(res.body.redirect.to, '/new');
+    const home = await call(handlers.deletePageHandler, { params: { id: 'pg_home' }, query: { redirectTo: '/new' } });
+    assert.deepStrictEqual(made, [['old', '/new']]);
+    assert.strictEqual(home.body.redirect, undefined);
+    const plain = await call(handlers.deletePageHandler, { params: { id: 'pg_old' }, query: {} });
+    assert.deepStrictEqual(plain.body, { success: true });
+});

@@ -22,6 +22,7 @@ const {
 } = require('./localeOverrides');
 const { withConfigGroup, realignSiteOverrides } = require('./overrideAlign');
 const { listPosts, collectPostLocaleOverrides, restorePosts } = require('./posts');
+const redirectsStore = require('./redirects');
 
 // ── Projects index ───────────────────────────────────────────────────
 
@@ -346,6 +347,7 @@ async function duplicateProject(sourceSiteId) {
         blog: sanitizeBlogSettings(source.blog),
     };
     await configStore.setConfig(projectKey(newSiteId), newSite);
+    await redirectsStore.restoreRedirects(newSiteId, await redirectsStore.getRedirects(sourceSiteId, { fresh: true }));
 
     // Deep-copy each PageDoc with a fresh page id + fresh block ids,
     // remapping any internal page links inside block content too. Block ids
@@ -492,6 +494,8 @@ async function createPage(siteId, { slug, title, copyFromId, templateId } = {}) 
         page.slug = savedSlug;
         await setPage(siteId, page);
     }
+    // The page owns this address now: a redirect from it would shadow the page.
+    await redirectsStore.releaseSlug(siteId, savedSlug);
     return { id, slug: savedSlug };
 }
 
@@ -505,10 +509,14 @@ function ensureUniqueSlug(slug, pages, ignoreId) {
 }
 
 async function updatePageMeta(siteId, pageId, patch = {}) {
+    let previousSlug = '';
+    let wasHomepage = false;
     const { result: current } = await mutateProject(siteId, (site) => {
         const idx = site.pages.findIndex(p => p.id === pageId);
         if (idx < 0) throw new Error('Page not found');
         const entry = site.pages[idx];
+        previousSlug = entry.slug;
+        wasHomepage = site.homepageId === pageId;
 
         if (patch.slug !== undefined) {
             const next = normalizeSlug(patch.slug) || entry.slug;
@@ -525,6 +533,12 @@ async function updatePageMeta(siteId, pageId, patch = {}) {
         site.pages[idx] = entry;
         return entry;
     });
+
+    // The old address keeps working: a 301 to the new one (not for the homepage,
+    // whose URL is "/" whatever its slug).
+    if (patch.slug !== undefined && !wasHomepage && previousSlug !== current.slug) {
+        await redirectsStore.recordRename(siteId, previousSlug, current.slug);
+    }
 
     // The PageDoc mirrors the slug/title the locked write settled on.
     // Under the page's revision check, so a block edit saved meanwhile survives.

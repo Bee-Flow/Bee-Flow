@@ -10,6 +10,7 @@ const { extractAssetKeys } = require('./postText');
 const { getProject, mutateProjectsIndex } = require('./projects');
 const { getPage } = require('./pages');
 const { annotatePageLinks } = require('./pageLinks');
+const redirectsStore = require('./redirects');
 const { getDefaultLocale, collectLocaleOverrides } = require('./localeOverrides');
 const { validateSiteChrome } = require('./chromeValidation');
 const {
@@ -85,6 +86,11 @@ function collectAssetKeys(node, out = new Set()) {
     return out;
 }
 
+/**
+ * The export bundle: an open JSON document (routes add `assets` / `assetsMissing` to `site`).
+ * @param {string} siteId
+ * @returns {Promise<{ site: Record<string, any> } & Record<string, any>>}
+ */
 async function exportSite(siteId) {
     const site = await getProject(siteId);
     if (!site) throw new Error('Site not found');
@@ -199,6 +205,12 @@ async function exportSite(siteId) {
         };
     });
 
+    // Redirects ride along as an additive key (an older install ignores it).
+    const redirectDoc = await redirectsStore.getRedirects(siteId, { fresh: true });
+    const exportedRedirects = redirectDoc.redirects.map(({ from, to, status, external, auto }) => ({ from, to, status, external, auto }));
+    /** @type {Record<string, unknown>} */
+    const redirectFields = exportedRedirects.length ? { redirects: exportedRedirects } : {};
+
     return {
         [EXPORT_MARKER]: true,
         version: EXPORT_VERSION,
@@ -236,6 +248,7 @@ async function exportSite(siteId) {
             pages: exportedPages,
             blog: sanitizeBlogSettings(site.blog),
             posts: exportedPosts,
+            ...redirectFields,
         },
     };
 }
@@ -290,6 +303,15 @@ async function importSite(exportData) {
     await restoreLocaleOverrides({
         newSiteId, incomingChrome, pagesOut, pagesInAligned, slugToNewId, blockIdMapByPageIndex, importedLocales, warnings, remapPageLinks,
     });
+    // Same rules as a hand-made entry: loops, chains and unsafe targets are dropped.
+    // The allow-list of external hosts is NOT restored: only an administrator
+    // widens it, so redirects to other websites are left out and named instead.
+    await redirectsStore.restoreRedirects(newSiteId, { redirects: incoming.redirects, allowedHosts: [] });
+    const external = (Array.isArray(incoming.redirects) ? incoming.redirects : []).filter((r) => isPlainObject(r) && r.external === true);
+    if (external.length) {
+        const hosts = [...new Set(external.map((r) => { try { return new URL(String(r.to)).hostname; } catch { return ''; } }).filter(Boolean))].slice(0, 10);
+        warnings.push(`${external.length} redirect(s) to other websites were not imported${hosts.length ? ` (${hosts.join(', ')})` : ''}: allow the host under Redirects, then add them again`);
+    }
     const importedPosts = await restoreBlogPosts({ newSiteId, postsPreview, importedLocales, warnings });
 
     if (linkStats.unresolved) {

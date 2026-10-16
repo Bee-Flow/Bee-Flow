@@ -14,6 +14,7 @@
  *   cms_project_{siteId}_locale_{xx}                      site-locale override
  *   cms_project_{siteId}_page_{pageId}                    PageDoc
  *   cms_project_{siteId}_page_{pageId}_locale_{xx}        page-locale override
+ *   cms_project_{siteId}_redirects                        redirects  {redirects[], allowedHosts[]} (stores/cms/redirects.js)
  *   cms_project_{siteId}_posts                            blog post registry (id + slug)
  *   cms_project_{siteId}_post_{postId}                    PostDoc (blog post, Markdown body)
  *   cms_project_{siteId}_post_{postId}_locale_{xx}        post-locale override
@@ -70,6 +71,7 @@ const {
 const { mergeLocaleContent, sanitizeAnalytics, sanitizeBlogSettings } = require('./cms/shared');
 const { validateSiteChrome } = require('./cms/chromeValidation');
 const posts = require('./cms/posts');
+const redirects = require('./cms/redirects');
 const { getEffectiveBlog, getLatestPublishedPosts } = require('./cms/blogEffective');
 
 module.exports = {
@@ -107,6 +109,9 @@ module.exports = {
     collectPostLocaleOverrides: posts.collectPostLocaleOverrides,
     getEffectiveBlog, getLatestPublishedPosts, sanitizeBlogSettings,
     PostError: posts.PostError, POST_LIMITS: posts.POST_LIMITS, POST_STATUSES: posts.POST_STATUSES,
+    // redirects (301/302 manager)
+    getRedirects: redirects.getRedirects, setRedirect: redirects.setRedirect,
+    removeRedirect: redirects.removeRedirect, redirectDeletedPage: redirects.redirectDeleted, setRedirectHosts: redirects.setAllowedHosts,
     // helpers / constants for tests
     makeBlock, resolveLink, mergeLocaleContent, sanitizeBlocks,
     sanitizeAnalytics, sanitizePageIndexEntry, validateSiteChrome,

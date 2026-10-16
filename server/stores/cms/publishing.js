@@ -11,6 +11,7 @@ const {
 } = require('./shared');
 const { migrateSite } = require('./siteDoc');
 const { listPosts, collectPostLocaleOverrides } = require('./posts');
+const { getRedirects } = require('./redirects');
 const log = require('../../telemetry/log');
 
 // ── Publishing ───────────────────────────────────────────────────────
@@ -167,6 +168,8 @@ async function publishSite(siteId) {
         pageLocaleOverrides,
         posts,
         postLocaleOverrides,
+        // Additive: the public renderer answers these before the 404/410 decision.
+        redirects: (await getRedirects(siteId, { fresh: true })).redirects,
     };
     await configStore.setConfig(publishedKey(siteId), snapshot);
     return { publishedAt: snapshot.publishedAt };

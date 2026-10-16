@@ -1,0 +1,27 @@
+{
+  "translations": {
+    "cms_redirects.add": "Doorverwijzing toevoegen",
+    "cms_redirects.auto_badge": "Automatisch",
+    "cms_redirects.empty": "Nog geen doorverwijzingen.",
+    "cms_redirects.error_generic": "De doorverwijzing kon niet worden opgeslagen.",
+    "cms_redirects.external_label": "Het nieuwe adres staat op een andere website",
+    "cms_redirects.from_label": "Oud adres",
+    "cms_redirects.from_placeholder": "/oude-pagina",
+    "cms_redirects.hosts_help": "Een doorverwijzing naar een andere website werkt alleen voor de websites in deze lijst (één per regel, bijvoorbeeld voorbeeld.nl).",
+    "cms_redirects.hosts_save": "Lijst opslaan",
+    "cms_redirects.hosts_title": "Toegestane websites",
+    "cms_redirects.intro": "Stuur bezoekers en zoekmachines van een oud adres naar een nieuw adres. Als je een pagina hernoemt, komt er vanzelf een permanente doorverwijzing. Wijzigingen gaan live zodra je publiceert.",
+    "cms_redirects.load_error": "De doorverwijzingen konden niet worden geladen.",
+    "cms_redirects.navigator": "Doorverwijzingen",
+    "cms_redirects.remove": "Doorverwijzing van {from} verwijderen",
+    "cms_redirects.shared_note": "Doorverwijzingen gelden voor alle talen. Schakel naar de standaardtaal om ze te bewerken.",
+    "cms_redirects.status_301": "Blijvend (301)",
+    "cms_redirects.status_302": "Tijdelijk (302)",
+    "cms_redirects.status_label": "Soort",
+    "cms_redirects.title": "Doorverwijzingen",
+    "cms_redirects.to_label": "Nieuw adres",
+    "cms_redirects.to_placeholder": "/nieuwe-pagina",
+    "cms_redirects.view": "doorverwijzingen"
+  },
+  "sameAsEnglish": []
+}
