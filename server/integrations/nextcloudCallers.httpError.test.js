@@ -51,8 +51,10 @@ const { executeNextcloudActivityTool } = require('./nextcloudActivityTools');
 const { executeNextcloudTablesTool } = require('./nextcloudTablesTools');
 const { executeSearchTool } = require('./nextcloudFiles/search');
 
-test('Activity: an unknown filter (404 with a reason) is not "app not installed"', async () => {
-    const out = await runWith(executeNextcloudActivityTool, 'nextcloud_activity_list', { filter: 'nope' }, 404, '{"message":"Unknown filter"}');
+// An unknown `filter` value is refused before any request (nextcloudActivityTools.js),
+// so a valid one is used here to reach Nextcloud's own 404.
+test('Activity: a 404 with a reason is not "app not installed"', async () => {
+    const out = await runWith(executeNextcloudActivityTool, 'nextcloud_activity_list', { filter: 'all' }, 404, '{"message":"Unknown filter"}');
     assert.match(out.error, /Unknown filter/);
     assert.ok(!/not installed/.test(out.error));
 });
