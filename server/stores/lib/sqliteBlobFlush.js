@@ -18,6 +18,18 @@ const MAX_OPEN_HANDLES = 32;
  * @param {object} deps  handles (the engine's Map), dbKey, storage, runQuery,
  *                       metaTable, logPrefix, entityLabel — see createSqliteBlobEngine.
  */
+/**
+ * The upload carries the .db file alone, which is the whole database only in
+ * journal mode DELETE (set when the handle opens). Any other mode is refused
+ * rather than uploading a file that may miss its -wal side file.
+ * @param {{ pragma: (sql: string, opts?: { simple?: boolean }) => unknown }} db
+ * @param {string} entityLabel
+ */
+function assertSingleFileJournal(db, entityLabel) {
+    const mode = String(db.pragma('journal_mode', { simple: true }) || '').toLowerCase();
+    if (mode !== 'delete') throw new Error(`${entityLabel} is not in journal mode DELETE — refusing to flush`);
+}
+
 function createFlusher({ handles, dbKey, storage, runQuery, metaTable, logPrefix, entityLabel }) {
     function scheduleFlush(id) {
         const entry = handles.get(id);
@@ -64,6 +76,7 @@ function createFlusher({ handles, dbKey, storage, runQuery, metaTable, logPrefix
                 // clearing at the end (as before) let closeAll/evict skip a
                 // flush whose bytes were newer than the upload in flight.
                 entry.dirty = false;
+                assertSingleFileJournal(entry.db, entityLabel);
                 const buf = await fsp.readFile(entry.localPath);
                 const sha = crypto.createHash('sha256').update(buf).digest('hex');
                 const prevSha = entry.lastPersistedSha || '';
