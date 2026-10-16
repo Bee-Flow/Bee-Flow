@@ -17,7 +17,7 @@ const path = require('node:path');
 const { validatePin } = require('./learnMediaInstall');
 
 const PIN_PATH = path.join(__dirname, 'learnMediaPack.json');
-const LESSON_FILES = ['lessons.js', path.join('generated', 'lessons.js')].map((f) => path.join(__dirname, '..', '..', 'agent-hub', 'src', 'components', 'onboarding', f));
+const LESSON_FILES = ['lessons.ts', path.join('generated', 'lessons.js')].map((f) => path.join(__dirname, '..', '..', 'agent-hub', 'src', 'components', 'onboarding', f));
 
 /** Every video id the lesson definitions reference (parsed out of the lesson files). */
 function lessonVideoIds() {
