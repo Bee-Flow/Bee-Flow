@@ -19,7 +19,7 @@ interface FooterData extends SectionDataBase {
         address?: string;
         registration?: string;
         vat?: string;
-        links?: FooterLink[];
+        links?: unknown;
     };
     brand?: { logoText?: string; showDot?: boolean; blurb?: string };
     columns?: { heading?: string; links?: FooterLink[] }[];

@@ -5,55 +5,10 @@ import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import FramedMedia from '../components/FramedMedia';
 import { inlineTextStyle } from './textStyle';
-import type { MediaSlot, SectionDataBase, TextStyleBlob } from './sectionData.types';
 
-interface HeroLink {
-    href?: string;
-    newTab?: boolean;
-}
+const HERO_VARIANTS = ['classic', 'panel', 'split', 'video'];
 
-interface HeroCta {
-    enabled?: boolean;
-    label?: string;
-    style?: string;
-    href?: string;
-    link?: HeroLink;
-    openInNewTab?: boolean;
-}
-
-interface HeroBadge {
-    enabled?: boolean;
-    text?: string;
-    icon?: string;
-}
-
-interface HeroBubble {
-    role?: string;
-    text?: string;
-}
-
-interface HeroTitlePart {
-    text?: string;
-    gradient?: boolean;
-}
-
-interface HeroData extends SectionDataBase {
-    titleParts?: HeroTitlePart[];
-    mockup?: { enabled?: boolean; chatBubbles?: HeroBubble[] };
-    badge?: HeroBadge;
-    primaryCta?: HeroCta;
-    secondaryCta?: HeroCta;
-    leadEnabled?: boolean;
-    badgeStyle?: TextStyleBlob;
-    badgeAlign?: string;
-    lead?: string;
-    variant?: string;
-    media?: MediaSlot;
-}
-
-const HERO_VARIANTS: (string | undefined)[] = ['classic', 'panel', 'split', 'video'];
-
-export default function Hero({ data }: { data?: HeroData | null }) {
+export default function Hero({ data }) {
     if (!data?.enabled) return null;
 
     // Sub-objects normalised once so the JSX below stays compact and we
@@ -103,7 +58,7 @@ export default function Hero({ data }: { data?: HeroData | null }) {
     // for forward-compat with blocks that put the flag on the CTA itself.
     const primaryNewTab   = !!(primary.link?.newTab || primary.openInNewTab);
     const secondaryNewTab = !!(second.link?.newTab  || second.openInNewTab);
-    const newTabProps = (on: boolean) => (on ? { target: '_blank', rel: 'noopener noreferrer' } : null);
+    const newTabProps = (on) => (on ? { target: '_blank', rel: 'noopener noreferrer' } : null);
 
     // Background variant — same scale as Media + Text and Content blocks.
     // 'default' produces no extra class (page bg shows through); the
@@ -133,7 +88,7 @@ export default function Hero({ data }: { data?: HeroData | null }) {
     const copy = (
         <div className="hero-content">
             {showBadge ? (
-                <div style={badgeAlign ? { textAlign: badgeAlign as React.CSSProperties['textAlign'] } : undefined}>
+                <div style={badgeAlign ? { textAlign: badgeAlign } : undefined}>
                     <div className="hero-badge reveal" style={badgeTextStyle}>
                         {badge.icon ? <AppIcon name={badge.icon} className="w-4 h-4" /> : null}
                         <EditableText path="hero.badge.text" placeholder="Badge text">

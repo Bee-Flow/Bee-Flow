@@ -19,8 +19,6 @@ import {
     LEGACY_CONSENT_STORAGE_KEY as LEGACY_STORAGE_KEY,
 } from './consent';
 
-// Built-in copy. Caller-supplied `text` is overlaid per language, so a
-// partial override (e.g. just the message) keeps the default button labels.
 interface CookieStrings {
     message: string;
     accept: string;
@@ -37,6 +35,8 @@ interface CookieBannerProps {
 
 type ConsentChoice = 'accepted' | 'declined';
 
+// Built-in copy. Caller-supplied `text` is overlaid per language, so a
+// partial override (e.g. just the message) keeps the default button labels.
 const DEFAULT_TEXT: Record<string, CookieStrings> = {
     en: {
         message: 'We use cookies to improve your experience.',

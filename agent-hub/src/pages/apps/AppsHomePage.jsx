@@ -7,10 +7,8 @@ import { useEntitlements } from '../../components/licensing/EntitlementsContext'
 import { useLicenseContext } from '../../components/licensing/LicenseContext';
 import EmptyState from '../../components/shared/EmptyState';
 import { kindTileStyle } from '../../components/shared/kindColors';
-import useTranslation, { type TranslateFn } from '../../hooks/useTranslation';
-import { errorMessage } from '../../utils/caughtError';
+import useTranslation from '../../hooks/useTranslation';
 import scopedStorage from '../../utils/scopedStorage';
-import type { StudioAppRow } from './AppsHomePage.types';
 
 /**
  * AppsHomePage — the consumer directory at /app/apps.
@@ -47,7 +45,7 @@ const APP_TILE = kindTileStyle('app', { size: 26, pct: 14 });
 // The app's own accent at 16% — the tint the card tiles carry across Studio.
 // color-mix rather than an `${hex}29` suffix so the recipe reads as a
 // percentage and survives a non-hex accent unchanged.
-function accentTile(accentColor: string | undefined) {
+function accentTile(accentColor) {
     const accent = /^#[0-9a-fA-F]{6}$/.test(accentColor || '') ? accentColor : DEFAULT_ACCENT;
     return { background: `color-mix(in srgb, ${accent} 16%, transparent)`, color: accent };
 }
@@ -78,9 +76,9 @@ const REMEMBERED = 12;
 export const RECENTS_SHOWN = 3;
 
 /** `{ [appId]: epochMs }`, never throwing on absent or corrupt storage. */
-export function readAppRecents(): Record<string, number> {
+export function readAppRecents() {
     try {
-        const parsed: Record<string, number> | null = JSON.parse(scopedStorage.getItem(RECENTS_KEY) || 'null');
+        const parsed = JSON.parse(scopedStorage.getItem(RECENTS_KEY) || 'null');
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
         // Drop anything that is not a usable timestamp rather than letting it
         // sort unpredictably later.
@@ -93,7 +91,7 @@ export function readAppRecents(): Record<string, number> {
 }
 
 /** Stamp an app as opened by this user, now. */
-export function rememberAppOpened(id: string | null | undefined, now = Date.now()) {
+export function rememberAppOpened(id, now = Date.now()) {
     if (!id) return;
     const next = { ...readAppRecents(), [id]: now };
     const trimmed = Object.fromEntries(
@@ -112,7 +110,7 @@ export function rememberAppOpened(id: string | null | undefined, now = Date.now(
  * longer in `apps` (unpublished, unshared, deleted) drops out on its own,
  * because the list is filtered rather than looked up.
  */
-export function recentApps(apps: StudioAppRow[] | null | undefined, limit = RECENTS_SHOWN, recents = readAppRecents()) {
+export function recentApps(apps, limit = RECENTS_SHOWN, recents = readAppRecents()) {
     const list = Array.isArray(apps) ? apps : [];
     return list
         .filter((a) => a?.id && recents[a.id])
@@ -136,7 +134,7 @@ const APP_CATEGORIES = ['sales', 'service', 'finance', 'hr', 'internal'];
 // Labels resolve through t() at the call site (never stored English), so the
 // pill row follows the reader's language while the stored value stays a
 // stable key.
-const CATEGORY_LABELS: Record<string, (t: TranslateFn) => string> = {
+const CATEGORY_LABELS = {
     sales: (t) => t('apps.category.sales', 'Sales'),
     service: (t) => t('apps.category.service', 'Service'),
     finance: (t) => t('apps.category.finance', 'Finance'),
@@ -145,7 +143,7 @@ const CATEGORY_LABELS: Record<string, (t: TranslateFn) => string> = {
 };
 
 /** The app's category when it is one of the closed list, else null. */
-function appCategory(app: StudioAppRow | null | undefined) {
+function appCategory(app) {
     const raw = app?.category;
     if (typeof raw !== 'string') return null;
     const key = raw.trim().toLowerCase();
@@ -156,12 +154,12 @@ function appCategory(app: StudioAppRow | null | undefined) {
  * The closed-list categories at least one app in view carries, in the LIST's
  * own order — so the row never reshuffles itself between two loads.
  */
-function categoriesInView(apps: StudioAppRow[]) {
+function categoriesInView(apps) {
     return APP_CATEGORIES.filter((c) => apps.some((a) => appCategory(a) === c));
 }
 
 /** The apps under a chip; 'all' (and any stale selection) shows everything. */
-function visibleUnder(apps: StudioAppRow[], category: string) {
+function visibleUnder(apps, category) {
     return category === 'all' ? apps : apps.filter((a) => appCategory(a) === category);
 }
 
@@ -174,7 +172,7 @@ function visibleUnder(apps: StudioAppRow[], category: string) {
 // Name and description both, because half the apps in a real directory are
 // named after the department that ordered them ("Bakker-tool") and the
 // description is the only place the word "invoice" appears.
-function matchesQuery(app: StudioAppRow | null | undefined, query: string) {
+function matchesQuery(app, query) {
     const q = (query || '').trim().toLowerCase();
     if (!q) return true;
     const haystack = `${app?.name || ''} ${app?.description || ''}`.toLowerCase();
@@ -192,7 +190,7 @@ function matchesQuery(app: StudioAppRow | null | undefined, query: string) {
 // wearing a "new" badge because of a comma is worse than no badge at all.
 const NEW_FOR_MS = 14 * 24 * 60 * 60 * 1000;
 
-function isNewlyPublished(app: StudioAppRow | null | undefined, now = Date.now()) {
+function isNewlyPublished(app, now = Date.now()) {
     const at = Date.parse(app?.publishedAt || '');
     if (!Number.isFinite(at)) return false;
     // A future stamp (clock skew, a seeded fixture) is not "new" — it is
@@ -212,13 +210,15 @@ function isNewlyPublished(app: StudioAppRow | null | undefined, now = Date.now()
  * already uses, so two surfaces stop answering the question two ways, and the
  * one order a reader can predict well enough to aim at.
  */
-function byName(a: StudioAppRow | null | undefined, b: StudioAppRow | null | undefined) {
-    return String(a?.name || '').localeCompare(String(b?.name || ''), undefined, { numeric: true, sensitivity: 'base' });
+function byName(a, b) {
+    return String(a?.name || '').localeCompare(String(b?.name || ''), undefined, {
+        numeric: true, sensitivity: 'base',
+    });
 }
 
 const PILL_CLASSES = 'rounded-full border px-3 py-1 text-xs font-medium transition-colors';
 
-function CategoryFilter({ categories, value, onChange, t }: { categories: string[]; value: string; onChange: (key: string) => void; t: TranslateFn }) {
+function CategoryFilter({ categories, value, onChange, t }) {
     // No categorised app in the directory means nothing to filter by — a row
     // with a lone "All" pill is chrome that does nothing.
     if (categories.length === 0) return null;
@@ -263,7 +263,7 @@ const GRID_CLASSES = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-col
 // rules below stop lining up across the row.
 const DESC_CLASSES = 'h-[34px] overflow-hidden text-[11.5px] leading-[17px] mt-2';
 
-const isPublished = (a: StudioAppRow | null | undefined) => !!(a?.isPublished ?? a?.is_published);
+const isPublished = (a) => !!(a?.isPublished ?? a?.is_published);
 
 /**
  * A load failure that carried no message of its own.
@@ -277,7 +277,7 @@ const isPublished = (a: StudioAppRow | null | undefined) => !!(a?.isPublished ??
  */
 const GENERIC_LOAD_ERROR = Symbol('apps.load_failed');
 
-function AppCard({ app, now }: { app: StudioAppRow; now: number }) {
+function AppCard({ app, now }) {
     const { t } = useTranslation();
     const category = appCategory(app);
     return (
@@ -321,7 +321,7 @@ function AppCard({ app, now }: { app: StudioAppRow; now: number }) {
     );
 }
 
-function ErrorBanner({ message, onRetry }: { message: string | symbol; onRetry: () => void }) {
+function ErrorBanner({ message, onRetry }) {
     const { t } = useTranslation();
     // A message the failure carried is shown as-is; it is the server's own
     // words and there is no key to look it up under. Only GENERIC_LOAD_ERROR,
@@ -374,7 +374,7 @@ function SkeletonGrid() {
  * are TWO sections to tell apart — a lone grid with "All apps" written over it
  * is a label for nothing.
  */
-function SectionLabel({ children }: { children: string }) {
+function SectionLabel({ children }) {
     return (
         <h2
             className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]"
@@ -391,7 +391,7 @@ function SectionLabel({ children }: { children: string }) {
  * also what hides the search box: a box that can only ever filter zero apps
  * is a control that lies about having something to do.
  */
-function Toolbar({ count, query, onQuery, canBuild }: { count: number | null; query: string; onQuery: (query: string) => void; canBuild: boolean }) {
+function Toolbar({ count, query, onQuery, canBuild }) {
     const { t } = useTranslation();
     // Pinned at 48px — the height every screen's header keeps.
     return (
@@ -459,7 +459,7 @@ function Toolbar({ count, query, onQuery, canBuild }: { count: number | null; qu
  * and the footnote under both. Split out of the page so the page reads as
  * "fetch, filter, hand over" and this reads as the layout it is.
  */
-function Directory({ recentlyUsed, apps, now, noMatches }: { recentlyUsed: StudioAppRow[]; apps: StudioAppRow[]; now: number; noMatches: boolean }) {
+function Directory({ recentlyUsed, apps, now, noMatches }) {
     const { t } = useTranslation();
     const hasRecents = recentlyUsed.length > 0;
     return (
@@ -522,9 +522,9 @@ function Directory({ recentlyUsed, apps, now, noMatches }: { recentlyUsed: Studi
 
 export default function AppsHomePage() {
     const { t } = useTranslation();
-    const [apps, setApps] = useState<StudioAppRow[]>([]);
+    const [apps, setApps] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | symbol | null>(null);
+    const [error, setError] = useState(null);
     const [category, setCategory] = useState('all');
     const [query, setQuery] = useState('');
 
@@ -550,13 +550,13 @@ export default function AppsHomePage() {
             const shared = (accessible?.apps || []).filter(isPublished);
             const ownedPublished = (mine?.apps || []).filter(isPublished);
             // Dedupe by id (an owned app can also appear in accessible).
-            const byId = new Map<string, StudioAppRow>();
+            const byId = new Map();
             for (const a of [...shared, ...ownedPublished]) {
                 if (a?.id && !byId.has(a.id)) byId.set(a.id, a);
             }
             setApps([...byId.values()].sort(byName));
         } catch (err) {
-            setError(errorMessage(err) || GENERIC_LOAD_ERROR);
+            setError(err?.message || GENERIC_LOAD_ERROR);
         } finally {
             setLoading(false);
         }

@@ -7,6 +7,16 @@ import { PRIMARY_ACTION_STYLE } from '../../components/shared/StudioSectionHeade
 import useTranslation from '../../hooks/useTranslation';
 import type { TranslateFn } from '../../hooks/useTranslation';
 
+interface BuildBarProps {
+    prompt: string;
+    onPromptChange: (value: string) => void;
+    sources?: BuildSource[];
+    onSourcesChange?: (sources: BuildSource[]) => void;
+    onBuild?: () => void;
+    building?: boolean;
+    inputRef?: React.Ref<HTMLInputElement> | null;
+}
+
 /**
  * The describe-to-build bar above the cards (Webpages artboard 1a, plan W1).
  *
@@ -28,16 +38,6 @@ import type { TranslateFn } from '../../hooks/useTranslation';
  *   building                  request in flight
  *   inputRef                  so a preset click can focus the box it filled
  */
-interface BuildBarProps {
-    prompt: string;
-    onPromptChange: (value: string) => void;
-    sources?: BuildSource[];
-    onSourcesChange?: (sources: BuildSource[]) => void;
-    onBuild?: () => void;
-    building?: boolean;
-    inputRef?: React.Ref<HTMLInputElement> | null;
-}
-
 export default function BuildBar({
     prompt,
     onPromptChange,
