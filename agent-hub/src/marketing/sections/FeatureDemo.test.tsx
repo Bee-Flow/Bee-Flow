@@ -30,15 +30,15 @@ const base = {
 
 // Relative, so jsdom's configured origin is preserved — an absolute URL with
 // a different host throws SecurityError.
-function setPreview(on) {
+function setPreview(on: boolean) {
     window.history.replaceState({}, '', on ? '?preview=1' : '?');
 }
 
 // The setup-file stub only installs itself when matchMedia is missing, so a
 // per-test swap (restored in afterEach) is safe and does not fight it.
-let originalMatchMedia;
-function setPhone(on) {
-    window.matchMedia = (query) => ({
+let originalMatchMedia: typeof window.matchMedia;
+function setPhone(on: boolean) {
+    window.matchMedia = (query: string) => ({
         matches: on && query === '(max-width: 768px)',
         media: String(query || ''),
         onchange: null,
@@ -61,7 +61,7 @@ const CONTAINMENT = {
     loading: 'lazy',
 };
 
-function expectContainment(iframe) {
+function expectContainment(iframe: Element) {
     for (const [attr, value] of Object.entries(CONTAINMENT)) {
         expect(iframe.getAttribute(attr), attr).toBe(value);
     }
@@ -72,7 +72,7 @@ describe('on desktop', () => {
         setPhone(false);
         const { container } = render(<FeatureDemo data={base} />);
 
-        const iframe = container.querySelector('iframe.feature-demo-iframe');
+        const iframe = container.querySelector('iframe.feature-demo-iframe') as HTMLElement;
         expect(iframe).not.toBeNull();
         expect(iframe.getAttribute('src')).toBe('/__demo__/automations?theme=light');
         expectContainment(iframe);
@@ -85,7 +85,7 @@ describe('on desktop', () => {
         expect(container.querySelector('.feature-demo-open-overlay')).toBeNull();
         expect(container.querySelector('.feature-demo-open-btn')).toBeNull();
         expect(container.querySelector('.feature-demo-scale-clip')).toBeNull();
-        expect(container.querySelector('.feature-demo-frame').style.height).toBe('760px');
+        expect((container.querySelector('.feature-demo-frame') as HTMLElement).style.height).toBe('760px');
     });
 });
 
@@ -95,10 +95,10 @@ describe('on a phone', () => {
     it('renders the scaled sandwich instead of a phone-width iframe', () => {
         const { container } = render(<FeatureDemo data={base} />);
 
-        const clip = container.querySelector('.feature-demo-scale-clip');
+        const clip = container.querySelector('.feature-demo-scale-clip') as HTMLElement;
         expect(clip).not.toBeNull();
 
-        const canvas = container.querySelector('.feature-demo-scale-canvas');
+        const canvas = container.querySelector('.feature-demo-scale-canvas') as HTMLElement;
         expect(canvas.getAttribute('aria-hidden')).toBe('true');
         expect(canvas.style.width).toBe('1280px');
         expect(canvas.style.transformOrigin).toBe('top left');
@@ -107,21 +107,21 @@ describe('on a phone', () => {
         // The framed document keeps the exact same containment as on desktop,
         // sits outside the tab order (it is inside an aria-hidden subtree),
         // and does NOT carry vw — viewport meta is inert inside an iframe.
-        const iframe = canvas.querySelector('iframe.feature-demo-iframe');
+        const iframe = canvas.querySelector('iframe.feature-demo-iframe') as HTMLElement;
         expect(iframe.getAttribute('src')).toBe('/__demo__/automations?theme=light');
         expectContainment(iframe);
         expect(iframe.getAttribute('tabindex')).toBe('-1');
 
         // The frame's height comes from the clip, not from the block field.
-        expect(container.querySelector('.feature-demo-frame').style.height).toBe('');
+        expect((container.querySelector('.feature-demo-frame') as HTMLElement).style.height).toBe('');
         expect(clip.style.height).toMatch(/px$/);
     });
 
     it('offers the full-screen demo through both the overlay and the footer button, same tab', () => {
         const { container } = render(<FeatureDemo data={base} />);
 
-        const overlay = container.querySelector('a.feature-demo-open-overlay');
-        const button = container.querySelector('a.feature-demo-open-btn');
+        const overlay = container.querySelector('a.feature-demo-open-overlay') as HTMLElement;
+        const button = container.querySelector('a.feature-demo-open-btn') as HTMLElement;
         for (const link of [overlay, button]) {
             expect(link).not.toBeNull();
             expect(link.getAttribute('href')).toBe('/__demo__/automations?theme=light&vw=1280');
@@ -139,7 +139,7 @@ describe('on a phone', () => {
 
     it('carries a dark theme into the full-screen URL', () => {
         const { container } = render(<FeatureDemo data={{ ...base, theme: 'dark' }} />);
-        expect(container.querySelector('a.feature-demo-open-overlay').getAttribute('href'))
+        expect((container.querySelector('a.feature-demo-open-overlay') as HTMLElement).getAttribute('href'))
             .toBe('/__demo__/automations?theme=dark&vw=1280');
     });
 
