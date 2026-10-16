@@ -4,6 +4,7 @@ import { describeCron } from './Builder/flow/scheduleBuilderUtils';
 import type { PatternOrigin } from './Builder/usePatternOrigin';
 import { releaseStudioChrome } from '../../hooks/useStudioChrome';
 import { toast } from '../shared/Toast';
+import { errorMessage } from '../../utils/caughtError';
 import type { QuickSwitcherItem } from '../admin/Studio/AutomationsStudio/QuickSwitcher';
 import type { AutomationLibrary, AutomationListRow } from './useAutomationLibrary';
 
@@ -99,6 +100,10 @@ interface TemplateTemplate {
     definition?: unknown;
 }
 
+function isTemplateReply(r: unknown): r is { template?: TemplateTemplate } {
+    return typeof r === 'object' && r !== null;
+}
+
 /**
  * Create an automation from a gallery template and hand its id to `open`.
  * The new row is fetched into the list first, so the sidebar shows it as the
@@ -113,8 +118,8 @@ export async function createFromTemplate(
     },
 ) {
     try {
-        const r = await automationApi.getTemplate(templateId) as { template?: TemplateTemplate } | null | undefined;
-        const tmpl = r?.template;
+        const r: unknown = await automationApi.getTemplate(templateId);
+        const tmpl = isTemplateReply(r) ? r.template : undefined;
         if (!tmpl) return;
         const created = await automationApi.createAutomation<{ automation?: { id?: string }; id?: string }>({
             title: tmpl.title,
@@ -127,9 +132,8 @@ export async function createFromTemplate(
         const newId = created?.automation?.id || created?.id;
         if (newId) open(newId);
     } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.warn('[AITasksDesigner] template pick failed:', message);
-        toast.error(`Could not load template: ${message}`);
+        console.warn('[AITasksDesigner] template pick failed:', errorMessage(err));
+        toast.error(`Could not load template: ${errorMessage(err)}`);
     }
 }
 

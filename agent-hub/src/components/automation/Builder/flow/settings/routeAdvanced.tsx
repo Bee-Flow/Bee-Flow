@@ -38,7 +38,7 @@ export function RouteAdvancedFields({ route, rules, items, several, fanOut, grou
             {items && (
                 <CollectionArrayRefField
                     draft={{ arrayRef: route.source || '', maxItems: route.maxItems }}
-                    set={(k: string, v: unknown) => (k === 'arrayRef' ? onChangeSource(v as string) : onPatch({ maxItems: v }))}
+                    set={(k: string, v: unknown) => (k === 'arrayRef' ? onChangeSource(typeof v === 'string' ? v : '') : onPatch({ maxItems: v }))}
                     groups={groups}
                     onFocusField={onFocusField}
                     previewSample={previewSample}

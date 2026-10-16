@@ -10,6 +10,7 @@
  * Pure and React-free; the remedies themselves live in mismatch.js.
  */
 import { pathListShape } from './listShape';
+import type { ListShape } from './listShape';
 import { columnForSlot, detectMismatch, fieldForSlot, kindAtPath, quietDefaultId, remediesFor } from './mismatch';
 import { canonicalRefPath } from '../../../../utils/bindingHelpers';
 
@@ -23,6 +24,9 @@ export interface PickRemedies {
     primary: PickRemedy[];
     more: PickRemedy[];
     defaultId?: string;
+    /** The picked list's shape (mismatch.js remediesFor); null for a group. */
+    shape?: ListShape | null;
+    count?: number | null;
     [key: string]: unknown;
 }
 

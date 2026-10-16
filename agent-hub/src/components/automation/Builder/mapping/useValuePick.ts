@@ -127,7 +127,7 @@ export default function useValuePick(args: UseValuePickArgs) {
             onChange?.(deep.binding);
             let orphans: string[] = [];
             if (deep.plan && deepenForEach) {
-                const res = deepenForEach.apply(deep.plan, deep.newItem) as { undo?: (() => void) | null; orphans?: string[] } | null | undefined;
+                const res = deepenForEach.apply(deep.plan, deep.newItem);
                 undoRef.current = { value, custom: res?.undo || null };
                 orphans = res?.orphans || [];
             } else {
@@ -146,8 +146,7 @@ export default function useValuePick(args: UseValuePickArgs) {
         applyRemedy(chosen);
         // The one default that changes how the step RUNS says so, with Undo.
         if (chosen.id === 'foreach') {
-            const shape = pick.remedies?.shape as { rows?: number | null } | undefined;
-            setForeachNote({ runs: shape?.rows ?? (pick.remedies?.count as number | undefined) ?? null });
+            setForeachNote({ runs: pick.remedies?.shape?.rows ?? pick.remedies?.count ?? null });
         }
         setResolver({ path: clean, actualKind: pick.actualKind, expectedKind: pick.expectedKind, selectedId: chosen.id });
     };
@@ -260,8 +259,8 @@ export default function useValuePick(args: UseValuePickArgs) {
  * mixed; a single picked value keeps its chip and the "use it as" control, and
  * "Add text" beside that chip switches to composing), and the edits on them.
  */
-export function useValueParts(value: unknown, onChange: ((binding: unknown) => void) | null | undefined) {
-    const parsed = useMemo(() => parseValue(value as Parameters<typeof parseValue>[0]), [value]);
+export function useValueParts(value: Parameters<typeof parseValue>[0], onChange: ((binding: unknown) => void) | null | undefined) {
+    const parsed = useMemo(() => parseValue(value), [value]);
     const parts = parsed.parts;
     const [composing, setComposing] = useState(false);
     const inlineRef = useRef<InlineHandle | null>(null);
