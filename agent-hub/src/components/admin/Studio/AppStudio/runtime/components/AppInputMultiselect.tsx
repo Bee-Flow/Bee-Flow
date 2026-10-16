@@ -4,7 +4,9 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import useInputChange from '../useInputChange';
+import type { BindingInput } from '../resolveBinding.types';
 import useValueFrom from '../useValueFrom';
+import type { NodeProps } from './appNode.types';
 
 /**
  * App Studio runtime — 'input_multiselect'. Spec: server/appStudio/componentSpecs.js.
@@ -21,14 +23,28 @@ import useValueFrom from '../useValueFrom';
  * sent a string where an array was expected — and adding one chip committed
  * [thatChip] over the top of the original value.
  */
-export function toValueList(value) {
+export function toValueList(value: unknown) {
     if (Array.isArray(value)) return value;
     if (value == null || value === '') return [];
     if (typeof value === 'string') return value.split(',').map((s) => s.trim()).filter(Boolean);
     return [value];
 }
 
-export default function AppInputMultiselect({ node }) {
+interface MultiselectOption {
+    value: string | number;
+    label?: string;
+}
+
+interface MultiselectProps {
+    name?: string;
+    label?: string;
+    options?: MultiselectOption[];
+    required?: boolean;
+    defaultValue?: unknown;
+    valueFrom?: BindingInput;
+}
+
+export default function AppInputMultiselect({ node }: NodeProps<MultiselectProps>) {
     const { t } = useTranslation();
     const { name, label = t('studio_apps_runtime.inputs.choices', 'Choices'), options = [], required = false, defaultValue = [] } = node.props || {};
     const { value, setValue, error } = useFormField({
@@ -47,15 +63,15 @@ export default function AppInputMultiselect({ node }) {
     }, [value, setValue]);
 
     // The DOM hands option values back as strings, exactly as in AppInputSelect.
-    const same = (a, b) => String(a) === String(b);
-    const labelFor = (v) => opts.find((o) => same(o.value, v))?.label || v;
+    const same = (a: unknown, b: unknown) => String(a) === String(b);
+    const labelFor = (v: string | number) => opts.find((o) => same(o.value, v))?.label || v;
     const available = opts.filter((o) => !selected.some((v) => same(v, o.value)));
 
     // Adding and removing a chip are both "the value changed" — a tag bar that
     // only saved on add would silently lose removals.
-    const commit = (next) => { setValue(next); fireChange(next); };
-    const add = (v) => { if (v && !selected.some((x) => same(x, v))) commit([...selected, v]); };
-    const remove = (v) => commit(selected.filter((x) => !same(x, v)));
+    const commit = (next: (string | number)[]) => { setValue(next); fireChange(next); };
+    const add = (v: string) => { if (v && !selected.some((x) => same(x, v))) commit([...selected, v]); };
+    const remove = (v: string | number) => commit(selected.filter((x) => !same(x, v)));
 
     return (
         <Field id={id} label={label} required={required} error={error}>

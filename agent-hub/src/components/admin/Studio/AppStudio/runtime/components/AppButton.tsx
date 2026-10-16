@@ -1,12 +1,14 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { Loader2 } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import AppIcon from '../../../../../icons/AppIcon';
 import { useFormContext } from '../formContext';
 import { useRuntime } from '../RuntimeContext';
+import type { NodeProps } from './appNode.types';
 
 /** App Studio runtime — 'button'. Spec: server/appStudio/componentSpecs.js. */
 
-const VARIANT_STYLES = {
+const VARIANT_STYLES: Record<string, CSSProperties> = {
     // The call-to-action paints with the ACCENT family (themeVars.js), which
     // is the primary family unless the theme chose otherwise — so a brand
     // with green buttons and blue headings is one theme knob, not a variant.
@@ -41,13 +43,21 @@ const VARIANT_STYLES = {
     soft: { background: 'var(--app-primary-soft)', color: 'var(--app-primary)' },
 };
 
-const SIZE_CLASSES = {
+const SIZE_CLASSES: Record<string, string> = {
     sm: 'px-2.5 py-1 text-xs',
     md: 'px-3.5 py-1.5 text-sm',
     lg: 'px-5 py-2.5 text-base',
 };
 
-export default function AppButton({ node }) {
+interface ButtonProps {
+    label?: string;
+    variant?: string;
+    iconLeft?: string | null;
+    role?: string;
+    disabledWhen?: unknown;
+}
+
+export default function AppButton({ node }: NodeProps<ButtonProps>) {
     const { mode, runAction, actionState, scope } = useRuntime();
     const form = useFormContext();
     const { label = 'Button', variant = 'primary', iconLeft = null, role = 'button' } = node.props || {};

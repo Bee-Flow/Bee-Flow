@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import type { AppNode } from '../inspector/appDefinition';
 import { useFormContext } from './formContext';
 import { useRuntime } from './RuntimeContext';
 
@@ -18,15 +19,15 @@ import { useRuntime } from './RuntimeContext';
  *
  * Run mode only: clicking through a dropdown while designing must not write.
  */
-export default function useInputChange(node, name) {
+export default function useInputChange(node: Pick<AppNode, 'onChange'> | null | undefined, name: string | null | undefined) {
     const { mode, runAction } = useRuntime();
     const form = useFormContext();
 
-    return useCallback((nextValue) => {
+    return useCallback((nextValue: unknown) => {
         if (mode !== 'run') return;
         const actionId = node?.onChange;
         if (!actionId) return;
-        const values = { ...(form?.values || {}) };
+        const values: Record<string, unknown> = { ...(form?.values || {}) };
         if (name) values[name] = nextValue;
         runAction(actionId, { formValues: values });
     }, [mode, runAction, node?.onChange, form, name]);
