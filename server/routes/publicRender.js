@@ -48,7 +48,7 @@ const { buildHead } = require('../core/seo/head');
 const { renderBlocksWithHints, PREHYDRATE_CSS } = require('../core/seo/renderBlocks');
 const { getShell } = require('../core/seo/shell');
 const { injectIntoShell } = require('../core/seo/inject');
-const { buildSitemap, buildRobots, buildLlmsTxt } = require('../core/seo/sitemap');
+const { buildSitemap, buildRobots } = require('../core/seo/sitemap');
 const { localesForPage } = require('../core/seo/locales');
 const { LEGACY_SLUGS, GONE_SLUGS } = require('../core/seo/legacySlugs');
 const { resolveSiteRedirect } = require('../core/seo/siteRedirect');
@@ -303,37 +303,7 @@ async function renderBlog(req, res, { origin, siteId, parsed, defaultLocale, loc
     return true;
 }
 
-// ── llms.txt ─────────────────────────────────────────────────────────
-// Same source as the sitemap, addressed to language models rather than
-// crawlers. Falls through when nothing is published or the host is not the
-// indexable one — an empty Markdown file would still claim to be a real one,
-// and a preview host has no business advertising itself to assistants.
-router.get('/llms.txt', async (req, res, next) => {
-    try {
-        const origin = resolveOrigin(req);
-        const siteId = await getLiveSiteId();
-        if (!siteId || !isIndexableHost(origin)) return next();
-
-        const snapshot = await cmsStore.getPublishedSnapshot(siteId);
-        if (!snapshot) return next();
-
-        const pages = (snapshot.site?.pages || []).map(entry => ({
-            ...entry,
-            seo: (snapshot.pages?.[entry.id] || {}).seo || {},
-        }));
-        const home = pages.find(p => p.isHomepage);
-
-        res.type('text/plain').set('Cache-Control', 'public, max-age=3600');
-        return res.send(buildLlmsTxt(pages, {
-            origin,
-            siteName: snapshot.site?.name || 'Bee Flow',
-            summary: String(home?.seo?.metaDescription || '').trim(),
-        }));
-    } catch (err) {
-        log.warn('[SEO] llms.txt failed:', err.message);
-        return next();
-    }
-});
+router.use(require('./publicLlmsRender').createLlmsRouter({ resolveOrigin, getLiveSiteId, isIndexableHost }));
 
 // ── marketing pages ──────────────────────────────────────────────────
 router.use(require('./publicSearchIndexRender').createSearchIndexRouter({ getLiveSiteId, siteLocales }));
