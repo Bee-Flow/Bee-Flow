@@ -1,8 +1,8 @@
 # L-C report: remaining agent-hub JS sweep (laptop)
 
-Status: round 2 pushed (all checks green). Round 3 (p8a, p8b) reviewed (reviews/LC-round3.md); integrating next.
-Done: 69/314 files, 8 packages merged (round 1: 43; round 2: p4 6, p5 2, p6 16, p7 2).
-Next: integrate round 3 + full checks + push (~1 h); then a retry package for files whose blocker is now TS (~1-2 h).
+Status: round 3 pushed (all checks green). Retry package p9 drafted (3 files); Opus review next.
+Done: 78/314 files, 10 packages merged (round 1: 43; round 2: 26; round 3: p8a 2, p8b 7).
+Next: review + integrate p9 + push (~1 h); then final report. Remaining JS is listed below as blocked / follow-up.
 
 Branch `ts-laptop/sweep-c`. BASE `0ae29a17` (= origin/ccr-28820270-xkvwp8 at branch time; ts-local/prep2 already in it).
 Final commit: see `git log -1` of the branch (this file is updated with every push).
@@ -43,6 +43,8 @@ runtime-equivalent rewrites.
 | p4 chat, cowork, renderers | 6/40 (4 types + CoworkPage, VegaLiteRenderer catch recipe) | round 2 merged vs 77793e85: 20 identical / 6 different (the 6 = catch-recipe files) | reviews/LC-round2.md (Opus incl. security, CHANGES REQUIRED → fixed in the round-2 fix commit) |
 | p5 agents | 2/27 (deleteBlock + ExternalShareSection catch recipe) | (same gate line) | same |
 | p6 admin, integrations | 16/54 (12 types + RuntimeRow types + localRuntimeApi, LocalModelsCard, RerankerConfig catch recipe; countries reverted by review) | (same gate line) | same |
+| p8a documents, webpages, apps | 2/28 (SourcePicker, BuildBar; documentsApi and AppsHomePage reverted by review) | rounds 2+3 vs 77793e85: 29 identical / 6 different (the 6 = round-2 catch-recipe files) | reviews/LC-round3.md (Opus, CHANGES REQUIRED → fixed in the round-3 fix commit) |
+| p8b marketing, demo, entry files | 7/29 (CookieBanner, LanguageSwitcher, NavIcon, Features, Footer, Integrations, TrustBand; Hero reverted by review) | (same gate line) | same |
 | p7 settings, login | 2/37 (LearningRail, ConsumerBetaFeaturesSection; 5 reverted by review: bits, OverviewView, ReviewView, widgets, ConsumerUsageSection) | (same gate line) | same |
 
 Catch-recipe commits: downloadWebpageZip `String(err?.message || err)` → `describeError(err)` (// behaviour: a truthy
@@ -61,6 +63,8 @@ Round 2: CoworkPage 3× and VegaLiteRenderer 1× `errorMessage`; ExternalShareSe
 - meeting-notes: MeetingHeader (StudioSectionHeader), MeetingVisibility (VisibilityCapsule, now TS → retry), LibraryFilters (FilterPills, now TS → retry), MeetingNotesPage, MeetingDetail, SummaryActionsLayout, InsightsPanel (blocked by JS siblings), useAudioRecorder (error state read by files outside p3; `webkitAudioContext`).
 
 - Round 2 blocked: p4 GoogleDrivePicker (ExternalFilePickers/KnowledgePanel onFilesSelected), ChatActivity (timelineParts DurationPill), CoworkRunHistory (coworkFormat), SupportAIConfig + p5 AgentDesignerPanel (AgentEditorUI `@param {Object}`), AgentChatView/DirectChatView/ComposerPills (InputArea/index, ComposerPill, SkillsPopover: excluded / react-hooks), ElevenLabsSettings/MusicGenSettings/MediaCreationPanel (useMediaGenSection returns Record<string, unknown>), WorkspaceNotebook (NotebookEditorFacade). p5 toolChooserModel (toolGrants), AdvancedDrawer (BehaviorPicker), AgentEditorUI (KnowledgePanel has no agentId), BuilderChatPanel (PlanCard), AgentEditorHeader (StudioSectionHeader), TestSetCard/useAgentTests (testSetFacts), AgentWizard/index + AgentStudio/index (BuilderSplit props), automation/index (Builder off limits). p6 OverviewPage/UsageExplorerPage/ActivityPage (monitoring/shared), FeaturesSection (FeatureCardGrid), MarketplaceTab (moduleActions), ai-config/index (WebSearchInferenceConfig), OrgShieldEditor (orgShieldPosture), AdminDashboard (ProductWebsitePanel, SupportInboxPanel props), OrgSettings (OrgUsersPanel initialSection string|undefined vs null). p7 CourseView (LearningHeader), UsageSection (OrgFeedbackPanel, OverviewTab), SimpleApiKeyIntegration (IntegrationsSection), VoiceprintEnrollModal (useAudioRecorder), SignupWizard (Signup steps), LoginPage (SignupWizard). p7 reverted by review: bits (StepMixLine `mix?.[k]` has no honest typing), OverviewView/ReviewView (need bits), widgets/ConsumerUsageSection (nullable DB `source`/`model` used as map index).
+
+- Round 3 blocked: WebpageDeleteDialog (DangerZone), WebpageDataTab (WebpageDbViewer has no theme prop), WebpageEditorHeader + NotebookWorkspace (StudioSectionHeader), WebpageSources (AnchoredMenu / ideProps optional sources), WebpageChat (IdeChatPanel / ideProps), WebpageCodeStrip (useBfMarks marks: unknown[]), AppRunPage (AppDataScope/AppRenderer/useActionRunner), WebpagesPage (WebpagesList), WebpageAudiencePanel (WebpageDataCards Chip.title), WebpageAppsPanel (useAutomationApi), demo/ComplianceDemo (compliance/index.jsx focusCheckId), appRuntimeHeadless (AppRenderer, themeVars; vite.runtime.config names the entry), demo/registry (lazy Component union needs any). Data/generated, no benefit: demo/fixtures/complianceCatalog.js (GENERATED by server/scripts/genComplianceDemoCatalog.js as .js), demo/fixtures/compliance.js (2851 lines of logic). Reverted by review: documentsApi (number entries asserted as strings), AppsHomePage (+types; StudioAppRow duplicates StudioApp, accentColor null from server), Hero (CMS string asserted into a CSS union).
 
 ## Follow-up: needs runtime rewrite (file — construct)
 - lib/googleOAuthPopup — `= {}` destructured default whose fields are called unguarded
@@ -113,11 +117,17 @@ Round 2: CoworkPage 3× and VegaLiteRenderer 1× `errorMessage`; ExternalShareSe
 - settings/learning/LearningHeader — SegmentedControl onChange vs CourseView; AchievementsView — `earnedById[c.badge?.id]`; CertificateDrawer — `writeText(string|null)`; admin/AcademyContentEditor — nullable course in closures
 - login/MfaLoginStep, SignupStepAuth, SignupStepPrivacy, SignupStepOrg, SignupStepAccount — optional callbacks called unguarded
 - TemplatesPage — `setFillTemplate(prev => ({...prev}))` on nullable; EmbedChat — `response.body.getReader()`; PublicFormPage — `FormDef|null` to required prop; AdvancedSettings — `onBack` prop mismatch (+ mobile lockstep reads its path)
+- documents/DeckLookFields, HouseStylePanel — `.replace('{size}', number)`; notebook/hooks/useResizableWidth — `parseInt(localStorage.getItem())`
+- documents/notebook/CitationChips, CitationOverlay — `Number.isInteger(x) && x > 0` on unknown; NotebookChat, SendForSigningModal — `x?.length > 0`; MermaidBlock — nullable canvas context, `parseFloat(getAttribute())`; DocumentWorkspacePanel — untyped contract/proposal state (not attempted)
+- webpages/WebpageDataCards — `columns?.length > 0`; WebpageActionsPanel — optional numbers with `>`; FileExplorer — nullable `creating.parent`; WebpagesList — optional name `.trim()`
+- App.jsx — `out.set('tag', params.get('tag'))` string|null; main.jsx — `createRoot(getElementById('root'))`; onboarding/player/LessonPlayer — nullable `stepDoc.origin`
+- marketing/components/analyticsEvents — `window.umami.track` after typeof only; GoogleAnalyticsTracker — `window[string]`; sections/GitHubStats — Number.isFinite on number|undefined, nullable `publishedAt`; LiveComponent — `enabled !== false` after narrowing; Security — `card.link.href` after derived guard; Content — `el.width > 0` on undefined; CustomerSupport — `STATUS_TEXT[status]` undefined index (+ catch read); PricingPage, Roadmap, ReleaseNotes, demo/fixtures/knowledge — `Map.get(k).push`; ProductWebsite — index by possibly-undefined displaySize, `includes(undefined)`; demo/fixtures/appStudio — `query.get` on Partial context, nullable `record[key]`
 - settings/OrgFeedbackPanel — `agent_id?.length > 20`; OrgTerminationsPanel — unguarded nullable fields; ConnectionsManager — `authType.id` nullable; IntegrationsSection — `filter(Boolean)` + destructuring; PolicyAcknowledgements — `t(..., null)`; OrganisationSection — prop mismatch + null vs string; SecuritySection — `securityKeys > 0`
 
 ## Push log
 | Pushed commit | check:fast | server typecheck | duplication (prod / test) | gitleaks | agent-hub tsc | agent-hub vitest | mobile tsc | mobile jest | server npm test |
 |---|---|---|---|---|---|---|---|---|---|
+| round 3 (at the round-3 fix commit e61d29d8; report-only commit on top) | 39/39 | 0 errors | 15184 ≤ 15290 / 26228 = 26228 | clean | 0 errors | 1858 files, 21872 pass, 0 errors | 0 errors | 762 suites, 13428 pass | 29058 pass, 0 fail, 0 HUNG |
 | round 2 (+ cherry-pick -x cfb10394, the integrator's useBfMarks test mock: first vitest run had 21872/21872 pass but 2 unhandled 'window is not defined' from WebpageIDE.i18n.test.jsx → useBfMarks.ts; full rerun after the cherry-pick green) | 39/39 | 0 errors | 15184 ≤ 15290 / 26228 = 26228 | clean | 0 errors | 1858 files, 21872 pass, 0 errors | 0 errors | 762 suites, 13428 pass | 29058 pass, 0 fail, 0 HUNG |
 | round 1 (checks at the fix commit; then merged c79185eb, a 1-line server test change: that test + check:fast re-run green) | 39/39 | 0 errors | 15225 ≤ 15290 / 26228 = 26228 | clean | 0 errors | 1858 files, 21872 pass | 0 errors | 762 suites, 13428 pass | 29058 pass, 0 fail, 0 HUNG |
 
