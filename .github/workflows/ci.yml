@@ -316,6 +316,7 @@ jobs:
               - 'agent-hub/src/i18n/en-defaults.js'
               - 'scripts/gen-i18n-defaults.mjs'
               - 'agent-hub/src/index.css'
+              - 'agent-hub/src/themes.css'
               - 'agent-hub/src/hooks/useChatEngine/sseEvents.ts'
               - 'scripts/{coverage-ratchet,count-ratchet}.mjs'
               - '.github/workflows/ci.yml'

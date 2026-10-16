@@ -50,11 +50,11 @@ initOpenObserve();
 // mount and fetch while its chunk is still in flight. See sealDemoBeforeBoot.
 sealDemoBeforeBoot(window.location.pathname);
 
-// The Tailwind utilities are a second stylesheet (see index.css): the app waits
+// The Tailwind utilities and the app's own rules are a second and third stylesheet (see index.css): the app waits
 // for them, a server-rendered marketing page does not.
 await ensureAppUtilities(
     document,
-    () => import('./tailwind-utilities.css'),
+    () => Promise.all([import('./tailwind-utilities.css'), import('./themes.css'), import('./app.css')]),
     (e) => console.warn('[main] utilities stylesheet failed to load', e),
 );
 

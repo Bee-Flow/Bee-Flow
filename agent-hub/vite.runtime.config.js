@@ -27,10 +27,11 @@ import { defineConfig } from 'vite'
  * index.html, and a library build has neither.
  */
 /**
- * src/index.css no longer carries the Tailwind utilities layer (the SPA loads
- * it as a second stylesheet, src/tailwind-utilities.css, so marketing pages do
- * not block on it). This bundle has ONE stylesheet and renders app screens, so
- * it needs both: append the second import to every module that imports index.css.
+ * src/index.css no longer carries the Tailwind utilities layer nor the app's own
+ * rules and alternate themes (the SPA loads them as further stylesheets,
+ * src/tailwind-utilities.css, themes.css and app.css, so marketing pages do not
+ * block on them). This bundle has ONE stylesheet and renders app screens, so it
+ * needs all of them: add their imports to every module that imports index.css (utilities before it, being layered; themes and app after it, in source order).
  */
 function utilitiesWithIndexCss() {
     return {
@@ -39,7 +40,7 @@ function utilitiesWithIndexCss() {
         transform(code, id) {
             if (!/\.(jsx?|tsx?)$/.test(id) || id.includes('node_modules')) return null;
             if (!/import\s+['"][^'"]*\/index\.css['"]|import\s+['"]\.\/index\.css['"]/.test(code)) return null;
-            return { code: `import '@/tailwind-utilities.css';\n${code}`, map: null };
+            return { code: `import '@/tailwind-utilities.css';\n${code}\nimport '@/themes.css';\nimport '@/app.css';\n`, map: null };
         },
     };
 }
