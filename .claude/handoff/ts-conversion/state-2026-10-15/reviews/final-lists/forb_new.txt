@@ -1,0 +1,218 @@
+agent-hub/src/AgentHub/useConversationMeta.ts:161:             toast.error((e as Error).message);
+agent-hub/src/AgentHub/useConversationMeta.ts:186:             toast.error((e as Error).message);
+agent-hub/src/AgentHub/useConversationMeta.ts:215:             toast.error((e as Error).message);
+agent-hub/src/AgentHub/useConversationMeta.ts:242:             toast.error((e as Error).message);
+agent-hub/src/api/readEventStream.test.ts:137:         expect(await collect(readEventStream(body as unknown as ReadableStream<Uint8Array>))).toEqual([{ event: 'a', data: 1 }]);
+agent-hub/src/components/InitSetupWizard/index.tsx:215:             setError((e as Error).message || 'Setup failed');
+agent-hub/src/components/NcOnboardingWizard/index.tsx:162:             setError((e as Error).message);
+agent-hub/src/components/admin/Studio/AppStudio/bi/ConnectorsManager.tsx:72: const ConnectorPicker = ConnectorPickerJs as unknown as ComponentType<{ connectors: Connector[]; onApply: (selection: PickerSelection) => void; onClose: () => void }>;
+agent-hub/src/components/admin/Studio/AppStudio/bi/ConnectorsManager.tsx:73: const useIntegrationCatalog = useIntegrationCatalogJs as unknown as () => IntegrationCatalog;
+agent-hub/src/components/admin/Studio/AppStudio/bi/connectors/ConnectorEditor.tsx:25: const ConnectorSyncPanel = ConnectorSyncPanelJs as unknown as ComponentType<{
+agent-hub/src/components/admin/Studio/AppStudio/bi/connectors/ConnectorFields.tsx:17: const AutomationPicker = AutomationPickerJs as unknown as ComponentType<{
+agent-hub/src/components/admin/Studio/AppStudio/bi/connectors/KindFields.tsx:20: const ActionParamsForm = ActionParamsFormJs as unknown as ComponentType<{
+agent-hub/src/components/admin/Studio/AppStudio/bi/connectors/KindFields.tsx:27: const ConnectorChainEditor = ConnectorChainEditorJs as unknown as ComponentType<{
+agent-hub/src/components/admin/Studio/AppStudio/bi/connectors/connectorModel.ts:78: const missingRequiredParams = missingRequiredParamsJs as unknown as (action: CatalogAction, connector: Connector) => string[];
+agent-hub/src/components/admin/Studio/AppStudio/bi/sync/SyncSetup.tsx:16: const tRich = tRichJs as unknown as (t: TranslateFn, key: string, english: string, params: TranslateParams | null, nodes: Record<string, ReactNode>) => ReactNode;
+agent-hub/src/components/admin/Studio/AppStudio/bi/sync/SyncSetup.tsx:17: const runWithSave = runWithSaveJs as unknown as (options: { dirty: boolean; onSave: (() => unknown) | null | undefined; action: () => unknown }) => Promise<unknown>;
+agent-hub/src/components/admin/Studio/AppStudio/chat/useBuilderTurn.ts:74: const planReveal = planRevealJs as unknown as (input: {
+agent-hub/src/components/admin/Studio/AppStudio/editor/AppEditorShell.tsx:63: const Canvas = CanvasJs as unknown as ComponentType<{ app: HeaderApp; onCommit: (def: AppDefinition) => void; editActionState: Record<string, unknown> }>;
+agent-hub/src/components/admin/Studio/AppStudio/editor/AppEditorShell.tsx:64: const CanvasPlanPanel = CanvasPlanPanelJs as unknown as ComponentType<{ todos: unknown[]; running: boolean; t: TranslateFn; idPrefix: string; placement: string }>;
+agent-hub/src/components/admin/Studio/AppStudio/editor/AppEditorShell.tsx:67: const useEditorHotkeys = useEditorHotkeysJs as unknown as (options: {
+agent-hub/src/components/admin/Studio/AppStudio/editor/AppEditorShell.tsx:78: const ScreenValuesContext = ScreenValuesContextJs as unknown as Context<ReturnType<typeof useScreenValuesStore> | null>;
+agent-hub/src/components/admin/Studio/AppStudio/editor/AppEditorShell.tsx:79: const EditorChromeContext = EditorChromeContextJs as unknown as Context<object | null>;
+agent-hub/src/components/admin/Studio/AppStudio/editor/AppEditorShell.tsx:80: const BuildCueContext = BuildCueContextJs as unknown as Context<BuildCue | null>;
+agent-hub/src/components/admin/Studio/AppStudio/editor/AppEditorShell.tsx:81: const DropHintContext = DropHintContextJs as unknown as Context<unknown>;
+agent-hub/src/components/admin/Studio/AppStudio/editor/EditorHeader.tsx:38: const SaveStatusChip = SaveStatusChipJs as unknown as ComponentType<{ status?: string; version?: number | string | null }>;
+agent-hub/src/components/admin/Studio/AppStudio/editor/EditorHeader.tsx:39: const LogicaTab = LogicaTabJs as unknown as ComponentType<{
+agent-hub/src/components/admin/Studio/AppStudio/editor/EditorNodeWrapper.tsx:61: const nodeLogicSummary = nodeLogicSummaryJs as unknown as (
+agent-hub/src/components/admin/Studio/AppStudio/editor/EditorNodeWrapper.tsx:64: const useAutomationTitles = useAutomationTitlesJs as unknown as (enabled: boolean) => Record<string, string> | null;
+agent-hub/src/components/admin/Studio/AppStudio/editor/EditorNodeWrapper.tsx:149:     const { selectedNodeId, selectedNodeIds, onSelectNode } = useRuntime() as unknown as EditorRuntime;
+agent-hub/src/components/admin/Studio/AppStudio/editor/nodeWrapper/nodeWrapperModel.ts:20: export const findNode = findNodeJs as unknown as (definition: AppDefinition | null, id: string) => FoundNode | null;
+agent-hub/src/components/admin/Studio/AppStudio/editor/nodeWrapper/useNodeResize.ts:29: const heightFromDrag = heightFromDragJs as unknown as (options: { startHeight: string; dy: number; stepPx?: number }) => string;
+agent-hub/src/components/admin/Studio/AppStudio/editor/shell/ShellPanes.tsx:14: const PanelResizer = PanelResizerJs as unknown as ComponentType<{
+agent-hub/src/components/admin/Studio/AppStudio/editor/shell/useEditorSave.ts:28: const useAppAutosave = useAppAutosaveJs as unknown as (options: {
+agent-hub/src/components/admin/Studio/AppStudio/rbac/rowFilterSubset.ts:152:         return { ok: false, error: tr(t, 'studio_apps_edit.row_filter.unreadable', 'This rule could not be read — {detail}', { detail: (e as Error)?.message || tr(t, 'studio_apps_edit.row_filter.unreadable_hint', 'check the spelling and the brackets.') }) };
+agent-hub/src/components/admin/Studio/AppStudio/rbac/rowFilterSubset.ts:158:         return { ok: false, error: (e as Error).message };
+agent-hub/src/components/admin/Studio/AppStudio/runtime/components/AppAiChat.tsx:113:             setError((e as Error)?.message || t('studio_apps_runtime.ai_chat.failed', 'The assistant failed to respond.'));
+agent-hub/src/components/admin/Studio/AppStudio/runtime/useActionRunner.ts:166:     const live = useRef<LiveInputs>(null as unknown as LiveInputs);
+agent-hub/src/components/admin/Studio/AppStudio/tables/TablesManager.tsx:48: const buildFormForTable = buildFormJs as unknown as (table: ModelTable, opts: { taken: unknown }) => Generated;
+agent-hub/src/components/admin/Studio/AppStudio/tables/TablesManager.tsx:49: const buildGridForTable = buildGridJs as unknown as (table: ModelTable, opts: { taken: unknown }) => Generated;
+agent-hub/src/components/admin/Studio/AppStudio/tables/TablesManager.tsx:52: const ConnectorsManager = ConnectorsManagerJs as unknown as ComponentType<{
+agent-hub/src/components/admin/Studio/AppStudio/tables/TablesManager.tsx:62: const RowsTab = RowsTabJs as unknown as ComponentType<{ appId: string; table: ModelTable; tables: ModelTable[]; fieldsUnsaved: boolean }>;
+agent-hub/src/components/admin/Studio/AppStudio/tables/useDataModel.ts:20: const connectorProblem = connectorProblemJs as unknown as (connector: ModelConnector) => string | null;
+agent-hub/src/components/admin/Studio/Datatables/datatableDisplay.nullish.test.js:82:             any: true,
+agent-hub/src/components/admin/Studio/Datatables/rowBrowser/rowBrowserModel.ts:94: export const rowsApi = datatablesApi as unknown as {
+agent-hub/src/components/admin/Studio/Datatables/rowBrowser/typedViews.ts:13: export const RowCellEditor = RowCellEditorJs as unknown as ComponentType<{
+agent-hub/src/components/admin/Studio/Datatables/rowBrowser/typedViews.ts:26: export const filterDescriptor = filterDescriptorJs as unknown as (rows: RowFilter[]) => RowFilter[];
+agent-hub/src/components/admin/Studio/Datatables/rowBrowser/typedViews.ts:29: export const sourceErrorMessage = sourceErrorMessageJs as unknown as (t: TranslateFn, err: unknown, table?: DtTable | null) => string | null;
+agent-hub/src/components/admin/compliance/pages/settings/settingsFields.ts:333: const asArray = <T = unknown>(v: unknown): T[] => (Array.isArray(v) ? v : []); // Array.isArray yields any[]: the caller names T for what it reads.
+agent-hub/src/components/admin/languages/EmailTemplateEditor.tsx:116:             setResult({ error: (err as Error).message });
+agent-hub/src/components/admin/languages/LanguagesPanel.test.tsx:11: const json = (body: unknown) => ({ ok: true, json: async () => body }) as unknown as Response;
+agent-hub/src/components/admin/monitoring/sharedTyped.ts:10: export const Card = CardJs as unknown as ComponentType<{
+agent-hub/src/components/admin/monitoring/sharedTyped.ts:18: export const Empty = EmptyJs as unknown as ComponentType<{ text: ReactNode }>;
+agent-hub/src/components/admin/monitoring/sharedTyped.ts:20: export const MetricCard = MetricCardJs as unknown as ComponentType<{
+agent-hub/src/components/admin/monitoring/sharedTyped.ts:30: export const MarkdownRenderer = MarkdownRendererJs as unknown as ComponentType<{
+agent-hub/src/components/admin/org/orgInfo/license/useSubscriptionActions.test.ts:11: const reply = (ok: boolean, body: unknown) => ({ ok, json: async () => body }) as unknown as Response;
+agent-hub/src/components/admin/org/orgInfo/license/useSubscriptionActions.ts:47: const errorText = (e: unknown) => (e as Error).message;
+agent-hub/src/components/admin/product-website/PageList.tsx:148:                     toast.error((err as Error | null)?.message || String(err));
+agent-hub/src/components/admin/product-website/SitemapView.test.tsx:11: const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as unknown as Response;
+agent-hub/src/components/admin/product-website/SitemapView.tsx:80:             setError(String((err as Error).message || err));
+agent-hub/src/components/admin/product-website/fieldKit/ImageField.tsx:132:             setError((err as Error).message);
+agent-hub/src/components/admin/product-website/fieldKit/LinkField.tsx:95:             setCreateError((err as Error)?.message || t('cms_site.site.fields.create_failed', 'Failed to create page'));
+agent-hub/src/components/admin/product-website/fieldKit/jsDeps.ts:13: export const IconPicker = IconPickerJs as unknown as ComponentType<{
+agent-hub/src/components/admin/product-website/pageList/pageListShared.ts:38: export const slugIssues = slugIssuesJs as unknown as (
+agent-hub/src/components/admin/product-website/pageList/pageListShared.ts:43: export const ModalShell = ModalShellJs as unknown as ComponentType<{
+agent-hub/src/components/admin/product-website/panel/panelJsComponents.ts:14: export const NavigatorPanel = NavigatorPanelJs as unknown as ComponentType<{
+agent-hub/src/components/admin/product-website/panel/panelJsComponents.ts:24: export const InspectorHost = InspectorHostJs as unknown as ComponentType<{
+agent-hub/src/components/admin/product-website/panel/panelJsComponents.ts:36: export const PreviewStage = PreviewStageJs as unknown as ComponentType<{
+agent-hub/src/components/admin/product-website/panel/panelJsComponents.ts:48: export const AddBlockDialog = AddBlockDialogJs as unknown as ComponentType<{
+agent-hub/src/components/admin/product-website/panel/useCmsSiteLoader.ts:50: const errorText = (err: unknown) => (err as Error).message;
+agent-hub/src/components/admin/product-website/sitemap/SettingsFlyout.tsx:20: const slugIssues = slugIssuesJs as unknown as (
+agent-hub/src/components/admin/product-website/sitemap/SettingsFlyout.tsx:105:     return { busy, error: error as Error | null, saveMeta, toggleNav, setHomepage, deletePage, confirmDialog };
+agent-hub/src/components/admin/security/SSOConfigPanel.test.tsx:17: const json = (body: unknown, ok = true) => ({ ok, json: async () => body }) as unknown as Response;
+agent-hub/src/components/admin/security/guardrails/patterns/PatternSections.tsx:114:             setAiMessage({ type: 'error', text: 'Error communicating with AI: ' + (e as Error).message });
+agent-hub/src/components/admin/security/guardrails/patterns/PatternsView.tsx:48:             toast.error((e as Error).message || 'Failed to save');
+agent-hub/src/components/admin/subscriptions/access/useSignupSettings.ts:132:             toast.error((e as Error).message || t('admin_subscriptions.access_save_failed', 'Save failed'));
+agent-hub/src/components/agents/AgentDesigner/DesignerPanels.tsx:9: const KnowledgePanel = KnowledgePanelJs as unknown as ComponentType<{
+agent-hub/src/components/agents/AgentDesigner/index.tsx:49: const useAgentApi = useAgentApiJs as unknown as (state: DesignerState, opts: { systemMode: boolean; securityMode: boolean; initialAgentId: string | null }) => DesignerApi;
+agent-hub/src/components/agents/AgentDesigner/index.tsx:53: const IdentitySection = IdentitySectionJs as unknown as ComponentType<SharedProps>;
+agent-hub/src/components/agents/AgentDesigner/index.tsx:54: const ToolsSection = ToolsSectionJs as unknown as ComponentType<SharedProps>;
+agent-hub/src/components/agents/AgentDesigner/index.tsx:55: const BehaviorSection = BehaviorSectionJs as unknown as ComponentType<SharedProps>;
+agent-hub/src/components/agents/AgentDesigner/index.tsx:85:   const state = useAgentState() as unknown as DesignerState;
+agent-hub/src/components/appearance/ThemeContext.tsx:249:             setState((s: ThemeState) => ({ ...s, loading: false, error: (e as Error).message || 'theme fetch failed' }));
+agent-hub/src/components/appearance/studio/icons/IconsEditor.tsx:431:             setBulkResult({ ok: false, message: (e as Error).message });
+agent-hub/src/components/appearance/studio/look/sections/WallpaperSection.tsx:47:             toast.error((e as Error)?.message || 'Upload failed');
+agent-hub/src/components/appearance/studio/look/sections/WallpaperSection.tsx:59:             toast.error((e as Error)?.message || 'Delete failed');
+agent-hub/src/components/appearance/studio/look/useLookForm.ts:74:             setError((e as Error)?.message || 'Could not load org theme');
+agent-hub/src/components/appearance/studio/look/useLookForm.ts:104:             const msg = (e as Error)?.message || 'Save failed';
+agent-hub/src/components/appearance/studio/look/useLookForm.ts:128:             const msg = (e as Error)?.message || 'Reload failed';
+agent-hub/src/components/automation/Builder/build/jsComponents.ts:84: export const DiagramPane = DiagramPaneJs as unknown as ComponentType<DiagramPaneProps & RefAttributes<DiagramHandle | null>>;
+agent-hub/src/components/automation/Builder/build/jsComponents.ts:86: export const AddStepMenu = AddStepMenuJs as unknown as ComponentType<{
+agent-hub/src/components/automation/Builder/build/jsComponents.ts:94: export const CanvasPlanPanel = CanvasPlanPanelJs as unknown as ComponentType<{
+agent-hub/src/components/automation/Builder/build/jsComponents.ts:102: export const AutomationSummary = AutomationSummaryJs as unknown as ComponentType<{ label: string; text: string }>;
+agent-hub/src/components/automation/Builder/build/jsComponents.ts:105: export const AssistantFieldProvider = AssistantFieldProviderJs as unknown as ComponentType<{
+agent-hub/src/components/automation/Builder/build/jsComponents.ts:110: export const FlowletsPanel = FlowletsPanelJs as unknown as ComponentType<{
+agent-hub/src/components/automation/Builder/build/jsComponents.ts:131: export const FormRunOverlay = FormRunOverlayJs as unknown as ComponentType<{
+agent-hub/src/components/automation/Builder/build/jsComponents.ts:139: export const NodeDetailView = NodeDetailViewJs as unknown as ComponentType<{
+agent-hub/src/components/automation/Builder/build/jsComponents.ts:177: export const AssistantWelcome = AssistantWelcomeJs as unknown as ComponentType<{
+agent-hub/src/components/automation/Builder/build/jsComponents.ts:184: export const MessageBubble = MessageBubbleJs as unknown as ComponentType<{
+agent-hub/src/components/automation/Builder/build/jsComponents.ts:190: export const ProposalCard = ProposalCardJs as unknown as ComponentType<{
+agent-hub/src/components/automation/Builder/build/jsComponents.ts:200: export const PlanReview = PlanReviewJs as unknown as ComponentType<{
+agent-hub/src/components/automation/Builder/build/jsComponents.ts:209: export const RunProgressBanner = RunProgressBannerJs as unknown as ComponentType<{
+agent-hub/src/components/automation/Builder/build/jsComponents.ts:215: export const WorkModePicker = WorkModePickerJs as unknown as ComponentType<{
+agent-hub/src/components/automation/Builder/build/jsComponents.ts:226: export const InputArea = InputAreaJs as unknown as ComponentType<{
+agent-hub/src/components/automation/Builder/flow/settings/FormTriggerFields.tsx:133:             setError((e as Error).message);
+agent-hub/src/components/automation/Builder/flow/settings/FormTriggerFields.tsx:148:             setError(`Copy failed: ${(e as Error).message}. Select the text to copy it manually.`);
+agent-hub/src/components/automation/Builder/flow/settings/FormTriggerFields.tsx:168:             setError((e as Error).message);
+agent-hub/src/components/automation/Builder/flow/settings/JsonConfigEditor.tsx:68:             setError(`Invalid JSON: ${(e as Error).message}`);
+agent-hub/src/components/automation/Builder/webhooks/useWebhooks.ts:103:             setErrorMsg((e as Error).message);
+agent-hub/src/components/automation/Builder/webhooks/useWebhooks.ts:142:             setErrorMsg((e as Error).message);
+agent-hub/src/components/automation/Builder/webhooks/useWebhooks.ts:163:             setErrorMsg((e as Error).message);
+agent-hub/src/components/automation/Builder/webhooks/useWebhooks.ts:180:             setErrorMsg((e as Error).message);
+agent-hub/src/components/automation/Builder/webhooks/useWebhooks.ts:200:             setErrorMsg(`Copy failed: ${(e as Error).message || 'clipboard access denied'}. Select the text manually to copy.`);
+agent-hub/src/components/billing/InvoicePdfModal.tsx:45:                 if (alive) setError((e as Error)?.message || t('billing.invoice_pdf_failed', 'Failed to load the invoice PDF. Try again.'));
+agent-hub/src/components/billing/InvoicesPanel.tsx:82:             if (isAlive()) { setError((e as Error)?.message || t('billing.invoices_load_failed', 'Failed to load invoices')); setInvoices([]); }
+agent-hub/src/components/chat/GammaPreviewPanel.tsx:68:             setError((err as Error).message || 'Could not refresh Gamma status');
+agent-hub/src/components/chat/InputArea/clipboardFiles.ts:119:         console.warn('[Paste] navigator.clipboard.read() failed:', (err as Error).message);
+agent-hub/src/components/chat/MessageItem/EmailDraftCard.tsx:49:             setEmailDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: `failed: ${(err as Error).message}` }));
+agent-hub/src/components/chat/MessageItem/EmailDraftCard.tsx:74:             setEmailDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: `failed: ${(err as Error).message}` }));
+agent-hub/src/components/chat/MessageItem/LinkedInDraftCard.tsx:38:             setLinkedInDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: `failed: ${(err as Error).message}` }));
+agent-hub/src/components/chat/MessageItem/index.tsx:166:     const { renderToolOutput } = (ToolOutput as unknown as (p: { msg: ChatMessage }) => { renderToolOutput: () => React.ReactNode })({ msg });
+agent-hub/src/components/chat/MessageItem/jsChildren.ts:17: export const ChatActivity = ChatActivityJs as unknown as ComponentType<{
+agent-hub/src/components/chat/MessageItem/jsChildren.ts:23: export const ToolConfirmCard = ToolConfirmCardJs as unknown as ComponentType<{
+agent-hub/src/components/chat/MessageItem/jsChildren.ts:30: export const AnswerChips = AnswerChipsJs as unknown as ComponentType<{
+agent-hub/src/components/chat/MessageItem/jsChildren.ts:39: export const TokenisedBadge = TokenisedBadgeJs as unknown as ComponentType<{
+agent-hub/src/components/chat/useDictation.ts:92:             setError((err as Error).message || 'Could not transcribe that.');
+agent-hub/src/components/chat/useDictation.ts:155:             setError((err as Error)?.name === 'NotAllowedError'
+agent-hub/src/components/chat/useDictation.ts:157:                 : ((err as Error)?.message || 'Could not start recording.'));
+agent-hub/src/components/cowork/useCoworkComposer.ts:176:             setError((err as Error).message || t('cowork.error.create_failed', 'Could not create this work'));
+agent-hub/src/components/forms/PublicFormRenderer.tsx:393:             setActionError((e as Error)?.message || t('forms.result.failed'));
+agent-hub/src/components/forms/PublicFormRenderer.tsx:626:             setError((e as Error)?.message || 'Could not open this in Notebooks.');
+agent-hub/src/components/forms/PublicFormRenderer.tsx:811:                 setNote((err as Error)?.message || 'That app could not be searched.');
+agent-hub/src/components/forms/PublicFormRenderer.tsx:953:             onError((err as Error)?.message || 'That file could not be uploaded.');
+agent-hub/src/components/icons/IconPickerModal.tsx:92:             toast.error('Generation failed: ' + (err as Error).message);
+agent-hub/src/components/integrations/azure/index.tsx:121:             setError((err as Error).message);
+agent-hub/src/components/integrations/azure/index.tsx:151:             setError((err as Error).message);
+agent-hub/src/components/integrations/nextcloud/NcBindingApprovalModal.tsx:83:             setError((e as Error).message || String(e));
+agent-hub/src/components/integrations/nextcloud/OrgNcPairingPanel.tsx:53:             setError((e as Error).message || 'Failed to load pairing codes');
+agent-hub/src/components/integrations/nextcloud/OrgNcPairingPanel.tsx:74:             setError((e as Error).message || 'Failed to generate pairing code');
+agent-hub/src/components/integrations/nextcloud/OrgNcPairingPanel.tsx:87:             setError((e as Error).message || 'Failed to revoke');
+agent-hub/src/components/licensing/EntitlementsContext.tsx:113:             setState((s: EntitlementsState) => ({ ...s, loading: false, error: (e as Error).message }));
+agent-hub/src/components/licensing/LicenseContext.tsx:162:             setState(s => ({ ...s, loading: false, error: (e as Error).message || 'license fetch failed' }));
+agent-hub/src/components/licensing/LicenseContext.tsx:229:                 if ((e as Error).name === 'AbortError') return;
+agent-hub/src/components/licensing/ServerLicensePanel.tsx:81:             setActionError((e as Error).message || 'Failed to load licence status');
+agent-hub/src/components/licensing/ServerLicensePanel.tsx:135:             setActionError((e as Error).message || 'Activation failed');
+agent-hub/src/components/licensing/ServerLicensePanel.tsx:161:             setActionError((e as Error).message || 'Deactivation failed');
+agent-hub/src/components/meetings/GoogleMeetAdminPanel.tsx:56:         } catch (e) { setMessage({ type: 'error', text: (e as Error).message }); }
+agent-hub/src/components/meetings/MeetingNotesAdminPanel.tsx:59:         } catch (e) { setMessage({ type: 'error', text: (e as Error).message }); }
+agent-hub/src/components/onboarding/actionChecks.ts:449:         return { passes: {}, allPassed: false, error: (e as Error)?.message || 'fetch_failed', unverifiable };
+agent-hub/src/components/renderers/MermaidRenderer.tsx:121:                     if (isStaleChunkError(err as Error)) {
+agent-hub/src/components/renderers/MermaidRenderer.tsx:288:                 if (isStaleChunkError(err as Error)) {
+agent-hub/src/components/renderers/MermaidRenderer.tsx:291:                     setError((err as Error).message || 'Failed to render diagram');
+agent-hub/src/components/shell/sidebar/RecentChats.tsx:13: const ConvRow = ConvRowJs as unknown as ComponentType<ConvRowHandlers & {
+agent-hub/src/components/shell/sidebar/SidebarChrome.tsx:16: const NotificationCenter = NotificationCenterJs as unknown as ComponentType<{ variant?: string }>;
+agent-hub/src/components/shell/sidebar/sidebarNav.tsx:23: const AppIcon = AppIconJs as unknown as ComponentType<{ name: string; className?: string; style?: Record<string, string> }>;
+agent-hub/src/components/shell/sidebar/useSidebarAccess.ts:90:     const studioSections = studioNavSections([...STUDIO_APPS, ...data.runtimeStudioApps], gateCtx) as unknown as StudioSection[];
+agent-hub/src/components/support/AttachIssuePanel.tsx:67:             setError((e as Error).message);
+agent-hub/src/components/support/AttachIssuePanel.tsx:97:             setError((e as Error).message);
+agent-hub/src/components/support/AttachIssuePanel.tsx:123:             setError((e as Error).message);
+agent-hub/src/components/support/LinkedIssuesPanel.tsx:203:             console.warn('[Support] linked issues:', (e as Error).message);
+agent-hub/src/components/support/LinkedIssuesPanel.tsx:234:             setError((e as Error).message);
+agent-hub/src/components/support/LinkedIssuesPanel.tsx:247:             setError((e as Error).message);
+agent-hub/src/components/support/SupportConnectionsConfig.tsx:113:             setYtError((e as Error).message);
+agent-hub/src/components/support/SupportConnectionsConfig.tsx:122:             setChatError((e as Error).message);
+agent-hub/src/components/support/SupportConnectionsConfig.tsx:150:             setYtError((e as Error).message);
+agent-hub/src/components/support/SupportConnectionsConfig.tsx:173:             setChatError((e as Error).message);
+agent-hub/src/components/support/SupportConnectionsConfig.tsx:195:             setTestResult({ ok: false, error: (e as Error).message });
+agent-hub/src/components/support/SupportDrawer.tsx:60:             setErr((e as Error).message);
+agent-hub/src/components/support/SupportInboxPanel.tsx:177:             console.warn('[Support] fetchThreads:', (e as Error).message);
+agent-hub/src/components/support/SupportInboxPanel.tsx:193:             console.warn('[Support] fetchThread:', (e as Error).message);
+agent-hub/src/components/support/SupportInboxPanel.tsx:207:             console.warn('[Support] fetchMailbox:', (e as Error).message);
+agent-hub/src/components/support/SupportInboxPanel.tsx:237:             toast.error(`Disconnecting the mailbox failed: ${(e as Error).message}`);
+agent-hub/src/components/support/SupportInboxPanel.tsx:288:             console.warn('[Support] SSE failed:', (e as Error).message);
+agent-hub/src/components/support/SupportInboxPanel.tsx:334:             console.warn('[Support] clearFollowup:', (e as Error).message);
+agent-hub/src/components/support/tabs/SupportCannedResponsesTab.tsx:20:         } catch (e) { setError((e as Error).message); }
+agent-hub/src/components/support/tabs/SupportCannedResponsesTab.tsx:35:         } catch (e) { setError((e as Error).message); }
+agent-hub/src/components/support/tabs/SupportInsightsTab.tsx:51:             } catch (e) { setError((e as Error).message); }
+agent-hub/src/components/support/tabs/SupportSlaPoliciesTab.tsx:48:         } catch (e) { setError((e as Error).message); }
+agent-hub/src/components/support/tabs/SupportSlaPoliciesTab.tsx:63:         } catch (e) { setError((e as Error).message); }
+agent-hub/src/components/support/tabs/SupportTagsTab.tsx:25:         } catch (e) { setError((e as Error).message); }
+agent-hub/src/components/support/tabs/SupportTagsTab.tsx:40:         } catch (e) { setError((e as Error).message); }
+agent-hub/src/components/support/tabs/SupportToolsTab.tsx:23:             } catch (e) { setError((e as Error).message); }
+agent-hub/src/components/support/tabs/SupportToolsTab.tsx:36:         } catch (e) { setError((e as Error).message); }
+agent-hub/src/components/webpages/SideWebpagePanel.tsx:83:                     setState({ loading: false, error: (err as Error).message, data: null });
+agent-hub/src/components/webpages/WebpagePickerPopover.tsx:66:                 if (!cancelled) setState({ loading: false, items: [], error: (err as Error).message });
+agent-hub/src/pages/DsrRequestPage.tsx:151:             setError((err as Error).message);
+agent-hub/src/pages/EmbedChat.testkit.ts:3: export const reply = (body: unknown, status = 200) => ({ ok: status < 400, status, json: async () => body, text: async () => '' }) as unknown as Response;
+agent-hub/src/pages/EncryptionSetup.tsx:52:             console.warn('[Encryption] OPAQUE PIN setup failed, falling back to legacy:', (opaqueErr as Error).message);
+agent-hub/src/pages/EncryptionSetup.tsx:101:             console.warn('[Encryption] OPAQUE PIN unlock failed, falling back to legacy:', (opaqueErr as Error).message);
+agent-hub/src/pages/documents/spreadsheet/useSheetActions.ts:41:             setNotice((e as Error).message || (format === 'xlsx'
+agent-hub/src/pages/forms/FormsHomePage.tsx:134:             setError((err as Error | null)?.message || 'Could not load the forms.');
+agent-hub/src/pages/login/MfaSetupGate.tsx:74:                 if (alive) setError((e as Error).message);
+agent-hub/src/pages/login/MfaSetupGate.tsx:88:         } catch (e) { setError((e as Error).message); }
+agent-hub/src/pages/meeting-notes/capture/GoogleMeetImportPanel.tsx:63:             setError(err as Error);
+agent-hub/src/pages/meeting-notes/capture/TalkImportPanel.tsx:57:             setError(err as Error);
+agent-hub/src/pages/meeting-notes/detail/useMeetingCommands.ts:143:             toast.error(t('meetings.export_failed', 'Export failed: {message}', { message: (err as Error).message }));
+agent-hub/src/pages/meeting-notes/detail/useMeetingCommands.ts:189:             toast.error(t('meetings.regenerate_failed', 'Regenerate failed: {message}', { message: (err as Error).message }));
+agent-hub/src/pages/meeting-notes/library/ReportModal.tsx:59:             setError((err as Error).message);
+agent-hub/src/pages/settings/AppearanceSection.tsx:64:             toast.error((e as Error)?.message || 'Could not save');
+agent-hub/src/pages/settings/GoogleMeetNotesSection.tsx:67:         } catch (e) { setMessage({ type: 'error', text: (e as Error).message }); }
+agent-hub/src/pages/settings/GoogleMeetNotesSection.tsx:76:         } catch (e) { setMessage({ type: 'error', text: (e as Error).message || 'Could not start the Google re-authorization. Try again.' }); }
+agent-hub/src/pages/settings/MeetingNotesSection.tsx:62:         } catch (e) { setMessage({ type: 'error', text: (e as Error).message }); }
+agent-hub/src/pages/settings/consumerLicense/useConsumerBilling.ts:98:             setError((e as Error).message);
+agent-hub/src/pages/settings/learning/admin/RequiredTrainingPanel.tsx:57:             setState((s) => ({ ...s, loading: false, error: (e as Error).message }));
+agent-hub/src/pages/settings/n8n/useN8nState.ts:131:             setDiag({ ok: false, error: (e as Error).message });
+agent-hub/src/pages/settings/n8n/useN8nState.ts:220:             setTestResult({ ok: false, error: (e as Error).message });
+agent-hub/src/pages/settings/n8n/useN8nState.ts:244:             setPermSummary({ error: (e as Error).message });
+agent-hub/src/pages/webpages/WebpageDbViewer.tsx:586:             setResult({ error: (e as Error).message });
+agent-hub/src/pages/webpages/WebpageDbViewer.tsx:753:             setError((e as Error).message);
+agent-hub/src/pages/webpages/WebpageHistoryTab.tsx:78:             if (mountedRef.current) setError((err as Error).message);
+agent-hub/src/pages/webpages/history/useVersionHistory.ts:33: const errorText = (err: unknown) => (err as Error).message;
+agent-hub/src/pages/webpages/hooks/useWebpagePublishing.ts:57:             if (mountedRef.current) setError((err as Error).message);
+agent-hub/src/pages/webpages/hooks/useWebpageSave.ts:323:                 console.warn('[Webpages] Chat save failed:', (err as Error).message);
+agent-hub/src/pages/webpages/hooks/useWebpageSave.ts:346:             console.warn('[Webpages] Chat clear failed:', (err as Error).message);
+agent-hub/src/pages/webpages/preview/usePreviewDocument.ts:69:                     const msg = String((err as Error)?.message || err).replace(/[<>&]/g, '');
+agent-hub/src/pages/webpages/preview/usePreviewToken.ts:102:                 respond({ error: (err as Error).message || 'token refresh failed' });
+agent-hub/src/pages/webpages/useBfMarks.ts:57:             setState({ loading: false, error: (e as Error | null)?.message || 'failed', data: null });
+agent-hub/src/telemetry/openobserve.ts:214:         try { console.warn('[openobserve] sdk load failed:', e && (e as Error).message); } catch { /* noop */ }
+agent-hub/src/telemetry/openobserve.ts:260:         try { console.warn('[openobserve] init failed:', e && (e as Error).message); } catch { /* noop */ }

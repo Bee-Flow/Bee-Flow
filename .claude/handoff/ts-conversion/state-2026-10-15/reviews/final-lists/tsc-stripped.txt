@@ -1,0 +1,108 @@
+src/components/admin/Studio/AppStudio/bi/ConnectorsManager.tsx(144,57): error TS2345: Argument of type '{ catalog: CatalogResponse | null; apps: CatalogApp[]; byToolName: Map<string, { app: CatalogApp; action: CatalogAppAction; }>; loading: boolean; failed: boolean; refresh: () => void; lookup: (toolName: string) => { ...; } | null; siblingsOf: (toolName: string) => CatalogAppAction[]; }' is not assignable to parameter of type 'IntegrationCatalog'.
+  Types of property 'lookup' are incompatible.
+    Type '(toolName: string) => { app: CatalogApp; action: CatalogAppAction; } | null' is not assignable to type '(toolName: string | undefined) => { app: { id?: string | undefined; label?: string | undefined; available?: boolean | undefined; }; action: CatalogAction; } | null'.
+      Types of parameters 'toolName' and 'toolName' are incompatible.
+        Type 'string | undefined' is not assignable to type 'string'.
+          Type 'undefined' is not assignable to type 'string'.
+src/components/admin/Studio/AppStudio/bi/ConnectorsManager.tsx(150,118): error TS2322: Type '{ catalog: CatalogResponse | null; apps: CatalogApp[]; byToolName: Map<string, { app: CatalogApp; action: CatalogAppAction; }>; loading: boolean; failed: boolean; refresh: () => void; lookup: (toolName: string) => { ...; } | null; siblingsOf: (toolName: string) => CatalogAppAction[]; }' is not assignable to type 'IntegrationCatalog'.
+  Types of property 'lookup' are incompatible.
+    Type '(toolName: string) => { app: CatalogApp; action: CatalogAppAction; } | null' is not assignable to type '(toolName: string | undefined) => { app: { id?: string | undefined; label?: string | undefined; available?: boolean | undefined; }; action: CatalogAction; } | null'.
+      Types of parameters 'toolName' and 'toolName' are incompatible.
+        Type 'string | undefined' is not assignable to type 'string'.
+          Type 'undefined' is not assignable to type 'string'.
+src/components/admin/Studio/AppStudio/bi/ConnectorsManager.tsx(174,25): error TS2322: Type '{ catalog: CatalogResponse | null; apps: CatalogApp[]; byToolName: Map<string, { app: CatalogApp; action: CatalogAppAction; }>; loading: boolean; failed: boolean; refresh: () => void; lookup: (toolName: string) => { ...; } | null; siblingsOf: (toolName: string) => CatalogAppAction[]; }' is not assignable to type 'IntegrationCatalog'.
+  Types of property 'lookup' are incompatible.
+    Type '(toolName: string) => { app: CatalogApp; action: CatalogAppAction; } | null' is not assignable to type '(toolName: string | undefined) => { app: { id?: string | undefined; label?: string | undefined; available?: boolean | undefined; }; action: CatalogAction; } | null'.
+      Types of parameters 'toolName' and 'toolName' are incompatible.
+        Type 'string | undefined' is not assignable to type 'string'.
+          Type 'undefined' is not assignable to type 'string'.
+src/components/admin/Studio/AppStudio/bi/connectors/ConnectorEditor.tsx(171,17): error TS2322: Type 'Connector' is not assignable to type 'SyncConnector'.
+  Types of property 'sync' are incompatible.
+    Type '{ [key: string]: unknown; tableId?: string | undefined; children?: ({ tableId?: string | undefined; } | null)[] | undefined; } | null | undefined' is not assignable to type 'SyncBlock | null | undefined'.
+      Type '{ [key: string]: unknown; tableId?: string | undefined; children?: ({ tableId?: string | undefined; } | null)[] | undefined; }' is not assignable to type 'SyncBlock'.
+        Types of property 'tableId' are incompatible.
+          Type 'string | undefined' is not assignable to type 'string'.
+            Type 'undefined' is not assignable to type 'string'.
+src/components/admin/Studio/AppStudio/bi/sync/SyncSetup.tsx(172,60): error TS2322: Type '(() => unknown) | null | undefined' is not assignable to type '(() => unknown) | undefined'.
+  Type 'null' is not assignable to type '(() => unknown) | undefined'.
+src/components/admin/Studio/AppStudio/editor/AppEditorShell.tsx(148,9): error TS2322: Type '(def: AppDefinition) => void' is not assignable to type '(def: AppDefinition | null) => void'.
+  Types of parameters 'def' and 'def' are incompatible.
+    Type 'AppDefinition | null' is not assignable to type 'AppDefinition'.
+      Type 'null' is not assignable to type 'AppDefinition'.
+src/components/admin/Studio/AppStudio/editor/AppEditorShell.tsx(182,39): error TS2322: Type '{ commitTurn: unknown; markSaved: unknown; flush: unknown; appId: string | null; undoTurn: () => void; focusAiChat: () => void; publishBuildCue: Dispatch<SetStateAction<BuildCue | null>>; }' is not assignable to type 'EditorChromeValue'.
+  Types of property 'commitTurn' are incompatible.
+    Type 'unknown' is not assignable to type '((definition: unknown) => void) | undefined'.
+src/components/admin/Studio/AppStudio/editor/AppEditorShell.tsx(242,39): error TS2322: Type 'BuildCue | null' is not assignable to type 'BuildCueValue | null'.
+  Type 'BuildCue' is missing the following properties from type 'BuildCueValue': startedAt, phase, lastCall, skipped, and 9 more.
+src/components/admin/Studio/AppStudio/editor/AppEditorShell.tsx(243,39): error TS2322: Type 'unknown' is not assignable to type 'DropHint | null'.
+src/components/admin/Studio/AppStudio/editor/AppEditorShell.tsx(281,46): error TS2322: Type 'unknown[]' is not assignable to type 'PlanTodo[]'.
+  Type 'unknown' is not assignable to type 'PlanTodo'.
+src/components/admin/Studio/AppStudio/editor/EditorNodeWrapper.tsx(91,75): error TS2538: Type 'undefined' cannot be used as an index type.
+src/components/admin/Studio/AppStudio/editor/EditorNodeWrapper.tsx(98,35): error TS2345: Argument of type 'LogicSummaryMark | undefined' is not assignable to parameter of type 'LogicMark | undefined'.
+  Type 'LogicSummaryMark' is not assignable to type 'LogicMark'.
+    Types of property 'actionKind' are incompatible.
+      Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+        Type 'null' is not assignable to type 'string | undefined'.
+src/components/admin/Studio/AppStudio/editor/EditorNodeWrapper.tsx(288,25): error TS2322: Type 'LogicSummaryMark[]' is not assignable to type 'LogicMark[]'.
+  Type 'LogicSummaryMark' is not assignable to type 'LogicMark'.
+    Types of property 'actionKind' are incompatible.
+      Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+        Type 'null' is not assignable to type 'string | undefined'.
+src/components/admin/Studio/AppStudio/tables/TablesManager.tsx(214,25): error TS2322: Type 'ModelConnector[] | undefined' is not assignable to type 'Connector[] | undefined'.
+  Type 'ModelConnector[]' is not assignable to type 'Connector[]'.
+    Type 'ModelConnector' is not assignable to type 'Connector'.
+      Types of property 'kind' are incompatible.
+        Type 'string | undefined' is not assignable to type 'string'.
+          Type 'undefined' is not assignable to type 'string'.
+src/components/admin/Studio/AppStudio/tables/TablesManager.tsx(219,25): error TS2322: Type '(connectorId: string, newTables: ModelTable | ModelTable[], sync: ModelConnector["sync"]) => void' is not assignable to type 'CreateTables'.
+  Types of parameters 'newTables' and 'tables' are incompatible.
+    Type 'SyncTable[]' is not assignable to type 'ModelTable | ModelTable[]'.
+      Type 'SyncTable[]' is not assignable to type 'ModelTable[]'.
+        Property 'key' is missing in type 'SyncTable' but required in type 'ModelTable'.
+src/components/admin/Studio/AppStudio/tables/useDataModel.ts(28,42): error TS2345: Argument of type 'ModelConnector' is not assignable to parameter of type 'Connector'.
+  Types of property 'kind' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/admin/product-website/panel/PanelInspector.tsx(81,13): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/components/admin/product-website/panel/PanelInspector.tsx(93,17): error TS2322: Type 'Record<string, unknown> | undefined' is not assignable to type 'Record<string, unknown>'.
+  Type 'undefined' is not assignable to type 'Record<string, unknown>'.
+src/components/agents/AgentDesigner/DesignerPanels.tsx(108,25): error TS2322: Type '{ agentId: string; API_BASE: string; strictKnowledge: boolean; onStrictKnowledgeChange: (v: boolean) => void; includeSourceReferences: boolean; onIncludeSourceReferencesChange: (v: boolean) => void; knowledgeBaseIds: string[]; onKnowledgeBaseIdsChange: (ids: string[]) => void; }' is not assignable to type 'IntrinsicAttributes & KnowledgePanelProps'.
+  Property 'agentId' does not exist on type 'IntrinsicAttributes & KnowledgePanelProps'.
+src/components/agents/AgentDesigner/index.tsx(234,46): error TS2739: Type '{ name: string; messages: DesignerMessage[]; model: string; description: string; setSelectedAgent: Dispatch<SetStateAction<DesignerAgent | null>>; ... 130 more ...; knowledgeBaseIds: string[]; }' is missing the following properties from type '{ authFetch: (url: string, options?: AuthFetchOptions) => Promise<Response>; API_BASE: string; CAPABILITIES: { SMALL_APPS: { label: string; description: string; instructions: string; }; PAGES: { ...; }; WORKSPACE: { ...; }; QUOTES: { ...; }; }; ... 6 more ...; setSequentialThinkingModel?: ((model: string) => void) |...': authFetch, API_BASE, CAPABILITIES, checkCapability, toggleCapability
+src/components/agents/AgentDesigner/index.tsx(235,49): error TS2739: Type '{ name: string; messages: DesignerMessage[]; model: string; description: string; setSelectedAgent: Dispatch<SetStateAction<DesignerAgent | null>>; ... 130 more ...; knowledgeBaseIds: string[]; }' is missing the following properties from type '{ authFetch: (url: string, options?: AuthFetchOptions) => Promise<Response>; API_BASE: string; CAPABILITIES: { SMALL_APPS: { label: string; description: string; instructions: string; }; PAGES: { ...; }; WORKSPACE: { ...; }; QUOTES: { ...; }; }; ... 6 more ...; setSequentialThinkingModel?: ((model: string) => void) |...': authFetch, API_BASE, CAPABILITIES, checkCapability, toggleCapability
+src/components/automation/Builder/build/AssistantColumn.tsx(91,29): error TS2322: Type 'import("/tmp/claude-0/-home-user-Bee-Flow/393d37de-ed4a-5cc0-a8f7-20fe84574460/scratchpad/r1-agenthub/root/agent-hub/src/components/automation/Builder/build/buildTabTypes").BuilderMessage' is not assignable to type 'import("/tmp/claude-0/-home-user-Bee-Flow/393d37de-ed4a-5cc0-a8f7-20fe84574460/scratchpad/r1-agenthub/root/agent-hub/src/hooks/builderStream").BuilderMessage'.
+  Types of property 'role' are incompatible.
+    Type 'string | undefined' is not assignable to type '"user" | "assistant" | undefined'.
+      Type 'string' is not assignable to type '"user" | "assistant" | undefined'.
+src/components/automation/Builder/build/AssistantColumn.tsx(92,29): error TS2322: Type '(id: string) => void' is not assignable to type '(id: string | number) => void'.
+  Types of parameters 'id' and 'id' are incompatible.
+    Type 'string | number' is not assignable to type 'string'.
+      Type 'number' is not assignable to type 'string'.
+src/components/automation/Builder/build/AssistantColumn.tsx(95,29): error TS2322: Type 'unknown' is not assignable to type 'LiveRunFocus | null | undefined'.
+src/components/automation/Builder/build/AssistantColumn.tsx(108,73): error TS2322: Type 'unknown' is not assignable to type 'OutputLookup | null | undefined'.
+src/components/automation/Builder/build/AssistantColumn.tsx(108,187): error TS2322: Type '(() => void) | null | undefined' is not assignable to type '(excluded: Set<string>) => void'.
+  Type 'undefined' is not assignable to type '(excluded: Set<string>) => void'.
+src/components/automation/Builder/build/AssistantColumn.tsx(108,215): error TS2322: Type '(() => void) | null | undefined' is not assignable to type '(() => void) | undefined'.
+  Type 'null' is not assignable to type '(() => void) | undefined'.
+src/components/automation/Builder/build/BuildCanvas.tsx(38,60): error TS2322: Type 'BuilderPlan' is not assignable to type 'ReviewPlan'.
+  Types of property 'steps' are incompatible.
+    Type 'unknown[] | null | undefined' is not assignable to type 'string[] | null | undefined'.
+      Type 'unknown[]' is not assignable to type 'string[]'.
+        Type 'unknown' is not assignable to type 'string'.
+src/components/automation/Builder/build/BuildCanvas.tsx(100,21): error TS2322: Type 'unknown[] | undefined' is not assignable to type 'PlanTodo[] | null | undefined'.
+  Type 'unknown[]' is not assignable to type 'PlanTodo[]'.
+    Type 'unknown' is not assignable to type 'PlanTodo'.
+src/components/automation/Builder/build/BuildCanvas.tsx(117,21): error TS2322: Type '{ id?: string | undefined; status?: string | undefined; } | null | undefined' is not assignable to type '{ startedAt?: string | number | null | undefined; } | null | undefined'.
+  Type '{ id?: string | undefined; status?: string | undefined; }' has no properties in common with type '{ startedAt?: string | number | null | undefined; }'.
+src/components/automation/Builder/build/BuildCanvas.tsx(118,21): error TS2322: Type 'RunStepRow[] | undefined' is not assignable to type '{ status?: string | undefined; }[] | null | undefined'.
+  Type 'RunStepRow[]' is not assignable to type '{ status?: string | undefined; }[]'.
+    Type 'RunStepRow' has no properties in common with type '{ status?: string | undefined; }'.
+src/components/automation/Builder/build/BuildCanvas.tsx(235,13): error TS2322: Type 'Fn<never[], unknown> | undefined' is not assignable to type '((text: string) => Promise<boolean>) | undefined'.
+  Type 'null' is not assignable to type '((text: string) => Promise<boolean>) | undefined'.
+src/components/automation/Builder/build/BuildCanvas.tsx(236,13): error TS2322: Type 'Fn<never[], unknown> | undefined' is not assignable to type '((key: string, text: string) => Promise<boolean>) | undefined'.
+  Type 'null' is not assignable to type '((key: string, text: string) => Promise<boolean>) | undefined'.
+src/components/automation/Builder/build/BuildCanvas.tsx(237,13): error TS2322: Type 'unknown' is not assignable to type 'FlowletAgentState | null | undefined'.
+src/components/chat/MessageItem/MessageBody.tsx(94,63): error TS2322: Type 'unknown' is not assignable to type '((argsKey: string | undefined, decision: "approve" | "decline", call: ToolConfirmCall) => void) | undefined'.
+src/components/shell/sidebar/RecentChats.tsx(71,41): error TS2322: Type '(conv: SidebarConversation) => unknown' is not assignable to type '(conv: ConvRowConversation) => Promise<boolean | void>'.
+  Type 'unknown' is not assignable to type 'Promise<boolean | void>'.
