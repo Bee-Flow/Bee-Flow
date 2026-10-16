@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -196,8 +197,11 @@ function realDeps() {
     const policy = () => require('../../core/memory/memoryPolicy');
     return {
         log,
+        /** @param {Parameters<typeof import('../../stores/memoryStore').createMemory>} a */
         createMemory: (...a) => store().createMemory(...a),
+        /** @param {Parameters<typeof import('../../stores/memoryStore').findByKey>} a */
         findByKey: (...a) => store().findByKey(...a),
+        /** @param {Parameters<typeof import('../../stores/memoryStore').findSimilarMemories>} a */
         findSimilarMemories: (...a) => store().findSimilarMemories(...a),
         confirm: (id) => lifecycle().confirm(id),
         supersede: (o, n) => lifecycle().supersede(o, n),
