@@ -18,6 +18,7 @@ const { walkAllSteps } = require('../../../automation/portability');
 const { privateHeaders, loadForm, loadSession, pendingPageFor } = require('./access');
 const { ipLimiter, tokenLimiter, uploadLimiter, pickLimiter, contentLengthGuard } = require('./limits');
 const { pickCaller, declaredPickField } = require('./picks');
+const { friendly } = require('./friendly');
 
 // Per-form upload quota inside a rolling window. There is no user to bill, so
 // the form itself carries the budget.
@@ -164,9 +165,9 @@ function safeFilename(name) {
 
 /** GET /form/:token, POST /form/:token/upload, POST /form/:token/pick — in that order. */
 function register(router) {
-    router.get('/form/:token', ipLimiter, tokenLimiter, renderForm);
-    router.post('/form/:token/upload', ipLimiter, uploadLimiter, guard, uploadFile);
-    router.post('/form/:token/pick', ipLimiter, pickLimiter, contentLengthGuard, searchPick);
+    router.get('/form/:token', ipLimiter, tokenLimiter, friendly(renderForm, 'form_load_failed', 'Could not load this form'));
+    router.post('/form/:token/upload', ipLimiter, uploadLimiter, guard, friendly(uploadFile, 'upload_failed', 'Upload failed'));
+    router.post('/form/:token/pick', ipLimiter, pickLimiter, contentLengthGuard, friendly(searchPick, 'pick_failed', 'That app could not be searched'));
 }
 
 module.exports = { register, UPLOAD_QUOTA_WINDOW_MS, UPLOAD_QUOTA_FILES, UPLOAD_QUOTA_BYTES };

@@ -14,6 +14,7 @@ const { contentDisposition } = require('../../../core/http/contentDisposition');
 const { endingFrom, resultOf, markdownToSafeHtml, webpageSlots, aiStepsOf, resultFilename } = require('../../../automation/formResult');
 const { privateHeaders, loadForm, loadSession, currentRunFor, journeyRunIds } = require('./access');
 const { ipLimiter, sessionLimiter, exportLimiter } = require('./limits');
+const { friendly } = require('./friendly');
 
 /**
  * POST /form/:token/s/:sid/file/:fileId/notebook — put this document's TEXT
@@ -308,10 +309,10 @@ function documentHtml(parsed) {
  * POST …/webpage — in that order, between the download and the resume.
  */
 function register(router) {
-    router.post('/form/:token/s/:sid/file/:fileId/notebook', ipLimiter, sessionLimiter, openFileInNotebooks);
-    router.post('/form/:token/s/:sid/notebook', ipLimiter, sessionLimiter, saveResultToNotebook);
-    router.get('/form/:token/s/:sid/export/:format', ipLimiter, sessionLimiter, exportLimiter, exportResult);
-    router.post('/form/:token/s/:sid/webpage', ipLimiter, sessionLimiter, webpagesGate, saveResultAsWebpage);
+    router.post('/form/:token/s/:sid/file/:fileId/notebook', ipLimiter, sessionLimiter, friendly(openFileInNotebooks, 'notebook_open_failed', 'Could not open this in Notebooks'));
+    router.post('/form/:token/s/:sid/notebook', ipLimiter, sessionLimiter, friendly(saveResultToNotebook, 'notebook_save_failed', 'Could not save this to Notebooks'));
+    router.get('/form/:token/s/:sid/export/:format', ipLimiter, sessionLimiter, exportLimiter, friendly(exportResult, 'export_failed', 'Could not create this file'));
+    router.post('/form/:token/s/:sid/webpage', ipLimiter, sessionLimiter, webpagesGate, friendly(saveResultAsWebpage, 'webpage_save_failed', 'Could not save this as a webpage'));
 }
 
 module.exports = { register };

@@ -18,6 +18,7 @@ const formQueue = require('../../../automation/formQueue');
 const { privateHeaders, loadForm, loadSession, pendingPageFor } = require('./access');
 const { ipLimiter, tokenLimiter, sessionLimiter, contentLengthGuard } = require('./limits');
 const { resolvePicks } = require('./picks');
+const { friendly } = require('./friendly');
 
 // Bots post the instant the DOM exists. A human needs at least a couple of
 // seconds. Both this and the honeypot answer 200 — never a 4xx that tells the
@@ -224,12 +225,12 @@ async function answerPage(req, res) {
 
 /** POST /form/:token — registered before the session routes. */
 function registerSubmit(router) {
-    router.post('/form/:token', ipLimiter, tokenLimiter, contentLengthGuard, submitForm);
+    router.post('/form/:token', ipLimiter, tokenLimiter, contentLengthGuard, friendly(submitForm, 'submit_failed', 'Could not accept this submission'));
 }
 
 /** POST /form/:token/s/:sid — registered LAST, after every session sub-route. */
 function registerResume(router) {
-    router.post('/form/:token/s/:sid', ipLimiter, sessionLimiter, contentLengthGuard, answerPage);
+    router.post('/form/:token/s/:sid', ipLimiter, sessionLimiter, contentLengthGuard, friendly(answerPage, 'submit_failed', 'Could not accept this submission'));
 }
 
 module.exports = { registerSubmit, registerResume, MIN_FORM_AGE_MS, HONEYPOT_FIELD };

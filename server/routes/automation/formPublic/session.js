@@ -15,6 +15,7 @@ const { endingFrom } = require('../../../automation/formResult');
 const { lostToConcurrency } = require('../../../automation/formQueue');
 const { privateHeaders, loadForm, loadSession, currentRunFor, journeyRunIds, pendingPageFor } = require('./access');
 const { ipLimiter, sessionLimiter } = require('./limits');
+const { friendly } = require('./friendly');
 
 // ── Multi-page: the visitor's session ─────────────────
 
@@ -228,8 +229,8 @@ async function downloadFile(req, res, next) {
 
 /** GET /form/:token/s/:sid, GET /form/:token/s/:sid/file/:fileId — in that order. */
 function register(router) {
-    router.get('/form/:token/s/:sid', ipLimiter, sessionLimiter, pollSession);
-    router.get('/form/:token/s/:sid/file/:fileId', ipLimiter, sessionLimiter, downloadFile);
+    router.get('/form/:token/s/:sid', ipLimiter, sessionLimiter, friendly(pollSession, 'poll_failed', 'Could not check this form'));
+    router.get('/form/:token/s/:sid/file/:fileId', ipLimiter, sessionLimiter, friendly(downloadFile, 'download_failed', 'Could not fetch this file'));
 }
 
 module.exports = { register };
