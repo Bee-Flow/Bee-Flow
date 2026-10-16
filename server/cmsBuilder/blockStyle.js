@@ -5,6 +5,11 @@
 
 'use strict';
 
+const {
+    BG_POSITIONS, BG_REPEATS, BG_SIZES, BG_SIZE_PX_MIN, BG_SIZE_PX_MAX, MOTIFS, MOTIF_SIDES,
+    BLOCK_DESIGN_STYLE_KEYS, cleanBackgroundSize,
+} = require('../i18n/defaults/blockStyleEnums');
+
 function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
@@ -23,7 +28,15 @@ const STYLE_COLUMNS = [2, 3, 4];
 const STYLE_KEYS = [
     'colorOverrides', 'spacing', 'backgroundImage', 'backgroundOverlay', 'maxWidth', 'align', 'cssClass',
     'band', 'rhythm', 'reveal', 'glow', 'columns',
+    ...BLOCK_DESIGN_STYLE_KEYS,
 ];
+// Design keys with a closed enum: the key, its legal values, and the label of the fix hint.
+const DESIGN_ENUMS = {
+    backgroundPosition: BG_POSITIONS,
+    backgroundRepeat: BG_REPEATS,
+    motif: MOTIFS,
+    motifSide: MOTIF_SIDES,
+};
 
 /**
  * Shallow-validate a stylePatch against the block style wrapper shape.
@@ -87,6 +100,23 @@ function validateStylePatch(patch) {
                 return { error: `stylePatch.columns ${JSON.stringify(value ?? null)} is invalid.`, _fixHint: `Valid columns values (a number): ${STYLE_COLUMNS.join(', ')}.` };
             }
             out.columns = n;
+        } else if (key === 'backgroundSize') {
+            const size = cleanBackgroundSize(value);
+            if (!size) {
+                return { error: `stylePatch.backgroundSize ${JSON.stringify(value ?? null)} is invalid.`, _fixHint: `Valid backgroundSize values: ${BG_SIZES.join(', ')}, or a width in pixels such as "480px" (${BG_SIZE_PX_MIN} to ${BG_SIZE_PX_MAX}). No other CSS.` };
+            }
+            out.backgroundSize = size;
+        } else if (key in DESIGN_ENUMS) {
+            const allowed = DESIGN_ENUMS[/** @type {keyof typeof DESIGN_ENUMS} */ (key)];
+            if (!allowed.includes(value)) {
+                return { error: `stylePatch.${key} ${JSON.stringify(value ?? null)} is invalid.`, _fixHint: `Valid ${key} values: ${allowed.join(', ')}.` };
+            }
+            out[key] = value;
+        } else if (key === 'backgroundHideMobile' || key === 'motifTiles') {
+            if (typeof value !== 'boolean') {
+                return { error: `stylePatch.${key} ${JSON.stringify(value ?? null)} is invalid.`, _fixHint: `${key} is true or false.` };
+            }
+            out[key] = value;
         } else if (key === 'backgroundImage' || key === 'cssClass') {
             if (typeof value !== 'string') { hints.push(`stylePatch.${key}: must be a string, dropped.`); continue; }
             out[key] = value;

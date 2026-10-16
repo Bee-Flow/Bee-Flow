@@ -187,6 +187,12 @@
             "why": "CMS block defaults and layout variants (BLOCK_DEFAULTS, BLOCK_VARIANTS, design enums): a block added in the panel matches one created server-side. catalogue.js keeps only the editor registry and re-exports these; blockData.lockstep.test.ts deep-equals them to the source."
         },
         {
+            "source": "server/i18n/defaults/blockStyleEnums.js",
+            "target": "agent-hub/src/marketing/blockStyleEnums.generated.mjs",
+            "transform": "cjs-to-esm",
+            "why": "The design values of a CMS block style (background size/position/repeat, brand motif): the server store and the MCP validator clean with the same function the public renderer (blockWrap.ts) and the panel use. blockStyleEnums.lockstep.test.ts deep-equals it to the source."
+        },
+        {
             "source": "server/core/cms/emojiCatalog.js",
             "target": "agent-hub/src/utils/emojiCatalog.generated.mjs",
             "transform": "cjs-to-esm",

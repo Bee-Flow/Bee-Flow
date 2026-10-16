@@ -61,10 +61,12 @@ import { BlockIdContext } from './components/EditableText';
 import { PreviewBlockChrome, InsertZone } from './components/PreviewBlockChrome';
 import { resolveAssetUrl } from './assetUrl';
 import ExperimentSection, { experimentAttrs } from './experiments/ExperimentSection';
+import { designStyleClasses, designStyleVars } from './blockWrap';
+import { applyTypographyVars } from './designTypography';
 import { LOCALE_PREFIXES } from '../utils/cmsPublicRouting';
 import type {
     BlockStyle, CmsActiveState, CmsBlock, DesignComponents, DesignLayout,
-    DesignTypography, PreviewMessage, ProductWebsiteProps, SectionComponent, SiteContent, SiteDesign,
+    PreviewMessage, ProductWebsiteProps, SectionComponent, SiteContent, SiteDesign,
 } from './ProductWebsite.types';
 
 // Resolve which language the cookie banner / announcement bar should show.
@@ -208,16 +210,7 @@ function applyDesignToRoot(rootEl: HTMLElement | null, design: SiteDesign | null
         style.setProperty('--radius-base', `${design.radius}px`);
     }
 
-    // Typography v2 — display cap (64/80/96px), heading weight, body size.
-    const ty: DesignTypography = design.typography || {};
-    const displayMax = ({ md: '4rem', lg: '5rem', xl: '6rem' } as Record<string, string | undefined>)[ty.displaySize as string];
-    if (displayMax) style.setProperty('--display-max', displayMax);
-    if ([500, 600, 700].includes(ty.headingWeight as number)) {
-        style.setProperty('--heading-weight', String(ty.headingWeight));
-    }
-    if ([16, 17, 18].includes(ty.bodySize as number)) {
-        style.setProperty('--text-body', `${ty.bodySize}px`);
-    }
+    applyTypographyVars(style, design.typography || {});
 
     // ── Component shape + size ──────────────────────────────────────
     // Each map below is value → inline properties. The DEFAULT value maps
@@ -345,7 +338,7 @@ const CSS_VAR_PROPS = [
     '--band-dark-text', '--band-dark-text-secondary',
     '--font-heading', '--font-body', '--font-mono',
     '--radius-base',
-    '--display-max', '--heading-weight', '--text-body',
+    '--display-max', '--heading-weight', '--tracking-display', '--text-body',
     // Shape + size. Every property any SHAPE_MAPS entry can set must be
     // listed, or it survives after the design is cleared.
     '--btn-radius', '--btn-pad-y', '--btn-pad-x', '--btn-font-size',
@@ -539,6 +532,7 @@ function blockWrapClasses(style: BlockStyle | undefined, { type, inPreview }: { 
     if (typeof style?.backgroundImage === 'string' && style.backgroundImage) {
         out.push('cms-block-wrap--has-image');
     }
+    out.push(...designStyleClasses(style)); // background placement + brand motif
     // ── style v2 (all optional; absent = today's rendering) ─────────
     // band: works on EVERY type via the retheme-scope rule in tokens.css.
     if ((['surface', 'tint', 'dark', 'primary'] as (string | undefined)[]).includes(style?.band)) {
@@ -594,6 +588,7 @@ function blockWrapStyle(style: BlockStyle | undefined): CSSProperties | undefine
     if (typeof style.backgroundOverlay === 'string' && style.backgroundOverlay) {
         css['--cms-bg-overlay'] = style.backgroundOverlay;
     }
+    Object.assign(css, designStyleVars(style));
 
     return Object.keys(css).length ? css : undefined;
 }

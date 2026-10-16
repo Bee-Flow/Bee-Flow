@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import useCmsPanelState from './useCmsPanelState';
 import useCmsAutosave from './useCmsAutosave';
+import { toast } from '../../../shared/Toast';
 import { noteSavedRev, resetSavedRevs } from './cmsRevisions';
 
 interface SavedRequest {
@@ -124,5 +125,18 @@ describe('useCmsAutosave revisions', () => {
         await act(async () => { await result.current.autosave.flushSaves(); });
 
         expect(requests[0].body.page?.rev).toBe(6);
+    });
+
+    it('tells the translator when the server dropped a media address of a translation', async () => {
+        const warn = vi.spyOn(toast, 'error').mockImplementation(() => 0);
+        answer = () => jsonResponse(200, { success: true, mediaWarning: 'Some media addresses were not accepted' });
+        const { result } = setup();
+        result.current.state.activeSiteIdRef.current = 'pj_site';
+        result.current.state.pendingSaves.current = { 'locale:page:pg_one:nl': { blocks: {} } };
+
+        await act(async () => { await result.current.autosave.flushSaves(); });
+
+        expect(requests[0].url).toContain('/pages/pg_one/locale/nl');
+        expect(warn).toHaveBeenCalledWith('Some media addresses were not accepted');
     });
 });

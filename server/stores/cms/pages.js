@@ -7,6 +7,7 @@ const configStore = require('../configStore');
 const { revOf, CONFLICT_CODE } = require('./revision');
 const { getAll } = require('../../db');
 const { BLOCK_DEFAULTS, BLOCK_TYPE_IDS } = require('../../i18n/defaults/cmsDefaults');
+const { sanitizeBlockDesignStyle } = require('../../i18n/defaults/blockStyleEnums');
 const {
     PAGE_VERSION, KEY_LOCALE_INFIX,
     newId, isPlainObject, clone, normalizeStoredSlug, assertSiteId, pageKey,
@@ -154,7 +155,7 @@ function normalizeBlockRecord(block, index) {
             type,
             enabled: block.enabled !== false,
             content,
-            style: isPlainObject(block.style) ? block.style : {},
+            style: isPlainObject(block.style) ? sanitizeBlockDesignStyle(block.style) : {},
         },
         dropped: null,
     };

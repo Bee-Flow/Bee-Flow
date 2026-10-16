@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     isDeniedKey, isTranslatableValue, collectStrings, labelForPath,
-    buildPageGroups, coverageForLocale,
+    buildPageGroups, coverageForLocale, collectMedia,
 } from './translatable';
 import type { FieldPath, FoundString, TranslatableRow } from './translatable';
 
@@ -102,3 +102,46 @@ describe('roadmap status is structural, not prose', () => {
         expect(paths.some(p => p.endsWith('.status'))).toBe(false);
     });
 });
+
+describe('per-language media', () => {
+    const MEDIA_PAGE = {
+        id: 'pg_m', slug: 'm', title: 'Media',
+        blocks: [{
+            id: 'bm', type: 'media-text', enabled: true,
+            content: { title: 'Intro', media: { src: 'cms/en.mp4', poster: '', kind: 'clip', alt: 'Clip' }, items: [{ media: { src: 'cms/a.png', srcDark: 'cms/a-dark.png' } }, { title: 'No media' }] },
+        }],
+    };
+
+    it('lists the addresses of every media slot, only for keys the default already has', () => {
+        const found: FoundString[] = [];
+        collectMedia(MEDIA_PAGE.blocks[0].content, [], found);
+        expect(found.map(f => f.fieldPath.join('.'))).toEqual([
+            'media.src', 'media.poster', 'items.0.media.src', 'items.0.media.srcDark',
+        ]);
+    });
+
+    it('never treats a media address as text, so AI translate and the text list skip it', () => {
+        const text: FoundString[] = [];
+        collectStrings(MEDIA_PAGE.blocks[0].content, [], text);
+        expect(text.map(f => f.source)).toEqual(['Intro', 'Clip', 'No media']);
+        expect(isDeniedKey('poster')).toBe(true);
+    });
+
+    it('adds media rows to the block group, flagged, and keeps them out of the coverage count', () => {
+        const groups = buildPageGroups(MEDIA_PAGE, {}, {});
+        const rows: TranslatableRow[] = groups.flatMap(g => g.rows).filter(r => r.media);
+        expect(rows.map(r => r.label)).toContain('Media address for this language (image or clip)');
+        expect(rows.length).toBe(4);
+        const cov = coverageForLocale({ pages: [] } as never, [MEDIA_PAGE] as never, { pagesByLocale: {}, siteByLocale: {} } as never, 'nl');
+        expect(cov.total).toBe(3);
+    });
+});
+
+describe('stored override values that are not text', () => {
+    it('counts a non-string value at a translated path as untranslated instead of passing it on', () => {
+        const override = { seo: { metaTitle: 42 }, blocks: { b1: { content: { lead: { nested: true } } } } };
+        const rows: TranslatableRow[] = buildPageGroups(PAGE as never, override, {}).flatMap(g => g.rows);
+        expect(rows.filter(r => r.value !== undefined)).toEqual([]);
+    });
+});
+

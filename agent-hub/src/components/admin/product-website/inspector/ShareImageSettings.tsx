@@ -10,16 +10,16 @@ export interface ShareImageDesign {
 const TEMPLATES: ShareImageTemplate[] = ['light', 'dark', 'brand'];
 
 /** What the server stores (design.shareImage), with the same defaults as sanitizeDesign. */
-export function readShareImage(design: Record<string, unknown>): ShareImageDesign {
-    const raw = design.shareImage;
+export function readShareImage(design: object): ShareImageDesign {
+    const raw = 'shareImage' in design ? design.shareImage : undefined;
     const src = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
     const template = TEMPLATES.find(t => t === src.template) ?? 'light';
     return { template, motif: src.motif !== false };
 }
 
-interface ShareImageSettingsProps {
-    design: Record<string, unknown>;
-    onChange: (design: Record<string, unknown>) => void;
+interface ShareImageSettingsProps<D extends object> {
+    design: D;
+    onChange: (design: D) => void;
 }
 
 /**
@@ -27,7 +27,7 @@ interface ShareImageSettingsProps {
  * a 1200x630 card from the page title and the brand colours (server/core/seo/ogCard.js).
  * Lives in the Design inspector; saved with the rest of the design.
  */
-export default function ShareImageSettings({ design, onChange }: ShareImageSettingsProps) {
+export default function ShareImageSettings<D extends object>({ design, onChange }: ShareImageSettingsProps<D>) {
     const { t } = useTranslation();
     const current = readShareImage(design);
     const set = (next: Partial<ShareImageDesign>) => onChange({ ...design, shareImage: { ...current, ...next } });

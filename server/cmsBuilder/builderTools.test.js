@@ -704,7 +704,8 @@ test('cms_update_design: teaching-signal rejections; nothing persists on a rejec
         ['unknown component enum', { componentsPatch: { buttonShape: 'squircle' } }, /not a legal value/i],
         ['unknown component key', { componentsPatch: { buttonGlow: 'on' } }, /not a field/i],
         ['unknown layout enum', { layoutPatch: { containerWidth: 'gigantic' } }, /not a legal value/i],
-        ['unknown typography value', { typographyPatch: { headingWeight: 800 } }, /not a legal value/i],
+        ['unknown typography value', { typographyPatch: { headingWeight: 1000 } }, /not a legal value/i],
+        ['unknown display tracking', { typographyPatch: { displayTracking: 'wide' } }, /not a legal value/i],
         ['unknown theme', { theme: 'sepia' }, /invalid/i],
         ['unknown motion', { motion: 'wild' }, /invalid/i],
         ['non-boolean grain', { grain: 'yes' }, /true or false/],
@@ -743,9 +744,14 @@ test('cms_update_design: numeric strings are coerced for numeric enums, other va
     assert.strictEqual(stored.design.typography.bodySize, 17);
 
     const bad = await applyToolCall(draft, 'cms_update_design', { typographyPatch: { headingWeight: 'bold' } });
-    assert.match(bad.error, /"bold" is not a legal value\. Valid \(a number\): 500, 600, 700\./);
-    const out = await applyToolCall(draft, 'cms_update_design', { typographyPatch: { headingWeight: '800' } });
-    assert.match(out.error, /"800" is not a legal value/);
+    assert.match(bad.error, /"bold" is not a legal value\. Valid \(a number\): 500, 600, 700, 800, 900\./);
+    const heavy = await applyToolCall(draft, 'cms_update_design', { typographyPatch: { headingWeight: '900', displayTracking: 'tighter' } });
+    assert.ok(!heavy.error, JSON.stringify(heavy));
+    const heavyStored = await cmsStore.getProject(draft.siteId);
+    assert.strictEqual(heavyStored.design.typography.headingWeight, 900);
+    assert.strictEqual(heavyStored.design.typography.displayTracking, 'tighter');
+    const out = await applyToolCall(draft, 'cms_update_design', { typographyPatch: { headingWeight: '850' } });
+    assert.match(out.error, /"850" is not a legal value/);
     // String enums keep their quoting in the message.
     const str = await applyToolCall(draft, 'cms_update_design', { componentsPatch: { buttonShape: 'squircle' } });
     assert.match(str.error, /Valid: "/);

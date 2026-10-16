@@ -1,5 +1,7 @@
 import React from 'react';
 import BackgroundControl from './controls/BackgroundControl';
+import BackgroundPlacementControl from './controls/BackgroundPlacementControl';
+import MotifControl from './controls/MotifControl';
 import ColorControl from './controls/ColorControl';
 import SpacingStepper from './controls/SpacingStepper';
 import type { Spacing } from './controls/SpacingStepper';
@@ -20,6 +22,11 @@ import { useTranslation } from '../../../hooks/useTranslation';
  *     spacing: { paddingTop, paddingBottom },   // CSS values, e.g. '3rem'
  *     backgroundImage: 'url-or-asset-key',
  *     backgroundOverlay: 'rgba(0,0,0,0.5)',     // single CSS color string
+ *     backgroundSize: 'cover' | 'contain' | 'auto' | '480px',
+ *     backgroundPosition: 'top-left' | 'top' | … | 'bottom-right',   // nine anchors
+ *     backgroundRepeat: 'no-repeat' | 'repeat' | 'repeat-x' | 'repeat-y',
+ *     backgroundHideMobile: true,
+ *     motif: 'none' | 'honeycomb', motifSide: 'right' | 'left' | 'center', motifTiles: true,
  *     maxWidth: 'narrow' | 'medium' | 'wide' | 'full',
  *     align:    'left' | 'center' | 'right',
  *     cssClass: '',
@@ -47,6 +54,13 @@ export interface BlockStyle {
     spacing?: Spacing;
     backgroundImage?: string | null;
     backgroundOverlay?: string | null;
+    backgroundSize?: string;
+    backgroundPosition?: string;
+    backgroundRepeat?: string;
+    backgroundHideMobile?: boolean;
+    motif?: string;
+    motifSide?: string;
+    motifTiles?: boolean;
     maxWidth?: string;
     align?: string;
     cssClass?: string;
@@ -158,6 +172,15 @@ export default function BlockStyleEditor({ style, enabled = true, design, blockT
                 onChangeImage={setBgImage}
                 onChangeOverlay={setBgOverlay}
             />
+            {s.backgroundImage ? (
+                <BackgroundPlacementControl
+                    value={s}
+                    onChange={(patch) => onChange({ ...s, ...patch })}
+                />
+            ) : null}
+
+            <SectionDivider label={t('cms_site.site.blockstyle.motif', 'Brand motif')} />
+            <MotifControl value={s} onChange={(patch) => onChange({ ...s, ...patch })} />
 
             <SectionDivider label={t('cms_site.site.blockstyle.layout', 'Layout')} />
             <FieldRow label={t('cms_site.site.blockstyle.max_width', 'Max width')}>
@@ -251,6 +274,7 @@ function hasAnyOverride(s: BlockStyle | null | undefined) {
     if (s.colorOverrides && Object.keys(s.colorOverrides).length) return true;
     if (s.spacing && Object.keys(s.spacing).length) return true;
     if (s.backgroundImage || s.backgroundOverlay) return true;
+    if (s.motif && s.motif !== 'none') return true;
     if (s.maxWidth) return true;
     if (s.align) return true;
     if (s.cssClass) return true;

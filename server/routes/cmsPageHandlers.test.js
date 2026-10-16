@@ -25,14 +25,14 @@ const languageStore = require('../stores/languageStore');
 const cmsTranslate = require('../core/cms/cmsTranslate');
 
 const calls = [];
-const state = { page: { id: 'pg1', blocks: [] } };
+const state = { page: { id: 'pg1', blocks: [] }, savedOverride: undefined };
 
 mock.method(cmsStore, 'getDefaultLocale', async () => 'en');
 mock.method(cmsStore, 'getPage', async (siteId, id) => (id === state.page?.id ? state.page : null));
 mock.method(cmsStore, 'getProject', async () => ({ id: 'pj_aaaa1111', pages: [{ id: 'pg1' }] }));
 mock.method(cmsStore, 'getPageLocaleOverride', async () => null);
 mock.method(cmsStore, 'saveTranslatedPageOverride', async (...args) => { calls.push(['saveTranslatedPageOverride', ...args]); return args[3]; });
-mock.method(cmsStore, 'setPageLocaleOverride', async (...args) => { calls.push(['setPageLocaleOverride', ...args]); });
+mock.method(cmsStore, 'setPageLocaleOverride', async (...args) => { calls.push(['setPageLocaleOverride', ...args]); return state.savedOverride; });
 mock.method(cmsStore, 'setPage', async (siteId, page, opts) => { calls.push(['setPage', siteId, page, opts]); return { page, dropped: 2 }; });
 mock.method(cmsStore, 'removePage', async (siteId, id) => (id === 'pg1'
     ? { removed: { id, slug: 'x' }, newHomepage: null, neutralisedLinks: 3 } : null));
@@ -62,7 +62,7 @@ async function call(handler, req) {
     return res;
 }
 
-test.beforeEach(() => { calls.length = 0; });
+test.beforeEach(() => { calls.length = 0; state.savedOverride = undefined; });
 
 // Loading the stores starts their boot-time ladders (config load, org
 // backfills) against the recorded pool; let them settle, then only what
@@ -143,6 +143,17 @@ test('putPage answers 404 for a page the site does not list, and writes nothing'
 test('putPage without a revision still saves (soft path for one release), unchecked', async () => {
     await call(handlers.putPage, { params: { id: 'pg1' }, body: { page: { title: 'T' } } });
     assert.deepStrictEqual(calls, [['setPage', 'pj_aaaa1111', { id: 'pg1', title: 'T' }, { expectedRev: undefined }]]);
+});
+
+test('putPageLocale warns when the store dropped a media address', async () => {
+    const sent = { blocks: { b1: { content: { src: 'javascript:alert(1)', poster: 'cms/p.png' } } } };
+    state.savedOverride = { blocks: { b1: { content: { poster: 'cms/p.png' } } } };
+    const dropped = await call(handlers.putPageLocale, { params: { id: 'pg1', locale: 'nl' }, body: { override: sent } });
+    assert.strictEqual(dropped.statusCode, 200);
+    assert.match(dropped.body.mediaWarning, /media addresses were not accepted/);
+    state.savedOverride = sent;
+    const kept = await call(handlers.putPageLocale, { params: { id: 'pg1', locale: 'nl' }, body: { override: { blocks: { b1: { content: { poster: 'cms/p.png' } } } } } });
+    assert.strictEqual(kept.body.mediaWarning, undefined);
 });
 
 test('putPageLocale refuses an unknown page (404) and a malformed locale (400)', async () => {

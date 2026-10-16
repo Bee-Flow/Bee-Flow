@@ -18,7 +18,15 @@ type RowTarget =
     | { type: 'chrome'; path: FieldPath }
     | { type: 'seo'; field: string }
     | { type: 'block'; blockId: string; fieldPath: FieldPath };
-export interface TranslatableRow { key: string; label: string; source: string; value: unknown; target: RowTarget }
+export interface TranslatableRow {
+    key: string;
+    label: string;
+    source: string;
+    value: string | undefined;
+    target: RowTarget;
+    /** a media address: shown for review, never part of the coverage count, never AI translated */
+    media?: boolean;
+}
 export interface TranslatableGroup { key: string; title: string; icon: string; rows: TranslatableRow[]; blockId?: string }
 
 export const DENY_KEYS = new Set([
@@ -73,6 +81,38 @@ export function collectStrings(node: unknown, path: FieldPath, out: FoundString[
     if (typeof node === 'string' && isTranslatableValue(node)) out.push({ fieldPath: path, source: node });
 }
 
+// Per-language media: the addresses of a media slot (an object with its own
+// `src`) that may differ per language. Only keys the default content already
+// carries are offered, so the editor preview (which merges by base keys, like
+// localeMerge) shows exactly what the public site serves. The server accepts a
+// poster even when the default has none (cms_set_locale_override).
+export const MEDIA_ADDRESS_KEYS = ['src', 'srcDark', 'poster', 'captionsSrc'] as const;
+
+export function collectMedia(node: unknown, path: FieldPath, out: FoundString[]): void {
+    if (Array.isArray(node)) {
+        node.forEach((el: unknown, i: number) => collectMedia(el, [...path, i], out));
+        return;
+    }
+    if (!node || typeof node !== 'object') return;
+    const rec = node as Record<string, unknown>;
+    if (typeof rec.src === 'string') {
+        for (const key of MEDIA_ADDRESS_KEYS) {
+            const v = rec[key];
+            if (typeof v === 'string' && (key === 'src' ? v.trim() !== '' : true)) {
+                out.push({ fieldPath: [...path, key], source: v });
+            }
+        }
+    }
+    for (const [k, v] of Object.entries(rec)) {
+        if (v && typeof v === 'object' && !(MEDIA_ADDRESS_KEYS as readonly string[]).includes(k)) collectMedia(v, [...path, k], out);
+    }
+}
+
+/** A stored override value is only text when it is a string; anything else counts as untranslated. */
+function asText(v: unknown): string | undefined {
+    return typeof v === 'string' ? v : undefined;
+}
+
 export function humanize(key: unknown): string {
     return String(key)
         .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
@@ -106,6 +146,10 @@ const LABELS: Record<string, string> = {
     summary: 'Summary',
     caption: 'Caption',
     alt: 'Image alt text',
+    src: 'Media address for this language (image or clip)',
+    srcDark: 'Dark-theme image for this language',
+    poster: 'Clip poster for this language',
+    captionsSrc: 'Captions file for this language',
     placeholder: 'Placeholder',
     message: 'Message',
     accept: 'Accept button',
@@ -135,7 +179,7 @@ export function buildPageGroups(page: CmsPageDoc | null | undefined, pageOverrid
             key: 'page:title',
             label: 'Page title',
             source: page.title,
-            value: getLocalePath(siteOverride, ['pageTitles', page.id]),
+            value: asText(getLocalePath(siteOverride, ['pageTitles', page.id])),
             target: { type: 'chrome', path: ['pageTitles', page.id] },
         });
     }
@@ -146,7 +190,7 @@ export function buildPageGroups(page: CmsPageDoc | null | undefined, pageOverrid
                 key: `seo:${f}`,
                 label: f === 'metaTitle' ? 'Meta title' : 'Meta description',
                 source: src,
-                value: getLocalePath(pageOverride, ['seo', f]),
+                value: asText(getLocalePath(pageOverride, ['seo', f])),
                 target: { type: 'seo', field: f },
             });
         }
@@ -156,19 +200,22 @@ export function buildPageGroups(page: CmsPageDoc | null | undefined, pageOverrid
     for (const block of page.blocks || []) {
         const found: FoundString[] = [];
         collectStrings(block.content, [], found);
-        if (!found.length) continue;
+        const media: FoundString[] = [];
+        collectMedia(block.content, [], media);
+        if (!found.length && !media.length) continue;
         const def: { label?: string; icon?: string } = (BLOCK_EDITORS as Record<string, { label?: string; icon?: string }>)[block.type] || {};
         groups.push({
             key: block.id,
             blockId: block.id,
             title: def.label || humanize(block.type),
             icon: def.icon || 'Square',
-            rows: found.map((f, i) => ({
+            rows: [...found, ...media].map((f, i): TranslatableRow => ({
                 key: `${block.id}:${f.fieldPath.join('.')}:${i}`,
                 label: labelForPath(f.fieldPath),
                 source: f.source,
-                value: getLocalePath(pageOverride, ['blocks', block.id, 'content', ...f.fieldPath]),
+                value: asText(getLocalePath(pageOverride, ['blocks', block.id, 'content', ...f.fieldPath])),
                 target: { type: 'block', blockId: block.id, fieldPath: f.fieldPath },
+                ...(i >= found.length ? { media: true } : {}),
             })),
         });
     }
@@ -191,7 +238,7 @@ export function buildSiteGroups(site: CmsSiteDoc | null | undefined, siteOverrid
                 key: `${region}:${f.fieldPath.join('.')}:${i}`,
                 label: labelForPath(f.fieldPath),
                 source: f.source,
-                value: getLocalePath(siteOverride, [region, ...f.fieldPath]),
+                value: asText(getLocalePath(siteOverride, [region, ...f.fieldPath])),
                 target: { type: 'chrome', path: [region, ...f.fieldPath] },
             })),
         });
@@ -203,7 +250,7 @@ export function buildSiteGroups(site: CmsSiteDoc | null | undefined, siteOverrid
                 key: `title:${p.id}`,
                 label: p.title,
                 source: p.title,
-                value: getLocalePath(siteOverride, ['pageTitles', p.id]),
+                value: asText(getLocalePath(siteOverride, ['pageTitles', p.id])),
                 target: { type: 'chrome', path: ['pageTitles', p.id] },
             });
         }
@@ -225,7 +272,7 @@ export function coverageForLocale(site: CmsSiteDoc | null | undefined, pages: Cm
     for (const g of buildSiteGroups(site, siteOv)) {
         for (const r of g.rows) {
             total += 1;
-            if (((r.value as string) || '').trim()) done += 1;
+            if ((r.value || '').trim()) done += 1;
         }
     }
     for (const pageDoc of pages || []) {
@@ -234,9 +281,9 @@ export function coverageForLocale(site: CmsSiteDoc | null | undefined, pages: Cm
             // buildPageGroups' meta group repeats the page title already
             // counted by buildSiteGroups' pageTitles rows — skip those rows.
             for (const r of g.rows) {
-                if (r.key === 'page:title') continue;
+                if (r.key === 'page:title' || r.media) continue;
                 total += 1;
-                if (((r.value as string) || '').trim()) done += 1;
+                if ((r.value || '').trim()) done += 1;
             }
         }
     }

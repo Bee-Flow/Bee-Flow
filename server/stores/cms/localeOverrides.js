@@ -11,6 +11,7 @@ const {
     projectKey, projectLocaleKey, pageKey, pageLocaleKey,
 } = require('./shared');
 const { writeSiteAligned, withConfigGroup } = require('./overrideAlign');
+const { cleanOverrideMedia } = require('./localeMedia');
 
 // ── Locale settings (org-wide) ───────────────────────────────────────
 
@@ -66,8 +67,8 @@ function cappedOrphans(bag) {
 function sanitizeSiteOverride(override) {
     return {
         version: LOCALE_OVERRIDE_VERSION,
-        header:     isPlainObject(override.header) ? override.header : undefined,
-        footer:     isPlainObject(override.footer) ? override.footer : undefined,
+        header:     isPlainObject(override.header) ? cleanOverrideMedia(override.header) : undefined,
+        footer:     isPlainObject(override.footer) ? cleanOverrideMedia(override.footer) : undefined,
         pageTitles: isPlainObject(override.pageTitles) ? override.pageTitles : undefined,
         // Parked translations of removed items (see overrideAlign.js).
         _orphans:   cappedOrphans(override._orphans),
@@ -81,6 +82,7 @@ async function setSiteLocaleOverride(siteId, locale, override) {
     const sanitized = sanitizeSiteOverride(override);
     // Same lock as the site document: a content save re-keys overrides inside it.
     await withConfigGroup(projectKey(siteId), (io) => io.set(projectLocaleKey(siteId, locale), sanitized));
+    return sanitized;
 }
 async function deleteSiteLocaleOverride(siteId, locale) {
     assertSiteId(siteId);
@@ -97,7 +99,10 @@ function sanitizePageOverride(override) {
     const blocks = {};
     if (isPlainObject(override.blocks)) {
         for (const [id, ov] of Object.entries(override.blocks)) {
-            blocks[id] = isPlainObject(ov) && '_orphans' in ov ? { ...ov, _orphans: cappedOrphans(ov._orphans) } : ov;
+            let clean = isPlainObject(ov) && '_orphans' in ov ? { ...ov, _orphans: cappedOrphans(ov._orphans) } : ov;
+            // Media addresses must be legal ones (see localeMedia.js); text passes through.
+            if (isPlainObject(clean) && 'content' in clean) clean = { ...clean, content: cleanOverrideMedia(clean.content) };
+            blocks[id] = clean;
         }
     }
     const sanitized = { version: LOCALE_OVERRIDE_VERSION, blocks };
@@ -120,6 +125,7 @@ async function setPageLocaleOverride(siteId, pageId, locale, override) {
     if (!isPlainObject(override)) throw new Error('Override must be an object');
     const sanitized = sanitizePageOverride(override);
     await withConfigGroup(pageKey(siteId, pageId), (io) => io.set(pageLocaleKey(siteId, pageId, locale), sanitized));
+    return sanitized;
 }
 async function deletePageLocaleOverride(siteId, pageId, locale) {
     assertSiteId(siteId);

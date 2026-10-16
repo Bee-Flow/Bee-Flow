@@ -16,7 +16,7 @@
 const {
     BLOCK_DEFAULTS, BLOCK_TYPES, BLOCK_VARIANTS,
     DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS,
-    DISPLAY_SIZES, HEADING_WEIGHTS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS,
+    DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS,
 } = require('../i18n/defaults/cmsDefaults');
 const { THEME_PRESETS } = require('../i18n/defaults/themePresets');
 
@@ -101,7 +101,7 @@ function buildSystemPrompt() {
 - \`preset\` applies a built-in theme's COMPLETE values first, then your other patches layer on top ({ preset:"midnight-flow", colorsPatch:{primary:"#CE3F26"} } = that theme with a custom primary). The themes: ${PRESET_TEXT}.
 - COLOURS: colorsPatch { ${COLOR_KEYS.join(', ')} } and darkColorsPatch { ${DARK_COLOR_KEYS.join(', ')} }. Every value is a literal "#rrggbb" hex string — colour names, rgb()/hsl() and 3-digit shorthand are REJECTED and nothing is saved. darkColors.primary and darkColors.accent also take "" meaning "reuse the light value". Translate the user's words into hex yourself ("warm amber" → "#F5A623").
 - FONTS: fontsPatch { heading, body, mono }. Only these faces exist — anything else is rejected: ${DESIGN_FONTS_TEXT}.
-- typographyPatch { displaySize (${DISPLAY_SIZES.join(' | ')}), headingWeight (${HEADING_WEIGHTS.join(' | ')}), bodySize (${BODY_SIZES.join(' | ')}) }; radius 0-24 (px, global); theme (${DESIGN_THEMES.join(' | ')}); motion (${DESIGN_MOTIONS.join(' | ')}); grain and gradient booleans.
+- typographyPatch { displaySize (${DISPLAY_SIZES.join(' | ')}), headingWeight (${HEADING_WEIGHTS.join(' | ')}), displayTracking (${DISPLAY_TRACKINGS.join(' | ')}), bodySize (${BODY_SIZES.join(' | ')}) }; radius 0-24 (px, global); theme (${DESIGN_THEMES.join(' | ')}); motion (${DESIGN_MOTIONS.join(' | ')}); grain and gradient booleans.
 - componentsPatch — ${COMPONENTS_TEXT}.
 - layoutPatch — ${LAYOUT_TEXT}.
 - The site LOGO and FAVICON are uploaded assets, not design values: you cannot set them here. Ask the user to upload one in the Design tab — never invent an asset key.

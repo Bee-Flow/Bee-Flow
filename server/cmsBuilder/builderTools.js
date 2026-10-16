@@ -31,7 +31,7 @@ const { validateStylePatch, STYLE_KEYS } = require('./blockStyle');
 const {
     BLOCK_DEFAULTS, BLOCK_TYPE_IDS,
     DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS,
-    DISPLAY_SIZES, HEADING_WEIGHTS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS,
+    DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS,
 } = require('../i18n/defaults/cmsDefaults');
 const { THEME_PRESETS, THEME_PRESET_IDS } = require('../i18n/defaults/themePresets');
 const { TOOL_SCHEMAS, LINK_HINT, DESIGN_HINT } = require('./schemas');
@@ -78,6 +78,7 @@ const FONT_ROLES = ['heading', 'body', 'mono'];
 const TYPOGRAPHY_ENUMS = {
     displaySize: DISPLAY_SIZES,
     headingWeight: HEADING_WEIGHTS,
+    displayTracking: DISPLAY_TRACKINGS,
     bodySize: BODY_SIZES,
 };
 // darkColors.primary/accent take '' = "reuse the light value" (see
@@ -187,7 +188,7 @@ function summariseDesign(design) {
         `background ${colors.background || '?'}`,
         `fonts ${fonts.heading || '?'}/${fonts.body || '?'}/${fonts.mono || '?'}`,
         `radius ${d.radius ?? '?'}`,
-        `type ${ty.displaySize || '?'}/${ty.headingWeight ?? '?'}/${ty.bodySize ?? '?'}`,
+        `type ${ty.displaySize || '?'}/${ty.headingWeight ?? '?'}/${ty.bodySize ?? '?'}/${ty.displayTracking || 'default'}`,
         `motion ${d.motion || '?'}`,
         `grain ${d.grain ? 'on' : 'off'}`,
         `gradient ${d.gradient ? 'on' : 'off'}`,

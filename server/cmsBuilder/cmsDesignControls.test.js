@@ -1,0 +1,195 @@
+// @typecheck
+/**
+ * CMS design controls (#221): block background placement, the built-in brand
+ * motif, per-language media and the heavier display type. The REAL cmsStore
+ * runs against the in-memory config harness (see cmsBuilder/builderTools.test.js).
+ *
+ * Run: node --test cmsBuilder/cmsDesignControls.test.js
+ */
+
+const test = require('node:test');
+const assert = require('node:assert');
+const { installCmsStoreMocks } = require('../stores/cmsStore.testkit');
+
+installCmsStoreMocks();
+
+const cmsStore = require('../stores/cmsStore');
+const { applyToolCall } = require('./builderTools');
+const { validateSiteDraft } = require('./validate');
+const { validateStylePatch } = require('./blockStyle');
+const { sanitizeBlockDesignStyle, cleanBackgroundSize } = require('../i18n/defaults/blockStyleEnums');
+const { safeMediaRef, cleanOverrideMedia, applyOverrideMedia } = require('../stores/cms/localeMedia');
+
+async function makeDraft() {
+    const created = await cmsStore.createProject({ name: 'Test site' });
+    const site = await cmsStore.getProject(created.id);
+    const pages = new Map();
+    for (const entry of site.pages) pages.set(entry.id, await cmsStore.getPage(created.id, entry.id));
+    return {
+        siteId: created.id, userId: 'u1', orgId: 'orgA', builderSessionId: 'cms_test',
+        site, pages, defaultLocale: 'en', locales: [], createdPageIds: [], touchedPageIds: new Set(),
+    };
+}
+
+// ── Background placement + motif: enum whitelist, no free CSS ───────
+
+test('cleanBackgroundSize: enum members and a bounded pixel width, nothing else', () => {
+    for (const ok of ['cover', 'contain', 'auto', ' COVER ', '480px', 480, '16px', '2400px']) {
+        assert.ok(cleanBackgroundSize(ok), String(ok));
+    }
+    assert.strictEqual(cleanBackgroundSize(480), '480px');
+    for (const bad of ['15px', '2401px', '50%', '10rem', 'url(x.png)', 'cover, url(//evil)', '480px 20px', '1e3px', '-5px', null, {}, '']) {
+        assert.strictEqual(cleanBackgroundSize(bad), null, JSON.stringify(bad));
+    }
+});
+
+test('validateStylePatch: placement and motif keys accept their enum, reject free CSS with a fix hint', () => {
+    const ok = validateStylePatch({
+        backgroundImage: 'cms/x.svg', backgroundSize: '480px', backgroundPosition: 'top-right', backgroundRepeat: 'repeat-x',
+        backgroundHideMobile: true, motif: 'honeycomb', motifSide: 'left', motifTiles: true,
+    });
+    assert.ok(!ok.error, JSON.stringify(ok));
+    assert.deepStrictEqual(ok.style, {
+        backgroundImage: 'cms/x.svg', backgroundSize: '480px', backgroundPosition: 'top-right', backgroundRepeat: 'repeat-x',
+        backgroundHideMobile: true, motif: 'honeycomb', motifSide: 'left', motifTiles: true,
+    });
+    for (const patch of [
+        { backgroundSize: 'url(//evil.example/x.png)' },
+        { backgroundSize: '50%' },
+        { backgroundPosition: '10px 20px' },
+        { backgroundPosition: 'center; background: url(x)' },
+        { backgroundRepeat: 'space' },
+        { backgroundHideMobile: 'yes' },
+        { motif: 'url(x)' },
+        { motifSide: 'top' },
+        { motifTiles: 1 },
+    ]) {
+        const r = validateStylePatch(patch);
+        assert.ok(r.error && r._fixHint, JSON.stringify(patch));
+    }
+});
+
+test('sanitizeBlockDesignStyle: drops every illegal design value, leaves other keys alone', () => {
+    const out = sanitizeBlockDesignStyle({
+        band: 'dark', backgroundSize: 'url(x)', backgroundPosition: 'left', backgroundRepeat: 'nope',
+        backgroundHideMobile: 'true', motif: 'honeycomb', motifSide: '<script>', motifTiles: false,
+    });
+    assert.deepStrictEqual(out, { band: 'dark', backgroundPosition: 'left', motif: 'honeycomb', motifTiles: false });
+});
+
+test('cms_update_block: stylePatch with the new keys is stored; a bad value changes nothing', async () => {
+    const draft = await makeDraft();
+    const home = draft.site.pages[0].id;
+    const added = await applyToolCall(draft, 'cms_add_blocks', { pageId: home, blocks: [{ type: 'hero' }] });
+    const blockId = added.blockIds[0];
+    const ok = await applyToolCall(draft, 'cms_update_block', { pageId: home, blockId, stylePatch: { motif: 'honeycomb', motifSide: 'right', backgroundSize: '320px' } });
+    assert.ok(!ok.error, JSON.stringify(ok));
+    const style = draft.pages.get(home).blocks[0].style;
+    assert.strictEqual(style.motif, 'honeycomb');
+    assert.strictEqual(style.backgroundSize, '320px');
+    const bad = await applyToolCall(draft, 'cms_update_block', { pageId: home, blockId, stylePatch: { backgroundSize: 'url(x)' } });
+    assert.ok(bad.error);
+    assert.strictEqual(draft.pages.get(home).blocks[0].style.backgroundSize, '320px');
+});
+
+test('store sanitizer: a page saved with illegal design style values loses them', async () => {
+    const draft = await makeDraft();
+    const home = draft.site.pages[0].id;
+    const page = await cmsStore.getPage(draft.siteId, home);
+    page.blocks = [{ id: 'blk_a', type: 'hero', enabled: true, content: {}, style: { motif: 'honeycomb', backgroundSize: 'url(//evil)', backgroundPosition: 'center' } }];
+    await cmsStore.setPage(draft.siteId, page);
+    const stored = await cmsStore.getPage(draft.siteId, home);
+    assert.deepStrictEqual(stored.blocks[0].style, { motif: 'honeycomb', backgroundPosition: 'center' });
+});
+
+test('validateSiteDraft: warns on an illegal design style value and on a bad bento media setting', async () => {
+    const draft = await makeDraft();
+    const home = draft.site.pages[0].id;
+    draft.pages.get(home).blocks = [
+        { id: 'blk_a', type: 'hero', enabled: true, content: {}, style: { backgroundSize: '50%', motif: 'honeycomb' } },
+        { id: 'blk_b', type: 'features', enabled: true, content: { variant: 'bento', items: [{ title: 'x', mediaHeight: 'huge', mediaFit: 'contain' }] }, style: {} },
+    ];
+    const { warnings } = validateSiteDraft(draft);
+    const paths = warnings.filter((w) => /unknown_(style|item)_value/.test(w.code)).map((w) => w.path);
+    assert.ok(paths.some((p) => p.endsWith('blocks[0].style.backgroundSize')), paths.join('\n'));
+    assert.ok(!paths.some((p) => p.endsWith('style.motif')));
+    assert.ok(paths.some((p) => p.endsWith('items[0].mediaHeight')));
+    assert.ok(!paths.some((p) => p.endsWith('items[0].mediaFit')));
+});
+
+// ── Heavier display type ────────────────────────────────────────────
+
+test('sanitizeDesign: heading weight 800/900 and the display tracking enum', () => {
+    const { sanitizeDesign } = require('../stores/cms/shared');
+    const heavy = sanitizeDesign({ typography: { headingWeight: 900, displayTracking: 'tightest' } });
+    assert.strictEqual(heavy.typography.headingWeight, 900);
+    assert.strictEqual(heavy.typography.displayTracking, 'tightest');
+    const bad = sanitizeDesign({ typography: { headingWeight: 950, displayTracking: '-3px; color:red' } });
+    assert.strictEqual(bad.typography.headingWeight, 600, 'falls back to the default weight');
+    assert.strictEqual(bad.typography.displayTracking, 'default');
+    assert.strictEqual(sanitizeDesign({}).typography.displayTracking, 'default');
+});
+
+// ── Per-language media ──────────────────────────────────────────────
+
+test('safeMediaRef: asset keys, site paths and http(s) pass; script/data URLs and markup do not', () => {
+    for (const ok of ['cms/clip-nl.mp4', '/api/cms/asset/cms/poster.jpg', 'https://cdn.example.com/a/b.webm?v=2', ' cms/x.png ']) {
+        assert.ok(safeMediaRef(ok), ok);
+    }
+    for (const bad of ['javascript:alert(1)', 'data:text/html;base64,AAAA', '//evil.example/x.png', 'cms/../secret', 'cms/a b.png',
+        'https://x.example/"onerror=1', '/a/../b', 'ftp://x.example/a', '', '   ', 5, null, 'cms/<img>']) {
+        assert.strictEqual(safeMediaRef(bad), '', JSON.stringify(bad));
+    }
+});
+
+test('cleanOverrideMedia / applyOverrideMedia: media keys are validated, text untouched, poster added to a slot', () => {
+    const override = { media: { src: 'cms/nl.mp4', poster: 'javascript:x', alt: 'Beschrijving' }, items: [null, { media: { src: '/api/cms/asset/cms/n.png' } }] };
+    const clean = cleanOverrideMedia(override);
+    assert.deepStrictEqual(clean, { media: { src: 'cms/nl.mp4', alt: 'Beschrijving' }, items: [null, { media: { src: '/api/cms/asset/cms/n.png' } }] });
+    const base = { media: { src: 'cms/en.mp4', alt: 'Description', kind: 'clip' }, items: [{ media: { src: 'cms/a.png' } }, { media: { src: 'cms/b.png' } }] };
+    const merged = applyOverrideMedia(base, { media: { poster: 'cms/p-nl.jpg', src: 'cms/nl.mp4' }, items: [null, { media: { src: '/api/cms/asset/cms/n.png' } }] });
+    assert.deepStrictEqual(merged, {
+        media: { src: 'cms/nl.mp4', alt: 'Description', kind: 'clip', poster: 'cms/p-nl.jpg' },
+        items: [{ media: { src: 'cms/a.png' } }, { media: { src: '/api/cms/asset/cms/n.png' } }],
+    });
+    // A media key never creates structure the default does not have.
+    assert.deepStrictEqual(applyOverrideMedia({ title: 'x' }, { poster: 'cms/p.jpg', other: { src: 'cms/z.png' } }), { title: 'x' });
+});
+
+test('locale override media: stored cleaned, served in the requested language only, never from a hostile value', async () => {
+    const draft = await makeDraft();
+    const home = draft.site.pages[0].id;
+    const page = await cmsStore.getPage(draft.siteId, home);
+    page.blocks = [{ id: 'blk_m', type: 'media-text', enabled: true, content: { title: 'Intro', media: { src: 'cms/en.mp4', kind: 'clip', alt: 'Clip' } }, style: {} }];
+    await cmsStore.setPage(draft.siteId, page);
+    await cmsStore.setPageLocaleOverride(draft.siteId, home, 'nl', {
+        blocks: { blk_m: { content: { title: 'Intro NL', media: { src: 'cms/nl.mp4', poster: 'cms/nl.jpg', srcDark: 'data:image/svg+xml,<svg/>' } } } },
+    });
+    const stored = await cmsStore.getPageLocaleOverride(draft.siteId, home, 'nl');
+    assert.deepStrictEqual(stored.blocks.blk_m.content.media, { src: 'cms/nl.mp4', poster: 'cms/nl.jpg' }, 'the data: address never reaches storage');
+    const nl = await cmsStore.getEffective(draft.siteId, '', 'nl');
+    const nlMedia = nl.page.blocks[0].content.media;
+    assert.strictEqual(nlMedia.src, 'cms/nl.mp4');
+    assert.strictEqual(nlMedia.poster, 'cms/nl.jpg');
+    assert.strictEqual(nl.page.blocks[0].content.title, 'Intro NL');
+    const en = await cmsStore.getEffective(draft.siteId, '', 'en');
+    assert.strictEqual(en.page.blocks[0].content.media.src, 'cms/en.mp4');
+    assert.strictEqual(en.page.blocks[0].content.media.poster, undefined);
+});
+
+test('locale override media: a hostile address written around the setter is still dropped at read time', async () => {
+    const draft = await makeDraft();
+    const home = draft.site.pages[0].id;
+    const page = await cmsStore.getPage(draft.siteId, home);
+    page.blocks = [{ id: 'blk_m', type: 'media-text', enabled: true, content: { media: { src: 'cms/en.png' } }, style: {} }];
+    await cmsStore.setPage(draft.siteId, page);
+    const { resolveEffective } = require('../stores/cms/effective');
+    const site = await cmsStore.getProject(draft.siteId);
+    const eff = await resolveEffective(draft.siteId, '', 'nl', {
+        getSite: async () => site,
+        getPage: async () => page,
+        getSiteLocaleOverride: async () => null,
+        getPageLocaleOverride: async () => ({ blocks: { blk_m: { content: { media: { src: 'javascript:alert(1)' } } } } }),
+    });
+    assert.strictEqual(eff.page.blocks[0].content.media.src, 'cms/en.png');
+});

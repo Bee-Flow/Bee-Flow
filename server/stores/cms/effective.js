@@ -14,6 +14,7 @@ const {
     getDefaultLocale, getSiteLocaleOverride, getPageLocaleOverride,
 } = require('./localeOverrides');
 const { getPublishedSnapshot } = require('./publishing');
+const { cleanOverrideMedia, applyOverrideMedia } = require('./localeMedia');
 
 // ── Effective content (preview-time render) ──────────────────────────
 
@@ -153,8 +154,8 @@ async function resolveEffective(siteId, slug, locale, ctx) {
     if (siteOverride) {
         // Locale chrome overrides are sparse text-only patches: merge by index
         // so nav/footer link structure (kind/url/style) stays owned by base.
-        if (siteOverride.header) header = mergeLocaleContent(header, siteOverride.header);
-        if (siteOverride.footer) footer = mergeLocaleContent(footer, siteOverride.footer);
+        if (siteOverride.header) header = mergeLocaleContent(header, cleanOverrideMedia(siteOverride.header));
+        if (siteOverride.footer) footer = mergeLocaleContent(footer, cleanOverrideMedia(siteOverride.footer));
     }
     header = resolveLinksInTree(header, site.pages);
     footer = resolveLinksInTree(footer, site.pages);
@@ -181,7 +182,10 @@ async function resolveEffective(siteId, slug, locale, ctx) {
         blocks = blocks.map(b => {
             const ov = pageOverride.blocks[b.id];
             if (!ov) return b;
-            return { ...b, content: mergeLocaleContent(b.content, ov.content || {}) };
+            // Text first, then the media addresses (re-validated here: a snapshot or an
+            // import may hold an override that predates the write-time check).
+            const ovContent = cleanOverrideMedia(ov.content || {});
+            return { ...b, content: applyOverrideMedia(mergeLocaleContent(b.content, ovContent), ovContent) };
         });
     }
 

@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { buildPageGroups, buildSiteGroups } from './translatable';
+import type { FieldPath, TranslatableGroup, TranslatableRow } from './translatable';
+import type { CmsPageDoc, CmsSiteDoc } from './panel/cmsPanelTypes';
 import { useTranslation } from '../../../hooks/useTranslation';
 import AppIcon from '../../icons/AppIcon';
 import AiTranslateControl from '../languages/AiTranslateControl';
@@ -21,18 +23,51 @@ import AiTranslateControl from '../languages/AiTranslateControl';
  * soft, and per-block "Clear & retranslate" is the recovery path.
  */
 
-function isMultiline(s) {
+interface TranslationRowProps {
+    label: string;
+    source: string;
+    value: string | undefined;
+    onChange: (value: string) => void;
+    onFocus: () => void;
+    disabled: boolean;
+}
+
+interface AiStatus { state?: string; translated?: number }
+
+interface TranslationPanelProps {
+    scope: 'site' | 'page';
+    site?: CmsSiteDoc | null;
+    page?: CmsPageDoc | null;
+    localeName?: string;
+    defaultLocaleName?: string;
+    pageOverride?: unknown;
+    siteOverride?: unknown;
+    aiStatus?: AiStatus | null;
+    tier?: string;
+    onTierChange: (tier: string) => void;
+    onPageLeaf?: (blockId: string, fieldPath: FieldPath, value: unknown) => unknown;
+    onPageSeo?: (field: string, value: unknown) => unknown;
+    onChromeLeaf?: (path: FieldPath, value: unknown) => unknown;
+    onSelectBlock?: (blockId: string) => void;
+    onAiTranslate: () => void;
+    onClearAndRetranslateBlock?: (blockId: string) => void;
+    onResetTranslations?: () => void;
+}
+
+type VisibleGroup = TranslatableGroup & { visibleRows: TranslatableRow[] };
+
+function isMultiline(s: unknown) {
     return typeof s === 'string' && (s.length > 64 || s.includes('\n'));
 }
 
-function TranslationRow({ label, source, value, onChange, onFocus, disabled }) {
+function TranslationRow({ label, source, value, onChange, onFocus, disabled }: TranslationRowProps) {
     const multi = isMultiline(source);
     const common = {
         value: value || '',
         placeholder: source,
         onFocus,
         disabled,
-        onChange: (e) => onChange(e.target.value),
+        onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value),
         className: 'w-full px-2 py-1.5 rounded-md text-xs border bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)] focus:border-[var(--accent-primary)] outline-none disabled:opacity-50 disabled:cursor-not-allowed',
     };
     return (
@@ -59,13 +94,13 @@ export default function TranslationPanel({
     onPageLeaf, onPageSeo, onChromeLeaf, onSelectBlock, onAiTranslate,
     onClearAndRetranslateBlock,     // (blockId) — D3 recovery, optional
     onResetTranslations,            // () — remove every override for this scope, optional
-}) {
+}: TranslationPanelProps) {
     const { t } = useTranslation();
     const [search, setSearch] = useState('');
     const [onlyUntranslated, setOnlyUntranslated] = useState(false);
     // Group collapse — keyed by group key; default: groups with every field
     // filled start collapsed (review-on-demand), unfinished ones open.
-    const [collapsed, setCollapsed] = useState({});
+    const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
     // Build the row groups (data only — onChange is dispatched at render).
     const groups = useMemo(() => {
@@ -74,14 +109,17 @@ export default function TranslationPanel({
     }, [scope, site, page, pageOverride, siteOverride]);
 
     // Route a row's edit to the right override writer based on its target.
-    const dispatch = (target, v) => {
+    const dispatch = (target: TranslatableRow['target'], v: string) => {
         if (target.type === 'block') onPageLeaf?.(target.blockId, target.fieldPath, v);
         else if (target.type === 'seo') onPageSeo?.(target.field, v);
         else if (target.type === 'chrome') onChromeLeaf?.(target.path, v);
     };
 
-    const total = groups.reduce((n, g) => n + g.rows.length, 0);
-    const done = groups.reduce((n, g) => n + g.rows.filter(r => (r.value || '').trim()).length, 0);
+    // Media addresses (per-language image/clip) are optional: shown for
+    // review, never counted as "missing" and never sent to AI translate.
+    const counted = (g: TranslatableGroup) => g.rows.filter(r => !r.media);
+    const total = groups.reduce((n, g) => n + counted(g).length, 0);
+    const done = groups.reduce((n, g) => n + counted(g).filter(r => (r.value || '').trim()).length, 0);
     const pct = total ? Math.round((done / total) * 100) : 0;
     const running = aiStatus?.state === 'running';
 
@@ -100,10 +138,10 @@ export default function TranslationPanel({
         })
         .filter(g => g.visibleRows.length > 0);
 
-    const isCollapsed = (g) => {
+    const isCollapsed = (g: TranslatableGroup) => {
         if (q || onlyUntranslated) return false; // filters override collapse
         if (g.key in collapsed) return collapsed[g.key];
-        const groupDone = g.rows.every(r => (r.value || '').trim());
+        const groupDone = counted(g).every(r => (r.value || '').trim());
         return groupDone; // fully-filled groups start collapsed
     };
 
@@ -204,8 +242,9 @@ export default function TranslationPanel({
                         {t('cms_site.site.translation.no_match', 'No fields match.')}
                     </p>
                 ) : visibleGroups.map(g => {
-                    const groupDone = g.rows.filter(r => (r.value || '').trim()).length;
+                    const groupDone = counted(g).filter(r => (r.value || '').trim()).length;
                     const closed = isCollapsed(g);
+                    const blockId = g.blockId;
                     return (
                         <div key={g.key}>
                             <div className="w-full flex items-center gap-2 px-4 py-2 bg-[var(--bg-tertiary)]/60 border-b border-[var(--border-subtle)]">
@@ -219,20 +258,20 @@ export default function TranslationPanel({
                                     <AppIcon name={g.icon || 'Type'} className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                                     <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{g.title}</span>
                                 </button>
-                                {g.blockId && (
+                                {blockId && (
                                     <button
                                         type="button"
-                                        onClick={() => onSelectBlock?.(g.blockId)}
+                                        onClick={() => onSelectBlock?.(blockId)}
                                         className="shrink-0 text-[var(--text-muted)] hover:text-[var(--accent-primary)]"
                                         title={t('cms_site.site.translation.show_block', 'Show this block in the preview')}
                                     >
                                         <AppIcon name="Crosshair" className="w-3 h-3" />
                                     </button>
                                 )}
-                                {g.blockId && onClearAndRetranslateBlock && (
+                                {blockId && onClearAndRetranslateBlock && (
                                     <button
                                         type="button"
-                                        onClick={() => onClearAndRetranslateBlock(g.blockId)}
+                                        onClick={() => onClearAndRetranslateBlock(blockId)}
                                         disabled={running}
                                         className="shrink-0 text-[var(--text-muted)] hover:text-[var(--accent-primary)] disabled:opacity-40"
                                         title={t('cms_site.site.translation.clear_block', "Clear this block's translations and let AI retranslate them (use after changing the source text)")}
@@ -241,7 +280,7 @@ export default function TranslationPanel({
                                     </button>
                                 )}
                                 <span className="shrink-0 text-[10px] text-[var(--text-muted)]">
-                                    {groupDone}/{g.rows.length}
+                                    {groupDone}/{counted(g).length}
                                 </span>
                             </div>
                             {!closed && g.visibleRows.map((r) => (
@@ -250,7 +289,7 @@ export default function TranslationPanel({
                                     label={r.label}
                                     source={r.source}
                                     value={r.value}
-                                    onFocus={() => g.blockId && onSelectBlock?.(g.blockId)}
+                                    onFocus={() => blockId && onSelectBlock?.(blockId)}
                                     onChange={(v) => dispatch(r.target, v)}
                                     disabled={running}
                                 />

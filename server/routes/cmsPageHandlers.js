@@ -14,6 +14,7 @@ const cmsTranslate = require('../core/cms/cmsTranslate');
 const { localeName } = require('./cmsSiteHandlers');
 const { HttpError, notFound } = require('../shared/httpErrors');
 const { clientRev } = require('../stores/cms/revision');
+const { mediaWarningFor } = require('../stores/cms/localeMedia');
 
 /**
  * 404 unless `pageId` is in this site's page list. A PageDoc (or locale
@@ -196,8 +197,9 @@ async function putPageLocale(req, res) {
         const locale = req.params.locale.toLowerCase();
         if (!cmsStore.isValidLocale(locale)) return res.status(400).json({ error: 'Invalid locale' });
         await requirePageInSite(req.siteId, req.params.id);
-        await cmsStore.setPageLocaleOverride(req.siteId, req.params.id, locale, override);
-        res.json({ success: true });
+        const saved = await cmsStore.setPageLocaleOverride(req.siteId, req.params.id, locale, override);
+        // The store keeps only legal media addresses; tell the translator when some were dropped.
+        res.json({ success: true, mediaWarning: mediaWarningFor(override, saved) });
     } catch (err) {
         if (err instanceof HttpError) throw err;
         res.status(400).json({ error: err.message });

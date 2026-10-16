@@ -35,6 +35,7 @@
 
 'use strict';
 
+const { sanitizeBlockDesignStyle, MEDIA_HEIGHTS, MEDIA_FITS } = require('../i18n/defaults/blockStyleEnums');
 const { BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS } = require('../i18n/defaults/cmsDefaults');
 const { checkTabs, checkStoryHeader, checkScrollStory } = require('./validateBlocks');
 const { slugProblem } = require('../stores/cms/slugRules');
@@ -276,6 +277,24 @@ function validateSiteDraft(draftWrap) {
                     });
                 }
             }
+            // Bento card media box: unknown values render as the identity
+            // (the whole image at its own ratio).
+            if (b?.type === 'features' && Array.isArray(b?.content?.items)) {
+                b.content.items.forEach((item, j) => {
+                    /** @type {Array<[string, string[]]>} */
+                    const checks = [['mediaHeight', MEDIA_HEIGHTS], ['mediaFit', MEDIA_FITS]];
+                    for (const [key, allowedVals] of checks) {
+                        const v = item?.[key];
+                        if (v === undefined || v === '' || allowedVals.includes(v)) continue;
+                        warnings.push({
+                            code: 'unknown_item_value',
+                            path: `pages.${entry.id}.blocks[${i}].content.items[${j}].${key}`,
+                            message: `items[${j}].${key} ${JSON.stringify(v)} is not a known value.`,
+                            hint: `Allowed: ${allowedVals.join(', ')}. Invalid values are ignored by the renderer.`,
+                        });
+                    }
+                });
+            }
             // Live feature demo — the block frames a real product UI chosen by
             // ID, and the renderer shows a placeholder for anything it does not
             // recognise. That fails safe (it can never become an embed of some
@@ -317,6 +336,19 @@ function validateSiteDraft(draftWrap) {
                             hint: `Allowed: ${allowedVals.join(', ')}. Invalid values are ignored by the renderer.`,
                         });
                     }
+                }
+                // Design keys (background placement, brand motif): the store drops
+                // an illegal value on save, so say which one went.
+                const cleaned = sanitizeBlockDesignStyle(st);
+                for (const key of Object.keys(st)) {
+                    if (key in cleaned || !(key.startsWith('background') || key.startsWith('motif'))) continue;
+                    if (key === 'backgroundImage' || key === 'backgroundOverlay') continue;
+                    warnings.push({
+                        code: 'unknown_style_value',
+                        path: `pages.${entry.id}.blocks[${i}].style.${key}`,
+                        message: `style.${key} ${JSON.stringify(st[key])} is not a known value and is dropped on save.`,
+                        hint: 'backgroundSize: cover | contain | auto | "<n>px"; backgroundPosition: the nine anchors (top-left … bottom-right); backgroundRepeat: no-repeat | repeat | repeat-x | repeat-y; motif: none | honeycomb; motifSide: right | left | center; backgroundHideMobile / motifTiles: true | false.',
+                    });
                 }
                 if (st.columns !== undefined && ![2, 3, 4].includes(Number(st.columns))) {
                     warnings.push({

@@ -29,7 +29,7 @@ const languageStore = require('../stores/languageStore');
 const cmsTranslate = require('../core/cms/cmsTranslate');
 
 const calls = [];
-const state = { config: {}, projects: [{ id: 'pj_aaaa1111' }, { id: 'pj_bbbb2222' }] };
+const state = { savedOverride: undefined, config: {}, projects: [{ id: 'pj_aaaa1111' }, { id: 'pj_bbbb2222' }] };
 
 mock.method(configStore, 'getConfig', async (key) => state.config[key]);
 mock.method(configStore, 'setConfig', async (key, value) => { calls.push(['setConfig', key, value]); state.config[key] = value; });
@@ -39,7 +39,7 @@ mock.method(cmsStore, 'listProjects', async () => state.projects);
 mock.method(cmsStore, 'getPublishedSnapshot', async () => null);
 mock.method(cmsStore, 'publishSite', async (id) => { calls.push(['publishSite', id]); });
 mock.method(cmsStore, 'getSiteLocaleOverride', async () => ({ kept: 'manual' }));
-mock.method(cmsStore, 'setSiteLocaleOverride', async (...args) => { calls.push(['setSiteLocaleOverride', ...args]); });
+mock.method(cmsStore, 'setSiteLocaleOverride', async (...args) => { calls.push(['setSiteLocaleOverride', ...args]); return state.savedOverride; });
 mock.method(cmsStore, 'saveTranslatedSiteOverride', async (...args) => { calls.push(['saveTranslatedSiteOverride', ...args]); return args[2]; });
 mock.method(cmsStore, 'deleteSiteLocaleOverride', async (...args) => { calls.push(['deleteSiteLocaleOverride', ...args]); });
 mock.method(cmsStore, 'updateSiteChrome', async (...args) => { calls.push(['updateSiteChrome', ...args]); return { id: args[0], rev: 5 }; });
@@ -70,6 +70,7 @@ const LIVE = 'cms_live_site_id';
 test.beforeEach(() => {
     calls.length = 0;
     state.config = {};
+    state.savedOverride = undefined;
 });
 
 // Loading the stores starts their boot-time ladders (config load, org
@@ -229,4 +230,14 @@ test('putSiteLocale refuses a malformed locale', async () => {
     const res = await call(handlers.putSiteLocale, { siteId: 'pj_aaaa1111', params: { locale: 'nl_page_x' }, body: { override: {} } });
     assert.strictEqual(res.statusCode, 400);
     assert.deepStrictEqual(calls, []);
+});
+
+test('putSiteLocale warns when the store dropped a media address', async () => {
+    state.savedOverride = { header: {} };
+    const body = { override: { header: { logo: { src: 'data:text/html,x' } } } };
+    const dropped = await call(handlers.putSiteLocale, { siteId: 'pj_aaaa1111', params: { locale: 'nl' }, body });
+    assert.match(dropped.body.mediaWarning, /media addresses were not accepted/);
+    state.savedOverride = body.override;
+    const kept = await call(handlers.putSiteLocale, { siteId: 'pj_aaaa1111', params: { locale: 'nl' }, body });
+    assert.strictEqual(kept.body.mediaWarning, undefined);
 });

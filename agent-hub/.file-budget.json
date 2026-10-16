@@ -47,7 +47,7 @@
     "src/components/admin/product-website/analytics/ui.tsx": 507,
     "src/components/admin/product-website/blockEditors/ContentEditor.jsx": 479,
     "src/components/admin/product-website/blog/BlogInspector.tsx": 417,
-    "src/components/admin/product-website/DesignEditor.jsx": 560,
+    "src/components/admin/product-website/DesignEditor.tsx": 560,
     "src/components/admin/Studio/Approvals/ApprovalDetail.jsx": 587,
     "src/components/admin/Studio/AppStudio/bi/FilterRowsEditor.jsx": 564,
     "src/components/admin/Studio/AppStudio/bi/QueryBuilder.jsx": 534,

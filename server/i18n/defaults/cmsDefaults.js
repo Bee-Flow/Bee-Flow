@@ -915,7 +915,8 @@ const DESIGN_DEFAULTS = {
     preset:   'custom',
     typography: {
         displaySize:   'lg',    // 'md' | 'lg' | 'xl' → caps the display clamp at 64/80/96px
-        headingWeight: 600,     // 500 | 600 | 700 — premium formula keeps headings ≤600
+        headingWeight: 600,     // 500 | 600 | 700 | 800 | 900 — premium formula keeps headings ≤600
+        displayTracking: 'default', // 'default' | 'tight' | 'tighter' | 'tightest' — letter-spacing of the display size
         bodySize:      16,      // 16 | 17 | 18 (px)
     },
     motion: 'full',             // 'none' | 'subtle' | 'full'
@@ -969,7 +970,10 @@ const DESIGN_THEMES   = ['light', 'dark'];
 const SHARE_IMAGE_TEMPLATES = ['light', 'dark', 'brand'];
 const DESIGN_MOTIONS  = ['none', 'subtle', 'full'];
 const DISPLAY_SIZES   = ['md', 'lg', 'xl'];
-const HEADING_WEIGHTS = [500, 600, 700];
+const HEADING_WEIGHTS = [500, 600, 700, 800, 900];
+// Letter-spacing of the display headline. 'default' emits nothing (the
+// token's own value); the others map to a fixed em value in the renderer.
+const DISPLAY_TRACKINGS = ['default', 'tight', 'tighter', 'tightest'];
 const BODY_SIZES      = [16, 17, 18];
 const COLOR_KEYS      = Object.keys(DESIGN_DEFAULTS.colors);
 const DARK_COLOR_KEYS = Object.keys(DESIGN_DEFAULTS.darkColors);
@@ -1010,6 +1014,7 @@ module.exports = {
     DESIGN_MOTIONS,
     DISPLAY_SIZES,
     HEADING_WEIGHTS,
+    DISPLAY_TRACKINGS,
     BODY_SIZES,
     COLOR_KEYS,
     DARK_COLOR_KEYS,

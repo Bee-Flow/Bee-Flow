@@ -8,16 +8,50 @@ import PopupModal from '../components/PopupModal';
 import SectionFrame from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';
 import SectionHeader from '../components/SectionHeader';
+import { MEDIA_HEIGHTS, MEDIA_FITS } from '../blockStyleEnums.generated.mjs';
+import type { MediaSlot, SectionDataBase } from './sectionData.types';
+
+interface FeatureItem {
+    icon?: string;
+    title?: string;
+    body?: string;
+    titleColor?: string;
+    bodyColor?: string;
+    titleAlign?: string;
+    bodyAlign?: string;
+    span?: number | string;
+    media?: MediaSlot;
+    mediaHeight?: string;
+    mediaFit?: string;
+    cardAction?: string;
+    cardUrl?: string;
+    popupEmbed?: string;
+}
+
+interface FeaturesData extends SectionDataBase {
+    items?: FeatureItem[];
+    variant?: string;
+    spotlight?: boolean;
+}
+
+// Height box + fit of a bento card's media. Only whitelisted names reach a
+// class; 'auto' (the default) adds nothing, so existing cards render as before.
+function mediaBoxClass(item: FeatureItem): string {
+    const height = MEDIA_HEIGHTS.includes(item.mediaHeight ?? '') && item.mediaHeight !== 'auto' ? item.mediaHeight : '';
+    if (!height) return 'feature-media';
+    const fit = MEDIA_FITS.includes(item.mediaFit ?? '') ? item.mediaFit : 'contain';
+    return `feature-media feature-media--h-${height} feature-media--fit-${fit}`;
+}
 
 // Spotlight hover — writes the cursor position into CSS vars the
 // .feature-card--spotlight::after radial highlight reads.
-function trackSpotlight(e) {
+function trackSpotlight(e: React.MouseEvent<HTMLElement>) {
     const r = e.currentTarget.getBoundingClientRect();
     e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`);
     e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`);
 }
 
-export default function Features({ data }) {
+export default function Features({ data }: { data?: FeaturesData | null }) {
     // Hooks must run unconditionally — declared BEFORE the
     // `enabled` early-return so toggling enabled on/off doesn't
     // change the hook count between renders.
@@ -89,7 +123,7 @@ export default function Features({ data }) {
                                         {item.body || ''}
                                     </EditableText>
                                     {hasItemMedia ? (
-                                        <div className="feature-media">
+                                        <div className={mediaBoxClass(item)}>
                                             <FramedMedia media={item.media} glow={false} />
                                         </div>
                                     ) : null}

@@ -17,6 +17,7 @@ const { HttpError } = require('../core/http/errors');
 const { getLiveSiteId, setLiveSiteId, ensurePublishedSnapshot } = require('./cmsShared');
 const { provisionAnalyticsForSite } = require('./cmsAnalytics');
 const { clientRev } = require('../stores/cms/revision');
+const { mediaWarningFor } = require('../stores/cms/localeMedia');
 const log = require('../telemetry/log');
 
 // ── Shared handler bodies ────────────────────────────────────────
@@ -73,8 +74,8 @@ async function putSiteLocale(req, res) {
         if (!override) return res.status(400).json({ error: 'override object required' });
         const locale = req.params.locale.toLowerCase();
         if (!cmsStore.isValidLocale(locale)) return res.status(400).json({ error: 'Invalid locale' });
-        await cmsStore.setSiteLocaleOverride(req.siteId, locale, override);
-        res.json({ success: true });
+        const saved = await cmsStore.setSiteLocaleOverride(req.siteId, locale, override);
+        res.json({ success: true, mediaWarning: mediaWarningFor(override, saved) });
     } catch (err) { res.status(400).json({ error: err.message }); }
 }
 

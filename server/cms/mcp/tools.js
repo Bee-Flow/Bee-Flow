@@ -121,7 +121,7 @@ const MCP_ONLY_TOOLS = [
     },
     {
         name: 'cms_set_locale_override',
-        description: 'Write the translation of the DRAFT for one language: a site-level override (omit pageId: {header, footer, pageTitles}) or a page-level one (pageId given: {blocks:{<blockId>:{content:{…text fields only…}}}, seo:{metaTitle,metaDescription}}; the text of every block sits under `content`, mirroring the content shape of that block (arrays by index)). The override REPLACES the existing one for that language and scope, so read it with cms_get_locale_overrides first and send it whole. Text only: structure, icons, links and styles always come from the default language. Pass remove:true to delete the override.',
+        description: 'Write the translation of the DRAFT for one language: a site-level override (omit pageId: {header, footer, pageTitles}) or a page-level one (pageId given: {blocks:{<blockId>:{content:{…text fields and media addresses…}}}, seo:{metaTitle,metaDescription}}; the text of every block sits under `content`, mirroring the content shape of that block (arrays by index)). The override REPLACES the existing one for that language and scope, so read it with cms_get_locale_overrides first and send it whole. Text and media: the media addresses of a block (`src`, `srcDark`, `poster`, `captionsSrc` anywhere under `content`, e.g. {content:{media:{src:"cms/nl-intro.mp4", poster:"cms/nl-poster.jpg"}}}) may differ per language; they must be uploaded asset keys (cms/…), /api/cms/asset/… paths or http(s) URLs, anything else is dropped. Structure, icons, links and styles always come from the default language. Pass remove:true to delete the override.',
         parameters: {
             type: 'object',
             properties: {

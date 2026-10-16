@@ -9,6 +9,8 @@ const {
     DESIGN_DEFAULTS,
     DESIGN_COMPONENT_ENUMS,
     DESIGN_LAYOUT_ENUMS, SHARE_IMAGE_TEMPLATES,
+    HEADING_WEIGHTS,
+    DISPLAY_TRACKINGS,
 } = require('../../i18n/defaults/cmsDefaults');
 const { THEME_PRESET_IDS } = require('../../i18n/defaults/themePresets');
 const { normalizeSlug, normalizeStoredSlug, isReservedSlug } = require('./slugRules');
@@ -163,7 +165,8 @@ function sanitizeDesign(input) {
         preset:   oneOf(d.preset, THEME_PRESET_IDS, 'custom'),
         typography: {
             displaySize:   oneOf(ty.displaySize,   ['md', 'lg', 'xl'], DESIGN_DEFAULTS.typography.displaySize),
-            headingWeight: oneOf(ty.headingWeight, [500, 600, 700],    DESIGN_DEFAULTS.typography.headingWeight),
+            headingWeight: oneOf(ty.headingWeight, HEADING_WEIGHTS,    DESIGN_DEFAULTS.typography.headingWeight),
+            displayTracking: oneOf(ty.displayTracking, DISPLAY_TRACKINGS, DESIGN_DEFAULTS.typography.displayTracking),
             bodySize:      oneOf(ty.bodySize,      [16, 17, 18],       DESIGN_DEFAULTS.typography.bodySize),
         },
         motion: oneOf(d.motion, ['none', 'subtle', 'full'], DESIGN_DEFAULTS.motion),

@@ -6,6 +6,8 @@ import { set, SectionHeaderFields, CardActionFields } from './shared';
 import type { CardActionItem, SectionHeaderData } from './shared';
 import VariantPicker from './VariantPicker';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { MEDIA_HEIGHTS } from '../../../../marketing/blockStyleEnums.generated.mjs';
+
 
 // ── Features ──────────────────────────────────────────────────────────
 
@@ -21,6 +23,10 @@ type FeatureCard = CardActionItem & {
     bodyColor?: string;
     span?: number | string;
     media?: { src?: string; srcDark?: string; alt?: string; frame?: string; kind?: string };
+    /** Height box of the card media: auto (whole image, own ratio) | sm | md | lg | xl. */
+    mediaHeight?: string;
+    /** Fit inside a height box: natural (whole image) | contain | cover. */
+    mediaFit?: string;
 };
 type FeaturesData = SectionHeaderData & { variant?: string; spotlight?: boolean; items?: FeatureCard[] };
 
@@ -78,6 +84,35 @@ export function FeaturesEditor({ data = {}, onChange }: BlockEditorProps<Feature
                                         onChange={v => update({ ...item, media: { ...(item.media || {}), src: v, frame: item.media?.frame || 'hairline', kind: 'image' } })}
                                     />
                                 </FieldRow>
+                                {item.media?.src ? (
+                                    <>
+                                        <FieldRow label={t('cms_site.blocks.features.media_height', 'Media height')} hint={t('cms_site.blocks.features.media_height_hint', 'Auto shows the whole image at its own ratio. A fixed height makes a box for it.')}>
+                                            <SegmentedControl
+                                                value={MEDIA_HEIGHTS.includes(item.mediaHeight || '') ? item.mediaHeight : 'auto'}
+                                                onChange={v => update({ ...item, mediaHeight: v })}
+                                                options={[
+                                                    { value: 'auto', label: t('cms_site.blocks.features.media_height_auto', 'Auto') },
+                                                    { value: 'sm', label: t('cms_site.blocks.features.media_height_sm', 'S') },
+                                                    { value: 'md', label: t('cms_site.blocks.features.media_height_md', 'M') },
+                                                    { value: 'lg', label: t('cms_site.blocks.features.media_height_lg', 'L') },
+                                                    { value: 'xl', label: t('cms_site.blocks.features.media_height_xl', 'XL') },
+                                                ]}
+                                            />
+                                        </FieldRow>
+                                        {item.mediaHeight && item.mediaHeight !== 'auto' ? (
+                                            <FieldRow label={t('cms_site.blocks.features.media_fit', 'Media fit')} hint={t('cms_site.blocks.features.media_fit_hint', 'Whole image inside the box, or fill the box and crop.')}>
+                                                <SegmentedControl
+                                                    value={item.mediaFit === 'cover' ? 'cover' : 'contain'}
+                                                    onChange={v => update({ ...item, mediaFit: v })}
+                                                    options={[
+                                                        { value: 'contain', label: t('cms_site.blocks.features.media_fit_contain', 'Whole image') },
+                                                        { value: 'cover', label: t('cms_site.blocks.features.media_fit_cover', 'Fill and crop') },
+                                                    ]}
+                                                />
+                                            </FieldRow>
+                                        ) : null}
+                                    </>
+                                ) : null}
                             </>
                         ) : null}
                         <IconField label={t('cms_site.blocks.features.icon', 'Icon')} value={item.icon} onChange={v => update({ ...item, icon: v })} />

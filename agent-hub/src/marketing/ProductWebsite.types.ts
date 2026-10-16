@@ -33,8 +33,15 @@ export interface DesignColors {
 export interface DesignTypography {
     displaySize?: string;
     headingWeight?: number;
+    displayTracking?: string;
     bodySize?: number;
 }
+
+/** What the Design tab edits: a design whose colors and fonts are always present. */
+export type EditableDesign = SiteDesign & {
+    colors: DesignColors;
+    fonts: { heading: string; body: string; mono?: string };
+};
 
 export interface DesignComponents {
     buttonShape?: string;
@@ -66,6 +73,8 @@ export interface SiteDesign {
     gradient?: boolean;
     grain?: boolean;
     motion?: string;
+    preset?: string;
+    logo?: string;
     favicon?: string;
 }
 
@@ -86,6 +95,13 @@ export interface BlockStyle {
     align?: string;
     backgroundImage?: string;
     backgroundOverlay?: string;
+    backgroundSize?: string;
+    backgroundPosition?: string;
+    backgroundRepeat?: string;
+    backgroundHideMobile?: boolean;
+    motif?: string;
+    motifSide?: string;
+    motifTiles?: boolean;
     band?: string;
     rhythm?: string;
     glow?: boolean;

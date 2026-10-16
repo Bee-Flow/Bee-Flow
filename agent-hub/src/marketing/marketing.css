@@ -1323,6 +1323,22 @@
     padding-top: 20px;
 }
 .marketing-root .feature-media .cms-frame { box-shadow: none; }
+/* Bento card media box (items[].mediaHeight / mediaFit, whitelisted by
+   Features.tsx). Default (auto): the whole image at its own ratio. With a
+   height the frame becomes a fixed box; 'natural' and 'contain' then fit the
+   whole image inside it, 'cover' fills it and crops from the top. */
+.marketing-root .feature-media--h-sm .cms-frame { height: 120px; }
+.marketing-root .feature-media--h-md .cms-frame { height: 180px; }
+.marketing-root .feature-media--h-lg .cms-frame { height: 260px; }
+.marketing-root .feature-media--h-xl .cms-frame { height: 360px; }
+.marketing-root .feature-media[class*='feature-media--h-'] .cms-frame { display: flex; flex-direction: column; }
+.marketing-root .feature-media[class*='feature-media--h-'] .cms-frame-body { flex: 1; min-height: 0; }
+.marketing-root .feature-media[class*='feature-media--h-'] .cms-frame-media {
+    width: 100%; height: 100%; object-fit: contain;
+}
+.marketing-root .feature-media--fit-cover[class*='feature-media--h-'] .cms-frame-media {
+    object-fit: cover; object-position: top center;
+}
 
 /* Spotlight hover (opt-in, one grid per page) — a soft radial accent
    highlight tracking the cursor via --mx/--my set inline. */
@@ -2653,6 +2669,69 @@
     background-position: center;
     background-repeat: no-repeat;
 }
+/* Background placement (style.backgroundSize / Position / Repeat). Class names
+   only, built from whitelisted enum values by blockWrap.ts; the px width is
+   the one custom property (--cms-bg-size, rebuilt from a validated number).
+   The compound selectors outrank the has-image defaults above. */
+.marketing-root .cms-block-wrap--has-image.cms-bg-size-cover   { background-size: cover; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-size-contain { background-size: contain; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-size-auto    { background-size: auto; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-size-px      { background-size: var(--cms-bg-size, auto); }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-top-left     { background-position: left top; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-top          { background-position: center top; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-top-right    { background-position: right top; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-left         { background-position: left center; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-center       { background-position: center center; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-right        { background-position: right center; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-bottom-left  { background-position: left bottom; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-bottom       { background-position: center bottom; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-pos-bottom-right { background-position: right bottom; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-repeat-no-repeat { background-repeat: no-repeat; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-repeat-repeat    { background-repeat: repeat; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-repeat-repeat-x  { background-repeat: repeat-x; }
+.marketing-root .cms-block-wrap--has-image.cms-bg-repeat-repeat-y  { background-repeat: repeat-y; }
+/* Hide the decorative image on phones. The image is an inline style, so the
+   override needs !important. */
+@media (max-width: 767px) {
+    .marketing-root .cms-block-wrap.cms-bg-hide-mobile { background-image: none !important; }
+}
+
+/* Built-in brand motif (style.motif = 'honeycomb'): hexagon line art, optional
+   filled tiles, painted in the brand colours (primary to accent) through an
+   alpha mask, so no per-site SVG is needed. It sits on ::after behind the
+   content (z-index 0; content is at 1) and fades towards the middle of the
+   block. It shares ::after with .cms-glow; with both set the motif wins. */
+.marketing-root .cms-block-wrap.cms-motif::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.22;
+    background: linear-gradient(to left, var(--brand-primary), var(--brand-accent, var(--brand-primary)));
+    -webkit-mask-image: var(--hex-pattern);
+            mask-image: var(--hex-pattern);
+    -webkit-mask-size: 84px auto;
+            mask-size: 84px auto;
+}
+.marketing-root .cms-block-wrap.cms-motif--right::after  { right: 0;  left: 38%; }
+.marketing-root .cms-block-wrap.cms-motif--left::after   { left: 0;   right: 38%;
+    background: linear-gradient(to right, var(--brand-primary), var(--brand-accent, var(--brand-primary))); }
+.marketing-root .cms-block-wrap.cms-motif--center::after { left: 0;   right: 0;
+    background: radial-gradient(60% 70% at 50% 50%, var(--brand-primary), var(--brand-accent, var(--brand-primary)) 80%); }
+.marketing-root .cms-block-wrap.cms-motif--tiles::after {
+    --hex-tile: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='168' height='192'><path d='M84 36 124 60v48L84 132 44 108V60z' fill='black' fill-opacity='0.7'/></svg>");
+    opacity: 0.3;
+    -webkit-mask-image: var(--hex-pattern), var(--hex-tile);
+            mask-image: var(--hex-pattern), var(--hex-tile);
+    -webkit-mask-size: 84px auto, 252px auto;
+            mask-size: 84px auto, 252px auto;
+}
+@media (max-width: 767px) {
+    .marketing-root .cms-block-wrap.cms-motif--right::after,
+    .marketing-root .cms-block-wrap.cms-motif--left::after { left: 0; right: 0; opacity: 0.12; }
+}
+
 .marketing-root .cms-block-wrap--has-image::before {
     content: '';
     position: absolute;

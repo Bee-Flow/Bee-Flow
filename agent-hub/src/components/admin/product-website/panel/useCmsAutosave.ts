@@ -101,6 +101,7 @@ export default function useCmsAutosave({
             const contentEntries = entries.filter((e) => !isLocale(e));
             const contentResults = await Promise.all(contentEntries.map(makeTask));
             let droppedTotal = 0;
+            let mediaWarning = '';
             let failure: Error | null = null;
             const resultKeys = [...entries.filter(isLocale), ...contentEntries].map(([key]) => key);
             for (const [i, r] of [...localeResults, ...contentResults].entries()) {
@@ -121,11 +122,14 @@ export default function useCmsAutosave({
                 // an edited/AI block silently vanishing doesn't look like a
                 // "my change didn't stick" bug.
                 if (Array.isArray(d?.dropped)) droppedTotal += d.dropped.length;
+                // A translated media address the server refused: the default language shows instead.
+                if (typeof d?.mediaWarning === 'string') mediaWarning = d.mediaWarning;
             }
             if (failure) throw failure;
             if (droppedTotal > 0) {
                 toast.error(`${droppedTotal} block(s) weren't saved — unrecognized block type. Use a supported block or the "Download example" template.`);
             }
+            if (mediaWarning) toast.error(mediaWarning);
             setSaveStatus('saved');
             setDirtySincePublish(true); // the draft now differs from the last publish
             if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);

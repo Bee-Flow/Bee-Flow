@@ -6,11 +6,12 @@ import { SectionDivider, ColorRow, FontRow, SegmentedControl, FieldSelect } from
 import { THEME_PRESETS, applyPreset } from './themePresets';
 import AppIcon from '../../icons/AppIcon';
 import useConfirm from '../../shared/useConfirm';
-// Self-hosted Fontshare @font-face — needed here so the picker's
-// dropdown previews render in the chosen face. Same CSS file the
-// iframe imports via ProductWebsite.jsx.
+// Self-hosted Fontshare @font-face — needed here so the picker's dropdown
+// previews render in the chosen face. Same CSS file the iframe imports via ProductWebsite.tsx.
 import '../../../marketing/self-hosted-fonts.css';
+import DisplayTrackingControl from './controls/DisplayTrackingControl';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { DesignColors, DesignEditorProps, EditableDesign, ThemePreset } from './DesignEditor.types';
 
 // ColorRow / FontRow used to be defined here; they now live in
 // ./primitives. Re-export so existing imports from this module
@@ -57,7 +58,7 @@ const FALLBACK_DESIGN = {
     theme:    'light',
     gradient: false,
     preset:   'custom',
-    typography: { displaySize: 'lg', headingWeight: 600, bodySize: 16 },
+    typography: { displaySize: 'lg', headingWeight: 600, displayTracking: 'default', bodySize: 16 },
     motion:   'full',
     grain:    false,
     // Identity values — these emit no CSS at all (see SHAPE_MAPS in
@@ -71,7 +72,7 @@ const FALLBACK_DESIGN = {
     layout: { containerWidth: 'default', sectionRhythm: 'default' },
 };
 
-export default function DesignEditor({ design, onChange }) {
+export default function DesignEditor({ design, onChange }: DesignEditorProps) {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const d = design || FALLBACK_DESIGN;
@@ -94,30 +95,30 @@ export default function DesignEditor({ design, onChange }) {
         // Don't remove on unmount — keeps fonts cached across tab switches.
     }, []);
 
-    const setColor = (key, value) =>
+    const setColor = (key: keyof DesignColors, value: string) =>
         onChange({ ...d, colors: { ...d.colors, [key]: value } });
-    const setDarkColor = (key, value) =>
+    const setDarkColor = (key: keyof DesignColors, value: string) =>
         onChange({ ...d, darkColors: { ...(d.darkColors || {}), [key]: value } });
-    const setFont = (key, value) =>
+    const setFont = (key: 'heading' | 'body' | 'mono', value: string) =>
         onChange({ ...d, fonts: { ...d.fonts, [key]: value } });
-    const setTypography = (key, value) =>
+    const setTypography = (key: 'displaySize' | 'headingWeight' | 'displayTracking' | 'bodySize', value: string | number) =>
         onChange({ ...d, typography: { ...(d.typography || {}), [key]: value } });
-    const setComponent = (key, value) =>
+    const setComponent = (key: string, value: string) =>
         onChange({ ...d, components: { ...(d.components || {}), [key]: value } });
-    const setLayout = (key, value) =>
+    const setLayout = (key: string, value: string) =>
         onChange({ ...d, layout: { ...(d.layout || {}), [key]: value } });
-    const setRadius   = (value) => onChange({ ...d, radius: value });
-    const setTheme    = (isDark) => onChange({ ...d, theme: isDark ? 'dark' : 'light' });
-    const setGradient = (on) => onChange({ ...d, gradient: !!on });
-    const setLogo     = (value) => onChange({ ...d, logo: value });
-    const setFavicon  = (value) => onChange({ ...d, favicon: value });
+    const setRadius   = (value: number) => onChange({ ...d, radius: value });
+    const setTheme    = (isDark: boolean) => onChange({ ...d, theme: isDark ? 'dark' : 'light' });
+    const setGradient = (on: boolean) => onChange({ ...d, gradient: !!on });
+    const setLogo     = (value: string) => onChange({ ...d, logo: value });
+    const setFavicon  = (value: string) => onChange({ ...d, favicon: value });
 
     const dk = d.darkColors || {};
     const ty = d.typography || {};
     const cp = d.components || {};
     const ly = d.layout || {};
 
-    const handlePreset = async (preset) => {
+    const handlePreset = async (preset: ThemePreset) => {
         // One object write → one history entry + one 'site' save; the
         // confirm matters because this replaces 10+ fields at once.
         if (!(await confirm({ title: `Apply the "${preset.label}" theme?`, description: 'This replaces your colors, fonts, and typography (logo and favicon are kept). You can undo with Ctrl+Z.', confirmLabel: 'Apply theme' }))) return;
@@ -195,13 +196,10 @@ export default function DesignEditor({ design, onChange }) {
                     <SegmentedControl
                         value={String(ty.headingWeight || 600)}
                         onChange={v => setTypography('headingWeight', Number(v))}
-                        options={[
-                            { value: '500', label: '500' },
-                            { value: '600', label: '600' },
-                            { value: '700', label: '700' },
-                        ]}
+                        options={[500, 600, 700, 800, 900].map(w => ({ value: String(w), label: String(w) }))}
                     />
                 </FieldRow>
+                <DisplayTrackingControl value={ty.displayTracking} onChange={v => setTypography('displayTracking', v)} />
                 <FieldRow label="Body size">
                     <SegmentedControl
                         value={String(ty.bodySize || 16)}
@@ -217,7 +215,7 @@ export default function DesignEditor({ design, onChange }) {
                 <SectionDivider label="Motion & texture" />
                 <FieldSelect
                     label="Motion level"
-                    value={['none', 'subtle', 'full'].includes(d.motion) ? d.motion : 'full'}
+                    value={['none', 'subtle', 'full'].includes(d.motion as string) ? d.motion : 'full'}
                     options={[
                         { value: 'full',   label: 'Full — reveals, ambience, marquee' },
                         { value: 'subtle', label: 'Subtle — quiet reveals only' },
@@ -393,7 +391,7 @@ export default function DesignEditor({ design, onChange }) {
 
 // Pure-CSS mini site painted from the preset's own values — honest
 // preview, no iframe. Dark presets preview their dark palette.
-function PresetCard({ preset, active, onApply }) {
+function PresetCard({ preset, active, onApply }: { preset: ThemePreset; active: boolean; onApply: () => void }) {
     const { t } = useTranslation();
     const p = preset.design;
     const dark = p.theme === 'dark';
@@ -401,7 +399,7 @@ function PresetCard({ preset, active, onApply }) {
     const surface = dark ? p.darkColors.surface      : p.colors.surface;
     const text    = dark ? p.darkColors.textPrimary  : p.colors.textPrimary;
     const muted   = dark ? p.darkColors.textSecondary : p.colors.textSecondary;
-    const line = (w, c, h = 5) => (
+    const line = (w: number | string, c: string, h = 5) => (
         <div style={{ width: w, height: h, borderRadius: 3, background: c }} />
     );
 
@@ -486,7 +484,7 @@ function PresetCard({ preset, active, onApply }) {
 }
 
 // Advisory WCAG contrast hint — warns, never blocks.
-function ContrastBadge({ fg, bg, label }) {
+function ContrastBadge({ fg, bg, label }: { fg?: string | null; bg?: string | null; label: string }) {
     const ratio = contrastRatio(fg, bg);
     if (ratio === null) return null;
     const rounded = Math.round(ratio * 10) / 10;
@@ -503,7 +501,7 @@ function ContrastBadge({ fg, bg, label }) {
 
 // One-glance pairing check: display / heading / body / eyebrow samples in
 // the chosen faces on the chosen background.
-function TypeScalePreview({ design }) {
+function TypeScalePreview({ design }: { design: EditableDesign }) {
     const { t } = useTranslation();
     const bg = design.theme === 'dark'
         ? (design.darkColors?.background || '#101012')
@@ -535,7 +533,7 @@ function TypeScalePreview({ design }) {
     );
 }
 
-function RadiusRow({ value, onChange }) {
+function RadiusRow({ value, onChange }: { value?: number | null; onChange: (px: number) => void }) {
     const v = typeof value === 'number' ? value : 12;
     return (
         <FieldRow label={`Border radius — ${v}px`} hint="Affects buttons, cards, and inputs across the site.">

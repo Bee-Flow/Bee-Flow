@@ -18,7 +18,7 @@
 
 const {
     DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS,
-    DISPLAY_SIZES, HEADING_WEIGHTS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS,
+    DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS,
 } = require('../i18n/defaults/cmsDefaults');
 const { THEME_PRESET_IDS } = require('../i18n/defaults/themePresets');
 
@@ -40,7 +40,7 @@ const DESIGN_HINT = [
     'EVERY colour is a literal "#rrggbb" hex string — no colour names, no rgb()/hsl(), no 3-digit shorthand; darkColors.primary and darkColors.accent also accept "" meaning "reuse the light value".',
     'radius: a whole number 0-24 (px).',
     `fontsPatch keys: heading, body, mono — each value MUST be one of: ${DESIGN_FONTS.join(', ')}.`,
-    `typographyPatch: displaySize (${DISPLAY_SIZES.join('|')}), headingWeight (${HEADING_WEIGHTS.join('|')}), bodySize (${BODY_SIZES.join('|')}).`,
+    `typographyPatch: displaySize (${DISPLAY_SIZES.join('|')}), headingWeight (${HEADING_WEIGHTS.join('|')}), displayTracking (${DISPLAY_TRACKINGS.join('|')}), bodySize (${BODY_SIZES.join('|')}).`,
     `componentsPatch: ${enumList(DESIGN_COMPONENT_ENUMS)}.`,
     `layoutPatch: ${enumList(DESIGN_LAYOUT_ENUMS)}.`,
     `theme (${DESIGN_THEMES.join('|')}), motion (${DESIGN_MOTIONS.join('|')}), grain and gradient are booleans.`,
@@ -166,7 +166,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'cms_update_block',
-            description: `Edit one block in place. contentPatch DEEP-MERGES into the block's content (arrays replace wholesale — resend the whole array to change one item). stylePatch merges into the block's style wrapper: colorOverrides {primary,secondary,accent,background,surface,textPrimary,textSecondary}, spacing {paddingTop,paddingBottom}, backgroundImage, backgroundOverlay, maxWidth (narrow|medium|wide|full), align (left|center|right), cssClass, band (default|surface|tint|dark|primary — section background treatment, works on every type; 'dark' is the premium charcoal band), rhythm (compact|default|spacious — vertical padding preset), reveal (on|off — entrance animation), glow (boolean — soft accent glow behind the block), columns (2|3|4 — card-grid column count; features/steps/security/techStats only). enabled=false hides the block without deleting it. ${LINK_HINT}`,
+            description: `Edit one block in place. contentPatch DEEP-MERGES into the block's content (arrays replace wholesale — resend the whole array to change one item). stylePatch merges into the block's style wrapper: colorOverrides {primary,secondary,accent,background,surface,textPrimary,textSecondary}, spacing {paddingTop,paddingBottom}, backgroundImage, backgroundOverlay, backgroundSize (cover|contain|auto|a width such as "480px" — placement of backgroundImage), backgroundPosition (top-left|top|top-right|left|center|right|bottom-left|bottom|bottom-right), backgroundRepeat (no-repeat|repeat|repeat-x|repeat-y), backgroundHideMobile (boolean — hide the background image on phones), motif (none|honeycomb — the built-in brand honeycomb pattern in the brand colours, no upload needed), motifSide (right|left|center — where the motif sits), motifTiles (boolean — add filled hexagon tiles to the motif), maxWidth (narrow|medium|wide|full), align (left|center|right), cssClass, band (default|surface|tint|dark|primary — section background treatment, works on every type; 'dark' is the premium charcoal band), rhythm (compact|default|spacious — vertical padding preset), reveal (on|off — entrance animation), glow (boolean — soft accent glow behind the block), columns (2|3|4 — card-grid column count; features/steps/security/techStats only). enabled=false hides the block without deleting it. ${LINK_HINT}`,
             parameters: {
                 type: 'object',
                 properties: {
@@ -291,7 +291,7 @@ const TOOL_SCHEMAS = [
                     },
                     typographyPatch: {
                         type: 'object',
-                        description: `Type scale to change: { displaySize? (${DISPLAY_SIZES.join('|')}), headingWeight? (${HEADING_WEIGHTS.join('|')}), bodySize? (${BODY_SIZES.join('|')}) }.`,
+                        description: `Type scale to change: { displaySize? (${DISPLAY_SIZES.join('|')}), headingWeight? (${HEADING_WEIGHTS.join('|')}), displayTracking? (${DISPLAY_TRACKINGS.join('|')}), bodySize? (${BODY_SIZES.join('|')}) }.`,
                     },
                     componentsPatch: {
                         type: 'object',

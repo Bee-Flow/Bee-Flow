@@ -8,6 +8,7 @@
 
 const { err, isPlainObject } = require('./handlerKit');
 const { LOCALE_PREFIXES } = require('../../core/seo/publicPath');
+const { mediaWarningFor } = require('../../stores/cms/localeMedia');
 
 const SETTING_SECTIONS = ['header', 'footer', 'cookieBanner', 'announcement'];
 const SETTINGS_PATCH_MAX_CHARS = 100_000;
@@ -210,10 +211,13 @@ function createLocaleHandlers({ deps, cmsStore, resolveSite }) {
             const shapeError = blockOverrideShapeError(args.override.blocks);
             if (shapeError) return err(shapeError, { _fixHint: 'Put each block\'s text under `content`: {blocks:{"blk_…":{content:{title:"…", items:[{body:"…"}]}}}}. Without it the renderer ignores the translation.' });
         }
-        if (pageId) await cmsStore.setPageLocaleOverride(site.siteId, pageId, locale, args.override);
-        else await cmsStore.setSiteLocaleOverride(site.siteId, locale, args.override);
+        const saved = pageId
+            ? await cmsStore.setPageLocaleOverride(site.siteId, pageId, locale, args.override)
+            : await cmsStore.setSiteLocaleOverride(site.siteId, locale, args.override);
         /** @type {Record<string, unknown>} */
         const result = { siteId: site.siteId, locale, pageId, saved: true };
+        const mediaWarning = mediaWarningFor(args.override, saved);
+        if (mediaWarning) result.mediaWarning = mediaWarning;
         // The public router serves a fixed set of language prefixes; a translation outside
         // it is stored but no visitor can reach it, so say so instead of reporting plain success.
         if (locale === (await cmsStore.getDefaultLocale())) {

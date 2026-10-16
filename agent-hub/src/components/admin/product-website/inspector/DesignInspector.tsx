@@ -1,10 +1,11 @@
 import React from 'react';
 import DesignEditor from '../DesignEditor';
 import ShareImageSettings from './ShareImageSettings';
+import type { EditableDesign } from '../../../../marketing/ProductWebsite.types';
 
 interface DesignInspectorProps {
-    design: Record<string, unknown>;
-    onChange: (design: Record<string, unknown>) => void;
+    design: EditableDesign;
+    onChange: (design: EditableDesign) => void;
 }
 
 /**
