@@ -6,18 +6,33 @@
  */
 
 import { createJsonResource } from '../../../../api/client';
+import type { JsonResourceError } from '../../../../api/client';
+import { errorBodyRecord, errorMessage, errorStatus } from '../../../../utils/caughtError';
 import { API_BASE } from '../../../../utils/helpers';
+import { managedRefusalOf } from '../../../../utils/managedPart';
 import { fromError } from '../../../shared/managedPart';
+import type { AppDefinition } from './inspector/appDefinition';
+
+/** The fields a new app can start with. */
+interface NewAppBody {
+    name?: string;
+    description?: string;
+    icon?: string;
+    accentColor?: string;
+    templateId?: string;
+}
 
 const base = `${API_BASE}/api/studio-apps`;
-const enc = encodeURIComponent;
+// Some callers still hold an id that may be undefined (it then reads "undefined",
+// as it always did), so the encoder is typed to take one.
+const enc: { bivarianceHack(part: string | number | boolean | undefined): string }['bivarianceHack'] = encodeURIComponent;
 
 // One request helper for every call: JSON in and out, and on a non-2xx an
 // Error carrying the server's error text, status, code and body. A stage that
 // manages the resource refused the write (409 managed_part) or the step
 // (managed_part_not_deployed): `err.managed` is what the banner needs.
 const request = createJsonResource('', {
-    decorate: (err, body) => {
+    decorate: (err: JsonResourceError, body: Record<string, unknown> | null) => {
         const managed = fromError(body);
         if (managed) err.managed = managed;
     },
@@ -30,21 +45,22 @@ const request = createJsonResource('', {
  * with the banner info and the server's sentence, and the autosave treats it as
  * a failed save (never a retry, never an overwrite offer).
  */
-function managedResult(err) {
-    return err?.managed ? { ok: false, managed: err.managed, error: err.message } : null;
+function managedResult(err: unknown) {
+    const managed = managedRefusalOf(err);
+    return managed ? { ok: false, managed, error: errorMessage(err) } : null;
 }
 
 export const studioAppsApi = {
     // Catalog / templates
     getCatalog: () => request(`${base}/catalog`),
     listTemplates: () => request(`${base}/templates`),
-    getTemplate: (templateId) => request(`${base}/templates/${enc(templateId)}`),
+    getTemplate: (templateId: string) => request(`${base}/templates/${enc(templateId)}`),
     /**
      * Remove a template this organisation CAPTURED from one of its own apps
      * (source:'captured', id `utpl_…`). Built-in templates are code and 404
      * here — a gallery you can only ever add to is a gallery that fills up.
      */
-    deleteTemplate: (templateId) => request(`${base}/templates/${enc(templateId)}`, { method: 'DELETE' }),
+    deleteTemplate: (templateId: string) => request(`${base}/templates/${enc(templateId)}`, { method: 'DELETE' }),
 
     /**
      * One template written down as a portable file → { envelope, warnings,
@@ -53,14 +69,14 @@ export const studioAppsApi = {
      * object URL) and wants the warnings alongside — a download tells you
      * nothing about the three automation references it just cleared.
      */
-    exportTemplate: (templateId) => request(`${base}/templates/${enc(templateId)}/export`),
+    exportTemplate: (templateId: string) => request(`${base}/templates/${enc(templateId)}/export`),
 
     /**
      * A template file → this organisation's gallery, as a captured template.
      * → { template, report, warnings }. A file the server will not take comes
      * back 400 with .body.details naming each reason.
      */
-    importTemplate: (envelope, { title } = {}) =>
+    importTemplate: (envelope: unknown, { title }: { title?: string } = {}) =>
         request(`${base}/templates/import`, {
             method: 'POST',
             body: JSON.stringify({ envelope, ...(title ? { title } : {}) }),
@@ -81,7 +97,7 @@ export const studioAppsApi = {
      * write one; they are built by a script on the server. See
      * server/appStudio/appPortability.js.
      */
-    importApp: (envelope, { name } = {}) =>
+    importApp: (envelope: unknown, { name }: { name?: string } = {}) =>
         request(`${base}/import`, {
             method: 'POST',
             body: JSON.stringify({ envelope, ...(name ? { name } : {}) }),
@@ -91,19 +107,19 @@ export const studioAppsApi = {
     listAccessible: () => request(base),
     listMine: () => request(`${base}/mine`),
     /** body: { name?, description?, icon?, accentColor?, templateId? } */
-    createApp: (body = {}) => request(base, { method: 'POST', body: JSON.stringify(body) }),
+    createApp: (body: NewAppBody = {}) => request(base, { method: 'POST', body: JSON.stringify(body) }),
     /**
      * The row, with the `managed` the route sends BESIDE it ({ app, readOnly,
      * managed }) carried onto it, so every holder of the row (the shell, the
      * header, the publish modal) can tell a Solution stage's app from its own.
      */
-    getApp: async (id) => {
+    getApp: async (id: string) => {
         const res = await request(`${base}/${enc(id)}`);
         if (res && res.app && res.managed !== undefined) res.app = { ...res.app, managed: res.managed };
         return res;
     },
-    updateApp: (id, meta) => request(`${base}/${enc(id)}`, { method: 'PUT', body: JSON.stringify(meta) }),
-    deleteApp: (id) => request(`${base}/${enc(id)}`, { method: 'DELETE' }),
+    updateApp: (id: string, meta: Record<string, unknown>) => request(`${base}/${enc(id)}`, { method: 'PUT', body: JSON.stringify(meta) }),
+    deleteApp: (id: string) => request(`${base}/${enc(id)}`, { method: 'DELETE' }),
 
     /**
      * Autosave the working draft. Returns (never throws for these flows):
@@ -113,7 +129,7 @@ export const studioAppsApi = {
      *   { ok:false, invalid:true, errors, warnings }              // 422
      * Other statuses throw (incl. 413 definition_too_large).
      */
-    saveDefinition: async (id, definition, baseVersion) => {
+    saveDefinition: async (id: string | undefined, definition: AppDefinition | null, baseVersion: number | string | null | undefined) => {
         try {
             const body = await request(`${base}/${enc(id)}/definition`, {
                 method: 'PUT',
@@ -123,14 +139,14 @@ export const studioAppsApi = {
         } catch (err) {
             const refused = managedResult(err);
             if (refused) return refused;
-            if (err.status === 409) return { ok: false, conflict: true, ...(err.body || {}) };
-            if (err.status === 422) return { ok: false, invalid: true, ...(err.body || {}) };
+            if (errorStatus(err) === 409) return { ok: false, conflict: true, ...(errorBodyRecord(err) ?? {}) };
+            if (errorStatus(err) === 422) return { ok: false, invalid: true, ...(errorBodyRecord(err) ?? {}) };
             throw err;
         }
     },
 
     /** body: { isPublished, sharedGroups? } */
-    publish: (id, body) => request(`${base}/${enc(id)}/publish`, { method: 'PATCH', body: JSON.stringify(body) }),
+    publish: (id: string, body: { isPublished: boolean; sharedGroups?: string[] }) => request(`${base}/${enc(id)}/publish`, { method: 'PATCH', body: JSON.stringify(body) }),
 
     /**
      * Upgrade a pristine created-from-template app to the registry template's
@@ -138,7 +154,7 @@ export const studioAppsApi = {
      * 409s (not_pristine / no_newer_version / not_from_template) throw with
      * .status/.code like every other wrapper here.
      */
-    templateUpgrade: (id) => request(`${base}/${enc(id)}/template-upgrade`, { method: 'POST' }),
+    templateUpgrade: (id: string) => request(`${base}/${enc(id)}/template-upgrade`, { method: 'POST' }),
 
     /**
      * Toggle the app's entry in the organisation's Nextcloud app menu.
@@ -148,7 +164,7 @@ export const studioAppsApi = {
      * answering (a reload of Nextcloud shows it), anything else means the
      * connector's periodic check will pick it up.
      */
-    setNextcloudMenu: (id, enabled) =>
+    setNextcloudMenu: (id: string, enabled: boolean) =>
         request(`${base}/${enc(id)}/nextcloud-menu`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
 
     /**
@@ -157,31 +173,31 @@ export const studioAppsApi = {
      *     emptyTables, _hints }
      * opts: { screenId?, asRole? } — omit both to check the whole app.
      */
-    checkApp: (id, opts = {}) =>
+    checkApp: (id: string, opts: { screenId?: string; asRole?: string } = {}) =>
         request(`${base}/${enc(id)}/check`, { method: 'POST', body: JSON.stringify(opts) }),
 
     // Versions
-    listVersions: (id) => request(`${base}/${enc(id)}/versions`),
-    restoreVersion: (id, versionId) =>
+    listVersions: (id: string) => request(`${base}/${enc(id)}/versions`),
+    restoreVersion: (id: string, versionId: string | number | undefined) =>
         request(`${base}/${enc(id)}/versions/${enc(versionId)}/restore`, { method: 'POST' }),
 
     // Run view payload ({ id, name, icon, accentColor, definition, draft? })
-    getRuntime: (id, { draft = false } = {}) =>
+    getRuntime: (id: string, { draft = false }: { draft?: boolean } = {}) =>
         request(`${base}/${enc(id)}/runtime${draft ? '?draft=1' : ''}`),
 
     // Actions (the run bridge; useActionRunner drives these in run mode)
-    runAction: (appId, actionId, { formValues = {}, draft = false } = {}) =>
+    runAction: (appId: string, actionId: string, { formValues = {}, draft = false }: { formValues?: Record<string, unknown>; draft?: boolean } = {}) =>
         request(`${base}/${enc(appId)}/actions/${enc(actionId)}/run${draft ? '?draft=1' : ''}`, {
             method: 'POST',
             body: JSON.stringify({ formValues, wait: true }),
         }),
-    getActionRun: (appId, runId) => request(`${base}/${enc(appId)}/actions/runs/${enc(runId)}`),
+    getActionRun: (appId: string, runId: string) => request(`${base}/${enc(appId)}/actions/runs/${enc(runId)}`),
 
     // AI builder — rehydrates the persisted chat session after a refresh.
-    getBuilderSession: (appId) => request(`${base}/builder/session/${enc(appId)}`),
+    getBuilderSession: (appId: string) => request(`${base}/builder/session/${enc(appId)}`),
 
     // Data model (owner-only). getSchema → { model, modelVersion }.
-    getSchema: (id) => request(`${base}/${enc(id)}/schema`),
+    getSchema: (id: string) => request(`${base}/${enc(id)}/schema`),
     /**
      * Persist the data model. Returns (never throws for these flows):
      *   { ok:true, version }
@@ -189,7 +205,7 @@ export const studioAppsApi = {
      *   { ok:false, conflict:true, currentVersion, model }     // 409
      *   { ok:false, invalid:true, errors }                     // 422
      */
-    saveSchema: async (id, model, expectedVersion) => {
+    saveSchema: async (id: string, model: Record<string, unknown>, expectedVersion: number | string | null | undefined) => {
         try {
             const body = await request(`${base}/${enc(id)}/schema`, {
                 method: 'PUT',
@@ -199,8 +215,8 @@ export const studioAppsApi = {
         } catch (err) {
             const refused = managedResult(err);
             if (refused) return refused;
-            if (err.status === 409) return { ok: false, conflict: true, ...(err.body || {}) };
-            if (err.status === 422) return { ok: false, invalid: true, ...(err.body || {}) };
+            if (errorStatus(err) === 409) return { ok: false, conflict: true, ...(errorBodyRecord(err) ?? {}) };
+            if (errorStatus(err) === 422) return { ok: false, invalid: true, ...(errorBodyRecord(err) ?? {}) };
             throw err;
         }
     },
