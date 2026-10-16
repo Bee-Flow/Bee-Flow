@@ -194,7 +194,7 @@ export function groupConnectors(list: Connector[], catalog: IntegrationCatalog, 
             ? t('studio_apps_bi.connectors.group_other', 'Automations & web addresses')
             : (catalog.lookup(c.tool)?.app?.label || c.integrationId || appId);
         if (!groups.has(appId)) groups.set(appId, { appId, label, items: [] });
-        groups.get(appId)!.items.push(c);
+        (groups.get(appId) as ConnectorGroup).items.push(c);
     }
     return [...groups.values()].sort((a, b) => (a.appId === 'other' ? 1 : 0) - (b.appId === 'other' ? 1 : 0)
         || a.label.localeCompare(b.label));

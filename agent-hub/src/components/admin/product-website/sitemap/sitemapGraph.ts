@@ -78,7 +78,7 @@ export function collectChromeTargets(site: SitemapSite | null | undefined) {
         if (n.kind === 'page' && n.pageId) {
             targets.add(n.pageId);
             if (!sources.has(n.pageId)) sources.set(n.pageId, []);
-            sources.get(n.pageId)!.push({ location });
+            (sources.get(n.pageId) as Array<{ location: string }>).push({ location });
         }
         for (const v of Object.values(node)) walk(location, v);
     };
@@ -104,7 +104,7 @@ export function collectInternalEdges(pages: SitemapPage[]) {
             edges.push({ source, target });
         }
         if (!meta.has(k)) meta.set(k, []);
-        const existing = meta.get(k)!;
+        const existing = meta.get(k) as Array<{ blockType?: string; blockId?: string }>;
         if (!existing.some(e => e.blockId === blockId)) {
             existing.push({ blockType, blockId });
         }
@@ -130,7 +130,7 @@ function assignRanks(homepage: SitemapPage | null, internalEdges: InternalEdge[]
     const outgoing = new Map<string, string[]>();
     for (const e of internalEdges) {
         if (!outgoing.has(e.source)) outgoing.set(e.source, []);
-        outgoing.get(e.source)!.push(e.target);
+        (outgoing.get(e.source) as string[]).push(e.target);
     }
 
     const rank   = new Map<string, number>();
@@ -187,9 +187,9 @@ export function bfsLayout(pages: SitemapPage[], internalEdges: InternalEdge[], c
     const orphanIds = new Set<string>();
     for (const p of pages) {
         if (rank.has(p.id)) {
-            const r = rank.get(p.id)!;
+            const r = rank.get(p.id) as number;
             if (!byRank.has(r)) byRank.set(r, []);
-            byRank.get(r)!.push(p);
+            (byRank.get(r) as SitemapPage[]).push(p);
         } else {
             orphanIds.add(p.id);
         }
