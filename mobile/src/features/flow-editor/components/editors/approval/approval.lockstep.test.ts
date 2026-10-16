@@ -15,11 +15,16 @@ import path from 'node:path';
 
 import type { FlowNode } from '@/features/flow-editor/bindings';
 import { buildPatch, extractFormState, type FormDraft } from '@/features/flow-editor/formState';
+import { loadWebFunctions } from '@/shared/testing/webModule';
 
 import { addQuestion, addStage, approvalQuestionName, CLOCK_CHOICES, chooseEscalation, DEADLINE_CHOICES, deadlineChoices, joinChoices, oneRoundFrom, splitChoices, stagesFrom, startPanel } from './approvalModel';
 
 const SETTINGS = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings');
-const src = fs.readFileSync(path.join(SETTINGS, 'approvalEditors.jsx'), 'utf8');
+// The split moved the editor's pieces out of approvalEditors.jsx: the stage switches into
+// approvalState.ts, the choices into approvalClocks.tsx, the question naming into approvalQuestions.tsx.
+const stateSrc = fs.readFileSync(path.join(SETTINGS, 'approvalState.ts'), 'utf8');
+const clocksSrc = fs.readFileSync(path.join(SETTINGS, 'approvalClocks.tsx'), 'utf8');
+const questionsSrc = fs.readFileSync(path.join(SETTINGS, 'approvalQuestions.tsx'), 'utf8');
 const formSrc = fs.readFileSync(path.join(SETTINGS, 'FormBuilderFields.jsx'), 'utf8');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const webState = require(path.join(SETTINGS, 'formState'));
@@ -31,30 +36,31 @@ const between = (text: string, start: string, end: string) => {
 };
 const fn = (text: string, name: string) => between(text, `function ${name}(`, '\n}\n').replace(/^export /, '');
 
-const naming = new Function(
-    `${fn(formSrc, 'slugifyFieldName')}\n${between(src, 'const PLACEHOLDER_QUESTION_NAME', ';\n')}\n${fn(src, 'storedQuestionName')}\n${fn(src, 'approvalQuestionName')}\nreturn { approvalQuestionName };`,
-)();
+const WEB_SETTINGS = 'components/automation/Builder/flow/settings';
+const naming = loadWebFunctions<{ approvalQuestionName: (question: unknown, index: number, questions: unknown[]) => string }>(
+    `${WEB_SETTINGS}/approvalQuestions.tsx`,
+    ['storedQuestionName', 'approvalQuestionName'],
+    {
+        slugifyFieldName: new Function(`${fn(formSrc, 'slugifyFieldName')}\nreturn slugifyFieldName;`)(),
+        PLACEHOLDER_QUESTION_NAME: new Function(`${between(questionsSrc, 'const PLACEHOLDER_QUESTION_NAME', ';\n')}\nreturn PLACEHOLDER_QUESTION_NAME;`)(),
+    },
+);
+const stateFns = loadWebFunctions<{ startStages: (draft: FormDraft, seats: unknown[], set: (k: string, v: unknown) => void, t: (k: string, fb: string) => string) => void; dropStages: (stages: unknown[], set: (k: string, v: unknown) => void) => void }>(
+    `${WEB_SETTINGS}/approvalState.ts`,
+    ['startStages', 'dropStages'],
+    { STAGE_RULES: webState.STAGE_RULES, newStageKey: webState.newStageKey, stageSeats: webState.stageSeats, isPicked: new Function(`${between(stateSrc, 'const isPicked', ';\n').replace(/\(seat: [^)]*\): boolean/, '(seat)')}\nreturn isPicked;`)() },
+);
 
-/** The component's closure, run with the draft it would see and a `set` that records. */
+/** The web's two mode switches (approvalState.ts), run with the draft they would see and a `set` that records. */
 function webSwitch(name: 'useStages' | 'dropStages', draft: FormDraft): FormDraft {
-    const body = between(src, `const ${name} = () => {`, '\n    };\n');
     const out: FormDraft = {};
     const set = (k: string, v: unknown) => {
         out[k] = v;
     };
     const panelSeats = Array.isArray(draft.approvers) ? draft.approvers : [];
     const stages = Array.isArray(draft.stages) ? draft.stages : [];
-    const t = (_k: string, fb: string) => fb;
-    new Function('draft', 'set', 'panelSeats', 'stages', 't', 'STAGE_RULES', 'newStageKey', 'stageSeats', `${body}\n${name}();`)(
-        draft,
-        set,
-        panelSeats,
-        stages,
-        t,
-        webState.STAGE_RULES,
-        webState.newStageKey,
-        webState.stageSeats,
-    );
+    if (name === 'useStages') stateFns.startStages(draft, panelSeats, set, (_k: string, fb: string) => fb);
+    else stateFns.dropStages(stages, set);
     return out;
 }
 
@@ -62,12 +68,12 @@ const pairs = (block: string) => [...block.matchAll(/\{ value: (\d+), label: '([
 
 describe('the approval editor against approvalEditors.jsx', () => {
     it('the switches still take their stage helpers from the formState barrel', () => {
-        expect(src).toContain("import { STAGE_RULES, stageSeats, newStageKey } from './formState';");
+        expect(stateSrc).toContain("import { STAGE_RULES, stageSeats, newStageKey } from './formState';");
     });
 
     it('offers the web’s deadline and reminder choices', () => {
-        expect(DEADLINE_CHOICES.map((c) => [c.value, c.label[1]])).toEqual(pairs(between(src, 'const APPROVAL_DEADLINE_CHOICES = [', '];')));
-        expect(CLOCK_CHOICES.map((c) => [c.value, c.label[1]])).toEqual(pairs(between(src, 'const APPROVAL_CLOCK_CHOICES = [', '];')));
+        expect(DEADLINE_CHOICES.map((c) => [c.value, c.label[1]])).toEqual(pairs(between(clocksSrc, 'const APPROVAL_DEADLINE_CHOICES = [', '];')));
+        expect(CLOCK_CHOICES.map((c) => [c.value, c.label[1]])).toEqual(pairs(between(clocksSrc, 'const APPROVAL_CLOCK_CHOICES = [', '];')));
         expect(deadlineChoices(10).choices.at(-1)?.label).toEqual(['mobile.flow.approval.n_hours', '{n} hours', { n: 10 }]);
         expect(deadlineChoices('').hours).toBe(168);
         expect(deadlineChoices(0).hours).toBe(0);

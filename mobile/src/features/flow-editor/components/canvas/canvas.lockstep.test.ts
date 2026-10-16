@@ -140,7 +140,8 @@ describe('line colours', () => {
 
 describe('what only the web components say', () => {
     it('places two ports at thirds and more on 22px rows (StepNodeBase)', () => {
-        const base = read('flow/nodes/StepNodeBase.tsx');
+        // The split moved the port placement out of StepNodeBase into StepNodePorts.
+        const base = `${read('flow/nodes/StepNodeBase.tsx')}\n${read('flow/nodes/StepNodePorts.tsx')}`;
         expect(base).toContain('? PORT_PAD + PORT_PITCH * (i + 0.5)');
         expect(base).toContain(': `${((i + 1) / (branchHandles.length + 1)) * 100}%`');
     });

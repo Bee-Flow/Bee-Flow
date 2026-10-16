@@ -16,6 +16,7 @@ export interface EditorAgentConfig {
     bubbleColor?: string;
     bubblePosition?: string;
     bubbleIcon?: string;
+    avatar?: string | null;
     wizard?: { primaryKbId?: string | null } | null;
     [key: string]: unknown;
 }
