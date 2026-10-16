@@ -1,8 +1,28 @@
 import { GraduationCap, Search, Map, RotateCcw, Award, Lock, Check } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { Course, LessonDoc } from '../../../components/onboarding/lessons.types';
+import type { CapstoneInfo, LearningNavTarget, LevelInfo, ReviewDue } from './learning.types';
 import CourseIcon from './courseIcons';
 import { buildCurriculumColumns, splitCapstone } from './curriculum';
 import { getLearningPath } from '../../../components/onboarding/learningPaths';
+
+interface LearningRailProps {
+    t: TranslateFn;
+    courses: Course[];
+    lessonsOf: (course: Course) => LessonDoc[];
+    completedMap: Record<string, boolean>;
+    isLocked: (course: Course) => boolean;
+    isComplete: (course: Course) => boolean;
+    path?: string | null;
+    view: string;
+    courseId?: string | null;
+    reviewDue?: ReviewDue | null;
+    levelInfo?: LevelInfo | null;
+    capstone?: CapstoneInfo | null;
+    onNavigate: (target: LearningNavTarget) => void;
+}
 
 /**
  * LearningRail — the 300px rail of the redesigned Learning Center (handoff
@@ -30,16 +50,16 @@ import { getLearningPath } from '../../../components/onboarding/learningPaths';
 export default function LearningRail({
     t, courses, lessonsOf, completedMap, isLocked, isComplete, path,
     view, courseId, reviewDue, levelInfo, capstone, onNavigate,
-}) {
+}: LearningRailProps) {
     const [query, setQuery] = useState('');
-    const [filter, setFilter] = useState('all'); // 'all' | 'available'
+    const [filter, setFilter] = useState<string>('all'); // 'all' | 'available'
 
     const { rest } = useMemo(() => splitCapstone(courses), [courses]);
     const columns = useMemo(() => buildCurriculumColumns(rest, path), [rest, path]);
     const totalLessons = useMemo(() => rest.reduce((n, c) => n + lessonsOf(c).length, 0) + (capstone?.course ? lessonsOf(capstone.course).length : 0), [rest, lessonsOf, capstone]);
 
     const q = query.trim().toLowerCase();
-    const matches = (course) => {
+    const matches = (course: Course) => {
         if (filter === 'available' && (isLocked(course) || isComplete(course))) return false;
         if (!q) return true;
         const hay = [t(course.titleKey, course.titleFallback), t(course.badge?.titleKey, course.badge?.titleFallback)]
@@ -49,7 +69,7 @@ export default function LearningRail({
     };
     const availableCount = rest.filter((c) => !isLocked(c) && !isComplete(c)).length;
 
-    const rowStyle = (on, muted) => ({
+    const rowStyle = (on: boolean, muted?: boolean): CSSProperties => ({
         display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, minWidth: 0, width: '100%', textAlign: 'left',
         color: on ? 'var(--text-primary)' : (muted ? 'var(--text-tertiary)' : 'var(--text-secondary)'),
         background: on ? 'var(--bg-card)' : 'transparent',
@@ -100,7 +120,7 @@ export default function LearningRail({
 
                 {/* All / Available */}
                 <div role="radiogroup" aria-label={t('learn.rail.filter', 'Filter courses')} className="flex font-medium" style={{ background: 'var(--bg-tertiary)', borderRadius: 8, padding: 2, gap: 2 }}>
-                    {[['all', t('learn.rail.filter_all', 'All'), null], ['available', t('learn.rail.filter_available', 'Available'), availableCount]].map(([id, label, count]) => {
+                    {([['all', t('learn.rail.filter_all', 'All'), null], ['available', t('learn.rail.filter_available', 'Available'), availableCount]] as const).map(([id, label, count]) => {
                         const on = filter === id;
                         return (
                             <button key={id} type="button" role="radio" aria-checked={on} onClick={() => setFilter(id)}
@@ -200,12 +220,20 @@ export default function LearningRail({
     );
 }
 
-function SectionHeading({ children }) {
+function SectionHeading({ children }: { children?: ReactNode }) {
     return (
         <div className="uppercase font-semibold" style={{ fontSize: 10, letterSpacing: '.08em', color: 'var(--text-tertiary)', padding: '10px 8px 4px' }}>
             {children}
         </div>
     );
+}
+
+interface RailStatusProps {
+    t: TranslateFn;
+    locked: boolean;
+    complete: boolean;
+    done: number;
+    total: number;
 }
 
 /**
@@ -214,7 +242,7 @@ function SectionHeading({ children }) {
  * list beside it. A 36px segmented bar was readable on a card; at rail width,
  * next to a truncated title, it was texture.
  */
-function RailStatus({ t, locked, complete, done, total }) {
+function RailStatus({ t, locked, complete, done, total }: RailStatusProps) {
     if (complete) return <Check style={{ width: 14, height: 14, color: 'var(--learn-complete)' }} aria-label={t('learn.state.complete', 'complete')} />;
     if (locked) return <Lock style={{ width: 12, height: 12 }} aria-hidden="true" />;
     if (done > 0) return <>{t('learn.course.n_of_m', '{a} of {b}').replace('{a}', String(done)).replace('{b}', String(total))}</>;
