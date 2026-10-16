@@ -3,6 +3,19 @@ import { DEMO_FEATURES, DEMO_FEATURE_IDS } from '../../../../demo/registry';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { TextField, TextArea, FieldRow } from '../fields';
 import { CollapsibleCard, InlineHint, FieldSelect, SegmentedControl } from '../primitives';
+import type { BlockEditorProps } from './editorProps';
+
+type DemoLookup = Record<string, { label: string; blurb: string }>;
+
+type FeatureDemoData = {
+    feature?: string;
+    eyebrow?: string;
+    title?: string;
+    lead?: string;
+    height?: number;
+    theme?: string;
+    note?: string;
+};
 
 /**
  * Editor for the Live feature demo block.
@@ -12,10 +25,10 @@ import { CollapsibleCard, InlineHint, FieldSelect, SegmentedControl } from '../p
  * choose which of our demos to show, and cannot point the frame anywhere
  * else. Adding an option means registering a demo in code.
  */
-export function FeatureDemoEditor({ data, onChange }) {
+export function FeatureDemoEditor({ data, onChange }: { data: FeatureDemoData; onChange: BlockEditorProps['onChange'] }) {
     const { t } = useTranslation();
-    const set = (key, value) => onChange({ ...data, [key]: value });
-    const feature = DEMO_FEATURES[data.feature];
+    const set = (key: string, value: unknown) => onChange({ ...data, [key]: value });
+    const feature = (DEMO_FEATURES as DemoLookup)[data.feature as string] as DemoLookup[string] | undefined;
     const height = Number.isFinite(data.height) ? data.height : 720;
 
     return (
@@ -30,7 +43,7 @@ export function FeatureDemoEditor({ data, onChange }) {
                     onChange={v => set('feature', v)}
                     options={[
                         { value: '', label: t('cms_site.blocks.feature_demo.pick_a_feature', '— pick a feature —') },
-                        ...DEMO_FEATURE_IDS.map(id => ({ value: id, label: DEMO_FEATURES[id].label })),
+                        ...DEMO_FEATURE_IDS.map(id => ({ value: id, label: (DEMO_FEATURES as DemoLookup)[id].label })),
                     ]}
                     hint={feature ? feature.blurb : t('cms_site.blocks.feature_demo.the_block_renders_a_placeholder_until', 'The block renders a placeholder until a feature is picked.')}
                 />
