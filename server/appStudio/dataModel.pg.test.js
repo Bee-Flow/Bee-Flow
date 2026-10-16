@@ -155,10 +155,10 @@ function modelWithKeys(tableKey, fieldKey) {
     };
 }
 
-test('table/field keys starting with pg_ or sqlite_ are rejected in BOTH dialects', (t) => {
+test('table/field keys starting with pg_, sqlite_ or pragma_ are rejected in BOTH dialects', (t) => {
     for (const dialect of ['sqlite', 'pg']) {
         engineFlag._setForTests(dialect);
-        for (const bad of ['pg_stats', 'sqlite_master', 'pg_x', 'sqlite_seq']) {
+        for (const bad of ['pg_stats', 'sqlite_master', 'pg_x', 'sqlite_seq', 'pragma_notes']) {
             const asTable = dm.validateDataModel(modelWithKeys(bad, 'ok'));
             assert.ok(asTable.errors.some(e => e.includes('reserved engine prefix')),
                 `${dialect}: table key ${bad} → ${JSON.stringify(asTable.errors)}`);
@@ -167,7 +167,7 @@ test('table/field keys starting with pg_ or sqlite_ are rejected in BOTH dialect
                 `${dialect}: field key ${bad} → ${JSON.stringify(asField.errors)}`);
         }
         // Non-prefix uses of the words stay legal.
-        const fine = dm.validateDataModel(modelWithKeys('my_pg_table', 'has_sqlite_inside'));
+        const fine = dm.validateDataModel(modelWithKeys('my_pg_table', 'has_sqlite_inside_pragma_x'));
         assert.deepStrictEqual(fine.errors, [], `${dialect}: prefixes only match at the start`);
     }
     t.after(() => engineFlag._setForTests(null));
@@ -177,5 +177,6 @@ test('table/field keys starting with pg_ or sqlite_ are rejected in BOTH dialect
 test('RESERVED_KEY_PREFIX_RE is exported and anchored', () => {
     assert.ok(dm.RESERVED_KEY_PREFIX_RE.test('pg_a'));
     assert.ok(dm.RESERVED_KEY_PREFIX_RE.test('sqlite_a'));
+    assert.ok(dm.RESERVED_KEY_PREFIX_RE.test('pragma_a'));
     assert.ok(!dm.RESERVED_KEY_PREFIX_RE.test('a_pg_b'));
 });
