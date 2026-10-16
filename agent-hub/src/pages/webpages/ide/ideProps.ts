@@ -54,7 +54,7 @@ export interface WebpageIDEProps {
     onTierChange?: (tier: string) => void;
     // Save
     saveState?: string;
-    lastSavedAt?: unknown;
+    lastSavedAt?: Date | null;
     onRetrySave?: () => unknown;
     onVersionsClick?: () => void;
     onDownload?: () => unknown;

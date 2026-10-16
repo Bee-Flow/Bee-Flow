@@ -178,7 +178,7 @@ describe('W4 — het elementblok komt uit de registry, niet uit dit bestand', ()
         // Pad vanaf de projectwortel: vitest draait vanuit agent-hub/ (zie de
         // testinstructies), en de sanity-assert hieronder maakt een verkeerd
         // pad ROOD in plaats van stil groen.
-        const src = fs.readFileSync(path.resolve('src/utils/bfElementsRuntime.js'), 'utf8');
+        const src = fs.readFileSync(path.resolve('src/utils/bfElementsRuntime.ts'), 'utf8');
         expect(src.length, 'sanity: de bron is gelezen').toBeGreaterThan(500);
         expect(src.match(TAG_WORD) || []).toEqual([]);
     });
