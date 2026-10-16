@@ -18,7 +18,7 @@ interface KbDocument {
 
 /** The agent shell the dialog reads; the editor passes the whole row. */
 interface AgentShell {
-    id?: string;
+    id?: string | null;
     name?: string;
     config?: { wizard?: { primaryKbId?: string | null } | null } | null;
 }

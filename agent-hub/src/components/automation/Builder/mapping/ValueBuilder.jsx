@@ -1,34 +1,24 @@
-import { Eye, FunctionSquare, List, Plus, Repeat, Tag, Workflow, X, Zap } from 'lucide-react';
-import React, { useMemo, useRef, useState } from 'react';
-import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
-import BindingField from './BindingField';
+import React, { useRef, useState } from 'react';
+import { onBindingDragOver } from './bindingDnd';
 import previewBinding from './bindingPreview';
 import { isEmptyValue } from './boundPaths';
-import { planDeepPick } from './deepPick';
 import { EmptySlotNote, FieldLabelRow } from './fieldChrome';
 import { useFormRowLabel } from './FormRowLabelContext';
-import ListPickChooser from './ListPickChooser';
-import { pathListShape } from './listShape';
-import { kindAtPath } from './mismatch';
-import MismatchResolver from './MismatchResolver';
-import { proposePickBinding } from './proposePick';
-import { pillTint, PILL_TINT_CLASS } from './refEditorDom';
 import RefTokenInput from './RefTokenInput';
-import { classifyRef, scanExprPaths } from './refTokens';
 import { useSlotListAs } from './slotListAs';
+import useValuePick, { useValueParts } from './useValuePick';
 import useVariablePicker from './useVariablePicker';
-import { PathAsTextNote } from './ValueNotes';
+import { DataPart, EXAMPLE_MAX, ExampleLine, pathTextOf, TextPart } from './ValueBuilderParts';
 import {
-    buildValue, DATE_FORMATS, describeDataPath, NUMBER_STYLES, parseValue,
-    TRANSFORM_BY_ID, VALUE_TRANSFORMS,
-} from './valueParts';
+    ForeachNote, RawValueEditor, TransformRow, UnsupportedValue, ValueActions, ValuePickers,
+} from './ValueBuilderViews';
+import { PathAsTextNote } from './ValueNotes';
+import { buildValue } from './valueParts';
 import VariablePicker from './VariablePicker';
 import { useVariablePickerContext } from './VariablePickerContext';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { bindingFromInput, canonicalRefPath, formatPathForInsert, isCleanPath, refPathTokens } from '../../../../utils/bindingHelpers';
-import { humanizeFieldKey } from '../flow/displayHelpers';
 import { useFormMode } from '../flow/settings/formDensity';
-import { controlSurfaceClass, denseInputClass, listBadgeClass, AMBER_NOTE, FOCUS_RING, INLINE_LINK } from '../flow/settings/formStyles';
+import { denseInputClass } from '../flow/settings/formStyles';
 
 /**
  * VISUAL value editor — the plain-language alternative to BindingField.
@@ -100,19 +90,6 @@ export default function ValueBuilder({
     const [rawOpen, setRawOpen] = useState(false);
     // Which part the open picker will write into (-1 = append a new one).
     const pickTarget = useRef(-1);
-    // The list chooser: a pick that resolved to a list, awaiting the user's
-    // answer. { path, shape, anchorEl, index } | null.
-    const [listPick, setListPick] = useState(null);
-    // A pick that resolved to a GROUP or a TABLE: the default remedy is
-    // already written and this box asks whether it was the right one.
-    // { path, actualKind, expectedKind, selectedId } | null
-    const [resolver, setResolver] = useState(null);
-    // What to restore if the user presses Undo after a foreach choice.
-    const undoRef = useRef(null);
-    const [foreachNote, setForeachNote] = useState(null); // { runs } | null
-    // "More": how a picked list/table/group is used, the transform menu and
-    // the formula escape (the field's own advanced options). Closed by default — a drop already chose the
-    // sensible answer (quietDefaultId), so most authors never need it.
     // "Adjust it", Formula and the other answers for a list/table pick are
     // Advanced: shown inline in the Advanced mode (also outside the step
     // form, where there is no mode), never in Simple. No per-field toggle.
@@ -122,242 +99,48 @@ export default function ValueBuilder({
     // too), so switching editors never changes what the empty box says.
     const ph = placeholder ?? t('automations.builder.type_a_value', 'Type a value…');
     const allowForEach = canForEach ?? !!onRequestForEach;
-    const parsed = useMemo(() => parseValue(value), [value]);
+    const { parsed, parts, setComposing, inline, inlineText, inlineRows, inlineRef, pillTarget, emit, setText, removeAt } = useValueParts(value, onChange);
     const sampleRoot = previewSample ?? pickerCtx.previewSample;
     const slotListAs = useSlotListAs();
     // Room for a sentence: the line wraps to two (ExampleLine), so the deep
     // values of a long text are shown rather than cut after a few words.
     const example = previewBinding(value, sampleRoot, { raw: false, listAs: listAs || slotListAs, maxLen: EXAMPLE_MAX });
 
-    const parts = parsed.parts;
-    // ONE text box with the references as pills in it (design 2a: "just
-    // type, fields may go in between") whenever the value is text, or text
-    // and data mixed. A single picked value keeps its chip and the "use it
-    // as" control; "Add text" beside that chip switches to composing.
-    const [composing, setComposing] = useState(false);
-    const inlineRef = useRef(null);
-    // The pill a click is re-picking for (inline mode).
-    const pillTarget = useRef(null);
-    const singleData = parts.length === 1 && parts[0].type === 'data';
-    const inline = parsed.supported && !(parts.length === 1 && parts[0].type === 'json') && (composing || !singleData);
-    const inlineText = parts.map(p => (p.type === 'data' ? `{{${p.path}}}` : p.text)).join('');
-    const inlineRows = Math.min(12, Math.max(1, inlineText.split('\n').length));
-    const emit = (nextParts, nextTransform = parsed.transform, nextArg = parsed.transformArg, nextArg2 = parsed.transformArg2) => {
-        // A transform belongs to a single picked value; joining parts drops it
-        // (the control that sets it is hidden in that shape anyway).
-        const dataCount = nextParts.filter(p => p.type === 'data').length;
-        const keep = dataCount === 1 && nextParts.length === 1 ? nextTransform : null;
-        onChange?.(buildValue(nextParts, keep, keep ? nextArg : null, keep ? nextArg2 : null));
-    };
 
     const openPicker = (el, index, focusPath = '') => { pickTarget.current = index; picker.openPicker(el, focusPath ? { focusPath } : {}); };
-    // The pick pipeline. `opts.raw` (Alt held, or "insert it as it is") skips
-    // every question; so does a slot whose shape is unknown — the gate is
-    // POSITIVE, so App Studio, custom rows and Set fields behave exactly as
-    // they did before this editor learned to ask anything.
-    //
-    // WHETHER to ask, and WHICH question, comes from mapping/mismatch.js and
-    // nowhere else. This used to read `pathListShape` directly, which knows
-    // only one shape: a GROUP produced no shape at all and went in silently
-    // (the group branch mismatch.js has always carried was unreachable from
-    // the default editor), and a TABLE got the LIST menu, whose "join" over
-    // rows of objects writes "[object Object]" into an e-mail subject.
-    //
-    // The answers land in two presenters:
-    //   a list, table or group picked INTO the field → the inline resolver
-    //           under it, which writes mismatch.js's own default first (join /
-    //           asTable / groupSummary) so the field is never left holding the
-    //           raw value while the question is on screen;
-    //   a list re-picked onto an existing CHIP → ListPickChooser beside that
-    //           chip, with its separator control; it writes nothing until
-    //           the author answers.
-    const proposePick = (path, anchorEl, opts = {}) => {
-        // The canonical spelling, whatever the source handed over (a drag
-        // from an output table may say `headers.content-type`): every answer
-        // below is a ref or a formula over it, and a formula reads only the
-        // canonical spelling as that same path.
-        let clean = canonicalRefPath(String(path || '').trim());
-        if (!clean) return;
-        const index = pickTarget.current;
-        pickTarget.current = -1;
-        if (opts.raw || expectShape !== 'scalar') { insertPath(clean, index, opts.at); return; }
-        // WHICH value goes in, and how a list, table or group is shaped when it
-        // does not fit, is one pure decision (proposePick.proposePickBinding) the
-        // phone makes identically.
-        const pick = proposePickBinding(clean, sampleRoot, { slot: label, expectKind, expectShape, allowForEach });
-        clean = pick.path;
-        // A value from a list inside a list (Attachments ▸ Attachment id while
-        // the step runs per email, or Orders ▸ Line items ▸ Sku): one run per
-        // INNER item, the outer item kept (deepPick.ts). Never joined.
-        const deep = planDeepPick(clean, { deepenForEach, canForEach: allowForEach && !!onRequestForEach, sampleRoot });
-        if (deep) {
-            onChange?.(deep.binding);
-            let orphans = [];
-            if (deep.plan) {
-                const res = deepenForEach.apply(deep.plan, deep.newItem);
-                undoRef.current = { value, custom: res?.undo || null };
-                orphans = res?.orphans || [];
-            } else {
-                undoRef.current = { value, forEach: null, request: onRequestForEach };
-                onRequestForEach(deep.forEach);
-            }
-            setForeachNote({ runs: deep.runs, noun: deep.itemVar, orphans });
-            return;
-        }
-        // A pick that fits goes in as it is. One that does not gets the quiet
-        // default written at once (round 2, artboard 2a): the field is never
-        // left holding the raw list while the question is on screen, and the
-        // other answers wait under "More" (Advanced).
-        const chosen = pick.remedy;
-        if (!chosen) { insertPath(clean, index, opts.at); return; }
-        applyRemedy(chosen);
-        // The one default that changes how the step RUNS says so, with Undo.
-        if (chosen.id === 'foreach') setForeachNote({ runs: pick.remedies?.shape?.rows ?? pick.remedies?.count ?? null });
-        setResolver({ path: clean, actualKind: pick.actualKind, expectedKind: pick.expectedKind, selectedId: chosen.id });
-    };
-    // Write one remedy's binding. A remedy is the WHOLE value (it is an
-    // expression over the picked path), so it replaces the parts rather than
-    // joining onto them — the same thing BindingField does with applyBinding.
-    const applyRemedy = (r) => {
-        if (!r) return;
-        if (r.id === 'foreach' && onRequestForEach) {
-            // Keep the callback that set it: once the step runs per item the
-            // editor may stop offering one, and Undo must still clear it.
-            undoRef.current = { value, forEach: null, request: onRequestForEach };
-            onRequestForEach(r.forEach);
-        }
-        onChange?.(r.binding);
-    };
-    const onResolverChoose = (r) => {
-        if (!r) return;
-        applyRemedy(r);
-        setResolver(prev => (prev ? { ...prev, selectedId: r.id } : prev));
-    };
-    const insertPath = (path, index, at = null) => {
-        if (inline) {
-            const snippet = formatPathForInsert(path, 'fixed');
-            if (!snippet) return;
-            if (at) inlineRef.current?.insertSnippetAt(snippet, at);
-            else inlineRef.current?.insertSnippet(snippet);
-            return;
-        }
-        const next = [...parts];
-        const picked = canonicalRefPath(path);
-        if (index >= 0 && next[index]) next[index] = { type: 'data', path: picked };
-        else next.push({ type: 'data', path: picked });
-        emit(next);
-    };
-    const onPick = (path, opts = {}) => {
-        const anchor = picker.pickerProps?.anchorEl || null;
-        const pill = pillTarget.current;
-        pillTarget.current = null;
-        picker.closePicker();
-        if (pill && inline) {
-            const snippet = formatPathForInsert(path, 'fixed');
-            if (snippet) inlineRef.current?.replacePill(pill, snippet);
-            return;
-        }
-        proposePick(path, anchor, opts);
-    };
-
-    const onListChoice = (choice) => {
-        const pick = listPick;
-        setListPick(null);
-        if (!pick || !choice) return;
-        if (choice.mode === 'foreach' && onRequestForEach) {
-            undoRef.current = { value, forEach: null, request: onRequestForEach };
-            onRequestForEach(choice.forEach);
-            onChange?.(choice.binding);
-            const runs = pick.shape.rows ?? pick.shape.count;
-            setForeachNote({ runs });
-            return;
-        }
-        // first/last/join/count/each — a plain binding, emitted verbatim.
-        onChange?.(choice.binding);
-    };
-    const undoForeach = () => {
-        const undo = undoRef.current;
-        undoRef.current = null;
-        setForeachNote(null);
-        if (!undo) return;
-        // A deepened forEach restores the step as a whole (its forEach and the
-        // fields it moved), this field included.
-        if (undo.custom) { undo.custom(); return; }
-        (undo.request || onRequestForEach)?.(null);
-        onChange?.(undo.value ?? { kind: 'literal', value: '' });
-    };
-
-    const setText = (index, text) => {
-        const next = [...parts];
-        if (next[index]) next[index] = { type: 'text', text };
-        else next.push({ type: 'text', text });
-        emit(next);
-    };
-    const removeAt = (index) => emit(parts.filter((_, i) => i !== index));
-    // What the text box emits, normalised through valueParts so a lone
-    // pill is still a ref and plain words are still a literal — the same
-    // shapes the chip editor writes.
-    const emitInline = (text) => {
-        const b = bindingFromInput(text, 'fixed');
-        const p = parseValue(b);
-        onChange?.(p.supported ? buildValue(p.parts, null, null) : b);
-    };
-
-    // Click-to-insert / drag-from-the-tree land as a new data part rather than
-    // as text spliced at a caret — there is no raw text to splice into here.
-    // The handle carries `opts` so an Alt-click in the Input tree bypasses the
-    // list chooser ({ raw: true }).
-    const broadcast = () => onFocusField?.({
-        id: label || 'value',
-        label: label || rowLabel || '',
-        insert: (path, opts) => { pickTarget.current = -1; proposePick(path, null, opts); },
+    const pick = useValuePick({
+        value, onChange, onRequestForEach, deepenForEach, expectShape, expectKind, label, allowForEach, sampleRoot,
+        inline, parts, emit, inlineRef, pickTarget, pillTarget, picker, onFocusField, rowLabel,
     });
-    const onDrop = (e) => {
-        const path = getBindingDropPath(e);
-        if (!path) return;
-        pickTarget.current = -1;
-        proposePick(path, e.currentTarget, { raw: e.altKey, at: { x: e.clientX, y: e.clientY } });
-    };
+    const { emitInline, broadcast, onDrop } = pick;
 
     const pickerNode = (
-        <>
-            <VariablePicker
-                {...picker.pickerProps}
-                groups={pickerCtx.groups}
-                previewSample={sampleRoot}
-                onPick={onPick}
-                onClose={() => { pillTarget.current = null; picker.closePicker(); }}
-                title={label
-                    ? t('automations.builder.pick_data_for', 'Pick data for {field}', { field: label })
-                    : t('automations.builder.pick_data', 'Pick data from a step')}
-            />
-            {resolver && advancedOpen && (
-                <MismatchResolver
-                    path={resolver.path}
-                    sampleRoot={sampleRoot}
-                    stepLabelById={pickerCtx.stepLabelById}
-                    actualKind={resolver.actualKind}
-                    expectedKind={resolver.expectedKind}
-                    selectedId={resolver.selectedId}
-                    allowForEach={allowForEach}
-                    onChoose={onResolverChoose}
-                    onClose={() => setResolver(null)}
+        <ValuePickers
+            variablePicker={(
+                <VariablePicker
+                    {...picker.pickerProps}
+                    groups={pickerCtx.groups}
+                    previewSample={sampleRoot}
+                    onPick={pick.onPick}
+                    onClose={() => { pillTarget.current = null; picker.closePicker(); }}
+                    title={label
+                        ? t('automations.builder.pick_data_for', 'Pick data for {field}', { field: label })
+                        : t('automations.builder.pick_data', 'Pick data from a step')}
                 />
             )}
-            <ListPickChooser
-                open={!!listPick}
-                anchorEl={listPick?.anchorEl}
-                path={listPick?.path}
-                shape={listPick?.shape}
-                sampleRoot={sampleRoot}
-                stepLabelById={pickerCtx.stepLabelById}
-                expectShape={expectShape}
-                allowForEach={allowForEach}
-                fieldLabel={label}
-                onChoose={onListChoice}
-                onCancel={() => setListPick(null)}
-            />
-        </>
+            sampleRoot={sampleRoot}
+            stepLabelById={pickerCtx.stepLabelById}
+            label={label}
+            resolver={pick.resolver}
+            showResolver={advancedOpen}
+            allowForEach={allowForEach}
+            expectShape={expectShape}
+            onResolverChoose={pick.onResolverChoose}
+            onResolverClose={() => pick.setResolver(null)}
+            listPick={pick.listPick}
+            onListChoice={pick.onListChoice}
+            onListCancel={() => pick.setListPick(null)}
+        />
     );
 
     // The slot's own chrome — drawn identically whichever editor is inside it,
@@ -372,56 +155,37 @@ export default function ValueBuilder({
 
     if (rawOpen) {
         return (
-            <div className="space-y-1">
-                <BindingField
-                    value={value}
-                    onChange={onChange}
-                    placeholder={ph}
-                    onFocusField={onFocusField}
-                    previewSample={sampleRoot}
-                    label={showChrome ? label : null}
-                    required={required}
-                    expectKind={expectKind}
-                    hint={hint}
-                    multiline={multiline}
-                    expectShape={expectShape}
-                    onRequestForEach={allowForEach ? onRequestForEach : null}
-                    listAs={listAs}
-                />
-                <button
-                    type="button"
-                    onClick={() => setRawOpen(false)}
-                    className={`text-[10px] ${INLINE_LINK}`}
-                >
-                    {t('automations.builder.back_to_simple', 'Back to the simple editor')}
-                </button>
-            </div>
+            <RawValueEditor
+                value={value}
+                onChange={onChange}
+                placeholder={ph}
+                onFocusField={onFocusField}
+                previewSample={sampleRoot}
+                label={showChrome ? label : null}
+                required={required}
+                expectKind={expectKind}
+                hint={hint}
+                multiline={multiline}
+                expectShape={expectShape}
+                onRequestForEach={allowForEach ? onRequestForEach : null}
+                listAs={listAs}
+                onBack={() => setRawOpen(false)}
+            />
         );
     }
 
     if (!parsed.supported) {
         return (
-            <div className="space-y-1">
-                {chrome}
-                <div className="rounded border border-[var(--border-default)] bg-[var(--bg-secondary)]/50 px-2 py-1.5">
-                    <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)] mb-0.5">{t('automations.builder.custom_formula', 'Custom formula')}</div>
-                    <FormulaChips text={parsed.text} stepLabelById={pickerCtx.stepLabelById} stepTypeById={pickerCtx.stepTypeById} />
-                </div>
-                {example != null && <ExampleLine value={example} />}
-                <div className="flex items-center gap-3 text-[10px]">
-                    <button type="button" onClick={() => setRawOpen(true)} className={INLINE_LINK}>
-                        {t('automations.builder.edit_formula', 'Edit the formula')}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => onChange?.({ kind: 'literal', value: '' })}
-                        className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                    >
-                        {t('automations.builder.replace_it', 'Replace it')}
-                    </button>
-                </div>
-                {pickerNode}
-            </div>
+            <UnsupportedValue
+                chrome={chrome}
+                formulaText={parsed.text}
+                stepLabelById={pickerCtx.stepLabelById}
+                stepTypeById={pickerCtx.stepTypeById}
+                example={example}
+                onEdit={() => setRawOpen(true)}
+                onReplace={() => onChange?.({ kind: 'literal', value: '' })}
+                pickerNode={pickerNode}
+            />
         );
     }
 
@@ -485,377 +249,33 @@ export default function ValueBuilder({
                 />
             )))}
 
-            <div className="flex items-center gap-4 flex-wrap pt-0.5">
-                {!jsonOnly && (
-                    <button
-                        type="button"
-                        onClick={(e) => openPicker(e.currentTarget, -1)}
-                        className={`flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded ${FOCUS_RING}`}
-                    >
-                        {/* The first pick is the headline action; once something
-                            is bound, picking again APPENDS — so it reads as an add. */}
-                        <Workflow size={11} /> {dataParts.length
-                            ? t('automations.builder.add_data', 'Add data')
-                            : t('automations.builder.use_data_from_step', 'Use data from a step')}
-                    </button>
-                )}
-                {!inline && dataParts.length > 0 && (
-                    <button
-                        type="button"
-                        onClick={() => setComposing(true)}
-                        className={`flex items-center gap-1 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded ${FOCUS_RING}`}
-                    >
-                        <Plus size={11} /> {t('automations.builder.add_text', 'Add text')}
-                    </button>
-                )}
-                {emptyNote}
-                {allowRaw && advancedOpen && (
-                    <button
-                        type="button"
-                        onClick={() => setRawOpen(true)}
-                        title={t('automations.builder.write_as_formula', 'Write this value as a formula')}
-                        aria-label={t('automations.builder.write_as_formula', 'Write this value as a formula')}
-                        className={`ml-auto flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] rounded ${FOCUS_RING}`}
-                    >
-                        {/* The visible word, not just the tooltip: this button
-                            had its title and aria-label translated while the
-                            label itself stayed English, so a Dutch workspace
-                            read a Dutch tooltip over an English button.
-                            `mode_formula_word` is the same word BindingField's
-                            mode toggle already uses (conventions §1.3.1: the
-                            key exists, so use it). */}
-                        <FunctionSquare size={11} /> {t('automations.builder.mode_formula_word', 'Formula')}
-                    </button>
-                )}
-            </div>
+            <ValueActions
+                jsonOnly={jsonOnly}
+                hasData={dataParts.length > 0}
+                showAddText={!inline && dataParts.length > 0}
+                showFormula={allowRaw && advancedOpen}
+                emptyNote={emptyNote}
+                onAddData={(e) => openPicker(e.currentTarget, -1)}
+                onAddText={() => setComposing(true)}
+                onFormula={() => setRawOpen(true)}
+            />
 
-            {showTransform && advancedOpen && (() => {
-                // A list-resolving pick reads "Use it as:" and sorts the
-                // choices for the KIND the pick actually has first — a number
-                // leads with "as an amount", a table with "as a table"
-                // (artboard 2c). `for` orders and annotates, it NEVER removes
-                // an entry (sample data is often missing or wrong).
-                const pickedShape = pathListShape(dataParts[0]?.path, sampleRoot);
-                const pickedKind = kindAtPath(dataParts[0]?.path, sampleRoot);
-                const rank = (tr) => (tr.for === pickedKind ? 0 : tr.for === 'any' ? 1 : 2);
-                const ordered = pickedKind === 'unknown'
-                    ? VALUE_TRANSFORMS
-                    : [...VALUE_TRANSFORMS].sort((a, b) => rank(a) - rank(b));
-                return (
-                    <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] flex-wrap">
-                        {pickedShape
-                            ? t('automations.builder.use_it_as', 'Use it as:')
-                            : t('automations.builder.adjust_it', 'Adjust it:')}
-                        <select
-                            aria-label={t('automations.builder.adjust_aria', 'Adjust the value')}
-                            value={parsed.transform || ''}
-                            onChange={(e) => {
-                                // A fresh transform starts from ITS OWN default
-                                // argument, never from the previous one — a
-                                // separator is not a date notation.
-                                const next = e.target.value || null;
-                                const spec = next ? TRANSFORM_BY_ID[next] : null;
-                                emit(parts, next, spec?.argDefault ?? null, spec?.arg2Default ?? null);
-                            }}
-                            className={controlSurfaceClass('px-1.5 py-0.5 text-[11px]')}
-                        >
-                            <option value="">{t('automations.builder.use_as_is', 'use it as it is')}</option>
-                            {ordered.map(tr => (
-                                <option key={tr.id} value={tr.id} title={tr.hint}>{tr.label}</option>
-                            ))}
-                        </select>
-                        <TransformArg
-                            transform={parsed.transform}
-                            arg={parsed.transformArg}
-                            arg2={parsed.transformArg2}
-                            onChange={(a, b) => emit(parts, parsed.transform, a, b)}
-                        />
-                        {pickedShape && !parsed.transform && (
-                            <span className={listBadgeClass()} title={pickedShape.explainEn}>
-                                {pickedShape.count != null ? `${t('automations.builder.list_word', 'list')} · ${pickedShape.count}` : t('automations.builder.list_word', 'list')}
-                            </span>
-                        )}
-                    </label>
-                );
-            })()}
-
-            {foreachNote && (
-                <div className={`${AMBER_NOTE} flex items-center gap-2`}>
-                    <span>
-                        {foreachNote.noun
-                            ? t('automations.builder.foreach_deepened_note', 'This step now runs once per {item}, across every one it read before.', { item: humanizeFieldKey(foreachNote.noun).toLowerCase() })
-                            : foreachNote.runs === 1
-                                ? t('automations.builder.foreach_set_note_one', 'This step now runs once per row — 1 run.')
-                                : t('automations.builder.foreach_set_note', 'This step now runs once per row — {n} runs.', { n: foreachNote.runs ?? '?' })}
-                        {foreachNote.orphans?.length > 0 && (
-                            <> {t('automations.builder.foreach_deepened_orphans', 'Check {fields}: it has no match in the new item.', { fields: foreachNote.orphans.join(', ') })}</>
-                        )}
-                    </span>
-                    <button type="button" onClick={undoForeach} className="underline hover:no-underline">
-                        {t('automations.builder.undo', 'Undo')}
-                    </button>
-                </div>
+            {showTransform && advancedOpen && (
+                <TransformRow
+                    path={dataParts[0]?.path}
+                    sampleRoot={sampleRoot}
+                    transform={parsed.transform}
+                    transformArg={parsed.transformArg}
+                    transformArg2={parsed.transformArg2}
+                    onTransform={(next, a, b) => emit(parts, next, a, b)}
+                />
             )}
+
+            {pick.foreachNote && <ForeachNote note={pick.foreachNote} onUndo={pick.undoForeach} />}
 
             {example != null && <ExampleLine value={example} />}
             {pathText && <PathAsTextNote onUse={() => onChange?.(buildValue([{ type: 'data', path: pathText }]))} />}
             {pickerNode}
-        </div>
-    );
-}
-
-/**
- * The path a value that is ONLY text spells out (`steps.jira.output.fields["Story
- * Points"]` typed or left behind as plain text), canonical — or null. The run
- * sends those characters, not the value they name; the editor offers the fix.
- */
-function pathTextOf(parts) {
-    if (parts.length !== 1 || parts[0].type !== 'text') return null;
-    const text = parts[0].text.trim();
-    const tokens = isCleanPath(text) ? refPathTokens(text) : null;
-    return tokens && tokens.length > 1 && PATH_TEXT_ROOTS.has(tokens[0].key) ? canonicalRefPath(text) : null;
-}
-
-const PATH_TEXT_ROOTS = new Set(['steps', 'trigger', 'loop', 'vars', 'item']);
-
-// The separators the inline join editor offers — same wording as the chooser.
-const JOIN_SEPARATORS = [
-    { value: ', ', label: 'a comma and a space' },
-    { value: ',', label: 'a comma' },
-    { value: '; ', label: 'a semicolon' },
-    { value: ' ', label: 'a space' },
-    { value: '\n', label: 'a new line' },
-];
-
-/**
- * The second half of a transform that carries one: join's separator,
- * formatNumber's style, formatDate's notation, yesNoText's two words
- * (artboard 2c, "In tekst: kies …"). Renders nothing for the transforms that
- * take no argument, so the row stays one line for the common case.
- */
-function TransformArg({ transform, arg, arg2, onChange }) {
-    const { t } = useTranslation();
-    if (transform === 'join') {
-        const current = arg ?? ', ';
-        const known = JOIN_SEPARATORS.some(s => s.value === current);
-        return (
-            <span className="flex items-center gap-1">
-                {t('automations.builder.separated_by', 'Separated by')}
-                <select
-                    aria-label={t('automations.builder.separated_by', 'Separated by')}
-                    value={known ? current : '__other__'}
-                    onChange={(e) => { if (e.target.value !== '__other__') onChange(e.target.value, null); }}
-                    className={controlSurfaceClass('px-1.5 py-0.5 text-[11px]')}
-                >
-                    {JOIN_SEPARATORS.map(s => <option key={s.label} value={s.value}>{s.label}</option>)}
-                    {!known && <option value="__other__">{JSON.stringify(arg)}</option>}
-                </select>
-            </span>
-        );
-    }
-    if (transform === 'formatNumber' || transform === 'formatDate') {
-        const isDate = transform === 'formatDate';
-        const options = isDate ? DATE_FORMATS : NUMBER_STYLES;
-        const current = arg ?? options[0].value;
-        const known = options.some(o => o.value === current);
-        const label = isDate
-            ? t('automations.builder.date_notation', 'Written as')
-            : t('automations.builder.number_style', 'Shown as');
-        return (
-            <span className="flex items-center gap-1">
-                {label}
-                <select
-                    aria-label={label}
-                    value={known ? current : '__other__'}
-                    onChange={(e) => { if (e.target.value !== '__other__') onChange(e.target.value, null); }}
-                    className={controlSurfaceClass('px-1.5 py-0.5 text-[11px]')}
-                >
-                    {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    {/* A hand-written notation stays selectable rather than
-                        being silently replaced by the first preset. */}
-                    {!known && <option value="__other__">{current}</option>}
-                </select>
-            </span>
-        );
-    }
-    if (transform === 'yesNoText') {
-        return (
-            <span className="flex items-center gap-1">
-                {t('automations.builder.yes_says', 'Yes says')}
-                <input
-                    type="text"
-                    value={arg ?? 'yes'}
-                    aria-label={t('automations.builder.yes_says', 'Yes says')}
-                    onChange={(e) => onChange(e.target.value, arg2 ?? 'no')}
-                    className={denseInputClass('w-20')}
-                />
-                {t('automations.builder.no_says', 'no says')}
-                <input
-                    type="text"
-                    value={arg2 ?? 'no'}
-                    aria-label={t('automations.builder.no_says', 'no says')}
-                    onChange={(e) => onChange(arg ?? 'yes', e.target.value)}
-                    className={denseInputClass('w-20')}
-                />
-            </span>
-        );
-    }
-    return null;
-}
-
-// How much of a value the example line holds; it wraps to two lines.
-const EXAMPLE_MAX = 240;
-
-function ExampleLine({ value }) {
-    const { t } = useTranslation();
-    return (
-        <div className="text-[10px] text-[var(--text-tertiary)] flex items-start gap-1.5 min-w-0" data-testid="value-example">
-            <Eye size={11} className="shrink-0 mt-px" />
-            <span className="shrink-0">{t('automations.builder.how_it_looks', "Here's how it looks:")}</span>
-            <span className="text-[var(--text-secondary)] min-w-0 break-words line-clamp-2" title={value}>{value}</span>
-        </div>
-    );
-}
-
-function TextPart({ text, placeholder, onChange, onFocus, onRemove = null }) {
-    const { t } = useTranslation();
-    return (
-        <div className="flex items-center gap-1">
-            <input
-                type="text"
-                value={text}
-                onChange={(e) => onChange(e.target.value)}
-                onFocus={onFocus}
-                placeholder={placeholder}
-                className={denseInputClass('flex-1 min-w-0')}
-            />
-            {onRemove && (
-                <button
-                    type="button"
-                    onClick={onRemove}
-                    aria-label={t('automations.builder.remove_text', 'Remove this text')}
-                    className="shrink-0 p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-[var(--bg-secondary)]"
-                >
-                    <X size={12} />
-                </button>
-            )}
-        </div>
-    );
-}
-
-const SOURCE_ICON = { steps: Workflow, trigger: Zap, loop: Repeat, item: List, vars: Tag };
-
-// What a transformed chip says after its name — the chip itself is the only
-// place the eye lands, so the transform must be visible ON it, not only in
-// the dropdown below.
-const TRANSFORM_SUFFIX = {
-    join: '· joined',
-    first: '· first of the list',
-    last: '· last of the list',
-    count: '· how many',
-    // 2b draws these ON the chip: "· als € 1.500.000", "· als tabel".
-    formatDate: '· as a written date',
-    yesNoText: '· in your own words',
-    groupSummary: '· as a summary',
-    asTable: '· as a table',
-};
-
-/** formatNumber says WHICH format on the chip — the three read very differently. */
-const NUMBER_STYLE_SUFFIX = {
-    amount: '· as an amount',
-    currency: '· as an amount',
-    percent: '· as a percentage',
-    plain: '· as a plain number',
-};
-
-function DataPart({ path, stepLabelById, stepTypeById = null, onChange, onRemove, jsonPath = null, transform = null, transformArg = null }) {
-    const { t } = useTranslation();
-    const { name, suffix, missing, source } = describeDataPath(path, stepLabelById);
-    const Icon = SOURCE_ICON[source] || Workflow;
-    const stepId = classifyRef(String(path || ''))?.stepId || null;
-    const tint = pillTint({ source: source === 'item' ? 'loop' : source, stepId }, stepTypeById);
-    // The pill IS the "change" control (a real button, so the keyboard reaches
-    // it): a separate "change" link beside it only crowded the row.
-    const Pill = onChange ? 'button' : 'span';
-    return (
-        <div className="flex items-center gap-2">
-            <Pill
-                {...(onChange ? { type: 'button', onClick: onChange } : {})}
-                title={onChange ? t('automations.builder.change_word', 'change') : (jsonPath ? `parseJson(${path}, "${jsonPath}")` : path)}
-                style={{ '--pill-tint': tint }}
-                className={`inline-flex items-center gap-1 min-w-0 rounded-md px-2.5 py-1.5 text-[11px] border ${onChange ? `cursor-pointer hover:brightness-95 ${FOCUS_RING}` : ''} ${
-                    missing
-                        ? 'border-dashed border-[var(--border-default)] bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
-                        : PILL_TINT_CLASS
-                }`}
-            >
-                <Icon size={11} className="shrink-0 opacity-70" />
-                <span className="font-medium truncate">{name}</span>
-                {suffix && <span className="opacity-70 truncate">▸ {suffix}</span>}
-                {(transform === 'formatNumber'
-                    ? NUMBER_STYLE_SUFFIX[transformArg || 'plain']
-                    : TRANSFORM_SUFFIX[transform]) && (
-                    <span className="opacity-70 truncate">
-                        {transform === 'formatNumber'
-                            ? NUMBER_STYLE_SUFFIX[transformArg || 'plain']
-                            : TRANSFORM_SUFFIX[transform]}
-                    </span>
-                )}
-                {jsonPath != null && (
-                    <span className="opacity-70 truncate">
-                        {t('automations.builder.from_the_json', '· from the JSON')}{jsonPath ? `: ${jsonPath}` : ''}
-                    </span>
-                )}
-            </Pill>
-            <button
-                type="button"
-                onClick={onRemove}
-                aria-label={t('automations.builder.remove_value', 'Remove this value')}
-                className="shrink-0 p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-[var(--bg-secondary)]"
-            >
-                <X size={12} />
-            </button>
-        </div>
-    );
-}
-
-/**
- * Read-only render of a formula with its step references resolved to names.
- * Deliberately NOT RefChips: that component only knows the `steps.`/`trigger.`/
- * `loop.` roots, so a list-mode `item.subject` would come out raw. Here every
- * pickable path goes through describeDataPath. Paths are found the way the
- * expression engine reads them (refTokens.scanExprPaths): a bracket after the
- * root, a quoted key or a match segment belongs to the chip; text inside a
- * string literal never does.
- */
-const FORMULA_ROOTS = ['steps', 'trigger', 'loop', 'vars', 'item', '_index'];
-
-function FormulaChips({ text, stepLabelById, stepTypeById = null }) {
-    const nodes = scanExprPaths(String(text || ''), FORMULA_ROOTS);
-
-    return (
-        <div className="text-[11px] leading-[1.6] break-words text-[var(--text-primary)]">
-            {nodes.map((n, i) => {
-                if (n.text != null) return <span key={i} className="font-mono opacity-70">{n.text}</span>;
-                const { name, suffix, source: refSource } = describeDataPath(n.path, stepLabelById);
-                // The SOURCE STEP's family colour, exactly like every other
-                // reference pill (DataPart above, RefTokenInput). `--accent`
-                // used to tint these: a grey that reads as "disabled" and, on
-                // the canvas, is banned outright (nodeTypeColors.js).
-                const stepId = classifyRef(String(n.path || ''))?.stepId || null;
-                const tint = pillTint({ source: refSource === 'item' ? 'loop' : refSource, stepId }, stepTypeById);
-                return (
-                    <span
-                        key={i}
-                        title={n.path}
-                        style={{ '--pill-tint': tint }}
-                        className={`inline-flex items-center gap-1 align-middle mx-0.5 rounded px-1.5 py-0.5 border ${PILL_TINT_CLASS}`}
-                    >
-                        <span className="font-medium">{name}</span>
-                        {suffix && <span className="opacity-70">▸ {suffix}</span>}
-                    </span>
-                );
-            })}
         </div>
     );
 }

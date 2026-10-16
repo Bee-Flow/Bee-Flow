@@ -26,7 +26,7 @@ interface LatestFlight {
 }
 
 interface RibbonFlightArgs {
-    queue?: FlightDeparture[] | null;
+    queue?: readonly FlightDeparture[] | null;
     head?: FlightDeparture | null;
     definition?: DiagramDefinition | null;
     catalog?: unknown;

@@ -24,7 +24,8 @@ export interface DeepenHandle {
     /** The step's current forEach, when the editor hands it over (absolute paths need its list). */
     forEach?: ForEachConfig | null;
     overRef?: string;
-    apply: (plan: DeepenPlan, newItem: Record<string, unknown> | null) => unknown;
+    /** Moves the step to the inner list (integrationActionFields.jsx): `undo` restores it, `orphans` names the fields it could not carry. */
+    apply: (plan: DeepenPlan, newItem: Record<string, unknown> | null) => { undo?: (() => void) | null; runs?: number | null; orphans?: string[] } | null | undefined;
 }
 
 export type DeepPick =
