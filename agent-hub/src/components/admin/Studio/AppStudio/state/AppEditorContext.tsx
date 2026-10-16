@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useReducer } from 'react';
 import type { ReactNode } from 'react';
 import type { AppEditorAction, AppEditorValue } from './appEditorState';
 import { collectIds, findScreen } from './definitionOps';
+import type { HeaderApp } from '../editor/header/headerModel';
 import type { AppDefinition } from '../inspector/appDefinition';
 
 /**
@@ -40,12 +41,7 @@ type AppEditorState = Omit<AppEditorValue, 'dispatch' | 'screenId'> & { screenId
 type AppEditorContextValue = AppEditorState & { dispatch: AppEditorValue['dispatch'] };
 
 /** The app row the store is seeded from; the server names its version `definitionVersion`. */
-export interface AppEditorSeed {
-    id?: string;
-    definition?: AppDefinition | null;
-    version?: number | string;
-    definitionVersion?: number | string;
-}
+export type AppEditorSeed = Partial<Pick<HeaderApp, 'id' | 'definition' | 'version' | 'definitionVersion'>>;
 
 /** A mock viewer for a role preview; the shape mirrors the runtime currentUser. */
 export interface PreviewUser {

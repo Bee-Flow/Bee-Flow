@@ -24,8 +24,8 @@ import { StepBadge, TimelineRail } from '../../../../chat/MessageItem/timelinePa
  *
  * No durations, no invented denominators — the stream measures neither.
  */
-export default function AppBuilderActivity({ toolCalls, running = false, t = null }: { toolCalls: AppToolCall[] | null | undefined; running?: boolean; t?: TranslateFn | null }) {
-    const calls = Array.isArray(toolCalls) ? toolCalls : [];
+export default function AppBuilderActivity({ toolCalls, running = false, t = null }: { toolCalls: unknown; running?: boolean; t?: TranslateFn | null }) {
+    const calls = Array.isArray(toolCalls) ? (toolCalls as AppToolCall[]) : [];
     if (calls.length === 0) return null;
     const rows = calls.map((tc) => describeAppToolCall(tc, t));
     const failed = rows.filter((r) => r.status === 'failed').length;

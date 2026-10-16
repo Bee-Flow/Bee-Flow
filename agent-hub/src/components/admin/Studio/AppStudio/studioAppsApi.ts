@@ -25,7 +25,7 @@ interface NewAppBody {
 const base = `${API_BASE}/api/studio-apps`;
 // Some callers still hold an id that may be undefined (it then reads "undefined",
 // as it always did), so the encoder is typed to take one.
-const enc: { bivarianceHack(part: string | number | boolean | undefined): string }['bivarianceHack'] = encodeURIComponent;
+const enc = encodeURIComponent as (part: string | number | boolean | undefined) => string;
 
 // One request helper for every call: JSON in and out, and on a non-2xx an
 // Error carrying the server's error text, status, code and body. A stage that

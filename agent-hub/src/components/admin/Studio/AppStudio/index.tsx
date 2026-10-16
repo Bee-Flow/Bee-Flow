@@ -2,6 +2,7 @@ import { Loader2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AppList from './AppList';
 import BuilderChatPane from './chat/BuilderChatPane';
+import type { AppMetaUpdate } from './chat/useBuilderTurn';
 import AppEditorShell from './editor/AppEditorShell';
 import type { HeaderApp } from './editor/header/headerModel';
 import { studioAppsApi } from './studioAppsApi';
@@ -13,14 +14,6 @@ export interface AppStudioSectionProps {
     initialAppId?: string | null;
     onNavigate?: (path: string) => void;
     onEditingChange?: (editing: boolean) => void;
-}
-
-/** What the editor and the builder pane report when an app's meta changes: the id and whatever changed. */
-interface AppUpdate {
-    id?: string;
-    name?: string;
-    description?: string;
-    icon?: string;
 }
 
 /**
@@ -101,7 +94,7 @@ export default function AppStudioSection({
 
     // The editor reports metadata/publish changes (rename, publish state…);
     // keep the open row in sync so the shell chrome stays fresh.
-    const handleAppUpdated = useCallback((app: AppUpdate | null | undefined) => {
+    const handleAppUpdated = useCallback((app: HeaderApp | AppMetaUpdate | null | undefined) => {
         if (!app?.id) return;
         setOpenApp((prev) => (prev && prev.id === app.id ? { ...prev, ...app } : prev));
     }, []);
