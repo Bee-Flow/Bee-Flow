@@ -62,7 +62,7 @@
  *   - `usage.partial` noemt de soorten die niemand kon controleren, en die
  *     tellen niet als nul — ze krijgen hun eigen halve zin.
  *
- * Zuiver en zonder rendering, zoals ./deleteBlock.js: de woorden staan in
+ * Zuiver en zonder rendering, zoals ./deleteBlock.ts: de woorden staan in
  * AgentCardFooter.jsx, waar de i18n-guard de sleutels kan lezen.
  */
 

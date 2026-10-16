@@ -32,19 +32,35 @@
 // under its own name rather than dropped.
 export const USAGE_KINDS = ['task', 'cowork', 'support', 'automation', 'app', 'webpage'];
 
-const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+const isObj = (v: unknown): v is object => !!v && typeof v === 'object' && !Array.isArray(v);
+
+/** The 409 body as the server writes it; every field is read defensively. */
+export interface DeleteBlockBody {
+    rows?: Array<{ kind?: string; foreign?: boolean }> | null;
+    counts?: Record<string, number> | null;
+    unchecked?: string[] | null;
+    chat?: { othersConversationCount?: number | null } | null;
+}
+
+/** One kind of consumer that was found. */
+export interface UsedKind {
+    kind: string;
+    count: number;
+    foreignOnly: boolean;
+}
+
+export interface DeleteBlockSummary {
+    readable: boolean;
+    used: UsedKind[];
+    unchecked: string[];
+    othersChats: number | null | undefined;
+    chatUnknown: boolean;
+}
 
 /**
- * @param {unknown} body the parsed 409 body, or anything at all
- * @returns {{
- *   readable: boolean,
- *   used: Array<{kind: string, count: number, foreignOnly: boolean}>,
- *   unchecked: string[],
- *   othersChats: number|null,
- *   chatUnknown: boolean,
- * }}
+ * @param body the parsed 409 body, or anything at all
  */
-export function summariseDeleteBlock(body) {
+export function summariseDeleteBlock(body?: DeleteBlockBody | null): DeleteBlockSummary {
     if (!isObj(body)) {
         // Not "nothing uses it" — nothing was learned. Every kind is unchecked.
         return { readable: false, used: [], unchecked: [...USAGE_KINDS], othersChats: null, chatUnknown: true };
@@ -56,7 +72,7 @@ export function summariseDeleteBlock(body) {
     // A kind counts as USED when either source says so. Counts is the cheaper
     // and more complete of the two (rows can be capped); rows carry whether
     // every hit belonged to somebody else, which decides the wording.
-    const perKind = new Map();
+    const perKind = new Map<string, UsedKind>();
     for (const r of rows || []) {
         if (!isObj(r) || typeof r.kind !== 'string' || !r.kind) continue;
         const e = perKind.get(r.kind) || { kind: r.kind, count: 0, foreignOnly: true };
@@ -84,7 +100,7 @@ export function summariseDeleteBlock(body) {
     const raw = chat ? chat.othersConversationCount : null;
     const chatUnknown = !chat || !Number.isFinite(raw);
 
-    const order = (k) => {
+    const order = (k: string) => {
         const i = USAGE_KINDS.indexOf(k);
         return i === -1 ? USAGE_KINDS.length : i;
     };
@@ -105,6 +121,6 @@ export function summariseDeleteBlock(body) {
  * has already decided this needs a human and hiding the button would leave no
  * path at all.
  */
-export function blockHasFindings(summary) {
+export function blockHasFindings(summary?: DeleteBlockSummary | null): boolean {
     return !!summary && (summary.used.length > 0 || (summary.othersChats || 0) > 0);
 }
