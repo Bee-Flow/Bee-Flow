@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS route shared middleware — mechanical extraction from routes/cms.js so
  * the CMS AI builder route (routes/ai/cmsBuilder.js) and the analytics router
@@ -50,14 +51,36 @@ async function attachSiteIdFromParam(req, res, next) {
     next();
 }
 
+/**
+ * Check a stored live-site id against the project store. The pointer is
+ * cleared only when the store ANSWERS that the project is gone; a failed read
+ * (pool timeout, connection blip) says nothing about the site, so it is
+ * logged and the id is served without a write.
+ * @param {string} stored
+ * @param {{ getProject: (id: string) => Promise<any>, clearLive: () => Promise<any>, log: { warn: (...a: any[]) => void } }} deps
+ * @returns {Promise<string | null>}
+ */
+async function checkStoredLiveSite(stored, deps) {
+    let project;
+    try {
+        project = await deps.getProject(stored);
+    } catch (e) {
+        deps.log.warn('[CMS] live-site check failed, keeping the pointer:', e instanceof Error ? e.message : String(e));
+        return stored;
+    }
+    if (project) return stored;
+    await deps.clearLive();
+    return null;
+}
+
 async function getLiveSiteId() {
     const stored = await configStore.getConfig(KEY_CMS_LIVE_SITE_ID);
     if (typeof stored === 'string' && SITE_ID_RE.test(stored)) {
-        // Validate the project still exists; clear stale ids defensively.
-        const project = await cmsStore.getProject(stored).catch(() => null);
-        if (project) return stored;
-        await configStore.setConfig(KEY_CMS_LIVE_SITE_ID, null);
-        return null;
+        return checkStoredLiveSite(stored, {
+            getProject: (id) => cmsStore.getProject(id),
+            clearLive: () => configStore.setConfig(KEY_CMS_LIVE_SITE_ID, null),
+            log,
+        });
     }
     if (stored !== undefined && stored !== null) return null;
 
@@ -127,6 +150,7 @@ module.exports = {
     attachSiteIdFromParam,
     SITE_ID_RE,
     getLiveSiteId,
+    checkStoredLiveSite,
     setLiveSiteId,
     KEY_CMS_LIVE_SITE_ID,
     KEY_CMS_ENABLED,
