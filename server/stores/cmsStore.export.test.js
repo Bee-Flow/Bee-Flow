@@ -279,3 +279,40 @@ test('duplicateProject carries translations too (it had the same silent gap)', a
     assert.strictEqual(eff.page.title, NL_TITLE);
     assert.strictEqual(eff.header.logoText, NL_LOGO);
 });
+
+// ── Internal page links survive the id regeneration ───────────────────
+
+test('import re-points internal page links (header, footer, block content) at the new page ids', async () => {
+    const { siteId, homeId, aboutId, heroId } = await buildSourceSite({ withLocales: false });
+    const site = await cmsStore.getProject(siteId);
+    site.header = { ...site.header, nav: [{ label: 'About', link: { kind: 'page', pageId: aboutId } }] };
+    site.footer = { ...site.footer, extra: { link: { kind: 'page', pageId: homeId } } };
+    await cmsStore.setProject(siteId, site);
+    const home = await cmsStore.getPage(siteId, homeId);
+    home.blocks[0].content.cta = { label: 'More', link: { kind: 'page', pageId: aboutId } };
+    await cmsStore.setPage(siteId, home);
+
+    const bundle = await cmsStore.exportSite(siteId);
+    const result = await cmsStore.importSite(bundle);
+
+    const imported = await cmsStore.getProject(result.siteId);
+    const newAbout = imported.pages.find(p => p.slug === 'about');
+    const newHome = imported.pages.find(p => p.slug === 'home');
+    assert.ok(newAbout && newHome);
+    assert.strictEqual(imported.header.nav[0].link.pageId, newAbout.id);
+    assert.strictEqual(imported.footer.extra.link.pageId, newHome.id);
+    const doc = await cmsStore.getPage(result.siteId, newHome.id);
+    assert.strictEqual(doc.blocks[0].content.cta.link.pageId, newAbout.id);
+    assert.notStrictEqual(heroId, undefined);
+    assert.deepStrictEqual(result.warnings, []);
+});
+
+test('import reports a page link it cannot resolve instead of leaving it silently broken', async () => {
+    const { siteId, homeId } = await buildSourceSite({ withLocales: false });
+    const home = await cmsStore.getPage(siteId, homeId);
+    home.blocks[0].content.cta = { label: 'Gone', link: { kind: 'page', pageId: 'pg_missing' } };
+    await cmsStore.setPage(siteId, home);
+    const bundle = await cmsStore.exportSite(siteId);
+    const result = await cmsStore.importSite(bundle);
+    assert.ok(result.warnings.some(w => /page link/i.test(w)), JSON.stringify(result.warnings));
+});

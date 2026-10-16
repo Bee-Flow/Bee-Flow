@@ -91,10 +91,8 @@ function planPages(incoming) {
     const pagesIn = Array.isArray(incoming.pages) ? incoming.pages : [];
     const pagesOut = [];
     const pagesInAligned = [];
-    // Exports don't carry the ORIGINAL page id (by design, they shouldn't
-    // leak runtime ids), so links are remapped by slug when available and
-    // left untouched otherwise: the renderer's fallback (`broken: true`)
-    // surfaces them clearly.
+    // Page links in a bundle carry the target's slug (see exportSite), so
+    // they are remapped by slug onto the freshly minted page ids.
     const slugToNewId = new Map();
 
     for (const incomingPage of pagesIn) {
@@ -124,21 +122,27 @@ function planPages(incoming) {
 }
 
 /**
- * A function that walks a node tree and replaces any `{kind:'page', ...}`
- * reference with the new id where the target resolves by slug. Best-effort:
- * if neither matches, the link is left as is and shows as broken until the
- * user fixes it.
+ * A function that walks a node tree and re-points every `{kind:'page', ...}`
+ * reference at the new page id. The export writes the target's `slug` next to
+ * the (runtime) `pageId`, so the slug is the key; the slug is dropped again
+ * once resolved. A link whose slug is missing or unknown is left as is (the
+ * renderer shows it as broken) and counted in `stats.unresolved`, so the
+ * import can report it.
+ *
+ * @param {Map<string, string>} slugToNewId
+ * @param {{ unresolved: number }} [stats]
  */
-function makePageLinkRemapper(slugToNewId) {
+function makePageLinkRemapper(slugToNewId, stats = { unresolved: 0 }) {
     const remapPageLinks = (node) => {
         if (Array.isArray(node)) return node.map(remapPageLinks);
         if (!isPlainObject(node)) return node;
         if (node.kind === 'page') {
-            const slug = typeof node.slug === 'string' ? node.slug : null;
-            if (slug && slugToNewId.has(slug)) {
-                return { ...node, pageId: slugToNewId.get(slug) };
+            const { slug, ...rest } = node;
+            if (typeof slug === 'string' && slugToNewId.has(slug)) {
+                return { ...rest, pageId: slugToNewId.get(slug) };
             }
-            return { ...node };
+            stats.unresolved++;
+            return { ...rest };
         }
         const out = {};
         for (const [k, v] of Object.entries(node)) out[k] = remapPageLinks(v);
@@ -223,10 +227,10 @@ async function writePages({ newSiteId, pagesOut, pagesInAligned, remapPageLinks 
 }
 
 /** The site-level override of one locale, re-keyed onto the new page ids; null when empty. */
-function siteLocaleOverrideOut(override, slugToNewId) {
+function siteLocaleOverrideOut(override, slugToNewId, remapPageLinks) {
     const out = {};
-    if (isPlainObject(override.header)) out.header = override.header;
-    if (isPlainObject(override.footer)) out.footer = override.footer;
+    if (isPlainObject(override.header)) out.header = remapPageLinks(override.header);
+    if (isPlainObject(override.footer)) out.footer = remapPageLinks(override.footer);
     // pageTitles arrives keyed by SLUG; storage wants the new page id.
     if (isPlainObject(override.pageTitles)) {
         const byId = {};
@@ -240,7 +244,7 @@ function siteLocaleOverrideOut(override, slugToNewId) {
 }
 
 /** The page-level override of one locale, with block keys mapped old→new. */
-function pageLocaleOverrideOut({ override, locale, blockIdMap, slug, warnings }) {
+function pageLocaleOverrideOut({ override, locale, blockIdMap, slug, warnings, remapPageLinks }) {
     const out = {};
     if (isPlainObject(override.blocks)) {
         const blocks = {};
@@ -248,7 +252,7 @@ function pageLocaleOverrideOut({ override, locale, blockIdMap, slug, warnings })
         for (const [oldBlockId, entry] of Object.entries(override.blocks)) {
             const newBlockId = blockIdMap.get(oldBlockId);
             if (!newBlockId) { unmapped++; continue; }
-            blocks[newBlockId] = entry;
+            blocks[newBlockId] = remapPageLinks(entry);
         }
         if (unmapped) {
             warnings.push(
@@ -268,7 +272,7 @@ function pageLocaleOverrideOut({ override, locale, blockIdMap, slug, warnings })
  * the base blocks, so an orphan key is never read.
  */
 async function restoreLocaleOverrides({
-    newSiteId, incomingChrome, pagesOut, pagesInAligned, slugToNewId, blockIdMapByPageIndex, importedLocales, warnings,
+    newSiteId, incomingChrome, pagesOut, pagesInAligned, slugToNewId, blockIdMapByPageIndex, importedLocales, warnings, remapPageLinks,
 }) {
     const chromeOverrides = isPlainObject(incomingChrome.localeOverrides)
         ? incomingChrome.localeOverrides : {};
@@ -290,7 +294,7 @@ async function restoreLocaleOverrides({
 
     for (const [locale, override] of Object.entries(chromeOverrides)) {
         if (!isPlainObject(override)) continue;
-        const out = siteLocaleOverrideOut(override, slugToNewId);
+        const out = siteLocaleOverrideOut(override, slugToNewId, remapPageLinks);
         if (!Object.keys(out).length) continue;
         if (approxByteSize(out) > IMPORT_MAX_FIELD_BYTES) {
             throw new Error('Locale override exceeds size limit');
@@ -301,7 +305,7 @@ async function restoreLocaleOverrides({
 
     for (const [pageIdx, locale, override] of pageLocalePairs) {
         const out = pageLocaleOverrideOut({
-            override, locale, blockIdMap: blockIdMapByPageIndex[pageIdx], slug: pagesOut[pageIdx].slug, warnings,
+            override, locale, blockIdMap: blockIdMapByPageIndex[pageIdx], slug: pagesOut[pageIdx].slug, warnings, remapPageLinks,
         });
         if (!Object.keys(out).length) continue;
         if (approxByteSize(out) > IMPORT_MAX_FIELD_BYTES) {
