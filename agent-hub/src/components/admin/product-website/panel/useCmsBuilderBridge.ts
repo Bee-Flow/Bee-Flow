@@ -3,9 +3,41 @@
 // by the panel (threaded in as arguments).
 import { useCallback, useMemo } from 'react';
 import { authFetch } from '../../../../utils/helpers';
+import type useConfirm from '../../../shared/useConfirm';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { HEADER_VIRTUAL_ID, isVirtualPageId } from '../sentinels';
+import type { CmsPageDoc, CmsSiteDoc } from './cmsPanelTypes';
+import type useCmsPanelState from './useCmsPanelState';
+import type useCmsAutosave from './useCmsAutosave';
+import type useCmsHistory from './useCmsHistory';
+
+type PanelState = ReturnType<typeof useCmsPanelState>;
+
+/** A draft the assistant streamed after the server already persisted it. */
+export type BuilderDraftEvent =
+    | { siteId?: string; kind: 'site'; site?: CmsSiteDoc }
+    | { siteId?: string; kind: 'page'; pageId: string; page: CmsPageDoc };
+
+/** What the assistant reports when a turn ends. */
+export interface BuilderTurnInfo {
+    createdPageIds?: string[];
+    touchedPageIds?: string[];
+    failed?: boolean;
+}
+
+interface BuilderBridgeInput extends Pick<PanelState,
+    'activeSiteIdRef' | 'builderRunningRef' | 'setBuilderRunning' | 'builderTurnRef'
+    | 'builderUndoAvailableRef' | 'setBuilderUndoAvailable' | 'disarmBuilderUndo'
+    | 'setDirtySincePublish' | 'activePageId' | 'setActivePageId' | 'setSiteDoc' | 'setPages'
+    | 'localeOverridesRef' | 'setLocaleOverrides' | 'setActiveLocale' | 'activeBlockId'
+    | 'activeLocale' | 'setRightView'> {
+    siteStateRef: ReturnType<typeof useCmsHistory>['siteStateRef'];
+    pagesStateRef: ReturnType<typeof useCmsHistory>['pagesStateRef'];
+    historyResetRef: ReturnType<typeof useCmsHistory>['historyResetRef'];
+    drainPendingSaves: ReturnType<typeof useCmsAutosave>['drainPendingSaves'];
+    confirm: ReturnType<typeof useConfirm>['confirm'];
+}
 
 export default function useCmsBuilderBridge({
     activeSiteIdRef, siteStateRef, pagesStateRef, historyResetRef,
@@ -15,7 +47,7 @@ export default function useCmsBuilderBridge({
     activePageId, setActivePageId, setSiteDoc, setPages,
     localeOverridesRef, setLocaleOverrides, confirm,
     setActiveLocale, activeBlockId, activeLocale, setRightView,
-}) {
+}: BuilderBridgeInput) {
     // ── AI builder bridge (assistant/CmsAssistantPane) ───────────────
     //
     // Contract (resolves the AI-vs-autosave race): drafts the assistant
@@ -40,7 +72,7 @@ export default function useCmsBuilderBridge({
         setBuilderRunning(true);
     }, [drainPendingSaves, disarmBuilderUndo, builderRunningRef, builderTurnRef, historyResetRef, pagesStateRef, setBuilderRunning, siteStateRef]);
 
-    const applyExternalDraft = useCallback((evt) => {
+    const applyExternalDraft = useCallback((evt: BuilderDraftEvent | null | undefined) => {
         if (!evt || evt.siteId !== activeSiteIdRef.current) return; // stale site
         const turn = builderTurnRef.current;
         if (turn) turn.draftsSeen += 1;
@@ -68,10 +100,10 @@ export default function useCmsBuilderBridge({
                 const perLocale = ovPrev.pagesByLocale?.[evt.pageId];
                 if (!perLocale) continue;
                 let changed = false;
-                const nextPerLocale = {};
+                const nextPerLocale: Record<string, Record<string, unknown> | null | undefined> = {};
                 for (const [loc, ov] of Object.entries(perLocale)) {
                     if (ov?.blocks && Object.prototype.hasOwnProperty.call(ov.blocks, b.id)) {
-                        const nb = { ...ov.blocks };
+                        const nb: Record<string, unknown> = { ...ov.blocks };
                         delete nb[b.id];
                         nextPerLocale[loc] = { ...ov, blocks: nb };
                         changed = true;
@@ -93,7 +125,7 @@ export default function useCmsBuilderBridge({
         setPages(nextPages);
     }, [activeSiteIdRef, builderTurnRef, localeOverridesRef, pagesStateRef, setLocaleOverrides, setPages, setSiteDoc, siteStateRef]);
 
-    const endBuilderTurn = useCallback((info = {}) => {
+    const endBuilderTurn = useCallback((info: BuilderTurnInfo = {}) => {
         builderRunningRef.current = false;
         setBuilderRunning(false);
         const turn = builderTurnRef.current;
@@ -164,19 +196,19 @@ export default function useCmsBuilderBridge({
             pagesStateRef.current = turn.prePages;
             setSiteDoc(turn.preSite);
             setPages(turn.prePages);
-            if (turn.created.includes(activePageId)) setActivePageId(HEADER_VIRTUAL_ID);
+            if ((turn.created as readonly (string | null)[]).includes(activePageId)) setActivePageId(HEADER_VIRTUAL_ID);
             builderTurnRef.current = null;
             disarmBuilderUndo();
             toast.success('AI turn undone');
         } catch (err) {
-            toast.error(`Undo failed: ${err.message}`);
+            toast.error(`Undo failed: ${(err as Error).message}`);
         }
     }, [confirm, activePageId, disarmBuilderUndo, activeSiteIdRef, builderRunningRef, builderTurnRef, pagesStateRef, setActivePageId, setPages, setSiteDoc, siteStateRef]);
 
     // Locale switches remount the preview iframe and flip translate mode —
     // blocked while an AI turn runs (the turn's drafts target the default
     // locale docs).
-    const changeLocaleSafe = useCallback((code) => {
+    const changeLocaleSafe = useCallback((code: string) => {
         if (builderRunningRef.current) {
             toast.error('The AI assistant is editing — press Stop in the assistant to take over.');
             return;
@@ -196,7 +228,7 @@ export default function useCmsBuilderBridge({
         endTurn: endBuilderTurn,
         undoTurn: undoBuilderTurn,
         context: builderContext,
-        selectPage: (id) => { setActivePageId(id); setRightView('preview'); },
+        selectPage: (id: string | null) => { setActivePageId(id); setRightView('preview'); },
     }), [beginBuilderTurn, applyExternalDraft, endBuilderTurn, undoBuilderTurn, builderContext, setActivePageId, setRightView]);
 
     return { builderBridge, changeLocaleSafe };
