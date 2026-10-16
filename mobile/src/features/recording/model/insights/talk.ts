@@ -1,6 +1,6 @@
 /**
  * Talk time, balance, interactivity and the viewer's own row — a port of
- * agent-hub/src/pages/meeting-notes/lib/insightsData.js (all but
+ * agent-hub/src/pages/meeting-notes/lib/insightsData.ts (all but
  * findNameMentions, which the phone does not show), pinned to it by
  * insights.lockstep.test.ts. Pure: everything comes from the detail payload.
  */

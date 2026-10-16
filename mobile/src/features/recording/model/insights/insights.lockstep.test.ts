@@ -1,6 +1,6 @@
 /**
  * Differential: the phone's Insights port and the web's own files
- * (agent-hub/src/pages/meeting-notes/lib/insightsMetrics.js, insightsData.js,
+ * (agent-hub/src/pages/meeting-notes/lib/insightsMetrics.js, insightsData.ts,
  * playerData.js, timelineMarkers.ts, format.ts) build the SAME model from the
  * same meetings — hand-written ones that hit the edges, and a few hundred
  * seeded random ones. When this fails the web side changed: update the port.
@@ -21,7 +21,7 @@ const player: any = loadWebModule(`${LIB}/playerData.js`, {
     SPEAKER_COLORS: ['#111111', '#222222'],
     NEUTRAL_SPEAKER_COLOR: '#999999',
 });
-const data: any = loadWebModule(`${LIB}/insightsData.js`, {
+const data: any = loadWebModule(`${LIB}/insightsData.ts`, {
     mergeTurns: player.mergeTurns,
     fuseSpans: player.fuseSpans,
     segmentSpeakerId: player.segmentSpeakerId,

@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as api from '../lib/transcriptionsApi';
+import type { MeetingNote } from '../detail/meetingDetailTypes';
 
-export default function useTranscription(id) {
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const mounted = useRef(true);
+/** A new note, or a function of the current one (which is null until the first load lands). */
+type LocalUpdate = MeetingNote | null | ((prev: MeetingNote | null) => MeetingNote | null);
+
+export default function useTranscription(id: string | null | undefined) {
+    const [data, setData] = useState<MeetingNote | null>(null);
+    const [loading, setLoading] = useState<boolean>(false);
+    // The caught value as it was thrown. TODO(err-unknown): MeetingDetail.jsx hands it to
+    // MeetingLoadError, which still reads it as an ApiError; read it with the caughtError helpers there.
+    const [error, setError] = useState<unknown>(null);
+    const mounted = useRef<boolean>(true);
 
     // React 18 Strict Mode runs effects mount → unmount → mount in dev. Resetting
     // `mounted.current` on every mount keeps the guard correct for the *current*
@@ -28,8 +34,8 @@ export default function useTranscription(id) {
         let cancelled = false;
         setLoading(true);
         api.getTranscription(id)
-            .then((res) => { if (!cancelled && mounted.current) setData(res); })
-            .catch((err) => { if (!cancelled && mounted.current) setError(err); })
+            .then((res: MeetingNote) => { if (!cancelled && mounted.current) setData(res); })
+            .catch((err: unknown) => { if (!cancelled && mounted.current) setError(err); })
             .finally(() => { if (!cancelled && mounted.current) setLoading(false); });
         return () => { cancelled = true; };
     }, [id]);
@@ -52,7 +58,7 @@ export default function useTranscription(id) {
         return () => clearInterval(interval);
     }, [data?.status, refresh]);
 
-    const setLocal = useCallback((updater) => {
+    const setLocal = useCallback((updater: LocalUpdate) => {
         setData((prev) => (typeof updater === 'function' ? updater(prev) : updater));
     }, []);
 
