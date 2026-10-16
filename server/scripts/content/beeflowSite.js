@@ -97,8 +97,8 @@ const extLink = (url) => ({ kind: 'external', url, newTab: true });
 const LICENCE_ANSWER = 'Source-available, and we would rather be precise than borrow the word. '
     + 'The server and frontend are published under the Sustainable Use License v1.0: read it, '
     + 'modify it, run it internally without paying \u2014 what you may not do is resell Bee Flow as '
-    + 'your own hosted service. It is not an OSI-approved open-source licence. We are working '
-    + 'toward AGPL-3.0-or-later; today the Nextcloud connector is the only part that carries it.';
+    + 'your own hosted service. It is not an OSI-approved open-source licence. The '
+    + 'Nextcloud connector is the only part under AGPL-3.0-or-later.';
 
 /* The connector-count objection, answered once.
    It is asked on every automation comparison, and the previous answers all
@@ -110,7 +110,7 @@ const LICENCE_ANSWER = 'Source-available, and we would rather be precise than bo
 
    `mcpAnswer(opening)` so each page opens in its own words — four identical
    paragraphs across four pages reads as boilerplate and is treated as such. */
-const MCP_ANSWER = 'We ship 44 built-in integrations — Google Workspace, Microsoft 365, Nextcloud, '
+const MCP_ANSWER = 'We ship 50 built-in integrations — Google Workspace, Microsoft 365, Nextcloud, '
     + 'ITSM, payroll — and then the ceiling comes off, because Bee Flow speaks the '
     + 'Model Context Protocol. Any MCP server becomes a set of tools your assistants and automations can '
     + 'call, over stdio or Streamable HTTP: the public ones, the ones your own vendors publish, and the one '
@@ -546,7 +546,7 @@ const home = {
                 {
                     icon: 'Plug', span: 1,
                     title: 'Connected to the tools you have',
-                    body: '44 built-in integrations covering Google Workspace, Microsoft 365 and Nextcloud — plus any Model Context Protocol server you want to add.',
+                    body: '50 built-in integrations covering Google Workspace, Microsoft 365 and Nextcloud — plus any Model Context Protocol server you want to add.',
                     techTag: 'plus any MCP server',
                     media: media('', ''),
                 },
@@ -596,7 +596,7 @@ const home = {
             eyebrow: 'By the numbers',
             title: 'What ships in the box',
             stats: [
-                { number: '44', label: 'built-in integrations' },
+                { number: '50', label: 'built-in integrations' },
                 { number: 'any', label: 'MCP server, on stdio or Streamable HTTP' },
                 { number: '21', label: 'categories of personal data detected' },
                 { number: '6', label: 'LLM providers, plus any local model' },
@@ -833,8 +833,8 @@ const security = {
                     title: 'Compliance you can evidence',
                     summary: 'A running check suite, not a PDF of intentions.',
                     details: [
-                        '15 automated GDPR checks covering Articles 5, 12, 15, 17, 28, 30, 32, 33, 35, 37 and 44',
-                        '6 EU AI Act checks covering AI literacy, transparency, human oversight, log retention, disclosure and the model inventory',
+                        '25 automated GDPR checks covering Articles 5, 12, 15, 17, 28, 30, 32, 33, 35, 37 and 44',
+                        '8 EU AI Act checks covering AI literacy, transparency, human oversight, log retention, disclosure, content marking and the model inventory',
                         'Data-subject request intake stays reachable by design — it is never gated behind a licence',
                         'Records of processing and DPIA registers live in the product, next to the systems they describe',
                         'Voice profiles are treated as Article 9 biometric data: separate consent, no read API at any privilege level, deleted on withdrawal',
@@ -882,7 +882,7 @@ const security = {
             stats: [
                 { number: '128 MB', label: 'Argon2id memory cost per key derivation' },
                 { number: '21', label: 'PII categories detected on-premise' },
-                { number: '44', label: 'automated GDPR, EU AI Act and ISO 27001 checks' },
+                { number: '58', label: 'automated GDPR, EU AI Act and ISO 27001 checks' },
                 { number: '0', label: 'master keys that could decrypt your data' },
             ],
         }, { band: 'dark' }),
@@ -904,7 +904,7 @@ const security = {
                 },
                 {
                     question: 'How do we prove any of this to an auditor?',
-                    answer: 'The compliance hub runs 15 GDPR checks and 6 EU AI Act checks against the live configuration and shows what passes, what fails and why. Combined with the guardrail event log and the automation run history, that is an evidence trail rather than a policy statement.',
+                    answer: 'The compliance hub runs 25 GDPR checks and 8 EU AI Act checks against the live configuration and shows what passes, what fails and why. Combined with the guardrail event log and the automation run history, that is an evidence trail rather than a policy statement.',
                 },
             ],
         }),
@@ -924,7 +924,7 @@ const integrations = {
     title: 'Integrations',
     isHomepage: false, hideHeader: false, hideFooter: false, isNotFound: false, noAnalytics: false,
     seo: {
-        metaTitle: '44 integrations plus any MCP server | Bee Flow',
+        metaTitle: '50 integrations plus any MCP server | Bee Flow',
         metaDescription: 'Google Workspace, Microsoft 365, Nextcloud, ITSM and payroll built in — plus any Model Context Protocol server, over stdio or Streamable HTTP.',
         ogImage: og('feature'),
         noIndex: false,
@@ -932,7 +932,7 @@ const integrations = {
     blocks: [
         b('hero', {
             eyebrow: 'Integrations',
-            badge: { enabled: true, text: '44 built in · any MCP server', icon: 'Plug' },
+            badge: { enabled: true, text: '50 built in · any MCP server', icon: 'Plug' },
             titleParts: [{ text: 'Connected to the tools you already pay for', gradient: false }],
             lead: 'Assistants and automations act inside your existing systems: read the thread, file the document, book the slot, update the ticket. Forty-four connectors ship built in — and because Bee Flow is a Model Context Protocol client, anything with an MCP server connects too. Nothing has to be migrated first.',
             primaryCta: { enabled: true, label: 'Open the app', style: 'primary', link: appLink('/app') },
@@ -1135,8 +1135,7 @@ const selfHosting = {
             eyebrow: '',
             title: 'Deployment surface',
             stats: [
-                { number: '8', label: 'Docker Compose profiles' },
-                { number: '11', label: 'Kubernetes manifests' },
+                { number: '5', label: 'Docker Compose profiles' },
                 { number: '1', label: 'command to a running workspace' },
                 { number: '0', label: 'licence servers you must reach' },
             ],
@@ -1307,7 +1306,7 @@ const pricing = {
             eyebrow: 'FAQ',
             title: 'The questions the price list does not answer',
             items: [
-                { question: 'Is the self-hosted version really uncapped?', answer: 'Yes, and that is a property of the code rather than a promise: the usage-limit checks return immediately unless the deployment is our cloud. On your own server there is no seat cap, no message cap and no spend ceiling to hit — and all 44 built-in integrations are in Community, not held back for a higher tier.' },
+                { question: 'Is the self-hosted version really uncapped?', answer: 'Yes, and that is a property of the code rather than a promise: the usage-limit checks return immediately unless the deployment is our cloud. On your own server there is no seat cap, no message cap and no spend ceiling to hit — and all 50 built-in integrations are in Community, not held back for a higher tier.' },
                 { question: 'Which SSO is included in the free tier?', answer: 'Nextcloud sign-in ships in Community. Google and Microsoft SSO — including Entra ID group sync — are part of Enterprise. The identity page maps out exactly what each provider brings and what is deliberately not implemented.' },
                 { question: 'What happens when a hosted plan hits its limit?', answer: 'Organisation admins get a warning email at 80% of the monthly AI budget, and requests stop at 100% with a plain message rather than a silent failure. Seat, assistant and knowledge-source limits refuse the action that would cross them and say which limit was reached.' },
                 { question: 'Do I need a credit card to start?', answer: 'No. The free tier involves no checkout at all, and where a trial is offered it is created without collecting a payment method - at the end it cancels rather than charging you.' },
@@ -1397,7 +1396,7 @@ const cloud = {
                 {
                     icon: 'ShieldCheck', span: 1,
                     title: 'The compliance hub',
-                    body: '15 GDPR checks and 6 EU AI Act checks against your live configuration, plus the DSR intake and DPIA registers.',
+                    body: '25 GDPR checks and 8 EU AI Act checks against your live configuration, plus the DSR intake and DPIA registers.',
                     techTag: '', media: media('', ''),
                 },
             ],
@@ -1595,7 +1594,7 @@ const about = {
             title: 'What we have built so far',
             stats: [
                 { number: '10', label: 'workspace modules' },
-                { number: '44', label: 'integrations' },
+                { number: '50', label: 'integrations' },
                 { number: '3', label: 'ways to run it: hosted, self-hosted, Nextcloud' },
                 { number: '15', label: 'automated compliance checks' },
             ],
@@ -1953,8 +1952,8 @@ const agentsPage = demoPage({
             eyebrow: '',
             title: 'What an assistant can reach',
             stats: [
-                { number: 'MCP', label: 'any server you point it at, on top of the 44' },
-                { number: '44', label: 'built-in integrations' },
+                { number: 'MCP', label: 'any server you point it at, on top of the 50' },
+                { number: '50', label: 'built-in integrations' },
                 { number: '86', label: 'curated MCP servers, plus any other' },
                 { number: '11', label: 'assistants that ship ready-made' },
             ],
@@ -2301,7 +2300,7 @@ const roadmapPage = {
                 {
                     id: 'rm_compliance', status: 'building', icon: 'ClipboardCheck',
                     title: 'Compliance Center',
-                    body: 'A compliance workspace inside organisation settings that grades your own installation against 44 checks across GDPR, the EU AI Act and ISO 27001 — and holds the paperwork behind them. A data-subject request inbox with a public intake form, a breach register that starts the 72-hour authority clock the moment an incident is recorded, a record of processing activities, a DPIA per assistant, and for ISO a Statement of Applicability, ISMS policy documents, a risk register, internal audit and training attestations. Every register exports as a PDF.',
+                    body: 'A compliance workspace inside organisation settings that grades your own installation against 58 checks across GDPR, the EU AI Act and ISO 27001 — and holds the paperwork behind them. A data-subject request inbox with a public intake form, a breach register that starts the 72-hour authority clock the moment an incident is recorded, a record of processing activities, a DPIA per assistant, and for ISO a Statement of Applicability, ISMS policy documents, a risk register, internal audit and training attestations. Every register exports as a PDF.',
                     note: 'Enterprise plan, and an administrator with the compliance permission. The checks read your live configuration rather than a questionnaire, so the score describes this installation — it is not a certificate, and no auditor has signed off on how we map a check to an article.',
                     link: pageLink('compliance'), linkLabel: 'Try the demo',
                 },
@@ -2790,7 +2789,7 @@ const comparePage = {
         b('features', {
             eyebrow: 'Pick your comparison',
             title: 'Whatever you are replacing, start here',
-            lead: 'Four categories, because the question is different in each. Against Microsoft it is governance. Against the automation tools it is what runs where. Against the AI subscriptions it is whether the model is the product or a part you choose. Against the other AI workspaces it is who operates the infrastructure and what you can prove about it. One answer runs through all four: 44 integrations ship built in, and anything else reaches Bee Flow through the Model Context Protocol — including a server you write yourself, which is why the connector count is the wrong thing to compare on.',
+            lead: 'Four categories, because the question is different in each. Against Microsoft it is governance. Against the automation tools it is what runs where. Against the AI subscriptions it is whether the model is the product or a part you choose. Against the other AI workspaces it is who operates the infrastructure and what you can prove about it. One answer runs through all four: 50 integrations ship built in, and anything else reaches Bee Flow through the Model Context Protocol — including a server you write yourself, which is why the connector count is the wrong thing to compare on.',
             variant: 'bento',
             items: [
                 {
@@ -3029,7 +3028,7 @@ const microsoftAlternative = {
                 { number: '1', label: 'command to a working workspace' },
                 { number: '0', label: 'licence servers you must reach' },
                 { number: '24', label: 'automation step types with real control flow' },
-                { number: '44', label: 'built-in integrations, plus any MCP server' },
+                { number: '50', label: 'built-in integrations, plus any MCP server' },
             ],
         }, { band: 'dark' }),
         b('faq', {
@@ -3172,7 +3171,7 @@ const n8nAlternative = {
                         id: 'el_n8n_licence', kind: 'text', align: 'left',
                         heading: 'On licensing, since you will check',
                         subheading: '',
-                        body: 'Both projects are source-available rather than OSI open source, and both restrict reselling the product as a hosted service. We are not going to pretend there is a licensing gap between us where there is not one. Bee Flow is under the Sustainable Use License v1.0 and we are working toward AGPL-3.0-or-later; read ours, read theirs, and judge them side by side.',
+                        body: 'Both projects are source-available rather than OSI open source, and both restrict reselling the product as a hosted service. We are not going to pretend there is a licensing gap between us where there is not one. Bee Flow is under the Sustainable Use License v1.0; read ours, read theirs, and judge them side by side.',
                     }],
                 },
             ],
@@ -3281,7 +3280,7 @@ const zapierAlternative = {
                 { icon: 'Server', span: 1, title: 'The automation runs on your hardware', body: 'Containers on your own machine or a data centre you chose, in a region you picked. The data does not transit a third party to get from one of your systems to another.', techTag: '', media: media('', '') },
                 { icon: 'Shield', span: 1, title: 'Personal data can be stripped before any model sees it', body: 'Install the detector and names, addresses, IBANs and national identifiers are tokenised on the way out and restored in the reply — running on your own CPU, not a detection API.', techTag: '', media: media('', '') },
                 { icon: 'Cpu', span: 1, title: 'The AI in the automation is yours to choose', body: 'Any provider, or a model on your own network whose prompts never leave the building. Not a bundled assistant you cannot swap.', techTag: '', media: media('', '') },
-                { icon: 'Plug', span: 1, title: 'The integration list is not a ceiling', body: '44 integrations ship built in, and then Bee Flow speaks the Model Context Protocol — so any MCP server becomes tools your automations can call, over stdio or Streamable HTTP. The public ones, the ones your vendors publish, and the one you write yourself for the line-of-business system nobody has ever built a connector for. Self-host and installing them is your decision rather than a request you file with a vendor and wait on.', techTag: '44 built in · plus any MCP server', media: media('', '') },
+                { icon: 'Plug', span: 1, title: 'The integration list is not a ceiling', body: '50 integrations ship built in, and then Bee Flow speaks the Model Context Protocol — so any MCP server becomes tools your automations can call, over stdio or Streamable HTTP. The public ones, the ones your vendors publish, and the one you write yourself for the line-of-business system nobody has ever built a connector for. Self-host and installing them is your decision rather than a request you file with a vendor and wait on.', techTag: '50 built in · plus any MCP server', media: media('', '') },
             ],
         }),
         b('faq', {
@@ -3361,7 +3360,7 @@ const makeAlternative = {
                 {
                     icon: 'Plug', span: 1,
                     title: 'Past the end of the app list',
-                    body: 'The 44 built-in integrations are where it starts, not where it stops. Bee Flow speaks the Model Context Protocol, so a scenario can reach anything with an MCP server in front of it — the public ones, the ones your vendors publish, and one you write yourself for an internal system that will never appear in anybody’s app directory. Self-host and you install those; nothing waits on a vendor roadmap.',
+                    body: 'The 50 built-in integrations are where it starts, not where it stops. Bee Flow speaks the Model Context Protocol, so a scenario can reach anything with an MCP server in front of it — the public ones, the ones your vendors publish, and one you write yourself for an internal system that will never appear in anybody’s app directory. Self-host and you install those; nothing waits on a vendor roadmap.',
                     techTag: 'any MCP server, including your own', media: media('', ''),
                 },
             ],
@@ -3506,7 +3505,7 @@ const chatgptAlternative = {
             stats: [
                 { number: '6', label: 'model providers, plus any OpenAI-compatible endpoint' },
                 { number: '21', label: 'PII categories detected on your own hardware' },
-                { number: '44', label: 'built-in integrations, plus any MCP server' },
+                { number: '50', label: 'built-in integrations, plus any MCP server' },
                 { number: '0', label: 'licence servers a self-hosted install must reach' },
             ],
         }, { band: 'dark' }),
@@ -4008,7 +4007,7 @@ const compliancePage = demoPage({
     slug: 'compliance',
     title: 'Compliance Center',
     metaTitle: 'GDPR, EU AI Act and ISO 27001 checks | Bee Flow',
-    metaDescription: '44 checks read your live configuration: 15 GDPR, 6 EU AI Act and 23 ISO 27001 — with a DSR inbox, breach register, RoPA and evidence bundles.',
+    metaDescription: '58 checks read your live configuration: 25 GDPR, 8 EU AI Act and 25 ISO 27001 — with a DSR inbox, breach register, RoPA and evidence bundles.',
     ogImage: og('security'),
     eyebrow: 'Compliance',
     heroBadge: 'In development - playable below',
@@ -4080,7 +4079,7 @@ const compliancePage = demoPage({
             eyebrow: 'Scope',
             title: 'What is in the box',
             stats: [
-                { number: '44', label: 'checks across GDPR, the EU AI Act and ISO 27001' },
+                { number: '58', label: 'checks across GDPR, the EU AI Act and ISO 27001' },
                 { number: '93', label: 'Annex A controls in the Statement of Applicability' },
                 { number: '72h', label: 'authority clock, started when an incident is recorded' },
                 { number: '0', label: 'data leaves your installation to be assessed' },
@@ -4518,7 +4517,7 @@ const langdockAlternative = {
                 {
                     icon: 'Server', span: 2,
                     title: 'Self-hosting is the default, not the exception',
-                    body: 'One command stands up the whole workspace from public images — no licence key, no account, no phone-home. Compose profiles let you start small, Kubernetes manifests are documented, and licences stay valid offline, which is what makes an air-gapped install with local models possible. There is no user, agent, message or knowledge-base cap in any tier, including the free Community tier, and all built-in integrations ship in it.',
+                    body: 'One command stands up the whole workspace from public images — no licence key, no account, no phone-home. Compose profiles let you start small, a Kubernetes pattern guide is documented, and licences stay valid offline, which is what makes an air-gapped install with local models possible. There is no user, agent, message or knowledge-base cap in any tier, including the free Community tier, and all built-in integrations ship in it.',
                     techTag: 'Docker · Kubernetes · air-gap', media: media('', ''),
                 },
                 {
@@ -4561,7 +4560,7 @@ const langdockAlternative = {
             eyebrow: '',
             title: 'What the free tier already holds',
             stats: [
-                { number: '44', label: 'integrations built in, plus any MCP server' },
+                { number: '50', label: 'integrations built in, plus any MCP server' },
                 { number: '21', label: 'PII categories detected on your own hardware' },
                 { number: '27', label: 'automation step types, with approval gates' },
                 { number: '0', label: 'user, agent or message caps in any tier' },
@@ -4573,7 +4572,7 @@ const langdockAlternative = {
             items: [
                 {
                     question: 'Is Bee Flow ISO 27001 certified?',
-                    answer: 'No. Langdock advertises certification and we do not, and pretending a product module equals a company audit would be exactly the kind of claim this site refuses to make. What ships instead is a Compliance Center that runs 15 GDPR, 6 EU AI Act and 23 ISO 27001 checks against your live configuration, plus an ISMS layer — Statement of Applicability, risk register, internal audits, evidence bundles. That is tooling for certifying your own installation, which is a thing no vendor certificate covers.',
+                    answer: 'No. Langdock advertises certification and we do not, and pretending a product module equals a company audit would be exactly the kind of claim this site refuses to make. What ships instead is a Compliance Center that runs 25 GDPR, 8 EU AI Act and 25 ISO 27001 checks against your live configuration, plus an ISMS layer — Statement of Applicability, risk register, internal audits, evidence bundles. That is tooling for certifying your own installation, which is a thing no vendor certificate covers.',
                 },
                 {
                     question: 'Can we self-host Langdock?',
@@ -4826,7 +4825,7 @@ const openWebuiAlternative = {
             eyebrow: 'Our boundaries',
             title: 'Said before you ask',
             chips: [
-                { icon: 'Scale', label: 'Not OSI open source', sublabel: 'The Sustainable Use License is source-available: read it, modify it, run it internally free — reselling it as a hosted service is what is restricted. We are working toward AGPL-3.0-or-later; the Nextcloud connector already carries it.', href: '' },
+                { icon: 'Scale', label: 'Not OSI open source', sublabel: 'The Sustainable Use License is source-available: read it, modify it, run it internally free — reselling it as a hosted service is what is restricted. The Nextcloud connector is AGPL-3.0-or-later.', href: '' },
                 { icon: 'ServerCog', label: 'A heavier stack than a chat UI', sublabel: 'PostgreSQL, object storage, Redis recommended, optional services per feature. Compose profiles keep the start small, but a workspace is simply more machine than a chat interface — if you do not need the workspace, do not run one.', href: '' },
                 { icon: 'KeyRound', label: 'No SAML, no SCIM', sublabel: 'SSO is OAuth with Google, Microsoft Entra ID and Nextcloud, with directory sync from the latter two. The identity page names everything that is deliberately not implemented.', href: '' },
             ],
@@ -4838,7 +4837,7 @@ const openWebuiAlternative = {
             leftLabel: 'Bee Flow',
             rightLabel: 'Open WebUI / LibreChat',
             rows: [
-                { aspect: 'Licence', left: 'Source-available (Sustainable Use License), moving toward AGPL', right: 'OSI open source' },
+                { aspect: 'Licence', left: 'Source-available (Sustainable Use License); the Nextcloud connector is AGPL', right: 'OSI open source' },
                 { aspect: 'Local models', left: 'Any OpenAI-compatible endpoint — Ollama, vLLM, llama.cpp', right: 'The same — it is their home turf' },
                 { aspect: 'SSO and directory groups', left: 'Google, Microsoft Entra ID with group sync, Nextcloud mirrored live', right: 'Varies by project and setup; their docs are authoritative' },
                 { aspect: 'PII redaction', left: 'Built in: on-CPU detector, 21 categories, block or tokenise, fails closed', right: 'Commonly added via external layers such as Presidio' },

@@ -22,7 +22,7 @@ You can use Bee Flow yourself or inside your own organisation as much as you wan
 
 What you cannot do — without a separate commercial agreement with Bee Flow — is offer Bee Flow itself as a paid hosted service to third parties.
 
-Several features (Automations, Webpages, Meeting Notes, Skills, DLP/Guardrails, White-label, License issuance) require a valid Bee Flow license key. The community tier (single user, basic chat, local KB) is fully functional without any license key.
+Some features (for example Webpages, Meeting Notes, Notebooks, App Studio, Projects, SSO beyond Nextcloud, the Compliance Hub, tokenising in the Privacy Shield, White-label and License issuance) require a valid Bee Flow license key with the Enterprise or Full tier. The community tier (unlimited users, chat with agents, knowledge bases, Skills, the Automation builder and every built-in integration) is fully functional without any license key. The exact list is `server/license/tiers.js`.
 
 For the full legal text, exact definitions, and clauses on Patents, Termination, and No Liability, see [server/LICENSE.md](server/LICENSE.md).
 

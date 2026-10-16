@@ -6,7 +6,7 @@ title: Tiers
 
 :::warning[Subject to change]
 
-Tier limits, pricing and feature gates on this page are still being tuned
+Tier limits and feature gates on this page are still being tuned
 over the coming weeks. Treat the numbers below as indicative — we'll update
 this page as the structure settles.
 
@@ -37,15 +37,15 @@ beta — a later implementation; see the [MCP library](../integrations/mcp-libra
 **SSO beyond Nextcloud** (Google / Microsoft / SAML — Nextcloud OAuth login stays
 Community) together with the rest of the Studio-class capabilities (voice chat,
 webpage creation, meeting notes, notebooks), the
-advanced Privacy Shield modes, guardrail DLP, the compliance hub (GDPR + AI
-Act) — **the remaining beta features also require Enterprise** (the automation
+advanced Privacy Shield modes (tokenize, Web Search Guard, your own data types),
+the compliance hub (GDPR, AI Act, ISO 27001 and the other frameworks) — **the remaining beta features also require Enterprise** (the automation
 builder + scheduled agent runs are the exception: they are GA features free in
 Community). Enterprise also unlocks the paid **admin-dashboard surfaces** (Agents,
 Monitoring, Compliance, Support, Appearance/branding, Product Website) — see
 [Admin dashboard by tier](#admin-dashboard-by-tier) below. **Full** layers
 white-label branding and sub-licence issuance on top for resellers.
 
-Source of truth: [`server/license/tiers.js`](https://github.com/Bee-Flow/beeflow/blob/main/license/tiers.js).
+Source of truth: [`server/license/tiers.js`](https://github.com/Bee-Flow/beeflow/blob/main/server/license/tiers.js).
 
 ## Limits
 
@@ -93,7 +93,14 @@ may move at any time.
 | **Privacy** |
 | Privacy Shield — block PII | ✅ | ✅ | ✅ |
 | Privacy Shield — Tokenize & round-trip PII | — | ✅ | ✅ |
+| Privacy Shield — your own data types (words, patterns, AI labels) | — | ✅ | ✅ |
 | Web Search Guard (block PII in outbound search) | — | ✅ | ✅ |
+| **Compliance & identity** |
+| Compliance hub (GDPR, AI Act, ISO 27001 and further frameworks) | — | ✅ | ✅ |
+| Audit-log export | — | ✅ | ✅ |
+| Content encryption at rest (org encryption tier) | — | ✅ | ✅ |
+| **Branding** |
+| White-label branding, sub-licence issuance | — | — | ✅ |
 | **Admin dashboard** (full breakdown in [Admin dashboard by tier](#admin-dashboard-by-tier)) |
 | AI Config / Security / Integrations / Server licence / Languages tabs | ✅ | ✅ | ✅ |
 | User & group management (Security tab) | ✅ | ✅ | ✅ |
@@ -103,9 +110,10 @@ may move at any time.
 
 Legend: ✅ available · — not available
 
-The **MCP Server Marketplace** is a Community feature but a *later
-implementation* — treat it as on the roadmap rather than fully stabilised. It
-lives in the (Community-visible) **Admin → Integrations** tab.
+The **MCP Server Marketplace** is an Enterprise beta: only installing a server
+needs Enterprise (`mcp_marketplace`, super-admin install surface). Once a server
+is installed it behaves like any other integration. It lives in the
+**Admin → Integrations** tab.
 
 ## Admin dashboard by tier
 
@@ -155,23 +163,32 @@ you'll see in 403 responses:
 | `notebooks` | Enterprise | Per-user research notebooks, `/api/notebooks` |
 | `projects` | Enterprise | Projects / team workspaces (sidebar accordion + `/api/projects`) |
 | `blueprint_packaging` | Enterprise | Packaging a Solution (Blueprint export, publish, upgrade) **and** the Dev / UAT / Production pipeline: `/api/projects/:id/{stages,releases,deployments,release-and-deploy,variables,parts}`. Applied per route on top of `projects`; the Production approval gate also needs `approvals` (only when it is switched on). **Deliberately not gated** (the drain exemption, `/api/solution-stages`): reading a stage, switching parts on and off, pause and resume, non-steering variable values and detach, plus deciding approvals already pending — a lapsed licence must never strand a stage that already runs in production. See [Solutions → Stages and deployments](../studio/solutions.md#stages-and-deployments) |
-| `pii_tokenize` | Enterprise | Privacy Shield "Tokenize & round-trip" PII action; community PUT clamps `piiDetectionAction` to `block` server-side |
-| `web_search_guard` | Enterprise | Privacy Shield Web Search Guard toggle + category filter; community PUT force-disables it server-side |
+| `pii_tokenize` | Enterprise | Privacy Shield "Tokenize & round-trip" PII action. Enforced on the server for the **target organisation** (its tier, or a plan grant): saving `tokenize` without it stores `block` and reports `clamped_fields`, and a `tokenize` already saved is treated as `block` at use time (chat, attachments, automations) without rewriting the stored row, so an upgrade brings it back |
+| `web_search_guard` | Enterprise | Privacy Shield Web Search Guard toggle + category filter, and blocking PII in external tool calls; community PUT force-disables it server-side and the runtime ignores a saved value |
+| `custom_data_types` | Enterprise | Privacy Shield "Your own data" — org-defined data types, the assistant and the test bench. Community keeps the migrated "always hide these" terms enforced and read-only |
 | `advanced_usage_monitoring` | Enterprise | Usage & Monitoring tabs other than Overview — Safety, Integrations, Feedback, Terminations. Gates `/api/usage/{guardrails,integrations,azure-services}/*`, `/api/feedback`, `/api/terminations` |
-| `compliance_hub_gdpr` | Enterprise | `/api/compliance`, guardrail audit log export, DSR flows |
-| `compliance_hub_aia` | Enterprise | AI Act compliance hub |
+| `compliance_hub_gdpr` | Enterprise | The whole `/api/compliance` mount (GDPR, AI Act and ISO 27001 checks). The public DSR channel stays reachable on every tier |
+| `compliance_hub_aia` | Enterprise | AI Act checks; covered by the `compliance_hub_gdpr` mount gate, declared for a later per-regulation split |
 | `sso_saml` | Enterprise | SAML 2.0 IdP config |
-| `guardrails_dlp` | Enterprise | DLP rule editor + enforcement |
+| `guardrails_dlp` | Enterprise | **Reserve gate** — declared in the Enterprise tier but no route consumes it yet. The Privacy Shield's outbound DLP settings are available on every tier |
+| `audit_log_export` | Enterprise | Declared; reserve gate |
+| `compliance_hub_iso27001` | Enterprise | ISO 27001 checks run under the hub's single mount gate (`compliance_hub_gdpr`); declared for a later per-regulation split |
+| `compliance_hub_nis2`, `_cra`, `_data_act`, `_pld`, `_eaa`, `_dora`, `_machinery`, `_custom` | Enterprise | Per-framework switches, enforced in the handler that enables a framework — never as a separate mount |
+| `app_studio` | Enterprise | App Studio, `/api/studio-apps`, `/api/playbooks` (also a beta opt-in) |
+| `large_datasets` | Enterprise | Large dataset uploads and queries in App Studio, applied per route |
+| `security_scan`, `support_inbox` | Enterprise | Security scan module, support inbox (`/api/support-inbox`) |
+| `swarm`, `advanced_analytics` | Enterprise | Swarm and advanced analytics |
+| `encryption` | Enterprise | Content encryption at rest (org `encryption_tier`: managed or zero-knowledge) |
 | `integrations` | Community | All built-in integrations (Google, Microsoft, AI generation, third-party, Nextcloud). **Capability marker, not a route gate** — integration tool usage in chat is ungated by design (`server/core/integrationTools.js` gates only on OAuth/credentials + org/user toggles) |
-| `mcp_marketplace` | Community | MCP Server Marketplace (later implementation). Marker — no tier check on MCP install or tool usage |
+| `mcp_marketplace` | Enterprise | MCP Server Marketplace. Gates only the super-admin install surface (`requireMcp`); using an installed server is not tier-gated |
 | `nextcloud_oauth` | Community | Sign-in to Bee Flow from the Nextcloud App Store app + Nextcloud OAuth |
-| `custom_themes` | Community | Theme overrides beyond branding basics |
+| `custom_themes` | Enterprise | Theme overrides beyond branding basics |
 | `white_label` | Full | Branding overrides (logo, colours, domain) |
 | `license_issuance` | Full | Sub-licence minting |
 
 Community-tier features (`chat_basic`, `kb_local_small`, `kb_unlimited`,
 `nextcloud_basic`, `nextcloud_oauth`, `multi_user`, `skills`, `automations`,
-`agent_routines`) are still passed through `requireLicenseFeature` at their mount
+`agent_routines`, `learning_center`) are still passed through `requireLicenseFeature` at their mount
 sites — the gate is a no-op because the feature lives in `TIER_FEATURES.community`.
 The `integrations` flag is a **capability marker** rather than a mounted gate:
 built-in integrations are deliberately ungated at runtime, and the flag exists so
@@ -212,7 +229,7 @@ Counters reset on the first day of each calendar month at 00:00 UTC.
 | Need | Suggested tier |
 |------|----------------|
 | Free self-hosted core — chat, KB, agents, skills, **all built-in integrations**, the **no-code automation builder + scheduled agent runs (Cowork)** (personal use), and the Nextcloud connector (incl. signing in from the NC App Store app) | Community |
-| Team that wants **collaboration** on top of the free builder (sharing automations across a team, **Projects** team workspaces), the MCP Server Marketplace, the rest of Studio (voice, webpage creation, notebooks, meeting notes), the advanced Privacy Shield modes (tokenize PII, web-search guard), the paid admin tabs (Agents, Monitoring, Compliance, Support, Appearance, Product Website), the remaining beta features, or compliance (SSO, GDPR/AI-Act) | Enterprise |
+| Team that wants **collaboration** on top of the free builder (sharing automations across a team, **Projects** team workspaces), the MCP Server Marketplace, the rest of Studio (voice, webpage creation, notebooks, meeting notes), the advanced Privacy Shield modes (tokenize PII, web-search guard), the paid admin tabs (Agents, Monitoring, Compliance, Support, Appearance, Product Website), the remaining beta features, or compliance (SSO, GDPR/AI-Act/ISO 27001) | Enterprise |
 | Reseller / private-label deployment | Full |
 
 Custom plans (e.g. capped seats, specific feature sets) are available —
