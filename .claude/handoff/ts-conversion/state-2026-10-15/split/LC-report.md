@@ -1,8 +1,8 @@
 # L-C report: remaining agent-hub JS sweep (laptop)
 
-Status: B2 part 3 (stale shims whose target is TS) on ts-laptop/fix-b2p3, follow-up PR after #250: Opus-reviewed, full checks before the push.
+Status: B2 part 3 pushed on ts-laptop/fix-b2p3 (Opus-reviewed, all checks green); follow-up PR after #250, base 075904b9 (not rebased onto later #250 commits, as agreed).
 Done: sweep 81/314 (merged); B3 merged on staging (075904b9); B2 part 3: 111 of 114 shims removed, types only.
-Next: push ts-laptop/fix-b2p3 when green (the integrator opens it as its own PR after #250).
+Next: nothing running; the integrator opens ts-laptop/fix-b2p3 as its own PR.
 
 Branch `ts-laptop/sweep-c`. BASE `0ae29a17` (= origin/ccr-28820270-xkvwp8 at branch time; ts-local/prep2 already in it).
 Final commit: see `git log -1` of the branch (this file is updated with every push).
@@ -29,6 +29,7 @@ Final commit: see `git log -1` of the branch (this file is updated with every pu
 - Kept (need a runtime guard, so NOT types-only): EditorNodeWrapper.tsx:63 `nodeLogicSummary` (titleFor is called with string | undefined and indexes a record: needs an `id === undefined` guard); FormEditorModal.tsx `Renderer` and `EndingView` (buildPreviewConfig passes stored `theme`, field `name`/`type` and `maxSizeMb` as unknown: needs guards there). Not a crash today (themeVars tolerates a non-object theme).
 - After: `as unknown as` in agent-hub source: 3 to TS modules (the kept ones), 72 to modules still JS, 30 casting local values or globals.
 - Review: reviews/LC-fix-b2p3.md (Opus, CHANGES REQUIRED small → fixed).
+- Checks at e0142235: check:fast 39/39; server typecheck 0; duplication 15162 ≤ 15290 / 26188 ≤ 26228; gitleaks clean; agent-hub tsc 0; vitest 1864 files, 22005 pass, 0 errors; mobile tsc 0; mobile jest 762 suites, 13428 pass; server 29101 pass, 0 fail, 0 HUNG.
 
 ## Scope
 Every agent-hub JS file outside components/admin/Studio/**, components/admin/compliance/**,
