@@ -9,7 +9,6 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-
 import ts from 'typescript';
 
 import { addParam, APP_TRIGGER_TYPES, applyBindingRename, CONTRACT_TYPES, nameProblem, PLACEHOLDER_NAME_RE } from './paramsModel';
