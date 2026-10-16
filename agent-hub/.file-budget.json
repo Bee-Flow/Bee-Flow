@@ -224,7 +224,7 @@
     "src/pages/webpages/WebpageAppsPanel.jsx": 588,
     "src/pages/webpages/WebpageAudiencePanel.jsx": 762,
     "src/pages/webpages/WebpageDbViewer.tsx": 825,
-    "src/utils/bfElementsRuntime.js": 799,
+    "src/utils/bfElementsRuntime.ts": 799,
     "src/utils/bindingHelpers.ts": 653,
     "src/utils/helpers.ts": 457,
     "src/utils/integrationLogos.tsx": 599

@@ -18,7 +18,14 @@ import { useIconPack } from '../hooks/useIconPack';
  * by the server's resolveIntegration() so palette chips and nodes line up
  * with /api/automation/catalog responses.
  */
-export const INTEGRATION_META = {
+/** How an integration is drawn when no custom icon is set: name, brand colour, letter-mark. */
+export interface IntegrationMeta {
+    label: string;
+    color: string;
+    mark: string;
+}
+
+export const INTEGRATION_META: Record<string, IntegrationMeta> = {
     gmail:                  { label: 'Gmail',                color: '#EA4335', mark: 'G' },
     google_calendar:        { label: 'Google Calendar',      color: '#4285F4', mark: 'GC' },
     google_drive:           { label: 'Google Drive',         color: '#1FA463', mark: 'GD' },
@@ -120,7 +127,7 @@ const PREFIX_TO_INTEGRATION = [
     ['webpages_', 'webpages'],
 ].sort((a, b) => b[0].length - a[0].length);
 
-const STATIC_TOOL_TO_INTEGRATION = {
+const STATIC_TOOL_TO_INTEGRATION: Record<string, string> = {
     agent_search: 'web_search',
     web_search: 'web_search',
     kb_search: 'kb_search',
@@ -152,7 +159,7 @@ const STATIC_TOOL_TO_INTEGRATION = {
  * roundtrip. Returns null when the name doesn't belong to a known
  * integration (e.g. internal `regex_*` / `notebook_*` tools).
  */
-export function resolveIntegrationFromTool(toolName) {
+export function resolveIntegrationFromTool(toolName?: string | null): string | null {
     if (!toolName) return null;
     if (STATIC_TOOL_TO_INTEGRATION[toolName]) return STATIC_TOOL_TO_INTEGRATION[toolName];
     for (const [prefix, id] of PREFIX_TO_INTEGRATION) {
@@ -161,6 +168,12 @@ export function resolveIntegrationFromTool(toolName) {
     if (toolName.startsWith('mcp__') || toolName.startsWith('mcp_')) return 'mcp';
     return null;
 }
+
+/** What {@link useIntegrationIcon} resolves to; a letter-mark always has its meta. */
+export type IntegrationIcon =
+    | { kind: 'image'; value: string; meta: IntegrationMeta | null }
+    | { kind: 'emoji'; value: string; meta: IntegrationMeta | null }
+    | { kind: 'mark'; value: string; meta: IntegrationMeta };
 
 /**
  * Hook variant: returns { kind: 'image'|'emoji'|'mark', value, meta }.
@@ -172,7 +185,7 @@ export function resolveIntegrationFromTool(toolName) {
  * Consumed by <IntegrationLogo>. Returns null when no integration id is
  * provided so callers can render their own generic icon.
  */
-export function useIntegrationIcon(integrationId) {
+export function useIntegrationIcon(integrationId?: string | null): IntegrationIcon | null {
     const { getCustomIcon } = useIconPack();
     if (!integrationId) return null;
     // INTEGRATION_META keys use underscore form (`google_drive`) but

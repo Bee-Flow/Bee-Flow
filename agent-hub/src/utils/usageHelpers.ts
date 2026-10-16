@@ -6,19 +6,19 @@
 // ── CSV export ──────────────────────────────────────────────────────────────
 // Minimal RFC 4180 escaping — enough for ≤ a few thousand audit rows.
 
-export function csvEscape(v) {
+export function csvEscape(v: unknown): string {
     if (v === null || v === undefined) return '';
     const s = String(v);
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-export function rowsToCsv(headers, rows) {
+export function rowsToCsv(headers: string[], rows: Array<Record<string, unknown>>): string {
     const lines = [headers.join(',')];
     for (const r of rows) lines.push(headers.map(h => csvEscape(r[h])).join(','));
     return lines.join('\n');
 }
 
-export function downloadCsv(filename, csv) {
+export function downloadCsv(filename: string, csv: string): void {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -38,15 +38,30 @@ export function downloadCsv(filename, csv) {
 //
 // Returns `{ delta, prev, curr }` or null when there's not enough history.
 
-export function computeHalfPeriodDelta(timeline, valueFn, opts = {}) {
+export function computeHalfPeriodDelta<T>(timeline: T[] | null | undefined, valueFn: (row: T) => unknown, opts: { minBuckets?: number } = {}): { delta: number; prev: number; curr: number } | null {
     const minBuckets = opts.minBuckets || 2;
     if (!Array.isArray(timeline) || timeline.length < minBuckets) return null;
     const half = Math.floor(timeline.length / 2);
     if (half < 1) return null;
-    const sumOver = (arr) => arr.reduce((s, r) => s + (Number(valueFn(r)) || 0), 0);
+    const sumOver = (arr: T[]): number => arr.reduce((s, r) => s + (Number(valueFn(r)) || 0), 0);
     const prev = sumOver(timeline.slice(0, half));
     const curr = sumOver(timeline.slice(half));
     return { delta: curr - prev, prev, curr };
+}
+
+/** The range model the picker holds. */
+export interface RangeInput {
+    preset?: string;
+    customStart?: string | number | Date | null;
+    customEnd?: string | number | Date | null;
+}
+
+/** A range in every shape the usage endpoints ask for. */
+export interface RangeParams {
+    days: number | null;
+    startDate: string | null;
+    endDate: string | null;
+    interval: 'hour' | 'day';
 }
 
 // ── Unified date range adapter ──────────────────────────────────────────────
@@ -61,12 +76,12 @@ export function computeHalfPeriodDelta(timeline, valueFn, opts = {}) {
 // only express a day count fall back to a large bound (see USAGE_ALL_DAYS).
 export const USAGE_ALL_DAYS = 3650; // ~10y — "all" fallback for days-only routes
 
-export function deriveRangeParams(range) {
+export function deriveRangeParams(range?: RangeInput | null): RangeParams {
     const { preset, customStart, customEnd } = range || {};
     const DAY = 86400000;
     const now = new Date();
-    const iso = (d) => new Date(d).toISOString();
-    const ago = (ms) => iso(new Date(now.getTime() - ms));
+    const iso = (d: string | number | Date): string => new Date(d).toISOString();
+    const ago = (ms: number): string => iso(new Date(now.getTime() - ms));
     const startOfToday = () => { const d = new Date(now); d.setHours(0, 0, 0, 0); return iso(d); };
 
     switch (preset) {
@@ -105,8 +120,8 @@ export function deriveRangeParams(range) {
 // returns `{ tierKey: { modelId } | modelId }`; invert it once so the cloud
 // view can badge each row's model with its configured tier. Unknown models
 // fall back to no tier (model-only badge).
-export function buildModelTierMap(tiersForUser) {
-    const map = {};
+export function buildModelTierMap(tiersForUser?: Record<string, string | { modelId?: string | null } | null | undefined> | null): Record<string, string> {
+    const map: Record<string, string> = {};
     if (tiersForUser && typeof tiersForUser === 'object') {
         for (const [tier, val] of Object.entries(tiersForUser)) {
             const modelId = typeof val === 'string' ? val : (val && val.modelId);
@@ -116,7 +131,7 @@ export function buildModelTierMap(tiersForUser) {
     return map;
 }
 
-export function tierForModel(map, model) {
+export function tierForModel(map?: Record<string, string> | null, model?: string | null): string | null {
     if (!map || !model) return null;
     return map[model] || null;
 }

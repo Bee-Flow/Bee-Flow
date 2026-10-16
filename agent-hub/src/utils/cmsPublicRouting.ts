@@ -55,7 +55,7 @@ export const CMS_FALLBACK_SLUGS = new Set(['pricing']);
  * testable on its own — the alternative is rendering RootPathGate with a
  * mocked fetch to assert one boolean.
  */
-export function hasCmsFallback(pathname) {
+export function hasCmsFallback(pathname?: string | null): boolean {
     if (!pathname) return false;
     const seg = pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
     return CMS_FALLBACK_SLUGS.has(seg);
@@ -88,7 +88,17 @@ export const LOCALE_PREFIXES = new Set(['nl']);
  */
 export const BLOG_BASE = 'blog';
 
-function parseBlogSegments(segments) {
+/** Which part of the blog a URL points at. */
+export type BlogView = { view: 'index' } | { view: 'post'; postSlug: string };
+
+/** Where a pathname lands on the public site; `blog` is set for blog paths only. */
+export interface CmsPath {
+    locale: string | null;
+    slug: string;
+    blog?: BlogView;
+}
+
+function parseBlogSegments(segments: string[]): CmsPath | null {
     const hasLocale = segments.length >= 2 && LOCALE_PREFIXES.has(segments[0].toLowerCase());
     const locale = hasLocale ? segments[0].toLowerCase() : null;
     const [base, postSlug, extra] = (hasLocale ? segments.slice(1) : segments).map((seg) => seg.toLowerCase());
@@ -107,7 +117,7 @@ function parseBlogSegments(segments) {
  * content variants with no canonical and no hreflang, so search engines read
  * them as duplicates rather than as a translation.
  */
-export function parseCmsPath(pathname) {
+export function parseCmsPath(pathname?: string | null): CmsPath | null {
     if (!pathname || pathname === '/' || pathname === '') return { locale: null, slug: '' };
     const trimmed = pathname.replace(/\/+$/, '') || '/';
     if (trimmed === '/') return { locale: null, slug: '' };
@@ -136,7 +146,7 @@ export function parseCmsPath(pathname) {
 // Returns true when `pathname` could be a CMS page (homepage, a single
 // non-reserved slug segment, or either of those behind a locale prefix).
 // Anything else falls through to the app shell.
-export function isCmsPathCandidate(pathname) {
+export function isCmsPathCandidate(pathname?: string | null): boolean {
     return parseCmsPath(pathname) !== null;
 }
 
@@ -151,10 +161,23 @@ export function isCmsPathCandidate(pathname) {
  * embed, hosted /f forms) are NOT marketing pages — telemetry there is
  * signed-in product telemetry with its own gates.
  */
-export function isPublicMarketingPath(pathname) {
+export function isPublicMarketingPath(pathname?: unknown): boolean {
     if (typeof pathname !== 'string') return false;
     if (isCmsPathCandidate(pathname)) return true;
     return /^\/(privacy|__demo__)(\/|$)/.test(pathname);
+}
+
+/** What the editor knows about the other pages of the site. */
+export interface SlugIssueOptions {
+    existingSlugs?: Array<string | null | undefined> | null;
+    currentSlug?: string | null;
+}
+
+/** One lint finding on a slug. */
+export interface SlugIssue {
+    kind: 'reserved' | 'duplicate' | 'unroutable';
+    blocking: boolean;
+    message: string;
 }
 
 /**
@@ -173,7 +196,7 @@ export function isPublicMarketingPath(pathname) {
  * `existingSlugs` is the site's page slug list; `currentSlug` excludes the
  * page's own (unchanged) slug from the duplicate check.
  */
-export function slugIssues(slug, { existingSlugs = null, currentSlug = null } = {}) {
+export function slugIssues(slug?: string | null, { existingSlugs = null, currentSlug = null }: SlugIssueOptions = {}): SlugIssue | null {
     const s = (slug || '').trim().toLowerCase();
     if (!s) return null;
     if (RESERVED_TOP_LEVEL.has(s) || s === BLOG_BASE) {

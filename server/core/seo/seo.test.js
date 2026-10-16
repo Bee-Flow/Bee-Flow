@@ -471,7 +471,7 @@ test('the server and client routing rules have not drifted', () => {
     const fs = require('node:fs');
     const path = require('node:path');
     const src = fs.readFileSync(
-        path.join(__dirname, '../../../agent-hub/src/utils/cmsPublicRouting.js'), 'utf8');
+        path.join(__dirname, '../../../agent-hub/src/utils/cmsPublicRouting.ts'), 'utf8');
 
     // Substring slicing rather than a regex: the literals span several lines
     // and the escaping needed to match them is its own source of bugs.

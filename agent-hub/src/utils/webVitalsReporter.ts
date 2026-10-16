@@ -22,6 +22,7 @@
 //   reportWebVitals() — call once at app mount, after first render.
 
 import { onCLS, onINP, onLCP, onFCP, onTTFB } from 'web-vitals';
+import type { Metric } from 'web-vitals';
 import { APP_BUILD_SHA } from './appVersion';
 import { isPublicMarketingPath } from './cmsPublicRouting';
 import { API_BASE } from './helpers';
@@ -32,7 +33,7 @@ import { consentAccepted } from '../marketing/components/consent';
 // than the connector's proxy path and the request 404s on NC.
 const ENDPOINT = `${API_BASE}/api/web-vitals`;
 
-function send(metric) {
+function send(metric: Metric): void {
     // Public marketing context → only beacon with cookie consent (see header
     // note). Re-read per metric so the same-tab CookieBanner choice takes
     // effect on the very next metric without any event wiring here.
@@ -75,7 +76,7 @@ function send(metric) {
 
 let started = false;
 
-export function reportWebVitals() {
+export function reportWebVitals(): void {
     if (started) return;
     started = true;
     onCLS(send);

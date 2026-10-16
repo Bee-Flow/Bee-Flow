@@ -20,6 +20,42 @@
  * Dit is de datastructuur, niet de weergave: de renderer die eruit leest komt in
  * de volgende stap. Wat elk veld betekent, staat in de kop van de servermodule.
  */
+/** One attribute of an element, as the registry describes it. */
+export interface BfAttributeDef {
+    name: string;
+    required: boolean;
+    aliases?: string[];
+    values?: string[];
+    default?: string;
+    max?: number;
+    requiredWhen?: { attr: string; notOneOf: string[] };
+    means: string;
+}
+
+/** What one surface (composer, share, snapshot, headless render) does with an element. */
+export interface BfSurfaceDef {
+    state: string;
+    why: string;
+    message?: string;
+    notice?: string;
+}
+
+/** One element of the vocabulary: the shared shape of the entries of BF_ELEMENTS. */
+export interface BfElementDef {
+    tag: string;
+    summary: string;
+    needsJs: boolean;
+    attributes: BfAttributeDef[];
+    reads?: { rowsMax: number };
+    binding?: { kind: string; from: string; gate: string; fallback?: string };
+    surfaces: {
+        clientComposer: BfSurfaceDef;
+        reactShare: BfSurfaceDef;
+        vanillaSnapshot: BfSurfaceDef;
+        headlessRender: BfSurfaceDef;
+    };
+}
+
 // >>> BF-ELEMENTS: BEGIN GEGENEREERDE SPIEGEL <<<
 // Gegenereerd uit server/core/webpages/bfElements.js — NIET met de hand
 // bijwerken. bfElements.drift.test.js vergelijkt dit blok teken voor teken
