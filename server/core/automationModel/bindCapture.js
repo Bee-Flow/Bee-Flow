@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Run a resolution and keep the misses it logged, for a caller that must decide
  * on its own inputs before it acts (a live write with a hole in it).

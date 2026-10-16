@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Binding resolver for automation step inputs.
  *
@@ -7,9 +8,9 @@
  *   { kind: 'template', value: 'Found {{steps.s1.output.count}} invoices' }
  *   { kind: 'expr',     value: 'steps.s1.output.amount > 1000 ? "high" : "low"' }
  *
- * Bare values (numbers/strings/booleans/arrays/objects without a `kind` field)
- * are treated as literals — this is a tolerance for hand-authored definitions
- * and AI-generated bindings that skip the wrapper.
+ * Bare values (numbers/strings/booleans/arrays/objects without a `kind` field) are treated
+ * as literals — this is a tolerance for hand-authored definitions and AI-generated bindings
+ * that skip the wrapper.
  *
  * Roots available in runState:
  *   trigger.output, steps.<id>.output, loop.<itemVar>, vars, secrets
@@ -23,17 +24,14 @@ const { missingResultTokens } = require('./codeOutput');
 
 // ── The binding log ─────────────────────────────────────────────────────
 //
-// A mapping that resolves to nothing used to leave no trace: the step got an
-// empty value, the run stayed green, and the person looking at it could only
-// say "it doesn't always work". The runner opens a log around every step
-// (core/automationRunner/execution.js dispatchStep) and every miss made while
-// it is open lands in it: which input, which path, and where the walk stopped.
+// A mapping that resolves to nothing used to leave no trace: the step got an empty value, the run stayed
+// green, and the person looking at it could only say "it doesn't always work". The runner opens a log around
+// every step (core/automationRunner/execution.js dispatchStep) and every miss made while it is open lands in
+// it: which input, which path, and where the walk stopped.
 //
-// AsyncLocalStorage rather than a runState field: steps in parallel branches
-// share one runState, so a per-run array could not tell their misses apart,
-// and the resolvers are called from dozens of step handlers that would all
-// have to pass a sink along. Outside a log (validation, previews, tests)
-// nothing is recorded.
+// AsyncLocalStorage rather than a runState field: steps in parallel branches share one runState, so a per-run
+// array could not tell their misses apart, and the resolvers are called from dozens of step handlers that
+// would all have to pass a sink along. Outside a log (validation, previews, tests) nothing is recorded.
 const bindingLogStore = new AsyncLocalStorage();
 // One step can resolve the same binding for thousands of list items; the
 // log keeps each distinct miss once, with a count, and at most this many.
@@ -118,6 +116,7 @@ function noteMiss(rec) {
     const n = Number.isInteger(rec.count) && rec.count > 0 ? rec.count : 1;
     if (same) { same.count += n; return; }
     if (store.entries.length >= MAX_BINDING_LOG_ENTRIES) return;
+    /** @type {{ field?: string, count?: number, [key: string]: unknown }} */
     const entry = { ...(field ? { field } : {}) };
     for (const [k, v] of Object.entries(rec)) if (k !== 'field' && v !== undefined) entry[k] = v;
     entry.count = n;
@@ -255,10 +254,10 @@ function walkRelativePath(path, value) {
  * Resolve a single binding object against the runState.
  * @param {*} binding — { kind, ... } or a raw literal
  * @param {object} runState — { trigger, steps, loop, vars, secrets }
- * @param {object} opts
- * @param {'text'|'json'|'markdown'} opts.listAs — how a `template` binding writes a list
+ * @param {object} [opts]
+ * @param {'text'|'json'|'markdown'} [opts.listAs] - how a `template` binding writes a list
  *                  of plain values (see interpolateTemplate; default 'text')
- * @param {boolean} opts.allowSecrets — when false, secrets root is replaced
+ * @param {boolean} [opts.allowSecrets] - when false, secrets root is replaced
  *                  with an empty object so user-visible templates can't
  *                  echo secrets back to the chat or notification body.
  */
@@ -392,18 +391,18 @@ function resolveTemplatePath(trimmed, runState, opts = {}) {
  * inputs) and keeps every list as JSON.
  *
  * @param {object} [opts]
- * @param {'text'|'json'|'markdown'} [opts.listAs] — how a list of plain values
+ * @param {'text'|'json'|'markdown'} [opts.listAs] - how a list of plain values
  *   is written: 'text' (default) comma-separated, 'json' as JSON, 'markdown' as
  *   bullets (same as `listAsMarkdown: true`).
- * @param {boolean} [opts.leaveUnresolved] — when true, a `{{token}}` whose
+ * @param {boolean} [opts.leaveUnresolved] - when true, a `{{token}}` whose
  *   path resolves to `undefined` is returned VERBATIM (braces and all)
  *   rather than blanked. Used for AI-step prompts so a literal `{{...}}`
  *   the builder typed (and any not-yet-available reference) isn't silently
  *   deleted from the instruction text. Default false keeps the historical
  *   blank-on-miss behaviour for notification/stop_error callers.
- * @param {string} [opts.field] — the setting this text fills (`body`, `url`),
+ * @param {string} [opts.field] - the setting this text fills (`body`, `url`),
  *   named by a miss in the binding log when no input name is known.
- * @param {boolean} [opts.listAsMarkdown] — when true, a path that resolves to
+ * @param {boolean} [opts.listAsMarkdown] - when true, a path that resolves to
  *   an array of plain values renders as a markdown bullet list instead of as
  *   a comma-separated line. Used ONLY for the human-readable text of a form
  *   page, which IS rendered as markdown: a step that produced a list of
