@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Organization Privacy Shield API
  *
@@ -34,6 +35,7 @@ const { isCustomTypeId } = require('../core/privacy/customTypes/ids');
 const { hasCustomDataFeature } = require('../core/privacy/customTypes/resolve');
 const customShieldDoc = require('../core/privacy/customTypes/shieldDoc');
 const customTypeRegistry = require('../core/privacy/customTypes/registry');
+const { orgMayTokenize } = require('../core/privacy/tokenizeEntitlement');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -214,7 +216,7 @@ function _licenseModule() {
  * already honours the server-wide override) and returns the set of
  * fields that need clamping.
  *
- *   - `pii_tokenize` missing → piiDetectionAction must be 'block'
+ *   - `pii_tokenize` missing → piiDetectionAction 'tokenize' becomes 'block'
  *   - `web_search_guard` missing → webSearchGuardEnabled = false,
  *                                  webSearchGuardPiiCategories = []
  *
@@ -226,7 +228,7 @@ async function _tierClamps({ organizationId, userId }) {
         const tier = await lic.resolveTier({ organizationId, userId });
         return {
             tier,
-            hasPiiTokenize: lic.tiers.tierHasFeature(tier, 'pii_tokenize'),
+            hasPiiTokenize: await orgMayTokenize(_licenseModule, organizationId),
             hasWebSearchGuard: lic.tiers.tierHasFeature(tier, 'web_search_guard'),
         };
     } catch (e) {
@@ -244,12 +246,13 @@ async function _tierClamps({ organizationId, userId }) {
  * Returns the list of fields that had to be clamped so the caller can
  * surface a `clamped_fields` marker in the response.
  */
-function _applyTierClamps(config, { hasWebSearchGuard }) {
+function _applyTierClamps(config, { hasPiiTokenize, hasWebSearchGuard }) {
     const clamped = [];
-    // NOTE: `piiDetectionAction` is intentionally NOT clamped to 'block' anymore.
-    // An explicitly-saved "tokenize" is honored end-to-end (see
-    // orgShield.applyTierClampsToShield). The SPA already gates SELECTING tokenize
-    // via `canTokenizePii`, so the page shows + persists the admin's real choice.
+    // Licensed action; the runtime applies the same rule (orgShield.applyTierClampsToShield).
+    if (!hasPiiTokenize && config.piiDetectionAction === 'tokenize') {
+        config.piiDetectionAction = 'block';
+        clamped.push('piiDetectionAction');
+    }
     if (!hasWebSearchGuard) {
         if (config.webSearchGuardEnabled) {
             config.webSearchGuardEnabled = false;
@@ -508,14 +511,9 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (req
         updatedBy: req.session.user.id,
     };
 
-    // Tier-driven clamps: on community tier we force
-    // piiDetectionAction → 'block' and webSearchGuardEnabled → false
-    // BEFORE persisting, so the stored row matches what the runtime
-    // will honour. Enterprise+ (or a server-wide override) passes
-    // through unchanged. The clamp persists in the row: when the
-    // customer later upgrades the value stays 'block' and they must
-    // re-pick 'tokenize' to opt in — safer default after an upgrade
-    // than silently re-enabling a stricter mode.
+    // Tier-driven clamps BEFORE persisting, so the stored row matches what the
+    // runtime honours. The clamp persists: after an upgrade the admin re-picks
+    // 'tokenize' on purpose rather than having it silently return.
     const clamps = await _tierClamps({ organizationId: orgId, userId: req.session?.user?.id });
     const clampedFields = _applyTierClamps(config, clamps);
 
@@ -565,7 +563,7 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (req
     // valid ones are still persisted. The client shows per-term errors from
     // `termErrors`, per-type errors from `typeErrors`, and keeps the user's
     // other edits in place.
-    const responseConfig = { ...config };
+    const responseConfig = /** @type {Record<string, any>} */ ({ ...config });
     if (customFeature) {
         const tests = customTestsOut || await _readTestsForResponse(orgId, custom.customDataTypes);
         if (tests !== undefined) responseConfig.customDataTests = tests;

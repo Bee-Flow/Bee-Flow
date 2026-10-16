@@ -4,8 +4,8 @@
  * Covers the soft enforcement added alongside the second-wave Community
  * tightening:
  *
- *   - On community tier the PUT handler clamps piiDetectionAction → 'block'
- *     (gate: pii_tokenize) and forces webSearchGuardEnabled → false +
+ *   - On a tier without pii_tokenize (and no plan grant) the PUT handler clamps
+ *     piiDetectionAction → 'block' and forces webSearchGuardEnabled → false +
  *     webSearchGuardPiiCategories → [] (gate: web_search_guard). Response
  *     carries `clamped_fields` so the UI can surface the demotion.
  *   - On enterprise tier the same payload is persisted verbatim.
@@ -25,6 +25,7 @@ const http = require('http');
 
 // ── In-memory mocks ────────────────────────────────────────────────────
 let mockTier = 'community';
+let mockGrants = [];
 const storeBlobs = {};
 
 const tiersStub = require('../license/tiers'); // real tier-feature map
@@ -32,6 +33,9 @@ const licenseStub = {
     tiers: tiersStub,
     async resolveTier({ organizationId: _organizationId, userId: _userId } = {}) {
         return mockTier;
+    },
+    async hasFeature({ organizationId: _organizationId } = {}, feature) {
+        return mockGrants.includes(feature) || tiersStub.tierHasFeature(mockTier, feature);
     },
 };
 
@@ -177,23 +181,30 @@ function fullPayload(overrides = {}) {
     try {
         currentSession = ORG_ADMIN_SESSION;
 
-        // ── Community PUT: tokenize is now HONORED (not clamped) ───────
-        // Policy change: an explicitly-saved Tokenize is respected end-to-end
-        // (the SPA gates SELECTING tokenize via canTokenizePii). The tier clamp
-        // no longer downgrades piiDetectionAction → block.
+        // ── Community PUT: tokenize needs pii_tokenize on the org ──────
+        // A saved Tokenize on a tier without the feature is stored as 'block'
+        // and reported as clamped. The client round-trips the row it read, so
+        // this is a clamp, never a refusal of the whole save.
         mockTier = 'community';
         delete storeBlobs[STORE_KEY];
         const putComTok = await request('PUT', `/api/org-privacy-shield/${ORG_ID}`, {
             body: fullPayload({ piiDetectionAction: 'tokenize' }),
         });
         assert.strictEqual(putComTok.status, 200);
-        assert.strictEqual(putComTok.body.config.piiDetectionAction, 'tokenize',
-            'community PUT must KEEP the saved tokenize action (no pii clamp)');
-        assert.ok(!(putComTok.body.clamped_fields || []).includes('piiDetectionAction'),
-            'piiDetectionAction must NOT be reported as clamped');
-        // Stored row keeps the requested tokenize value
-        assert.strictEqual(storeBlobs[STORE_KEY].piiDetectionAction, 'tokenize',
-            'stored row keeps the saved tokenize value');
+        assert.strictEqual(putComTok.body.config.piiDetectionAction, 'block',
+            'community PUT must store block instead of tokenize');
+        assert.ok((putComTok.body.clamped_fields || []).includes('piiDetectionAction'),
+            'piiDetectionAction must be reported as clamped');
+        assert.strictEqual(storeBlobs[STORE_KEY].piiDetectionAction, 'block');
+
+        // A plan grant (hasFeature) keeps tokenize on a low tier.
+        mockGrants = ['pii_tokenize'];
+        delete storeBlobs[STORE_KEY];
+        const putGrant = await request('PUT', `/api/org-privacy-shield/${ORG_ID}`, {
+            body: fullPayload({ piiDetectionAction: 'tokenize' }),
+        });
+        assert.strictEqual(putGrant.body.config.piiDetectionAction, 'tokenize', 'grant keeps tokenize');
+        mockGrants = [];
 
         // ── Community PUT: Web Search Guard is force-disabled ──────────
         mockTier = 'community';
@@ -233,7 +244,7 @@ function fullPayload(overrides = {}) {
         assert.strictEqual(putProTok.body.config.piiDetectionAction, 'tokenize',
             'legacy pro inherits enterprise → tokenize preserved');
 
-        // ── GET on community: tokenize is honored; only Web Search Guard clamps ─
+        // ── GET on community: the response shows what the runtime will use ─
         mockTier = 'community';
         storeBlobs[STORE_KEY] = fullPayload({
             piiDetectionAction: 'tokenize',
@@ -242,16 +253,13 @@ function fullPayload(overrides = {}) {
         });
         const getCom = await request('GET', `/api/org-privacy-shield/${ORG_ID}`);
         assert.strictEqual(getCom.status, 200);
-        assert.strictEqual(getCom.body.piiDetectionAction, 'tokenize',
-            'community GET must report the saved tokenize action (no pii clamp)');
+        assert.strictEqual(getCom.body.piiDetectionAction, 'block',
+            'community GET must report the effective action');
         assert.strictEqual(getCom.body.webSearchGuardEnabled, false);
         assert.deepStrictEqual(getCom.body.webSearchGuardPiiCategories, []);
-        assert.ok(Array.isArray(getCom.body.clamped_fields));
-        assert.ok(!getCom.body.clamped_fields.includes('piiDetectionAction'),
-            'piiDetectionAction must NOT be clamped on GET');
-        assert.ok(getCom.body.clamped_fields.includes('webSearchGuardEnabled'),
-            'Web Search Guard is still tier-clamped');
-        // Underlying store row is untouched.
+        assert.ok(getCom.body.clamped_fields.includes('piiDetectionAction'));
+        assert.ok(getCom.body.clamped_fields.includes('webSearchGuardEnabled'));
+        // Underlying store row is untouched, so an upgrade brings it back.
         assert.strictEqual(storeBlobs[STORE_KEY].piiDetectionAction, 'tokenize',
             'GET clamp must NOT mutate the underlying stored config');
 

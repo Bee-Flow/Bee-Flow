@@ -9,6 +9,7 @@
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
 const { applyCustomTypes, deriveCustomState } = require('./customTypes/resolve');
+const tokenizeEntitlement = require('./tokenizeEntitlement');
 
 /**
  * The seams resolveOrgShield reads through. Production never touches this;
@@ -59,13 +60,9 @@ async function applyTierClampsToShield(shield, { organizationId, userId } = {}) 
     } catch (_) {
         // fail closed — leave `false`, strictest clamp applies
     }
-    // NOTE: we deliberately do NOT clamp `piiDetectionAction` down to 'block'
-    // here. An explicitly-saved "tokenize" is honored everywhere (text chat
-    // already reads the raw config and tokenizes; clamping only the attachment /
-    // file path produced the "files get blocked but text tokenizes" split).
-    // Entitlement is gated where the admin SELECTS the action (the SPA's
-    // `canTokenizePii`, which is grant- + operator-floor-aware); tokenizing is a
-    // privacy/safety action, so honoring the chosen value is the safe default.
+    // Tokenise is licensed (`pii_tokenize`), judged on the TARGET org at use time:
+    // a saved value is ignored, not rewritten, so an upgrade brings it back.
+    shield.piiDetectionAction = await tokenizeEntitlement.allowedAction(_deps.license, shield.piiDetectionAction, organizationId);
     if (!hasWebSearchGuard) {
         shield.webSearchGuardEnabled = false;
         shield.webSearchGuardPiiCategories = [];
@@ -94,8 +91,10 @@ async function applyTierClampsToShield(shield, { organizationId, userId } = {}) 
 async function resolveOrgShield(orgId) {
     if (!orgId) return null;
 
-    const shield = await _deps.configStore.getConfig(`org_privacy_shield_${orgId}`);
-    if (!shield?.enabled) return null;
+    const stored = await _deps.configStore.getConfig(`org_privacy_shield_${orgId}`);
+    if (!stored?.enabled) return null;
+    // Clamp a copy: configStore hands every reader the same cached row.
+    const shield = { ...stored };
 
     // Apply tier-driven clamps before any further resolution so a
     // pre-clamp stored row can't sneak a tokenize PII action or active
@@ -153,7 +152,8 @@ async function resolveOrgShield(orgId) {
         // here and are ignored at runtime by piiDetection.js's gate.
         piiDetectionCategories: shield.piiDetectionCategories || [],
         piiDetectionConfidenceThreshold: shield.piiDetectionConfidenceThreshold,
-        piiDetectionAction: shield.piiDetectionAction || globalConfig.piiDetectionAction || 'block',
+        piiDetectionAction: shield.piiDetectionAction
+            || await tokenizeEntitlement.allowedAction(_deps.license, globalConfig.piiDetectionAction || 'block', orgId),
         // Policy when PII detection can't fully run (guard unreachable / GLiNER
         // model not ready). Falls back to the DLP failure mode for older saves,
         // then fail_closed (BFSF-269).
@@ -237,8 +237,8 @@ async function resolveOrgShield(orgId) {
     // when the row predates them), clamped to the TARGET org's licence
     // (Community keeps only migrated types), the category lists normalised,
     // and the process registry synced so a scan can turn an id back into a
-    // matcher. Adds customDataTypes + customTypesDigest; never mutates `shield`.
-    await applyCustomTypes(resolved, shield, orgId, { lic: _deps.license() });
+    // matcher. Adds customDataTypes + customTypesDigest; never mutates `stored`.
+    await applyCustomTypes(resolved, stored, orgId, { lic: _deps.license() });
     return resolved;
 }
 
