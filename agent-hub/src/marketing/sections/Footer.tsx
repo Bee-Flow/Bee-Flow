@@ -1,4 +1,5 @@
 import React from 'react';
+import type { FooterProps } from './Footer.types';
 import AppIcon from '../../components/icons/AppIcon';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
@@ -8,7 +9,7 @@ const isPreview = () =>
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).has('preview');
 
-export default function Footer({ data, isDark, onToggleTheme }) {
+export default function Footer({ data, isDark, onToggleTheme }: FooterProps) {
     if (!data?.enabled) return null;
     const showThemeSwitcher = !!data.themeSwitcher?.enabled;
     // Master footer-link style — applied to every column link and every
@@ -18,7 +19,7 @@ export default function Footer({ data, isDark, onToggleTheme }) {
     // Accountability row — the footer is a trust surface. Hidden entirely
     // while every field is empty so old sites are untouched.
     const acc = data.accountability || {};
-    const accLinks = Array.isArray(acc.links) ? acc.links.filter(l => l && l.label) : [];
+    const accLinks = Array.isArray(acc.links) ? acc.links.filter((l) => l && l.label) : [];
     const showAccountability =
         !!(acc.address || acc.registration || acc.vat || accLinks.length) || isPreview();
     // The brand "." flourish is now opt-in (showDot === true); it read as
@@ -163,14 +164,14 @@ function FooterLocaleToggle() {
             return v.toLowerCase().split('-')[0] === 'nl' ? 'nl' : 'en';
         } catch { return 'en'; }
     })();
-    const go = (loc) => (e) => {
+    const go = (loc: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
         if (isPreview() || loc === current) return;
         const url = new URL(window.location.href);
         url.searchParams.set('locale', loc);
         window.location.assign(url.toString());
     };
-    const cls = (loc) => (loc === current
+    const cls = (loc: string): React.CSSProperties => (loc === current
         ? { fontWeight: 600, color: 'var(--text-primary)' }
         : { color: 'var(--text-muted)' });
     return (
@@ -184,7 +185,7 @@ function FooterLocaleToggle() {
 
 // Single-button day/night toggle. The icon shows the CURRENT mode; clicking
 // flips to the other. No system option — keep the affordance to one button.
-function ThemeSwitcher({ isDark, onToggle }) {
+function ThemeSwitcher({ isDark, onToggle }: { isDark: boolean; onToggle: () => void }) {
     const label = isDark ? 'Switch to light mode' : 'Switch to dark mode';
     return (
         <button
