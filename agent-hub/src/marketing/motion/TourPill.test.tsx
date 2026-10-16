@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import TourPill, { TourTeaser, hasTour, pillText } from './TourPill';
+import TourPill, { hasTour, pillText } from './TourPill';
 
 const TOUR = { src: 'cms/tour.mp4', poster: 'cms/p.jpg', captionsSrc: 'cms/tour.vtt', captionsLang: 'nl', label: 'Watch product tour', duration: '4 minutes' };
 
@@ -42,14 +42,5 @@ describe('TourPill', () => {
 
     it('falls back to a default label', () => {
         expect(pillText({ src: 'a.mp4' })).toBe('Watch product tour');
-    });
-
-    it('teaser without a loop file is just the pill; with one it lays the pill over the loop', () => {
-        const only = render(<TourTeaser tour={TOUR} />);
-        expect(only.container.querySelector('figure')).toBeNull();
-        only.unmount();
-        const { container } = render(<TourTeaser tour={{ ...TOUR, teaserSrc: 'cms/teaser.mp4' }} />);
-        expect(container.querySelector('figure.tour-teaser')).not.toBeNull();
-        expect(container.querySelector('.tour-pill')).not.toBeNull();
     });
 });

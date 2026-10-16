@@ -35,7 +35,7 @@ const DENY_KEYS = new Set([
     'style', 'align', 'variant', 'srcDark', 'frame',
     // Motion and rich media (issue 244): asset keys, language codes and fixed
     // vocabularies the renderers switch on. `duration` and `label` are prose.
-    'poster', 'captionsLang', 'fit', 'position', 'overlay', 'tilt', 'numeral',
+    'poster', 'captionsLang', 'fit', 'position', 'overlay', 'tilt', 'numeral', 'teaserPill',
     // roadmap items: `status` is a fixed vocabulary the renderer buckets on
     // ('shipped' | 'beta' | 'building' | 'exploring'). Translated to 'bèta'
     // it matches no bucket and the item silently disappears from the page.

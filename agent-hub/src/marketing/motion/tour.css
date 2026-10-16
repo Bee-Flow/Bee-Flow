@@ -24,38 +24,5 @@
 }
 .marketing-root .hero .tour-pill, .marketing-root .media-text-block-text .tour-pill { margin-top: 16px; }
 
-/* Teaser loop: 16:9 box reserved, the pill centred over a dimmed loop. */
-.marketing-root .tour-teaser {
-    position: relative;
-    margin: 0;
-    overflow: hidden;
-    border-radius: var(--radius-lg);
-    aspect-ratio: 16 / 9;
-    background: var(--surface-1);
-}
-.marketing-root .tour-teaser-media {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    aspect-ratio: auto;
-    object-fit: cover;
-    filter: saturate(1.05);
-}
-.marketing-root .tour-teaser::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.25);
-    pointer-events: none;
-}
-.marketing-root .tour-teaser-pill {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.marketing-root .tour-teaser-pill .tour-pill { margin: 0; }
-
+/* Teaser box: the 16:9 space is reserved while its chunk (tourTeaser.css) loads. */
+.marketing-root .tour-teaser-reserve { aspect-ratio: 16 / 9; }

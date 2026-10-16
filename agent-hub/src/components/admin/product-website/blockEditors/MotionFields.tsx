@@ -30,6 +30,7 @@ export interface TourValue {
     label?: string;
     duration?: string;
     teaserSrc?: string;
+    teaserPill?: string;
     alt?: string;
 }
 
@@ -128,6 +129,21 @@ export function BackgroundVideoCard({ value, onChange, persistKey }: CardProps<B
     );
 }
 
+function TeaserPillSelect({ value, onChange }: { value: string | undefined; onChange: (next: string) => void }) {
+    const { t } = useTranslation();
+    return (
+        <FieldSelect
+            label={t('cms_site.blocks.motion.teaser_pill', 'Button on the teaser loop')}
+            value={value || 'corner'}
+            options={[
+                { value: 'corner', label: t('cms_site.blocks.motion.teaser_pill_corner', 'In the corner of the video') },
+                { value: 'below', label: t('cms_site.blocks.motion.teaser_pill_below', 'Under the video') },
+            ]}
+            onChange={onChange}
+        />
+    );
+}
+
 export function TourCard({ value, onChange, persistKey }: CardProps<TourValue>) {
     const { t } = useTranslation();
     const v = value || {};
@@ -192,6 +208,7 @@ export function TourCard({ value, onChange, persistKey }: CardProps<TourValue>) 
                 uploadLabel={t('cms_site.blocks.motion.upload_video', 'Upload video')}
                 placeholder={ASSET_PLACEHOLDER}
             />
+            <TeaserPillSelect value={v.teaserPill} onChange={(x: string) => patch({ teaserPill: x })} />
             <TextField
                 label={t('cms_site.blocks.motion.tour_alt', 'Title for screen readers')}
                 value={v.alt || ''}

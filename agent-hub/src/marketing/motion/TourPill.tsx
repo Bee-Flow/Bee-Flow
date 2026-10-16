@@ -1,28 +1,24 @@
 import { lazy, Suspense, useRef, useState } from 'react';
 import { Play } from 'lucide-react';
-import LazyLoopVideo from '../components/LazyLoopVideo';
-import { resolveAssetUrl } from '../assetUrl';
 import type { TourData } from './motion.types';
-import useAutoplayAllowed from './useAutoplayAllowed';
 import './tour.css';
 
 /**
  * Product tour: a "Watch product tour · 4 minutes" pill that opens the full
  * video in a modal player, and an optional muted teaser loop as the block's
- * visual with the pill on top of it.
+ * visual (see TourTeaser, its own chunk).
  *
  * The modal mounts only when opened, the player has controls and captions (a
  * WebVTT track, when one is set) and never autoplays: the visitor presses
  * play, so sound is always their choice. Closing unmounts the video, which
- * stops it. The teaser loop is lazy (LazyLoopVideo) and falls back to its
- * poster with reduced motion or a data saver.
+ * stops it.
  */
 
 // The modal player is its own chunk: the pill is on the public entry, the
 // player only loads when a visitor shows interest (hover, focus) or opens it.
 const loadTourModal = () => import('./TourModal');
-const TourModal = lazy(loadTourModal);
-const prefetchTourModal = () => { loadTourModal().catch(() => undefined); };
+export const TourModal = lazy(loadTourModal);
+export const prefetchTourModal = () => { loadTourModal().catch(() => undefined); };
 
 export function hasTour(tour?: TourData | null): boolean {
     return !!tour && tour.enabled !== false && typeof tour.src === 'string' && tour.src.trim() !== '';
@@ -64,27 +60,5 @@ export default function TourPill({ tour, onDark = false }: { tour?: TourData | n
                 </Suspense>
             ) : null}
         </>
-    );
-}
-
-/** The teaser loop as a visual, with the pill laid over it. Without a teaser file it is only the pill. */
-export function TourTeaser({ tour }: { tour?: TourData | null }) {
-    const allowed = useAutoplayAllowed({ mobile: true });
-    if (!tour || !hasTour(tour)) return null;
-    if (!hasTeaser(tour)) return <TourPill tour={tour} />;
-    const poster = tour.poster?.trim();
-    return (
-        <figure className="tour-teaser">
-            {allowed ? (
-                <LazyLoopVideo
-                    className="tour-teaser-media"
-                    src={resolveAssetUrl((tour.teaserSrc || '').trim())}
-                    poster={poster ? resolveAssetUrl(poster) : undefined}
-                />
-            ) : poster ? (
-                <img className="tour-teaser-media" src={resolveAssetUrl(poster)} alt="" loading="lazy" />
-            ) : <div className="tour-teaser-media tour-teaser-empty" />}
-            <div className="tour-teaser-pill"><TourPill tour={tour} onDark /></div>
-        </figure>
     );
 }

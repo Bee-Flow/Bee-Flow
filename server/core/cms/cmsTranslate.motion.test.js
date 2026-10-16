@@ -13,7 +13,7 @@ process.env.NODE_ENV = 'test';
 const { isDeniedKey } = require('./cmsTranslate');
 
 test('asset keys, language codes and fixed vocabularies are not translated', () => {
-    for (const key of ['poster', 'captionsLang', 'fit', 'position', 'overlay', 'tilt', 'numeral', 'webmSrc', 'teaserSrc', 'overlayColor', 'repoUrl', 'gradient', 'role', 'kind']) {
+    for (const key of ['poster', 'captionsLang', 'fit', 'position', 'overlay', 'tilt', 'numeral', 'webmSrc', 'teaserSrc', 'teaserPill', 'overlayColor', 'repoUrl', 'gradient', 'role', 'kind']) {
         assert.strictEqual(isDeniedKey(key), true, key);
     }
 });

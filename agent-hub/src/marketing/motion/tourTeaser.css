@@ -1,0 +1,27 @@
+/* The hero's teaser loop: a framed product visual that happens to move. */
+.marketing-root .tour-teaser { margin: 0; }
+.marketing-root .tour-teaser-frame {
+    cursor: pointer;
+    aspect-ratio: 16 / 9;
+}
+.marketing-root .tour-teaser-media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    object-fit: cover;
+}
+.marketing-root .tour-teaser-corner {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    z-index: 1;
+}
+.marketing-root .tour-teaser-below { margin-top: 12px; }
+.marketing-root .tour-teaser .tour-pill { margin: 0; }
+.marketing-root .tour-teaser-frame:hover .tour-pill,
+.marketing-root .tour-teaser-frame:focus-within .tour-pill {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}

@@ -1,4 +1,4 @@
-import React, { type CSSProperties } from 'react';
+import React, { lazy, Suspense, type CSSProperties } from 'react';
 import Button from '../components/Button';
 import AppIcon from '../../components/icons/AppIcon';
 import EditableText from '../components/EditableText';
@@ -7,8 +7,11 @@ import FramedMedia from '../components/FramedMedia';
 import { inlineTextStyle } from './textStyle';
 import BackgroundVideo from '../motion/BackgroundVideo';
 import { backgroundVideoSectionClass } from '../motion/backgroundVideo';
-import TourPill, { TourTeaser, hasTeaser, hasTour } from '../motion/TourPill';
+import TourPill, { hasTeaser, hasTour } from '../motion/TourPill';
 import type { HeroData } from './Hero.types';
+
+// The teaser loop (and its CSS) is its own chunk; the pill alone is on the entry.
+const TourTeaser = lazy(() => import('../motion/TourTeaser'));
 
 const HERO_VARIANTS: readonly (string | undefined)[] = ['classic', 'panel', 'split', 'video'];
 
@@ -202,7 +205,9 @@ export default function Hero({ data }: { data?: HeroData }) {
     const visual = hasMedia
         ? <FramedMedia media={panelMedia} fadeMask={variant !== 'split'} className="reveal reveal-delay-4" priority />
         : hasTeaser(data.tour)
-            ? <div className="reveal reveal-delay-4"><TourTeaser tour={data.tour} /></div>
+            ? <div className="reveal reveal-delay-4">
+                <Suspense fallback={<div className="tour-teaser-reserve" />}><TourTeaser tour={data.tour} /></Suspense>
+            </div>
             : legacyMockup || ((variant === 'panel' || variant === 'video')
             ? <FramedMedia media={panelMedia} fadeMask className="reveal reveal-delay-4" priority />
             : null);

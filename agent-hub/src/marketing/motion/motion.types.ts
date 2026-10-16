@@ -28,5 +28,7 @@ export interface TourData {
     duration?: string;
     /** Short muted loop shown as the block's visual, with the pill on top of it. */
     teaserSrc?: string;
+    /** Where the pill sits on the teaser: in the frame's corner (default) or under it. */
+    teaserPill?: 'corner' | 'below';
     alt?: string;
 }
