@@ -10,6 +10,11 @@
  * would have produced here, and a not-found read ON or BELOW one of them falls
  * back to the sample. A path no earlier step touched still fails.
  *
+ * Tools that create missing parents (upload, the office creators) also record
+ * each ancestor folder, but as an EXACT-match entry ("exact:/X"): listing the
+ * implied folder falls back, while the match is not widened to everything
+ * below it, so a typo in a sibling path still fails.
+ *
  * Accepted trade-off: an idempotent create_folder of a folder that already
  * exists also covers its children, so a typo below it falls back to a sample.
  *
@@ -42,6 +47,16 @@ const DEFAULT_EXT = {
     nextcloud_create_document: 'docx',
 };
 
+/** Tools that create the missing parent folders of the path they write. */
+const CREATES_PARENTS = new Set([
+    'nextcloud_upload_file',
+    'nextcloud_create_document',
+    'nextcloud_create_spreadsheet',
+    'nextcloud_create_presentation',
+]);
+
+const EXACT = 'exact:';
+
 /** '/X//a/' -> '/X/a'; null for anything that is not a usable path. */
 function normalisePath(p) {
     if (typeof p !== 'string') return null;
@@ -57,6 +72,10 @@ function recordSimulatedWrite(ctx, tool, inputs) {
     const path = arg ? normalisePath(inputs && inputs[arg]) : null;
     if (!path) return;
     set.add(path);
+    if (CREATES_PARENTS.has(tool)) {
+        const parts = path.split('/').filter(Boolean);
+        for (let i = 1; i < parts.length; i++) set.add(`${EXACT}/${parts.slice(0, i).join('/')}`);
+    }
     const ext = DEFAULT_EXT[tool];
     if (ext && !path.toLowerCase().endsWith(`.${ext}`)) set.add(`${path}.${ext}`);
 }
@@ -66,6 +85,7 @@ function isUnderSimulatedPath(ctx, path) {
     const p = normalisePath(path);
     const set = ctx && ctx._simulatedPaths;
     if (!p || !set) return false;
+    if (set.has(`${EXACT}${p}`)) return true;
     for (const w of set) {
         if (p === w || p.startsWith(`${w}/`)) return true;
     }
