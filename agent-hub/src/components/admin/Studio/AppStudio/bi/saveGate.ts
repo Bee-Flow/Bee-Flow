@@ -39,7 +39,7 @@ export function saveFirstReason(dirty: boolean, t?: TranslateFn): string | null 
 
 interface RunWithSaveArgs<T> {
     dirty: boolean;
-    onSave?: () => Promise<unknown> | unknown;
+    onSave?: (() => Promise<unknown> | unknown) | null;
     action: () => T;
 }
 

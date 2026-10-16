@@ -14,6 +14,8 @@ import QuestionsCard from '../chat/QuestionsCard';
 import { webSearchUnavailableHint } from '../chat/webSearchStatus';
 import { WORK_MODES } from '../chat/WorkModePicker';
 import { isWorkModeShortcut, nextWorkMode } from '../chat/workModeShortcut';
+import type { LiveRunFocus } from '../chat/toolCallDisplay';
+import type { OutputLookup } from '../chat/ProposalCard';
 import type { FlowDefinition, FlowStep } from '../flow/types';
 
 type SendFn = (text: string, attachments?: unknown[], opts?: { answers?: unknown }) => unknown;
@@ -32,12 +34,12 @@ export interface AssistantColumnProps {
     reviewOpen: boolean;
     setReviewOpen: (open: boolean) => void;
     onApprovePlan?: ((pauseAfterStep: boolean) => void) | null;
-    onApplyProposal?: (() => void) | null;
-    onDiscardProposal?: (() => void) | null;
+    onApplyProposal: (excluded: Set<string>) => void;
+    onDiscardProposal?: () => void;
     applyingProposal: boolean;
     onPreviewProposal: () => void;
-    realOutputById: unknown;
-    liveRunFocus: unknown;
+    realOutputById: OutputLookup | null;
+    liveRunFocus: LiveRunFocus | null;
     onFocusStep: (id: string) => void;
     messagesContainerRef: RefObject<HTMLDivElement | null>;
     messagesBodyRef?: RefObject<HTMLDivElement | null> | null;

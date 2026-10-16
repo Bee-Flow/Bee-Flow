@@ -4,9 +4,12 @@
  * BuilderShell owns the full shape.
  */
 import type { RefObject, UIEvent } from 'react';
+import type { DryRun } from '../../../../hooks/builderStream';
+import type { FlowletAgentState } from '../../../../hooks/useFlowletAgentStream';
 import type { BuilderWebSearchStatus } from '../../../../hooks/useAutomationBuilderStream';
+import type { PlanTodo } from '../BuilderPlanChecklist';
 import type { BuilderHeaderProps } from '../BuilderHeader';
-import type { InlinePlan } from '../chat/PlanInlineCard';
+import type { ReviewPlan } from '../chat/PlanReview';
 import type { PendingTable } from '../chat/pendingTables';
 import type { BuilderQuestion } from '../chat/QuestionsCard';
 import type { FlowDefinition, FlowStep, RunStepRow } from '../flow/types';
@@ -21,7 +24,7 @@ export interface BuilderMessage {
 }
 
 /** The plan the agent wrote, as the review overlay and the inline card read it. */
-export interface BuilderPlan extends InlinePlan {
+export interface BuilderPlan extends ReviewPlan {
     [key: string]: unknown;
 }
 
@@ -38,13 +41,13 @@ export interface BuilderTabState {
     running?: boolean;
     steps?: RunStepRow[];
     summary?: string;
-    todos?: unknown[];
+    todos?: PlanTodo[];
     reviewPlan?: BuilderPlan | null;
     reviewQuestions?: BuilderQuestion[] | null;
     proposal?: BuilderProposal | null;
     webSearch?: BuilderWebSearchStatus | null;
     turn?: { firstEventAt?: unknown } | null;
-    dryRun?: { id?: string; status?: string } | null;
+    dryRun?: DryRun | null;
     dryRunSeq?: unknown;
     pendingExternalDraft?: unknown;
     validation?: unknown;
@@ -94,8 +97,8 @@ export interface BuildTabProps {
     assistantContext?: AssistantContext | null;
     onClearAssistantContext?: Fn;
     onAskAssistant?: Fn<[stepId?: string, field?: unknown]>;
-    onApplyProposal?: Fn;
-    onDiscardProposal?: Fn;
+    onApplyProposal: (excluded: Set<string>) => void;
+    onDiscardProposal?: () => void;
     onApprovePlan?: Fn<[pauseAfterStep: boolean]>;
     onRejectPlan?: Fn;
     /** An Apply in flight. */
@@ -149,7 +152,7 @@ export interface BuildTabProps {
     onDiagnose?: Fn;
     acceptExternalDraft?: Fn;
     dismissExternalDraft?: Fn;
-    onBuildLayer?: Fn<never[], unknown>;
-    onRefineLayer?: Fn<never[], unknown>;
-    layerAgentState?: unknown;
+    onBuildLayer?: Fn<[text: string], Promise<boolean>>;
+    onRefineLayer?: Fn<[key: string, text: string], Promise<boolean>>;
+    layerAgentState?: FlowletAgentState | null;
 }

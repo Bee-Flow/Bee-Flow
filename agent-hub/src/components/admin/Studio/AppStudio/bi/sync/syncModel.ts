@@ -35,14 +35,15 @@ export interface Incremental {
 
 /** A connector's `sync` block (server/appStudio/dataModel.js). */
 export interface SyncBlock {
-    tableId: string;
+    /** Absent while the table it fills is still to be made. */
+    tableId?: string;
     mode?: string;
     keyField?: string;
     incremental?: Incremental | null;
     schedule?: { everyMinutes?: number; cron?: string; tz?: string };
     refreshOnView?: boolean;
     retentionDays?: number;
-    children?: Array<Record<string, unknown>>;
+    children?: Array<{ tableId?: string; [key: string]: unknown } | null>;
     [key: string]: unknown;
 }
 

@@ -35,7 +35,7 @@ export { PANEL_VIEWS };
 
 // Typed views of three .jsx siblings, whose `= null` / `= []` defaults would
 // otherwise type those props as null-only (or never[]).
-const SaveStatusChip = SaveStatusChipJs as unknown as ComponentType<{ status?: string; version?: number | string | null }>;
+const SaveStatusChip = SaveStatusChipJs;
 const LogicaTab = LogicaTabJs as unknown as ComponentType<{
     app: unknown;
     definition: unknown;

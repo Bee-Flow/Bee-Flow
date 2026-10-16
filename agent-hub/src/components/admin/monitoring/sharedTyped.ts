@@ -27,9 +27,4 @@ export const MetricCard = MetricCardJs as unknown as ComponentType<{
     deltaLabel?: ReactNode;
 }>;
 
-export const MarkdownRenderer = MarkdownRendererJs as unknown as ComponentType<{
-    content: string;
-    className?: string;
-    isLoading?: boolean;
-    inline?: boolean;
-}>;
+export const MarkdownRenderer = MarkdownRendererJs;

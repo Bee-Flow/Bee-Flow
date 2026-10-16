@@ -20,7 +20,7 @@ function CenteredNote({ children }: { children?: ReactNode }) {
 }
 
 interface InspectorHostProps {
-    activePageId: string;
+    activePageId: string | null;
     activePage: CmsActivePage | null;
     translationMode: boolean;
     translateProps: Omit<ComponentProps<typeof TranslationPanel>, 'scope'>;

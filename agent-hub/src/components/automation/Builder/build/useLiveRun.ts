@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { computeRunFocus as computeRunFocusJs } from '../flow/runFocus';
+import type { RunFocus } from '../flow/runFocus';
 import type { FlowDefinition, RunStepRow } from '../flow/types';
 import { useDryRunReplay as useDryRunReplayJs } from '../flow/useDryRunReplay';
 import { useReducedMotion } from '../flow/useReducedMotion';
@@ -7,7 +8,7 @@ import { useReducedMotion } from '../flow/useReducedMotion';
 // runFocus.js reads a missing definition as an empty graph; its JSDoc says object.
 const computeRunFocus = computeRunFocusJs as (opts: {
     runSteps?: RunStepRow[]; runInFlight?: boolean; definition: FlowDefinition | null;
-}) => unknown;
+}) => RunFocus | null;
 
 // useDryRunReplay.js is JavaScript; this is the part of its contract BuildTab reads.
 const useDryRunReplay = useDryRunReplayJs as (opts: {

@@ -1,4 +1,3 @@
-import type { ComponentType, ReactNode } from 'react';
 import { slugIssues as slugIssuesJs } from '../../../../utils/cmsPublicRouting';
 import ModalShellJs from '../dialogs/ModalShell';
 
@@ -35,17 +34,9 @@ export interface SlugIssue {
 
 // cmsPublicRouting and ModalShell are plain JS: TypeScript reads their `= null`
 // defaults as "always null" and their destructured props as required.
-export const slugIssues = slugIssuesJs as unknown as (
-    slug: string,
-    opts?: { existingSlugs?: Array<string | undefined> | null; currentSlug?: string | null },
-) => SlugIssue | null;
+export const slugIssues = slugIssuesJs;
 
-export const ModalShell = ModalShellJs as unknown as ComponentType<{
-    children?: ReactNode;
-    onClose: () => void;
-    labelledBy?: string;
-    width?: string;
-}>;
+export const ModalShell = ModalShellJs;
 
 /**
  * Slug-shaped sanitising while typing: lowercase, spaces → hyphens, anything

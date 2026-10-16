@@ -9,6 +9,7 @@ import type { TranslateFn } from '../../../../../../hooks/useTranslation';
 import { kindColorVar } from '../../../../../shared/kindColors';
 import type { AppDefinition, AppNode } from '../../inspector/appDefinition';
 import { findNode as findNodeJs } from '../../state/definitionOps';
+import type { LogicSummaryMark } from '../nodeLogicSummary';
 
 /** What findNode answers: the node, its parent (node or section) and its section. */
 interface FoundNode {
@@ -20,13 +21,7 @@ interface FoundNode {
 export const findNode = findNodeJs as unknown as (definition: AppDefinition | null, id: string) => FoundNode | null;
 
 /** One mark of nodeLogicSummary: what kind of logic the component carries. */
-export interface LogicMark {
-    key: string;
-    kind: string;
-    text: string;
-    actionKind?: string;
-    actionTitle?: string | null;
-}
+export type LogicMark = LogicSummaryMark;
 
 // Containers that stack their children with flex rather than on the 12-column
 // grid. A child's `span` has no effect inside one, so offering the width grip

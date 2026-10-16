@@ -1,21 +1,11 @@
 // The Agent Designer's section navigation, its Knowledge section and the
 // empty state. Split out of AgentDesigner/index.jsx without a change in
 // behaviour.
-import type { ComponentType } from 'react';
 import { INTEGRATION_CATALOG } from './integrations';
 import { useTranslation } from '../../../hooks/useTranslation';
 import KnowledgePanelJs from '../../knowledge/KnowledgePanel';
 
-const KnowledgePanel = KnowledgePanelJs as unknown as ComponentType<{
-    agentId: string;
-    API_BASE: string;
-    strictKnowledge: boolean;
-    onStrictKnowledgeChange: (v: boolean) => void;
-    includeSourceReferences: boolean;
-    onIncludeSourceReferencesChange: (v: boolean) => void;
-    knowledgeBaseIds: string[];
-    onKnowledgeBaseIdsChange: (ids: string[]) => void;
-}>;
+const KnowledgePanel = KnowledgePanelJs;
 
 /** The integration flags of GET /ai/user-settings this nav reads. */
 export interface IntegrationStatus {

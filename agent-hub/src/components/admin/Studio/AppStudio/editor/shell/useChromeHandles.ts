@@ -1,20 +1,18 @@
 import { useCallback, useMemo, useState } from 'react';
 import scopedStorage from '../../../../../../utils/scopedStorage';
+import type { EditorChrome } from '../../chat/builderPaneModel';
+import type { BuildCueValue } from '../BuildCueContext';
 import { CHAT } from './ShellPanes';
 import type { SidePane } from './ShellPanes';
 
 /** The live build, published by the chat pane and read by the canvas. */
-export interface BuildCue {
-    todos?: unknown[];
-    running?: boolean;
-    [key: string]: unknown;
-}
+export type BuildCue = BuildCueValue;
 
 interface ChromeInputs {
     chatPane: SidePane;
-    commitTurn: unknown;
-    markSaved: unknown;
-    flush: unknown;
+    commitTurn: EditorChrome['commitTurn'];
+    markSaved: EditorChrome['markSaved'];
+    flush: EditorChrome['flush'];
     appId: string | null;
     undo: () => void;
 }

@@ -75,7 +75,8 @@ export default function useIntegrationCatalog() {
     }, [catalog]);
 
     const byToolName = useMemo(() => {
-        const m = new Map<string, { app: CatalogApp; action: CatalogAppAction }>();
+        // Keyed by tool name; a connector without a tool looks up `undefined` and finds nothing.
+        const m = new Map<string | undefined, { app: CatalogApp; action: CatalogAppAction }>();
         for (const app of apps) {
             for (const action of app.actions || []) m.set(action.name, { app, action });
         }
@@ -92,9 +93,9 @@ export default function useIntegrationCatalog() {
         failed,
         refresh,
         /** The catalog entry for a tool name, or null when it isn't in the catalog. */
-        lookup: (toolName: string) => byToolName.get(toolName) || null,
+        lookup: (toolName: string | undefined) => byToolName.get(toolName) || null,
         /** Sibling actions of the app owning `toolName` (the chain candidates). */
-        siblingsOf: (toolName: string) => {
+        siblingsOf: (toolName: string | undefined) => {
             const hit = byToolName.get(toolName);
             if (!hit) return [];
             return (hit.app.actions || []).filter((a) => a.name !== toolName);

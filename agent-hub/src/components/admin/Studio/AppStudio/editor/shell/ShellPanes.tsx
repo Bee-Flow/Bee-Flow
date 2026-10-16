@@ -5,22 +5,13 @@
  */
 import { PanelLeftClose, PanelRightClose, PanelRightOpen, Sparkles } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import scopedStorage from '../../../../../../utils/scopedStorage';
 import PanelResizerJs from '../../../../../shared/PanelResizer';
 import type { ActiveDrag } from './useCanvasDrag';
 
-const PanelResizer = PanelResizerJs as unknown as ComponentType<{
-    width: number;
-    min: number;
-    max: number;
-    defaultWidth: number;
-    edge: 'start' | 'end';
-    onResize: (width: number) => void;
-    onResizeEnd: (width: number) => void;
-    label: string;
-}>;
+const PanelResizer = PanelResizerJs;
 
 // Inspector column. 260px still fits a label+control row; 560px is where a
 // binding editor stops needing its own scrollbar.

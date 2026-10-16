@@ -3,11 +3,12 @@ import { useMemo, useState } from 'react';
 import type { ComponentType } from 'react';
 import ConnectorPickerJs from './ConnectorPicker';
 import ConnectorEditor from './connectors/ConnectorEditor';
-import type { CreateTables, SyncTable } from './connectors/ConnectorEditor';
+import type { CreateTables } from './connectors/ConnectorEditor';
+import type { ModelTable } from '../tables/tablesManagerModel';
 import { KindChooser } from './connectors/ConnectorFields';
 import ConnectorList from './connectors/ConnectorList';
 import { groupConnectors, newConnectorId } from './connectors/connectorModel';
-import type { Connector, IntegrationCatalog } from './connectors/connectorModel';
+import type { Connector } from './connectors/connectorModel';
 import useIntegrationCatalogJs from './useIntegrationCatalog';
 import useTranslation from '../../../../../hooks/useTranslation';
 import { useEditorChrome } from '../editor/EditorChromeContext';
@@ -58,7 +59,7 @@ export interface ConnectorsManagerProps {
     onChange: (connectors: Connector[]) => void;
     disabled?: boolean;
     appId?: string | null;
-    tables?: SyncTable[];
+    tables?: ModelTable[];
     onCreateTable?: CreateTables;
     saved?: boolean;
     onSave?: (() => unknown) | null;
@@ -70,7 +71,7 @@ interface PickerSelection {
 }
 
 const ConnectorPicker = ConnectorPickerJs as unknown as ComponentType<{ connectors: Connector[]; onApply: (selection: PickerSelection) => void; onClose: () => void }>;
-const useIntegrationCatalog = useIntegrationCatalogJs as unknown as () => IntegrationCatalog;
+const useIntegrationCatalog = useIntegrationCatalogJs;
 
 function PickPrompt({ onPick, disabled }: { onPick: () => void; disabled?: boolean }) {
     const { t } = useTranslation();

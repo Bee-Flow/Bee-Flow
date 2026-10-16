@@ -4,7 +4,6 @@ import AgentListSidebar from "./AgentListSidebar";
 import type { DesignerAgent, DesignerUser } from "./AgentListSidebar";
 import { CAPABILITIES } from "./constants";
 import { DesignerEmptyState, DesignerSectionNav, KnowledgeSection } from "./DesignerPanels";
-import type { IntegrationStatus } from "./DesignerPanels";
 
 // Extracted hooks
 import useAgentApiJs from "./hooks/useAgentApi";
@@ -13,46 +12,26 @@ import useAgentState from "./hooks/useAgentState";
 import useCapabilities from "./hooks/useCapabilities";
 import useDesignerEffects from "./hooks/useDesignerEffects";
 import PublishMenu from "./PublishMenu";
-import type { OrgGroup } from "./PublishMenu";
 import { BehaviorSection as BehaviorSectionJs } from "./sections/BehaviorSection";
 import { IdentitySection as IdentitySectionJs } from "./sections/IdentitySection";
 import { ToolsSection as ToolsSectionJs } from "./sections/ToolsSection";
+import type { DesignerSectionProps } from "./sections/sectionProps";
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from "../../../utils/helpers";
 
-/**
- * The designer's state (hooks/useAgentState.js). Its `useState(null)` and
- * `useState([])` read as `null` and `never[]`; these are what they hold.
- */
-type DesignerState = Omit<ReturnType<typeof useAgentState>, 'agents' | 'selectedAgent' | 'integrationStatus' | 'orgGroups' | 'sharedGroups' | 'knowledgeBaseIds'> & {
-  agents: DesignerAgent[];
-  selectedAgent: DesignerAgent | null;
-  integrationStatus: IntegrationStatus | null;
-  orgGroups: OrgGroup[];
-  sharedGroups: string[];
-  setSharedGroups: (update: string[] | ((prev: string[]) => string[])) => void;
-  knowledgeBaseIds: string[];
-  setKnowledgeBaseIds: (ids: string[]) => void;
-};
+/** The designer's state (hooks/useAgentState.ts). */
+type DesignerState = ReturnType<typeof useAgentState>;
 
-/** The API hook (hooks/useAgentApi.js), as the designer calls it. */
-interface DesignerApi {
-  selectAgent: (agent: DesignerAgent) => void;
-  createNewAgent: () => void;
-  saveAgent: () => void;
-  deleteAgent: (id: string) => void;
-  duplicateAgent: (agent: DesignerAgent) => void;
-  togglePublish: (groups: string[]) => void;
-  setPublishState: (published: boolean, groups: string[]) => void;
-  confirmDialog: React.ReactNode;
-}
-const useAgentApi = useAgentApiJs as unknown as (state: DesignerState, opts: { systemMode: boolean; securityMode: boolean; initialAgentId: string | null }) => DesignerApi;
+const useAgentApi = useAgentApiJs;
 
-/** The three JavaScript sections read the whole state bag plus these extras. */
-type SharedProps = DesignerState & Record<string, unknown>;
+/** The API hook (hooks/useAgentApi.ts), as the designer calls it. */
+type DesignerApi = ReturnType<typeof useAgentApi>;
+
+/** The state bag plus the helpers the three sections read next to it. */
+type SharedProps = DesignerSectionProps;
 const IdentitySection = IdentitySectionJs as unknown as ComponentType<SharedProps>;
-const ToolsSection = ToolsSectionJs as unknown as ComponentType<SharedProps>;
-const BehaviorSection = BehaviorSectionJs as unknown as ComponentType<SharedProps>;
+const ToolsSection = ToolsSectionJs;
+const BehaviorSection = BehaviorSectionJs;
 
 /** An agent editor reads, but may not change, someone else's unpublished agent. */
 function isReadonlyFor(selectedAgent: DesignerAgent | null, user: DesignerUser | null, isCreating: boolean) {
@@ -82,7 +61,7 @@ const AgentDesigner = ({
 }: AgentDesignerProps) => {
   const { t } = useTranslation();
   // All state from hooks
-  const state = useAgentState() as unknown as DesignerState;
+  const state = useAgentState();
   const { selectedAgent, isCreating } = state;
 
   // API operations

@@ -10,11 +10,7 @@ import AssetPickerDialogJs from '../dialogs/AssetPickerDialog';
 
 export const AppIcon = AppIconJs as unknown as ComponentType<{ name: string; className?: string }>;
 
-export const IconPicker = IconPickerJs as unknown as ComponentType<{
-    value: string;
-    onSelect: (name: string) => void;
-    onClose: () => void;
-}>;
+export const IconPicker = IconPickerJs;
 
 export const AssetPickerDialog = AssetPickerDialogJs as unknown as ComponentType<{
     onPick: (url: string) => void;

@@ -5,7 +5,7 @@ import { countComponents } from './builderPaneModel';
 import type { EditorChrome } from './builderPaneModel';
 import type { DoneInfo, RevealCue } from './useBuilderTurn';
 import type { BuilderEngine, BuilderMessage, BuilderTodo, BuilderTurn } from '../../../../../hooks/builderStream';
-import type { BuildPhaseInfo } from '../editor/BuildCueContext';
+import type { BuildCueValue, BuildPhaseInfo } from '../editor/BuildCueContext';
 import type { AppDefinition } from '../inspector/appDefinition';
 
 interface ToolCallRow {
@@ -59,7 +59,7 @@ export function useBuildCue({
     // canvas does not re-render on every character. Published through the
     // shell (chrome.publishBuildCue) to BuildCueContext.
     const lastToolCalls = tailAssistant ? tailCalls : null;
-    const cue = useMemo(() => {
+    const cue = useMemo<BuildCueValue | null>(() => {
         if (!running && !doneInfoRef.current) return null;
         const calls = Array.isArray(lastToolCalls) ? lastToolCalls : [];
         const lastOk = [...calls].reverse().find((c) => c && c.ok !== false) || null;

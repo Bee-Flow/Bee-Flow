@@ -46,8 +46,8 @@ export interface FlowletsPanelProps {
     rootDescription?: string;
     onSummarizeRoot?: () => void;
     summarizingRoot?: boolean;
-    onBuildLayer?: (text: string) => Promise<boolean>;
-    onRefineLayer?: (key: string, text: string) => Promise<boolean>;
+    onBuildLayer?: ((text: string) => Promise<boolean>) | null;
+    onRefineLayer?: ((key: string, text: string) => Promise<boolean>) | null;
     layerAgentState?: LayerAgentState | null;
 }
 

@@ -3,6 +3,7 @@
  * kinds of table and how the screen names them, and new table ids and keys.
  */
 import { slugifyKey } from './TableDesigner';
+import type { Connector } from '../bi/connectors/connectorModel';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 
 /** One field of a model table, as the table designer edits it. */
@@ -31,13 +32,7 @@ export interface ModelTable {
 }
 
 /** A connector on the model; `sync` names the table(s) it fills. */
-export interface ModelConnector {
-    id: string;
-    name?: string;
-    kind?: string;
-    sync?: { tableId?: string; children?: Array<{ tableId?: string } | null> } | null;
-    [key: string]: unknown;
-}
+export type ModelConnector = Connector;
 
 /** The owner data model, as GET/PUT /:id/schema carry it. */
 export interface DataModel {

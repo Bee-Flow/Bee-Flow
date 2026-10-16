@@ -20,7 +20,7 @@ import { kindColorVar } from '../../shared/kindColors';
 type Translate = (key: string, fallback?: string) => string;
 type Navigate = ((path: string) => void) | null | undefined;
 
-const AppIcon = AppIconJs as unknown as ComponentType<{ name: string; className?: string; style?: Record<string, string> }>;
+const AppIcon = AppIconJs;
 
 /** One row descriptor, as NavRow and FlyoutRow read it. */
 export interface NavItem {

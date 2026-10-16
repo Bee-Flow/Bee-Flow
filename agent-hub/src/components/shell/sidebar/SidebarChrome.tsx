@@ -9,11 +9,10 @@ import NotificationCenterJs from '../NotificationCenter';
 import type { SidebarAgent } from './sidebarConversations';
 import type { NavItem } from './sidebarNav';
 import { ACCENT_BAR, ROW, ROW_IDLE } from './sidebarTokens';
-import type { ComponentType } from 'react';
 
 type Translate = (key: string, fallback?: string) => string;
 
-const NotificationCenter = NotificationCenterJs as unknown as ComponentType<{ variant?: string }>;
+const NotificationCenter = NotificationCenterJs;
 
 /**
  * White-label override: in self-hosted deploys the org's uploaded logo

@@ -1,6 +1,5 @@
 import { AlertTriangle } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import type { ComponentType } from 'react';
 import { AutomationField, JsonObjectField, ParamsEditor, TextField } from './ConnectorFields';
 import { INPUT, LABEL, availableFieldsOf, chainSuggestionsOf, connectorProblem, kinds } from './connectorModel';
 import type { Connector, InspectResult, IntegrationCatalog } from './connectorModel';
@@ -10,36 +9,19 @@ import TestPanel from './TestPanel';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import Disclosure from '../../../../../shared/Disclosure';
 import ConnectorSyncPanelJs from '../ConnectorSyncPanel';
-
-/** One table the sync panel can write into (the owner model's tables). */
-export interface SyncTable {
-    id: string;
-    [key: string]: unknown;
-}
+import type { ModelTable } from '../../tables/tablesManagerModel';
 
 /** Adds the tables a connector proposed and points its sync at them, in one model update. */
-export type CreateTables = (connectorId: string, tables: SyncTable[], sync: Connector['sync']) => void;
+export type CreateTables = (connectorId: string, tables: ModelTable[], sync: Connector['sync']) => void;
 
-// ConnectorSyncPanel types the tables it creates (SyncTableDraft) narrower than
-// the model rows this editor hands on.
-const ConnectorSyncPanel = ConnectorSyncPanelJs as unknown as ComponentType<{
-    connector: Connector;
-    tables: SyncTable[];
-    appId: string | null;
-    onChange: (patch: Record<string, unknown>) => void;
-    onCreateTable: (table: SyncTable, sync: Connector['sync']) => void;
-    onCreateTables: (tables: SyncTable[], sync: Connector['sync']) => void;
-    disabled?: boolean;
-    saved?: boolean;
-    onSave?: (() => unknown) | null;
-}>;
+const ConnectorSyncPanel = ConnectorSyncPanelJs;
 
 export interface ConnectorEditorProps {
     connector: Connector;
     onChange: (connector: Connector) => void;
     disabled?: boolean;
     appId: string | null;
-    tables: SyncTable[];
+    tables: ModelTable[];
     onCreateTable?: CreateTables;
     saved?: boolean;
     onSave?: (() => unknown) | null;

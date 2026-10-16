@@ -61,14 +61,7 @@ export interface EditorNodeWrapperProps {
 const nodeLogicSummary = nodeLogicSummaryJs as unknown as (
     node: AppNode, definition: AppDefinition | null, titleFor: ((id: string) => string | null) | null, t: TranslateFn,
 ) => LogicMark[];
-const useAutomationTitles = useAutomationTitlesJs as unknown as (enabled: boolean) => Record<string, string> | null;
-
-/** What runtime context the editor canvas provides (AppRenderer in edit mode). */
-interface EditorRuntime {
-    selectedNodeId: string | null;
-    selectedNodeIds?: Set<string>;
-    onSelectNode?: (nodeId: string) => void;
-}
+const useAutomationTitles = useAutomationTitlesJs;
 
 /**
  * What logic this component carries, for the badge strip and the named pill.
@@ -146,7 +139,7 @@ function useNodeActions(node: AppNode, definition: AppDefinition | null, selecti
 export default function EditorNodeWrapper({ node, className, style, children, onCommit }: EditorNodeWrapperProps) {
     const { t } = useTranslation();
     const { definition, mode, streamLock, recentlyAddedIds, revealDelays, dispatch } = useAppEditorState();
-    const { selectedNodeId, selectedNodeIds, onSelectNode } = useRuntime() as unknown as EditorRuntime;
+    const { selectedNodeId, selectedNodeIds, onSelectNode } = useRuntime();
     const [confirmDelete, setConfirmDelete] = useState(false);
 
     const { primary, dropEdge, attributes, listeners, setActivatorNodeRef, isDragging, cellRef, setCellRef } = useCellSortable(node);

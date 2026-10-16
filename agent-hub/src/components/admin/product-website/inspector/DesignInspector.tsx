@@ -2,7 +2,8 @@ import React from 'react';
 import DesignEditor from '../DesignEditor';
 
 interface DesignInspectorProps {
-    design: Record<string, unknown>;
+    /** DesignEditor falls back to its own defaults while the site has none. */
+    design?: Record<string, unknown>;
     onChange: (design: Record<string, unknown>) => void;
 }
 

@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode, RefAttributes } from 'react';
 import type { AddStepPayload, AddStepOptions, Position } from './addStepModel';
-import type { BuilderMessage, BuilderPlan, BuilderProposal } from './buildTabTypes';
+import type { BuilderMessage } from './buildTabTypes';
 import InputAreaJs from '../../../chat/InputArea';
 import CanvasPlanPanelJs from '../CanvasPlanPanel';
 import { AssistantFieldProvider as AssistantFieldProviderJs } from '../chat/AssistantFieldContext';
@@ -83,50 +83,16 @@ export interface DiagramPaneProps {
 
 export const DiagramPane = DiagramPaneJs as unknown as ComponentType<DiagramPaneProps & RefAttributes<DiagramHandle | null>>;
 
-export const AddStepMenu = AddStepMenuJs as unknown as ComponentType<{
-    scope: Record<string, unknown>;
-    showSearch?: boolean;
-    autoFocus?: boolean;
-    onAdd: (payload: AddStepPayload | null) => void;
-    onAfterAdd?: () => void;
-}>;
+export const AddStepMenu = AddStepMenuJs;
 
-export const CanvasPlanPanel = CanvasPlanPanelJs as unknown as ComponentType<{
-    todos?: unknown[];
-    running?: boolean;
-    t: unknown;
-    idPrefix?: string;
-    style?: Record<string, number | string> | null;
-}>;
+export const CanvasPlanPanel = CanvasPlanPanelJs;
 
-export const AutomationSummary = AutomationSummaryJs as unknown as ComponentType<{ label: string; text: string }>;
+export const AutomationSummary = AutomationSummaryJs;
 
 /** The ask-the-assistant-about-this-field hook the step drawer's fields read. */
-export const AssistantFieldProvider = AssistantFieldProviderJs as unknown as ComponentType<{
-    value: ((field: unknown) => void) | null;
-    children?: ReactNode;
-}>;
+export const AssistantFieldProvider = AssistantFieldProviderJs;
 
-export const FlowletsPanel = FlowletsPanelJs as unknown as ComponentType<{
-    onClose: () => void;
-    rootDef: FlowDefinition | null;
-    currentScopeKey?: string | null;
-    onOpenLayer: (key: string) => void;
-    onRenameLayer: unknown;
-    onDeleteLayer: unknown;
-    refCountFor: unknown;
-    onCreateLayer: unknown;
-    aiEnabled?: boolean;
-    onToggleAi: unknown;
-    onSummarize: unknown;
-    summarizingKey?: string | null;
-    rootDescription?: string;
-    onSummarizeRoot: unknown;
-    summarizingRoot?: boolean;
-    onBuildLayer?: unknown;
-    onRefineLayer?: unknown;
-    layerAgentState?: unknown;
-}>;
+export const FlowletsPanel = FlowletsPanelJs;
 
 export const FormRunOverlay = FormRunOverlayJs as unknown as ComponentType<{
     automationId?: string | null;
@@ -174,12 +140,7 @@ export const NodeDetailView = NodeDetailViewJs as unknown as ComponentType<{
  * optional prop as `null` for a TypeScript caller.
  */
 
-export const AssistantWelcome = AssistantWelcomeJs as unknown as ComponentType<{
-    triggerKind?: string;
-    definition?: FlowDefinition | null;
-    selectedStep?: FlowStep | null;
-    onPick: (text: string) => void;
-}>;
+export const AssistantWelcome = AssistantWelcomeJs;
 
 export const MessageBubble = MessageBubbleJs as unknown as ComponentType<{
     msg: BuilderMessage;
@@ -187,41 +148,13 @@ export const MessageBubble = MessageBubbleJs as unknown as ComponentType<{
     onFocusStep?: ((id: string) => void) | null;
 }>;
 
-export const ProposalCard = ProposalCardJs as unknown as ComponentType<{
-    proposal?: BuilderProposal | null;
-    running?: boolean;
-    applying?: boolean;
-    onApply?: (() => void) | null;
-    onDiscard?: (() => void) | null;
-    onPreview: () => void;
-    realOutputById: unknown;
-}>;
+export const ProposalCard = ProposalCardJs;
 
-export const PlanReview = PlanReviewJs as unknown as ComponentType<{
-    plan: BuilderPlan;
-    running?: boolean;
-    onApprove: (pauseAfterStep: boolean) => void;
-    onComment?: ((section: string, index: number, line: string) => void) | null;
-    onClose: () => void;
-    onReject?: (() => void) | null;
-}>;
+export const PlanReview = PlanReviewJs;
 
-export const RunProgressBanner = RunProgressBannerJs as unknown as ComponentType<{
-    run: unknown;
-    steps?: RunStepRow[];
-    onStop: () => void;
-}>;
+export const RunProgressBanner = RunProgressBannerJs;
 
-export const WorkModePicker = WorkModePickerJs as unknown as ComponentType<{
-    value?: string;
-    onChange: (mode: string) => void;
-    disabled?: boolean;
-    alwaysPlanLarge?: boolean;
-    onAlwaysPlanLargeChange?: ((value: boolean) => void) | null;
-    anchor?: string;
-    planStatus?: string | null;
-    planVersion?: number | string | null;
-}>;
+export const WorkModePicker = WorkModePickerJs;
 
 export const InputArea = InputAreaJs as unknown as ComponentType<{
     compact?: boolean;
