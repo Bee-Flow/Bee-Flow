@@ -20,7 +20,7 @@ const { INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS } = require('.
  * not in MUTATING_TOOLS, so it neither persists nor emits a draft.
  */
 async function applyDryRun(draftWrap, args) {
-    const { appDryRun } = require('../appDryRun');
+    const { appDryRun, dryRunFailure } = require('../appDryRun');
     const screenId = typeof args?.screenId === 'string' && args.screenId ? args.screenId : null;
     const asRole = typeof args?.asRole === 'string' && args.asRole ? args.asRole : null;
 
@@ -44,7 +44,7 @@ async function applyDryRun(draftWrap, args) {
             ownerId: draftWrap.userId,
         }, { screenId, asRole });
     } catch (e) {
-        return { error: `Dry-run failed: ${e.message}`, _fixHint: 'This is a transient read error — retry app_dry_run, or continue with app_finalize (which re-runs the static checks).' };
+        return dryRunFailure(e, draftWrap.appId);
     }
 }
 

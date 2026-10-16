@@ -126,10 +126,12 @@ test('asRole pass surfaces an empty role view for owner-seeded, own-scoped data'
     assert.strictEqual(r.ok, true, 'an empty role view is a warning, never a blocker');
 });
 
-test('asRole is ignored when the role does not exist in the model', async () => {
+test('an asRole the model does not define is an error, not a clean run', async () => {
     const def = appWith({ kind: 'records', tableId: 'tbl_task01' });
     const r = await appDryRun({ def, dataModel: tasksModel(), datasets: [], app: APP, ownerId: OWNER, deps: depsReturning([{ id: 'r1' }]) }, { asRole: 'ghost_role' });
-    assert.deepStrictEqual(r.roleFindings, []);
+    assert.strictEqual(r.ok, false);
+    assert.match(r.error, /asRole/);
+    assert.match(r._fixHint, /member/);
 });
 
 test('a sequence step writing a missing field key is flagged (actions pass)', async () => {
