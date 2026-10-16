@@ -1,6 +1,11 @@
 import React from 'react';
 import AppIcon from '../../components/icons/AppIcon';
 
+interface NavIconProps {
+    icon?: string | null;
+    className?: string;
+}
+
 /**
  * The mark beside a mega-menu / drawer item.
  *
@@ -19,7 +24,7 @@ import AppIcon from '../../components/icons/AppIcon';
  */
 const LUCIDE_NAME = /^[A-Z][A-Za-z0-9]*$/;
 
-export default function NavIcon({ icon, className = '' }) {
+export default function NavIcon({ icon, className = '' }: NavIconProps) {
     if (!icon) return null;
     if (LUCIDE_NAME.test(icon)) {
         return <AppIcon name={icon} className={className} aria-hidden="true" />;

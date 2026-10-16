@@ -4,6 +4,19 @@ import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';
 import { inlineTextStyle } from './textStyle';
+import type { SectionDataBase } from './sectionData.types';
+
+interface TrustChip {
+    href?: string;
+    icon?: string;
+    label?: string;
+    sublabel?: string;
+}
+
+interface TrustBandData extends SectionDataBase {
+    chips?: TrustChip[];
+    variant?: string;
+}
 
 // True inside the CMS editor's preview iframe (?preview) — empty fields keep
 // their clickable placeholder there, but never on the published site.
@@ -14,7 +27,7 @@ const isEditable = () =>
 // One chip — monochrome institutional register (ink icon, mono-caps label).
 // A chip with an href renders as an external link (new tab); the editable
 // guard keeps inline editing from triggering navigation in the preview.
-function Chip({ chip, i, detailed }) {
+function Chip({ chip, i, detailed }: { chip: TrustChip; i: number; detailed: boolean }) {
     const href = typeof chip.href === 'string' ? chip.href.trim() : '';
     const Tag = href ? 'a' : 'div';
     const linkProps = href
@@ -22,8 +35,8 @@ function Chip({ chip, i, detailed }) {
             href,
             target: '_blank',
             rel: 'noopener noreferrer',
-            onClick: (e) => {
-                if (e.target.closest && e.target.closest('.cms-editable')) e.preventDefault();
+            onClick: (e: React.MouseEvent) => {
+                if ((e.target as Element).closest && (e.target as Element).closest('.cms-editable')) e.preventDefault();
             },
         }
         : {};
@@ -58,7 +71,7 @@ function Chip({ chip, i, detailed }) {
     );
 }
 
-export default function TrustBand({ data }) {
+export default function TrustBand({ data }: { data?: TrustBandData | null }) {
     if (!data?.enabled) return null;
     const chips = data.chips || [];
     // 'chips' is the default/fallback (no legacy layout): a centered row of
