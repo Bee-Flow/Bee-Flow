@@ -165,7 +165,7 @@ function enrichNextcloudError(toolName, err, rawText) {
     if (!err || !toolName || !String(toolName).startsWith('nextcloud_')) return err;
     try {
         const { classifyNextcloudError } = require('../integrations/nextcloudErrorClassifier');
-        const c = classifyNextcloudError(rawText != null ? rawText : err);
+        const c = classifyNextcloudError(rawText != null ? rawText : err, { tool: toolName });
         err.ncRawMessage = err.message;
         err.ncError = { code: c.code, category: c.category, remediation: c.remediation };
         err.errorClass = c.errorClass;

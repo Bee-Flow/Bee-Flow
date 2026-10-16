@@ -41,11 +41,26 @@ const APP_DISABLED_RE = /not enabled|app (is )?disabled|app password|cors/i;
 // Wording for "this account may not open this item".
 const NO_ACCESS_RE = /permission denied|access denied|not permitted|insufficient permissions?|(do not|don't|does not|doesn't) have (access|permission)|no (read|write) (access|permission)/i;
 
+// Nextcloud apps that are not Files. Every other nextcloud_* tool works on
+// files and folders.
+const NC_APPS = {
+    deck: 'Deck', talk: 'Talk', notes: 'Notes', calendar: 'Calendar', contacts: 'Contacts',
+    mail: 'Mail', tables: 'Tables', forms: 'Forms', tasks: 'Tasks', notifications: 'Notifications',
+    status: 'Status', teams: 'Teams', activity: 'Activity',
+};
+
+/** 'nextcloud_teams_get' -> 'Teams'; 'nextcloud_upload_file' (and any unknown prefix) -> 'Files'. */
+function nextcloudAppOf(tool) {
+    const seg = String(tool || '').replace(/^nextcloud_/, '').split('_')[0];
+    return NC_APPS[seg] || 'Files';
+}
+
 /**
  * @param {Error|string|{error?: string, message?: string}} input
+ * @param {{ tool?: string | null }} [opts] the tool that failed; makes "no access" app-aware
  * @returns {{code:string, category:string, message:string, remediation:string, errorClass:string}}
  */
-function classifyNextcloudError(input) {
+function classifyNextcloudError(input, opts) {
     // Normalise to a single text blob we can pattern-match on.
     let text = '';
     if (input == null) {
@@ -133,6 +148,12 @@ function classifyNextcloudError(input) {
     // Checked before APP_DISABLED, whose pattern would swallow it.
     if (!APP_DISABLED_RE.test(lower)
         && ((status === 403 && FILE_OP_RE.test(lower)) || NO_ACCESS_RE.test(lower))) {
+        const app = opts && opts.tool ? nextcloudAppOf(opts.tool) : 'Files';
+        if (app !== 'Files') {
+            return make('NO_ACCESS', 'permission', 'PermissionError',
+                `This account may not do this in Nextcloud ${app}.`,
+                `Ask the owner or an admin for the needed rights in ${app}, or use an account that has them.`);
+        }
         return make('NO_ACCESS', 'permission', 'PermissionError',
             'The account this step uses has no access to this file or folder.',
             'Share the folder with that account, or use an account that can open it.');
@@ -162,8 +183,8 @@ function classifyNextcloudError(input) {
  * Convenience: a single enriched sentence "message — remediation" suitable
  * for the thrown Error message that gets persisted to run history.
  */
-function toHumanError(rawError) {
-    const c = classifyNextcloudError(rawError);
+function toHumanError(rawError, opts) {
+    const c = classifyNextcloudError(rawError, opts);
     return `${c.message} — ${c.remediation}`;
 }
 
@@ -171,4 +192,5 @@ module.exports = {
     classifyNextcloudError,
     toHumanError,
     extractHttpStatus,
+    nextcloudAppOf,
 };

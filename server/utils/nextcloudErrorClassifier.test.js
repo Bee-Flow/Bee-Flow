@@ -70,3 +70,30 @@ test('the Nextcloud tools\' own 403 and 404 wording is not taken for a connector
     const missing = classifyNextcloudError('Not found for Forms form fetch: the id may be wrong, or the "Forms" app is not installed or enabled.');
     assert.strictEqual(missing.code, 'NOT_FOUND');
 });
+
+test('"no access" is app-aware: Files text only for file tools, the app name for the rest', () => {
+    const families = {
+        nextcloud_teams_get: 'Teams', nextcloud_mail_read: 'Mail', nextcloud_tasks_create: 'Tasks',
+        nextcloud_deck_get_board: 'Deck', nextcloud_talk_send_message: 'Talk', nextcloud_notes_get: 'Notes',
+        nextcloud_calendar_list: 'Calendar', nextcloud_contacts_get: 'Contacts', nextcloud_tables_list: 'Tables',
+        nextcloud_forms_get: 'Forms',
+    };
+    for (const [tool, app] of Object.entries(families)) {
+        const c = classifyNextcloudError('Permission denied for something: not yours', { tool });
+        assert.strictEqual(c.code, 'NO_ACCESS', tool);
+        assert.strictEqual(c.message, `This account may not do this in Nextcloud ${app}.`, tool);
+        assert.doesNotMatch(`${c.message} ${c.remediation}`, /file or folder|Share the folder/i, tool);
+    }
+    for (const tool of ['nextcloud_upload_file', 'nextcloud_read_file', 'nextcloud_list_files', 'nextcloud_move', 'nextcloud_share_with_user', undefined]) {
+        const c = classifyNextcloudError('Permission denied for read of /A/b.txt', { tool });
+        assert.match(c.message, /file or folder/, String(tool));
+        assert.match(c.remediation, /Share the folder/, String(tool));
+    }
+});
+
+test('the runner passes the tool name: a non-Files permission error is worded for its own app', () => {
+    const { enrichNextcloudError } = require('../core/automationRunner/shared');
+    const e = enrichNextcloudError('nextcloud_teams_get', new Error('Permission denied for Teams fetch'));
+    assert.match(e.message, /Nextcloud Teams/);
+    assert.doesNotMatch(e.message, /file or folder|Share the folder/);
+});
