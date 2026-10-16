@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — applying a trigger call to the draft: builder_set_trigger's
  * per-kind shaping (schedule, webhook, app_event, form, app_trigger,

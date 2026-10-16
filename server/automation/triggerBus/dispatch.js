@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Event dispatch fan-out (§WS5, extracted verbatim from triggerBus.js).
  */

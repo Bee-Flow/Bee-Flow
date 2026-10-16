@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The pass over every BINDING a step carries, whatever field it sits in.
  *

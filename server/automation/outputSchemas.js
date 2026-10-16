@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Output Schemas — JSON-schema-lite definitions matching what the actual
  * integration tools return at runtime. Used by:
@@ -10,9 +11,8 @@
  * server/integrations/*. When you change a tool's output shape, update
  * the matching entry here.
  *
- * The "shape" field is a flat description of the top-level fields the
- * AI most commonly needs to bind to. The "sample" field is a realistic
- * value used for dry-run synthesis.
+ * The "shape" field is a flat description of the top-level fields the AI most commonly
+ * needs to bind to. The "sample" field is a realistic value used for dry-run synthesis.
  */
 
 const OUTPUT_SCHEMAS = {

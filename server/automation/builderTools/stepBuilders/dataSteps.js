@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — the steps that reshape data already in the run: set ("Edit
  * data") with its whole-table operations, the five list ops behind

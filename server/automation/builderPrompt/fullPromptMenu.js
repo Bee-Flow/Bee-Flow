@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The opening of the FULL builder system prompt: the role and the step menu

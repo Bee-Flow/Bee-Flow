@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Steps that read each other's output in a loop.
  *
@@ -67,8 +68,10 @@ function checkDataRefCycles(ctx) {
     const { graph, p, pushE } = ctx;
     const reads = new Map();
     for (const step of Array.isArray(graph.steps) ? graph.steps : []) {
-        if (!isObject(step) || typeof step.id !== 'string') continue;
-        reads.set(step.id, stepsReadBy(step));
+        if (!isObject(step)) continue;
+        const { id } = /** @type {{ id?: unknown }} */ (step);
+        if (typeof id !== 'string') continue;
+        reads.set(id, stepsReadBy(step));
     }
     for (const comp of readCycles(reads)) {
         const chain = [...comp, comp[0]].join(' → ');

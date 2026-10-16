@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * builder_update_step — normalise one patched field to the exact shape the
  * matching apply* builder writes, so a patched step is byte-identical to a

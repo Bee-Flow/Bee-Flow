@@ -12,4 +12,20 @@
  * fills it after the modules are loaded.
  */
 
-module.exports = {};
+/**
+ * @typedef {{
+ *   ADD_FOR_TYPE: typeof import('../stepBuilders').ADD_FOR_TYPE,
+ *   modelTierGateError: typeof import('../stepBuilders').modelTierGateError,
+ *   sanitizeAgentId: typeof import('../stepBuilders').sanitizeAgentId,
+ *   sanitizeSkillIds: typeof import('../stepBuilders').sanitizeSkillIds,
+ *   sanitizeAgentPermissions: typeof import('../stepBuilders').sanitizeAgentPermissions,
+ *   sanitizeDisabledAgentSkillIds: typeof import('../stepBuilders').sanitizeDisabledAgentSkillIds,
+ *   agentPermissionsBlock: typeof import('../stepBuilders').agentPermissionsBlock,
+ *   inspectGateError: typeof import('../inspection').inspectGateError,
+ *   documentDiscovery: () => typeof import('../../../core/documents/documentDiscovery'),
+ * }} CycleDeps
+ */
+
+// Empty at load; the stepEditing.js barrel defines every CycleDeps member
+// before any split module reads one, which is why the type is the full shape.
+module.exports = /** @type {CycleDeps} */ (/** @type {unknown} */ ({}));

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder-agent tool schemas (§WS5, extracted verbatim from builderTools.js).
  * NOTE: applyToolCall mutates this array in place (scope/forEach/error-branch
@@ -35,6 +36,7 @@ const WHOLE_RUN_DOCTRINE = 'A condition decides ONCE for the whole run: one that
 
 const SPLICE_DESCRIPTION = 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. A switch can only be spliced in when it has arrayRef (the old successor moves to its first case).';
 
+/** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
 const TOOL_SCHEMAS = [
     {
         type: 'function',

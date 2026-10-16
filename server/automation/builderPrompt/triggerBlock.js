@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The `## Triggers` block of the LEAN system prompt.
  *

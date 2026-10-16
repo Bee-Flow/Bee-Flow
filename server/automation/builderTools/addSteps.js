@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — builder_add_steps: the batch append with $tempId
  * cross-references. Every entry runs through the SAME per-type builders as
@@ -18,9 +19,6 @@ const { canonicalJson } = require('./suggestedPatch');
 const {
     junkEntriesError, validateEntries, evictRemoved, buildFailure, missingRefMessage, resolveWires,
 } = require('./addStepsSupport');
-
-// ── builder_add_steps: batch append with tempId cross-references ──────────
-
 const { rewriteTempRefs } = require('./tempRefs');
 
 // Stamped on every $handle failure. Without its own hint, applyToolCall's
@@ -210,6 +208,7 @@ try {
  * entry with real ids and its anchor — so the model resends from that index
  * (gate rejections keep their inlined `toolSchema` so the retry costs one
  * round). Entries already built this turn come back `reused:true`.
+ * @param {*} graph @param {*} args @param {{ draft?: *, scope?: *, sent?: * }} [opts] @param {*} [draftWrap]
  */
 function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, draftWrap) {
     const rawEntries = Array.isArray(args?.steps) ? args.steps : null;
@@ -312,7 +311,7 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
 
         // Resolve $tempId references (inline paths + bare wiring fields).
         let missing = null;
-        let bare = null;
+        /** @type {{ t: string, real: string } | null} */ let bare = null;
         const spec = rewriteTempRefs(structuredClone(e.spec), idMap,
             (t) => { missing = missing || t; },
             (t, real) => { bare = bare || { t, real }; });

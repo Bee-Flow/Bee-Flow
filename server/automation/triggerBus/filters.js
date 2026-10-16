@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Per-provider trigger filter matchers + pickMatcher registry (§WS5, extracted
  * verbatim from triggerBus.js). Leaf module.

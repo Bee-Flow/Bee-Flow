@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — the LEAN projection of the tool schemas for the small band.
  *
@@ -31,7 +32,6 @@
  *     is what keeps step fields inside `spec` under grammar-constrained
  *     decoding (measured 2/12 → 0/12 corrupt keys, see schemas.js).
  */
-
 'use strict';
 
 // Tools the small menu does without (owner decision 2026-09-17). Each one

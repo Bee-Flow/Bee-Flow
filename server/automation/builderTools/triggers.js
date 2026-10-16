@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — ADDITIONAL triggers (`definition.triggers[]`).
  *
@@ -40,6 +41,11 @@ function defaultLabel(kind, args = {}) {
  * fields builder_propose_trigger writes for the primary (stepBuilders.js
  * applyTrigger), so a secondary trigger is indistinguishable from a primary
  * one to the validator, the canvas and the dispatcher.
+ */
+/**
+ * @param {string} kind
+ * @param {Record<string, any>} [args]
+ * @param {{ id?: string, label?: unknown }} [opts]
  */
 function buildTriggerNode(kind, args = {}, { id, label = null } = {}) {
     const node = { id, type: 'trigger', kind, output: {} };

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Follow the route, on the AI builder's draft (W8).
  *

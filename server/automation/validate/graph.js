@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Per-graph validation: the rules that apply to ONE graph — the root
  * definition or a layer/Step mini-definition. Trigger shape and the

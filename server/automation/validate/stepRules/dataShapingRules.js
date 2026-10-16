@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The steps that reshape data in place rather than fetching or sending it:
  * the `code` escape hatch, the `layer_output` a layer returns, and the

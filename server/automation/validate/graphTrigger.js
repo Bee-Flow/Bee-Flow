@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The trigger rules of validateGraph (./graph.js): the primary trigger's id,
  * the contract-scope (layer/Step) trigger, the kind-specific contracts

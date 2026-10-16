@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tool — `builder_request_dry_run`: run the draft once in test mode.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automations (automations) over MCP — tool surface, draft loading and dispatch.
  *
@@ -36,7 +37,6 @@
  * and the `automations` beta feature, which is what gates every authenticated
  * /api/automation route.
  */
-
 'use strict';
 
 const {

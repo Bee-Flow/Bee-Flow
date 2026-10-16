@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /** Case-insensitive substring test shared by the trigger filter matchers; false unless both are strings. */
