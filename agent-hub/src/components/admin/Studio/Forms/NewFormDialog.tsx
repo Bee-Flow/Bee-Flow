@@ -1,6 +1,7 @@
 import { ClipboardList, Loader2, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { errorMessage } from '../../../../utils/caughtError';
 import { kindColorVar } from '../../../shared/kindColors';
 import Modal from '../../../shared/Modal';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
@@ -32,15 +33,21 @@ import { createFormAutomation } from '../studioGates';
 const BTN = 'px-3 py-2 rounded-[10px] text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1';
 const INPUT = 'w-full px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2';
 
-export default function NewFormDialog({ user = null, onClose, onNavigate }) {
+interface NewFormDialogProps {
+    user?: unknown;
+    onClose: () => void;
+    onNavigate?: ((target: string) => void) | null;
+}
+
+export default function NewFormDialog({ user = null, onClose, onNavigate }: NewFormDialogProps) {
     const { t } = useTranslation();
     const [name, setName] = useState('');
-    const [mode, setMode] = useState('collect');
+    const [mode, setMode] = useState<'collect' | 'automation'>('collect');
     const [brief, setBrief] = useState('');
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
-    const submit = async (e) => {
+    const submit = async (e?: React.SyntheticEvent) => {
         if (e && typeof e.preventDefault === 'function') e.preventDefault();
         if (busy) return;
         setBusy(true);
@@ -57,7 +64,7 @@ export default function NewFormDialog({ user = null, onClose, onNavigate }) {
             if (mode === 'collect' && brief.trim()) parkSeed(`form:${id}`, brief);
             if (onNavigate) onNavigate(mode === 'collect' ? `studio/forms/${id}/questions` : `studio/automations/${id}`);
         } catch (err) {
-            setError(t('forms.new.failed', 'Could not create the form.') + (err?.message && err.message !== 'no id' ? ` ${err.message}` : ''));
+            setError(t('forms.new.failed', 'Could not create the form.') + (errorMessage(err) && errorMessage(err) !== 'no id' ? ` ${errorMessage(err)}` : ''));
             setBusy(false);
         }
     };

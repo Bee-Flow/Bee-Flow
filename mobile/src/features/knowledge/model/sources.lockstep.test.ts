@@ -17,7 +17,7 @@ const t = (_k: string, fallback: string, p: Record<string, unknown> = {}) => fal
 
 describe('sources ↔ the web and the server', () => {
     it('offers the web’s three schedule presets, same cron, same order', () => {
-        const web = [...read(path.join(STUDIO, 'ScheduleMenu.jsx')).matchAll(/id: '(\w+)', cron: '([^']+)'/g)].map((m) => [m[1], m[2]]);
+        const web = [...read(path.join(STUDIO, 'ScheduleMenu.tsx')).matchAll(/id: '(\w+)', cron: '([^']+)'/g)].map((m) => [m[1], m[2]]);
         expect(CRON_PRESETS.map((p) => [p.id, p.cron])).toEqual(web);
     });
 

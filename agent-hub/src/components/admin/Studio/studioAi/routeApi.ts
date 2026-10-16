@@ -1,5 +1,30 @@
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { KIND_KEYS } from '../../../shared/kindColors';
+import { isAbortError } from '../../../../utils/caughtError';
+
+/** Het antwoord van het endpoint: onvertrouwde invoer, dus elk veld is nog `unknown`. */
+interface PayloadBody {
+    code?: unknown;
+    kind?: unknown;
+    name?: unknown;
+    seed?: unknown;
+    companions?: unknown;
+    available?: unknown;
+    undecided?: unknown;
+}
+
+/** Wat de router teruggeeft: een geslaagd antwoord (ook zonder gekozen soort), of de reden dat er geen was. */
+export type RouteResult =
+    | {
+        ok: true;
+        kind: string | null;
+        name: string;
+        seed: string;
+        companions: { kind: string; name: string }[];
+        available: string[] | null;
+        undecided: string[];
+    }
+    | { ok: false; code: string };
 
 /**
  * De client van POST /api/studio/ai/route — "beschrijf het, de AI kiest de
@@ -47,25 +72,25 @@ export const ROUTE_ERROR_CODES = Object.freeze(['no_text', 'no_model', 'ai_unusa
 // De statusafspraak van het endpoint, één op één met server/routes/skills/ai.js:
 // lege invoer 400, geen model 503, model gaf onbruikbare structuur 502,
 // te vaak achter elkaar 429.
-const CODE_BY_STATUS = Object.freeze({
+const CODE_BY_STATUS: Readonly<Record<number, string>> = Object.freeze({
     400: 'no_text',
     429: 'rate_limited',
     502: 'ai_unusable',
     503: 'no_model',
 });
 
-const asText = (value) => (typeof value === 'string' ? value.trim() : '');
+const asText = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
 /** Een soort die we kennen, of null. Onbekend wordt nooit doorgegeven. */
-const asKind = (value) => {
+const asKind = (value: unknown): string | null => {
     const key = asText(value);
-    return KIND_KEYS.includes(key) ? key : null;
+    return (KIND_KEYS as readonly string[]).includes(key) ? key : null;
 };
 
 /** Een lijst soorten die we kennen, of null als het er geen lijst was. */
-const asKindList = (value) => {
+const asKindList = (value: unknown): string[] | null => {
     if (!Array.isArray(value)) return null;
-    const out = [];
+    const out: string[] = [];
     for (const entry of value) {
         const kind = asKind(entry);
         if (kind && !out.includes(kind)) out.push(kind);
@@ -80,10 +105,10 @@ const asKindList = (value) => {
  * informatief. Kapotte entries verdwijnen, de hoofdsoort staat er niet nog
  * eens in (die is de kop van de kaart) en dubbele soorten tellen één keer.
  */
-const asCompanions = (value, mainKind) => {
+const asCompanions = (value: unknown, mainKind: string | null): { kind: string; name: string }[] => {
     if (!Array.isArray(value)) return [];
-    const seen = new Set(mainKind ? [mainKind] : []);
-    const out = [];
+    const seen = new Set<string>(mainKind ? [mainKind] : []);
+    const out: { kind: string; name: string }[] = [];
     for (const entry of value) {
         const kind = asKind(typeof entry === 'string' ? entry : entry?.kind);
         if (!kind || seen.has(kind)) continue;
@@ -93,7 +118,7 @@ const asCompanions = (value, mainKind) => {
     return out;
 };
 
-const errorFrom = (status, body) => {
+const errorFrom = (status: number, body: PayloadBody | null): { ok: false; code: string } => {
     const claimed = asText(body?.code);
     if (ROUTE_ERROR_CODES.includes(claimed)) return { ok: false, code: claimed };
     return { ok: false, code: CODE_BY_STATUS[status] || 'failed' };
@@ -102,20 +127,15 @@ const errorFrom = (status, body) => {
 /**
  * Vraag de router welke bouwsteen bij deze beschrijving hoort.
  *
- * @param {string} text de brief van de gebruiker
- * @param {{ signal?: AbortSignal }} [opts]
- * @returns {Promise<{ ok: true, kind: string|null, name: string, seed: string,
- *                     companions: {kind: string, name: string}[],
- *                     available: string[]|null, undecided: string[] }
- *                  | { ok: false, code: string }>}
+ * `text` is de brief van de gebruiker.
  */
-export async function routeDescription(text, { signal } = {}) {
+export async function routeDescription(text: string, { signal }: { signal?: AbortSignal } = {}): Promise<RouteResult> {
     const body = asText(text);
     // Geen netwerkoproep voor een lege brief: de server antwoordt hier 400
     // `no_text`, en dat antwoord kennen we al voordat we hem lastigvallen.
     if (!body) return { ok: false, code: 'no_text' };
 
-    let res;
+    let res: Response;
     try {
         res = await authFetch(`${API_BASE}/api/studio/ai/route`, {
             method: 'POST',
@@ -125,17 +145,17 @@ export async function routeDescription(text, { signal } = {}) {
         });
     } catch (err) {
         // Annuleren is een keuze van de gebruiker, geen storing.
-        if (err?.name === 'AbortError') throw err;
+        if (isAbortError(err)) throw err;
         return { ok: false, code: 'failed' };
     }
 
     if (!res || !res.ok) {
-        let payload = null;
+        let payload: PayloadBody | null = null;
         try { payload = await res.json(); } catch { /* geen JSON — status beslist */ }
         return errorFrom(res?.status, payload);
     }
 
-    let payload = null;
+    let payload: PayloadBody | null = null;
     try { payload = await res.json(); } catch { payload = null; }
     // 200 met een onleesbare body is geen "niets gevonden": we hebben het
     // antwoord niet kunnen lezen.

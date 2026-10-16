@@ -6,6 +6,8 @@ import { kindColorVar } from '../../../shared/kindColors';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import Tooltip from '../../../shared/Tooltip';
 import useRelativeTime from '../../../../hooks/useRelativeTime';
+import { errorBodyRecord, errorCode, errorMessage, messageOf } from '../../../../utils/caughtError';
+import type { AddSourcePanelProps, FormProps, KindButtonProps, NewSource, SignpostProps, SubmitProps, TableField, TableOption, UploadFormProps } from './AddSourcePanel.types';
 
 /** The server's own cap (routes/knowledgeBases/sources.js): 3..500000 chars. */
 export const PASTE_MAX_CHARS = 500_000;
@@ -35,14 +37,14 @@ export const MAX_FILE_BYTES = 20 * 1024 * 1024;
  * disabled/enabled pair could not express, since "coming soon" and "fill in
  * this form" would both be lies.
  */
-export default function AddSourcePanel({ canManage = false, onCreate, onUpload, busy = false, kbName = '', onNavigate = null, sources = [] }) {
+export default function AddSourcePanel({ canManage = false, onCreate, onUpload, busy = false, kbName = '', onNavigate = null, sources = [] }: AddSourcePanelProps) {
     const { t } = useTranslation();
-    const [openKind, setOpenKind] = useState(null);
-    const [error, setError] = useState(null);
+    const [openKind, setOpenKind] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const close = () => { setOpenKind(null); setError(null); };
 
-    const submit = async (payload) => {
+    const submit = async (payload: NewSource) => {
         setError(null);
         try {
             await onCreate?.(payload);
@@ -95,7 +97,7 @@ export default function AddSourcePanel({ canManage = false, onCreate, onUpload, 
                 <div className="p-3.5">
                     {openKind === 'text' && <PasteTextForm t={t} busy={busy} onSubmit={submit} />}
                     {openKind === 'webpage' && <WebpageForm t={t} busy={busy} onSubmit={submit} />}
-                    {openKind === 'upload' && <UploadFilesForm t={t} busy={busy} onUpload={async (files) => { await onUpload?.(files); close(); }} />}
+                    {openKind === 'upload' && <UploadFilesForm t={t} busy={busy} onUpload={async (files: File[]) => { await onUpload?.(files); close(); }} />}
                     {openKind === 'meeting_tag' && <MeetingTagForm t={t} busy={busy} onSubmit={submit} />}
                     {openKind === 'datatable' && <DatatableForm t={t} busy={busy} onSubmit={submit} />}
                     {openKind === 'automation' && <AutomationSignpost t={t} kbName={kbName} onNavigate={onNavigate} sources={sources} />}
@@ -118,7 +120,7 @@ export default function AddSourcePanel({ canManage = false, onCreate, onUpload, 
  * decision, and pre-answering it with a new empty automation would be a guess
  * most of the time — the usual case is an automation that already exists.
  */
-export function AutomationSignpost({ t, kbName = '', onNavigate = null, sources = [] }) {
+export function AutomationSignpost({ t, kbName = '', onNavigate = null, sources = [] }: SignpostProps) {
     // The same relative-time hook the Sources list itself uses, so the two
     // never disagree about when a source last ran.
     const rel = useRelativeTime();
@@ -182,7 +184,7 @@ export function AutomationSignpost({ t, kbName = '', onNavigate = null, sources 
     );
 }
 
-function KindButton({ t, kind, disabled, reason, onClick }) {
+function KindButton({ t, kind, disabled, reason, onClick }: KindButtonProps) {
     const meta = sourceKind(kind);
     const Icon = meta.icon;
     const wide = kind === 'automation';
@@ -230,19 +232,19 @@ function KindButton({ t, kind, disabled, reason, onClick }) {
  * owner's view of the table, not the reader's. Same trade as a meeting source,
  * and it is said here rather than discovered later.
  */
-export function DatatableForm({ t, busy, onSubmit }) {
-    const [tables, setTables] = useState(null);      // null = loading
+export function DatatableForm({ t, busy, onSubmit }: FormProps) {
+    const [tables, setTables] = useState<TableOption[] | null>(null);      // null = loading
     const [datatableId, setDatatableId] = useState('');
-    const [columns, setColumns] = useState([]);
+    const [columns, setColumns] = useState<string[]>([]);
     const [titleColumn, setTitleColumn] = useState('');
-    const [loadError, setLoadError] = useState(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     useEffect(() => {
         let alive = true;
         import('../Datatables/datatablesApi')
             .then(m => m.datatablesApi.list())
             .then(list => { if (alive) setTables(Array.isArray(list) ? list : (list?.datatables || [])); })
-            .catch(e => { if (alive) { setTables([]); setLoadError(e?.message || null); } });
+            .catch(e => { if (alive) { setTables([]); setLoadError(errorMessage(e) || null); } });
         return () => { alive = false; };
     }, []);
 
@@ -251,19 +253,17 @@ export function DatatableForm({ t, busy, onSubmit }) {
     // summary of names and grades — so they are fetched from the schema route
     // when a table is picked; a list row that happens to carry `fields`
     // (older callers, tests) is used as-is. null = loading, [] = none.
-    const [fields, setFields] = useState(null);
-    const [schemaError, setSchemaError] = useState(null);
+    const [fields, setFields] = useState<TableField[] | null>(null);
+    const [schemaError, setSchemaError] = useState<string | null>(null);
     // Only the columns a PERSON declared. Nobody wrote `updated_by`, and
     // nobody wants it read back to them in an answer.
-    const keysOf = (list) => (list || [])
-        .map(f => f?.key)
-        .filter(k => typeof k === 'string' && k && !SYSTEM_COLUMNS.has(k));
+    const keysOf = (list: TableField[] | null | undefined): string[] => (list || []).map(f => f?.key).filter(k => typeof k === 'string' && k && !SYSTEM_COLUMNS.has(k));
     const available = keysOf(fields);
 
     // A newly-picked table starts with everything ticked: right for a small
     // table, and visibly wrong for a wide one, which is the prompt to narrow it.
     const pickRef = useRef(0);
-    const pickTable = (id) => {
+    const pickTable = (id: string) => {
         setDatatableId(id);
         setColumns([]);
         setTitleColumn('');
@@ -271,7 +271,7 @@ export function DatatableForm({ t, busy, onSubmit }) {
         const pick = ++pickRef.current;
         const next = (tables || []).find(x => x.id === id);
         if (!next) { setFields(null); return; }
-        const apply = (list) => {
+        const apply = (list: TableField[]) => {
             if (pick !== pickRef.current) return;   // a later pick won
             setFields(Array.isArray(list) ? list : []);
             const keys = keysOf(list);
@@ -283,12 +283,10 @@ export function DatatableForm({ t, busy, onSubmit }) {
         import('../Datatables/datatablesApi')
             .then(m => m.datatablesApi.getSchema(id))
             .then(r => apply(r?.fields || []))
-            .catch(e => { if (pick === pickRef.current) { setFields([]); setSchemaError(e?.message || 'failed'); } });
+            .catch(e => { if (pick === pickRef.current) { setFields([]); setSchemaError(messageOf(e, 'failed')); } });
     };
 
-    const toggleColumn = (key) => setColumns(prev => (
-        prev.includes(key) ? prev.filter(c => c !== key) : [...prev, key]
-    ));
+    const toggleColumn = (key: string) => setColumns(prev => (prev.includes(key) ? prev.filter(c => c !== key) : [...prev, key]));
 
     if (tables === null) {
         return (
@@ -428,10 +426,10 @@ const SYSTEM_COLUMNS = new Set(['id', 'created_at', 'updated_at', 'created_by', 
  * nobody meant to publish. It is deliberately not offered rather than offered
  * and discouraged.
  */
-export function MeetingTagForm({ t, busy, onSubmit }) {
+export function MeetingTagForm({ t, busy, onSubmit }: FormProps) {
     const [tag, setTag] = useState('');
-    const [fields, setFields] = useState(['summary', 'decisions']);
-    const [vocabulary, setVocabulary] = useState([]);
+    const [fields, setFields] = useState<string[]>(['summary', 'decisions']);
+    const [vocabulary, setVocabulary] = useState<{ tag: string }[]>([]);
 
     // The org's own tags, so this is a pick rather than a spelling test.
     // Failing to load them costs the suggestions, never the form: a tag typed
@@ -445,14 +443,14 @@ export function MeetingTagForm({ t, busy, onSubmit }) {
         return () => { alive = false; };
     }, []);
 
-    const toggle = (field) => setFields((prev) => {
+    const toggle = (field: string) => setFields((prev) => {
         // `summary` is not optional — a document of decisions with no context
         // is a list of sentences beginning "we agreed to" about nothing.
         if (field === 'summary') return prev;
         return prev.includes(field) ? prev.filter(f => f !== field) : [...prev, field];
     });
 
-    const FIELD_LABELS = {
+    const FIELD_LABELS: Record<string, string> = {
         summary: t('knowledge.meeting.field_summary', 'Summary'),
         decisions: t('knowledge.meeting.field_decisions', 'Decisions'),
         questions: t('knowledge.meeting.field_questions', 'Open questions'),
@@ -527,7 +525,7 @@ export function MeetingTagForm({ t, busy, onSubmit }) {
 }
 
 /** Naam + tekst. The text goes to the server and never comes back. */
-export function PasteTextForm({ t, busy, onSubmit }) {
+export function PasteTextForm({ t, busy, onSubmit }: FormProps) {
     const [name, setName] = useState('');
     const [text, setText] = useState('');
     const tooLong = text.length > PASTE_MAX_CHARS;
@@ -566,10 +564,10 @@ export function PasteTextForm({ t, busy, onSubmit }) {
 }
 
 /** URL + "hele site"-toggle. maxPages is stored; K3 does the crawling. */
-export function WebpageForm({ t, busy, onSubmit }) {
+export function WebpageForm({ t, busy, onSubmit }: FormProps) {
     const [url, setUrl] = useState('');
     const [whole, setWhole] = useState(false);
-    const [maxPages, setMaxPages] = useState(50);
+    const [maxPages, setMaxPages] = useState<number | string>(50);
     const ok = /^https?:\/\/\S+$/i.test(url.trim());
     return (
         <form
@@ -620,11 +618,11 @@ export function WebpageForm({ t, busy, onSubmit }) {
  * a 413 that only says "file_too_large" leaves the person guessing which of
  * eleven files it meant.
  */
-export function UploadFilesForm({ t, busy, onUpload }) {
-    const inputRef = useRef(null);
-    const [rejected, setRejected] = useState([]);
+export function UploadFilesForm({ t, busy, onUpload }: UploadFormProps) {
+    const inputRef = useRef<HTMLInputElement>(null);
+    const [rejected, setRejected] = useState<string[]>([]);
 
-    const pick = async (fileList) => {
+    const pick = async (fileList: FileList | null) => {
         const files = Array.from(fileList || []);
         const tooBig = files.filter(f => f.size > MAX_FILE_BYTES);
         const ok = files.filter(f => f.size <= MAX_FILE_BYTES);
@@ -667,7 +665,7 @@ export function UploadFilesForm({ t, busy, onUpload }) {
 const INPUT_CLASS = 'w-full px-2.5 py-1.5 rounded-lg text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1';
 const INPUT_STYLE = { background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' };
 
-function Field({ label, children }) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <label className="flex flex-col gap-1">
             <span className="text-[var(--text-secondary)]">{label}</span>
@@ -676,7 +674,7 @@ function Field({ label, children }) {
     );
 }
 
-function Submit({ t, busy, disabled }) {
+function Submit({ t, busy, disabled }: SubmitProps) {
     return (
         <button
             type="submit"
@@ -696,12 +694,12 @@ function Submit({ t, busy, disabled }) {
  * it tells you that you have too many without telling you how many is too
  * many.
  */
-export function messageFor(t, e) {
-    switch (e?.code) {
+export function messageFor(t: FormProps['t'], e: unknown): string {
+    switch (errorCode(e)) {
         case 'kind_not_available':
             return t('knowledge.err_kind', 'That kind of source is not available yet.');
         case 'source_limit_reached':
-            return t('knowledge.err_source_limit', 'This knowledge base already has the most sources your plan allows ({limit}).', { limit: e?.body?.limit ?? '' });
+            return t('knowledge.err_source_limit', 'This knowledge base already has the most sources your plan allows ({limit}).', { limit: errorBodyRecord(e)?.limit ?? '' });
         case 'url_rejected':
             return t('knowledge.err_url_rejected', 'That address cannot be fetched from here.');
         case 'fetch_failed':
@@ -709,6 +707,6 @@ export function messageFor(t, e) {
         case 'text_too_long':
             return t('knowledge.err_text_too_long', 'That text is too long — split it into a few sources.');
         default:
-            return e?.message || t('knowledge.err_add_source', 'Could not add that source.');
+            return messageOf(e, t('knowledge.err_add_source', 'Could not add that source.'));
     }
 }
