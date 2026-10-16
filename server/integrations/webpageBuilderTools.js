@@ -15,22 +15,7 @@ const { executeWebpageDocTool } = require('./webpageDocTools');
 const { resolveFramework } = require('./webpageFramework');
 const { scheduleThumbnail } = require('../core/webpages/webpageThumbnailGenerator');
 const log = require('../telemetry/log');
-
-// Hex like "#aabbcc" or "#abc". Restrict to a known palette range so a stray
-// invalid string can't sneak into the DB and break the card render.
-function sanitizeHex(c) {
-    if (typeof c !== 'string') return '';
-    const t = c.trim();
-    return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t) ? t : '';
-}
-// Keep just the first grapheme — the AI sometimes sends "📊📊" or "📊 Dashboard".
-function sanitizeIcon(icon) {
-    if (typeof icon !== 'string') return '';
-    const t = icon.trim();
-    if (!t) return '';
-    // Array.from splits surrogate pairs correctly; one user-visible emoji is one entry.
-    return [...t][0] || '';
-}
+const { sanitizeMetadata, countLines, slotTooLarge } = require('./webpageMetadataInput');
 
 const BUILDER_TOOLS = [
     {
@@ -108,7 +93,7 @@ const BUILDER_TOOLS = [
         type: 'function',
         function: {
             name: 'webpage_set_metadata',
-            description: 'Set the visual identity of a webpage shown in the Webpages list — a single-character emoji icon, an accent hex colour and a one-line tagline. Call this once right after you finish the initial build (or after a significant redesign) so the user\'s list shows a recognisable tile instead of a generic file icon. Cheap, idempotent — safe to call multiple times.\n\nGuidance:\n  • icon: ONE emoji that captures the page\'s purpose (📊 for dashboards, 🧾 for invoicing, 🍰 for a bakery, 📅 for calendars). No text, no multi-char strings.\n  • accent_color: hex like "#00a86b" matching the page\'s primary colour so the tile and the page feel related. Pick a saturated colour, not pure black/white.\n  • tagline: ≤80 chars, plain text, no emoji. One sentence telling the user what the page does at a glance.\n\nReturns { message, webpageId }.',
+            description: 'Set the visual identity of a webpage shown in the Webpages list — a single-character emoji icon, an accent hex colour and a one-line tagline. Call this once right after you finish the initial build (or after a significant redesign) so the user\'s list shows a recognisable tile instead of a generic file icon. Cheap, idempotent — safe to call multiple times.\n\nGuidance:\n  • icon: ONE emoji that captures the page\'s purpose (📊 for dashboards, 🧾 for invoicing, 🍰 for a bakery, 📅 for calendars). No text, no multi-char strings.\n  • accent_color: hex like "#00a86b" matching the page\'s primary colour so the tile and the page feel related. Pick a saturated colour, not pure black/white.\n  • tagline: ≤80 chars, plain text, no emoji. One sentence telling the user what the page does at a glance.\n\nReturns { message, webpageId, ...applied fields, warnings? } — a field that could not be applied (not an emoji, not a hex colour) is named in warnings.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -186,7 +171,17 @@ async function executeBuilderTool(toolName, args, ctx) {
         if (!webpage) return { result: { error: `Webpage ${webpageId} not found.` } };
         const files = await webpageStore.readAllSlots(userId, webpageId);
         const docResult = executeWebpageDocTool('webpage_file_read', { file }, files, { readSlots: readSetFor(webpageId) });
-        return { result: docResult };
+        if (docResult.error) return { result: docResult };
+        const content = docResult.content || '';
+        const lineCount = countLines(content);
+        return {
+            result: {
+                file,
+                content,
+                lineCount,
+                message: docResult.message || `Read ${file} (${lineCount} lines).`,
+            },
+        };
     }
 
     if (toolName === 'webpage_set_metadata') {
@@ -194,19 +189,26 @@ async function executeBuilderTool(toolName, args, ctx) {
         if (!webpageId) return { result: { error: 'webpageId is required.' } };
         const webpage = await webpageStore.getWebpage(webpageId, userId).catch(() => null);
         if (!webpage) return { result: { error: `Webpage ${webpageId} not found.` } };
-        const icon = sanitizeIcon(args.icon);
-        const accentColor = sanitizeHex(args.accent_color);
-        const tagline = typeof args.tagline === 'string' ? args.tagline.trim().slice(0, 80) : '';
-        const updates = {};
-        if (icon) updates.icon = icon;
-        if (accentColor) updates.accentColor = accentColor;
-        if (tagline) updates.tagline = tagline;
+        const { updates, warnings } = sanitizeMetadata(args);
         if (Object.keys(updates).length === 0) {
-            return { result: { error: 'Provide at least one of icon, accent_color, tagline.' } };
+            return {
+                result: {
+                    error: warnings.length
+                        ? `Nothing was applied. ${warnings.join(' ')}`
+                        : 'Provide at least one of icon, accent_color, tagline.',
+                },
+            };
         }
         await webpageStore.updateWebpageMetadata(webpageId, userId, updates);
         log.info(`[WebpageBuilder] webpage_set_metadata: ${webpageId} ${JSON.stringify(updates)}`);
-        return { result: { message: 'Webpage metadata updated.', webpageId, ...updates } };
+        return {
+            result: {
+                message: warnings.length ? 'Webpage metadata updated; some fields were not applied.' : 'Webpage metadata updated.',
+                webpageId,
+                ...updates,
+                ...(warnings.length ? { warnings } : {}),
+            },
+        };
     }
 
     if (toolName === 'webpage_file_write') {
@@ -215,6 +217,8 @@ async function executeBuilderTool(toolName, args, ctx) {
         const webpage = await webpageStore.getWebpage(webpageId, userId).catch(() => null);
         if (!webpage) return { result: { error: `Webpage ${webpageId} not found.` } };
 
+        const tooLarge = slotTooLarge(content);
+        if (tooLarge) return { result: tooLarge };
         const files = { html: '', css: '', js: '' };
         const docResult = executeWebpageDocTool('webpage_file_write', { file, content, title }, files);
         if (docResult.error) return { result: docResult };
@@ -272,6 +276,8 @@ async function executeBuilderTool(toolName, args, ctx) {
         if (docResult.error) return { result: docResult };
 
         const newContent = docResult.content;
+        const tooLarge = slotTooLarge(newContent);
+        if (tooLarge) return { result: tooLarge };
         await webpageStore.writeSlot(userId, webpageId, file, newContent);
         log.info(`[WebpageBuilder] ${toolName}: ${file} in ${webpageId}`);
 
