@@ -52,6 +52,11 @@ function buildRunContext({
         // created here, never lazily): the summary says how many and which
         // (bindingMisses.js).
         _bindingMisses: [],
+        // Paths a dry run's simulated side-effect steps would have produced
+        // (simulatedPaths.js). Shared by reference with every ctx copy, so it is
+        // created here, never lazily: a write inside a loop body or parallel
+        // branch must be visible to a read after it.
+        _simulatedPaths: new Set(),
         userOrgIds: runOrgId ? [runOrgId] : [],
         session,
         runId: run.id,
