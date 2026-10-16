@@ -84,12 +84,6 @@ function startedAtClock(value: string | null | undefined) {
     });
 }
 
-/**
- * The header: who this is, what it is doing right now, and the actions.
- *
- * Split out so the pane below it reads as four layers rather than one long
- * function — and so the "running since" decision has one place to live.
- */
 interface DetailHeaderProps {
     item: CoworkItem;
     status: StatusToken;
@@ -101,6 +95,12 @@ interface DetailHeaderProps {
     onRunNow: (id: string) => void;
 }
 
+/**
+ * The header: who this is, what it is doing right now, and the actions.
+ *
+ * Split out so the pane below it reads as four layers rather than one long
+ * function — and so the "running since" decision has one place to live.
+ */
 function DetailHeader({ item, status, t, busy, onEdit, onToggle, onDelete, onRunNow }: DetailHeaderProps) {
     const tile = kindTileStyle('agent', 26);
     // The status word carries the pill on its own EXCEPT while a run is in

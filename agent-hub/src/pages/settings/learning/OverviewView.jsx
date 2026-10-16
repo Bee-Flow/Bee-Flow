@@ -5,29 +5,6 @@ import CourseIcon from './courseIcons';
 import { buildCurriculumColumns, splitCapstone, courseState, lessonsMinutes, CAPSTONE_CHECK_ID } from './curriculum';
 import { getActionCheck, runActionCheck, applicableCriteria } from '../../../components/onboarding/actionChecks';
 import { getLearningPath } from '../../../components/onboarding/learningPaths';
-import type { CheckVerdict } from '../../../components/onboarding/actionChecks.types';
-import type { Course, HasFeature, LessonDoc, LessonUser } from '../../../components/onboarding/lessons.types';
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import type { ContinueTarget, ReviewDue, StartLessonFn } from './learning.types';
-
-interface OverviewViewProps {
-    t: TranslateFn;
-    user: LessonUser | null | undefined;
-    hasFeature?: HasFeature;
-    courses: Course[];
-    lessonsOf: (course: Course) => LessonDoc[];
-    completedMap: Record<string, boolean>;
-    isLocked: (course: Course) => boolean;
-    isComplete: (course: Course) => boolean;
-    lockedReasonFor: (course: Course) => string;
-    path?: string | null;
-    continueTarget: ContinueTarget | null;
-    reviewDue?: ReviewDue | null;
-    reviewBuilding?: boolean;
-    onStartLesson: StartLessonFn;
-    onStartReview: () => void;
-    onOpenCourse: (courseId: string) => void;
-}
 
 /**
  * OverviewView — artboard 3a.
@@ -63,15 +40,15 @@ export default function OverviewView({
     t, user, hasFeature, courses, lessonsOf, completedMap, isLocked, isComplete, lockedReasonFor,
     path, continueTarget, reviewDue, reviewBuilding,
     onStartLesson, onStartReview, onOpenCourse,
-}: OverviewViewProps) {
+}) {
     const { capstone, rest } = useMemo(() => splitCapstone(courses), [courses]);
     const columns = useMemo(() => buildCurriculumColumns(rest, path), [rest, path]);
-    const colKey = (col: { pathId: string | null }) => col.pathId || 'other';
+    const colKey = (col) => col.pathId || 'other';
     // Accordion: one category open at a time (clicking the open tile closes
     // them all). The learner's own path is already the first column
     // (buildCurriculumColumns moves it there), so the default open tile is
     // simply the first one.
-    const [pickedCol, setPickedCol] = useState<string | null>(null);
+    const [pickedCol, setPickedCol] = useState(null);
     const openCol = pickedCol === null
         ? (columns.length ? colKey(columns[0]) : null)
         : (columns.some((c) => colKey(c) === pickedCol) ? pickedCol : null);
@@ -134,15 +111,6 @@ export default function OverviewView({
     );
 }
 
-interface ContinueHeroProps {
-    t: TranslateFn;
-    target: ContinueTarget | null;
-    reviewDue?: ReviewDue | null;
-    reviewBuilding?: boolean;
-    onStartLesson: StartLessonFn;
-    onStartReview: () => void;
-}
-
 /**
  * The hero: one line about where you were, and every way to resume it.
  *
@@ -151,7 +119,7 @@ interface ContinueHeroProps {
  * its own panel made the screen open on two competing invitations. With nothing
  * due, the button is simply absent.
  */
-function ContinueHero({ t, target, reviewDue, reviewBuilding, onStartLesson, onStartReview }: ContinueHeroProps) {
+function ContinueHero({ t, target, reviewDue, reviewBuilding, onStartLesson, onStartReview }) {
     const reviewCount = (reviewDue?.mistakes || 0) + (reviewDue?.staleLessons || 0);
     return (
         <Card className="flex items-center gap-4" style={{ padding: '16px 18px' }} data-testid="learning-hero">
@@ -202,17 +170,6 @@ function ContinueHero({ t, target, reviewDue, reviewBuilding, onStartLesson, onS
     );
 }
 
-interface CourseRowProps {
-    t: TranslateFn;
-    course: Course;
-    lessons: LessonDoc[];
-    completedMap: Record<string, boolean>;
-    locked: boolean;
-    complete: boolean;
-    lockedReason: string;
-    onOpen: () => void;
-}
-
 /**
  * One course, one line, one status.
  *
@@ -221,7 +178,7 @@ interface CourseRowProps {
  * the name of the thing standing in the way, which is why the lock reason is
  * text and the padlock is only its punctuation.
  */
-export function CourseRow({ t, course, lessons, completedMap, locked, complete, lockedReason, onOpen }: CourseRowProps) {
+export function CourseRow({ t, course, lessons, completedMap, locked, complete, lockedReason, onOpen }) {
     const state = courseState({ lessons, completedMap, locked, complete });
     const done = lessons.filter((l) => !!completedMap[l.id]).length;
     const title = t(course.titleKey, course.titleFallback);
@@ -250,17 +207,6 @@ export function CourseRow({ t, course, lessons, completedMap, locked, complete, 
     );
 }
 
-interface CapstoneRowProps {
-    t: TranslateFn;
-    user: LessonUser | null | undefined;
-    hasFeature?: HasFeature;
-    course: Course;
-    isComplete: (course: Course) => boolean;
-    locked: boolean;
-    lockedReason: string;
-    onOpen: () => void;
-}
-
 /**
  * The capstone as the closing line of the screen — no lessons, so no list and
  * no progress: what it needs to say is that the proof happens in the learner's
@@ -271,12 +217,12 @@ interface CapstoneRowProps {
  * in the progress blob. With the course locked the run is skipped entirely —
  * there is nothing to report and no reason to spend the calls.
  */
-function CapstoneRow({ t, user, hasFeature, course, isComplete, locked, lockedReason, onOpen }: CapstoneRowProps) {
+function CapstoneRow({ t, user, hasFeature, course, isComplete, locked, lockedReason, onOpen }) {
     const check = getActionCheck(CAPSTONE_CHECK_ID);
     const ctx = useMemo(() => ({ user, hasFeature }), [user, hasFeature]);
     const criteria = useMemo(() => applicableCriteria(check, ctx), [check, ctx]);
     const complete = isComplete(course);
-    const [passes, setPasses] = useState<CheckVerdict | null>(null);
+    const [passes, setPasses] = useState(null);
 
     useEffect(() => {
         if (locked || complete) return undefined;

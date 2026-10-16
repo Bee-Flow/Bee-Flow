@@ -5,9 +5,6 @@ import type { OrgFormData } from './useOrgInfoForm';
 import { AUTH_METHODS, AllowedDomainsEditor } from './orgInfoShared';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 
-// The method cards are one radio group (ARIA APG pattern, as in
-// shared/ChoiceCards): one tab stop, arrows move the choice, aria-checked
-// carries what the ring and colour show.
 interface AuthMethodGroupProps {
     t: TranslateFn;
     label: string;
@@ -17,6 +14,9 @@ interface AuthMethodGroupProps {
     onChoose: (id: string) => void;
 }
 
+// The method cards are one radio group (ARIA APG pattern, as in
+// shared/ChoiceCards): one tab stop, arrows move the choice, aria-checked
+// carries what the ring and colour show.
 const AuthMethodGroup = ({ t, label, value, isAuthLocked, isSaving = false, onChoose }: AuthMethodGroupProps) => {
     const cardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
     // While the first save is in flight the choice is frozen: the server keeps
@@ -88,7 +88,6 @@ const AuthMethodGroup = ({ t, label, value, isAuthLocked, isSaving = false, onCh
     );
 };
 
-// ── Sign-in Method section — extracted verbatim from OrgInfoPanel. ──
 interface OrgAuthSectionProps {
     t: TranslateFn;
     isAuthLocked: boolean;
@@ -98,6 +97,7 @@ interface OrgAuthSectionProps {
     isSelfHosted: boolean;
 }
 
+// ── Sign-in Method section — extracted verbatim from OrgInfoPanel. ──
 const OrgAuthSection = ({ t, isAuthLocked, isSaving = false, orgData, setOrgData, isSelfHosted }: OrgAuthSectionProps) => (
                     <div className="max-w-3xl space-y-5 animate-fadeIn">
                         <div>

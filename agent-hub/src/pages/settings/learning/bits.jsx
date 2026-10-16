@@ -1,8 +1,5 @@
 import { FileText, ListChecks, PenLine, Puzzle, Footprints, MousePointerClick, PanelRight, AppWindow, Clapperboard } from 'lucide-react';
 import React from 'react';
-import type { CSSProperties, ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
-import type { LucideIcon } from 'lucide-react';
-import type { TranslateFn } from '../../../hooks/useTranslation';
 import { STEP_TYPES } from '../../../components/onboarding/stepTypes';
 import { PRIMARY_ACTION_STYLE } from '../../../components/shared/StudioSectionHeader';
 
@@ -27,19 +24,13 @@ export const STEP_KIND_ICON = Object.freeze({
     [STEP_TYPES.VIDEO]: Clapperboard,
 });
 
-interface StepKindIconProps {
-    kind: string;
-    size?: number;
-    style?: CSSProperties;
-}
-
-export function StepKindIcon({ kind, size = 13, style }: StepKindIconProps) {
+export function StepKindIcon({ kind, size = 13, style }) {
     const Icon = STEP_KIND_ICON[kind] || FileText;
     return <Icon style={{ width: size, height: size, flexShrink: 0, ...style }} aria-hidden="true" />;
 }
 
 /** The learner-facing name of a step kind. */
-export function stepKindLabel(t: TranslateFn, kind: string, count = 1): string {
+export function stepKindLabel(t, kind, count = 1) {
     const one = count === 1;
     switch (kind) {
         case STEP_TYPES.QUIZ: return one ? t('learn.kind.quiz', 'quiz') : t('learn.kind.quiz_plural', 'quizzes');
@@ -53,13 +44,7 @@ export function stepKindLabel(t: TranslateFn, kind: string, count = 1): string {
 }
 
 /** "4 cards · 4 quizzes · …" as inline icon+count pairs. */
-interface StepMixLineProps {
-    t: TranslateFn;
-    mix: Record<string, number>;
-    className?: string;
-}
-
-export function StepMixLine({ t, mix, className = '' }: StepMixLineProps) {
+export function StepMixLine({ t, mix, className = '' }) {
     const order = [STEP_TYPES.SLIDE, STEP_TYPES.QUIZ, STEP_TYPES.EXERCISE, STEP_TYPES.SIM, STEP_TYPES.TOUR, STEP_TYPES.ACTION];
     const parts = order.filter((k) => mix?.[k] > 0);
     if (!parts.length) return null;
@@ -84,15 +69,7 @@ export function StepMixLine({ t, mix, className = '' }: StepMixLineProps) {
  * you are on". The tint is kept for the 28px header tile, where there is only
  * ever one.
  */
-interface IconTileProps {
-    icon?: LucideIcon;
-    size?: number;
-    locked?: boolean;
-    radius?: number;
-    children?: ReactNode;
-}
-
-export function IconTile({ icon: Icon, size = 44, locked = false, radius, children }: IconTileProps) {
+export function IconTile({ icon: Icon, size = 44, locked = false, radius, children }) {
     const glyph = Math.round(size * 0.45);
     return (
         <div
@@ -111,15 +88,7 @@ export function IconTile({ icon: Icon, size = 44, locked = false, radius, childr
 }
 
 /** The emoji tile: accent tint when live, grey + desaturated when locked. */
-interface EmojiTileProps {
-    icon: ReactNode;
-    size?: number;
-    locked?: boolean;
-    radius?: number;
-    fontSize?: number;
-}
-
-export function EmojiTile({ icon, size = 40, locked = false, radius, fontSize }: EmojiTileProps) {
+export function EmojiTile({ icon, size = 40, locked = false, radius, fontSize }) {
     return (
         <div
             aria-hidden="true"
@@ -139,12 +108,7 @@ export function EmojiTile({ icon, size = 40, locked = false, radius, fontSize }:
 }
 
 /** BEGINNER / INTERMEDIATE / ADVANCED — 10px uppercase hairline chip. */
-interface LevelChipProps {
-    t: TranslateFn;
-    level?: string | null;
-}
-
-export function LevelChip({ t, level }: LevelChipProps) {
+export function LevelChip({ t, level }) {
     if (!level) return null;
     return (
         <span
@@ -160,14 +124,7 @@ export function LevelChip({ t, level }: LevelChipProps) {
 }
 
 /** A badge name with its emoji; greyed until earned. */
-interface BadgeMarkProps {
-    badge?: { icon: ReactNode; titleKey: string; titleFallback: string } | null;
-    earned?: boolean;
-    t: TranslateFn;
-    className?: string;
-}
-
-export function BadgeMark({ badge, earned, t, className = '' }: BadgeMarkProps) {
+export function BadgeMark({ badge, earned, t, className = '' }) {
     if (!badge) return null;
     return (
         <span
@@ -181,12 +138,7 @@ export function BadgeMark({ badge, earned, t, className = '' }: BadgeMarkProps) 
 }
 
 /** "in window" / "beside the app" — the Plays chip (artboard 1b). */
-interface PlaysChipProps {
-    t: TranslateFn;
-    plays?: string;
-}
-
-export function PlaysChip({ t, plays }: PlaysChipProps) {
+export function PlaysChip({ t, plays }) {
     const docked = plays === 'docked';
     const Icon = docked ? PanelRight : AppWindow;
     return (
@@ -205,11 +157,7 @@ export function PlaysChip({ t, plays }: PlaysChipProps) {
 const BTN_BASE = 'inline-flex items-center justify-center gap-1.5 whitespace-nowrap flex-shrink-0 rounded-[10px] transition disabled:opacity-40 disabled:cursor-not-allowed';
 
 /** The 32px filled primary button (accent recipe, never ink). */
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-    small?: boolean;
-}
-
-export function PrimaryButton({ children, className = '', small = false, style, ...rest }: ButtonProps) {
+export function PrimaryButton({ children, className = '', small = false, style, ...rest }) {
     return (
         <button
             type="button"
@@ -223,7 +171,7 @@ export function PrimaryButton({ children, className = '', small = false, style, 
 }
 
 /** The 32px outlined secondary button. */
-export function SecondaryButton({ children, className = '', small = false, style, ...rest }: ButtonProps) {
+export function SecondaryButton({ children, className = '', small = false, style, ...rest }) {
     return (
         <button
             type="button"
@@ -237,7 +185,7 @@ export function SecondaryButton({ children, className = '', small = false, style
 }
 
 /** 32×32 icon-only outlined button. */
-export function IconSquareButton({ children, className = '', ...rest }: ButtonHTMLAttributes<HTMLButtonElement>) {
+export function IconSquareButton({ children, className = '', ...rest }) {
     return (
         <button
             type="button"
@@ -251,7 +199,7 @@ export function IconSquareButton({ children, className = '', ...rest }: ButtonHT
 }
 
 /** The 12px card the artboards build everything from. */
-export function Card({ children, className = '', style, ...rest }: HTMLAttributes<HTMLDivElement>) {
+export function Card({ children, className = '', style, ...rest }) {
     return (
         <div
             className={`rounded-xl ${className}`.trim()}
@@ -264,13 +212,7 @@ export function Card({ children, className = '', style, ...rest }: HTMLAttribute
 }
 
 /** 10px uppercase eyebrow label. */
-interface EyebrowProps {
-    children?: ReactNode;
-    accent?: boolean;
-    className?: string;
-}
-
-export function Eyebrow({ children, accent = false, className = '' }: EyebrowProps) {
+export function Eyebrow({ children, accent = false, className = '' }) {
     return (
         <div
             className={`uppercase font-semibold ${className}`.trim()}
@@ -282,13 +224,13 @@ export function Eyebrow({ children, accent = false, className = '' }: EyebrowPro
 }
 
 /** t() for copy that may be absent: no key and no fallback → ''. */
-export function tOpt(t: TranslateFn, key?: string, fallback?: string): string {
+export function tOpt(t, key, fallback) {
     if (fallback) return t(key, fallback);
     return key ? t(key) : '';
 }
 
 /** "12 sep" — a short date for earned/mastered stamps. */
-export function shortDate(iso?: string | number | Date | null, locale?: string | null): string {
+export function shortDate(iso, locale) {
     if (!iso) return '';
     try { return new Date(iso).toLocaleDateString(locale || undefined, { day: 'numeric', month: 'short' }); }
     catch (_) { return ''; }
