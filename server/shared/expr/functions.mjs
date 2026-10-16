@@ -17,6 +17,8 @@
  */
 
 import { extractJsonText, getRelativePath, parseJsonText, parsePath, walkTokens } from './path.mjs';
+import { addToEpoch, epochDiff, requireDateUnit } from './dates.mjs';
+export { checkDateUnit } from './dates.mjs';
 import { equalsValue, fileTypeOf, isEmptyValue, quantify, textContains, textEndsWith, textStartsWith } from './rules.mjs';
 
 // ── Deterministic ISO date helpers (UTC-only) ──────────────────────────────
@@ -71,8 +73,6 @@ function toEpoch(iso) {
     }
     return inRange(epoch);
 }
-
-const UNIT_MS = { second: 1000, minute: 60000, hour: 3600000, day: 86400000, week: 604800000 };
 
 function pad(n, w = 2) { return String(Math.abs(n)).padStart(w, '0'); }
 
@@ -560,16 +560,16 @@ export const FUNCTIONS = {
     },
 
     // ── Date (operate on ISO strings; UTC + deterministic) ────────────────
+    // Units second..year, singular or plural; unknown throws. Months/years are calendar steps; dateDiff truncates toward zero.
     dateAdd: (iso, n, unit) => {
-        const e = toEpoch(iso); if (e == null) return null;
-        const amt = toNum(n) || 0; const ms = UNIT_MS[unit] || UNIT_MS.day;
-        return new Date(e + amt * ms).toISOString();
+        const u = requireDateUnit('dateAdd', unit);
+        const e = toEpoch(iso);
+        return e == null ? null : addToEpoch(e, toNum(n) || 0, u);
     },
     dateDiff: (a, b, unit) => {
+        const u = requireDateUnit('dateDiff', unit);
         const ea = toEpoch(a); const eb = toEpoch(b);
-        if (ea == null || eb == null) return null;
-        const ms = UNIT_MS[unit] || UNIT_MS.day;
-        return Math.floor((ea - eb) / ms);
+        return ea == null || eb == null ? null : epochDiff(ea, eb, u);
     },
     // formatDate(date, format, locale?) — the six numeric tokens as before,
     // plus MMMM/MMM (month name), dddd/ddd (weekday name) and D/M (no zero
@@ -740,8 +740,8 @@ export const EXPR_FUNCTIONS = [
     { name: 'pluck', signature: 'pluck(list, key)', description: 'One value per item: the value under key — pluck(rows, "id") gives the ids.' },
     { name: 'find', signature: 'find(list, key, value)', description: 'The first item whose key equals value, or null — find(records.orders, "id", vars.selected.id) reads the live row behind a selection.' },
     { name: 'parseJson', signature: 'parseJson(text, path?)', description: 'Parse JSON text and optionally pick a path from it (a.b, items[0].x, items[*].x). Invalid JSON gives null.' },
-    { name: 'dateAdd', signature: 'dateAdd(date, n, unit)', description: 'Add n units (day/hour/…) to an ISO date.' },
-    { name: 'dateDiff', signature: 'dateDiff(a, b, unit)', description: 'Whole units between two ISO dates (a − b).' },
+    { name: 'dateAdd', signature: 'dateAdd(date, n, unit)', description: 'Add n units (second/minute/hour/day/week/month/year) to an ISO date; months and years clamp to the end of the month.' },
+    { name: 'dateDiff', signature: 'dateDiff(a, b, unit)', description: 'Whole units (second…year) between two ISO dates (a − b), truncated toward zero.' },
     { name: 'formatDate', signature: 'formatDate(date, "D MMMM YYYY", locale?)', description: 'Format an ISO date (UTC): YYYY/MM/DD/HH/mm/ss, plus D and M without a zero, MMMM/MMM for the month name and dddd/ddd for the weekday — "D MMMM YYYY" is "2 september 2026". Locale nl/en/de/fr picks the names.' },
     { name: 'formatNumber', signature: 'formatNumber(value, "amount" | "percent" | "plain", locale?, places?)', description: 'Write a number for people: "amount" gives € 1.500.000, "percent" turns 0.125 into 12,5%, "plain" gives 1.500.000. Locale nl/en/de/fr picks the separators; places pins the decimals.' },
     { name: 'yesNoText', signature: 'yesNoText(value, yesText?, noText?)', description: 'The word for a yes/no value — yesNoText(item.paid, "wel", "niet"). Unknown values give nothing.' },

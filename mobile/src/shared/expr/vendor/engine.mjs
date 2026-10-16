@@ -43,7 +43,7 @@
  * of guessing.
  */
 
-import { FUNCTIONS, EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } from './functions.mjs';
+import { FUNCTIONS, EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES, checkDateUnit } from './functions.mjs';
 import { jsonCacheFor, stepInto, stepMatch, walkTokens } from './path.mjs';
 
 export class ExprError extends Error {
@@ -276,7 +276,7 @@ function parse(tokens, host) {
                     while (accept(TOKEN.COMMA)) args.push(ternary());
                 }
                 eat(TOKEN.RPAREN);
-                if (!spec) return { kind: 'call', name: tk.v, args };
+                if (!spec) return { kind: 'call', name: tk.v, args: checkDateUnit(tk, args, ExprError) };
                 // A host call inside another host call's arguments would need
                 // its own answer before the caller could collect what to ask.
                 if (args.some((a) => collectHostCalls(a).length > 0)) {
