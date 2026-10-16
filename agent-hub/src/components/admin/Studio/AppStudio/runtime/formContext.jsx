@@ -19,6 +19,32 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
  * but the runtime must never crash over it.
  */
 
+/**
+ * What an input registers: AppForm keeps it per field name for validation.
+ *
+ * @typedef {object} FormFieldMeta
+ * @property {boolean} required
+ * @property {string} label
+ * @property {unknown} defaultValue
+ * @property {boolean} disabled
+ * @property {boolean} invalid
+ * @property {string | null} invalidMessage
+ */
+
+/**
+ * The value AppForm provides. Field values are whatever an input or an action
+ * step put there, so they stay `unknown`.
+ *
+ * @typedef {object} FormContextValue
+ * @property {Record<string, unknown>} values
+ * @property {(name: string, value: unknown) => void} setValue
+ * @property {Record<string, string | undefined>} errors
+ * @property {(name: string, meta: FormFieldMeta) => void} register
+ * @property {(name: string) => void} unregister
+ * @property {boolean} pending
+ */
+
+/** @type {import('react').Context<FormContextValue | null>} */
 export const FormContext = createContext(null);
 
 // ── reset_form bus ──────────────────────────────────────────────────────────
@@ -65,8 +91,10 @@ export function resetAppForm(name) {
  * an error they could not clear. The wrapper publishes the state here and the
  * field carries it into its registration, where AppForm skips its rules.
  */
+/** @type {import('react').Context<boolean>} */
 export const FieldDisabledContext = createContext(false);
 
+/** @returns {FormContextValue | null} */
 export function useFormContext() {
     return useContext(FormContext);
 }
@@ -74,6 +102,9 @@ export function useFormContext() {
 /**
  * useFormField({ name, defaultValue, required, label })
  *   → { value, setValue, error, pending }
+ *
+ * @param {{ name?: string | null, defaultValue?: unknown, required?: boolean, label?: string, invalid?: boolean, invalidMessage?: string | null }} field
+ * @returns {{ value: unknown, setValue: (value: unknown) => void, error: string | null, pending: boolean }}
  */
 export function useFormField({
     name, defaultValue = null, required = false, label = '',
