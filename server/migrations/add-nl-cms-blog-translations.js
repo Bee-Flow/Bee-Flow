@@ -23,7 +23,7 @@ const DATA = require(path.join(__dirname, 'data', 'cms-blog-nl.json'));
  * migration when THIS FILE's checksum changes and knows nothing about the data
  * file, so pinning the hash here makes every data change a change to this file.
  */
-const DATA_SHA256 = 'd604dc94ad84358024b15b90abdc5f76ca5116758a412a2ca438fd2553015f6f';
+const DATA_SHA256 = 'ff35cb3dea54438a71c2dedb649f16b33d35abc07a85129a5357ddecc587c826';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 

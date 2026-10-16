@@ -343,6 +343,7 @@ router.get('/llms.txt', async (req, res, next) => {
 });
 
 // ── marketing pages ──────────────────────────────────────────────────
+router.use(require('./publicSearchIndexRender').createSearchIndexRouter({ getLiveSiteId, siteLocales }));
 router.use(require('./publicIntegrationsRender').createIntegrationsRouter({ resolveOrigin, getLiveSiteId }));
 
 router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res, next) => {

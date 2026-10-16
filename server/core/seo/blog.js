@@ -139,6 +139,16 @@ function postMetaLine(p, blog) {
     return bits.length ? `<p class="label">${bits.join(' · ')}</p>` : '';
 }
 
+/** The tag filter of the index: plain links, so a filtered list is a crawlable URL. */
+function tagNav(blog) {
+    const link = (href, text, active) => `<a href="${esc(href)}"${active ? ' aria-current="page"' : ''}>${esc(text)}</a>`;
+    const items = [
+        link(blog.basePath, blog.labels?.all_posts || 'All posts', !blog.tag),
+        ...blog.tags.map(t => link(`${blog.basePath}${indexQuery({ tag: t.slug })}`, t.label, blog.tag?.slug === t.slug)),
+    ];
+    return `<nav aria-label="${esc(blog.labels?.tags || 'Tags')}">${items.join(' · ')}</nav>`;
+}
+
 /**
  * The markup inside #root for a blog URL: real headings, links and the full
  * article text, in the prehydrate wrapper renderBlocks uses.
@@ -164,6 +174,7 @@ function renderBlogBody(eff) {
     } else {
         out.push(`<h1>${esc(blog.tag ? fmt(blog.labels?.tagged || 'Posts tagged “{tag}”', { tag: blog.tag.label }) : blog.title)}</h1>`);
         if (blog.description && !blog.tag) out.push(`<p>${esc(blog.description)}</p>`);
+        if (blog.tags?.length) out.push(tagNav(blog));
         if (!blog.posts?.length) out.push(`<p>${esc(blog.labels?.no_posts || 'No posts yet.')}</p>`);
         for (const p of blog.posts || []) {
             const href = `${blog.basePath}/${encodeURIComponent(p.slug)}`;

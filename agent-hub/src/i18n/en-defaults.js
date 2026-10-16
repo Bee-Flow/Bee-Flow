@@ -3709,6 +3709,8 @@ const EN_DEFAULTS = {
     "cms_blog.public.read_more": "Read more",
     "cms_blog.public.rss": "RSS feed",
     "cms_blog.public.scheduled_badge": "Scheduled",
+    "cms_blog.public.search": "Search posts",
+    "cms_blog.public.search_none": "No posts match your search.",
     "cms_blog.public.tagged": "Posts tagged “{tag}”",
     "cms_blog.public.tags": "Tags",
     "cms_blog.public.title": "Blog",

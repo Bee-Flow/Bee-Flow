@@ -1,3 +1,4 @@
+import BlogSearch from './BlogSearch';
 import {
     assetSrc, formatPostDate, indexHref, label, postHref,
     type BlogIndexPayload, type BlogLabels, type BlogPostSummary,
@@ -97,6 +98,7 @@ export default function BlogIndex({ blog }: { blog: BlogIndexPayload }) {
                     <h1 className="blog-index-title">{heading}</h1>
                     {blog.description && !blog.tag ? <p className="blog-index-lead">{blog.description}</p> : null}
                 </header>
+                <BlogSearch blog={blog} />
                 <TagFilter blog={blog} />
                 {!posts.length ? <p className="blog-empty">{label(labels, blog.tag ? 'no_posts_tag' : 'no_posts')}</p> : null}
                 {featured ? <PostCard post={featured} basePath={basePath} locale={locale} labels={labels} featured /> : null}
