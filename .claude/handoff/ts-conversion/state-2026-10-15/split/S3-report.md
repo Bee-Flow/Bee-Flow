@@ -99,3 +99,6 @@ Also: fix 593cfcd4 (server eslint error from my earlier LF-S7 test fix: unused `
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 593cfcd4 | 593cfcd4 | 39/39 | green | 0 | 15100 / 26228 | clean | 0 | 21872 | 13428 | 0 | 29058 / 0 fail |
 | SWEEP-B 2-4 + LF-A8 | 202bda88 | 39/39 | green (agent-hub 4764/6674, server 0) | 0 | 15152 / 26228 | clean | 0 | 21892 | 13428 | 0 | 29058 / 0 fail / 0 HUNG |
+| SB1 + LF-A7 (+ i18n register fix) | abf78e5d full run: 9/10 green; the one red was agent-hub vitest i18nGuard.test.js (supportInboxLabels.ts not on TEXT_HELPERS). Fixed in the next commit (one data line in that test); re-verified on it: i18nGuard 16/16, check:fast 39/39, duplication 15152 / 26228, lint:budget green, lint:source-text at budget | 39/39 | green (agent-hub 4756/6674) | 0 | 15152 / 26228 | clean | 0 | 22000 + i18nGuard re-run | 13428 | 0 | 29058 / 0 fail / 0 HUNG |
+
+Measured after round 2 (no --update): long-function agent-hub 251 (budget 257), server 104; ts-ratchet agent-hub 1934 (budget 1955; SWEEP-B converted 21 of 117); authfetch-outside-api 308, authfetch-effect 216, big-file 186 (LF-A7).
