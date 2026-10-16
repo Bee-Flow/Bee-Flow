@@ -108,6 +108,16 @@ test('the content cap stays at 200 characters', async () => {
     assert.strictEqual(writeCalls[0].candidate.content.length, 200);
 });
 
+test('remember says when it shortened the content or limited the importance', async () => {
+    writeResult = { action: 'created', id: 'm1' };
+    const r = await executeMemoryTool('memory_remember', { type: 'fact', content: 'x'.repeat(300), importance: 1.5 }, { userId: 'u1' });
+    assert.strictEqual(r.adjusted.length, 2);
+    assert.match(r.message, /shortened to 200/);
+    assert.match(r.message, /importance 1.5 was limited to 1/);
+    const plain = await executeMemoryTool('memory_remember', { type: 'fact', content: 'short' }, { userId: 'u1' });
+    assert.strictEqual(plain.adjusted, undefined);
+});
+
 test('remember tells the model what happened, per action', async () => {
     const run = async (result) => { writeResult = result; return executeMemoryTool('memory_remember', { type: 'fact', content: 'Works in Utrecht' }, { userId: 'u1' }); };
 
