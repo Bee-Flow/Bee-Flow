@@ -452,7 +452,7 @@ const OUTPUT_SCHEMAS = {
         // Read this before writing a row: `values` on a create/update is keyed
         // by the column TITLE exactly as it appears here, not by its id and not
         // by whatever the upstream AI step happened to call the field.
-        shape: { tableId: 'integer', count: 'integer', columns: 'array of { id, title, type, subtype, mandatory }' },
+        shape: { tableId: 'integer', count: 'integer', columns: 'array of { id, title, type, subtype, mandatory, selectionOptions (selection columns: [{ id, label }]), numberDecimals (number columns) }' },
         sample: { tableId: 4, count: 2, columns: [{ id: 1, title: 'Datum', type: 'datetime', subtype: 'date', mandatory: false }, { id: 2, title: 'Leverancier', type: 'text', subtype: 'line', mandatory: false }] },
     },
     nextcloud_tables_create: {
@@ -460,12 +460,12 @@ const OUTPUT_SCHEMAS = {
         sample: { success: true, table: { id: 7, title: 'Facturen', emoji: '🧾', ownership: 'admin', isShared: false, archived: false, rowsCount: 0, columnsCount: 0 } },
     },
     nextcloud_tables_create_row: {
-        shape: { success: 'boolean', row: 'object { id, tableId, createdBy, createdAt, values }' },
+        shape: { success: 'boolean', row: 'object { id, tableId, createdBy, createdAt, values }', warnings: 'array of string|undefined (e.g. a number was rounded)' },
         sample: { success: true, row: { id: 31, tableId: 4, createdBy: 'admin', createdAt: '2026-09-12 10:00:00', values: { Datum: '2026-09-19', Leverancier: 'Noordlicht Energie B.V.', Totaal: 1554.25 } } },
     },
     nextcloud_tables_update_row: {
-        shape: { success: 'boolean', row: 'object { id, tableId, lastEditBy, lastEditAt, values }' },
-        sample: { success: true, row: { id: 31, tableId: 4, lastEditBy: 'admin', lastEditAt: '2026-09-12 10:05:00', values: { Totaal: 1554.25 } } },
+        shape: { success: 'boolean', row: 'object { id, tableId, lastEditBy, lastEditAt, values }', warnings: 'array of string|undefined (e.g. a number was rounded)' },
+        sample: { success: true, row: { id: 31, tableId: 4, lastEditBy: 'admin', lastEditAt: '2026-09-12 10:05:00', values: { Totaal: 1554.25 } }, warnings: [] },
     },
 
     nextcloud_list_files: {
