@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Text helpers that count Unicode code points, like len(): an emoji is one
  * character, and nothing here can cut a surrogate pair in half.

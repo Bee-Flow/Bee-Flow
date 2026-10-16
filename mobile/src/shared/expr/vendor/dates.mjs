@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit handling and calendar arithmetic behind dateAdd/dateDiff (UTC, pure,
  * deterministic, like everything in the shared expression language).

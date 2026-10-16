@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Whitelisted helper functions for the shared expression language.
  *
