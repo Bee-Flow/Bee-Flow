@@ -1,11 +1,8 @@
-import type { ComponentType } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { ImageField as ImageFieldJs, TextField as TextFieldJs } from '../fields';
 
-// fields.jsx is plain JS: TypeScript infers every destructured prop as
-// required there, although they all have defaults or are optional.
-const ImageField = ImageFieldJs as unknown as ComponentType<Record<string, unknown>>;
-const TextField = TextFieldJs as unknown as ComponentType<Record<string, unknown>>;
+const ImageField = ImageFieldJs;
+const TextField = TextFieldJs;
 
 /**
  * Editor fields for a "clip": a demo video WITH sound, shown with controls

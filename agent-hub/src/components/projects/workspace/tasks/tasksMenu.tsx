@@ -19,7 +19,7 @@ export interface TaskMenuProps extends Omit<React.HTMLAttributes<HTMLDivElement>
 }
 
 /** The shared AnchoredMenu, typed: portal, outside click, Escape and the arrow-key menu pattern. */
-export const AnchoredMenu = AnchoredMenuJs as unknown as React.ComponentType<TaskMenuProps>;
+export const AnchoredMenu = AnchoredMenuJs;
 
 /** Borderless toolbar button: quieter than a SecondaryButton, darker while its menu is open. */
 export const TOOLBAR_BUTTON_CLASS =

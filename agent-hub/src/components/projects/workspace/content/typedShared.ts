@@ -52,6 +52,6 @@ export interface TableCellProps {
     children?: React.ReactNode;
 }
 
-export const DataTable = DataTableJs as unknown as <T>(props: DataTableProps<T>) => React.ReactElement;
-export const TableRow = TableRowJs as unknown as React.ComponentType<TableRowProps>;
-export const TableCell = TableCellJs as unknown as React.ComponentType<TableCellProps>;
+export const DataTable = DataTableJs;
+export const TableRow = TableRowJs;
+export const TableCell = TableCellJs;

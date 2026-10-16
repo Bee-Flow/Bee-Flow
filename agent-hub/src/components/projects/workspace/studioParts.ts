@@ -62,7 +62,7 @@ export interface FilterPillsProps<V extends string> {
     testId?: string;
 }
 
-export const FilterPills = FilterPillsJsx as unknown as <V extends string>(props: FilterPillsProps<V>) => React.ReactElement;
+export const FilterPills = FilterPillsJsx;
 
 export interface DangerZoneProps {
     entityName: string;
@@ -81,9 +81,4 @@ export interface DangerZoneProps {
 
 export const DangerZone = DangerZoneJsx as unknown as React.ComponentType<DangerZoneProps>;
 
-export const RequireTier = RequireTierJsx as unknown as React.ComponentType<{
-    feature?: string;
-    tier?: string;
-    children: React.ReactNode;
-    fallback?: React.ReactNode;
-}>;
+export const RequireTier = RequireTierJsx;

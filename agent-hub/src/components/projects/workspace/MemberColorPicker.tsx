@@ -3,13 +3,13 @@
 // people who may not change it.
 
 import { Check } from 'lucide-react';
-import React, { useRef, useState, type ComponentType } from 'react';
+import React, { useRef, useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import AnchoredMenuJs from '../../shared/AnchoredMenu';
 import { MEMBER_COLORS } from './memberColors';
 
 // The menu is untyped JavaScript: props are passed by name, as the other users of it do.
-const AnchoredMenu = AnchoredMenuJs as unknown as ComponentType<Record<string, unknown>>;
+const AnchoredMenu = AnchoredMenuJs;
 
 export interface MemberColorPickerProps {
     name: string;

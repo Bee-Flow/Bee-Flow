@@ -1,13 +1,12 @@
 import { Building2, FileText, Landmark, Siren, Users, type LucideIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import type { ComponentType, ReactNode } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
 import { DrawerSection as DrawerSectionJs } from '../../../../shared/SideDrawer';
 import { useDateFormat } from '../../shared/formatDates';
 import { reportingRowsOf } from './incidentClocks';
 
 // A .jsx export whose `= null` defaults would type its props as null-only.
-const DrawerSection = DrawerSectionJs as unknown as ComponentType<{ label?: ReactNode; hint?: ReactNode; className?: string; testId?: string; children?: ReactNode }>;
+const DrawerSection = DrawerSectionJs;
 
 /**
  * The incident drawer's reporting block, in two parts:
