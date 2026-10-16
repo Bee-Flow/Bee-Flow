@@ -1,3 +1,5 @@
+import type { BindingInput } from '../runtime/resolveBinding.types';
+
 /**
  * The shape of an app definition, as the inspector reads it.
  *
@@ -54,6 +56,9 @@ export interface AppNode<P = CommonNodeProps> {
     /** Role keys gating the node (absent or empty = everyone). */
     visibleToRoles?: string[];
     readOnly?: BoolOrFormula;
+    /** A binding to an array: the renderer repeats the node's children once per item. */
+    repeat?: BindingInput;
+    forEach?: BindingInput;
     [key: string]: unknown;
 }
 
