@@ -17,7 +17,9 @@ const { sanitizeSvg } = require('../utils/svgSanitizer');
 const cmsMedia = require('./cmsMedia');
 const { UPLOAD_MIME_WHITELIST, IMAGE_MAX_BYTES } = require('../core/cms/uploadPolicy');
 const { parseRangeHeader } = require('../core/http/httpRange');
-const { parseVariantWidth, isResizable, renderVariant, MAX_SOURCE_BYTES } = require('../core/cms/assetVariants');
+const { parseVariantWidth, pickFormat, isResizable, renderVariant, MAX_SOURCE_BYTES } = require('../core/cms/assetVariants');
+const { variantKey, scheduleVariants } = require('../core/cms/assetVariantStore');
+const log = require('../telemetry/log');
 const { buffer: streamToBuffer } = require('node:stream/consumers');
 const crypto = require('node:crypto');
 
@@ -110,6 +112,9 @@ async function handleUpload(req, res) {
     }
 
     await storageStore.uploadFile(key, body, contentType, metadata);
+    // Resized AVIF/WebP copies, rendered in the background; the response does not wait.
+    scheduleVariants({ key, source: body, contentType, storage: storageStore })
+        .catch((err) => log.warn(`[CmsVariants] ${key} not scheduled: ${err.message}`));
 
     const url = `/api/cms/asset/${key.split('/').map(encodeURIComponent).join('/')}`;
     res.json({ success: true, key, url });
@@ -159,6 +164,33 @@ function isScriptableMime(mime) {
     const lower = mime.toLowerCase();
     return SCRIPTABLE_MIME_PREFIXES.some(p => lower.startsWith(p));
 }
+
+/**
+ * Answers with the variant written at upload time, when there is one.
+ * @param {import('express').Response} res
+ * @param {string} key
+ * @param {number} width
+ * @param {'avif' | 'webp'} format
+ * @param {() => void} cacheHeaders
+ * @returns {Promise<boolean>} true when the response was sent
+ */
+async function sendStoredVariant(res, key, width, format, cacheHeaders) {
+    try {
+        const { stream, contentLength } = await storageStore.streamFile(variantKey(key, width, format));
+        cacheHeaders();
+        res.setHeader('Content-Type', `image/${format}`);
+        if (contentLength) res.setHeader('Content-Length', contentLength);
+        await sendStream(stream, res);
+        return true;
+    } catch (err) {
+        // No stored variant (older upload, or not made yet): render on demand.
+        if (err.name !== 'NoSuchKey' && err.$metadata?.httpStatusCode !== 404) {
+            log.warn(`[CmsVariants] stored variant of ${key} unreadable: ${err.message}`);
+        }
+        return false;
+    }
+}
+
 async function serveAsset(req, res) {
     try {
         const key = req.params[0];
@@ -177,11 +209,12 @@ async function serveAsset(req, res) {
             head = await storageStore.headFile(key);
             version = String(head.etag || head.contentLength || '');
         }
-        const etag = `"${crypto.createHash('sha1').update(`${key}|${minted ? '' : version}|${width || ''}`).digest('hex').slice(0, 20)}"`;
+        const format = width ? pickFormat(req.headers.accept) : '';
+        const etag = `"${crypto.createHash('sha1').update(`${key}|${minted ? '' : version}|${width || ''}|${format}`).digest('hex').slice(0, 20)}"`;
         const cacheHeaders = () => {
             res.setHeader('ETag', etag);
             res.setHeader('Cache-Control', minted ? 'public, max-age=31536000, immutable' : 'public, max-age=300');
-            res.setHeader('Vary', 'Accept-Encoding');
+            res.setHeader('Vary', width ? 'Accept-Encoding, Accept' : 'Accept-Encoding');
         };
         if (matchesEtag(req.headers['if-none-match'], etag)) {
             cacheHeaders();
@@ -208,13 +241,14 @@ async function serveAsset(req, res) {
             if (parsed && !('invalid' in parsed)) range = parsed;
         }
 
+        if (wantsVariant && minted && await sendStoredVariant(res, key, /** @type {number} */ (width), /** @type {'avif' | 'webp'} */ (format), cacheHeaders)) return;
         const { stream, contentType: storedType, contentLength, metadata } = await storageStore.streamFile(key, { range });
         if (wantsVariant) {
-            // Resized WebP variant for srcset; falls back to the original bytes.
+            // Resized variant for srcset, rendered now; falls back to the original bytes.
             const original = Number(head && head.contentLength) > MAX_SOURCE_BYTES ? null : await streamToBuffer(stream);
-            const variant = original && await renderVariant(`${key}|${version}`, original, /** @type {number} */ (width));
+            const variant = original && await renderVariant(`${key}|${version}`, original, /** @type {number} */ (width), /** @type {'avif' | 'webp'} */ (format));
             cacheHeaders();
-            res.setHeader('Content-Type', variant ? 'image/webp' : storedType);
+            res.setHeader('Content-Type', variant ? `image/${format}` : storedType);
             if (original) return res.end(variant || original);
             return sendStream(stream, res);
         }

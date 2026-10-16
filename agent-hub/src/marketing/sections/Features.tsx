@@ -4,6 +4,7 @@ import AppIcon from '../../components/icons/AppIcon';
 import CardActionWrapper from '../components/CardActionWrapper';
 import EditableText from '../components/EditableText';
 import FramedMedia from '../components/FramedMedia';
+import { columnSizes } from '../assetUrl';
 import PopupModal from '../components/PopupModal';
 import SectionFrame from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';
@@ -124,7 +125,7 @@ export default function Features({ data }: { data?: FeaturesData | null }) {
                                     </EditableText>
                                     {hasItemMedia ? (
                                         <div className={mediaBoxClass(item)}>
-                                            <FramedMedia media={item.media} glow={false} />
+                                            <FramedMedia media={item.media} glow={false} sizes={isBento ? undefined : columnSizes(3)} />
                                         </div>
                                     ) : null}
                                 </CardActionWrapper>

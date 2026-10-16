@@ -5,7 +5,9 @@
  * site. A phone used to download the full-size original of every image.
  *
  * `GET /api/cms/asset/cms/<key>?w=640` answers the image scaled DOWN to 640 px
- * wide (never enlarged) as WebP. Only widths from {@link VARIANT_WIDTHS} are
+ * wide (never enlarged) as AVIF when the browser's Accept header lists it, else
+ * WebP. Uploads pre-render these into storage (core/cms/assetVariantStore.js);
+ * the rendering here is the fallback for images uploaded before that. Only widths from {@link VARIANT_WIDTHS} are
  * honoured, so the query string cannot be used to make the server render an
  * unbounded number of variants. The route is public, so rendering is bounded:
  * a pixel limit, a source-size cap, two concurrent renders (the rest get the
@@ -16,6 +18,8 @@
  */
 
 const VARIANT_WIDTHS = [320, 640, 960, 1280, 1920];
+/** Output formats, best first. */
+const VARIANT_FORMATS = /** @type {Array<'avif' | 'webp'>} */ (['avif', 'webp']);
 const RESIZABLE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const CACHE_MAX_BYTES = 32 * 1024 * 1024;
 /** Sources above this are served as stored (they are buffered to resize). */
@@ -43,6 +47,14 @@ function parseVariantWidth(raw) {
     return VARIANT_WIDTHS.includes(w) ? w : null;
 }
 
+/**
+ * @param {unknown} accept the Accept request header
+ * @returns {'avif' | 'webp'}
+ */
+function pickFormat(accept) {
+    return typeof accept === 'string' && /image\/avif/i.test(accept) ? 'avif' : 'webp';
+}
+
 /** @param {string | undefined} contentType */
 function isResizable(contentType) {
     return RESIZABLE_TYPES.has(String(contentType || '').split(';')[0].trim().toLowerCase());
@@ -66,18 +78,21 @@ function forget(id) {
     negative.add(id);
 }
 
-/** @param {Buffer} source @param {number} width @returns {Promise<Buffer | null>} */
-async function resize(source, width) {
+/**
+ * @param {Buffer} source
+ * @param {number} width
+ * @param {'avif' | 'webp'} format
+ * @returns {Promise<Buffer | null>} null when a resize would gain nothing
+ */
+async function resize(source, width, format) {
     const sharp = require('sharp');
     const opts = { limitInputPixels: MAX_INPUT_PIXELS, failOn: /** @type {'error'} */ ('error') };
     const meta = await sharp(source, opts).metadata();
     // Animated, or already no wider than asked: nothing to gain.
     if ((meta.pages || 1) > 1 || !meta.width || meta.width <= width) return null;
-    const out = await sharp(source, opts)
-        .rotate()
-        .resize({ width, withoutEnlargement: true })
-        .webp({ quality: 80 })
-        .toBuffer();
+    const pipeline = sharp(source, opts).rotate().resize({ width, withoutEnlargement: true });
+    // effort 4 (of 9): AVIF at the default effort costs several seconds a large screenshot.
+    const out = await (format === 'avif' ? pipeline.avif({ quality: 55, effort: 4 }) : pipeline.webp({ quality: 80 })).toBuffer();
     return out.length < source.length ? out : null;
 }
 
@@ -85,11 +100,12 @@ async function resize(source, width) {
  * @param {string} cacheKey identity of the stored bytes (key plus version)
  * @param {Buffer} source the stored bytes
  * @param {number} width an allowed width
- * @returns {Promise<Buffer | null>} WebP bytes, or null when the original
- *   should be served (not resizable, too big, busy, failed)
+ * @param {'avif' | 'webp'} [format]
+ * @returns {Promise<Buffer | null>} image bytes in `format`, or null when the
+ *   original should be served (not resizable, too big, busy, failed)
  */
-async function renderVariant(cacheKey, source, width) {
-    const id = `${cacheKey}@${width}`;
+async function renderVariant(cacheKey, source, width, format = 'webp') {
+    const id = `${cacheKey}@${width}.${format}`;
     const hit = cache.get(id);
     if (hit) {
         cache.delete(id);
@@ -101,7 +117,7 @@ async function renderVariant(cacheKey, source, width) {
     if (pending) return pending;
     if (running >= MAX_CONCURRENT) return null;
     running++;
-    const job = resize(source, width)
+    const job = resize(source, width, format)
         .then((out) => {
             if (out) remember(id, out); else forget(id);
             return out;
@@ -112,4 +128,6 @@ async function renderVariant(cacheKey, source, width) {
     return job;
 }
 
-module.exports = { VARIANT_WIDTHS, MAX_SOURCE_BYTES, parseVariantWidth, isResizable, renderVariant };
+module.exports = {
+    VARIANT_WIDTHS, VARIANT_FORMATS, MAX_SOURCE_BYTES, parseVariantWidth, pickFormat, isResizable, renderVariant, resize,
+};

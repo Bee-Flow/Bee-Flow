@@ -527,3 +527,39 @@ test('?w= on an image already narrower than the width, or an undecodable one, se
     assert.strictEqual(b.status, 200);
     assert.strictEqual(await b.text(), 'not an image');
 });
+
+test('an image upload stores AVIF and WebP variants next to the original, and a bad image still uploads', async () => {
+    const sharp = require('sharp');
+    const png = await sharp({ create: { width: 1600, height: 900, channels: 3, background: '#336699' } }).png().toBuffer();
+    const { status, body } = await post('/admin/upload', png, 'shot.png', 'image/png');
+    assert.strictEqual(status, 200);
+    const variant = body.key.replace(/^cms\//, 'cms-variants/');
+    for (let i = 0; i < 200 && !objects.has(`${variant}@1280.webp`); i++) await new Promise((r) => setTimeout(r, 25));
+    assert.ok(objects.has(`${variant}@640.avif`), 'avif variant stored');
+    assert.ok(objects.has(`${variant}@640.webp`), 'webp variant stored');
+    const bad = await post('/admin/upload', Buffer.from('not an image'), 'bad.png', 'image/png');
+    assert.strictEqual(bad.status, 200);
+});
+
+test('?w= serves the stored variant, and AVIF only to a browser that accepts it', async () => {
+    seed(`${MINTED}stored.png`, Buffer.from('original'), 'image/png');
+    seed('cms-variants/1700000000000-ab12cd-stored.png@640.webp', Buffer.from('stored-webp'), 'image/webp');
+    seed('cms-variants/1700000000000-ab12cd-stored.png@640.avif', Buffer.from('stored-avif'), 'image/avif');
+    const webp = await fetch(`${baseUrl}/asset/${MINTED}stored.png?w=640`, { headers: { accept: 'image/webp,*/*' } });
+    assert.strictEqual(await webp.text(), 'stored-webp');
+    assert.strictEqual(webp.headers.get('content-type'), 'image/webp');
+    assert.match(webp.headers.get('vary') || '', /Accept/);
+    const avif = await fetch(`${baseUrl}/asset/${MINTED}stored.png?w=640`, { headers: { accept: 'image/avif,image/webp,*/*' } });
+    assert.strictEqual(await avif.text(), 'stored-avif');
+    assert.strictEqual(avif.headers.get('content-type'), 'image/avif');
+    assert.notStrictEqual(avif.headers.get('etag'), webp.headers.get('etag'));
+});
+
+test('without a stored variant, ?w= renders AVIF on demand for a browser that accepts it', async () => {
+    const sharp = require('sharp');
+    const png = await sharp({ create: { width: 1600, height: 900, channels: 3, background: '#336699' } }).png().toBuffer();
+    seed(`${MINTED}ondemand.png`, png, 'image/png');
+    const res = await fetch(`${baseUrl}/asset/${MINTED}ondemand.png?w=640`, { headers: { accept: 'image/avif,*/*' } });
+    assert.strictEqual(res.headers.get('content-type'), 'image/avif');
+    assert.strictEqual((await sharp(Buffer.from(await res.arrayBuffer())).metadata()).width, 640);
+});
