@@ -10,12 +10,15 @@
  *   2. the whole access decision again (accessCheck.js) — the token may have been
  *      revoked or downgraded, the org may have changed its IP allow-list, the user
  *      lost admin rights, in the minutes since the ticket was issued;
- *   3. BURN the ticket (atomic, uploadTickets.burn). Everything after this point
- *      spends it, success or not. That is the point: two PUTs racing for one
- *      ticket cannot both store a file;
+ *   3. BURN the ticket (atomic, uploadTickets.burn) so two PUTs racing for one
+ *      ticket cannot both store a file. A burned ticket stays spent on success
+ *      and on a bad FILE (too large, empty, wrong type); when nothing was stored
+ *      because the transport broke or stalled or storage failed or timed out, it
+ *      is handed back (tickets.release, bounded) so the client can retry in the TTL;
  *   4. stream the body to a private temp file with a hard byte cap (never held
  *      whole in memory), validate by type, store through the same storage path
  *      the CMS uploader uses so the file shows up in the asset library;
+ *      Every wait here has a deadline (idle body, storage), so the PUT always answers;
  *   5. record the outcome on the ticket for cms_upload_status, remove the temp.
  *
  * Every collaborator is injected, so the lifecycle is tested without a server,
@@ -30,6 +33,7 @@ const os = require('os');
 const path = require('path');
 
 const log = require('../../telemetry/log');
+const { bodyDeadlineMs, storeDeadlineMs } = require('./uploadTickets');
 const { CLIP_MIME_WHITELIST, VTT_CONTENT_TYPE } = require('../../core/cms/uploadPolicy');
 
 /** The file extension an asset of this type gets; the client's own extension is not trusted. */
@@ -61,29 +65,60 @@ const assetUrlFor = (key) => `/api/cms/asset/${key.split('/').map(encodeURICompo
 
 class TooLargeError extends Error {}
 class AbortedError extends Error {}
+class StalledError extends Error {}
+class StoreTimeoutError extends Error {}
+
+// A body that sends nothing for this long is dead. The total body and storage deadlines scale with the ticket's size (uploadTickets.js).
+const IDLE_MS = 30 * 1000;
+
+/** Reject when `promise` has not settled after `ms`. */
+function withDeadline(run, ms, makeError) {
+    const controller = new AbortController();
+    let timer;
+    const deadline = new Promise((_, reject) => {
+        timer = setTimeout(() => { controller.abort(); reject(makeError()); }, ms);
+    });
+    return Promise.race([run(controller.signal), deadline]).finally(() => clearTimeout(timer));
+}
 
 /**
  * Pipe a readable into a file, stopping the moment it passes `maxBytes`.
  * Deliberately not stream.pipeline: pipeline destroys the request on failure,
  * and a destroyed request is a closed socket — the client would get a reset
  * instead of the 413 explaining why.
+ * Always settles: a stream that already ended or was destroyed before we got
+ * to it (the awaits ahead of this call) rejects at once, and a stream that
+ * goes quiet for `idleMs`, or runs past `totalMs` in all, rejects with StalledError.
  * @returns {Promise<number>} bytes written
  */
-function receiveToFile(readable, filePath, maxBytes) {
+function receiveToFile(readable, filePath, maxBytes, idleMs = IDLE_MS, totalMs = 30 * 60 * 1000) {
     return new Promise((resolve, reject) => {
+        if (readable.readableEnded || readable.destroyed) {
+            reject(new AbortedError('the request body was already consumed or closed'));
+            return;
+        }
         const out = fs.createWriteStream(filePath, { flags: 'wx', mode: 0o600 });
         let bytes = 0;
         let settled = false;
         let ended = false;
+        let idle = null;
+        const total = setTimeout(() => fail(new StalledError('upload took too long')), totalMs);
+        const arm = () => {
+            clearTimeout(idle);
+            idle = setTimeout(() => fail(new StalledError('no data received')), idleMs);
+        };
         const fail = (err) => {
             if (settled) return;
             settled = true;
+            clearTimeout(idle);
+            clearTimeout(total);
             readable.unpipe(out);
             readable.pause();
             out.destroy();
             reject(err);
         };
         readable.on('data', (chunk) => {
+            arm();
             bytes += chunk.length;
             if (bytes > maxBytes) fail(new TooLargeError('too large'));
         });
@@ -94,8 +129,11 @@ function receiveToFile(readable, filePath, maxBytes) {
         out.on('finish', () => {
             if (settled) return;
             settled = true;
+            clearTimeout(idle);
+            clearTimeout(total);
             resolve(bytes);
         });
+        arm();
         readable.pipe(out);
     });
 }
@@ -104,15 +142,19 @@ function receiveToFile(readable, filePath, maxBytes) {
  * @param {object} deps
  * @param {ReturnType<import('./uploadTickets').createUploadTickets>} deps.tickets
  * @param {{ isAvailable(): boolean, uploadFile(key: string, body: Buffer, type: string, meta?: object|null): Promise<void> }} deps.storage
- * @param {(filePath: string, size: number, key: string, type: string) => Promise<void>} deps.streamIntoStorage
+ * @param {(filePath: string, size: number, key: string, type: string, signal?: AbortSignal) => Promise<void>} deps.streamIntoStorage
  * @param {(buf: Buffer) => Buffer|null} deps.sanitizeSvg
  * @param {(buf: Buffer) => boolean} deps.isValidVtt
  * @param {(head: Buffer, ext: string) => boolean} deps.looksLikeClip
  * @param {(bound: object, ip: string) => Promise<{ ok: boolean, reason?: string }>} deps.checkAccess  see accessCheck.js
  * @param {() => string} [deps.tmpRoot]
+ * @param {number} [deps.idleMs]  longest quiet gap in the request body
+ * @param {number} [deps.storeMs]  deadline for the storage step (default: scales with the ticket's size)
+ * @param {number} [deps.bodyMs]  deadline for the whole body (default: scales with the ticket's size)
  */
 function createUploadReceiver(deps) {
     const tmpRoot = deps.tmpRoot || (() => os.tmpdir());
+    const idleMs = deps.idleMs || IDLE_MS;
 
     /**
      * @param {{ ticket: string, contentType: string, contentLength: number|null, ip: string,
@@ -167,26 +209,49 @@ function createUploadReceiver(deps) {
 
         // 4. Receive, validate, store.
         let dir = null;
+        let stored = false;
+        let givenBack = false;
+        const storeMs = deps.storeMs || storeDeadlineMs(bound.maxSize);
+        const bodyMs = deps.bodyMs || bodyDeadlineMs(bound.maxSize);
+        /** Hand the ticket back once, only when nothing is stored; false when it stays spent. */
+        const giveBack = async (message) => {
+            if (stored || givenBack) return false;
+            givenBack = true;
+            try {
+                return await deps.tickets.release(id, message);
+            } catch (e) {
+                log.warn(`[CmsMcp] ticket release failed ${id}: ${e.message}`);
+                return false;
+            }
+        };
         try {
             dir = await fs.promises.mkdtemp(path.join(tmpRoot(), 'beeflow-cms-mcp-'));
             const filePath = path.join(dir, 'upload.bin');
             let size;
             try {
-                size = await receiveToFile(stream, filePath, bound.maxSize);
+                size = await receiveToFile(stream, filePath, bound.maxSize, idleMs, bodyMs);
             } catch (err) {
-                const tooLarge = err instanceof TooLargeError;
-                const message = tooLarge
-                    ? `The file is larger than the ${bound.maxSize} bytes this upload URL was issued for. Request a new URL with the real size.`
-                    : 'The upload did not finish.';
-                await deps.tickets.finish(id, { state: 'failed', error: message });
-                return { status: tooLarge ? 413 : 400, body: { error: message }, closeConnection: true };
+                if (err instanceof TooLargeError) {
+                    const message = `The file is larger than the ${bound.maxSize} bytes this upload URL was issued for. Request a new URL with the real size.`;
+                    await deps.tickets.finish(id, { state: 'failed', error: message });
+                    return { status: 413, body: { error: message }, closeConnection: true };
+                }
+                // Nothing was stored: the transport broke, not the file. Hand the ticket back.
+                const stalled = err instanceof StalledError;
+                const again = await giveBack(stalled ? 'The upload stalled.' : 'The upload did not finish.');
+                const message = `${stalled ? 'The upload stalled: no data arrived in time.' : 'The upload did not finish.'} ${again
+                    ? 'The same URL can be used again until it expires.'
+                    : 'Request a new upload URL with cms_request_upload.'}`;
+                return { status: stalled ? 408 : 400, body: { error: message }, closeConnection: true };
             }
             if (size === 0) {
                 await deps.tickets.finish(id, { state: 'failed', error: 'The upload was empty.' });
                 return { status: 400, body: { error: 'The upload is empty.' }, closeConnection: true };
             }
 
+            // ONE storage key per ticket, kept across retries, so a retry overwrites instead of orphaning a file.
             const key = bound.key || assetKeyFor(bound.filename, type);
+            if (!bound.key) await deps.tickets.finish(id, { key });
             let storedSize = size;
             let storedType = type;
 
@@ -199,7 +264,7 @@ function createUploadReceiver(deps) {
                     await deps.tickets.finish(id, { state: 'failed', error: message });
                     return { status: 400, body: { error: message } };
                 }
-                await deps.streamIntoStorage(filePath, size, key, type);
+                await withDeadline((signal) => deps.streamIntoStorage(filePath, size, key, type, signal), storeMs, () => new StoreTimeoutError('storage timed out'));
             } else {
                 // Images are capped at 25 MB and captions at 1 MB, so a buffer is
                 // fine here; the cap was enforced while receiving.
@@ -220,17 +285,31 @@ function createUploadReceiver(deps) {
                     return { status: 400, body: { error: message } };
                 }
                 storedSize = body.length;
-                await deps.storage.uploadFile(key, body, storedType, metadata);
+                await withDeadline(() => deps.storage.uploadFile(key, body, storedType, metadata), storeMs, () => new StoreTimeoutError('storage timed out'));
             }
 
+            stored = true;
             const asset = { key, url: assetUrlFor(key), contentType: storedType, size: storedSize };
-            await deps.tickets.finish(id, { state: 'done', asset });
+            try {
+                await deps.tickets.finish(id, { state: 'done', asset });
+            } catch (e) {
+                // The file is stored; only the status record is behind. The caller still gets the asset.
+                log.warn(`[CmsMcp] could not record the finished upload ${id}: ${e.message}`);
+            }
             log.info(`[CmsMcp] upload stored ticket=${id} key=${key} bytes=${storedSize}`);
             return { status: 200, body: asset };
         } catch (err) {
             log.error(`[CmsMcp] upload failed ticket=${id}: ${err.message}`);
-            await deps.tickets.finish(id, { state: 'failed', error: 'The file could not be stored.' }).catch(() => {});
-            return { status: 500, body: { error: 'The file could not be stored.' }, closeConnection: true };
+            // A storage call that timed out may still be running and cannot be cancelled for a buffered
+            // write, so that ticket stays spent. Any other failure with nothing stored goes back.
+            const timedOut = err instanceof StoreTimeoutError;
+            if (timedOut) {
+                await deps.tickets.finish(id, { state: 'failed', error: 'Storing the file took too long.' }).catch((e) => log.warn(`[CmsMcp] ticket finish failed ${id}: ${e.message}`));
+                return { status: 504, body: { error: 'Storing the file took too long. Request a new upload URL with cms_request_upload.' }, closeConnection: true };
+            }
+            const again = await giveBack('The file could not be stored.');
+            const message = `The file could not be stored. ${again ? 'The same URL can be used again until it expires.' : 'Request a new upload URL with cms_request_upload.'}`;
+            return { status: 500, body: { error: message }, closeConnection: true };
         } finally {
             // Before the response goes out, so an answered caller can rely on the temp being gone.
             if (dir) await fs.promises.rm(dir, { recursive: true, force: true }).catch(() => {});

@@ -12,7 +12,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { Readable } = require('node:stream');
 
-const { createUploadTickets, TTL_MS } = require('./uploadTickets');
+const { createUploadTickets, TTL_MS, stallMsFor, MAX_RELEASES } = require('./uploadTickets');
 const { createUploadReceiver, receiveToFile } = require('./uploadReceiver');
 const { createAccessCheck } = require('./accessCheck');
 // The pure parts of the real access gate: the decision and the scope test.
@@ -193,6 +193,117 @@ test('an upload that is cut off before the end fails cleanly', async () => {
     assert.deepEqual(leftovers(s.tmp), []);
 });
 
+test('a request body that was already consumed answers 400 at once and the ticket is handed back', async () => {
+    const s = setup();
+    const { ticket, ticketId } = await s.issue();
+    const spent = Readable.from([PNG]);
+    spent.resume();
+    await new Promise((r) => spent.on('end', r));
+    const out = await s.put(ticket, PNG, { stream: spent });
+    assert.equal(out.status, 400);
+    const st = await s.tickets.status(ticketId, 'u1');
+    assert.equal(st.state, 'pending');
+    assert.equal((await s.put(ticket)).status, 200, 'retry on the same ticket');
+});
+
+test('a body that goes quiet is answered 408 within the idle limit', async () => {
+    const s = setup({ idleMs: 50 });
+    const { ticket } = await s.issue();
+    const quiet = new Readable({ read() {} });
+    quiet.push(Buffer.alloc(10));
+    const out = await s.put(ticket, PNG, { stream: quiet, contentLength: null });
+    assert.equal(out.status, 408);
+    assert.deepEqual(leftovers(s.tmp), []);
+});
+
+test('a ticket handed back at most MAX_RELEASES times, then it fails for good', async () => {
+    const s = setup();
+    const { ticket, ticketId } = await s.issue();
+    const dead = () => { const r = new Readable({ read() {} }); r.destroy(); return r; };
+    for (let i = 0; i < MAX_RELEASES; i += 1) assert.equal((await s.put(ticket, PNG, { stream: dead() })).status, 400);
+    assert.equal((await s.put(ticket, PNG, { stream: dead() })).status, 400);
+    assert.equal((await s.tickets.status(ticketId, 'u1')).state, 'failed');
+    assert.equal((await s.put(ticket)).status, 403);
+});
+
+test('status: an upload still marked uploading long after it began reads as failed', async () => {
+    const s = setup();
+    const { ticket, ticketId } = await s.issue();
+    await s.tickets.burn(ticket);
+    assert.equal((await s.tickets.status(ticketId, 'u1')).state, 'uploading');
+    s.advance(stallMsFor(1000) + 1);
+    const st = await s.tickets.status(ticketId, 'u1');
+    assert.equal(st.state, 'failed');
+    assert.ok(st.error);
+});
+
+test('retries after a failed storage write reuse ONE storage key (no orphans)', async () => {
+    let fail = true;
+    const keys = [];
+    const s = setup({ storage: { isAvailable: () => true, uploadFile: async (key) => { keys.push(key); if (fail) { fail = false; throw new Error('s3 hiccup'); } } } });
+    const { ticket } = await s.issue();
+    const first = await s.put(ticket);
+    assert.equal(first.status, 500);
+    assert.match(first.body.error, /same URL can be used again/);
+    const second = await s.put(ticket);
+    assert.equal(second.status, 200);
+    assert.equal(keys.length, 2);
+    assert.equal(keys[0], keys[1]);
+    assert.equal(second.body.key, keys[0]);
+});
+
+test('a storage timeout aborts the multipart upload and the ticket is NOT handed back', async () => {
+    let aborted = false;
+    const s = setup({
+        storeMs: 50,
+        streamIntoStorage: (file, size, key, type, signal) => new Promise(() => { signal.addEventListener('abort', () => { aborted = true; }); }),
+    });
+    const { ticket, ticketId } = await s.issue({ contentType: 'video/mp4' });
+    const mp4 = Buffer.concat([Buffer.alloc(4), Buffer.from('ftyp'), Buffer.alloc(992)]);
+    const out = await s.put(ticket, mp4, { contentType: 'video/mp4' });
+    assert.equal(out.status, 504);
+    assert.equal(aborted, true);
+    assert.equal((await s.tickets.status(ticketId, 'u1')).state, 'failed');
+    assert.equal((await s.put(ticket, mp4, { contentType: 'video/mp4' })).status, 403);
+});
+
+test('the retry hint is only given when the ticket really was handed back', async () => {
+    const s = setup();
+    const { ticket } = await s.issue();
+    const dead = () => { const r = new Readable({ read() {} }); r.destroy(); return r; };
+    const bodies = [];
+    for (let i = 0; i <= MAX_RELEASES; i += 1) bodies.push((await s.put(ticket, PNG, { stream: dead() })).body.error);
+    assert.match(bodies[0], /same URL can be used again/);
+    assert.match(bodies[MAX_RELEASES], /Request a new upload URL/);
+    assert.doesNotMatch(bodies[MAX_RELEASES], /same URL/);
+});
+
+test('a release that throws is swallowed and attempted once', async () => {
+    let calls = 0;
+    const s = setup();
+    const { ticket } = await s.issue();
+    s.tickets.release = async () => { calls += 1; throw new Error('db down'); };
+    const dead = new Readable({ read() {} });
+    dead.destroy();
+    const out = await s.put(ticket, PNG, { stream: dead });
+    assert.equal(out.status, 400);
+    assert.equal(calls, 1);
+    assert.match(out.body.error, /Request a new upload URL/);
+});
+
+test('once the file is stored the ticket is never released, even if recording the result throws', async () => {
+    const s = setup();
+    const { ticket } = await s.issue();
+    let released = 0;
+    s.tickets.release = async () => { released += 1; return true; };
+    const realFinish = s.tickets.finish;
+    s.tickets.finish = async (id, patch) => { if (patch.state === 'done') throw new Error('db down'); return realFinish(id, patch); };
+    const out = await s.put(ticket);
+    assert.equal(out.status, 200);
+    assert.equal(s.stored.length, 1);
+    assert.equal(released, 0);
+});
+
 test('an empty upload is refused', async () => {
     const s = setup();
     const { ticket } = await s.issue();
@@ -359,13 +470,15 @@ test('unavailable storage refuses without spending the ticket', async () => {
     assert.equal((await s.put(ticket)).status, 200);
 });
 
-test('a storage failure is recorded on the ticket and the temp is cleaned', async () => {
+test('a storage failure is recorded on the ticket, which is handed back, and the temp is cleaned', async () => {
     const s = setup({ storage: { isAvailable: () => true, uploadFile: async () => { throw new Error('s3 exploded'); } } });
     const { ticket, ticketId } = await s.issue();
     const out = await s.put(ticket);
     assert.equal(out.status, 500);
     assert.ok(!JSON.stringify(out.body).includes('s3'), 'internal detail is not leaked');
-    assert.equal((await s.tickets.status(ticketId, 'u1')).state, 'failed');
+    const st = await s.tickets.status(ticketId, 'u1');
+    assert.equal(st.state, 'pending', 'nothing was stored: the ticket is handed back');
+    assert.ok(st.error);
     assert.deepEqual(leftovers(s.tmp), []);
 });
 
