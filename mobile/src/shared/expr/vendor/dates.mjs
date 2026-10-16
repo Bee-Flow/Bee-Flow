@@ -79,3 +79,9 @@ export function epochDiff(a, b, unit) {
     if (unit === 'year') return Math.trunc(wholeMonthsBetween(a, b) / 12) || 0;
     return Math.trunc((a - b) / UNIT_MS[unit]) || 0;
 }
+
+// "2026-02-30" or "10:61" name no instant; Date.UTC would roll them over into
+// the next month/hour, so they read as not a date instead.
+export function validFields(y, mo, d, h, mi, s) {
+    return mo >= 1 && mo <= 12 && d >= 1 && d <= new Date(Date.UTC(y, mo, 0)).getUTCDate() && h <= 23 && mi <= 59 && s <= 59;
+}

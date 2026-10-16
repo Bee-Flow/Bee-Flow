@@ -59,3 +59,11 @@ test('epoch seconds and milliseconds', async () => {
     assert.strictEqual((await go({ op: 'parse', input: 'trigger.output.s', epochUnit: 'ms' })).iso, '1970-01-21T18:01:28.200Z');
     assert.strictEqual((await go({ op: 'parse', input: 'trigger.output.s', epochUnit: 'seconds' })).iso, '2026-10-25T00:30:00.000Z');
 });
+
+test('an hour that happens twice reads as its first occurrence; a skipped hour lands later', async () => {
+    const tz = 'Europe/Amsterdam';
+    const fall = await run({ op: 'parse', input: '2026-10-25T02:30:00', timezone: tz });
+    assert.strictEqual(fall.iso, '2026-10-25T00:30:00.000Z');
+    const spring = await run({ op: 'parse', input: '2026-03-29T02:30:00', timezone: tz });
+    assert.strictEqual(spring.iso, '2026-03-29T01:30:00.000Z');
+});

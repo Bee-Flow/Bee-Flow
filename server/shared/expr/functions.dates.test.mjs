@@ -44,3 +44,13 @@ test('dateDiff counts whole calendar months and years', () => {
 test('through the engine', () => {
     assert.equal(evaluate("dateDiff(a, b, 'hours')", { a: '2026-10-26T00:00:00Z', b: '2026-10-25T00:00:00Z' }), 24);
 });
+
+test('impossible ISO dates read as not a date instead of rolling over', () => {
+    for (const bad of ['2026-02-30', '2026-13-01', '2026-04-31', '2026-02-29', '2026-01-01T24:00:00', '2026-01-01T10:61', '2026-01-01T10:00:60']) {
+        assert.equal(dateAdd(bad, 0, 'day'), null, bad);
+        assert.equal(dateDiff(bad, '2026-01-01', 'day'), null, bad);
+        assert.equal(FUNCTIONS.formatDate(bad, 'YYYY-MM-DD'), '', bad);
+    }
+    assert.equal(dateAdd('2028-02-29', 0, 'day'), '2028-02-29T00:00:00.000Z');
+    assert.equal(dateAdd('2026-12-31T23:59:59', 0, 'day'), '2026-12-31T23:59:59.000Z');
+});

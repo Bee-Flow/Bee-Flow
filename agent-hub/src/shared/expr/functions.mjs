@@ -17,7 +17,7 @@
  */
 
 import { extractJsonText, getRelativePath, parseJsonText, parsePath, walkTokens } from './path.mjs';
-import { addToEpoch, epochDiff, requireDateUnit } from './dates.mjs';
+import { addToEpoch, epochDiff, requireDateUnit, validFields } from './dates.mjs';
 import { padStartCp, splitCp, substringCp } from './codePoints.mjs';
 export { checkDateUnit } from './dates.mjs';
 import { equalsValue, fileTypeOf, isEmptyValue, quantify, textContains, textEndsWith, textStartsWith } from './rules.mjs';
@@ -62,10 +62,11 @@ function toEpoch(iso) {
     if (typeof iso === 'number') return inRange(iso);
     const s = String(iso).trim();
     let m = DATE_ONLY.exec(s);
-    if (m) return inRange(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    if (m) return validFields(+m[1], +m[2], +m[3], 0, 0, 0) ? inRange(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null;
     m = DATE_TIME.exec(s);
     if (!m) return null;
     const [, y, mo, d, h, mi, se, zone] = m;
+    if (!validFields(+y, +mo, +d, +h, +mi, se ? +se : 0)) return null;
     let epoch = Date.UTC(+y, +mo - 1, +d, +h, +mi, se ? +se : 0);
     if (zone && zone !== 'Z') {
         const sign = zone[0] === '-' ? -1 : 1;

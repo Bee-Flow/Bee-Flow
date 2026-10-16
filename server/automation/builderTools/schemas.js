@@ -947,7 +947,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                     arrayRef: { type: 'string', description: 'LIST MODE: path to an upstream list, e.g. steps.x.output.results. The operation then runs per ROW and the result is ADDED AS A COLUMN to every row; `input` addresses the row as `item`, e.g. "item.updated". Output is {items,count}. Omit entirely to work on one date.' },
                     target: { type: 'string', description: 'List mode only: the name of the column the result goes into. Defaults to the part (op:extract), else the operation name.' },
                     timezone: { type: 'string', description: 'IANA timezone, e.g. Europe/Amsterdam. Default UTC. It sets the wall clock that op:format and op:extract use, how a date WITHOUT a zone ("2026-07-01 09:00") is read, and makes op:addDays keep the clock time across a daylight-saving change. Output iso stays UTC.' },
-                    epochUnit: { type: 'string', enum: ['auto', 'seconds', 'ms'], description: 'How a NUMBER input is read. auto (default): below 1e11 is epoch seconds, otherwise milliseconds. Set seconds or ms to force one.' },
+                    epochUnit: { type: 'string', enum: ['auto', 'seconds', 'ms'], description: 'How a NUMBER input is read. auto (default): below 1e11 is epoch seconds, otherwise milliseconds. Set seconds or ms to force one (needed for milliseconds between 1966 and 1970, which are negative and small).' },
                     label: { type: 'string' },
                 },
                 required: ['op'],

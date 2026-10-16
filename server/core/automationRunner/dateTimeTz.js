@@ -14,7 +14,11 @@ const ISO_RE = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\
 /** Values of the step's `epochUnit`. */
 const EPOCH_UNITS = new Set(['auto', 'seconds', 'ms']);
 
-/** Epoch values below this are seconds (1e11 s is year 5138; 1e11 ms is 1973). */
+/**
+ * Epoch values below this are seconds (1e11 s is year 5138; 1e11 ms is 1973).
+ * Consequence: a NEGATIVE millisecond epoch between 1966 and 1970 also reads as
+ * seconds under `epochUnit: auto`; set `epochUnit: ms` for such dates.
+ */
 const EPOCH_SECONDS_BELOW = 1e11;
 
 const formatters = new Map();
@@ -88,8 +92,14 @@ function offsetAt(ms, tz) {
  */
 function wallToInstant(wallMs, tz) {
     if (tz === 'UTC') return wallMs;
-    const guess = wallMs - offsetAt(wallMs, tz);
-    return wallMs - offsetAt(guess, tz);
+    // The offsets in force a day before and after; a candidate instant counts
+    // when the zone really has that offset there. Two valid ones means the hour
+    // happens twice: take the first. None means the hour was skipped: use the
+    // offset from before the change, which lands one hour later.
+    const before = offsetAt(wallMs - 86_400_000, tz);
+    const after = offsetAt(wallMs + 86_400_000, tz);
+    const valid = [before, after].map((o) => wallMs - o).filter((t) => offsetAt(t, tz) === wallMs - t);
+    return valid.length ? Math.min(...valid) : wallMs - before;
 }
 
 /** @param {number} y @param {number} m 1-12 */
