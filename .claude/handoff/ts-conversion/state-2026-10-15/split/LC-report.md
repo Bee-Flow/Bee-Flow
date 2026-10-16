@@ -1,8 +1,8 @@
 # L-C report: remaining agent-hub JS sweep (laptop)
 
-Status: final-review B3 pushed on ts-laptop/fix-b3 (all checks green; contains origin/ts-int/staging @0058a60e). B2 (shims + non-null) drafting on ts-laptop/fix-b2.
-Done: sweep 81/314 files (merged); B3: one commit aaf2e646 on 060da5ca. LF-A8 rest: replaced by B3 (branch ts-laptop/lf-a8 local, reviewed, not pushed).
-Next: ts-laptop/fix-b2 (B2 shims + non-null `!`): Opus review, full checks, push.
+Status: B2 part 3 (stale shims whose target is TS) on ts-laptop/fix-b2p3, follow-up PR after #250: Opus-reviewed, full checks before the push.
+Done: sweep 81/314 (merged); B3 merged on staging (075904b9); B2 part 3: 111 of 114 shims removed, types only.
+Next: push ts-laptop/fix-b2p3 when green (the integrator opens it as its own PR after #250).
 
 Branch `ts-laptop/sweep-c`. BASE `0ae29a17` (= origin/ccr-28820270-xkvwp8 at branch time; ts-local/prep2 already in it).
 Final commit: see `git log -1` of the branch (this file is updated with every push).
@@ -21,6 +21,14 @@ Final commit: see `git log -1` of the branch (this file is updated with every pu
 
 ## Needs integrator:
 - compliance/pages/settings/settingsFields.ts:333 `asArray` (any[] from Array.isArray flows into T[]): an honest `unknown[]` breaks two callers (:349 `.filter((c: Contact) => …).map(…)`, :383 `.map((c: Contact | null | undefined) => …)`) that cannot be typed without a runtime-visible predicate (`isContactLike(c): c is Contact`, honest because Contact has only optional unknown fields). Your call: allow that runtime change (+ test), or keep the leak.
+
+## B2 part 3: stale `as unknown as` shims whose target is TypeScript (branch ts-laptop/fix-b2p3, BASE 075904b9 = origin/ccr-28820270-xkvwp8)
+- List recomputed on the base: 114 sites in 66 files (classifier: shims cast an import whose module resolves to .ts/.tsx). Two parallel drafts in their own worktrees: a23adc1c (A: Builder, Studio, documents, marketing, shell, knowledge; 55 removed) and 04743747 (B: compliance, product-website, projects; 56 removed, no type error surfaced); review fixes on top.
+- Each shim became a plain alias (`const XJs = X;`) or a direct import; every changed file compiles to identical JS against the base (76/76; review fixes 24/24). No commit 2: no hidden error needed a runtime change. The OutputView `onPickPath` arity mismatch is types only: every insert handler accepts a missing `opts`.
+- Type fixes (honest, one home): PillTone from FilterPills; OutputView `onPickPath(path, opts?)`, OutputFieldsView `onInsert: InsertHandler` (VariableTree); notificationDefaults Channel/Urgency/Delivery/Recipient with readonly arrays; proposePick uses Remedy/Remedies from mismatch.types; PageEditor uses NotebookEditorHandle (+ highlightSuggestions, suggestionAtPoint, which the real handle provides); FlowStep `tool?`; StepRow id/name/title; Group[] and PaletteLayer[] for loop lists and ribbon layers; flattenSummary JSDoc accepts null; orphaned local prop shapes deleted.
+- Kept (need a runtime guard, so NOT types-only): EditorNodeWrapper.tsx:63 `nodeLogicSummary` (titleFor is called with string | undefined and indexes a record: needs an `id === undefined` guard); FormEditorModal.tsx `Renderer` and `EndingView` (buildPreviewConfig passes stored `theme`, field `name`/`type` and `maxSizeMb` as unknown: needs guards there). Not a crash today (themeVars tolerates a non-object theme).
+- After: `as unknown as` in agent-hub source: 3 to TS modules (the kept ones), 72 to modules still JS, 30 casting local values or globals.
+- Review: reviews/LC-fix-b2p3.md (Opus, CHANGES REQUIRED small → fixed).
 
 ## Scope
 Every agent-hub JS file outside components/admin/Studio/**, components/admin/compliance/**,
