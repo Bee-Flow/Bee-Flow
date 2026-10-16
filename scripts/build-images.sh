@@ -218,6 +218,16 @@ build_one() {
         fi
         extra+=(--build-arg "BUILD_EMBED=false")
       fi
+      # The image runs only `vite build`, which strips types without checking
+      # them. CI gates the GHCR images on frontend-typecheck; a local prd image
+      # (`npm run push:prd`) gets the same gate here.
+      if [[ "$env" == "prd" ]]; then
+        echo "==> Typechecking agent-hub before the prd image ..."
+        if ! (cd "${REPO_ROOT}/agent-hub" && npm run -s typecheck); then
+          echo "ERROR: agent-hub typecheck failed; refusing to build a prd agent-hub image." >&2
+          return 1
+        fi
+      fi
       ;;
     license-server)
       # Private source, checked out beside this repo (see LICENSE_SERVER_SRC

@@ -122,6 +122,27 @@ test('FAST_DEV=1 refuses a prd agent-hub build before docker builds anything', {
     assert.strictEqual(callsOf(res.calls, 'build').length, 0);
 });
 
+// vite build strips types without checking them: a prd agent-hub image waits for tsc.
+
+test('a prd agent-hub build refuses to start when the typecheck fails', { skip }, (t) => {
+    const dir = repo(t, { 'agent-hub/package.json': '{ "scripts": { "typecheck": "exit 2" } }\n' });
+    const res = run(dir, 'scripts/build-images.sh', ['build', 'prd', 'agent-hub']);
+    assert.notStrictEqual(res.status, 0, res.stdout);
+    assert.match(res.stderr, /agent-hub typecheck failed; refusing/);
+    assert.strictEqual(callsOf(res.calls, 'build').length, 0);
+});
+
+test('a prd agent-hub build runs the typecheck first; a dev build does not', { skip }, (t) => {
+    const dir = repo(t, { 'agent-hub/package.json': '{ "scripts": { "typecheck": "echo tc >> ../.tc-log" } }\n' });
+    const ran = () => (fs.existsSync(path.join(dir, '.tc-log')) ? fs.readFileSync(path.join(dir, '.tc-log'), 'utf8').trim().split('\n').length : 0);
+    assert.strictEqual(run(dir, 'scripts/build-images.sh', ['build', 'dev', 'agent-hub']).status, 0);
+    assert.strictEqual(ran(), 0);
+    const res = run(dir, 'scripts/build-images.sh', ['build', 'prd', 'agent-hub']);
+    assert.strictEqual(res.status, 0, res.stderr + res.stdout);
+    assert.strictEqual(ran(), 1);
+    assert.strictEqual(callsOf(res.calls, 'build').length, 1);
+});
+
 test('FAST_DEV=1 still passes BUILD_EMBED=false for a dev agent-hub build', { skip }, (t) => {
     const dir = repo(t);
     const res = run(dir, 'scripts/build-images.sh', ['build', 'dev', 'agent-hub'], { FAST_DEV: '1' });
