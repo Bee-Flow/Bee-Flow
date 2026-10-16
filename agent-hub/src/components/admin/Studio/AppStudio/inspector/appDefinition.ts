@@ -1,3 +1,5 @@
+import type { AppDesign } from '../runtime/appDesign';
+
 /**
  * The shape of an app definition, as the inspector reads it.
  *
@@ -109,7 +111,15 @@ export interface DefinitionVariable {
     [key: string]: unknown;
 }
 
+/** The app's identity, as the shell shows it. */
+export interface AppMeta {
+    name?: string;
+    icon?: string;
+}
+
 export interface AppDefinition {
+    meta?: AppMeta;
+    design?: AppDesign;
     screens?: AppScreen[];
     actions?: Record<string, AppAction>;
     homeScreenId?: string;
