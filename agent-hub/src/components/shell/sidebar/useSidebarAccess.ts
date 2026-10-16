@@ -86,8 +86,7 @@ export function useSidebarAccess({ user, isMobile, currentPage, hasPermissionPro
     // Published apps/forms + per-Studio-section recent items + counts for the flyouts.
     const data = useStudioSectionData({ currentPage, canUseCapability, hasLicenseFeature, user, countsEnabled: studioCountsEnabled });
 
-    // The registry descriptors carry the nav fields (urlSegment, Icon, …) the gate type leaves out.
-    const studioSections = studioNavSections([...STUDIO_APPS, ...data.runtimeStudioApps], gateCtx) as unknown as StudioSection[];
+    const studioSections = studioNavSections([...STUDIO_APPS, ...data.runtimeStudioApps], gateCtx);
     const canSeeStudio = studioSurface && canSeeStudioFor({ user, sections: studioSections });
 
     // "Waiting on you" — how many approvals this person can decide right now

@@ -1,4 +1,4 @@
-import { useState, type ComponentType, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { appendKey } from '@shared/expr/path.mjs';
 import { ChevronDown, ChevronRight, ChevronUp, CircleAlert, X } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -12,7 +12,7 @@ import NestedTable, { CARD, NESTED } from './NestedTable';
 import { detailParts } from './perItem';
 import { isPlainObject, scalarText } from './valueHelpers';
 
-const FieldKindIcon = FieldKindIconJs as unknown as ComponentType<{ kind: string; size?: number; className?: string }>;
+const FieldKindIcon = FieldKindIconJs;
 const kindOfValue = kindOfValueJs as (v: unknown) => string;
 const humanizeFieldKey = humanizeFieldKeyJs as (key: string) => string;
 

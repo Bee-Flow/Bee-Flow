@@ -1,11 +1,10 @@
 import FieldKindIconJs from '../mapping/FieldKindIcon';
-import type { ComponentType } from 'react';
 import type { OutputColumn } from './columns';
 import { canOpen } from './levels';
 import { cellOf } from './perItem';
 import SmartCell from './SmartCell';
 
-const FieldKindIcon = FieldKindIconJs as unknown as ComponentType<{ kind: string; size?: number; className?: string }>;
+const FieldKindIcon = FieldKindIconJs;
 
 const WIDTH: Record<string, string> = {
     group: 'min-w-[190px]', date: 'min-w-[90px]', number: 'min-w-[100px]', table: 'min-w-[140px]',

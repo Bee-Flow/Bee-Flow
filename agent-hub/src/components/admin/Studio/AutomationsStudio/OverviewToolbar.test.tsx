@@ -2,7 +2,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import OverviewToolbar from './OverviewToolbar';
-import type { OverviewToolbarProps } from './OverviewToolbar';
+import type { OverviewToolbarProps, PillOption } from './OverviewToolbar';
 
 /**
  * The overview's toolbar folds its state and trigger pills into one "Filter"
@@ -10,12 +10,12 @@ import type { OverviewToolbarProps } from './OverviewToolbar';
  * fold is CSS (a container query), so jsdom renders both forms; these tests
  * pin the folded one: what the button says and what its panel does.
  */
-const STATE = [
+const STATE: PillOption[] = [
     { value: 'all', label: 'All', count: 4 },
     { value: 'live', label: 'Live', count: 2, tone: 'success' },
     { value: 'paused', label: 'Paused', count: 1, tone: 'muted' },
 ];
-const TRIGGER = [
+const TRIGGER: PillOption[] = [
     { value: 'all', label: 'Any trigger', count: 4 },
     { value: 'schedule', label: 'Schedule', count: 3 },
     { value: 'manual', label: 'Manual', count: 1 },

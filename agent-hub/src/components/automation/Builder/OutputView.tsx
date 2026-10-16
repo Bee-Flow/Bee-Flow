@@ -1,4 +1,4 @@
-import { useMemo, useState, type ComponentType } from 'react';
+import { useMemo, useState } from 'react';
 import { Braces, List, Maximize2, Table2, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import OutputFieldsViewJs from './mapping/OutputFieldsView';
@@ -10,9 +10,7 @@ import SmartOutput, { smartRowsOf } from './output/SmartOutput';
 import useOutputColumns from './output/useOutputColumns';
 import WideOutputView from './output/WideOutputView';
 
-const OutputFieldsView = OutputFieldsViewJs as unknown as ComponentType<{
-    value: unknown; basePath?: string; onInsert?: ((path: string, opts: { raw: boolean }) => void) | null;
-}>;
+const OutputFieldsView = OutputFieldsViewJs;
 
 /**
  * Friendly, non-technical view of a step's output.
@@ -42,7 +40,7 @@ export interface OutputViewProps {
     onCopyPath?: ((path: string) => void) | null;
     fill?: boolean;
     enableDrag?: boolean;
-    onPickPath?: ((path: string, opts: { raw: boolean }) => void) | null;
+    onPickPath?: ((path: string, opts?: { raw: boolean }) => void) | null;
     allowExpand?: boolean | null;
     /** Offer the FIELDS view (design 1h) and open on it for a plain record. */
     fieldsView?: boolean;

@@ -2,6 +2,7 @@ import {
     AI_STEP, DATA_EXTRACTION, EDIT_DATA_ITEM, ROUTE_ITEM, DATA_ITEMS, FLOW_CONTROL_ITEMS, PEOPLE_ITEMS,
     itemForKey, gated, pickItem,
 } from '../stepPalette';
+import type { PaletteCatalog, PaletteLayer } from '../stepPalette.types';
 import { topFrequentKeys } from '../stepUsage';
 import type { IconType, StepPayload, PaletteItem } from './ribbonCategories';
 import type { OrgStepUsage } from '../../../../../api/queries/automation/usage';
@@ -174,13 +175,12 @@ export interface FrequentItem {
     disabledReason?: string;
 }
 
-// stepPalette.itemForKey, typed: its `= null` defaults read as `null` from TypeScript.
-const lookupItem = itemForKey as unknown as (key: string, opts: { catalog: unknown; layers: unknown[] }) => FrequentItem | null;
+const lookupItem = itemForKey;
 
 /** Resolve merged keys to addable items in this scope, `n` at most. */
 export function resolveFrequent(
     keys: string[],
-    { catalog = null, layers = [], hasFormTrigger = null, n = 8 }: { catalog?: unknown; layers?: unknown[]; hasFormTrigger?: boolean | null; n?: number } = {},
+    { catalog = null, layers = [], hasFormTrigger = null, n = 8 }: { catalog?: PaletteCatalog | null; layers?: PaletteLayer[]; hasFormTrigger?: boolean | null; n?: number } = {},
 ): FrequentItem[] {
     const out: FrequentItem[] = [];
     const seen = new Set<string>();

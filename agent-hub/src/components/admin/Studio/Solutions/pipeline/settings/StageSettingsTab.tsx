@@ -273,8 +273,7 @@ export default function StageSettingsTab({ solutionId, solutionName, stage, stag
     const { t } = useTranslation();
     const label = useStageLabel()(stage);
     const noticeText = useNoticeText();
-    // The context is a .jsx module whose default value types only what it declares; this is the shape it provides.
-    const lic = useLicenseContext() as unknown as { hasFeature: (name: string) => boolean; entDegraded?: boolean; entError?: unknown };
+    const lic = useLicenseContext();
     const licensed = !!(lic.entDegraded || lic.entError || lic.hasFeature('approvals'));
     const { settings, role, owner, operate, reqs, vars, directory, connections } = useReads(solutionId, stage, stageRow?.role);
 

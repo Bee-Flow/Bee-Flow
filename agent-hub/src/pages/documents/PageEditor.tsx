@@ -10,12 +10,12 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import RichTextEditorJs from '../../editor/react/RichTextEditor';
-import type { CommentAnchor } from '../../api/queries/comments';
 import { useDocumentSuggestions } from '../../api/queries/suggestions';
 import useTranslation from '../../hooks/useTranslation';
 import type { OutlineItem } from './canvasBridge';
 import type { People, StudioDocument } from './documentQueries';
 import type { Conflict } from './useDocumentAutosave';
+import type { NotebookEditorHandle } from './notebook/detail/editorHandle';
 import ConflictDialog from './editor/ConflictDialog';
 import DocumentSidePanels from './editor/DocumentSidePanels';
 import type { SidePanel } from './editor/DesignedToolbar';
@@ -35,24 +35,9 @@ export interface PageEditorProps {
     onOpenInStudio?: (id: string) => void;
 }
 
-/** The part of the rich-text editor's imperative API a page uses (editor/react/BeeEditor.jsx). */
-interface EditorApi {
-    flush?: () => string | null;
-    setContent?: (html: string) => void;
-    replaceDocument?: (html: string) => void;
-    openFind?: () => void;
-    scrollToHeading?: (index: number) => void;
-    getSelectionAnchor?: () => CommentAnchor | null;
-    highlightAnchors?: (list: Array<{ id: string; anchor: CommentAnchor }>, activeId?: string | null) => void;
-    scrollToAnchor?: (anchor: CommentAnchor) => boolean;
-    highlightSuggestions?: (list: Array<{ id: string; anchor: CommentAnchor }>, activeId?: string | null) => void;
-    suggestionAtPoint?: (x: number, y: number) => string | null;
-    getEditor?: () => { getText?: () => string; getHTML?: () => string } | null;
-}
 interface TocEntry { textContent: string; level: number; itemIndex: number }
 
-// The editor is plain JS (untyped props): typed here for what a page passes.
-const RichTextEditor = RichTextEditorJs as unknown as React.ComponentType<Record<string, unknown> & { ref?: React.Ref<EditorApi> }>;
+const RichTextEditor = RichTextEditorJs;
 
 /**
  * The lines under the toolbar, and "compare" for a kept draft: the draft
@@ -105,7 +90,7 @@ function usePageSuggestions(documentId: string, side: SidePanel, setSide: (s: Si
 
 export default function PageEditor({ initial, people, variant, currentUser, onBack, onRenamed, onOpenInStudio }: PageEditorProps) {
     const { t } = useTranslation();
-    const editorRef = useRef<EditorApi>(null);
+    const editorRef = useRef<NotebookEditorHandle>(null);
     const p = usePageDocument({ initial, currentUser, editorRef, onRenamed });
     useSaveUnsent(p.collab, p.autosave, useCallback(() => editorRef.current?.getEditor?.()?.getHTML?.() ?? null, []));
     const [side, setSide] = useState<SidePanel>(null);
