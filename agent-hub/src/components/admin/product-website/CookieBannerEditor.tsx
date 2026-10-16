@@ -2,6 +2,7 @@ import React from 'react';
 import { Toggle, TextField } from './fields';
 import { CollapsibleCard } from './primitives';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { BlockEditorProps } from './blockEditors/editorProps';
 
 /**
  * Site-chrome editor for the cookie consent banner. Edits site.cookieBanner:
@@ -26,7 +27,28 @@ const FALLBACK_LOCALES = [
     { code: 'nl', name: 'Nederlands' },
 ];
 
-function LocaleCard({ code, label, text, defaultOpen, onField }) {
+type CookieCopy = Record<string, string | undefined>;
+type CookieBannerData = {
+    enabled?: boolean;
+    /** Every locale's copy, keyed by locale code. */
+    text?: Record<string, CookieCopy>;
+};
+
+interface LocaleCardProps {
+    code: string;
+    label: string;
+    text: Record<string, CookieCopy>;
+    defaultOpen: boolean;
+    onField: (locale: string, key: string, value: string) => void;
+}
+
+interface CookieBannerEditorProps extends BlockEditorProps<CookieBannerData> {
+    /** The site's locale list; the fallback is English + Dutch. */
+    locales?: { code: string; name?: string }[] | null;
+    defaultLocale?: string;
+}
+
+function LocaleCard({ code, label, text, defaultOpen, onField }: LocaleCardProps) {
     const t = text[code] || {};
     return (
         <CollapsibleCard title={label} defaultOpen={defaultOpen} persistKey={`cookie.${code}`}>
@@ -60,7 +82,7 @@ function LocaleCard({ code, label, text, defaultOpen, onField }) {
     );
 }
 
-export default function CookieBannerEditor({ data = {}, onChange, locales = null, defaultLocale = 'en' }) {
+export default function CookieBannerEditor({ data = {}, onChange, locales = null, defaultLocale = 'en' }: CookieBannerEditorProps) {
     const { t } = useTranslation();
     const enabled = data.enabled !== false;
     const text = data.text || {};
@@ -76,7 +98,7 @@ export default function CookieBannerEditor({ data = {}, onChange, locales = null
 
     // Replace one copy field for one locale, leaving every other field and
     // locale intact.
-    const updateField = (locale, key, value) => {
+    const updateField = (locale: string, key: string, value: string) => {
         onChange({
             ...data,
             text: {
