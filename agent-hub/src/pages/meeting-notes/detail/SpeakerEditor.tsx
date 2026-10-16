@@ -6,18 +6,6 @@ import { formatSpeakerLabel } from '../lib/format';
 import { buildSpeakerColorMap, speakerColor } from '../lib/playerData';
 import { messageOf } from '../../../utils/caughtError';
 
-/**
- * Owner-only modal to clean up speaker labels on a transcription:
- *   - Rename a speaker by editing its name inline.
- *   - Merge two speakers into one by picking a target from the "Merge with…"
- *     dropdown; the merged row inherits the longer-speaking name by default
- *     and stays editable.
- *
- * The component keeps two pieces of staged state:
- *   - `nameByOriginal`     — current edited name keyed by the ORIGINAL speaker id
- *   - `mergedInto`         — original id → original id of the merge target
- * On save we collapse those into the route payload { renames, merges }.
- */
 /** A stored speaker; the roster is read defensively, so only `id` is relied on. */
 interface RosterSpeaker {
     id: string;
@@ -46,6 +34,18 @@ interface SpeakerEditorProps {
     onAutoDetect?: (attendees: string) => Promise<unknown>;
 }
 
+/**
+ * Owner-only modal to clean up speaker labels on a transcription:
+ *   - Rename a speaker by editing its name inline.
+ *   - Merge two speakers into one by picking a target from the "Merge with…"
+ *     dropdown; the merged row inherits the longer-speaking name by default
+ *     and stays editable.
+ *
+ * The component keeps two pieces of staged state:
+ *   - `nameByOriginal`     — current edited name keyed by the ORIGINAL speaker id
+ *   - `mergedInto`         — original id → original id of the merge target
+ * On save we collapse those into the route payload { renames, merges }.
+ */
 export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDetect }: SpeakerEditorProps) {
     const { t } = useTranslation();
     const speakers = useMemo(() => Array.isArray(meeting?.speakers) ? meeting.speakers : [], [meeting]);

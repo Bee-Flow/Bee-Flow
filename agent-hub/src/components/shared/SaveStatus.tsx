@@ -2,6 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { AlertCircle, Loader2, Check } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
 
+interface SaveStatusProps {
+    /** 'idle' | 'saving' | 'saved' | 'error'; any other truthy value is drawn as saved (only compared, never read) */
+    saveState?: unknown;
+    lastSavedAt?: Date | null;
+    onRetry?: (() => void) | null;
+    size?: number;
+    className?: string;
+    showWhenIdle?: boolean;
+}
+
 /**
  * Shared save-status chip — the one answer to "is my work saved?".
  *
@@ -18,16 +28,6 @@ import useTranslation from '../../hooks/useTranslation';
  * Colours go through `--vsc-fg-muted` where that theme is in scope and fall
  * back to the project tokens everywhere else.
  */
-interface SaveStatusProps {
-    /** 'idle' | 'saving' | 'saved' | 'error'; any other word is drawn as saved */
-    saveState?: string | null;
-    lastSavedAt?: Date | null;
-    onRetry?: (() => void) | null;
-    size?: number;
-    className?: string;
-    showWhenIdle?: boolean;
-}
-
 function fmtTime(date?: Date | null): string {
     if (!date) return '';
     const diff = (Date.now() - date.getTime()) / 1000;

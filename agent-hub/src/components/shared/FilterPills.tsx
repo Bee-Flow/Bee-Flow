@@ -127,11 +127,6 @@ export function FilterPill({
     );
 }
 
-/**
- * A row of pills that behaves as one single-choice filter: `value` is the
- * active option, `onChange(value)` fires on a pill. `role="group"` with the
- * caller's label; each pill carries `aria-pressed`.
- */
 export interface FilterPillOption<V> {
     value: V;
     label?: React.ReactNode;
@@ -150,6 +145,11 @@ export interface FilterPillsProps<V> {
     testId?: string;
 }
 
+/**
+ * A row of pills that behaves as one single-choice filter: `value` is the
+ * active option, `onChange(value)` fires on a pill. `role="group"` with the
+ * caller's label; each pill carries `aria-pressed`.
+ */
 export default function FilterPills<V extends string | number>({
     value,
     onChange,

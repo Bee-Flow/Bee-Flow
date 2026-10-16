@@ -1,6 +1,10 @@
 import React from 'react';
 import { ORG_ROLES } from '../../config/orgRoles';
 
+interface RoleBadgeProps {
+    role?: string | null;
+}
+
 /**
  * Colour-coded chip for an organisation role, reading its label and colour from
  * config/orgRoles.js (the single source of truth). Extracted verbatim from
@@ -22,10 +26,6 @@ import { ORG_ROLES } from '../../config/orgRoles';
  *
  * Fixing this properly means separating the two columns at the call site first.
  */
-interface RoleBadgeProps {
-    role?: string | null;
-}
-
 export default function RoleBadge({ role }: RoleBadgeProps) {
     const orgRole = ORG_ROLES.find((r) => r.id === role);
 

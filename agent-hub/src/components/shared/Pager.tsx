@@ -1,6 +1,16 @@
 import React from 'react';
 import useTranslation from '../../hooks/useTranslation';
 
+interface PagerProps {
+    offset?: number;
+    limit?: number;
+    /** null/undefined = the host does not know yet: nothing is rendered. */
+    total?: number | null;
+    onOffset?: (offset: number) => void;
+    className?: string;
+    testId?: string;
+}
+
 /**
  * Pager — the table footer of artboard 1d ("Rij 1–12 van 93 · Vorige ·
  * Volgende"): an offset/limit pager for a DataTable, whether the host pages
@@ -15,16 +25,6 @@ import useTranslation from '../../hooks/useTranslation';
  * range text is one translatable sentence with three numbers, not three
  * fragments glued together.
  */
-interface PagerProps {
-    offset?: number;
-    limit?: number;
-    /** null/undefined = the host does not know yet: nothing is rendered. */
-    total?: number | null;
-    onOffset?: (offset: number) => void;
-    className?: string;
-    testId?: string;
-}
-
 export default function Pager({ offset = 0, limit = 12, total = null, onOffset, className = '', testId = undefined }: PagerProps) {
     const { t } = useTranslation();
     const n = Number(total);

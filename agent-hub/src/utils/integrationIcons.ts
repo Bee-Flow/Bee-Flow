@@ -13,11 +13,6 @@
 
 import { useIconPack } from '../hooks/useIconPack';
 
-/**
- * id → { label, color, mark }. id matches the `integration` field returned
- * by the server's resolveIntegration() so palette chips and nodes line up
- * with /api/automation/catalog responses.
- */
 /** How an integration is drawn when no custom icon is set: name, brand colour, letter-mark. */
 export interface IntegrationMeta {
     label: string;
@@ -25,6 +20,11 @@ export interface IntegrationMeta {
     mark: string;
 }
 
+/**
+ * id → { label, color, mark }. id matches the `integration` field returned
+ * by the server's resolveIntegration() so palette chips and nodes line up
+ * with /api/automation/catalog responses.
+ */
 export const INTEGRATION_META: Record<string, IntegrationMeta> = {
     gmail:                  { label: 'Gmail',                color: '#EA4335', mark: 'G' },
     google_calendar:        { label: 'Google Calendar',      color: '#4285F4', mark: 'GC' },

@@ -40,7 +40,7 @@ export interface NdvHeaderProps {
     goPrev: () => void;
     goNext: () => void;
     pill: StatusPill | null;
-    save: { state: string | null; lastSavedAt: Date | null; onRetry: (() => void) | null };
+    save: { state: unknown; lastSavedAt: Date | null; onRetry: (() => void) | null };
     onRetryStep: (() => void) | null;
     retryDisabled: boolean;
     onTest: (() => void) | null;
