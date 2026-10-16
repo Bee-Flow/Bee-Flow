@@ -152,4 +152,22 @@ function checkBlockQuality(block, path, warnings) {
     }
 }
 
-module.exports = { checkBlockQuality, CONTENT_ELEMENT_KINDS, PLACEHOLDER_LISTS };
+/**
+ * cms_add_blocks: lists the author did not send are seeded empty, not with the
+ * editor's example text. Mutates `content`; returns one warning per emptied list.
+ * @param {string} type
+ * @param {Record<string, any>} given  the content the author sent
+ * @param {Record<string, any>} content  the merged content to fix up
+ * @returns {string[]}
+ */
+function emptyUnsentLists(type, given, content) {
+    const out = [];
+    for (const { type: t, listKey } of PLACEHOLDER_LISTS) {
+        if (t !== type || given[listKey] !== undefined) continue;
+        content[listKey] = [];
+        out.push(`no ${listKey} given, so the block has none (the editor's example ${listKey} are not seeded). Send content.${listKey} as a complete array.`);
+    }
+    return out;
+}
+
+module.exports = { checkBlockQuality, CONTENT_ELEMENT_KINDS, emptyUnsentLists };
