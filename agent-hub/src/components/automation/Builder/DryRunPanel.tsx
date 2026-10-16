@@ -2,6 +2,8 @@ import { Eye, ChevronDown, ChevronUp, X } from 'lucide-react';
 import React, { useMemo } from 'react';
 import OutputView from './OutputView';
 import { humanizeToolName } from './flow/displayHelpers';
+import type { PreviewStep } from './FlowletsPanel.types';
+import type { FlowDefinition } from './flow/types';
 import { useTranslation } from '../../../hooks/useTranslation';
 
 /**
@@ -21,7 +23,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 
 // Why a step shows sample data. 'live_failed' is no longer produced (a failed
 // live read now fails the step) but stays so older stored runs still read well.
-const SAMPLE_HINTS = {
+const SAMPLE_HINTS: Record<string, string> = {
     live_failed: 'The live read failed, so a sample shape was used for this preview.',
     live_empty: 'The live read returned nothing, so a sample shape was used for this preview.',
     not_connected: 'The app is not connected here, so a sample shape was used for this preview.',
@@ -29,13 +31,51 @@ const SAMPLE_HINTS = {
     sample: 'Synthesized preview — sample data, not a live result.',
 };
 
-export default function DryRunPanel({ run, steps, definition = null, collapsed = false, onToggleCollapse, onClose }) {
+/** What a dry-run step recorded as its output; the runner stamps the `_dryRun*` flags. */
+interface DryRunOutputBase {
+    wouldNotify?: { channels?: string[]; title?: string };
+    _dryRun?: boolean;
+    wouldHaveCalled?: string;
+    withArgs?: unknown;
+    [key: string]: unknown;
+}
+
+/** A synthesised output always names why it is a sample; 'sample' reads as the default. */
+type DryRunOutput = DryRunOutputBase & (
+    | { _dryRunSynthesised: true; _dryRunFallback: string }
+    | { _dryRunSynthesised?: false; _dryRunFallback?: undefined }
+);
+
+interface DryRunStep {
+    stepId?: string;
+    stepType?: string;
+    parentStepId?: string;
+    attempts?: number;
+    output?: DryRunOutput | null;
+    error?: string;
+}
+
+interface DryRunSummary {
+    status?: string;
+    summary?: string;
+}
+
+interface DryRunPanelProps {
+    run?: DryRunSummary | null;
+    steps?: DryRunStep[] | null;
+    definition?: NamedDefinition | null;
+    collapsed?: boolean;
+    onToggleCollapse?: () => void;
+    onClose?: () => void;
+}
+
+export default function DryRunPanel({ run, steps, definition = null, collapsed = false, onToggleCollapse, onClose }: DryRunPanelProps) {
     const { t } = useTranslation();
     // Map every step id → a friendly name (label / tool / flowlet title) so the
     // preview shows real step NAMES, not ids. Built from the whole definition
     // (root steps + each flowlet's steps).
     const nameMap = useMemo(() => buildNameMap(definition), [definition]);
-    const nameFor = (stepId) => {
+    const nameFor = (stepId?: string) => {
         if (!stepId) return 'Step';
         const bare = stepId.includes('/') ? stepId.split('/').pop() : stepId;
         return nameMap.get(stepId) || nameMap.get(bare) || stepId;
@@ -44,7 +84,7 @@ export default function DryRunPanel({ run, steps, definition = null, collapsed =
     // Only show TOP-LEVEL steps. A `call_layer` records the flowlet's own
     // sub-steps with a `parentStepId`; hiding those leaves just the call_layer
     // row, whose output IS the flowlet's return — i.e. "only the flowlet output".
-    const stepList = (Array.isArray(steps) ? steps : []).filter(s => s && !s.parentStepId);
+    const stepList = (Array.isArray(steps) ? steps : []).filter((s: DryRunStep) => s && !s.parentStepId);
 
     if (!run) return null;
 
@@ -81,7 +121,7 @@ export default function DryRunPanel({ run, steps, definition = null, collapsed =
                     {/* Cap the step list so a many-step dry-run scrolls internally
                         instead of growing without bound. */}
                     <div className="flex flex-col gap-1.5 max-h-[40vh] overflow-y-auto pr-1">
-                        {stepList.map((s, idx) => {
+                        {stepList.map((s: DryRunStep, idx: number) => {
                             if (!s) return null;
                             const out = s.output || null;
                             const wouldNotify = out && out.wouldNotify;
@@ -136,11 +176,16 @@ export default function DryRunPanel({ run, steps, definition = null, collapsed =
 
 // Friendly display name for a step: its label, else a sensible per-type
 // fallback (humanised tool name, flowlet title, or type).
-function friendlyStepName(step, definition) {
+/** The definition as the preview reads it: a flowlet also carries its title. */
+interface NamedDefinition extends FlowDefinition {
+    layers?: Record<string, FlowDefinition & { title?: string }>;
+}
+
+function friendlyStepName(step: PreviewStep | null | undefined, definition: NamedDefinition | null | undefined): string | null {
     if (!step) return null;
     if (step.type === 'trigger') return step.label || 'Trigger';
     if (step.type === 'call_layer') {
-        const title = definition?.layers?.[step.layerKey]?.title;
+        const title = definition?.layers?.[step.layerKey as string]?.title;
         return step.label || title || 'Flowlet';
     }
     if (step.label && step.label.trim()) return step.label;
@@ -154,10 +199,10 @@ function friendlyStepName(step, definition) {
  * every root step, and every flowlet's steps (keyed by their own id so a
  * namespaced `callId/innerId` resolves via its bare suffix).
  */
-function buildNameMap(definition) {
-    const map = new Map();
+function buildNameMap(definition: NamedDefinition | null | undefined): Map<string | undefined, string | null> {
+    const map = new Map<string | undefined, string | null>();
     if (!definition || typeof definition !== 'object') return map;
-    const add = (step) => { if (step?.id) map.set(step.id, friendlyStepName(step, definition)); };
+    const add = (step: PreviewStep | null | undefined) => { if (step?.id) map.set(step.id, friendlyStepName(step, definition)); };
     if (definition.trigger) add(definition.trigger);
     for (const s of (definition.steps || [])) add(s);
     const layers = (definition.layers && typeof definition.layers === 'object') ? definition.layers : {};
@@ -174,9 +219,9 @@ function buildNameMap(definition) {
 // before rendering. Returns the value untouched when none are present.
 const DRY_RUN_META_KEYS = ['_dryRun', '_dryRunSynthesised', '_dryRunFallback'];
 
-function stripDryRunMeta(value) {
+function stripDryRunMeta(value: Record<string, unknown>): Record<string, unknown> {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
-    if (!DRY_RUN_META_KEYS.some(k => k in value)) return value;
+    if (!DRY_RUN_META_KEYS.some((k: string) => k in value)) return value;
     const cleaned = { ...value };
     for (const k of DRY_RUN_META_KEYS) delete cleaned[k];
     return cleaned;

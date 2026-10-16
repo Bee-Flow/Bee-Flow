@@ -2,7 +2,7 @@
  * Test runs in the editor: the shared last-run store, the hook the build
  * screen runs them with, the line over the flow and the result sheet — the
  * web builder's dry-run drawer, run banner and run colouring
- * (DryRunPanel.jsx, flow/runStatus.js, flow/runFocus.js).
+ * (DryRunPanel.tsx, flow/runStatus.js, flow/runFocus.js).
  */
 
 export { computeRunFocus, formatElapsed, type RunFocus } from './runFocus';

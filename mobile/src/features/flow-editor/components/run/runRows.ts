@@ -1,6 +1,6 @@
 /**
  * The rows of a test run's result sheet — the pure half of the web builder's
- * DryRunPanel.jsx, pinned by run.lockstep.test.ts (the three helpers are
+ * DryRunPanel.tsx, pinned by run.lockstep.test.ts (the three helpers are
  * evaluated from the web file's own source and run beside these):
  *
  *   - every step is named as the author knows it (its label, the flowlet's
