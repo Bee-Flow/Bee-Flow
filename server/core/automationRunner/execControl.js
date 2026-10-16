@@ -1,8 +1,8 @@
+// @typecheck
 /**
- * Control-flow steps (extracted verbatim from engine.js): condition, the
- * switch family (scalar/collection/list modes), wait and stop_error — plus
- * return_to_app, the second TERMINAL step (see validate/constants.js's
- * TERMINAL_STEP_TYPES for the full list of readers).
+ * Control-flow steps (extracted verbatim from engine.js): condition, the switch family
+ * (scalar/collection/list modes), wait and stop_error — plus return_to_app, the second
+ * TERMINAL step (see validate/constants.js's TERMINAL_STEP_TYPES for the full list of readers).
  */
 
 const { evaluate, parsePath, walkTokens, parseJsonText, jsonCacheFor } = require('./expr');

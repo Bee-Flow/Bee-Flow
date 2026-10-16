@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A Flowlet's declared input types, checked where the call enters it.
  *
@@ -23,6 +24,7 @@ function coerceLayerInputs(layer, inputs, stepId) {
         if (v === undefined || v === null || v === '') continue;
         const n = typeof v === 'number' ? v : (typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN);
         if (!Number.isFinite(n) || (p.type === 'integer' && !Number.isInteger(n))) {
+            /** @type {import('./runnerError.types').RunnerError} */
             const err = new Error(`Step "${stepId}": the input "${p.name}" must be ${p.type === 'integer' ? 'a whole number' : 'a number'}.`);
             err.errorClass = 'ValidationError';
             throw err;

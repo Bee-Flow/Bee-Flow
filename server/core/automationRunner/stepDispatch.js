@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Step dispatch for one run (moved verbatim out of execution.js's
  * executeAutomation).
@@ -232,9 +233,10 @@ async function handleStepFailure(deps, err, f) {
  * recurses through it) calls to execute a single step.
  *
  * @param {object} deps  execution.js's RUN_DEPS
- * @param {object} run   the run row (its id addresses the cancel flag)
- * @param {AbortSignal} cancelSignal  the run's in-process cancel signal
- * @param {object} runPolicy  the automation's run policy (default retry)
+ * @param {object} args
+ * @param {object} args.run   the run row (its id addresses the cancel flag)
+ * @param {AbortSignal} args.cancelSignal  the run's in-process cancel signal
+ * @param {object} args.runPolicy  the automation's run policy (default retry)
  */
 function makeStepDispatcher(deps, { run, cancelSignal, runPolicy }) {
     const { isCancelRequested } = deps;

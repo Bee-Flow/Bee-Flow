@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Live dispatch of one step for the DAG walker (runDag.js): the 'running'
  * row, the call into dispatchStep, native error-edge routing of a failure,

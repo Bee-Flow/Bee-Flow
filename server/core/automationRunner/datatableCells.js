@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What a datatable step's cell values become before they are written.
  *
@@ -19,6 +20,7 @@ const YES = new Set(['true', 't', 'yes', 'y', 'on', '1']);
 const NO = new Set(['false', 'f', 'no', 'n', 'off', '0']);
 
 const err = (key, wanted) => {
+    /** @type {import('./runnerError.types').RunnerError} */
     const e = new Error(`The value for the column "${key}" is not ${wanted}, so the row was not written.`);
     e.errorClass = 'datatable_type_mismatch';
     return e;

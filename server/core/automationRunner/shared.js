@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Shared constants, run-state helpers and DAG-traversal primitives for the
  * automation engine (extracted verbatim from engine.js). Leaf relative to

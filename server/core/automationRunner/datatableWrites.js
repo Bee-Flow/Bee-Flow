@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The WRITE half of the `datatable` step (./execDatatable.js holds the
  * refusals in its header, the tenant and grade resolution, the conditions and
@@ -53,7 +54,7 @@ function refuseSecrets(ctx, resolvedValues) {
 /**
  * The values this write may carry, or the amber skip that stops it. A cell
  * is data: a list in a `{{…}}` is stored as JSON, as it always was.
- * @returns {{ values: object } | { skip: object }}
+ * @returns {{ values: object, skip?: undefined } | { skip: object, values?: undefined }}
  */
 function prepareWriteValues(t) {
     const { step, ctx, runState, op, table, declared } = t;

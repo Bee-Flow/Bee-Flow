@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The integration-action step executor (moved verbatim out of execAi.js):
  * the safety gates, the permission re-check, connection lending, the run
@@ -203,6 +204,7 @@ function checkResult(step, ctx, mode, { result, inputs, resolvedInputs, deps }) 
     if (mode === 'dry_run' && isNotFoundError(step.tool, result.error) && isUnderSimulatedPath(ctx, resolvedInputs && resolvedInputs.path)) {
         return { output: synthesizeDryRunOutput(step.tool, inputs), dryRunSynthesised: true, dryRunFallback: 'simulated_upstream' };
     }
+    /** @type {import('./runnerError.types').RunnerError} */
     const err = new Error(`${step.tool} failed: ${String(result.error)}`);
     err.toolError = true;
     throw deps.enrichNextcloudError(step.tool, err, String(result.error));

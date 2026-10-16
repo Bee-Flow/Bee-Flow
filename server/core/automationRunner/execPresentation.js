@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The presentation pair: `slide` (one slide, an object) and `presentation`
  * (slides in, a .pptx or PDF deck out, kept like a generate_document file).

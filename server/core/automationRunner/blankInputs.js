@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A live write must not go out with a hole in it.
  *
@@ -47,6 +48,7 @@ function failOnBlankInputs(step, misses) {
     if (!blank.length) return;
     const lines = blank.slice(0, 3).map(m => describeBindingMiss(m)).join('; ');
     const more = blank.length > 3 ? ` (and ${blank.length - 3} more)` : '';
+    /** @type {import('./runnerError.types').RunnerError} */
     const err = new Error(`Step ${step.id || '?'} was not run: its inputs read data that is not there. ${lines}${more}. `
         + 'Nothing was sent. If a field is optional, use an expr binding such as `x || \'\'`.');
     err.errorClass = 'binding_unresolved';

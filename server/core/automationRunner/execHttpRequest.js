@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The declarative http_request step: build the request from the step and the
  * run, inject a stored credential, guard what leaves (./outboundGuard.js),
@@ -49,6 +50,7 @@ const HTTP_REQUEST_WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 /** URL, method, headers and body, interpolated from the run. */
 function buildHttpRequest(step, runState) {
     // A request carries DATA, not prose: lists stay JSON here (listAs 'json').
+    /** @type {{ listAs: 'json' }} */
     const asData = { listAs: 'json' };
     const url = withStepQuery(interpolateTemplate(step.url || '', runState, { ...asData, field: 'url' }), step.query, runState);
     const method = (step.method || 'GET').toUpperCase();
@@ -206,6 +208,7 @@ async function dispatchHttp(step, ctx, runState, mode, call) {
             throw new Error('http_request: refused — target resolves to a private/internal address. Turn off "Block requests to private/internal addresses" in this step\'s settings if you specifically need to reach it.');
         }
         if (e.name === 'AbortError') throw new Error(`http_request: timed out after ${timeoutMs}ms.`);
+        /** @type {import('./runnerError.types').RunnerError} */
         const failed = new Error(`http_request: ${e.message || String(e)}`);
         // The request never got an answer (DNS, refused, reset): not a missing
         // "room token / board id", which is what the generic class suggests.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Structured error hierarchy for the automation runner. Phase 1 lands
  * the classes and a classifier; the runner doesn't throw these yet — a

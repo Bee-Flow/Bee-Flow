@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What a run says about an iteration cap that cut a list short.
  *

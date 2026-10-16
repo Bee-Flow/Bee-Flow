@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * generate_document step (extracted verbatim from engine.js): renders a
  * PDF/Word document from upstream text and records it in the run's file

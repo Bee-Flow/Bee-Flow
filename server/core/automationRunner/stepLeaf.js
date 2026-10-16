@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The leaf switch of step dispatch: which executor runs a step, by its type
  * (no iteration, no retry — ./stepDispatch.js wraps those around it).

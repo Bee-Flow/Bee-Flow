@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Flow-container steps (extracted verbatim from engine.js): parallel
  * branches, loop bodies, per-step forEach fan-out, inline layers and
@@ -64,7 +65,10 @@ async function execParallel(step, ctx, runState, mode, dispatchSubStep) {
     // false the parallel step would report success and the run would
     // complete, silently skipping the human approval gate. Propagate it
     // unconditionally, the same way runDag itself always rethrows it.
-    const approvalRejection = results.find(r => r.status === 'rejected' && isRunPause(r.reason));
+    const approvalRejection = results.find(
+        /** @returns {r is PromiseRejectedResult} */
+        r => r.status === 'rejected' && isRunPause(r.reason),
+    );
     if (approvalRejection) throw approvalRejection.reason;
     const branchOutputs = results.map((r, idx) => {
         if (r.status === 'fulfilled') {
@@ -221,6 +225,7 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
     // fanning out hundreds of thousands of API calls. Same error class as
     // resolveArrayRef so run-history facets group it.
     if (list.length > COLLECTION_OP_MAX_ITEMS) {
+        /** @type {import('./runnerError.types').RunnerError} */
         const err = new Error(`forEach input has ${list.length} items (max ${COLLECTION_OP_MAX_ITEMS}). Add a limit/filter step upstream or raise AUTOMATION_COLLECTION_MAX_ITEMS.`);
         err.errorClass = 'collection_too_large';
         throw err;
@@ -275,6 +280,7 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
                 [itemVar]: sourceSynthetic,
             },
         };
+        /** @type {import('./runnerError.types').RunnerError | null} */
         let lastErr = null;
         let out = null;
         let ok = false;
@@ -344,6 +350,7 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
     // fulfilled with a `failed` count). `foreachHandled` tells the outer dispatch
     // retry loop NOT to re-run the whole fan-out — per-item retry already ran.
     if (items.length > 0 && failed === items.length) {
+        /** @type {import('./runnerError.types').RunnerError} */
         const err = new Error(`All ${items.length} forEach iteration(s) failed (e.g. "${results[0]?.error || 'unknown error'}").`);
         err.errorClass = 'foreach_all_failed';
         err.foreachHandled = true;
@@ -515,17 +522,21 @@ async function loadBlockForRun(ctx, blockId) {
     const automationStore = require('../../stores/automationStore');
     const row = await automationStore.getAutomation(blockId).catch(() => null);
     if (!row || row.kind !== 'block') {
+        /** @type {import('./runnerError.types').RunnerError} */
         const e = new Error(`Step "${blockId}" was deleted or is unavailable.`); e.errorClass = 'block_unavailable'; throw e;
     }
     if (!callerCanUseBlock(row, ctx)) {
+        /** @type {import('./runnerError.types').RunnerError} */
         const e = new Error(`You do not have access to Step "${row.title || blockId}".`); e.errorClass = 'block_forbidden'; throw e;
     }
     if (row.publishedVersion == null) {
+        /** @type {import('./runnerError.types').RunnerError} */
         const e = new Error(`Step "${row.title || blockId}" has not been published yet.`); e.errorClass = 'block_unpublished'; throw e;
     }
     const def = await automationStore.getVersionDefinition(blockId, row.publishedVersion).catch(() => null)
         || row.definition; // fall back to the working def if the snapshot is missing
     if (!def || !def.trigger) {
+        /** @type {import('./runnerError.types').RunnerError} */
         const e = new Error(`Step "${row.title || blockId}" has no published definition.`); e.errorClass = 'block_unavailable'; throw e;
     }
     const resolved = { def, title: row.title };

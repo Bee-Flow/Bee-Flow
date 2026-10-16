@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * datetime step (extracted verbatim from engine.js): single and list-mode
  * date operations (parse/format/add/diff/extract).
@@ -133,6 +134,7 @@ function datetimeResult(step, runState) {
         // green SUCCESS while every downstream binding read null — routes
         // through on_error edges / run-error recording like any other step
         // failure now.
+        /** @type {import('./runnerError.types').RunnerError} */
         const err = new Error(`datetime: input "${step.input ?? ''}" did not resolve to a parseable date`);
         err.errorClass = 'datetime_unresolved_input';
         throw err;
@@ -167,6 +169,7 @@ function datetimeResult(step, runState) {
     if (op === 'diff') {
         const d2 = toDate(inputAt2);
         if (!d2) {
+            /** @type {import('./runnerError.types').RunnerError} */
             const err = new Error(`datetime: diff input2 "${step.input2 ?? ''}" did not resolve to a parseable date`);
             err.errorClass = 'datetime_unresolved_input';
             throw err;
@@ -190,6 +193,7 @@ function datetimeResult(step, runState) {
     }
     // Validator-blocked, but hand-written definitions can still reach it —
     // fail loud rather than record a success with a null value (A17).
+    /** @type {import('./runnerError.types').RunnerError} */
     const err = new Error(`Unknown datetime op: ${op}`);
     err.errorClass = 'datetime_op_unknown';
     throw err;

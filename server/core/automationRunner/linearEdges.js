@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The edges of a loop body / parallel branch (split out of execFlow.js).
  */
