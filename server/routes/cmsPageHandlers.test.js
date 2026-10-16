@@ -30,6 +30,7 @@ const state = { page: { id: 'pg1', blocks: [] } };
 mock.method(cmsStore, 'getDefaultLocale', async () => 'en');
 mock.method(cmsStore, 'getPage', async (siteId, id) => (id === state.page?.id ? state.page : null));
 mock.method(cmsStore, 'getPageLocaleOverride', async () => null);
+mock.method(cmsStore, 'saveTranslatedPageOverride', async (...args) => { calls.push(['saveTranslatedPageOverride', ...args]); return args[3]; });
 mock.method(cmsStore, 'setPageLocaleOverride', async (...args) => { calls.push(['setPageLocaleOverride', ...args]); });
 mock.method(cmsStore, 'setPage', async (siteId, page) => { calls.push(['setPage', siteId, page]); return { page, dropped: 2 }; });
 mock.method(cmsStore, 'removePage', async (siteId, id) => (id === 'pg1'
@@ -119,7 +120,7 @@ test('postPageAiTranslate translates with the language name and persists the ove
     const [, args] = calls.find(([name]) => name === 'aiTranslatePage');
     assert.strictEqual(args.languageName, 'Deutsch');
     assert.strictEqual(args.locale, 'de');
-    assert.deepStrictEqual(calls.at(-1), ['setPageLocaleOverride', 'pj_aaaa1111', 'pg1', 'de', { blocks: {} }]);
+    assert.deepStrictEqual(calls.at(-1).slice(0, 5), ['saveTranslatedPageOverride', 'pj_aaaa1111', 'pg1', 'de', { blocks: {} }]);
 });
 
 test('deletePageHandler answers 404 for an unknown page and reports the outcome for a real one', async () => {

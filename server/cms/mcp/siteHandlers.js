@@ -22,7 +22,7 @@ function blockOverrideShapeError(blocks) {
     for (const [blockId, ov] of Object.entries(blocks)) {
         const label = blockId.slice(0, 60);
         if (!isPlainObject(ov) || !isPlainObject(ov.content)) return `override.blocks["${label}"] has no content object.`;
-        const extra = Object.keys(ov).filter((k) => k !== 'content');
+        const extra = Object.keys(ov).filter((k) => k !== 'content' && k !== '_orphans');
         if (extra.length) return `override.blocks["${label}"] has keys outside content (${extra.slice(0, 5).join(', ')}).`;
     }
     return null;

@@ -40,6 +40,7 @@ mock.method(cmsStore, 'getPublishedSnapshot', async () => null);
 mock.method(cmsStore, 'publishSite', async (id) => { calls.push(['publishSite', id]); });
 mock.method(cmsStore, 'getSiteLocaleOverride', async () => ({ kept: 'manual' }));
 mock.method(cmsStore, 'setSiteLocaleOverride', async (...args) => { calls.push(['setSiteLocaleOverride', ...args]); });
+mock.method(cmsStore, 'saveTranslatedSiteOverride', async (...args) => { calls.push(['saveTranslatedSiteOverride', ...args]); return args[2]; });
 mock.method(cmsStore, 'deleteSiteLocaleOverride', async (...args) => { calls.push(['deleteSiteLocaleOverride', ...args]); });
 mock.method(cmsStore, 'setDefaultLocale', async (code) => { calls.push(['setDefaultLocale', code]); });
 mock.method(languageStore, 'getAvailableLocales', async () => [{ code: 'nl', name: 'Nederlands' }]);
@@ -189,7 +190,8 @@ test('postSiteAiTranslate translates with the language name and persists the ove
     assert.deepStrictEqual(args.existingOverride, { kept: 'manual' });
     assert.strictEqual(args.userId, 'u1');
     assert.strictEqual(args.userOrgId, 'o1');
-    assert.deepStrictEqual(calls.at(-1), ['setSiteLocaleOverride', 'pj_aaaa1111', 'nl', { header: 'Kop' }]);
+    assert.deepStrictEqual(calls.at(-1), ['saveTranslatedSiteOverride', 'pj_aaaa1111', 'nl', { header: 'Kop' }, { id: 'pj_aaaa1111' }]);
+    assert.deepStrictEqual(res.body.override, { header: 'Kop' });
 });
 
 test('localeName falls back to the code for an unknown locale', async () => {

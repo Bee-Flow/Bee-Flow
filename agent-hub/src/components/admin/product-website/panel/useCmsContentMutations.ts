@@ -6,11 +6,10 @@ import { authFetch } from '../../../../utils/helpers';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { setLocalePath } from '../localeMerge';
-import { detectArrayReorder, blockHasArrayOverrides } from '../translatable';
 import type useCmsPanelState from './useCmsPanelState';
 import type useCmsAutosave from './useCmsAutosave';
 import type useCmsHistory from './useCmsHistory';
-import type { CmsPageDoc, CmsBlock, CmsLocaleOverrides } from './cmsPanelTypes';
+import type { CmsPageDoc, CmsBlock } from './cmsPanelTypes';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 type History = ReturnType<typeof useCmsHistory>;
@@ -19,7 +18,7 @@ type LocaleOverride = Record<string, unknown>;
 
 interface MutationsInput extends Pick<PanelState,
     'pages' | 'activeLocale' | 'locales' | 'translateTier' | 'aiStatus' | 'setAiStatus'
-    | 'localeOverrides' | 'setLocaleOverrides' | 'localeOverridesRef' | 'reorderWarnedRef'
+    | 'localeOverrides' | 'setLocaleOverrides' | 'localeOverridesRef'
     | 'aiRunningRef' | 'activeSiteIdRef' | 'confirm'> {
     activePage: CmsPageDoc | null | undefined;
     activePageId: string | null;
@@ -33,7 +32,7 @@ interface MutationsInput extends Pick<PanelState,
 export default function useCmsContentMutations({
     pages, activePage, activePageId, activeLocale, locales, translateTier,
     aiStatus, setAiStatus, localeOverrides, setLocaleOverrides, localeOverridesRef,
-    reorderWarnedRef, aiRunningRef, activeSiteIdRef, siteStateRef, pagesStateRef,
+    aiRunningRef, activeSiteIdRef, siteStateRef, pagesStateRef,
     history, scheduleSave, drainPendingSaves, confirm,
 }: MutationsInput) {
     // ── page mutations ───────────────────────────────────────────────
@@ -54,24 +53,14 @@ export default function useCmsContentMutations({
 
     // Block content updated via panel editor
     const updateBlockContent = useCallback((pageId: string, blockId: string, nextContent: unknown) => {
-        // D4 guard: overrides address array items by INDEX, so reordering a
-        // list in the default locale silently shifts translations onto the
-        // wrong items in every other locale (schema fix deferred). Detect the
-        // reorder and warn — once per block per session, only when that block
-        // actually has array translations.
-        const prevContent = pages.find(p => p.id === pageId)?.blocks?.find(b => b.id === blockId)?.content;
-        if (prevContent
-            && !reorderWarnedRef.current.has(blockId)
-            && detectArrayReorder(prevContent, nextContent)
-            && blockHasArrayOverrides(localeOverridesRef.current, pageId, blockId)) {
-            reorderWarnedRef.current.add(blockId);
-            toast.error('Reordering list items can shift their translations in other languages — review them in translate mode.');
-        }
+        // Translations follow their items: the server re-aligns the locale
+        // overrides when the reordered content is saved and returns them
+        // (see useCmsAutosave), so no reorder warning is needed here.
         updatePage(pageId, p => ({
             ...p,
             blocks: (p.blocks as CmsBlock[]).map(b => b.id === blockId ? { ...b, content: nextContent as CmsBlock['content'] } : b),
         }));
-    }, [updatePage, pages, localeOverridesRef, reorderWarnedRef]);
+    }, [updatePage]);
 
     // Block style overrides — same flow as content, just lands on block.style.
     // Both run through updatePage → scheduleSave(pageId, …) → debounced PUT,

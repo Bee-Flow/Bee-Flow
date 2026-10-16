@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     isDeniedKey, isTranslatableValue, collectStrings, labelForPath,
-    buildPageGroups, coverageForLocale, detectArrayReorder, blockHasArrayOverrides,
+    buildPageGroups, coverageForLocale,
 } from './translatable';
 import type { FieldPath, FoundString, TranslatableRow } from './translatable';
 
@@ -69,21 +69,6 @@ describe('groups + coverage', () => {
         }, 'nl');
         expect(some.done).toBe(2);
         expect(some.total).toBe(8);
-    });
-});
-
-describe('D4 reorder detection', () => {
-    it('detects same-items-different-order arrays, ignores plain edits', () => {
-        const prev = { items: [{ t: 'a' }, { t: 'b' }, { t: 'c' }] };
-        expect(detectArrayReorder(prev, { items: [{ t: 'b' }, { t: 'a' }, { t: 'c' }] })).toBe(true);
-        expect(detectArrayReorder(prev, { items: [{ t: 'a' }, { t: 'B' }, { t: 'c' }] })).toBe(false);
-        expect(detectArrayReorder(prev, { items: [{ t: 'a' }, { t: 'b' }] })).toBe(false);
-        expect(detectArrayReorder(prev, prev)).toBe(false);
-    });
-    it('spots array-path overrides on a block across locales', () => {
-        const ovs = { pagesByLocale: { pg_1: { nl: { blocks: { b1: { content: { titleParts: [null, { text: 'Wereld' }] } } } } } } };
-        expect(blockHasArrayOverrides(ovs, 'pg_1', 'b1')).toBe(true);
-        expect(blockHasArrayOverrides(ovs, 'pg_1', 'b2')).toBe(false);
     });
 });
 

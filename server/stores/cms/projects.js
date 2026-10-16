@@ -16,8 +16,9 @@ const {
 const { emptyPage, getPage, setPage } = require('./pages');
 const { applyTemplate } = require('./templates');
 const {
-    collectLocaleOverrides, setSiteLocaleOverride, setPageLocaleOverride,
+    collectLocaleOverrides, setSiteLocaleOverride, setPageLocaleOverride, writeSiteAligned,
 } = require('./localeOverrides');
+const { withConfigGroup, realignSiteOverrides } = require('./overrideAlign');
 const { listPosts, collectPostLocaleOverrides, restorePosts } = require('./posts');
 
 // ── Projects index ───────────────────────────────────────────────────
@@ -223,11 +224,11 @@ function migrateSite(v) {
     return v;
 }
 
-async function setProject(siteId, site) {
+async function setProject(siteId, site, report) {
     assertSiteId(siteId);
     if (!isPlainObject(site)) throw new Error('Site must be an object');
     const sanitized = sanitizeSite(siteId, site);
-    await configStore.setConfig(projectKey(siteId), sanitized);
+    await writeSiteAligned(siteId, sanitized, report);
     await touchProjectsIndexEntry(siteId, sanitized);
     return sanitized;
 }
@@ -251,12 +252,18 @@ async function mutateProject(siteId, mutator) {
     assertSiteId(siteId);
     /** @type {any} */
     let result;
-    const saved = await configStore.mutateConfig(projectKey(siteId), (cur) => {
+    // Same transaction as the re-alignment of the site translations: a mutator
+    // that removes or reorders header/footer items must not shift them.
+    const saved = await withConfigGroup(projectKey(siteId), async (io) => {
+        const cur = await io.get(projectKey(siteId));
         if (!isPlainObject(cur)) throw new Error('Project not found');
         const site = migrateSite(structuredClone(cur));
         if (!Array.isArray(site.pages)) site.pages = [];
         result = mutator(site);
-        return sanitizeSite(siteId, site);
+        const sanitized = sanitizeSite(siteId, site);
+        await io.set(projectKey(siteId), sanitized);
+        await realignSiteOverrides(io, siteId, cur, sanitized);
+        return sanitized;
     });
     await touchProjectsIndexEntry(siteId, saved);
     return { site: saved, result };

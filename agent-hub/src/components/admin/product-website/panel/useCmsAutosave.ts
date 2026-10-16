@@ -8,17 +8,33 @@ import { messageOf, errorMessage } from '../../../../utils/caughtError';
 import { authFetch } from '../../../../utils/helpers';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
+import { adoptRealignedOverrides } from './realignedOverrides';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 
 interface AutosaveInput extends Pick<PanelState,
     'activeSiteIdRef' | 'builderRunningRef' | 'pendingSaves' | 'saveTimerRef' | 'saveStatusTimer'
-    | 'inFlightSaveRef' | 'failedSavesRef' | 'setSaveStatus' | 'setError' | 'setDirtySincePublish'> {}
+    | 'inFlightSaveRef' | 'failedSavesRef' | 'setSaveStatus' | 'setError' | 'setDirtySincePublish'
+    | 'localeOverridesRef' | 'setLocaleOverrides'> {}
 
 export default function useCmsAutosave({
     activeSiteIdRef, builderRunningRef, pendingSaves, saveTimerRef, saveStatusTimer,
     inFlightSaveRef, failedSavesRef, setSaveStatus, setError, setDirtySincePublish,
+    localeOverridesRef, setLocaleOverrides,
 }: AutosaveInput) {
+    // The server re-aligns the stored translations when a page/site save
+    // reorders items and returns them (locale -> override). Replace the
+    // in-memory copy, or the next translation edit would write the old order
+    // straight back. A locale with an edit still queued is left alone.
+    const adoptRealigned = useCallback((scope: string, moved: unknown) => {
+        const prefix = scope === 'site' ? 'locale:site:' : `locale:page:${scope}:`;
+        const next = adoptRealignedOverrides(localeOverridesRef.current, scope, moved,
+            (locale) => `${prefix}${locale}` in pendingSaves.current);
+        if (next === localeOverridesRef.current) return;
+        localeOverridesRef.current = next;
+        setLocaleOverrides(next);
+    }, [localeOverridesRef, pendingSaves, setLocaleOverrides]);
+
     // ── auto-save (debounced) ────────────────────────────────────────
 
     const flushSaves = useCallback(async () => {
@@ -39,7 +55,7 @@ export default function useCmsAutosave({
         failedSavesRef.current = null;
         setSaveStatus('saving');
         try {
-            const tasks = Object.entries(batch).map(([key, payload]) => {
+            const makeTask = ([key, payload]: [string, unknown]) => {
                 // Per-locale translation overrides — namespaced keys so they
                 // ride the same debounce/retry machinery as base saves without
                 // colliding (real keys are 'site' or a pg_… id, never 'locale:').
@@ -74,12 +90,20 @@ export default function useCmsAutosave({
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ page: payload }),
                 });
-            });
-            const results = await Promise.all(tasks);
+            };
+            // Translations first, content second: the content save re-aligns the
+            // stored translations to a reordered list, so it must see them.
+            const entries = Object.entries(batch);
+            const isLocale = ([key]: [string, unknown]) => key.startsWith('locale:');
+            const localeResults = await Promise.all(entries.filter(isLocale).map(makeTask));
+            const contentEntries = entries.filter((e) => !isLocale(e));
+            const contentResults = await Promise.all(contentEntries.map(makeTask));
             let droppedTotal = 0;
-            for (const r of results) {
+            for (const r of [...localeResults, ...contentResults]) {
+                const idx = contentResults.indexOf(r);
                 const d = await r.json().catch(() => ({}));
                 if (!r.ok) throw new Error(d.error || `Save failed (${r.status})`);
+                if (idx >= 0) adoptRealigned(contentEntries[idx][0], d?.localeOverrides);
                 // The server strips unknown-type blocks on save; surface it so
                 // an edited/AI block silently vanishing doesn't look like a
                 // "my change didn't stick" bug.
@@ -103,7 +127,7 @@ export default function useCmsAutosave({
         } finally {
             inFlightSaveRef.current = null;
         }
-    }, [activeSiteIdRef, failedSavesRef, pendingSaves, inFlightSaveRef, setSaveStatus, setDirtySincePublish, saveStatusTimer, setError]);
+    }, [activeSiteIdRef, failedSavesRef, pendingSaves, inFlightSaveRef, setSaveStatus, setDirtySincePublish, saveStatusTimer, setError, adoptRealigned]);
 
     const scheduleSave = useCallback((key: string, payload: unknown) => {
         if (builderRunningRef.current) {

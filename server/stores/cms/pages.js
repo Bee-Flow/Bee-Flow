@@ -10,6 +10,7 @@ const {
     PAGE_VERSION, KEY_LOCALE_INFIX,
     newId, isPlainObject, clone, normalizeStoredSlug, assertSiteId, pageKey,
 } = require('./shared');
+const { writePageAligned } = require('./overrideAlign');
 
 // ── Pages ────────────────────────────────────────────────────────────
 
@@ -61,11 +62,12 @@ async function setPage(siteId, page) {
         } : { metaTitle: '', metaDescription: '', ogImage: '', noIndex: false },
         blocks,
     };
-    await configStore.setConfig(pageKey(siteId, sanitized.id), sanitized);
+    // Content + re-keyed locale overrides land in one transaction.
+    const localeOverrides = await writePageAligned(siteId, sanitized);
     // Return the dropped blocks alongside the saved page so callers can warn
     // the user (the render + persist layers otherwise discard unknown-type
     // blocks silently — the "import → empty page, no error" failure mode).
-    return { page: sanitized, dropped };
+    return { page: sanitized, dropped, localeOverrides };
 }
 
 // Forgiving aliases for casing/spelling variants of our block type strings —

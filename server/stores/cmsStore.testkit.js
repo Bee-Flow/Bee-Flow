@@ -27,6 +27,20 @@ function createCmsConfigMocks() {
         async getConfigFresh(key) { return clone(configState.map.get(key)); },
         async setConfig(key, value) { configState.map.set(key, clone(value)); },
         async deleteConfig(key) { configState.map.delete(key); },
+        // One "transaction": writes are staged and land only if `work` resolves.
+        async withConfigGroup(_lockKey, work) {
+            const staged = new Map();
+            const result = await work({
+                async get(key) { return clone(staged.has(key) ? staged.get(key) : configState.map.get(key)); },
+                async set(key, value) { staged.set(key, clone(value)); },
+                async keysLike(pattern) {
+                    const re = likeToRegex(pattern);
+                    return [...new Set([...configState.map.keys(), ...staged.keys()])].filter((k) => re.test(k));
+                },
+            });
+            for (const [k, v] of staged) configState.map.set(k, v);
+            return result;
+        },
         async mutateConfig(key, fn) {
             const cur = configState.map.has(key) ? clone(configState.map.get(key)) : undefined;
             const next = fn(cur);

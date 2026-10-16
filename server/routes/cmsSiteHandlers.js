@@ -49,8 +49,10 @@ async function putSiteDoc(req, res) {
     try {
         const { site } = req.body || {};
         if (!site) return res.status(400).json({ error: 'site object required' });
-        const saved = await cmsStore.setProject(req.siteId, site);
-        res.json({ success: true, site: saved });
+        const report = {};
+        const saved = await cmsStore.setProject(req.siteId, site, report);
+        // `localeOverrides`: header/footer translations re-aligned to this save's item order.
+        res.json({ success: true, site: saved, localeOverrides: report.localeOverrides });
     } catch (err) { res.status(400).json({ error: err.message }); }
 }
 
@@ -102,10 +104,11 @@ async function postSiteAiTranslate(req, res) {
         userId: req.session?.user?.id || null,
         userOrgId: req.session?.user?.organizationId || null,
     });
-    await cmsStore.setSiteLocaleOverride(req.siteId, locale, result.override);
+    // Applied under the site lock against a fresh read (the model call took seconds).
+    const override = await cmsStore.saveTranslatedSiteOverride(req.siteId, locale, result.override, siteDoc);
     res.json({
         success: true,
-        override: result.override,
+        override,
         translated: result.translated,
         total: result.total,
         errors: result.errors,

@@ -34,10 +34,11 @@ async function postPageAiTranslate(req, res) {
         userId: req.session?.user?.id || null,
         userOrgId: req.session?.user?.organizationId || null,
     });
-    await cmsStore.setPageLocaleOverride(req.siteId, req.params.id, locale, result.override);
+    // Applied under the page lock against a fresh read (the model call took seconds).
+    const override = await cmsStore.saveTranslatedPageOverride(req.siteId, req.params.id, locale, result.override, pageDoc);
     res.json({
         success: true,
-        override: result.override,
+        override,
         translated: result.translated,
         total: result.total,
         errors: result.errors,
@@ -143,10 +144,11 @@ async function putPage(req, res) {
         if (!incoming) return res.status(400).json({ error: 'page object required' });
         // Force the URL id onto the body so callers can't quietly write to a
         // different page than the one they targeted.
-        const { page: saved, dropped } = await cmsStore.setPage(req.siteId, { ...incoming, id: req.params.id });
+        const { page: saved, dropped, localeOverrides } = await cmsStore.setPage(req.siteId, { ...incoming, id: req.params.id });
         // `dropped` lets the client warn when unknown-type blocks were stripped
         // on save (otherwise a silent data loss).
-        res.json({ success: true, page: saved, dropped });
+        // `localeOverrides`: translations re-aligned to this save's item order (locale -> override).
+        res.json({ success: true, page: saved, dropped, localeOverrides });
     } catch (err) { res.status(400).json({ error: err.message }); }
 }
 
