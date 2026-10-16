@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The <head> a crawler actually receives.
  *
@@ -14,7 +15,7 @@
  * and JSON-LD.
  */
 
-const { esc, meta, clamp, jsonForScript } = require('./html');
+const { esc, meta, clamp, clampTitle, jsonForScript } = require('./html');
 const { buildJsonLd } = require('./jsonld');
 const { buildPublicPath } = require('./publicPath');
 const { buildFontsHead } = require('./fonts');
@@ -48,8 +49,8 @@ function absolute(origin, urlOrPath) {
  * @param {string} ctx.siteName
  * @param {string} [ctx.ogType]          'website' (default) or 'article' (blog post)
  * @param {object} [ctx.article]         { publishedTime, modifiedTime, author, tags } → article:* tags
- * @param {object[]} [ctx.extraJsonLd]   extra @graph nodes (BlogPosting, Blog)
- * @param {{ name: string, path: string }[]} [ctx.breadcrumbTrail] replaces the Home › page crumbs
+ * @param {object[]} [ctx.extraJsonLd]   extra graph nodes (BlogPosting, Blog)
+ * @param {Array<{ name: string, path: string }>} [ctx.breadcrumbTrail] replaces the Home › page crumbs
  * @param {string[]} [ctx.extraLinks]    pre-built <link> tags (the blog's RSS alternate)
  * @returns {string} tags to splice into <head>
  */
@@ -57,7 +58,7 @@ function buildHead(ctx) {
     const { origin, slug, locale, defaultLocale, locales = [], page = {}, design = {}, siteName = 'Bee Flow' } = ctx;
     const seo = page.seo || {};
 
-    const title = clamp(seo.metaTitle || page.title || siteName, TITLE_MAX);
+    const title = clampTitle(seo.metaTitle || page.title || siteName, TITLE_MAX, siteName);
     const description = clamp(seo.metaDescription || '', DESC_MAX);
     const path = buildPublicPath(locale, slug, defaultLocale);
     const url = `${origin}${path === '/' ? '/' : path}`;

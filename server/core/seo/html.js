@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Escaping for server-rendered marketing HTML.
  *
@@ -68,4 +69,29 @@ function clamp(value, max) {
     return text.slice(0, max - 1).replace(/\s+\S*$/, '') + '…';
 }
 
-module.exports = { esc, jsonForScript, meta, clamp };
+/**
+ * Shorten a `<title>` without cutting into its brand suffix.
+ *
+ * Titles are authored as "Page part | Brand". A plain clamp cut the title at
+ * the budget wherever that fell, leaving "… | Bee…" in search results. Here the
+ * suffix is kept whole and the PAGE part is shortened at a word boundary; when
+ * that would leave too little of the page part, the suffix is dropped instead.
+ *
+ * @param {unknown} value
+ * @param {number} max
+ * @param {string} [brand] site name, matched case-insensitively after a separator
+ * @returns {string}
+ */
+function clampTitle(value, max, brand = '') {
+    const text = String(value || '').replace(/\s+/g, ' ').trim();
+    if (text.length <= max) return text;
+    const escapedBrand = String(brand || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const m = escapedBrand ? new RegExp(`^(.*?)(\\s[|\u2013\u2014-]\\s${escapedBrand})$`, 'i').exec(text) : null;
+    if (!m) return clamp(text, max);
+    const [, page, suffix] = m;
+    const room = max - suffix.length;
+    if (room >= Math.min(page.length, 20)) return clamp(page, room) + suffix;
+    return clamp(page, max);
+}
+
+module.exports = { esc, jsonForScript, meta, clamp, clampTitle };

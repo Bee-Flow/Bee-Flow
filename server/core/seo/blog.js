@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The server-rendered side of the blog: <head> (title, description, canonical,
  * Open Graph article tags, BlogPosting JSON-LD, the RSS alternate), the body
@@ -11,7 +12,7 @@
 
 'use strict';
 
-const { esc, clamp } = require('./html');
+const { esc, clamp, clampTitle } = require('./html');
 const { buildHead, absolute, TITLE_MAX, DESC_MAX } = require('./head');
 const { buildPublicPath, BLOG_BASE } = require('./publicPath');
 const { renderPostMarkdown } = require('../cms/blogMarkdown');
@@ -43,7 +44,7 @@ function postPath(locale, slug, defaultLocale) {
 }
 
 /** The blog's index page query string for paging / a tag filter. */
-function indexQuery({ tag, page }) {
+function indexQuery({ tag, page = undefined }) {
     const qs = new URLSearchParams();
     if (tag) qs.set('tag', tag);
     if (page && page > 1) qs.set('page', String(page));
@@ -65,7 +66,7 @@ function buildBlogHead({ origin, eff, locale, defaultLocale, locales, siteName }
     if (blog.view === 'post' && blog.post) {
         const p = blog.post;
         const url = `${origin}${postPath(locale, p.slug, defaultLocale)}`;
-        const title = clamp(eff.page.seo.metaTitle || p.title, TITLE_MAX);
+        const title = clampTitle(eff.page.seo.metaTitle || p.title, TITLE_MAX, siteName);
         const description = clamp(eff.page.seo.metaDescription || p.excerpt || '', DESC_MAX);
         const image = absolute(origin, eff.page.seo.ogImage || p.coverImage || '');
         const posting = {
