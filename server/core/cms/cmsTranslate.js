@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * cmsTranslate — AI auto-translation for the Product Website CMS.
  *
@@ -32,6 +33,9 @@ const DENY_KEYS = new Set([
     'backgroundVariant', 'background', 'gradient', 'theme', 'radius',
     'number', 'enabled', 'noIndex', 'ogImage', 'favicon', 'role', 'value',
     'style', 'align', 'variant', 'srcDark', 'frame',
+    // Motion and rich media (issue 244): asset keys, language codes and fixed
+    // vocabularies the renderers switch on. `duration` and `label` are prose.
+    'poster', 'captionsLang', 'fit', 'position', 'overlay', 'tilt', 'numeral',
     // roadmap items: `status` is a fixed vocabulary the renderer buckets on
     // ('shipped' | 'beta' | 'building' | 'exploring'). Translated to 'bèta'
     // it matches no bucket and the item silently disappears from the page.

@@ -51,6 +51,8 @@ export { LatestPostsEditor } from './blockEditors/LatestPostsEditor';
 export { TabsEditor } from './blockEditors/TabsEditor';
 export { StoryHeaderEditor } from './blockEditors/StoryHeaderEditor';
 export { CustomerStoriesEditor } from './blockEditors/CustomerStoriesEditor';
+export { ProductMockupEditor } from './blockEditors/ProductMockupEditor';
+export { CardCarouselEditor } from './blockEditors/CardCarouselEditor';
 
 // Registries.
 export { BLOCK_CATALOGUE, BLOCK_EDITORS, BLOCK_DEFAULTS } from './blockEditors/catalogue';

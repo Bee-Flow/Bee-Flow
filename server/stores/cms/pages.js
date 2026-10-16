@@ -115,6 +115,8 @@ const BLOCK_TYPE_ALIASES = {
     'call-to-action': 'cta', calltoaction: 'cta',
     testimonial: 'testimonials', faqs: 'faq', forms: 'form',
     trustband: 'trust-band', trust_band: 'trust-band',
+    productmockup: 'product-mockup', product_mockup: 'product-mockup', mockup: 'product-mockup',
+    cardcarousel: 'card-carousel', card_carousel: 'card-carousel', carousel: 'card-carousel',
 };
 const BLOCK_STRUCTURAL_KEYS = new Set(['id', 'type', 'enabled', 'content', 'style', 'meta', 'version']);
 

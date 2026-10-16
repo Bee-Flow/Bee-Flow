@@ -27,6 +27,8 @@ import { ReleaseNotesEditor } from './ReleaseNotesEditor';
 import { TabsEditor } from './TabsEditor';
 import { StoryHeaderEditor } from './StoryHeaderEditor';
 import { CustomerStoriesEditor } from './CustomerStoriesEditor';
+import { ProductMockupEditor } from './ProductMockupEditor';
+import { CardCarouselEditor } from './CardCarouselEditor';
 
 // ── Catalogue + registries ────────────────────────────────────────────
 //
@@ -83,6 +85,8 @@ export const BLOCK_CATALOGUE: Record<string, BlockCatalogueEntry> = {
     tabs:            { type: 'tabs',          label: 'Tabs',             icon: 'Layers',         category: 'Content' },
     'story-header':     { type: 'story-header',     label: 'Customer story header', icon: 'Quote', category: 'Trust' },
     'customer-stories': { type: 'customer-stories', label: 'Customer stories',      icon: 'Users', category: 'Trust' },
+    'product-mockup': { type: 'product-mockup', label: 'Product mockup', icon: 'AppWindow',        category: 'Content' },
+    'card-carousel':  { type: 'card-carousel',  label: 'Card carousel',  icon: 'Layers',           category: 'Content' },
 };
 
 export const BLOCK_EDITORS = {
@@ -115,4 +119,6 @@ export const BLOCK_EDITORS = {
     tabs:            { component: TabsEditor,         label: 'Tabs',             icon: 'Layers' },
     'story-header':     { component: StoryHeaderEditor,     label: 'Customer story header', icon: 'Quote' },
     'customer-stories': { component: CustomerStoriesEditor, label: 'Customer stories',      icon: 'Users' },
+    'product-mockup': { component: ProductMockupEditor, label: 'Product mockup', icon: 'AppWindow' },
+    'card-carousel':  { component: CardCarouselEditor,  label: 'Card carousel',  icon: 'Layers' },
 };

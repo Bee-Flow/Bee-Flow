@@ -16,6 +16,7 @@ import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { BlockEditorWithPagesProps } from './editorProps';
 import type { HeaderCta, HeaderData, HeaderLogo, NavChild, NavColumn, NavLink, MegaItem } from './HeaderEditor.types';
 import { set } from './shared';
+import { HeaderGithubFields, HeaderKindSelect } from './HeaderGithubFields';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Header ────────────────────────────────────────────────────────────
@@ -105,48 +106,53 @@ export function HeaderEditor({ data = {}, pages = [], onChange }: BlockEditorWit
                     collapsible
                     renderItem={(item, update) => (
                         <>
-                            <TextField
-                                label={t('cms_site.blocks.header.label', 'Label')}
-                                value={item.label}
-                                onChange={v => update({ ...item, label: v })}
-                            />
-                            <LinkField
-                                label={t('cms_site.blocks.header.link', 'Link')}
-                                value={item.link}
-                                pages={pages}
-                                onChange={v => update({ ...item, link: v })}
-                            />
-                            <CtaStyleSelect
-                                value={item.style || 'primary'}
-                                onChange={v => update({ ...item, style: v })}
-                            />
-                            {/* Per-button label typography — empty values
-                                = inherit page CSS / Design tab. Flat shape
-                                (labelFont/labelSize/labelColor), so this
-                                stays hand-rolled instead of StyleTriplet. */}
-                            <FontRow
-                                label={t('cms_site.blocks.header.label_font', 'Label font')}
-                                value={item.labelFont || ''}
-                                onChange={v => update({ ...item, labelFont: v })}
-                                sample={item.label || t('cms_site.blocks.header.button_label_preview', 'Button label')}
-                                weight={600}
-                            />
-                            <FieldRow label={t('cms_site.blocks.header.label_size_color', 'Label size & color')}>
-                                <div className="flex items-center gap-2">
-                                    <PxSizeInput
-                                        value={Number.isFinite(item.labelSize) ? item.labelSize : 0}
-                                        onChange={v => update({ ...item, labelSize: v })}
-                                        min={10}
-                                        max={48}
-                                        ariaLabel={t('cms_site.blocks.header.button_label_size_in_pixels', 'Button label size in pixels')}
-                                    />
-                                    <ColorSwatch
-                                        value={item.labelColor || ''}
-                                        onChange={v => update({ ...item, labelColor: v })}
-                                        title={t('cms_site.blocks.header.button_label_color', 'Button label color')}
-                                    />
-                                </div>
-                            </FieldRow>
+                            <HeaderKindSelect value={item.kind} onChange={kind => update({ ...item, kind })} />
+                            {item.kind === 'github' ? <HeaderGithubFields item={item} update={update} /> : (
+                                <>
+                                <TextField
+                                    label={t('cms_site.blocks.header.label', 'Label')}
+                                    value={item.label}
+                                    onChange={v => update({ ...item, label: v })}
+                                />
+                                <LinkField
+                                    label={t('cms_site.blocks.header.link', 'Link')}
+                                    value={item.link}
+                                    pages={pages}
+                                    onChange={v => update({ ...item, link: v })}
+                                />
+                                <CtaStyleSelect
+                                    value={item.style || 'primary'}
+                                    onChange={v => update({ ...item, style: v })}
+                                />
+                                {/* Per-button label typography — empty values
+                                    = inherit page CSS / Design tab. Flat shape
+                                    (labelFont/labelSize/labelColor), so this
+                                    stays hand-rolled instead of StyleTriplet. */}
+                                <FontRow
+                                    label={t('cms_site.blocks.header.label_font', 'Label font')}
+                                    value={item.labelFont || ''}
+                                    onChange={v => update({ ...item, labelFont: v })}
+                                    sample={item.label || t('cms_site.blocks.header.button_label_preview', 'Button label')}
+                                    weight={600}
+                                />
+                                <FieldRow label={t('cms_site.blocks.header.label_size_color', 'Label size & color')}>
+                                    <div className="flex items-center gap-2">
+                                        <PxSizeInput
+                                            value={Number.isFinite(item.labelSize) ? item.labelSize : 0}
+                                            onChange={v => update({ ...item, labelSize: v })}
+                                            min={10}
+                                            max={48}
+                                            ariaLabel={t('cms_site.blocks.header.button_label_size_in_pixels', 'Button label size in pixels')}
+                                        />
+                                        <ColorSwatch
+                                            value={item.labelColor || ''}
+                                            onChange={v => update({ ...item, labelColor: v })}
+                                            title={t('cms_site.blocks.header.button_label_color', 'Button label color')}
+                                        />
+                                    </div>
+                                </FieldRow>
+                                </>
+                            )}
                         </>
                     )}
                     addLabel={t('cms_site.blocks.header.add_button', 'Add button')}

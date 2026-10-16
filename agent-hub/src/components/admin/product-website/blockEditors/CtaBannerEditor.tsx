@@ -9,6 +9,8 @@ import {
 } from '../primitives';
 import type { BlockEditorWithPagesProps } from './editorProps';
 import { set, CtaButtonField } from './shared';
+import { BackgroundVideoCard } from './MotionFields';
+import type { BackgroundVideoValue } from './MotionFields';
 import type { CtaButtonValue } from './shared';
 import type { StyleBlob } from '../primitives.types';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -28,6 +30,7 @@ type CtaBannerData = {
     secondaryCta?: CtaButtonValue | null;
     headingStyle?: StyleBlob;
     subheadingStyle?: StyleBlob;
+    backgroundVideo?: BackgroundVideoValue;
 };
 
 export function CtaBannerEditor({ data = {}, pages = [], onChange }: BlockEditorWithPagesProps<CtaBannerData>) {
@@ -99,6 +102,8 @@ export function CtaBannerEditor({ data = {}, pages = [], onChange }: BlockEditor
                     />
                 </CollapsibleCard>
             ) : null}
+
+            <BackgroundVideoCard value={data.backgroundVideo} onChange={v => setField('backgroundVideo', v)} persistKey="blk.cta-banner.background-video" />
 
             {/* Text styles — heading + subheading only (CTA Banner has
                 no body paragraph; its text is just headline + tagline). */}

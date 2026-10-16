@@ -675,6 +675,40 @@ const BLOCK_DEFAULTS = {
         linkLabel: 'All posts',
         emptyText: '',
     },
+
+    // Animated product mockup (issue 244): a tilted app panel where `prompt`
+    // types itself and `steps` appear one by one. All text, so it translates and
+    // needs no video. `role` is 'user' | 'assistant' | 'card' (denylisted).
+    'product-mockup': {
+        eyebrow: '',
+        title: 'See it work',
+        lead: '',
+        tilt: 'right',
+        scrollTilt: true,
+        windowTitle: 'Bee Flow',
+        prompt: 'Create an agent that summarises my inbox every morning',
+        steps: [
+            { role: 'assistant', title: '', text: 'On it. Which mailbox should I watch?' },
+            { role: 'card', title: 'Morning summary', text: 'Runs every day at 08:00 and posts the summary to your chat.' },
+        ],
+    },
+
+    // Horizontal snap carousel of large gradient cards (issue 244). `gradient`
+    // is 'primary' | 'accent' | 'mix' | 'dark'; the colours come from the theme.
+    'card-carousel': {
+        eyebrow: '',
+        title: 'Explore',
+        lead: '',
+        animated: true,
+        showNumerals: true,
+        prevLabel: 'Previous',
+        nextLabel: 'Next',
+        cards: [
+            { title: 'First card', body: 'Describe it in a sentence or two.', gradient: 'primary', numeral: '', linkLabel: '', link: { kind: 'anchor', anchor: '' } },
+            { title: 'Second card', body: 'Describe it in a sentence or two.', gradient: 'mix', numeral: '', linkLabel: '', link: { kind: 'anchor', anchor: '' } },
+            { title: 'Third card', body: 'Describe it in a sentence or two.', gradient: 'dark', numeral: '', linkLabel: '', link: { kind: 'anchor', anchor: '' } },
+        ],
+    },
 };
 
 // ── Block type catalogue (drives the "Add block" picker) ─────────────
@@ -722,6 +756,9 @@ const BLOCK_TYPES = [
     // imported into an older deployment drops them.
     { type: 'story-header',     label: 'Customer story header', icon: 'Quote',  category: 'Trust' },
     { type: 'customer-stories', label: 'Customer stories',      icon: 'Users',  category: 'Trust' },
+    // Same rollback caveat: motion blocks (issue 244).
+    { type: 'product-mockup', label: 'Product mockup',  icon: 'AppWindow',          category: 'Content' },
+    { type: 'card-carousel',  label: 'Card carousel',   icon: 'Layers',  category: 'Content' },
 ];
 
 // Bounds of a tabs block. The editor stops at the maximum; the validator warns
