@@ -39,6 +39,7 @@ function utilitiesWithIndexCss() {
         enforce: 'pre',
         transform(code, id) {
             if (!/\.(jsx?|tsx?)$/.test(id) || id.includes('node_modules')) return null;
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- build-time transform over our own source; negated character classes only: linear
             if (!/import\s+['"][^'"]*\/index\.css['"]|import\s+['"]\.\/index\.css['"]/.test(code)) return null;
             return { code: `import '@/tailwind-utilities.css';\n${code}\nimport '@/themes.css';\nimport '@/app.css';\n`, map: null };
         },

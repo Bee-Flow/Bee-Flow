@@ -114,6 +114,7 @@ router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (re
     // `206 Partial Content` + `Accept-Ranges: bytes`.
     sendHeaders(contentType, fileName);
 
+    // nosemgrep: ajinabraham.njsscan.traversal.path_traversal.generic_path_traversal -- audioPath comes from the access-checked transcription row and was built by the server; the Range header only yields byte offsets bounded by the file size
     const range = parseRangeHeader(req.headers.range, fileSize);
     if (range && range.invalid) {
         res.setHeader('Content-Range', `bytes */${fileSize}`);

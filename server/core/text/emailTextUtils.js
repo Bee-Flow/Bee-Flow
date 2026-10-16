@@ -47,6 +47,7 @@ function findCloseEnd(s, lower, name, from) {
     let at = lower.indexOf(needle, from);
     while (at !== -1) {
         let k = at + needle.length;
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a one-character whitespace test with no repetition
         while (k < s.length && /\s/.test(s[k])) k++;
         if (s[k] === '>') return k + 1;
         at = lower.indexOf(needle, at + needle.length);

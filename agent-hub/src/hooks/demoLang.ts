@@ -7,6 +7,7 @@
  * catalogue (the available-locales gate below).
  */
 export function demoLangOverride(pathname: string, search: string): string | null {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored literal with one alternation and no repetition: linear
     if (!/^\/__demo__(\/|$)/.test(pathname)) return null;
     const lang = new URLSearchParams(search).get('lang');
     if (!lang || !/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(lang)) return null;

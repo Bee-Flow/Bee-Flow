@@ -41,6 +41,7 @@ const ORPHAN_CAP = 100;
 /** @param {any} item */
 function itemKey(item) {
     if (isPlainObject(item) && typeof item.id === 'string' && item.id !== '') return `id:${item.id}`;
+    // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_sha1 -- a content fingerprint to pair items, not a security use
     return `j:${crypto.createHash('sha1').update(JSON.stringify(item) ?? 'undefined').digest('hex').slice(0, 16)}`;
 }
 

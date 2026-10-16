@@ -84,6 +84,7 @@ export function secureRandom(): number {
         c.getRandomValues(buf);
         return buf[0] / 0x100000000;
     }
+    // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- fallback only where the browser has no Web Crypto; it picks an A/B variant, which is not a secret
     return Math.random();
 }
 

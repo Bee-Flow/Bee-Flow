@@ -232,6 +232,7 @@ function validateSiteDraft(draftWrap) {
                 message: `Icon ${JSON.stringify(icon)} is not an uploaded asset of this site, so no icon is shown.`,
                 hint: 'Use a Lucide name, or the url of an uploaded file from cms_list_assets (cms/<file> or /api/cms/asset/cms/<file>).',
             });
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- LUCIDE_NAME_RE is anchored with one character-class run: linear
         } else if (checkName && !LUCIDE_NAME_RE.test(icon)) {
             warnings.push({
                 code: 'unknown_icon',

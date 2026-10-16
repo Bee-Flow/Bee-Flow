@@ -192,6 +192,7 @@ async function drawPng(input) {
  * @returns {Promise<Buffer>}
  */
 async function renderCard(identity, input) {
+    // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_sha1 -- cache key of a rendered image, not a security use
     const key = crypto.createHash('sha1').update(identity).update(JSON.stringify([input.title, input.eyebrow, input.brand, input.design?.colors, input.template, input.motif, !!input.loadLogo])).digest('hex');
     const hit = cache.get(key);
     if (hit) {

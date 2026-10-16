@@ -225,6 +225,7 @@ router.get(/^\/(?:([a-z]{2,3})\/)?blog\/(feed|atom)\.xml$/, async (req, res) => 
         const { blogLabels } = require('../stores/cms/blogEffective');
         const labels = await blogLabels(locale);
         const siteName = latest.site?.header?.logoText || latest.site?.name || 'Bee Flow';
+        // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- req.params[1] is only compared with 'atom', never written
         const atom = req.params[1] === 'atom';
         res.type(atom ? 'application/atom+xml; charset=utf-8' : 'application/rss+xml; charset=utf-8')
             .set('Cache-Control', 'public, max-age=300, s-maxage=600');
@@ -360,6 +361,7 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res
             const qs = rawQuery(req).toString();
             return res.redirect(301, qs ? `${legalTarget}?${qs}` : legalTarget);
         }
+        // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss, ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- parsePublicPath only yields [a-z0-9-] slugs, every redirect below goes to buildPublicPath(...) (a same-site path), and pages render through the escaping head and body builders
         let parsed = parsePublicPath(req.path, locales);
         if (!parsed) return next();
 

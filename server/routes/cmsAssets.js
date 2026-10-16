@@ -193,6 +193,7 @@ async function sendStoredVariant(res, key, width, format, cacheHeaders) {
 
 async function serveAsset(req, res) {
     try {
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- MINTED_KEY_RE is anchored with a bounded and a single-class run: linear
         const key = req.params[0];
         if (!key.startsWith('cms/')) return res.status(404).json({ error: 'Not found' });
         if (!storageStore.isAvailable()) throw new HttpError(503, 'storage_unavailable', 'Storage unavailable');
@@ -210,6 +211,7 @@ async function serveAsset(req, res) {
             version = String(head.etag || head.contentLength || '');
         }
         const format = width ? pickFormat(req.headers.accept) : '';
+        // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_sha1 -- ETag of a stored object, not a security use
         const etag = `"${crypto.createHash('sha1').update(`${key}|${minted ? '' : version}|${width || ''}|${format}`).digest('hex').slice(0, 20)}"`;
         const cacheHeaders = () => {
             res.setHeader('ETag', etag);

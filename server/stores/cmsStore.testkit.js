@@ -69,6 +69,7 @@ function createCmsConfigMocks() {
         async getAll(sql, params) {
             const keys = [...configState.map.keys()];
             const row = (k) => ({ key: k, value: JSON.stringify(configState.map.get(k)) });
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- test-kit fake matching our own fixed SQL strings
             if (/key = \$1 OR key LIKE \$2/.test(sql)) {
                 // `key = $1 OR key LIKE $2 [OR key LIKE $3 ...]`
                 const res = params.slice(1).map(likeToRegex);
@@ -114,15 +115,19 @@ function installCmsStoreMocks(extra = () => ({})) {
 function configTableAnswer(configState) {
     const keysLike = (p) => [...configState.map.keys()].filter((k) => likeToRegex(p).test(k)).map((key) => ({ key }));
     return (sql, params = []) => {
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- test-kit fake matching our own fixed SQL strings
         if (/^\s*SELECT value FROM config WHERE key = \$1/i.test(sql)) {
             return { rows: configState.map.has(params[0]) ? [{ value: configState.map.get(params[0]) }] : [] };
         }
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- test-kit fake matching our own fixed SQL strings
         if (/INSERT INTO config/i.test(sql)) { configState.map.set(params[0], params[1]); return { rows: [], rowCount: 1 }; }
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- test-kit fake matching our own fixed SQL strings
         if (/^\s*DELETE FROM config WHERE key = \$1/i.test(sql)) {
             const had = configState.map.delete(params[0]);
             return { rows: [], rowCount: had ? 1 : 0 };
         }
         // publishSite: the site doc, its pages and its locale overrides in one statement.
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- test-kit fake matching our own fixed SQL strings
         if (/SELECT key, value FROM config WHERE key = \$1 OR key LIKE \$2/i.test(sql)) {
             const patterns = params.slice(1).map(likeToRegex);
             return {
@@ -131,9 +136,11 @@ function configTableAnswer(configState) {
                     .map((key) => ({ key, value: configState.map.get(key) })),
             };
         }
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- test-kit fake matching our own fixed SQL strings
         if (/SELECT key FROM config WHERE key = \$1 OR key LIKE \$2/i.test(sql)) {
             return { rows: [...(configState.map.has(params[0]) ? [{ key: params[0] }] : []), ...keysLike(params[1])] };
         }
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- test-kit fake matching our own fixed SQL strings
         if (/SELECT key FROM config WHERE key LIKE \$1/i.test(sql)) return { rows: keysLike(params[0]) };
         return undefined;
     };

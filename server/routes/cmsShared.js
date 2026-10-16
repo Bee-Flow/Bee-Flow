@@ -118,6 +118,7 @@ async function setLiveSiteId(siteId) {
 const PUBLISH_TIMEOUT_MS = 30000;
 
 async function ensurePublishedSnapshot(siteId, { timeoutMs = PUBLISH_TIMEOUT_MS } = {}) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- SITE_ID_RE is anchored with one bounded class run: linear
     if (typeof siteId !== 'string' || !SITE_ID_RE.test(siteId)) {
         throw new HttpError(400, 'cms_invalid_site_id', 'Invalid siteId');
     }

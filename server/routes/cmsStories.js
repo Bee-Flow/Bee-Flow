@@ -32,6 +32,7 @@ function createPublicRouter() {
         res.set('Cache-Control', 'public, max-age=60, s-maxage=120');
         const siteId = await require('./cmsShared').getLiveSiteId();
         if (!siteId) return res.json({ stories: [] });
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- LOCALE_RE repeats a group that starts with a '-' its class excludes (linear), and the input is cut at the first '-'
         const locale = first(req.query.locale).toLowerCase().split('-')[0];
         const limit = Number.parseInt(first(req.query.limit), 10);
         const { stories, locale: served } = await getPublishedStories(siteId, {

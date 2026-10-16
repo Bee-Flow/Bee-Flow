@@ -40,7 +40,9 @@ function createIntegrationsRouter({ resolveOrigin, getLiveSiteId, getSnapshot = 
         try {
             const ctx = await context(req);
             if (!ctx) return next();
+            // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- q is written only as esc(query) in the search input's value, category only when it is a known slug; neither reaches the JSON-LD
             const q = typeof req.query.q === 'string' ? req.query.q : '';
+            // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- category is only written when it equals a known category slug, and then through esc()
             const category = typeof req.query.category === 'string' ? req.query.category : '';
             res.type('html').set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
             // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write, ajinabraham.njsscan.xss.xss_node.express_xss -- every interpolated string goes through esc() in renderDirectoryPage

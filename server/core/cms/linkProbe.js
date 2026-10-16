@@ -21,6 +21,7 @@ const TIMEOUT_MS = 5000;
 /** Redirect hops followed per request. */
 const MAX_HOPS = 5;
 const ALLOWED_PORTS = new Set(['', '80', '443', '8080', '8443']);
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- a public User-Agent string, not a credential
 const USER_AGENT = 'BeeFlow-LinkCheck/1.0';
 
 /**

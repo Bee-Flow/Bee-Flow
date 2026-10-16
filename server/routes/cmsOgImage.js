@@ -73,7 +73,9 @@ async function serveOgImage(req, res) {
     const siteId = await getLiveSiteId();
     const snapshot = siteId ? await cmsStore.getPublishedSnapshot(siteId) : null;
     if (!siteId || !snapshot) throw new HttpError(404, 'not_found', 'Not found');
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- locale and slug only select the published page and feed a hex ETag; the answer is a PNG and echoes neither
     const locale = String(req.params[0]);
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- slug only selects the published page and feeds a hex ETag; the answer is a PNG and never echoes it
     const slug = String(req.params[1]);
     const defaultLocale = await cmsStore.getDefaultLocale();
     if (!publishedLocales(snapshot, defaultLocale).has(locale)) throw new HttpError(404, 'not_found', 'Not found');
@@ -83,6 +85,7 @@ async function serveOgImage(req, res) {
     const design = eff.design || {};
     const share = design.shareImage || {};
     const version = versionOf(snapshot.publishedAt);
+    // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_sha1 -- ETag of a rendered image, not a security use
     const etag = `"og-${crypto.createHash('sha1').update(`${siteId}|${version}|${locale}|${slug}`).digest('hex').slice(0, 20)}"`;
     res.setHeader('ETag', etag);
     res.setHeader('Cache-Control', req.query.v === version
@@ -110,6 +113,7 @@ async function serveOgImage(req, res) {
         throw e;
     }
     res.type('image/png');
+    // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write -- the body is a PNG buffer sent as image/png; page text is drawn as outline paths
     return res.send(png);
 }
 
