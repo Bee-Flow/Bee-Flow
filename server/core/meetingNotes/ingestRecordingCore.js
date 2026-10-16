@@ -6,11 +6,10 @@
  * provider, ./ingestTranscription.js), diarized speakers anchored to a
  * participant roster, summary, AI title and action items.
  *
- * Shared by the provider wrappers (`ingestNextcloudRecording.js`,
- * `ingestGmeetRecording.js`) which own download/auth/roster resolution and
- * any provider-specific write-back. The core CONSUMES `filePath`: on success
- * the audio is copied into saved-recordings and the original removed; on
- * failure or dedup the file is unlinked.
+ * Shared by the provider wrappers (`ingestNextcloudRecording.js`, `ingestGmeetRecording.js`)
+ * which own download/auth/roster resolution and any provider-specific write-back. The core
+ * CONSUMES `filePath`: on success the audio is copied into saved-recordings and the original
+ * removed; on failure or dedup the file is unlinked.
  */
 
 const crypto = require('crypto');
@@ -410,7 +409,6 @@ async function resolveOwnerDefaultTemplate(userId, orgId) {
         return null;
     }
 }
-
 
 module.exports = {
     ingestLocalRecording,

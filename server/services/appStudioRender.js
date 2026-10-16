@@ -20,7 +20,6 @@
  *     → { ok:true, png:Buffer, dataUrl, width, height, ... }
  *     | { ok:false, unavailable:true, reason:'<one plain sentence>' }
  */
-
 'use strict';
 
 const fs = require('fs').promises;
@@ -279,8 +278,7 @@ async function buildDataState({ definition, model, app, screen, roleArg, viewer,
     if (!app || !app.id) return dataState; // nothing to read against — bindings render as loading
     const scope = buildRenderScope(currentUser, definition.variables, screen);
     for (const { binding } of collectDataBindings(definition, screen.id)) {
-        /** @type {{ binding?: any, skipped?: boolean }} */
-        let resolved = { binding };
+        let resolved = /** @type {{ binding?: any, skipped?: boolean }} */ ({ binding });
         if (binding.kind !== 'dataset') {
             resolved = resolveShape(binding, scope);
             if (!resolved.skipped) resolved = resolveFilters(resolved.binding, scope);
@@ -471,21 +469,6 @@ function unavailable(reason, code) {
 }
 
 /**
- * @typedef {object} ScreenshotResult
- * @property {boolean} ok
- * @property {boolean} [unavailable]
- * @property {string} [reason]
- * @property {string} [code]
- * @property {Buffer} [png]
- * @property {string} [dataUrl]
- * @property {number} [width]
- * @property {number} [height]
- * @property {string|null} [mountError]
- * @property {string[]} [pageErrors]
- * @property {string[]} [consoleErrors]
- */
-
-/**
  * Render one App Studio screen headless and screenshot it.
  *
  * @param {object} [input]
@@ -497,7 +480,6 @@ function unavailable(reason, code) {
  * @param {string|object} [input.viewport] - 'desktop' | 'tablet' | 'mobile' | { width, height }
  * @param {object}  [input.deps]     - injectable edges (tests): readBundle, capture,
  *                                     dbQuery, runDataset, getDataset, hardTimeoutMs
- * @returns {Promise<ScreenshotResult>}
  */
 async function renderAppScreenshot({ app = null, definition = null, model = null, screenId = null, asRole = null, viewport = 'desktop', deps = null } = {}) {
     try {

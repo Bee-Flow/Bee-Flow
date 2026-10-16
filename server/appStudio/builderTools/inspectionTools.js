@@ -124,6 +124,7 @@ async function applyAppScreenshot(draftWrap, args) {
     } catch (_) { app = null; }
 
     draftWrap._screenshotsThisTurn = (draftWrap._screenshotsThisTurn || 0) + 1;
+    /** @type {import('../../services/appStudioRender.types').ScreenshotResult} */
     let shot;
     try {
         shot = await renderAppScreenshot({

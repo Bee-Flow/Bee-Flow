@@ -2,10 +2,9 @@
 /**
  * Nextcloud Client — Shared HTTP helper for OAuth Bearer access to WebDAV + OCS.
  *
- * Mirrors msGraphClient.js: a single fetch wrapper that injects the Bearer
- * token from the session and transparently refreshes on 401 using the stored
- * refresh token. Used by nextcloudTools.js when the session is in OAuth mode;
- * the Basic-auth (app-password) path bypasses this module entirely.
+ * Mirrors msGraphClient.js: a single fetch wrapper that injects the Bearer token from the session
+ * and transparently refreshes on 401 using the stored refresh token. Used by nextcloudTools.js when
+ * the session is in OAuth mode; the Basic-auth (app-password) path bypasses this module entirely.
  */
 
 const { loadConfig } = require('../auth/permissions');
@@ -285,7 +284,6 @@ async function retryOnThrottle(initialResponse, doFetch, options = {}) {
     return response;
 }
 
-
 /**
  * Fetch wrapper: injects Bearer auth, retries once on 401 after refreshing,
  * and retries up to MAX_RETRIES times on 429/503 with exponential backoff
@@ -507,23 +505,7 @@ function isConnectorSession(session) {
     return !!(session?.user?.provider === 'nextcloud_connector' || session?.connectorOrgId);
 }
 
-/**
- * How a tool reaches Nextcloud: base URL, the user's uid, a ready `fetch` and the
- * message to show when it is refused. The rest depends on `mode`.
- *
- * @typedef {object} NcAuth
- * @property {string} [mode]
- * @property {string} baseUrl
- * @property {string} [publicBaseUrl]
- * @property {string} [uid]
- * @property {any} [session]
- * @property {string} [username]
- * @property {string} [password]
- * @property {(url: string, options?: any) => Promise<any>} fetch
- * @property {string} authError
- */
-
-/** @returns {Promise<NcAuth>} */
+/** @returns {Promise<import('./nextcloudClient.types').NcAuth>} */
 async function resolveAuth(session, userId) {
     // Connector path takes priority: if the user came in via the Nextcloud
     // ExApp connector, we have an instance binding and zero credentials —
