@@ -63,7 +63,7 @@ function uniqueName(taken) {
     }
     return `v${taken.length + 1}`;
 }
-
+/** @param {import('./VariablesManager.types').VariablesManagerProps} props */
 export default function VariablesManager({ definition, onCommit, onRevealNode = null, disabled = false }) {
     const { t } = useTranslation();
     const variables = listVariables(definition);

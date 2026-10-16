@@ -6,8 +6,37 @@ import Toggle from '../../../../../shared/Toggle';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
 import { ConfigureDataButton } from '../../bi/QueryBuilder';
 import { registerInspector } from '../registry';
+import type { ReactNode } from 'react';
+import type { PanelProps } from '../appDefinition';
 
-function DimList({ label, addLabel, items, onChange, disabled }) {
+interface PivotDim {
+    key?: string;
+    label?: string;
+}
+
+interface PivotValue extends PivotDim {
+    agg?: string;
+    format?: string;
+}
+
+interface PivotProps {
+    source?: unknown;
+    rows?: PivotDim[];
+    columns?: PivotDim[];
+    values?: PivotValue[];
+    showTotals?: boolean;
+    emptyText?: string;
+}
+
+interface DimListProps {
+    label: ReactNode;
+    addLabel: string;
+    items?: PivotDim[];
+    onChange: (items: PivotDim[]) => void;
+    disabled?: boolean;
+}
+
+function DimList({ label, addLabel, items, onChange, disabled }: DimListProps) {
     const { t } = useTranslation();
     return (
         <fieldset disabled={disabled} className="min-w-0">
@@ -30,7 +59,7 @@ function DimList({ label, addLabel, items, onChange, disabled }) {
 }
 
 /** Content panel for pivot. Props mirror componentSpecs.js (authoritative). */
-export default function PivotInspector({ node, definition, onCommit, disabled = false }) {
+export default function PivotInspector({ node, definition, onCommit, disabled = false }: PanelProps<PivotProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const AGGS = [

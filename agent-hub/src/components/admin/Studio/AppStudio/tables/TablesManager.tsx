@@ -63,6 +63,8 @@ const RowsTab = RowsTabJs as unknown as ComponentType<{ appId: string; table: Mo
 
 export interface TablesManagerProps {
     open: boolean;
+    /** Asks for the modal chrome to be dropped (the Data view). Not read yet. */
+    inline?: boolean;
     onClose?: () => void;
     appId: string;
     definition: AppDefinition | null;

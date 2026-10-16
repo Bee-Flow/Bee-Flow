@@ -59,7 +59,7 @@ function roleAllows(nodeOrScreen, previewRole) {
     if (!Array.isArray(gate) || gate.length === 0) return true;
     return gate.includes(previewRole);
 }
-
+/** @param {import('./AppRenderer.types').NodeWrapperProps} props */
 export function DefaultNodeWrapper({ node, className, style, children }) {
     return (
         <div data-node-id={node.id} data-app-type={node.type} className={className} style={style}>
@@ -365,7 +365,7 @@ function RenderNode({ node, scope, NodeWrapper, mode }) {
     if (nodeScope === runtime.scope) return cell;
     return <ScopeProvider scope={nodeScope}>{cell}</ScopeProvider>;
 }
-
+/** @param {import('./AppRenderer.types').AppRendererProps} props */
 export default function AppRenderer({
     definition,
     screenId,
