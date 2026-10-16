@@ -209,18 +209,20 @@ test('create_card', async () => {
 test('update_card merges, optionally moves, and reports a failed move', async () => {
     assert.deepEqual((await run('nextcloud_deck_update_card', {})).out, { error: 'boardId, stackId, cardId required' });
     const base = `${API}/boards/3/stacks/1/cards/10`;
-    const get = `GET ${base}`, put = `PUT ${base}`, move = `PUT ${base}/reorder`;
+    const get = `GET ${base}`, put = `PUT ${base}`, move = `PUT ${API}/boards/3/stacks/2/cards/10`;
     const cur = { title: 'Old', description: 'd', duedate: '2026-01-01', type: 'plain', owner: { uid: 'bob' }, order: 4 };
     const a = { boardId: 3, stackId: 1, cardId: 10 };
     const ok = await run('nextcloud_deck_update_card', { ...a, title: 'New', duedate: '' }, { [get]: res(200, cur), [put]: res(200, { id: 10, title: 'New' }) });
     assert.deepEqual(ok.out, { success: true, card: { id: 10, title: 'New' } });
     assert.deepEqual(ok.calls[1].body, { title: 'New', description: 'd', duedate: null, type: 'plain', owner: 'bob', order: 4 });
     const at2 = `GET ${API}/boards/3/stacks/2/cards/10`;
-    const mv = await run('nextcloud_deck_update_card', { ...a, targetStackId: 2, order: 1 }, { [get]: res(200, cur), [put]: res(200, { id: 10 }), [move]: res(200, {}), [at2]: res(200, { id: 10, stackId: 2 }) });
+    const mv = await run('nextcloud_deck_update_card', { ...a, targetStackId: 2, order: 1 }, { [get]: res(200, cur), [move]: res(200, { id: 10 }), [at2]: res(200, { id: 10, stackId: 2 }) });
     assert.deepEqual(mv.out, { success: true, card: { id: 10, stackId: 2 } });
-    assert.deepEqual(mv.calls[2].body, { order: 1, stackId: 2 });
-    const bad = await run('nextcloud_deck_update_card', { ...a, targetStackId: 2 }, { [get]: res(200, cur), [put]: res(200, { id: 10 }), [move]: res(500, 'x') });
-    assert.deepEqual(bad.out, { success: true, updated: { id: 10 }, moveError: 'Card update succeeded but move failed (500)', moveDetail: 'x' });
+    // One PUT, addressed to the TARGET stack, with the full card body (Deck takes the stack from the URL).
+    assert.deepEqual(mv.calls[1].body, { title: 'Old', description: 'd', duedate: '2026-01-01T00:00:00.000Z', type: 'plain', owner: 'bob', order: 1, stackId: 2 });
+    assert.equal(mv.calls.some((c) => /reorder/.test(JSON.stringify(c))), false);
+    const bad = await run('nextcloud_deck_update_card', { ...a, targetStackId: 2 }, { [get]: res(200, cur), [move]: res(500, 'x') });
+    assert.deepEqual(bad.out, { error: 'Card update failed (500)', detail: 'x' });
     assert.deepEqual((await run('nextcloud_deck_update_card', a, { [get]: res(401, '') })).out, { error: 'AUTH-ERR' });
     assert.deepEqual((await run('nextcloud_deck_update_card', a, { [get]: res(404, '') })).out, { error: 'Card not found: 10' });
     assert.deepEqual((await run('nextcloud_deck_update_card', a, { [get]: res(500, '') })).out, { error: 'Could not load card for update (500)' });
@@ -232,7 +234,7 @@ test('update_card reports a move that did not take effect', async () => {
     const base = `${API}/boards/3/stacks/1/cards/10`;
     const cur = { title: 'Old', owner: 'bob', order: 4 };
     const routes = {
-        [`GET ${base}`]: res(200, cur), [`PUT ${base}`]: res(200, { id: 10 }), [`PUT ${base}/reorder`]: res(200, {}),
+        [`GET ${base}`]: res(200, cur), [`PUT ${API}/boards/3/stacks/2/cards/10`]: res(200, { id: 10 }),
         [`GET ${API}/boards/3/stacks/2/cards/10`]: res(404, ''),
     };
     const r = await run('nextcloud_deck_update_card', { boardId: 3, stackId: 1, cardId: 10, targetStackId: 2, order: 0 }, routes);
@@ -244,7 +246,7 @@ test('update_card says so when the move cannot be verified, and keeps an unparsa
     const base = `${API}/boards/3/stacks/1/cards/10`;
     const cur = { title: 'T', owner: 'bob', order: 1, duedate: 'weird' };
     const routes = {
-        [`GET ${base}`]: res(200, cur), [`PUT ${base}`]: res(200, { id: 10 }), [`PUT ${base}/reorder`]: res(200, {}),
+        [`GET ${base}`]: res(200, cur), [`PUT ${API}/boards/3/stacks/2/cards/10`]: res(200, { id: 10 }),
         [`GET ${API}/boards/3/stacks/2/cards/10`]: res(500, ''),
     };
     const r = await run('nextcloud_deck_update_card', { boardId: 3, stackId: 1, cardId: 10, targetStackId: 2 }, routes);

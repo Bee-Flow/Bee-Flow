@@ -230,6 +230,9 @@ async function updateCard(args, { api, ncFetch, authError }) {
     if (!cardRes.ok) return { error: `Could not load card for update (${cardRes.status})` };
     const current = await readJsonSafe(cardRes);
 
+    const moving = Boolean(args.targetStackId) && String(args.targetStackId) !== String(args.stackId);
+    const target = Number(args.targetStackId);
+    const targetStack = Number.isNaN(target) ? args.targetStackId : target;
     const merged = {
         title: args.title !== undefined ? args.title : current.title,
         description: args.description !== undefined ? args.description : current.description,
@@ -237,9 +240,14 @@ async function updateCard(args, { api, ncFetch, authError }) {
         duedate: args.duedate !== undefined ? due.iso : keepDue(current.duedate),
         type: current.type || 'plain',
         owner: current.owner?.uid || current.owner,
-        order: args.order !== undefined ? args.order : current.order,
+        order: args.order !== undefined ? args.order : (moving ? 0 : current.order),
+        ...(moving ? { stackId: targetStack } : {}),
     };
-    const putRes = await deckJson(ncFetch, `${api}/boards/${args.boardId}/stacks/${args.stackId}/cards/${args.cardId}`, {
+    // Deck takes the card's stack from the URL of this PUT, not from the body, and its
+    // /reorder endpoint only changes the order inside the current stack. So a move is
+    // this same PUT addressed to the TARGET stack (the way archive_card has always moved it).
+    const putStack = moving ? args.targetStackId : args.stackId;
+    const putRes = await deckJson(ncFetch, `${api}/boards/${args.boardId}/stacks/${putStack}/cards/${args.cardId}`, {
         method: 'PUT',
         headers: REST_HEADERS,
         body: merged,
@@ -251,18 +259,7 @@ async function updateCard(args, { api, ncFetch, authError }) {
     }
     const updated = await readJsonSafe(putRes);
 
-    // Move to a different stack if requested.
-    if (args.targetStackId && String(args.targetStackId) !== String(args.stackId)) {
-        const target = Number(args.targetStackId);
-        const moveRes = await deckJson(ncFetch, `${api}/boards/${args.boardId}/stacks/${args.stackId}/cards/${args.cardId}/reorder`, {
-            method: 'PUT',
-            headers: REST_HEADERS,
-            body: { order: args.order !== undefined ? args.order : 0, stackId: Number.isNaN(target) ? args.targetStackId : target },
-        });
-        if (!moveRes.ok) {
-            const body = await readJsonSafe(moveRes);
-            return { success: true, updated, moveError: `Card update succeeded but move failed (${moveRes.status})`, moveDetail: body };
-        }
+    if (moving) {
         // Deck can answer 200 without moving the card: look where it is now.
         const movedRes = await ncFetch(`${api}/boards/${args.boardId}/stacks/${args.targetStackId}/cards/${args.cardId}`, { headers: REST_HEADERS });
         if (!movedRes.ok && movedRes.status !== 404) {
