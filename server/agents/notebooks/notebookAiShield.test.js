@@ -73,3 +73,26 @@ test('the shield off: no scan, texts unchanged apart from the block list', async
     assert.deepStrictEqual(out.units, ['Anna de Vries leads .', 'Dear {{name}}']);
     assert.strictEqual(out.addendum, '');
 });
+
+test('the scan gets the RESOLVED shield: a Community org with a saved tokenize is scanned as block', async () => {
+    const orgShield = require('../../core/privacy/orgShield');
+    const real = { ..._depsSnapshot(orgShield) };
+    const stored = { enabled: true, piiDetectionAction: 'tokenize', piiDetectionCategories: ['Email'] };
+    orgShield._deps.configStore = { getConfig: async () => stored };
+    orgShield._deps.getAIConfig = async () => ({});
+    orgShield._deps.license = () => ({ resolveTier: async () => 'community', tiers: { tierHasFeature: () => false } });
+    try {
+        const { deps } = world({ stored });
+        let seenShield = null;
+        deps.resolveShieldFor = orgShield.resolveShieldFor;
+        deps.stripInjectedText = async (t) => t;
+        deps.composeScan = async ({ units, orgShield: sh }) => { seenShield = sh; return { blocked: false, units }; };
+        await shieldNotebookPrompt(INPUT, deps);
+        assert.strictEqual(seenShield.piiDetectionAction, 'block');
+        assert.strictEqual(stored.piiDetectionAction, 'tokenize', 'the stored row is untouched');
+    } finally {
+        Object.assign(orgShield._deps, real);
+    }
+});
+
+function _depsSnapshot(m) { return { ...m._deps }; }

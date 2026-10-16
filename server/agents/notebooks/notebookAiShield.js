@@ -56,9 +56,11 @@ async function shieldNotebookPrompt({ orgId, userId, notebookId, sourceText, oth
         await stripInjectedText(sourceText || '', { shield: resolved, tag: 'NotebookAi', what: 'notebook sources' }),
         ...otherUnits.map((u) => (typeof u === 'string' ? u : '')),
     ];
-    if (storedShield?.enabled) {
+    if (storedShield?.enabled && resolved) {
         try {
-            const r = await composeScan({ units, orgShield: storedShield, conversationId: notebookId, scope: 'g' });
+            // The RESOLVED shield: the stored row would skip the licence rules
+            // (a saved tokenize without the feature) and the legacy mapping.
+            const r = await composeScan({ units, orgShield: resolved, conversationId: notebookId, scope: 'g' });
             if (r.blocked) {
                 log.warn(`[NotebookAi] Privacy Shield blocked the request (${r.reason || 'pii'}, ${r.mentions} mention(s))`);
                 return {

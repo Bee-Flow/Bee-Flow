@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat: the Privacy Shield side of attachment intake. Resolves the
  * shield for the turn, scans each extracted document (tokenise / ask / block /
@@ -14,8 +15,9 @@ const log = require('../../../telemetry/log');
  * agent-chat path (attachmentProcessor.js). Returns the user's org id (for the
  * audit rows) and the shield config.
  */
-async function resolveAttachmentShield(req) {
-    const { resolveUserOrgIds } = require('../../../auth');
+async function resolveAttachmentShield(req, deps = {}) {
+    const resolveUserOrgIds = deps.resolveUserOrgIds || require('../../../auth').resolveUserOrgIds;
+    const getAllConfig = deps.getAllConfig || (() => configStore.getAllConfig());
     const userOrgIds = await resolveUserOrgIds(req).catch(() => null);
     const userOrgId = (userOrgIds && userOrgIds.size > 0) ? Array.from(userOrgIds)[0] : null;
     const { resolveShieldFor } = require('../../../core/privacy/orgShield');
@@ -26,10 +28,13 @@ async function resolveAttachmentShield(req) {
     // to the model. Fall back to the sole org shield when exactly one exists.
     if (!shield?.enabled && req.session?.isAdmin) {
         try {
-            const allCfg = await configStore.getAllConfig() || {};
+            const allCfg = await getAllConfig() || {};
             const shieldKeys = Object.keys(allCfg).filter(k => k.startsWith('org_privacy_shield_'));
             if (shieldKeys.length === 1 && allCfg[shieldKeys[0]]?.enabled) {
-                shield = allCfg[shieldKeys[0]];
+                // Resolved (licence rules + legacy mapping), the raw row only
+                // when that is null (same as directChat/inputShield.js).
+                const { resolveOrgShield } = require('../../../core/privacy/orgShield');
+                shield = await resolveOrgShield(shieldKeys[0].replace(/^org_privacy_shield_/, '')) || allCfg[shieldKeys[0]];
                 log.info(`[DirectChat] Attachment scanner: super-admin fallback → sole org shield ${shieldKeys[0]}`);
             }
         } catch (_) { /* non-fatal */ }
@@ -80,6 +85,7 @@ function makeAttachmentScanner({ shield, config, convId, userId, send, summaries
     const provider = classifyProvider(config || {}, shield?.dlpAllowlistedHosts || []);
     return async (text, pages, filename) => {
         if (!shield || !text) return text;
+        /** @type {any} */
         let r = await scanAttachmentText({ text, pages, filename, orgShield: shield, conversationId: convId, allowAsk: true });
         if (r.action === 'ask') {
             // Pauses the turn until the person answers (one pause per
