@@ -86,6 +86,21 @@ test('api_key: renders the custom header from secretMeta.headerName', async () =
     assert.strictEqual(r.accessMode, 'delegated');
 });
 
+test('a run on the caller\'s own connections authorises the saved credential for the CALLER (id, org, groups), not the owner', async () => {
+    grantAccess(conn('cid-caller', 'bearer'), { token: 'tok-caller' });
+    const callerCtx = {
+        ...ctx,
+        callerOnly: { userId: 'caller-9', session: {}, orgId: 'orgA', userGroupIds: ['g-caller'], orgRole: 'member', homeOrgId: 'orgA', isAdmin: false },
+    };
+    await resolveHttpAuthHeaders({ connectionId: 'cid-caller' }, callerCtx);
+    assert.deepStrictEqual(storeState.lastAuthzArgs, {
+        connectionId: 'cid-caller', runningUserId: 'caller-9', runningUserOrgId: 'orgA', runningUserGroups: ['g-caller'],
+    });
+    await resolveHttpAuthHeaders({ connectionId: 'cid-caller' }, ctx);
+    assert.strictEqual(storeState.lastAuthzArgs.runningUserId, 'u1', 'an owner run still authorises as the owner');
+    assert.deepStrictEqual(storeState.lastAuthzArgs.runningUserGroups, ['g1']);
+});
+
 test('api_key: a malformed header name in meta is rejected without leaking the token', async () => {
     grantAccess(conn('cid-badheader', 'api_key', { headerName: 'X Bad Header' }), { token: 'key-raw-3' });
     await assert.rejects(

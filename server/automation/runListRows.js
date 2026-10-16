@@ -21,6 +21,7 @@
  */
 
 const { indexDefinition, finalRows } = require('./runOutcome');
+const { redactRunRowForViewer } = require('../core/automationModel/callerRunVisibility');
 
 const STEP_BARS_MAX = 60;
 /** Nodes that are not steps a person would count. */
@@ -117,8 +118,11 @@ function makeRunRowDecorator(deps = {}) {
      *                  current definition stands in for a missing snapshot
      *   withStarter    false on the org-wide log, whose rows carry no identity
      *   withApprovals  false where the caller cannot open approvals anyway
+     *   viewerId       who is reading: a run that used its starter's own
+     *                  connections shows no data (summary, error, payload) to
+     *                  anybody else. Absent = nobody, so it hides.
      */
-    async function decorate(runs, { automation = null, withStarter = true, withApprovals = true } = {}) {
+    async function decorate(runs, { automation = null, withStarter = true, withApprovals = true, viewerId = null } = {}) {
         const list = Array.isArray(runs) ? runs : [];
         if (!list.length) return list;
         const rootIds = list.map(r => r.id);
@@ -157,7 +161,7 @@ function makeRunRowDecorator(deps = {}) {
             if (withApprovals && WAITING.has(row.status)) {
                 out.approvalId = approvals.get(row.journeyRunId || row.id) || null;
             }
-            return out;
+            return redactRunRowForViewer(out, viewerId);
         });
     }
 

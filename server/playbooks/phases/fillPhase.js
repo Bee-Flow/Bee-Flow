@@ -54,6 +54,7 @@ async function startFillPhase({ playbook, automationId, tableArtifacts, onRunCre
             triggerKind: 'manual',
             triggerPayload: {},
             mode: 'live',
+            startedByUserId: playbook.userId,
             onRunCreated: (run) => {
                 runId = run && run.id ? run.id : null;
                 if (typeof onRunCreated === 'function') { try { onRunCreated(run); } catch { /* observer */ } }

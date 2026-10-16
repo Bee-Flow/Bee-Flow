@@ -62,6 +62,7 @@ const webpageDbStore = require('../stores/webpageDbStore');
 const webpageStore = require('../stores/webpageStore');
 const automationStore = require('../stores/automationStore');
 const { requirePreviewToken } = require('../auth/webpagePreviewToken');
+const { canReadRunData, redactStepsForViewer } = require('../core/automationModel/callerRunVisibility');
 const { loadAuthorContext } = require('../core/webpages/webpageBridgeAuth');
 const { executeTool } = require('../core/tools/toolDispatcher');
 const { findOwnerOfTool, loadTools } = require('../automation/toolRegistry');
@@ -214,6 +215,8 @@ router.post('/:id/automations/:autoId/run', requirePreviewToken, sideEffectBridg
             triggerKind: 'webpage',
             triggerPayload,
             mode: 'live',
+            // The logged-in visitor from the signed preview claims, if any.
+            startedByUserId: viewerUserId || null,
         });
         const steps = await automationStore.getRunSteps(run.id).catch(() => []);
         return res.json({ runId: run.id, status: run.status, output: run.output ?? null, error: run.error || null, steps });
@@ -223,6 +226,7 @@ router.post('/:id/automations/:autoId/run', requirePreviewToken, sideEffectBridg
         triggerKind: 'webpage',
         triggerPayload,
         mode: 'live',
+        startedByUserId: viewerUserId || null,
     }).catch(err => ({ id: null, status: 'error', error: err.message }));
     res.json({ runId: run.id || null, status: run.status || 'pending', error: run.error || null });
 });
@@ -234,7 +238,9 @@ router.get('/:id/automations/runs/:runId', requirePreviewToken, async (req, res)
     const run = await automationStore.getRun(req.params.runId);
     if (!run) return res.status(404).json({ error: 'Run not found' });
     if (run.userId !== ctx.authorUserId) return res.status(403).json({ error: 'Forbidden' });
-    res.json({ runId: run.id, status: run.status, error: run.error || null, output: run.output ?? null });
+    // A run on its starter's own connections shows its values to the starter only.
+    const mine = canReadRunData(run, req.previewClaims.viewerUserId);
+    res.json({ runId: run.id, status: run.status, error: mine ? (run.error || null) : null, output: mine ? (run.output ?? null) : null });
 });
 
 router.get('/:id/automations/runs/:runId/steps', requirePreviewToken, async (req, res) => {
@@ -245,7 +251,7 @@ router.get('/:id/automations/runs/:runId/steps', requirePreviewToken, async (req
     if (!run) return res.status(404).json({ error: 'Run not found' });
     if (run.userId !== ctx.authorUserId) return res.status(403).json({ error: 'Forbidden' });
     const steps = await automationStore.getRunSteps(req.params.runId);
-    res.json({ steps });
+    res.json({ steps: redactStepsForViewer(run, steps, req.previewClaims.viewerUserId) });
 });
 
 router.post('/:id/automations/runs/:runId/cancel', requirePreviewToken, async (req, res) => {

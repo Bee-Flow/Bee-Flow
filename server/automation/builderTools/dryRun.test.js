@@ -48,6 +48,7 @@ test('a staged dry run executes the staged definition and saves nothing', async 
     assert.equal(executed.length, 1);
     assert.equal(executed[0].opts.mode, 'dry_run', 'side effects are simulated by the runner');
     assert.equal(executed[0].opts.triggerKind, 'dry_run');
+    assert.equal(executed[0].opts.startedByUserId, 'u1', 'the person using the builder is the starter');
     assert.equal(executed[0].automation.id, 'a1');
     assert.equal(executed[0].automation.definition.steps[0].label, 'Staged', 'the STAGED steps run, not the saved ones');
     assert.equal(row.definition.steps[0].label, 'Saved', 'the saved row is untouched');

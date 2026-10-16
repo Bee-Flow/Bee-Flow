@@ -9,99 +9,16 @@ const holidays = require('../../automation/holidays');
 require('../../automation/triggerBus');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validate } = require('../../core/http/validate');
-const { z, worded, orEmpty, typeError } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
 const { isManagedAutomation } = require('../../core/automationRunner/stageVars');
 const { automationForRun } = require('../../core/automationRunner/definitionForRun');
+const { resolveRunPolicy } = require('../../core/automationRunner/runPolicy');
+const { describeNoticeFor } = require('../../core/automationRunner/callerNotice');
 // Handoff 5 sharing: who may start, test and read the runs of an automation.
-const { makeAutomationAccess } = require('../../automation/access');
+const { makeAutomationAccess, roleSatisfies } = require('../../automation/access');
 const automationAccess = makeAutomationAccess({ store: automationStore });
 
-// ── What a caller may send ──────────────────────────────────────────
-//
-// Every schema is `.strict()`, and on the LIST routes that is the point: a
-// misspelled filter used to be dropped, and a list that quietly drops a
-// narrowing parameter answers a wider question than the one it was asked —
-// the same failure the trigger-source check in crud.js exists to prevent.
-
-/** A body that also accepts no body at all (schemaParts' orEmpty), closed with zod's own wording. */
-const bodyOf = (shape) => orEmpty(z.object(shape).strict());
-
-const one = (name, what) => worded(`${name} is ${what}.`).trim().min(1, `${name} is ${what}.`).optional();
-/** Comma-separated on the wire; parseRunFilters splits it. */
-const list = (name) => worded(`${name} is a comma-separated list.`).trim().optional();
-const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
-    .int(`${name} must be a whole number.`).optional();
-
-const STEP_TEXT = 'triggerStepId is the id of a trigger on this automation.';
-const RUN_SHAPE = {
-    // What the run ENTERS with — a form submission, an inbound message. The
-    // runner reads it; this route only carries it.
-    triggerPayload: z.unknown().optional(),
-    triggerStepId: worded(STEP_TEXT).trim().min(1, STEP_TEXT).nullish(),
-};
-const RunBody = bodyOf({
-    ...RUN_SHAPE,
-    // Handoff 5: the builder's Test button. A test run executes the WORKING
-    // copy (unpublished changes included) and is marked is_test; without it a
-    // manual run executes what is live.
-    test: z.boolean({ error: typeError({ invalid: 'test is true or false.' }) }).optional(),
-});
-
-const PARTIAL_TEXT = 'mode is "only", "from" or "upTo".';
-const PartialRunBody = bodyOf({
-    ...RUN_SHAPE,
-    // An enum, not a fall-back: `upto` for `upTo` used to run ONLY that step
-    // instead of everything leading to it, and answer 200 either way.
-    mode: z.enum(['only', 'from', 'upTo'], { error: () => PARTIAL_TEXT }).default('only'),
-});
-
-const SEARCH_TEXT = 'q is a search term of at most 100 characters.';
-const TESTS_TEXT = 'tests is "include", "exclude" or "only".';
-const RunsQuery = z.object({
-    status: list('status'),
-    triggerKind: list('triggerKind'),
-    trigger: list('trigger'),
-    mode: list('mode'),
-    automationId: one('automationId', 'the id of an automation'),
-    kind: one('kind', 'an automation kind'),
-    since: one('since', 'an ISO timestamp'),
-    until: one('until', 'an ISO timestamp'),
-    cursor: one('cursor', 'the value a previous page returned as nextCursor'),
-    limit: whole('limit'),
-    // Handoff 5 Runs tab. `q`: run link, file name, person, words of the
-    // outcome (runListing.buildRunSearch). `startedBy`: a user id, or "me".
-    // `tests`: test runs in (default), out, or only.
-    q: worded(SEARCH_TEXT).trim().max(100, SEARCH_TEXT).optional(),
-    startedBy: one('startedBy', 'a user id or "me"'),
-    tests: z.enum(['include', 'exclude', 'only'], { error: () => TESTS_TEXT }).optional(),
-}).strict();
-
-const FacetsQuery = z.object({
-    range: whole('range'),
-    automationId: one('automationId', 'the id of an automation'),
-    kind: one('kind', 'an automation kind'),
-    mode: list('mode'),
-}).strict();
-
-const StreamQuery = z.object({
-    automationId: one('automationId', 'the id of an automation'),
-}).strict();
-
-const CRON_TEXT = 'A cron expression is required — the schedule to preview.';
-const SchedulePreviewBody = z.object({
-    cron: worded(CRON_TEXT).trim().min(1, CRON_TEXT),
-    tz: worded('tz must be a time zone.').trim().min(1, 'tz must be a time zone.').prefault('Europe/Amsterdam'),
-    // Clamped rather than refused: asking for more previews than the builder
-    // draws is not a mistake worth a 400.
-    count: z.coerce.number().catch(3)
-        .transform((n) => Math.min(Math.max(Math.trunc(n) || 3, 1), 5))
-        .prefault(3),
-    // schedule.skipHolidays (handoff 5): leave Dutch public holidays out, as
-    // the scheduler does (automation/holidays.js).
-    skipHolidays: z.boolean({ error: typeError({ invalid: 'skipHolidays is true or false.' }) }).optional(),
-}).strict();
-
+const { SeenBody, RunBody, PartialRunBody, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody } = require('./runSchemas');
 
 // Per-user throttle for the expensive run-trigger endpoints (each spins up a
 // full automation execution / LLM + tool calls). Keyed by session user id via
@@ -146,15 +63,27 @@ router.post('/:id/run', runTriggerLimiter, validate({ body: RunBody }), async (r
     const isTest = req.body.test === true;
     // The copy this run executes (handoff 5), resolved up front so the
     // trigger lookup and payload synthesis below read the same definition.
-    const a = require('../../core/automationRunner/definitionForRun').automationForRun(
-        await automationStore.getAutomation(req.params.id), { mode: 'live', triggerKind: 'manual', isTest });
+    const stored = await automationStore.getAutomation(req.params.id);
+    const a = require('../../core/automationRunner/definitionForRun').automationForRun(stored, { mode: 'live', triggerKind: 'manual', isTest });
     if (!a) return res.status(404).json({ error: 'Not found' });
     // `run` may start the LIVE version; a Test runs the working copy
     // (unpublished changes), which is an editor's tool and needs `edit`. The
     // run executes AS THE OWNER and records who pressed the button in
     // startedByUserId.
-    if (!await automationAccess.guard(req, res, a, isTest ? 'edit' : 'run')) return;
+    const access = await automationAccess.guard(req, res, a, isTest ? 'edit' : 'run');
+    if (!access) return;
     const ownerId = a.userId || userId;
+    // The first time somebody other than the owner runs an automation that uses
+    // THEIR OWN connections, they are told which apps it will act in and must
+    // acknowledge that once (POST /:id/caller-notice/seen).
+    const notice = await describeNoticeFor({ automation: stored, userId, store: automationStore, canEdit: roleSatisfies(access.role, 'edit') });
+    if (notice.applies && !notice.seen) {
+        throw new HttpError(409, 'caller_notice_required', 'This automation runs with your own connections. Read the notice and confirm before the first run.', { providers: notice.providers, destinations: notice.destinations });
+    }
+    // The account a sample trigger payload is read from: the owner's, except on
+    // an automation that runs on its starter's own connections, where somebody
+    // else pressing Run must never read the owner's mailbox or drive.
+    const sampleUserId = (resolveRunPolicy(a.definition).connections === 'caller' && ownerId !== userId) ? userId : ownerId;
     const runner = require('../../core/automationRunner');
 
     // Manual runs are user-initiated and should execute synchronously
@@ -188,7 +117,7 @@ router.post('/:id/run', runTriggerLimiter, validate({ body: RunBody }), async (r
         const isNcTrig = trig?.kind === 'app_event' && trig?.appEvent?.provider === 'nextcloud';
         if (isGmailTrig && !triggerPayload) {
             const triggerBus = require('../../automation/triggerBus');
-            const latest = await triggerBus.fetchLatestGmailMatch(ownerId, trig.appEvent.filter || null);
+            const latest = await triggerBus.fetchLatestGmailMatch(sampleUserId, trig.appEvent.filter || null);
             if (latest) {
                 triggerPayload = { provider: 'gmail', event: 'mail.new', ...latest };
             } else {
@@ -206,7 +135,7 @@ router.post('/:id/run', runTriggerLimiter, validate({ body: RunBody }), async (r
         if (isNcTrig && !triggerPayload) {
             const triggerBus = require('../../automation/triggerBus');
             const ev = String(trig.appEvent.event || '').replace(/^nextcloud\./, '');
-            const latest = await triggerBus.fetchLatestNextcloudMatch(ownerId, ev, trig.appEvent.filter || null);
+            const latest = await triggerBus.fetchLatestNextcloudMatch(sampleUserId, ev, trig.appEvent.filter || null);
             if (latest) {
                 triggerPayload = { provider: 'nextcloud', event: trig.appEvent.event, ...latest };
             } else {
@@ -257,6 +186,33 @@ router.post('/:id/run', runTriggerLimiter, validate({ body: RunBody }), async (r
 // POST /:id/diagnose-trigger lives in diagnoseTrigger.js, mounted here so it
 // keeps its place in the route table (between /:id/run and /:id/dry-run).
 router.use(require('./diagnoseTrigger'));
+
+// The one-time "this runs with your own connections" notice (callerNotice.js).
+router.get('/:id/caller-notice', async (req, res) => {
+    const a = await automationStore.getAutomation(req.params.id);
+    if (!a) return res.status(404).json({ error: 'Not found' });
+    const access = await automationAccess.guard(req, res, a, 'run');
+    if (!access) return;
+    res.json(await describeNoticeFor({ automation: a, userId: req.session.user.id, store: automationStore, canEdit: roleSatisfies(access.role, 'edit') }));
+});
+
+// Body { items }: the items the person was SHOWN. Only what is still part of the notice is recorded, and a
+// notice that changed since it was shown is refused (409), so nothing is ever acknowledged unseen.
+router.post('/:id/caller-notice/seen', validate({ body: SeenBody }), async (req, res) => {
+    const a = await automationStore.getAutomation(req.params.id);
+    if (!a) return res.status(404).json({ error: 'Not found' });
+    const access = await automationAccess.guard(req, res, a, 'run');
+    if (!access) return;
+    const userId = req.session.user.id;
+    const notice = await describeNoticeFor({ automation: a, userId, store: automationStore, canEdit: roleSatisfies(access.role, 'edit') });
+    const shown = new Set(req.body.items);
+    const recorded = notice.items.filter((i) => shown.has(i));
+    if (recorded.length !== notice.items.length) {
+        throw new HttpError(409, 'caller_notice_changed', 'This automation changed since you read the notice. Read it again.', { items: notice.items });
+    }
+    await automationStore.markCallerNoticeSeen(userId, a.id, recorded);
+    res.json({ ok: true });
+});
 
 router.post('/:id/dry-run', runTriggerLimiter, validate({ body: RunBody }), async (req, res) => {
     const userId = req.session.user.id;
@@ -413,6 +369,7 @@ router.get('/:id/runs', validate({ query: RunsQuery }), async (req, res) => {
     // cursor/filter machinery as the global list narrows it further.
     const filters = {
         ...parseRunFilters(req), cursor: req.query.cursor, limit: req.query.limit,
+        viewerUserId: userId,
         ...(access.role === 'run' ? { startedByUserId: userId } : {}),
     };
     const { runs, nextCursor } = await automationStore.listRunsForAutomation(a.id, filters);
@@ -430,7 +387,7 @@ router.get('/:id/runs', validate({ query: RunsQuery }), async (req, res) => {
         if (counted) facets = segmentCounts(counted.status);
     }
     res.json({
-        runs: await runRows.decorate(runs, { automation: a }),
+        runs: await runRows.decorate(runs, { automation: a, viewerId: userId }),
         nextCursor,
         myRole: access.role,
         onlyMine: access.role === 'run',
@@ -460,7 +417,7 @@ router.get('/_runs/recent', validate({ query: RunsQuery }), async (req, res) => 
     // callers read `runs`); `nextCursor` is additive.
     const filters = { ...parseRunFilters(req), cursor: req.query.cursor, limit: req.query.limit || 50 };
     const { runs, nextCursor } = await automationStore.listRunsForUser(userId, filters);
-    res.json({ runs: await runRows.decorate(runs), nextCursor });
+    res.json({ runs: await runRows.decorate(runs, { viewerId: userId }), nextCursor });
 });
 
 /**
@@ -560,11 +517,11 @@ router.get('/_runs/org', validate({ query: RunsQuery }), async (req, res) => {
     if (req.query.startedBy) {
         throw new HttpError(400, 'filter_not_available', 'startedBy is not available on the organisation run log.');
     }
-    const filters = { ...parseRunFilters(req), cursor: req.query.cursor, limit: req.query.limit || 50 };
+    const filters = { ...parseRunFilters(req), cursor: req.query.cursor, limit: req.query.limit || 50, viewerUserId: viewer.userId };
     const { runs, nextCursor } = await automationStore.listRunsForOrg(viewer.orgId, filters, {
         viewerUserId: viewer.userId,
     });
-    res.json({ runs: await runRows.decorate(runs, { withStarter: false, withApprovals: false }), nextCursor, scope: 'org' });
+    res.json({ runs: await runRows.decorate(runs, { withStarter: false, withApprovals: false, viewerId: viewer.userId }), nextCursor, scope: 'org' });
 });
 
 /**

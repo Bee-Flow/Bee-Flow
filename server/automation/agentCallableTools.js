@@ -29,6 +29,8 @@
 const automationStore = require('../stores/automationStore');
 // Handoff 5: an agent sees, and runs, the LIVE definition of an automation.
 const { automationForRun } = require('../core/automationRunner/definitionForRun');
+const { resolveRunPolicy } = require('../core/automationRunner/runPolicy');
+const { makeAutomationAccess } = require('./access');
 const log = require('../telemetry/log');
 // The tool name is declared by the builder too, so the rule lives in one place.
 const { sanitizeToolName, MAX_TOOL_DESCRIPTION_LEN } = require('./agentCallContract');
@@ -156,6 +158,9 @@ function runnerTraceOptions(trace, ctx) {
         // an automation run (callerRunId) the owner is already the run's user and
         // nobody asked, so nothing is added.
         ...(asker && !trace.callerRunId ? { startedByUserId: asker } : {}),
+        // Inside a run on its starter's own connections, nothing "asked": the
+        // starter is the person the nested automation acts for.
+        ...(trace.callerRunId && ctx && ctx.connectionsCallerUserId ? { startedByUserId: ctx.connectionsCallerUserId } : {}),
     };
 }
 
@@ -227,6 +232,21 @@ async function dispatchAgentCallableTool(toolMeta, args, ctx, deps = {}) {
         throw grant.reason === 'needs_confirmation'
             ? refuse(grant.reason, 'This automation needs the user\'s approval first, and this chat cannot ask for it.', 'confirmation_required')
             : refuse(grant.reason, 'This agent is not allowed to call this automation.');
+    }
+
+    // An automation that runs on its caller's own connections acts for the
+    // person who asked, so that person must exist and must be allowed to run
+    // THIS automation (owner, org share or group share): the binding only says
+    // the agent may call it, never that this asker may.
+    if (resolveRunPolicy(automation.definition).connections === 'caller') {
+        const asker = runnerTraceOptions(trace, ctx).startedByUserId || null;
+        if (!asker) {
+            throw refuse('caller_missing', 'This automation runs with the connections of the person who asks, and nobody is asking.', 'caller_required');
+        }
+        const access = deps.automationAccess || makeAutomationAccess({ store });
+        if (!await access.canAccessAutomation(automation, asker, 'run')) {
+            throw refuse('caller_no_access', 'You do not have access to run this automation.', 'automation_forbidden');
+        }
     }
 
     // Lazy-require the runner so this module stays loadable from any

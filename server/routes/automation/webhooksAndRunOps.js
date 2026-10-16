@@ -7,12 +7,11 @@ const automationStore = require('../../stores/automationStore');
 const { webhookUrlForSlug, formUrlForToken } = require('../../automation/publicUrl');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validate } = require('../../core/http/validate');
-const { z, typeError } = require('../../utils/zod');
-const { worded } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
 // Handoff 5 sharing: what a role may do with an automation and its runs.
 const { makeAutomationAccess, mayReadRun, roleSatisfies } = require('../../automation/access');
 const { isTestRun } = require('../../core/automationRunner/definitionForRun');
+const { assertCanReadRunData, redactRunForViewer, redactStepsForViewer, redactChainStepsForViewer } = require('../../core/automationModel/callerRunVisibility');
 const automationAccess = makeAutomationAccess({ store: automationStore });
 
 // The caller's access to the automation behind a RUN, or null after a 403
@@ -25,77 +24,9 @@ const runAccess = (req, res, run, need) => automationAccess.runGuard(req, res, r
 const RUN_TRIGGER_RPM = parseInt(process.env.AUTOMATION_RUN_TRIGGER_RPM, 10) || 30;
 const runTriggerLimiter = perUserRateLimit({ windowMs: 60_000, max: RUN_TRIGGER_RPM });
 
-// ── What a caller may send ──────────────────────────────────────────
-//
-// Every schema is `.strict()`: a key this router does not read is a client
-// bug, and answering 200 to it means the person watches a setting they typed
-// fail to stick with nothing on screen to explain it.
-
-/**
- * A body that also accepts NO body at all. Express 5 leaves `req.body`
- * undefined when a POST carries none, and several of these are sent exactly
- * that way — an approve with no body has always meant "approve".
- */
-const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
-
-const STEP_ID_TEXT = 'triggerStepId is the id of a trigger on this automation.';
-/** Omitted → the primary trigger. Which trigger it names is checked against the graph. */
-const TriggerStepBody = bodyOf({
-    triggerStepId: worded(STEP_ID_TEXT).trim().min(1, STEP_ID_TEXT).nullish(),
-});
-
-const DECISION_TEXT = 'decision is "approve" or "reject".';
-/**
- * Absent, blank or null all mean approve: the builder's bar has one button and
- * it approves, and every deployed caller sends no body at all. The default may
- * never be WIDER than an explicit approval — it IS one.
- */
-const Decision = z.preprocess((v) => {
-    // Case folds, whitespace does NOT: " approve " is a caller that built the
-    // value out of something, and on an approval gate an unreadable decision
-    // is refused rather than guessed at.
-    const said = typeof v === 'string' ? v.toLowerCase() : v;
-    return said === undefined || said === null || said === '' ? 'approve' : said;
-}, z.enum(['approve', 'reject'], { error: () => DECISION_TEXT }));
-const Reason = worded('reason must be text.').trim().max(2000, 'A reason is at most 2000 characters.').optional();
-
-const ApproveStepBody = bodyOf({
-    decision: Decision,
-    reason: Reason,
-    // The answers belong to the form the approval asked for, and the form
-    // contract coerces them field by field.
-    answers: z.unknown().optional(),
-});
-
-const ApproveRunBody = bodyOf({ decision: Decision, reason: Reason });
-const CancelRunBody = bodyOf({ reason: Reason });
-
-const SOURCE_TEXT = 'source is the id of a pick source.';
-const FormPickBody = bodyOf({
-    source: worded(SOURCE_TEXT).trim().min(1, SOURCE_TEXT),
-    // clampQuery and clampLimit in automation/formPickRecord are the one
-    // place these two are narrowed; narrowing them again here would be a
-    // second answer to the same question.
-    query: z.unknown().optional(),
-    limit: z.unknown().optional(),
-});
-
-const AgentInvokeBody = bodyOf({
-    // Whatever this automation's agent_call trigger declares it takes.
-    args: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'args is an object of the automation\'s own inputs.' }) }).default({}),
-});
-
-const ATTEMPTS_TEXT = 'attempts is the attempt number of the step row, a whole number from 1.';
-/** Which attempt's row the full output belongs to; omitted → the first. */
-const FullOutputQuery = z.object({
-    attempts: z.coerce.number({ error: typeError({ invalid: ATTEMPTS_TEXT }) })
-        .int(ATTEMPTS_TEXT).min(1, ATTEMPTS_TEXT).default(1),
-}).strict();
-
-const RunFormBody = bodyOf({
-    stepId: worded('stepId is the id of the form page being answered.').trim().min(1, 'stepId is the id of the form page being answered.').optional(),
-    values: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'values maps a field id to its answer.' }) }).default({}),
-});
+const {
+    TriggerStepBody, ApproveStepBody, ApproveRunBody, CancelRunBody, FormPickBody, AgentInvokeBody, FullOutputQuery, RunFormBody,
+} = require('./runOpsSchemas');
 
 
 router.post('/:id/webhook', validate({ body: TriggerStepBody }), async (req, res) => {
@@ -255,7 +186,7 @@ router.get('/runs/:id', async (req, res) => {
         const pending = await automationStore.getPendingApprovalIdsForRuns([run.journeyRunId || run.id]).catch(() => null);
         run.approvalId = pending?.get(run.journeyRunId || run.id) || null;
     }
-    res.json({ run });
+    res.json({ run: redactRunForViewer(run, req.session.user.id) });
 });
 
 router.get('/runs/:id/steps', async (req, res) => {
@@ -268,6 +199,7 @@ router.get('/runs/:id/steps', async (req, res) => {
     // where the earlier pages ran. The history lists a journey as one row;
     // opening it has to show one run's worth of steps.
     const steps = await automationStore.getRunStepsForChain(run.id);
+    const legs = await automationStore.getRunsInChain(run.id).catch(() => []);   // unknown legs are hidden (callerRunVisibility)
     // Return the flow snapshot AS IT WAS at run time so run history renders
     // the steps that actually existed then, not the current definition.
     // Falls back to the current definition for legacy runs whose version
@@ -277,7 +209,7 @@ router.get('/runs/:id/steps', async (req, res) => {
         const a = await automationStore.getAutomation(run.automationId);
         definition = a?.definition || null;
     }
-    res.json({ steps, definition, version: run.version });
+    res.json({ steps: redactChainStepsForViewer(run, legs, steps, req.session.user.id), definition, version: run.version });
 });
 
 /**
@@ -293,6 +225,7 @@ router.get('/runs/:id/steps/:stepId/full-output', validate({ query: FullOutputQu
     const run = await automationStore.getRun(req.params.id);
     if (!run) return res.status(404).json({ error: 'Not found' });
     if (!await runAccess(req, res, run, 'read')) return;
+    assertCanReadRunData(run, req.session.user.id);
     const output = await automationStore.getRunFullOutput(run.id, req.params.stepId, req.query.attempts);
     if (output == null) return res.status(404).json({ error: 'No full copy of this output was kept' });
     res.json({ output });
@@ -325,6 +258,8 @@ router.post('/:id/runs/:runId/retry', runTriggerLimiter, async (req, res) => {
     if (original.userId !== userId && !mayReadRun(original, access, userId)) {
         return res.status(403).json({ error: 'Forbidden', code: 'automation_forbidden', need: 'view' });
     }
+    // A retry replays the original's trigger payload and recorded steps.
+    assertCanReadRunData(original, userId, 'run it again');
     // Running a TEST run again tests the working copy: that needs `edit`.
     if (isTestRun(original) && !roleSatisfies(access.role, 'edit')) {
         return res.status(403).json({ error: 'Forbidden', code: 'automation_forbidden', need: 'edit' });
@@ -500,6 +435,7 @@ router.get('/runs/:runId/form', async (req, res) => {
     const run = await resolveActionableRun(req.params.runId);
     if (!run) return res.status(404).json({ error: 'Not found' });
     if (!await runAccess(req, res, run, 'read')) return;
+    assertCanReadRunData(run, req.session.user.id, 'see or answer its form');
     const pending = await pendingFormPage(run);
     return res.json({
         runId: run.id,
@@ -524,6 +460,7 @@ router.post('/runs/:runId/form', runTriggerLimiter, validate({ body: RunFormBody
     const run = await resolveActionableRun(req.params.runId);
     if (!run) return res.status(404).json({ error: 'Not found' });
     if (!await runAccess(req, res, run, 'act')) return;
+    assertCanReadRunData(run, userId, 'see or answer its form');
     if (run.status !== 'awaiting_form') {
         return res.status(409).json({ error: `Run is in ${run.status} state, not awaiting_form` });
     }
@@ -556,7 +493,7 @@ router.post('/runs/:runId/form', runTriggerLimiter, validate({ body: RunFormBody
     const child = await runner.resumeFromStep(run.id, pending.stepId, { decision: { ...values }, userId });
     if (child?.id) await finaliseContinuedRun(run.id, child);
     const steps = child?.id ? await automationStore.getRunSteps(child.id).catch(() => []) : [];
-    return res.json({ accepted: true, run: child, steps });
+    return res.json({ accepted: true, run: redactRunForViewer(child, userId), steps: redactStepsForViewer(child, steps, userId) });
 });
 
 /**
@@ -637,11 +574,11 @@ router.post('/runs/:runId/cancel', validate({ body: CancelRunBody }), async (req
         });
         if (code !== 200) return res.status(code).json(body);
         const fresh = await automationStore.getRun(original.id).catch(() => null);
-        return res.status(202).json({ accepted: true, run: fresh || original });
+        return res.status(202).json({ accepted: true, run: redactRunForViewer(fresh || original, userId) });
     }
     const runner = require('../../core/automationRunner');
     const updated = await runner.requestCancel(original.id);
-    return res.status(202).json({ accepted: true, run: updated || original });
+    return res.status(202).json({ accepted: true, run: redactRunForViewer(updated || original, userId) });
 });
 
 /**
@@ -705,7 +642,7 @@ router.post('/runs/:id/approve', validate({ body: ApproveRunBody }), async (req,
             finishedAt: new Date().toISOString(),
         });
         const fresh = await automationStore.getRun(run.id).catch(() => null);
-        return res.json({ accepted: true, decision: 'reject', run: fresh || run });
+        return res.json({ accepted: true, decision: 'reject', run: redactRunForViewer(fresh || run, userId) });
     }
 
     // Approve — unchanged behaviour. This clearing of the gate must stay

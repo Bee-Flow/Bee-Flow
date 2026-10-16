@@ -301,7 +301,7 @@ router.post('/:id/test', validate({ body: TestBody }), async (req, res) => {
     };
     const runner = require('../core/automationRunner');
     const run = await runner.executeAutomation(synthetic, {
-        triggerKind: 'dry_run', triggerPayload: req.body.inputs || {}, mode: 'dry_run',
+        triggerKind: 'dry_run', triggerPayload: req.body.inputs || {}, mode: 'dry_run', startedByUserId: req.session.user.id,
     });
     const steps = await automationStore.getRunSteps(run.id);
     res.json({ run, steps });

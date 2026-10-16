@@ -105,6 +105,9 @@ async function notifyRunEnd(deps, end) {
     const { notifyRunEvent } = deps;
     const { ApprovalRequiredError } = deps.engine;
     const { automation, run, firstRunNeedsConfirm, runStatus, runErrorObj, summary, userSafeError, triggerKind, effectiveMode, testRun } = end;
+    // The owner is told that a run by somebody else ended, never what it held:
+    // a run on its starter's own connections keeps its data to the starter.
+    const hidden = run?.connectionsMode === 'caller';
     try {
         if (firstRunNeedsConfirm) {
             await notifyRunEvent(automation, 'onApproval', {
@@ -118,13 +121,13 @@ async function notifyRunEnd(deps, end) {
             // A test run is watched by whoever started it: no notification.
             await notifyRunEvent(automation, 'onSuccess', {
                 title: `🤖 ${automation.title}`,
-                message: summary,
+                message: hidden ? '' : summary,
                 runId: run.id,
             });
         } else if (runStatus === 'error' && !testRun) {
             await notifyRunEvent(automation, 'onError', {
                 title: `⚠️ Automation failed: ${automation.title}`,
-                message: userSafeError || 'Unknown error',
+                message: hidden ? 'A run started by someone else failed. Only they can see the details.' : (userSafeError || 'Unknown error'),
                 runId: run.id,
             });
         } else if (runStatus === 'awaiting_approval' && runErrorObj instanceof ApprovalRequiredError) {

@@ -41,10 +41,10 @@ function likeTerm(term) {
  *
  * @param {string} q
  * @param {number} startIdx  the first $n this clause may use
- * @param {{ payload?: boolean }} [opts]
+ * @param {{ payload?: boolean, viewerUserId?: string|null }} [opts]
  * @returns {{ clause: string, params: any[] } | null}  null for an empty term
  */
-function buildRunSearch(q, startIdx, { payload = true } = {}) {
+function buildRunSearch(q, startIdx, { payload = true, viewerUserId = null } = {}) {
     const term = String(q ?? '').replace(/\s+/g, ' ').trim().slice(0, SEARCH_MAX);
     if (!term) return null;
     const p = `$${startIdx}`;
@@ -52,20 +52,25 @@ function buildRunSearch(q, startIdx, { payload = true } = {}) {
     if (id) {
         return { clause: `(r.id = ${p} OR r.root_run_id = ${p} OR j.id = ${p})`, params: [id[0].toLowerCase()] };
     }
+    // A run on the starter's own connections (connections_mode 'caller') is
+    // searchable by its data only by the starter: otherwise the search would
+    // read back, one guess at a time, what the run views hide.
+    const v = `$${startIdx + 1}`;
+    const visible = `(r.connections_mode IS NULL OR r.started_by_user_id = ${v}::text)`;
     const parts = [
-        `COALESCE(j.summary, r.summary) ILIKE ${p}`,
-        `(COALESCE(j.outcome_json, r.outcome_json) ->> 'text') ILIKE ${p}`,
+        `(${visible} AND COALESCE(j.summary, r.summary) ILIKE ${p})`,
+        `(${visible} AND (COALESCE(j.outcome_json, r.outcome_json) ->> 'text') ILIKE ${p})`,
         `EXISTS (SELECT 1 FROM users su
                   WHERE su.id IN (r.started_by_user_id, r.submitted_by_user_id)
                     AND (su."displayName" ILIKE ${p} OR su.username ILIKE ${p}))`,
     ];
     if (payload) {
-        parts.push(`(r.trigger_payload IS NOT NULL
+        parts.push(`(${visible} AND r.trigger_payload IS NOT NULL
                      AND octet_length(r.trigger_payload::text) <= ${SEARCH_PAYLOAD_MAX_BYTES}
                      AND EXISTS (SELECT 1 FROM jsonb_path_query(r.trigger_payload::jsonb, 'lax $.**') pv
                                   WHERE jsonb_typeof(pv) = 'string' AND (pv #>> '{}') ILIKE ${p}))`);
     }
-    return { clause: `(${parts.join(' OR ')})`, params: [likeTerm(term)] };
+    return { clause: `(${parts.join(' OR ')})`, params: [likeTerm(term), viewerUserId || null] };
 }
 
 /**

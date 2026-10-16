@@ -78,7 +78,7 @@ async function applyRequestDryRun(draftWrap, args, deps) {
         ? (Array.isArray(draft.triggers) ? draft.triggers : []).find(t => t && t.id === rootStepId)
         : draft.trigger;
     const prepared = prepareDryRunPayload(rootTrigger, args?.triggerPayload);
-    const run = await d.executeAutomation(automation, { triggerKind: 'dry_run', triggerPayload: prepared.payload || null, mode: 'dry_run', rootStepId, onRunCreated });
+    const run = await d.executeAutomation(automation, { triggerKind: 'dry_run', triggerPayload: prepared.payload || null, mode: 'dry_run', rootStepId, onRunCreated, startedByUserId: draftWrap.userId || null });
     const steps = await d.getRunSteps(run.id);
     const annotated = [];
     for (const s of steps) annotated.push({ ...s, _hint: await d.annotate(s, draftWrap) });

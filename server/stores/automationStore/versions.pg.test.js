@@ -252,3 +252,34 @@ test('organisation templates stay inside their organisation; org-less ones with 
     assert.strictEqual(await templates.getTemplateFor(t.id, { userId: 'u9', orgId: 'org2' }), null);
     assert.strictEqual(await templates.getTemplateFor(t.id, { userId: 'u1' }), null, 'no org scope, not the org-less saver list');
 });
+
+// ── whose connections a run uses: only an owner-role route may move it ─────────
+
+const { rollbackEvolution } = require('../../automation/evolution');
+const withMode = (mode) => ({ ...DEF, ...(mode ? { runPolicy: { connections: mode } } : {}) });
+const modeOfRow = async (id) => (await row(id)).definition_json.runPolicy?.connections ?? 'owner';
+
+test('a writer acting AS the owner keeps the stored connections mode; the owner-role flag moves it', async () => {
+    await seed('cm1', { def: withMode('caller'), live: 1 });
+    await updateAutomationWith(db, 'cm1', { definition: { ...clone(withMode(null)), steps: [...DEF.steps, { id: 'b', type: 'code', code: '2', label: 'More' }] } }, 'u1', { goLive: true });
+    assert.strictEqual(await modeOfRow('cm1'), 'caller', 'u1 owns cm1, and still may not move it by saving');
+    await updateAutomationWith(db, 'cm1', { definition: withMode(null) }, 'u1', { allowConnectionsChange: true });
+    assert.strictEqual(await modeOfRow('cm1'), 'owner');
+});
+
+test('an evolution rollback (also the automatic canary one) keeps a mode the owner switched on since', async () => {
+    // v1 (owner mode) was snapshotted before the evolution; the owner then published 'caller' mode.
+    await seed('cm2', { def: withMode(null), live: 1 });
+    await updateAutomationWith(db, 'cm2', { definition: withMode('caller') }, 'u1', { goLive: true, allowConnectionsChange: true });
+    assert.strictEqual(await modeOfRow('cm2'), 'caller');
+    const store = {
+        getEvolution: async () => ({ id: 'e1', automationId: 'cm2', status: 'canary', versionBefore: 1, canary: {}, rationale: 'x' }),
+        getAutomation: async (id) => ({ id, userId: 'u1', title: 'cm2', version: 2 }),
+        getVersionDefinition: async (id, v) => (await versions.getVersionByNumber(id, v)).definition,
+        updateAutomation: (id, updates, by, opts) => updateAutomationWith(db, id, updates, by, opts),
+        updateEvolution: async (id, patch) => ({ id, ...patch }),
+    };
+    const out = await rollbackEvolution('e1', { reason: 'canary regression' }, { store, notify: async () => {}, now: () => new Date() });
+    assert.strictEqual(out.status, 'rolled_back');
+    assert.strictEqual(await modeOfRow('cm2'), 'caller', 'the rolled-back flow still runs on the caller\'s connections');
+});

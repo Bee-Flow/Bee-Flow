@@ -1,6 +1,8 @@
 // Read-only tools for the assistant. Run values never enter the model or the
 // saved transcript before the PII detector has checked them. If the guard is
 // absent/degraded, the assistant gets types and shapes instead of raw values.
+const { canReadRunData } = require('../../../core/automationModel/callerRunVisibility');
+
 const INSPECTION_NAMES = new Set(['builder_inspect_step', 'builder_inspect_mapping', 'builder_inspect_run']);
 const INSPECTION_TOOLS = [...INSPECTION_NAMES].map(name => ({ type: 'function', function: {
     name,
@@ -71,8 +73,10 @@ async function inspect(name, args, wrap, { store, pii }) {
     if (!wrap.automationId) return { error: 'This automation has no saved runs yet.' };
     const automation = await store.getAutomation(wrap.automationId);
     if (!automation || automation.userId !== wrap.userId) return { error: 'Run inspection is only available to the owner.' };
-    const { runs } = await store.listRunsForAutomation(wrap.automationId, { limit: 1 });
-    const run = runs?.[0];
+    // The newest run whose data this person may read: a run on its starter's own
+    // connections holds the starter's values, never the owner's builder's.
+    const { runs } = await store.listRunsForAutomation(wrap.automationId, { limit: 10 });
+    const run = (runs || []).find((r) => canReadRunData(r, wrap.userId));
     if (!run) return { error: 'This automation has no runs yet.' };
     const rows = await store.getRunSteps(run.id);
     // A flowlet's steps are recorded under the step that called it

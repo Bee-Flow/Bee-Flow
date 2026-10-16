@@ -370,3 +370,67 @@ test('dispatch fails closed when the agent\'s config cannot be read', async () =
         (e) => e.code === 'agent_not_allowed',
     );
 });
+
+// ── runPolicy.connections = 'caller' ───────────────────────────────────────
+
+const callerFlow = () => agentAutomation({
+    definition: { ...agentAutomation().definition, runPolicy: { connections: 'caller' } },
+});
+const allowRun = (allowed) => ({ canAccessAutomation: async (_a, userId) => allowed.includes(userId) });
+
+test('caller mode: an asker who may run the automation starts it, recorded as the starter', async () => {
+    reset(callerFlow());
+    fakeStore.bindings = [['auto_1', 'agt_1']];
+    await dispatchAgentCallableTool({ id: 'auto_1' }, {}, { userId: 'colleague', askerUserId: 'colleague', agentId: 'agt_1' },
+        { ...bindingDeps, automationAccess: allowRun(['colleague']) });
+    assert.strictEqual(lastRun.opts.startedByUserId, 'colleague');
+});
+
+test('caller mode: an asker with no access to the automation (not shared, other org) is refused before any run', async () => {
+    reset(callerFlow());
+    fakeStore.bindings = [['auto_1', 'agt_1']];
+    await assert.rejects(
+        () => dispatchAgentCallableTool({ id: 'auto_1' }, {}, { userId: 'stranger', askerUserId: 'stranger', agentId: 'agt_1' },
+            { ...bindingDeps, automationAccess: allowRun(['colleague']) }),
+        (e) => e.code === 'automation_forbidden',
+    );
+    assert.strictEqual(lastRun, null);
+});
+
+test('caller mode: a call that names nobody is refused (no silent owner run)', async () => {
+    reset(callerFlow());
+    fakeStore.bindings = [['auto_1', 'agt_1']];
+    await assert.rejects(
+        () => dispatchAgentCallableTool({ id: 'auto_1' }, {}, { agentId: 'agt_1' }, { ...bindingDeps, automationAccess: allowRun([]) }),
+        (e) => e.code === 'caller_required',
+    );
+    assert.strictEqual(lastRun, null);
+});
+
+test('caller mode: the real access check lets the owner and refuses an outsider', async () => {
+    reset(callerFlow());
+    fakeStore.bindings = [['auto_1', 'agt_1']];
+    fakeStore.listSharesForAutomation = async () => [];
+    const { makeAutomationAccess } = require('./access');
+    const access = makeAutomationAccess({
+        store: fakeStore, hasPermission: async () => false,
+        getUser: async (id) => ({ id, organizationId: id === 'outsider' ? 'org_other' : 'org_1', groups: [] }),
+    });
+    const deps = { ...bindingDeps, automationAccess: access };
+    await dispatchAgentCallableTool({ id: 'auto_1' }, {}, { userId: 'user_1', askerUserId: 'user_1', agentId: 'agt_1' }, deps);
+    assert.strictEqual(lastRun.opts.startedByUserId, 'user_1');
+    lastRun = null;
+    await assert.rejects(
+        () => dispatchAgentCallableTool({ id: 'auto_1' }, {}, { userId: 'outsider', askerUserId: 'outsider', agentId: 'agt_1' }, deps),
+        (e) => e.code === 'automation_forbidden',
+    );
+    assert.strictEqual(lastRun, null);
+});
+
+test('an automation called from inside a caller-mode run records that run\'s starter, not nobody', () => {
+    const trace = { callerAgentId: 'agt_1', callerConversationId: null, callerRunId: 'run-9', callerRootRunId: 'run-9' };
+    // Inside an owner-mode run nothing asked, so nothing is recorded (as before).
+    assert.deepStrictEqual(runnerTraceOptions(trace, { userId: 'user_1' }), { callerAgentId: 'agt_1', callerConversationId: null });
+    // Inside a run on the caller's connections the starter travels with the call.
+    assert.strictEqual(runnerTraceOptions(trace, { userId: 'caller-1', connectionsCallerUserId: 'caller-1' }).startedByUserId, 'caller-1');
+});

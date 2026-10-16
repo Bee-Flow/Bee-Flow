@@ -26,6 +26,7 @@ const synthesizeDryRunOutput = (toolName, args) => runnerPort('outputSchemas').s
 const { runWithProbe, markLocal } = require('../http/outboundProbe');
 const log = require('../../telemetry/log');
 const { assertStepToolPermitted, resolveLendingIdentity } = require('./integrationActionGates');
+const { toolIdentity } = require('./toolIdentity');
 const { recordSimulatedWrite, isUnderSimulatedPath, isNotFoundError } = require('./simulatedPaths');
 const { planReuse, readReuse, rememberAnswer } = require('./integrationActionMemo');
 
@@ -92,7 +93,7 @@ function dryRunWithoutDispatch(step, ctx, runState, { mode, sideEffect, guardedI
  * had already left the box.
  */
 function dispatchTool(step, ctx, mode, { executeTool, inputs, identity, resolveIntegration }) {
-    const { stepUserId, stepOrgId, lentConnection } = identity;
+    const { stepUserId, stepOrgId, stepSession, lentConnection } = identity;
     return runWithProbe(async () => {
         const meta = resolveIntegration(step.tool, inputs, { nextcloudUrl: ctx.nextcloudUrl });
         if (meta && meta.isLocal) markLocal(meta.label || meta.integration);
@@ -108,9 +109,10 @@ function dispatchTool(step, ctx, mode, { executeTool, inputs, identity, resolveI
                     // calls one — dies on "User ID required for MCP tool
                     // calls" before it reaches the server.
                     userAuth: { ...(ctx.userAuth || {}), userId: stepUserId },
-                    session: ctx.session,
+                    session: stepSession,
                     orgId: stepOrgId,
-                    userGroupIds: ctx.userGroupIds || [],
+                    userGroupIds: toolIdentity(ctx).userGroupIds,
+                    connectionsCallerUserId: ctx.callerOnly ? ctx.callerOnly.userId : null,
                     // The automation this step belongs to — what lets a
                     // self-scoped tool (automation_*) act on its own automation
                     // and nothing else.

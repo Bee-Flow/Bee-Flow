@@ -107,6 +107,7 @@
 
 const { servesPublishedConfig } = require('../automationModel/agentPublication');
 const log = require('../../telemetry/log');
+const { permittedCatalog } = require('./toolIdentity');
 // The unattended-tool deduction (withholdConfirmTools) and its tool readers.
 const {
     WITHHOLD_REASONS,
@@ -361,20 +362,16 @@ async function agentToolsForStep({ binding, ctx, extraTools = [], extraToolsStar
             // Connection lending (gated, default uit) — dezelfde vorm als
             // execIntegrationAction, zodat de twee catalogi van één run niet
             // uit elkaar lopen.
-            const lendPolicy = (ctx.resourceOwnerUserId && ctx.resourceOwnerUserId !== ctx.userId)
-                ? { ownerUserId: ctx.resourceOwnerUserId, resourceType: 'automation', resourceId: ctx.automationId || null }
-                : null;
-            const catalog = await getIntegrationTools({
-                userId: ctx.userId,                       // de AUTOMATION-EIGENAAR
-                session: ctx.session,
-                isAdmin: !!ctx.session?.isAdmin || ctx.session?.user?.role === 'admin',
+            // Bij runPolicy.connections 'caller' is de catalogus de doorsnede van
+            // die van de EIGENAAR en die van de STARTER (toolIdentity.js).
+            const catalog = await permittedCatalog(ctx, getIntegrationTools, {
                 // BEWUST UIT — zie de kop. `automationStep` schakelt precies twee
                 // dingen aan (`automation-evolution` en `kb-ingest`), en dat zijn
                 // de twee apps die de agent-kiezer nooit heeft kunnen tonen. Een
                 // agent krijgt hier dus dezelfde apps als in een gesprek, plus
                 // niets wat zijn eigenaar nooit heeft kunnen weigeren.
                 automationStep: false,
-                connectionPolicy: lendPolicy,
+                lend: true,
                 // De per-actie-grants van de agent. Ook het pad waarlangs
                 // `tools.automations` de automatiseringsset van de vrager versmalt.
                 //

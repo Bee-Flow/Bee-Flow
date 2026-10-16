@@ -476,7 +476,7 @@ async function executeActivateSkill({ args, orgId, userId, onSkillsActivated, ag
                 const run = await runNestedAutomationCall({ automationId: automation.id, ...trace }, () => automationRunner.executeAutomation(automation, {
                     triggerKind: 'manual',
                     triggerPayload: { invokedBy: 'skill', skillId: s.id, args: args || {} },
-                    mode: 'live',
+                    mode: 'live', startedByUserId: userId || null,
                     callerAgentId: trace.callerAgentId,
                     callerConversationId: trace.callerConversationId,
                 }));

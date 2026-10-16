@@ -11,6 +11,8 @@ export interface RunPolicy {
     maxDurationMin?: number | null;
     concurrency?: 'serial' | 'parallel';
     retentionDays?: number | null;
+    /** Whose integration connections a run started by someone else uses (default 'owner'). */
+    connections?: 'owner' | 'caller';
 }
 
 const RETENTION_CHOICES = [7, 30, 90, 180, 365];
@@ -130,6 +132,20 @@ export default function AdvancedSection({ automation, onSave, defaultOpen = fals
                                     { value: 'parallel', label: t('automations.settings.concurrency_parallel', 'Allowed at the same time') },
                                 ]}
                             />
+                        </div>
+
+                        <span className="pt-1 font-medium">{t('automations.settings.connections', 'Whose connections')}</span>
+                        <div className="flex flex-col gap-1">
+                            <Choice
+                                label={t('automations.settings.connections', 'Whose connections')}
+                                value={policy.connections || 'owner'}
+                                onChange={(v) => void savePolicy({ connections: v })}
+                                options={[
+                                    { value: 'owner', label: t('automations.settings.connections_owner', 'Mine, as the owner') },
+                                    { value: 'caller', label: t('automations.settings.connections_caller', 'Only the person who runs it') },
+                                ]}
+                            />
+                            <span className="text-[var(--text-tertiary)]">{t('automations.settings.connections_hint', 'Applies when someone else runs this automation, or an agent runs it for them. With "Only the person who runs it", every Google, Microsoft or Nextcloud step uses that person\'s own connection and never yours. If they have not connected the app, the run stops before it starts and asks them to connect it.')}</span>
                         </div>
 
                         <label htmlFor="automation-settings-retention" className="pt-1 font-medium">{t('automations.settings.retention', 'Keep runs')}</label>

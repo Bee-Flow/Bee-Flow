@@ -52,6 +52,9 @@ module.exports = {
     hasAgentBinding: require('./automationStore/agentBindings').hasAgentBinding,
     applyAgentBindings: require('./automationStore/agentBindings').applyAgentBindings,
     deleteBindingsForAgent: require('./automationStore/agentBindings').deleteBindingsForAgent,
+    // The one-time "this runs with your own connections" notice (callerConnections).
+    getCallerNoticeAck: require('./automationStore/callerNotices').getCallerNoticeAck,
+    markCallerNoticeSeen: require('./automationStore/callerNotices').markCallerNoticeSeen,
     // Handoff 5, the Runs tab: what decorates a page of runs (automation/runListRows.js).
     getJourneyStepStatuses: require('./automationStore/runListing').getJourneyStepStatuses,
     getVersionDefinitions: require('./automationStore/runListing').getVersionDefinitions,

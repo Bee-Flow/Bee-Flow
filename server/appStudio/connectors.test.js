@@ -212,6 +212,7 @@ test('automation: owner automation runs acts-as-owner with viewer id in the trig
     assert.strictEqual(calls[0].opts.triggerKind, 'studio_app');
     assert.deepStrictEqual(calls[0].opts.triggerPayload.params, { term: 'x' });
     assert.strictEqual(calls[0].opts.triggerPayload._viewerUserId, 'viewer-9');
+    assert.strictEqual(calls[0].opts.startedByUserId, 'viewer-9', 'the viewer is the starter (runPolicy.connections = caller)');
     assert.strictEqual(calls[0].opts.triggerPayload._studioAppId, 'app-1');
     assert.deepStrictEqual(result.rows, [{ n: 1 }]);
 });

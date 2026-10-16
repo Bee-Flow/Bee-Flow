@@ -30,6 +30,24 @@ test('inspection only reads runs belonging to the automation owner', async () =>
     assert.equal(readRun, false);
 });
 
+test('run inspection skips a run that used its starter\'s own connections: the owner\'s builder never reads the starter\'s values', async () => {
+    const callerRun = { id: 'run-caller', startedByUserId: 'someone', connectionsMode: 'caller' };
+    const ownRun = { id: 'run-own', startedByUserId: 'owner', connectionsMode: null };
+    const read = [];
+    const store = {
+        getAutomation: async () => ({ userId: 'owner' }),
+        listRunsForAutomation: async () => ({ runs: [callerRun, ownRun] }),
+        getRunSteps: async (id) => { read.push(id); return [{ stepId: 's1', status: 'success', output: { v: 1 } }]; },
+    };
+    await inspect('builder_inspect_run', { stepId: 's1' }, { automationId: 'a1', userId: 'owner', def: { steps: [{ id: 's1' }] } }, { store, pii: { detectPii: async () => null, tokenizeText } });
+    assert.deepEqual(read, ['run-own']);
+    read.length = 0;
+    store.listRunsForAutomation = async () => ({ runs: [callerRun] });
+    const only = await inspect('builder_inspect_run', { stepId: 's1' }, { automationId: 'a1', userId: 'owner', def: { steps: [{ id: 's1' }] } }, { store, pii: {} });
+    assert.deepEqual(read, []);
+    assert.match(only.error, /no runs/);
+});
+
 // A code step's outputSchema describes what its code RETURNS, which runs read
 // under output.result; listed bare, the model bound steps.<code>.output.<field>.
 test('mapping inspection says where a code step\'s returned fields are read', async () => {
