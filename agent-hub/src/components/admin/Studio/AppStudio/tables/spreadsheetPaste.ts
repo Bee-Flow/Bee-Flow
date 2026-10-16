@@ -9,6 +9,14 @@ export interface ImportField extends RowField {
     required?: boolean;
 }
 
+/** The table a paste fills: its identity and the fields a paste can name. */
+export interface ImportTable {
+    id?: string;
+    key?: string;
+    name?: string;
+    fields?: ImportField[];
+}
+
 /** A pasted block split into its header and data rows. */
 export interface ParsedPaste {
     header: string[];
