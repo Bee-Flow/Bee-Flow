@@ -50,3 +50,10 @@ Final commit: see `git log -1` of the branch (this file is updated with every pu
 - Mirror candidate: web admin/subscriptions/access/countries.js ↔ mobile/src/features/org/model/countries.ts (converting the web file made a 105-line clone; mobile has phone-only types, another countryName signature, no EU_EEA/countryFlag).
 - Pre-existing (not fixed here): a LimitField override of '' is coerced by the server to a cap of 0 (fails closed); useResource yields data = null on a 2xx with an unparsable body.
 - After b2 (c0c47225): subscriptions hooks/useApi.ts `api`/`apiJson` opts typed `AuthFetchOptions` (was RequestInit).
+| all S3 packages merged | 12fe1540 | 39/39 | 0 errors | 15276 ≤ 15383 / 26228 = 26228 | clean | 0 errors | 1853 files, 21769 pass | 762 suites, 13428 pass | 0 errors | 29058 pass, 0 fail, 0 HUNG |
+
+## Ratchets measured at 12fe1540 (no --update run)
+- long-function: server 104 (budget 109; S3 −5), agent-hub 257 (budget 269; S3 −12)
+- duplication: production 15276 (budget 15383), test 26228 (= budget, no slack)
+- server module-mock 810 (= budget), status-5xx 14 (= budget), SCC 60 (= budget)
+- agent-hub ts-ratchet 2178 .js/.jsx (budget 2230); S3's batch 18 converted 46 files
