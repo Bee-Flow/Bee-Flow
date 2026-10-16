@@ -155,6 +155,23 @@ test('the library pages with a total, filters pages from designed documents, and
     assert.strictEqual((await store.listDocumentsPage('lib', {})).total, 4);
 });
 
+test('a multi-word library query matches every word, in any order', async () => {
+    await pg.exec(`INSERT INTO users VALUES ('multi','org1')`);
+    const hit = await make('multi', { name: 'Invoice Acme Group' });
+    await make('multi', { name: 'Invoice other' });
+    const ids = async (query) => (await store.listDocuments('multi', { query, onlyFillable: true })).map(d => d.id);
+    assert.deepStrictEqual(await ids('acme invoice'), [hit.id]);
+    assert.deepStrictEqual(await ids('group  INVOICE'), [hit.id]);
+    assert.strictEqual((await ids('invoice')).length, 2);
+    assert.deepStrictEqual(await ids('acme zzz'), []);
+    // LIKE wildcards in the text are literal, and another user's document never matches.
+    assert.deepStrictEqual(await ids('% %'), []);
+    assert.deepStrictEqual(await ids('acme _nvoice'), []);
+    await pg.exec(`INSERT INTO users VALUES ('multi-other','org2')`);
+    await make('multi-other', { name: 'Invoice Acme Private' });
+    assert.deepStrictEqual(await ids('acme invoice'), [hit.id], 'only the caller\'s own and shared documents');
+});
+
 // ═══ Autosave sessions ════════════════════════════════════════════════
 
 test('saves by one person in one session are ONE history entry; every revision id stays readable', async () => {

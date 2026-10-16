@@ -796,38 +796,6 @@ function applyListConnectors(draftWrap) {
     };
 }
 
-// app_list_documents — the OWNER's designed documents, with the placeholders
-// each one carries. Read-only, and the analogue of app_list_connectors: the AI
-// WIRES an existing document into a fill_document step; it never authors one,
-// because the layout is the thing a person drew by hand.
-//
-// Owner-scoped (documentStore.getDocument/listTemplates take a userId), and the
-// owner is the app's — an app prints on the company's letterhead, not on the
-// letterhead of whoever pressed the button.
-async function applyListDocuments(draftWrap) {
-    const documentStore = require('../../stores/documentStore');
-    let templates = [];
-    try {
-        templates = await documentStore.listTemplates(draftWrap.userId, { limit: 50 });
-    } catch (e) {
-        // An outage is not "the owner has no documents": saying so would send
-        // the model off to build a text export instead of asking again.
-        return { error: `The documents could not be read (${e.message}).`, _fixHint: 'Try again; do not build a substitute document out of text.' };
-    }
-    return {
-        documents: templates.map(t => ({
-            ...t,
-            documentId: t.id,
-            name: t.name,
-            docType: t.docType,
-            placeholders: t.placeholders,
-        })),
-        note: templates.length
-            ? 'Use one of these documentIds in a fill_document step; the keys of `values` are the placeholder names exactly as listed. A "list" placeholder needs a binding that resolves to an array.'
-            : 'No designed documents yet — the owner makes them in Studio → Documents. You cannot create one; say so instead of exporting text as a substitute.',
-    };
-}
-
 async function applyQueryData(draftWrap, args) {
     const model = draftWrap.dataModel;
     if (!draftWrap.appId || !model || !Array.isArray(model.tables) || !model.tables.length) {
@@ -888,7 +856,10 @@ async function applyQueryData(draftWrap, args) {
     }
 }
 
+const { applyListDocuments } = require('./documentListTool');
+
 module.exports = {
+    applyListDocuments,
     persistDataModel,
     dataModelPersistError,
     applyUpsertTable,
@@ -898,7 +869,6 @@ module.exports = {
     applyUpsertDataset,
     applyGetDataModel,
     applyListConnectors,
-    applyListDocuments,
     applyQueryData,
     // internals re-exported through ../builderTools.js _test (rowCountsById is
     // also the template installer's counts normalizer)
