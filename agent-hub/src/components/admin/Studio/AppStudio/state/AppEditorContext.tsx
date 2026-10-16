@@ -1,5 +1,8 @@
 import { createContext, useContext, useMemo, useReducer } from 'react';
+import type { ReactNode } from 'react';
+import type { AppEditorAction, AppEditorValue } from './appEditorState';
 import { collectIds, findScreen } from './definitionOps';
+import type { AppDefinition } from '../inspector/appDefinition';
 
 /**
  * App Studio editor state — a thin useReducer store around the definition.
@@ -31,15 +34,39 @@ import { collectIds, findScreen } from './definitionOps';
  *                      active (null when not previewing).
  */
 
-const AppEditorContext = createContext(null);
+// findScreen(def, undefined) matches a screen without an id, so a definition
+// whose homeScreenId is missing can leave the current screen undefined.
+type AppEditorState = Omit<AppEditorValue, 'dispatch' | 'screenId'> & { screenId: string | null | undefined };
+type AppEditorContextValue = AppEditorState & { dispatch: AppEditorValue['dispatch'] };
 
-function fallbackScreenId(definition) {
+/** The app row the store is seeded from; the server names its version `definitionVersion`. */
+export interface AppEditorSeed {
+    id?: string;
+    definition?: AppDefinition | null;
+    version?: number | string;
+    definitionVersion?: number | string;
+}
+
+/** A mock viewer for a role preview; the shape mirrors the runtime currentUser. */
+export interface PreviewUser {
+    id: string;
+    name: string;
+    email: null;
+    role: string;
+    roles: string[];
+    organizationId: null;
+    preview: true;
+}
+
+const AppEditorContext = createContext<AppEditorContextValue | null>(null);
+
+function fallbackScreenId(definition: AppDefinition | null): string | null | undefined {
     if (!definition) return null;
     if (findScreen(definition, definition.homeScreenId)) return definition.homeScreenId;
     return definition.screens?.[0]?.id || null;
 }
 
-function initialState(app) {
+function initialState(app: AppEditorSeed | undefined): AppEditorState {
     const definition = app?.definition || null;
     return {
         definition,
@@ -72,7 +99,7 @@ function initialState(app) {
  * currentUser (see RuntimeContext.buildScope) so visibleWhen/computed formulas
  * that read currentUser.* resolve while previewing as this role.
  */
-export function mockUserForRole(roleKey) {
+export function mockUserForRole(roleKey: string | null | undefined): PreviewUser | null {
     if (!roleKey || roleKey === 'owner') return null;
     return {
         id: `preview-${roleKey}`,
@@ -91,26 +118,26 @@ export function mockUserForRole(roleKey) {
  * anchor (selectedNodeId) is the LAST surviving id, so a shift/marquee add
  * makes the newest node the inspector target — matching Figma/Sketch.
  */
-function selectionFor(definition, idsIterable) {
-    const present = definition ? collectIds(definition) : new Set();
-    const next = new Set();
+function selectionFor(definition: AppDefinition | null, idsIterable: Iterable<string> | null | undefined): Pick<AppEditorState, 'selectedNodeIds' | 'selectedNodeId'> {
+    const present = definition ? collectIds(definition) : new Set<string>();
+    const next = new Set<string>();
     for (const id of idsIterable || []) {
         if (id != null && present.has(id)) next.add(id);
     }
-    let anchor = null;
+    let anchor: string | null = null;
     for (const id of next) anchor = id;
     return { selectedNodeIds: next, selectedNodeId: anchor };
 }
 
 /** True when two id sets hold the same ids (order-insensitive). */
-function sameIdSet(a, b) {
+function sameIdSet(a: Set<string>, b: Set<string>): boolean {
     if (a === b) return true;
     if (!(a instanceof Set) || !(b instanceof Set) || a.size !== b.size) return false;
     for (const id of a) if (!b.has(id)) return false;
     return true;
 }
 
-function reducer(state, action) {
+function reducer(state: AppEditorState, action: AppEditorAction): AppEditorState {
     switch (action.type) {
         case 'set_definition': {
             const definition = action.definition || null;
@@ -184,7 +211,7 @@ function reducer(state, action) {
             for (const id of incoming) {
                 ids.add(id);
                 const d = delays ? delays.get(id) : undefined;
-                if (Number.isFinite(d) && d > 0) revealDelays.set(id, d);
+                if (Number.isFinite(d) && (d as number) > 0) revealDelays.set(id, d as number);
                 else revealDelays.delete(id);
             }
             return { ...state, recentlyAddedIds: ids, revealDelays };
@@ -229,11 +256,10 @@ function reducer(state, action) {
 }
 
 /**
- * @param {{ app?: { definition?: object, version?: number|string }, children: any }} props
  * `app` seeds the store once (on mount); later server refreshes go through
  * dispatch({ type: 'set_definition', definition, version }).
  */
-export function AppEditorProvider({ app, children }) {
+export function AppEditorProvider({ app, children }: { app?: AppEditorSeed; children: ReactNode }) {
     const [state, dispatch] = useReducer(reducer, app, initialState);
     const value = useMemo(() => ({ ...state, dispatch }), [state]);
     return <AppEditorContext.Provider value={value}>{children}</AppEditorContext.Provider>;
