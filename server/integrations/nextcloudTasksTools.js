@@ -8,26 +8,8 @@
 
 const crypto = require('crypto');
 const ICAL = require('ical.js');
-const { XMLParser } = require('fast-xml-parser');
 const ncClient = require('./nextcloudClient');
-
-const xmlParser = new XMLParser({
-    ignoreAttributes: false,
-    attributeNamePrefix: '@_',
-    removeNSPrefix: true,
-    parseTagValue: false,
-    trimValues: true,
-});
-
-const PROPFIND_LISTS = `<?xml version="1.0" encoding="utf-8" ?>
-<d:propfind xmlns:d="DAV:" xmlns:cs="http://calendarserver.org/ns/" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:oc="http://owncloud.org/ns">
-  <d:prop>
-    <d:displayname/>
-    <d:resourcetype/>
-    <c:supported-calendar-component-set/>
-    <cs:getctag/>
-  </d:prop>
-</d:propfind>`;
+const { parseMultistatusResponses, fetchLists, taskWriteError } = require('./nextcloudTasksDav');
 
 function todoQueryReport(filterStatus) {
     let statusFilter = '';
@@ -55,7 +37,7 @@ const NEXTCLOUD_TASKS_TOOLS = [
         type: 'function',
         function: {
             name: 'nextcloud_tasks_list_lists',
-            description: 'List the user\'s Nextcloud task lists (CalDAV calendars that support VTODO).',
+            description: 'List the user\'s Nextcloud task lists (CalDAV calendars). Each has supportsTasks (can hold tasks) and writable; create tasks only in lists where both are true.',
             parameters: { type: 'object', properties: {} }
         }
     },
@@ -67,7 +49,7 @@ const NEXTCLOUD_TASKS_TOOLS = [
             parameters: {
                 type: 'object',
                 properties: {
-                    list: { type: 'string', description: 'Task list slug. Defaults to "personal".' },
+                    list: { type: 'string', description: 'Task list slug (see nextcloud_tasks_list_lists). Defaults to the first writable list that supports tasks.' },
                     status: { type: 'string', enum: ['open', 'completed', 'all'], description: 'Filter (default "open").' },
                     limit: { type: 'integer', description: 'Max tasks (default 200, max 1000).' }
                 }
@@ -114,7 +96,7 @@ const NEXTCLOUD_TASKS_TOOLS = [
             parameters: {
                 type: 'object',
                 properties: {
-                    list: { type: 'string', description: 'Task list slug (e.g. "personal").' },
+                    list: { type: 'string', description: 'Task list slug from nextcloud_tasks_list_lists (supportsTasks and writable true).' },
                     summary: { type: 'string', description: 'Task title.' },
                     description: { type: 'string' },
                     due: { type: 'string', description: 'ISO 8601 due date (optional).' },
@@ -270,43 +252,6 @@ function todoHref(baseUrl, uid, list, todoUid) {
     return `${calendarsRoot(baseUrl, uid)}/${encodeURIComponent(list)}/${encodeURIComponent(todoUid)}.ics`;
 }
 
-function parseMultistatusResponses(xml) {
-    const parsed = xmlParser.parse(xml);
-    const ms = parsed?.multistatus;
-    if (!ms) return [];
-    const list = Array.isArray(ms.response) ? ms.response : (ms.response ? [ms.response] : []);
-    return list.map((r) => {
-        const propstats = Array.isArray(r.propstat) ? r.propstat : (r.propstat ? [r.propstat] : []);
-        const props = {};
-        for (const ps of propstats) {
-            const status = ps.status || '';
-            if (status && !/\b2\d\d\b/.test(status)) continue;
-            Object.assign(props, ps.prop || {});
-        }
-        return { href: r.href || '', props };
-    });
-}
-
-function supportsVTodo(props) {
-    const set = props['supported-calendar-component-set'];
-    if (!set || !set.comp) return false;
-    const comps = Array.isArray(set.comp) ? set.comp : [set.comp];
-    return comps.some((c) => c && (c['@_name'] === 'VTODO' || c.name === 'VTODO'));
-}
-
-function parsePropfindLists(xml, uid) {
-    const root = `/remote.php/dav/calendars/${decodeURIComponent(uid)}`;
-    const lists = [];
-    for (const { href, props } of parseMultistatusResponses(xml)) {
-        if (!href || !supportsVTodo(props)) continue;
-        const decoded = decodeURIComponent(href);
-        if (decoded.replace(/\/+$/, '') === root) continue;
-        const slug = decoded.replace(/\/+$/, '').split('/').pop();
-        lists.push({ slug, displayName: props.displayname || slug, href });
-    }
-    return lists;
-}
-
 function parseTodoMultiStatus(xml) {
     return parseMultistatusResponses(xml)
         .filter(({ href, props }) => href && props['calendar-data'] !== undefined)
@@ -326,20 +271,20 @@ async function executeNextcloudTasksTool(toolName, args, userId, session) {
 
     switch (toolName) {
         case 'nextcloud_tasks_list_lists': {
-            const res = await ncFetch(`${root}/`, {
-                method: 'PROPFIND',
-                headers: { 'Depth': '1', 'Content-Type': 'application/xml; charset=utf-8' },
-                body: PROPFIND_LISTS,
-            });
-            if (res.status === 401) return { error: authError };
-            if (!res.ok) return { error: `Task list enumeration failed (${res.status})` };
-            const xml = await res.text();
-            const lists = parsePropfindLists(xml, uid);
-            return { count: lists.length, lists };
+            const found = await fetchLists(ncFetch, root, uid, authError);
+            if (found.error) return found;
+            return { count: found.lists.length, lists: found.lists };
         }
 
         case 'nextcloud_tasks_list': {
-            const list = args.list || 'personal';
+            let list = args.list;
+            if (!list) {
+                const found = await fetchLists(ncFetch, root, uid, authError);
+                if (found.error) return found;
+                list = found.lists.find((l) => l.supportsTasks && l.writable)?.slug
+                    || found.lists.find((l) => l.supportsTasks)?.slug;
+                if (!list) return { error: 'No task list found. Nextcloud Tasks needs a calendar that supports tasks (VTODO); create a task list in Nextcloud first.' };
+            }
             const status = args.status || 'open';
             const limit = Math.min(Math.max(args.limit || 200, 1), 1000);
             const res = await ncFetch(`${root}/${encodeURIComponent(list)}/`, {
@@ -360,6 +305,11 @@ async function executeNextcloudTasksTool(toolName, args, userId, session) {
                 }
                 if (tasks.length >= limit) break;
             }
+            if (!tasks.length) {
+                const found = await fetchLists(ncFetch, root, uid, authError);
+                const entry = found.lists?.find((l) => l.slug === list);
+                if (entry && !entry.supportsTasks) return { error: `Task list "${list}" does not support tasks (no VTODO). Use nextcloud_tasks_list_lists to find a list with supportsTasks true.` };
+            }
             return { list, count: tasks.length, tasks };
         }
 
@@ -371,14 +321,9 @@ async function executeNextcloudTasksTool(toolName, args, userId, session) {
 
             let lists = args.list ? [args.list] : null;
             if (!lists) {
-                const listRes = await ncFetch(`${root}/`, {
-                    method: 'PROPFIND',
-                    headers: { 'Depth': '1', 'Content-Type': 'application/xml; charset=utf-8' },
-                    body: PROPFIND_LISTS,
-                });
-                if (listRes.status === 401) return { error: authError };
-                if (!listRes.ok) return { error: `Could not enumerate task lists (${listRes.status})` };
-                lists = parsePropfindLists(await listRes.text(), uid).map(l => l.slug);
+                const found = await fetchLists(ncFetch, root, uid, authError);
+                if (found.error) return found;
+                lists = found.lists.filter((l) => l.supportsTasks).map((l) => l.slug);
             }
 
             const matches = [];
@@ -438,7 +383,7 @@ async function executeNextcloudTasksTool(toolName, args, userId, session) {
             if (res.status === 404) return { error: `Task list not found: ${args.list}` };
             if (!res.ok && res.status !== 201 && res.status !== 204) {
                 const body = await res.text().catch(() => '');
-                return { error: `Task create failed (${res.status}): ${body.slice(0, 200)}` };
+                return { error: taskWriteError('create', args.list, res.status, body) };
             }
             return { success: true, list: args.list, uid: todoUid, etag: res.headers.get('etag') };
         }
@@ -494,7 +439,7 @@ async function executeNextcloudTasksTool(toolName, args, userId, session) {
             if (putRes.status === 412) return { error: 'Task was modified by another client; refetch and retry.' };
             if (!putRes.ok && putRes.status !== 204) {
                 const body = await putRes.text().catch(() => '');
-                return { error: `Task update failed (${putRes.status}): ${body.slice(0, 200)}` };
+                return { error: taskWriteError('update', args.list, putRes.status, body) };
             }
             return { success: true, list: args.list, uid: args.uid, etag: putRes.headers.get('etag'), status: merged.status };
         }
