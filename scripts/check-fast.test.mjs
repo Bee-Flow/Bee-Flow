@@ -48,7 +48,7 @@ async function inProcess(dir, opts = {}) {
 
 test('the denylist keeps out exactly the slow, install- and network-bound lint scripts', () => {
     assert.deepStrictEqual([...DENYLIST.keys()].sort(), [
-        'lint:budget', 'lint:bundle', 'lint:coverage', 'lint:deps', 'lint:deps:test', 'lint:duplication', 'lint:gitleaks',
+        'lint:budget', 'lint:bundle', 'lint:coverage', 'lint:deps', 'lint:deps:test', 'lint:duplication', 'lint:entry-budget', 'lint:gitleaks',
     ]);
     const scripts = { build: 'x', 'test:scripts': 'x', 'lint:workflows': 'x', 'lint:later-ratchet': 'x' };
     for (const name of DENYLIST.keys()) scripts[name] = 'x';

@@ -275,7 +275,7 @@ jobs:
             frontend:
               - 'agent-hub/**'
               - '.nvmrc'
-              - 'scripts/{eslint-budget,ts-ratchet,i18n-ratchet,count-ratchet,coverage-ratchet,bundle-ratchet,gen-i18n-defaults,gen-shared-mirror,entry-point,frontend-shards}.mjs'
+              - 'scripts/{eslint-budget,ts-ratchet,i18n-ratchet,count-ratchet,coverage-ratchet,bundle-ratchet,entry-budget,gen-i18n-defaults,gen-shared-mirror,entry-point,frontend-shards}.mjs'
               - 'server/scripts/testShards.mjs'
               - '.claude/handoff/compliance/keys/**'
               - '.claude/handoff/curriculum/lessons/**'
@@ -791,6 +791,10 @@ jobs:
         run: npm run build
       - name: Bundle-size budget
         run: node ../scripts/bundle-ratchet.mjs agent-hub
+      # What the public entry loads before paint (render-blocking CSS, entry
+      # JS), against agent-hub/.entry-budget.json. Reads the same build.
+      - name: Entry budget (render-blocking CSS, entry JS)
+        run: node ../scripts/entry-budget.mjs agent-hub
 
   # The vitest suite (~21,000 tests, 1,749 files) in four shards plus one small
   # job, each writing a blob report with its coverage; frontend-coverage merges
