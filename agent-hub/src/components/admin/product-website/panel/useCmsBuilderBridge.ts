@@ -4,6 +4,7 @@
 import { useCallback, useMemo } from 'react';
 import { authFetch } from '../../../../utils/helpers';
 import type useConfirm from '../../../shared/useConfirm';
+import { errorMessage } from '../../../../utils/caughtError';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { HEADER_VIRTUAL_ID, isVirtualPageId } from '../sentinels';
@@ -201,7 +202,7 @@ export default function useCmsBuilderBridge({
             disarmBuilderUndo();
             toast.success('AI turn undone');
         } catch (err) {
-            toast.error(`Undo failed: ${(err as Error).message}`);
+            toast.error(`Undo failed: ${errorMessage(err)}`);
         }
     }, [confirm, activePageId, disarmBuilderUndo, activeSiteIdRef, builderRunningRef, builderTurnRef, pagesStateRef, setActivePageId, setPages, setSiteDoc, siteStateRef]);
 
