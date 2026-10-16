@@ -282,3 +282,28 @@ test('builder_add_code_step is advertised exactly when the code sandbox can run 
     const names = mcpBuilder.buildToolList().map((t) => t.name);
     assert.equal(names.includes('builder_add_code_step'), require('./codeSandbox').isAvailable());
 });
+
+/** Swap a property of a loaded module for the length of `fn`. */
+async function withStub(mod, key, value, fn) {
+    const prev = mod[key];
+    mod[key] = value;
+    try { return await fn(); } finally { mod[key] = prev; }
+}
+
+test('code steps: guide wording and tool list follow codeSandbox.isAvailable() both ways', async () => {
+    const sandbox = require('./codeSandbox');
+    const catalog = { apps: [], toolNames: new Set() };
+    const guideWith = (available) => withStub(sandbox, 'isAvailable', () => available, () =>
+        withStub(require('./triggerBus'), 'loadSession', async () => null, () =>
+            withStub(require('./builderCatalog'), 'buildCatalogForUser', async () => ({ ...catalog }), () =>
+                withStub(require('./builderPickerCatalog'), 'buildPickerCatalogsForUser', async () => ({}), async () => {
+                    const { result } = await mcpBuilder.callTool('automations_get_guide', {}, { userId: 'u_stub' });
+                    return { guide: result.guide, tools: mcpBuilder.buildToolList().map((t) => t.name) };
+                }))));
+    const on = await guideWith(true);
+    assert.ok(on.tools.includes('builder_add_code_step'));
+    assert.ok(!on.guide.includes('code steps are currently DISABLED'), 'guide must not call code steps disabled');
+    const off = await guideWith(false);
+    assert.ok(!off.tools.includes('builder_add_code_step'));
+    assert.ok(off.guide.includes('code steps are currently DISABLED'));
+});
