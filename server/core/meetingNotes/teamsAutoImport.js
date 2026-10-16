@@ -32,6 +32,7 @@ const { deps: d, init } = lazyDeps({
     teamsImportStore: () => require('../../stores/teamsImportStore'),
     userStore: () => require('../../stores/userStore'),
     meetingPrefs: () => require('../../stores/meetingPrefsStore'),
+    recordOptIn: () => require('../../stores/meetingPrefsOptIn'),
     automationAuth: () => require('../../auth/automationAuth'),
     resolveMicrosoftSession: () => require('../../auth/microsoftSessionHydration').resolveMicrosoftSession,
     hasCapability: () => require('../entitlements/entitlements').hasCapability,
@@ -72,25 +73,41 @@ async function vaultSession(auth, userId) {
     return d.resolveMicrosoftSession({ automationProviders: { microsoft: auth } }, userId);
 }
 
-async function resolveOrgIdForUser(userId) {
-    return kit.resolveOrgIdForUser(userId, () => d.userStore);
-}
-
-/** Users with their own Teams settings, plus members of orgs that turned autoImport on. */
+/**
+ * Users with their own Teams settings, plus members of orgs that turned autoImport on,
+ * plus users who explicitly marked a meeting "record" (that mark alone is enough).
+ */
 async function listCandidateUsers() {
-    return kit.listCandidateUsers({
+    const users = new Set(await kit.listCandidateUsers({
         configStore: d.configStore,
         kind: 'teams_notes',
         resolveSettings: (args) => d.resolveTeamsNotesSettings(args),
         flag: 'autoImport',
         getUserStore: () => d.userStore,
-    });
+    }));
+    try {
+        for (const id of await d.recordOptIn.listUsersWithRecordOptIn({ provider: 'teams' })) users.add(id);
+    } catch (err) {
+        log.warn(`[TeamsAutoImport] record opt-in lookup failed: ${err.message}`);
+    }
+    return Array.from(users);
 }
 
 async function discoverUser(userId) {
-    const orgId = await resolveOrgIdForUser(userId);
+    let user = null;
+    try { user = await d.userStore.getUser(userId); } catch (err) {
+        log.debug(`[TeamsAutoImport] user lookup failed for ${userId}: ${err.message}`);
+    }
+    // A deleted or deactivated user keeps stale settings and marks; skip them.
+    if (!user || (user.status ?? 'active') !== 'active') return;
+    const orgId = user.organizationId || null;
     const settings = await d.resolveTeamsNotesSettings({ orgId, userId });
-    if (!settings.autoImport) return;
+    const meetingPrefs = d.meetingPrefs;
+    const prefs = await meetingPrefs.loadMeetingPrefs({ provider: 'teams', userId, orgId });
+    // With autoImport off only a live, explicit "record" mark imports a meeting
+    // (it overrides an org-level off). Without one, stop before anything that
+    // refreshes tokens, writes to the database or calls Graph.
+    if (!settings.autoImport && !d.recordOptIn.hasLiveRecordOptIn(prefs.rows)) return;
 
     // The background path bypasses the route gates: check the licence here.
     if (!await d.hasCapability('meeting_notes', { userId, orgId })) return;
@@ -103,8 +120,6 @@ async function discoverUser(userId) {
 
     const session = await vaultSession(auth, userId);
     if (!session) return;
-    const meetingPrefs = d.meetingPrefs;
-    const prefs = await meetingPrefs.loadMeetingPrefs({ provider: 'teams', userId, orgId });
 
     const ended = await d.listRecentlyEndedTeamsMeetings({ session, lookbackHours: settings.lookbackHours });
     for (const m of ended) {
@@ -112,7 +127,7 @@ async function discoverUser(userId) {
         const decision = prefs.decide({
             ids: meetingPrefs.teamsIds({ eventId: m.eventId, seriesMasterId: m.seriesMasterId }),
             participantCount: meetingPrefs.participantCountOf(m),
-            fallback: true,
+            fallback: !!settings.autoImport,
         });
         if (!decision.record) continue;
         await d.teamsImportStore.seedJob({
@@ -262,10 +277,11 @@ async function processClaimedJob(job) {
     const settings = await d.resolveTeamsNotesSettings({ orgId: job.orgId, userId: job.userId });
     const meetingPrefs = d.meetingPrefs;
     const prefs = await meetingPrefs.loadMeetingPrefs({ provider: 'teams', userId: job.userId, orgId: job.orgId });
-    const excluded = prefs.opinionFor(
+    const opinion = prefs.opinionFor(
         meetingPrefs.teamsIds({ eventId: job.calendarEventId, seriesMasterId: job.seriesMasterId }),
-    ) === false;
-    if (!settings.autoImport || excluded) {
+    );
+    // An explicit opt-out always wins; with autoImport off an explicit opt-in is required.
+    if (opinion === false || (!settings.autoImport && opinion !== true)) {
         await d.teamsImportStore.updateJob(job.id, { status: 'skipped' });
         return;
     }

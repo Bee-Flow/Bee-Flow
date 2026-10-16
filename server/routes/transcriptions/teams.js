@@ -111,7 +111,8 @@ router.get('/teams-meetings', requireAuth, validate({ query: NO_QUERY }), async 
         let status;
         if (!m.organizerSelf) status = 'organizer_only';
         else if (excluded) status = 'excluded';
-        else if (settings.autoImport) status = 'will_import';
+        // An explicit "record" mark imports this meeting even with autoImport off.
+        else if (settings.autoImport || decision.reason === 'opted_in') status = 'will_import';
         else status = 'upcoming';
         return {
             ...m,
