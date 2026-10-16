@@ -941,8 +941,14 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'app_list_automations',
-            description: 'List the automations (automations) the app owner can wire into run_automation actions: id, title, description, active state, trigger kind, and — for agent_call automations — the input parameter names to map via inputMapping.',
-            parameters: { type: 'object', properties: {} },
+            description: 'List the automations (automations) the app owner can wire into run_automation actions: id, title, description, active state, trigger kind, and — for agent_call automations — the input parameter names to map via inputMapping. Returns at most 30 by default.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    query: { type: 'string', description: 'Only automations whose title or description contains this text (case-insensitive).' },
+                    limit: { type: 'integer', description: 'Max automations to return (default 30, max 100).' },
+                },
+            },
         },
     },
     {

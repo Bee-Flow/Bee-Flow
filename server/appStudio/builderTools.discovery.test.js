@@ -15,6 +15,7 @@ const Module = require('module');
 
 // The tools only touch the stores when persisting; these calls are read-only or
 // adopt in memory, so a thin stub is enough to keep a DB pool from opening.
+let automationRows = [];
 const MOCKS = {
     '../../stores/studioAppStore': {
         createStudioApp: async () => ({ id: 'app-1', definitionVersion: 1 }),
@@ -22,7 +23,7 @@ const MOCKS = {
         saveDefinition: async () => ({ ok: true, version: 2 }),
         syncAppMeta: async () => {},
     },
-    '../../stores/automationStore': { getAutomationsForUser: async () => [] },
+    '../../stores/automationStore': { getAutomationsForUser: async () => automationRows },
     '../../stores/userStore': { getUser: async () => ({ id: 'u1' }) },
 };
 const MOCK_IDS = {};
@@ -111,10 +112,11 @@ test('screenId returns one screen, and implies a screens-only read', async () =>
     assert.ok(!r.draft.includes('actions:'));
 });
 
-test('an unknown screenId says so instead of returning an empty string', async () => {
-    const { wrap } = await builtWrap();
+test('an unknown screenId is an error that lists the known screens', async () => {
+    const { wrap, secondScreenId } = await builtWrap();
     const r = await applyToolCall('app_get_draft', { screenId: 'scr_nope' }, wrap);
-    assert.match(r.draft, /no screen scr_nope/);
+    assert.match(r.error, /scr_nope/);
+    assert.match(r._fixHint, new RegExp(secondScreenId));
 });
 
 test('section:"tables" renders the data block the plain read leaves out', async () => {
@@ -185,10 +187,75 @@ test('screenId narrows the search to one screen', async () => {
 
 test('no matches is an answer, not an error — a speculative check costs nothing', async () => {
     const { wrap } = await builtWrap();
+    wrap.dataModel = { tables: [{ id: 'tbl_meas', key: 'measurements', fields: [] }] };
     const r = await applyToolCall('app_find_nodes', { tableId: 'tbl_unused' }, wrap);
     assert.ok(!r.error);
     assert.strictEqual(r.hitCount, 0);
-    assert.match(r.note, /Safe to remove/);
+    assert.doesNotMatch(r.note, /Safe to remove/i);
+    assert.match(r.note, /not a table of this app/);
+});
+
+test('an existing but unused table or variable is reported as safe to remove; a typo is not', async () => {
+    const wrap = freshWrap();
+    wrap.dataModel = { tables: [{ id: 'tbl_idle', key: 'idle', fields: [] }] };
+    wrap.def.variables = [{ name: 'idleVar', type: 'text' }];
+    const table = await applyToolCall('app_find_nodes', { tableId: 'tbl_idle' }, wrap);
+    assert.match(table.note, /safe to remove/);
+    const variable = await applyToolCall('app_find_nodes', { variable: 'idleVar' }, wrap);
+    assert.match(variable.note, /safe to remove/);
+    const typo = await applyToolCall('app_find_nodes', { variable: 'idleVa' }, wrap);
+    assert.doesNotMatch(typo.note, /safe to remove/);
+    assert.match(typo.note, /not declared/);
+});
+
+test('app_find_nodes matches a table by its key as well as its tbl_ id', async () => {
+    const wrap = freshWrap();
+    wrap.dataModel = { tables: [{ id: 'tbl_a1', key: 'orders', fields: [] }] };
+    await applyToolCall('app_set_action', {
+        action: { kind: 'sequence', steps: [{ kind: 'create_record', tableId: 'orders', values: {} }] },
+    }, wrap);
+    const byKey = await applyToolCall('app_find_nodes', { tableId: 'orders' }, wrap);
+    assert.strictEqual(byKey.hitCount, 1);
+    const byId = await applyToolCall('app_find_nodes', { tableId: 'tbl_a1' }, wrap);
+    assert.strictEqual(byId.hitCount, 1, 'an action that names the key is found by the id');
+});
+
+test('app_find_nodes with no data model loaded never says safe to remove', async () => {
+    const wrap = freshWrap();
+    const r = await applyToolCall('app_find_nodes', { tableId: 'tbl_any' }, wrap);
+    assert.strictEqual(r.hitCount, 0);
+    assert.doesNotMatch(r.note, /safe to remove/i);
+    assert.match(r.note, /not loaded/);
+});
+
+test('app_list_automations filters by text and limits the list', async () => {
+    const wrap = freshWrap();
+    automationRows = Array.from({ length: 40 }, (_, i) => ({ id: `a${i}`, title: i === 7 ? 'Weekly report' : `Task ${i}`, description: '', isActive: true }));
+    try {
+        const all = await applyToolCall('app_list_automations', {}, wrap);
+        assert.strictEqual(all.automations.length, 30);
+        assert.strictEqual(all.total, 40);
+        const some = await applyToolCall('app_list_automations', { query: 'WEEKLY' }, wrap);
+        assert.deepStrictEqual(some.automations.map((a) => a.id), ['a7']);
+        assert.strictEqual(some.truncated, undefined);
+        const two = await applyToolCall('app_list_automations', { limit: 2 }, wrap);
+        assert.strictEqual(two.automations.length, 2);
+    } finally { automationRows = []; }
+});
+
+test('app_find_nodes reads componentType case-insensitively, like app_inspect_catalog', async () => {
+    const { wrap } = await builtWrap();
+    const r = await applyToolCall('app_find_nodes', { componentType: 'DATA_GRID' }, wrap);
+    assert.ok(!r.error);
+    assert.strictEqual(r.hitCount, 2);
+});
+
+test('app_inspect_catalog: junk and duplicate names do not use up the cap', async () => {
+    const junk = Array.from({ length: 10 }, (_, i) => `nope${i}`);
+    const r = await applyToolCall('app_inspect_catalog', { components: [...junk, 'list', 'list', 'data_grid'] }, freshWrap());
+    assert.deepStrictEqual(Object.keys(r.components).sort(), ['data_grid', 'list']);
+    assert.strictEqual(r.note, undefined);
+    assert.strictEqual(r.unknown.length, 10);
 });
 
 test('a query with no criteria is refused with a usable hint', async () => {
@@ -200,7 +267,7 @@ test('a query with no criteria is refused with a usable hint', async () => {
 
 test('an unknown component type lists the valid ones instead of returning nothing', async () => {
     const { wrap } = await builtWrap();
-    const r = await applyToolCall('app_find_nodes', { componentType: 'graph' }, wrap);
+    const r = await applyToolCall('app_find_nodes', { componentType: 'nonsense' }, wrap);
     assert.match(r.error, /Unknown component type/);
     assert.match(r._fixHint, /data_grid/);
 });

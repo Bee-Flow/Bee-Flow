@@ -170,7 +170,7 @@ async function _applyToolCallRaw(name, args, draftWrap) {
         case 'app_get_draft':         return applyGetDraft(draftWrap, args);
         case 'app_find_nodes':        return applyFindNodes(draftWrap, args);
         case 'app_inspect_catalog':   return applyInspectCatalog(args);
-        case 'app_list_automations':  return applyListAutomations(draftWrap);
+        case 'app_list_automations':  return applyListAutomations(draftWrap, args);
         case 'app_inspect_automation': return applyInspectAutomation(draftWrap, args);
         case 'app_propose_plan':      return applyProposePlan(draftWrap, args);
         case 'app_mark_phase':        return applyMarkPhase(draftWrap, args);

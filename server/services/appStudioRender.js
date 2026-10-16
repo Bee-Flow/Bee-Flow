@@ -464,8 +464,8 @@ function defaultDeps() {
     };
 }
 
-function unavailable(reason) {
-    return { ok: false, unavailable: true, reason };
+function unavailable(reason, code) {
+    return { ok: false, unavailable: true, reason, ...(code ? { code } : {}) };
 }
 
 /**
@@ -504,7 +504,7 @@ async function renderAppScreenshot({ app = null, definition = null, model = null
 
         const bundle = await d.readBundle();
         if (!bundle || !bundle.js || !bundle.css) {
-            return unavailable('the app runtime bundle is not in this build');
+            return unavailable('the app runtime bundle is not in this build', 'no_renderer');
         }
 
         // Owner renders as the owner; asRole renders as a synthetic non-owner
