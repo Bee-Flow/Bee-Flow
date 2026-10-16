@@ -1,5 +1,7 @@
 import { AppWindow, BookOpen, ChevronDown, Plus, Workflow, X } from 'lucide-react';
 import React, { useRef, useState } from 'react';
+import type { ChangeEvent } from 'react';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 import useTranslation from '../../../../hooks/useTranslation';
 import { useIntegrationStatus } from '../../../../hooks/useIntegrationStatus';
 import AnchoredMenu from '../../../shared/AnchoredMenu';
@@ -8,7 +10,10 @@ import { kindColorVar } from '../../../shared/kindColors';
 import { INTEGRATION_CATALOG } from '../../../agents/AgentDesigner/integrations';
 import { ALWAYS_AVAILABLE, filterAvailableIntegrations } from '../../../agents/AgentDesigner/integrationAvailability';
 import AppsPicker from '../../../agents/AgentWizard/pickers/AppsPicker';
+import type { CanUseCardProps, Pickable, PillProps } from './CanUseCard.types';
+import type { SkillIdField } from './skillModel.types';
 import { readListStatus } from './useSkillPickerData';
+import type { PickerAutomation, PickerKnowledgeBase } from './useSkillPickerData';
 
 /**
  * "May use" — everything a skill is allowed to reach while it is active
@@ -74,11 +79,11 @@ export default function CanUseCard({
     listStatus = null,
     onChange,
     readOnly = false,
-}) {
+}: CanUseCardProps) {
     const { t } = useTranslation();
     const [showApps, setShowApps] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
-    const anchorRef = useRef(null);
+    const anchorRef = useRef<HTMLButtonElement>(null);
 
     const { integrationStatus, unavailable: appsUnavailable } = useIntegrationStatus();
     // BOTH kinds of "we do not know" narrow, not just the failed read.
@@ -106,23 +111,23 @@ export default function CanUseCard({
     const allowedIds = Array.isArray(allowedAutomationIds) ? allowedAutomationIds : [];
     const kbs = Array.isArray(knowledgeBaseIds) ? knowledgeBaseIds : [];
 
-    const toggleIn = (field, current, id) => {
-        const next = current.includes(id) ? current.filter(x => x !== id) : [...current, id];
+    const toggleIn = (field: SkillIdField, current: string[], id: string) => {
+        const next = current.includes(id) ? current.filter((x: string) => x !== id) : [...current, id];
         onChange({ [field]: next });
     };
 
-    const nameOf = (rows, id, fallbackKey, fallbackEn) => {
-        const hit = rows.find(r => String(r.id) === String(id));
+    const nameOf = (rows: { id: string | number; name?: string; title?: string }[], id: string, fallbackKey: string, fallbackEn: string) => {
+        const hit = rows.find((r: { id: string | number }) => String(r.id) === String(id));
         return hit?.name || hit?.title || t(fallbackKey, fallbackEn, { id }) || id;
     };
 
-    const pickable = [
+    const pickable: Pickable[] = [
         ...automations
-            .filter(a => !allowedIds.includes(String(a.id)))
-            .map(a => ({ group: 'automation', id: String(a.id), label: a.title || a.name || a.id })),
+            .filter((a: PickerAutomation) => !allowedIds.includes(String(a.id)))
+            .map((a: PickerAutomation): Pickable => ({ group: 'automation', id: String(a.id), label: a.title || a.name || a.id })),
         ...knowledgeBases
-            .filter(k => !kbs.includes(String(k.id)))
-            .map(k => ({ group: 'kb', id: String(k.id), label: k.name || k.id })),
+            .filter((k: PickerKnowledgeBase) => !kbs.includes(String(k.id)))
+            .map((k: PickerKnowledgeBase): Pickable => ({ group: 'kb', id: String(k.id), label: k.name || k.id })),
     ];
 
     return (
@@ -137,7 +142,7 @@ export default function CanUseCard({
             </div>
 
             <div className="flex flex-wrap gap-1.5">
-                {apps.map((id) => {
+                {apps.map((id: string) => {
                     const item = INTEGRATION_CATALOG.find(a => a.id === id);
                     return (
                         <Pill
@@ -152,7 +157,7 @@ export default function CanUseCard({
                         />
                     );
                 })}
-                {allowedIds.map((id) => (
+                {allowedIds.map((id: string) => (
                     <Pill
                         key={`aut:${id}`}
                         testid="skill-grant"
@@ -164,7 +169,7 @@ export default function CanUseCard({
                         t={t}
                     />
                 ))}
-                {kbs.map((id) => (
+                {kbs.map((id: string) => (
                     <Pill
                         key={`kb:${id}`}
                         testid="skill-grant"
@@ -218,7 +223,7 @@ export default function CanUseCard({
                                 gap={menuGap}
                                 empty={pickable.length === 0}
                             />
-                            {pickable.map((row) => (
+                            {pickable.map((row: Pickable) => (
                                 <button
                                     key={`${row.group}:${row.id}`}
                                     type="button"
@@ -286,7 +291,7 @@ export default function CanUseCard({
                             type="checkbox"
                             checked={!!dynamicActivation}
                             disabled={readOnly}
-                            onChange={(e) => onChange({ dynamicActivation: e.target.checked })}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => onChange({ dynamicActivation: e.target.checked })}
                             data-testid="skill-dynamic"
                             className="mt-0.5"
                         />
@@ -316,7 +321,7 @@ export default function CanUseCard({
                     items={availableApps}
                     enabled={apps}
                     onClose={() => setShowApps(false)}
-                    onToggle={(id) => toggleIn('enabledIntegrations', apps, id)}
+                    onToggle={(id: string) => toggleIn('enabledIntegrations', apps, id)}
                 />
             )}
         </section>
@@ -333,8 +338,8 @@ export default function CanUseCard({
  * No plural pair: the sentence lists names and reads the same for one name
  * or three (studio.attention.unavailable_named keeps the same rule).
  */
-function namesOfGaps(t, appsUnavailable, unreadLists) {
-    const names = [];
+function namesOfGaps(t: TranslateFn, appsUnavailable: boolean, unreadLists: string[]) {
+    const names: string[] = [];
     if (appsUnavailable) names.push(t('skills_studio.canuse.gap.apps', 'apps'));
     if (unreadLists.includes('automations')) names.push(t('skills_studio.canuse.gap.automations', 'automations'));
     if (unreadLists.includes('kbs')) names.push(t('skills_studio.canuse.gap.kbs', 'knowledge bases'));
@@ -346,7 +351,7 @@ function namesOfGaps(t, appsUnavailable, unreadLists) {
  * the pair this menu exists to keep apart: "still asking" and "we could not
  * ask" are neither of them "you have nothing to link".
  */
-function MenuStatus({ t, loaded, gap, empty }) {
+function MenuStatus({ t, loaded, gap, empty }: { t: TranslateFn; loaded: boolean; gap: boolean; empty: boolean }) {
     if (!loaded) {
         return (
             <p className="px-3 py-2 m-0 text-xs text-[var(--text-tertiary)]" data-testid="skill-grant-loading">
@@ -369,7 +374,7 @@ function MenuStatus({ t, loaded, gap, empty }) {
     );
 }
 
-function Pill({ testid, kind, Icon, color, label, onRemove, t }) {
+function Pill({ testid, kind, Icon, color, label, onRemove, t }: PillProps) {
     return (
         <span
             data-testid={testid}

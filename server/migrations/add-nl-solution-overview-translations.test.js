@@ -39,7 +39,7 @@ const SCREEN_FILES = [
     path.join(HUB, 'admin', 'Studio', 'Solutions', 'SolutionsOverviewParts.tsx'),
     path.join(HUB, 'admin', 'Studio', 'Solutions', 'SolutionCard.tsx'),
     path.join(HUB, 'admin', 'Studio', 'Solutions', 'SolutionCardParts.tsx'),
-    path.join(HUB, 'admin', 'Studio', 'Solutions', 'solutionCounts.js'),
+    path.join(HUB, 'admin', 'Studio', 'Solutions', 'solutionCounts.ts'),
 ];
 
 /**

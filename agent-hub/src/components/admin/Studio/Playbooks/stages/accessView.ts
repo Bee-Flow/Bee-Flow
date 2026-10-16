@@ -8,12 +8,41 @@
  * would actually let someone see, and the Approve button went grey with no
  * reason given. This module is the words that fix that.
  */
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { AccessMember, AccessPlan, AccessRole, AccessTable, AccessTableRule } from './accessApply';
+
+/** The part of the app the wording reads. */
+interface AccessApp {
+    isPublished?: boolean;
+    sharedGroups?: unknown[];
+}
+
+/** A group or a person of the directory, as far as the wording reads them. */
+interface Named {
+    id: string;
+    name?: string;
+    email?: string;
+}
+
+/** What the role wording looks things up in. */
+interface RoleNaming {
+    roles?: AccessRole[];
+    planRoles?: AccessRole[];
+    tables?: AccessTable[];
+    planRules?: AccessTableRule[];
+}
+
+/** One change Approve would make. */
+export interface PlannedChange {
+    kind: string;
+    words: string;
+}
 
 /** The roles every app has, whatever its model says. */
 export const BUILTIN_ROLES = ['app', 'member'];
 
 /** Where the app stands right now, before anything on this screen is applied. */
-export function currentAccess(app, members = [], t) {
+export function currentAccess(app: AccessApp | null | undefined, members: unknown[] = [], t: TranslateFn) {
     const published = !!(app && app.isPublished);
     const groups = (app && Array.isArray(app.sharedGroups) ? app.sharedGroups : []);
     const named = (Array.isArray(members) ? members : []).length;
@@ -44,7 +73,7 @@ export function currentAccess(app, members = [], t) {
  * rule — the whole reason the per-supplier roles exist — was visible only on
  * the AI's proposal and nowhere else.
  */
-export function roleWords(roleKey, { roles = [], planRoles = [], tables = [], planRules = [] }, t) {
+export function roleWords(roleKey: string | null | undefined, { roles = [], planRoles = [], tables = [], planRules = [] }: RoleNaming, t: TranslateFn): string {
     if (!roleKey) return t('playbooks.access.role_none_words', 'No access');
     if (roleKey === 'app') return t('playbooks.access.role_app', 'Can use the app');
     if (roleKey === 'member') return t('playbooks.access.role_member', 'Member');
@@ -63,15 +92,15 @@ export function roleWords(roleKey, { roles = [], planRoles = [], tables = [], pl
 }
 
 /** `record.supplier == "ACME"` as a sentence. Anything else stays as it is. */
-export function ruleWords(expr, t) {
+export function ruleWords(expr: unknown, t: TranslateFn): string {
     const m = /^record\.([A-Za-z][A-Za-z0-9_]*)\s*==\s*"(.*)"$/.exec(String(expr || '').trim());
     if (!m) return String(expr || '');
     return t('playbooks.access.role_scope', 'sees only rows where {column} is {value}', { column: m[1], value: m[2] });
 }
 
 /** Every role that can be handed out, with what it means. */
-export function roleOptions({ roles = [], planRoles = [] }, t) {
-    const seen = new Set();
+export function roleOptions({ roles = [], planRoles = [] }: Pick<RoleNaming, 'roles' | 'planRoles'>, t: TranslateFn): Array<{ key: string; label: string }> {
+    const seen = new Set<string>();
     const out = [{ key: 'app', label: t('playbooks.access.role_app', 'Can use the app') }];
     seen.add('app');
     for (const r of [...roles, ...planRoles]) {
@@ -89,15 +118,15 @@ export function roleOptions({ roles = [], planRoles = [] }, t) {
  * The gate used to show a single run-on summary; this is the list a person
  * reads before they press a button that publishes an app and hands out access.
  */
-export function plannedChanges(plan, { groups = [], users = [], app = null, roles = [] }, t) {
-    const out = [];
+export function plannedChanges(plan: AccessPlan | null | undefined, { groups = [], users = [], app = null, roles = [] }: { groups?: Named[]; users?: Named[]; app?: AccessApp | null; roles?: AccessRole[] }, t: TranslateFn): PlannedChange[] {
+    const out: PlannedChange[] = [];
     // A role KEY is an identifier ("supplier_acme"), not a word. The gate is the
     // sentence a person consents to, so it has to name the role the way the
     // screen above it does — the same call the people list already makes.
     const planRoles = (plan && plan.roles) || [];
     const planRules = (plan && plan.tableRules) || [];
     const naming = { roles, planRoles, tables: [], planRules };
-    const roleName = (key) => {
+    const roleName = (key: string): string => {
         const proposed = planRoles.find((r) => r.key === key);
         if (proposed && proposed.label) return proposed.label;
         const known = roles.find((r) => r.key === key);
@@ -140,7 +169,7 @@ export function plannedChanges(plan, { groups = [], users = [], app = null, role
 }
 
 /** Why Approve is grey. A disabled button with no reason is a dead end. */
-export function whyDisabled(plan, t) {
+export function whyDisabled(plan: AccessPlan | null | undefined, t: TranslateFn): string | null {
     if (!plan || plan.empty) return t('playbooks.access.why_empty', 'Choose who can open the app, or say it in a sentence above.');
     const a = plan.audience;
     if (a && a.kind === 'groups' && !(a.groupIds || []).length) return t('playbooks.access.why_no_group', 'Pick at least one group, or choose a different audience.');
@@ -155,7 +184,7 @@ export const ASK_EXAMPLES = Object.freeze([
 ]);
 
 /** People worth showing without searching: the ones who already have a role. */
-export function peopleToShow(users, { members = [], plan = null, query = '' }, limit = 8) {
+export function peopleToShow(users: Named[] | null | undefined, { members = [], plan = null, query = '' }: { members?: AccessMember[]; plan?: AccessPlan | null; query?: string }, limit = 8): Named[] {
     const list = Array.isArray(users) ? users : [];
     const q = String(query || '').trim().toLowerCase();
     const has = new Set([

@@ -1,5 +1,5 @@
 /**
- * The access phase's words and writes, held to the web's accessView.js and
+ * The access phase's words and writes, held to the web's accessView.ts and
  * accessApply.js on the same plans: where the app stands, every sentence the
  * gate lists before Approve, why Approve is grey, the publish body and the
  * summary the phase lands with. Also what the phone applies itself, and what
@@ -18,7 +18,7 @@ import { ASK_EXAMPLES, currentAccess, plannedChanges, roleWords, ruleWords, whyD
 import type { AccessPlan } from './types';
 
 const DIR = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Playbooks/stages');
-const describeIfWeb = fs.existsSync(path.join(DIR, 'accessView.js')) ? describe : describe.skip;
+const describeIfWeb = fs.existsSync(path.join(DIR, 'accessView.ts')) ? describe : describe.skip;
 
 type Fn = (...args: unknown[]) => unknown;
 const t = (_k: string, en: string, p: Record<string, unknown> = {}) => en.replace(/\{(\w+)\}/g, (m, n: string) => (n in p ? String(p[n]) : m));
@@ -47,7 +47,7 @@ const USERS = [{ id: 'u2', name: 'Cas' }];
 const ROLES = [{ key: 'approver', label: 'Approver' }];
 
 describeIfWeb('the access words match the web', () => {
-    const view = () => loadWebModule<Record<string, Fn>>(path.join(DIR, 'accessView.js'));
+    const view = () => loadWebModule<Record<string, Fn>>(path.join(DIR, 'accessView.ts'));
     const apply = () => loadWebModule<Record<string, Fn>>(path.join(DIR, 'accessApply.ts'));
 
     it('says where the app stands the same way', () => {

@@ -3,12 +3,13 @@ import { authFetch } from '../../../../utils/helpers';
 
 export type RemoteStatus = 'idle' | 'loading' | 'ok' | 'error';
 
-export interface RemoteState {
+/** `T` is the body shape the route promises; callers that read the body name it. */
+export interface RemoteState<T = unknown> {
     status: RemoteStatus;
-    data: unknown;
+    data: T | null;
 }
 
-interface KeyedRemoteState extends RemoteState {
+interface KeyedRemoteState<T> extends RemoteState<T> {
     key: string | null;
 }
 
@@ -32,19 +33,19 @@ interface KeyedRemoteState extends RemoteState {
  * (`data` is the parsed body), `error` (asked and it did not work — `data`
  * stays null so a caller cannot accidentally render a half-answer).
  */
-export async function readJson(res: Response): Promise<unknown> {
+export async function readJson<T = unknown>(res: Response): Promise<T | null> {
     try { return await res.json(); } catch { return null; }
 }
 
-export default function useRemote(url: string | null | undefined, enabled?: boolean): RemoteState {
-    const [state, setState] = useState<KeyedRemoteState>({ key: null, status: 'idle', data: null });
+export default function useRemote<T = unknown>(url: string | null | undefined, enabled?: boolean): RemoteState<T> {
+    const [state, setState] = useState<KeyedRemoteState<T>>({ key: null, status: 'idle', data: null });
     useEffect(() => {
         if (!enabled || !url) return undefined;
         let stopped = false;
         (async () => {
             try {
                 const res = await authFetch(url);
-                const body = await readJson(res);
+                const body = await readJson<T>(res);
                 if (stopped) return;
                 setState({ key: url, status: res.ok ? 'ok' : 'error', data: res.ok ? body : null });
             } catch {

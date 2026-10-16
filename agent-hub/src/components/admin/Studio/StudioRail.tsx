@@ -1,9 +1,12 @@
 import { ArrowLeft, Lock, Search, ShieldCheck } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { groupStudioApps, studioLockHint } from './studioApps';
 import { studioSectionLabel } from './studioNav';
 import { STUDIO_START } from './studioStart';
+import type { StudioAppDescriptor } from './studioRegistry';
 import { countFor } from '../../../hooks/useStudioCounts';
+import type { StudioCounts } from '../../../hooks/useStudioCounts';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { kindColorVar } from '../../shared/kindColors';
 import SidebarFooter from '../../shell/sidebar/SidebarFooter';
@@ -58,7 +61,7 @@ function StudioMark() {
  * the first poll lands and for every key the server omitted, and a row that
  * fills that silence with a 0 is making a claim it cannot support.
  */
-function RailRowMeta({ locked, count, testId }) {
+function RailRowMeta({ locked, count, testId }: { locked?: boolean; count?: number; testId: string }) {
     if (locked) {
         return <Lock className="w-3.5 h-3.5 flex-shrink-0 mt-1 text-[var(--text-tertiary)]" strokeWidth={1.75} aria-hidden="true" data-testid={`${testId}-lock`} />;
     }
@@ -70,8 +73,49 @@ function RailRowMeta({ locked, count, testId }) {
     );
 }
 
+interface RailRowProps {
+    label: string;
+    Icon?: LucideIcon;
+    iconColor?: string;
+    count?: number;
+    locked?: boolean;
+    lockHint?: string;
+    active?: boolean;
+    onClick?: () => void;
+    testId: string;
+    tourId?: string;
+}
+
+/** A section as resolveStudioNav hands it over: the registry row plus its lock. */
+interface RailSection extends StudioAppDescriptor {
+    locked?: string | null;
+    runtime?: boolean;
+}
+
+/** The account footer is the sidebar's: its props arrive here unchanged. */
+type FooterProps = React.ComponentProps<typeof SidebarFooter>;
+
+interface StudioRailProps {
+    sections?: readonly RailSection[];
+    studioCounts?: StudioCounts | null;
+    activeSection?: string | null;
+    onNavigate: (page: string) => void;
+    user?: FooterProps['user'];
+    onLogout: FooterProps['onLogout'];
+    currentPage?: string;
+    showSettings?: boolean;
+    isMobile?: boolean;
+    simpleMode?: boolean;
+    profileRef: FooterProps['profileRef'];
+    showProfileMenu: boolean;
+    setShowProfileMenu: FooterProps['setShowProfileMenu'];
+    canBrowseApprovals?: boolean;
+    pendingApprovalCount?: number;
+    showStart?: boolean;
+}
+
 /** One rail row. Same behaviour contract as FlyoutRow, different active skin. */
-function RailRow({ label, Icon, iconColor, count, locked, lockHint, active, onClick, testId, tourId }) {
+function RailRow({ label, Icon, iconColor, count, locked, lockHint, active, onClick, testId, tourId }: RailRowProps) {
     return (
         <button
             type="button"
@@ -124,7 +168,7 @@ export default function StudioRail({
     // The Start row: a builder's dashboard. Someone who has Studio for the
     // sections their role opens (not a builder) gets just those sections.
     showStart = true,
-}) {
+}: StudioRailProps) {
     const { t, locale } = useTranslation();
     const [searchOpen, setSearchOpen] = useState(false);
 
@@ -147,7 +191,7 @@ export default function StudioRail({
        stopPropagation) and the owner's own bubble-phase listener runs. The
        rail's search is not lost: it is a visible row on the rail itself. */
     useEffect(() => {
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
             if (String(e.key || '').toLowerCase() !== 'k') return;
             // Checked per keystroke, not once on mount: the builder mounts and

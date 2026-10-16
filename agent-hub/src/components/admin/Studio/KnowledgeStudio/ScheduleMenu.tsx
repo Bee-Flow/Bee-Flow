@@ -2,6 +2,31 @@ import { Check } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import useTranslation from '../../../../hooks/useTranslation';
 import AnchoredMenu from '../../../shared/AnchoredMenu';
+import type { AnchoredMenuProps } from '../../../shared/AnchoredMenu';
+
+/** What the menu hands back: a refresh mode, and for a schedule its cron and zone. */
+export interface ScheduleChange {
+    mode: string;
+    cron?: string;
+    tz?: string;
+}
+
+/** The fields of a source the menu reads. */
+interface ScheduleSource {
+    supportsModes?: string[];
+    refreshMode?: string;
+    refreshCron?: string | null;
+    refreshTz?: string | null;
+}
+
+interface ScheduleMenuProps {
+    open?: boolean;
+    onClose?: (() => void) | null;
+    anchorRef?: AnchoredMenuProps['anchorRef'];
+    source?: ScheduleSource | null;
+    onChange?: ((next: ScheduleChange) => unknown) | null;
+    align?: AnchoredMenuProps['align'];
+}
 
 /**
  * How often should this source fetch itself? (Knowledge artboard 1a's ⋯ menu
@@ -48,12 +73,12 @@ export function browserTimezone() {
  * as one of the presets — a menu that mislabels the schedule it is about to
  * overwrite is worse than one that admits it does not recognise it.
  */
-export function presetFor(cron) {
+export function presetFor(cron: string | null | undefined) {
     const c = String(cron || '').trim();
     return CRON_PRESETS.find(p => p.cron === c) || null;
 }
 
-export default function ScheduleMenu({ open, onClose, anchorRef, source, onChange, align = 'right' }) {
+export default function ScheduleMenu({ open, onClose, anchorRef, source, onChange, align = 'right' }: ScheduleMenuProps) {
     const { t } = useTranslation();
     const [busy, setBusy] = useState(false);
     const tz = useMemo(browserTimezone, []);
@@ -64,7 +89,7 @@ export default function ScheduleMenu({ open, onClose, anchorRef, source, onChang
     const mode = source?.refreshMode || 'manual';
     const preset = presetFor(source?.refreshCron);
 
-    const choose = async (next) => {
+    const choose = async (next: ScheduleChange) => {
         setBusy(true);
         try { await onChange?.(next); onClose?.(); }
         finally { setBusy(false); }
@@ -134,7 +159,7 @@ export default function ScheduleMenu({ open, onClose, anchorRef, source, onChang
  * says what will happen. Two registers, so two key namespaces; sharing one
  * would force whichever screen lost the argument to read wrong.
  */
-const MODE_EN = Object.freeze({
+const MODE_EN: Readonly<Record<string, string>> = Object.freeze({
     manual: 'Only when I ask',
     schedule: 'On a schedule',
     on_change: 'When it changes',
@@ -142,7 +167,7 @@ const MODE_EN = Object.freeze({
     live: 'Live — always current',
 });
 
-function Row({ children, selected, disabled, onClick }) {
+function Row({ children, selected, disabled, onClick }: { children: React.ReactNode; selected: boolean; disabled: boolean; onClick: () => void }) {
     return (
         <button
             type="button"

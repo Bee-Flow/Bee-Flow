@@ -1,10 +1,12 @@
 import { Check, ChevronDown, Sparkles, TriangleAlert, Zap } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 import useRelativeTime from '../../../../hooks/useRelativeTime';
 import useTranslation from '../../../../hooks/useTranslation';
 import AnchoredMenu from '../../../shared/AnchoredMenu';
 import { kindColorVar } from '../../../shared/kindColors';
 import { SORT_MODES, isEmptySkill, metaLine, sortSkills, testChip, testChipColor, usageSubline } from './skillModel';
+import type { SortMode, Skill, UsageSummary, UsageSummaryMap } from './skillModel.types';
 
 /**
  * "All skills" — the landing with no skill selected (Skills artboard 1c,
@@ -43,6 +45,16 @@ import { SORT_MODES, isEmptySkill, metaLine, sortSkills, testChip, testChipColor
  * every referenced table's name for a line nobody sorts by. Recorded
  * deviations.
  */
+interface SkillsOverviewProps {
+    skills?: Skill[] | null;
+    summary?: UsageSummaryMap | null;
+    loading?: boolean;
+    error?: string | null;
+    query?: string;
+    onOpen?: (id: string) => void;
+    onImprove?: ((id: string) => void) | null;
+}
+
 export default function SkillsOverview({
     skills,
     summary = null,
@@ -53,10 +65,10 @@ export default function SkillsOverview({
     query = '',
     onOpen,
     onImprove = null,
-}) {
+}: SkillsOverviewProps) {
     const { t } = useTranslation();
     const rel = useRelativeTime();
-    const [mode, setMode] = useState('used');
+    const [mode, setMode] = useState<SortMode>('used');
     const rows = useMemo(() => sortSkills(skills, mode, summary), [skills, mode, summary]);
     const filtering = String(query || '').trim() !== '';
 
@@ -127,7 +139,7 @@ export default function SkillsOverview({
                     </div>
                 )}
 
-                {rows.map((skill) => (
+                {rows.map((skill: Skill) => (
                     <OverviewRow
                         key={skill.id}
                         skill={skill}
@@ -143,15 +155,15 @@ export default function SkillsOverview({
     );
 }
 
-const SORT_LABEL = {
+const SORT_LABEL: Record<SortMode, { key: string; en: string }> = {
     used: { key: 'skills_studio.sort.used', en: 'most used' },
     recent: { key: 'skills_studio.sort.recent', en: 'last used' },
     name: { key: 'skills_studio.sort.name', en: 'name' },
 };
 
-function SortMenu({ mode, onMode, t }) {
+function SortMenu({ mode, onMode, t }: { mode: SortMode; onMode: (mode: SortMode) => void; t: TranslateFn }) {
     const [open, setOpen] = useState(false);
-    const anchorRef = useRef(null);
+    const anchorRef = useRef<HTMLButtonElement>(null);
     const label = t(SORT_LABEL[mode].key, SORT_LABEL[mode].en);
     return (
         <div className="ml-auto">
@@ -177,7 +189,7 @@ function SortMenu({ mode, onMode, t }) {
                 aria-label={t('skills_studio.sort.aria', 'Sort skills')}
                 className="py-1"
             >
-                {SORT_MODES.map((value) => (
+                {SORT_MODES.map((value: SortMode) => (
                     <button
                         key={value}
                         type="button"
@@ -199,7 +211,16 @@ function SortMenu({ mode, onMode, t }) {
     );
 }
 
-function OverviewRow({ skill, summary, onOpen, onImprove, rel, t }) {
+interface OverviewRowProps {
+    skill: Skill;
+    summary?: UsageSummary;
+    onOpen?: (id: string) => void;
+    onImprove?: ((id: string) => void) | null;
+    rel: ReturnType<typeof useRelativeTime>;
+    t: TranslateFn;
+}
+
+function OverviewRow({ skill, summary, onOpen, onImprove, rel, t }: OverviewRowProps) {
     const empty = isEmptySkill(skill);
     const chip = testChip(skill.lastTest, t);
     const usedBy = usageSubline(skill, summary, t);

@@ -1,3 +1,14 @@
+import type { SchemaProp } from '../../../automation/Builder/mapping/toolInput/toolInputHelpers';
+
+/** One field of an output schema; `x-unit` is the unit a field is measured in. */
+export type OutputSchemaProp = SchemaProp & { 'x-unit'?: string };
+
+/** A skill's `output_schema`: JSON Schema (`properties`), or the flat `{ name: 'string' }` form. */
+export interface OutputSchema {
+    properties?: Record<string, OutputSchemaProp>;
+    [key: string]: unknown;
+}
+
 export interface StepRef { kind: string; id: string }
 export interface Step { id: string; text: string; refs: StepRef[] }
 export interface Rule { id: string; polarity: string; text: string }
@@ -44,7 +55,7 @@ export interface Skill {
     steps?: (RawStep | null)[] | null;
     rulesV2?: RawRule[] | null;
     examplesV2?: (RawExample | null)[] | null;
-    outputSchema?: unknown;
+    outputSchema?: OutputSchema | null;
     knowledgeBaseIds?: string[] | null;
     allowedAutomationIds?: string[] | null;
     lastUsedAt?: string | null;
@@ -77,7 +88,7 @@ export interface SkillDraft {
     steps: Step[];
     rulesV2: Rule[];
     examplesV2: Example[];
-    outputSchema: unknown;
+    outputSchema: OutputSchema | null;
     knowledgeBaseIds: string[];
     allowedAutomationIds: string[];
 }

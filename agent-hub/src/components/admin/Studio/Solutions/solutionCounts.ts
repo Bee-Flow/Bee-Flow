@@ -1,3 +1,4 @@
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { nOf } from '../KnowledgeStudio/plural';
 
 /**
@@ -50,9 +51,11 @@ export const COUNTED_SECTIONS = Object.freeze([
     { section: 'notebooks', kind: 'meeting' },
     { section: 'skills', kind: 'skill' },
     { section: 'documentTemplates', kind: 'document' },
-]);
+] as const);
 
-const COUNT_PHRASE = {
+export type CountedSection = (typeof COUNTED_SECTIONS)[number]['section'];
+
+const COUNT_PHRASE: Record<string, (t: TranslateFn, n: unknown) => string> = {
     automations: (t, n) => nOf(t, 'solutions.install_count_automations', n, '{count} automation', '{count} automations'),
     apps: (t, n) => nOf(t, 'solutions.install_count_apps', n, '{count} app', '{count} apps'),
     webpages: (t, n) => nOf(t, 'solutions.install_count_webpages', n, '{count} page', '{count} pages'),
@@ -65,12 +68,14 @@ const COUNT_PHRASE = {
 };
 
 /** The counted phrase for one section, or null for a section with no phrase. */
-export function countPhrase(t, section, count) {
+export function countPhrase(t: TranslateFn, section: CountedSection, count: unknown): string;
+export function countPhrase(t: TranslateFn, section: string, count: unknown): string | null;
+export function countPhrase(t: TranslateFn, section: string, count: unknown) {
     const phrase = COUNT_PHRASE[section];
     return phrase ? phrase(t, count) : null;
 }
 
 /** Does this section have a counted phrase at all? */
-export function hasCountPhrase(section) {
+export function hasCountPhrase(section: string) {
     return Object.prototype.hasOwnProperty.call(COUNT_PHRASE, section);
 }
