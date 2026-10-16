@@ -98,7 +98,7 @@ describe('no hand-rolled control styles in the builder', () => {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
             const p = path.join(dir, entry.name);
             if (entry.isDirectory()) walk(p, out);
-            else if (/\.jsx?$/.test(p) && !/\.test\./.test(p)) out.push(p);
+            else if (/\.[jt]sx?$/.test(p) && !/\.test\./.test(p)) out.push(p);
         }
         return out;
     };

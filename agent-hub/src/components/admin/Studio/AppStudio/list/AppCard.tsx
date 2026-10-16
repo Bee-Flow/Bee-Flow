@@ -100,7 +100,7 @@ function CardBody({ app, onUpgrade }: CardBodyProps) {
                     ) : null}
                 </div>
             </div>
-            <div className="flex items-center gap-2 text-[10px] text-[var(--text-tertiary)]">
+            <div className="flex items-center gap-2 text-[10px] text-[var(--text-secondary)]">
                 {app.isPublished ? <PublishedBadge /> : null}
                 <StoragePill ratio={app.usage?.dbRatio} />
                 <TemplateUpdatePill app={app} onUpgrade={onUpgrade} />

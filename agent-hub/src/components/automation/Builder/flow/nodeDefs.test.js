@@ -112,7 +112,7 @@ describe('nodeDefs — issue sections point at sections that exist', () => {
         const editorFiles = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
             const p = path.join(dir, e.name);
             if (e.isDirectory()) return editorFiles(p);
-            return e.name.endsWith('.jsx') && !e.name.includes('.test.') ? [p] : [];
+            return /\.[jt]sx$/.test(e.name) && !e.name.includes('.test.') ? [p] : [];
         });
         const src = [
             path.join(HERE, 'SettingsForm.jsx'),
