@@ -1,7 +1,17 @@
 import React from 'react';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { ColumnKindIcon } from '../ColumnKind';
 import { columnTypeKind, keyFromName } from '../datatableDisplay';
 import { CARD, INPUT, INPUT_STYLE } from '../linkWizardShared';
+import type { SheetSelection } from './wizardState';
+
+interface NamesStepProps {
+    t: TranslateFn;
+    selection: Map<string, SheetSelection>;
+    keyDup: string[];
+    marks: Map<string, string>;
+    onChange: (sheetKey: string, patch: Partial<SheetSelection>) => void;
+}
 
 /**
  * Step 3 of the link-spreadsheet wizard: what each table is called.
@@ -17,7 +27,7 @@ import { CARD, INPUT, INPUT_STYLE } from '../linkWizardShared';
  * on. An untouched key follows the name; two untouched keys that collide
  * are suffixed by the dialog, and only a typed collision is shown here.
  */
-export default function NamesStep({ t, selection, keyDup, marks, onChange }) {
+export default function NamesStep({ t, selection, keyDup, marks, onChange }: NamesStepProps) {
     return (
         <div className="space-y-3">
             {[...selection.values()].map((s) => {

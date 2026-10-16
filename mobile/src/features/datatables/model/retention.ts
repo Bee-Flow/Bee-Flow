@@ -1,6 +1,6 @@
 /**
  * How long a table keeps its rows — the pure half of the web's RetentionPanel
- * (agent-hub/src/components/admin/Studio/Datatables/RetentionPanel.jsx),
+ * (agent-hub/src/components/admin/Studio/Datatables/RetentionPanel.tsx),
  * pinned to it by retention.lockstep.test.ts.
  *
  * THE WINDOW AND THE COLUMN ARE ONE SETTING. PATCH /:id refuses a window that
