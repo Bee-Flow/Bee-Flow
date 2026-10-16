@@ -11,6 +11,13 @@ export interface BuildCueCall {
     ok?: boolean;
 }
 
+/** Where a phased build is: step `index` of `total` (unknown until the plan says), with its label. */
+export interface BuildPhaseInfo {
+    index?: number;
+    total?: number | null;
+    label?: string | null;
+}
+
 /** The live build, as the chat pane publishes it. */
 export interface BuildCueValue {
     running: boolean;
@@ -19,7 +26,7 @@ export interface BuildCueValue {
     lastCall: BuildCueCall | null;
     skipped: string | null;
     todos: BuilderTodo[];
-    phaseInfo: unknown;
+    phaseInfo: BuildPhaseInfo | null;
     engine: BuilderEngine | null;
     turn: BuilderTurn | null;
     toolDraft: Record<string, unknown> | null;
