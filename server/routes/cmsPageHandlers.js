@@ -12,8 +12,25 @@
 const cmsStore = require('../stores/cmsStore');
 const cmsTranslate = require('../core/cms/cmsTranslate');
 const { localeName } = require('./cmsSiteHandlers');
-const { HttpError } = require('../shared/httpErrors');
+const { HttpError, notFound } = require('../shared/httpErrors');
 const { clientRev } = require('../stores/cms/revision');
+
+/**
+ * 404 unless `pageId` is in this site's page list. A PageDoc (or locale
+ * override) written for an id the site does not list is an orphan: nothing
+ * links to it, and an id like `pg_x_locale_nl` would be read back as a locale
+ * override of `pg_x` by publishSite and the sitemap.
+ * The check runs before the write, not inside its lock: PUT /pages/:id closes the
+ * small window with its revision check (a deleted page is refused there), the
+ * locale route has none, so a delete landing in between can still leave one
+ * override row for the gone page.
+ */
+async function requirePageInSite(siteId, pageId) {
+    const site = await cmsStore.getProject(siteId, { fresh: true });
+    if (!site || !Array.isArray(site.pages) || !site.pages.some((p) => p.id === pageId)) {
+        throw notFound('page_not_found', 'Page not found');
+    }
+}
 
 async function postPageAiTranslate(req, res) {
     const locale = String(req.params.locale || '').toLowerCase();
@@ -147,6 +164,7 @@ async function putPage(req, res) {
     try {
         const incoming = req.body?.page;
         if (!incoming) return res.status(400).json({ error: 'page object required' });
+        await requirePageInSite(req.siteId, req.params.id);
         // The editor says which revision it based the page on; a save on top of
         // somebody else's newer one is a 409, never a silent overwrite.
         const expectedRev = clientRev(incoming.rev, 'page', { route: 'PUT /pages/:id', siteId: req.siteId });
@@ -167,9 +185,15 @@ async function putPageLocale(req, res) {
     try {
         const { override } = req.body || {};
         if (!override) return res.status(400).json({ error: 'override object required' });
-        await cmsStore.setPageLocaleOverride(req.siteId, req.params.id, req.params.locale.toLowerCase(), override);
+        const locale = req.params.locale.toLowerCase();
+        if (!cmsStore.isValidLocale(locale)) return res.status(400).json({ error: 'Invalid locale' });
+        await requirePageInSite(req.siteId, req.params.id);
+        await cmsStore.setPageLocaleOverride(req.siteId, req.params.id, locale, override);
         res.json({ success: true });
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    } catch (err) {
+        if (err instanceof HttpError) throw err;
+        res.status(400).json({ error: err.message });
+    }
 }
 
 async function deletePageLocale(req, res) {

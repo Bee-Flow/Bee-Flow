@@ -224,3 +224,9 @@ test('putSiteDoc without a revision still saves (soft path for one release), unc
     await call(handlers.putSiteDoc, { siteId: 'pj_aaaa1111', body: { site: { name: 'N' } } });
     assert.deepStrictEqual(calls, [['updateSiteChrome', 'pj_aaaa1111', { name: 'N' }, { expectedRev: undefined, report: {} }]]);
 });
+
+test('putSiteLocale refuses a malformed locale', async () => {
+    const res = await call(handlers.putSiteLocale, { siteId: 'pj_aaaa1111', params: { locale: 'nl_page_x' }, body: { override: {} } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.deepStrictEqual(calls, []);
+});

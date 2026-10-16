@@ -238,6 +238,26 @@ test('import warns instead of failing when a translation points at a block the e
     assert.ok(heroId);
 });
 
+test('import lowercases a language code and skips one that is not a language code, with a warning', async () => {
+    const { siteId } = await buildSourceSite();
+    const bundle = await cmsStore.exportSite(siteId);
+    const home = bundle.site.pages.find(p => p.slug === 'home');
+    home.locales.NL = home.locales.nl;
+    home.locales.nl_page_x = home.locales.nl;
+    delete home.locales.nl;
+
+    const result = await cmsStore.importSite(bundle);
+
+    assert.deepStrictEqual(result.warnings.filter((w) => /unrecognised language code/.test(w)), [
+        'Skipped translations for an unrecognised language code',
+    ]);
+    const newSite = await cmsStore.getProject(result.siteId);
+    const newHome = newSite.pages.find(p => p.slug === 'home');
+    const doc = await cmsStore.getPage(result.siteId, newHome.id);
+    const ov = await cmsStore.getPageLocaleOverride(result.siteId, newHome.id, 'nl');
+    assert.strictEqual(ov.blocks[doc.blocks[0].id].content.lead, NL_LEAD);
+});
+
 test('import caps the number of locales', async () => {
     const { siteId } = await buildSourceSite();
     const bundle = await cmsStore.exportSite(siteId);

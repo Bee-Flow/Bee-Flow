@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The publishing CMS-over-MCP tools (./dispatch.js maps tool names to them;
@@ -6,6 +7,7 @@
  */
 
 const { err } = require('./handlerKit');
+const log = require('../../telemetry/log');
 
 /** Publish and go-live, both audited. */
 function createPublishHandlers({ deps, cmsStore, live, resolveSite, loadDraft, validationOf }) {
@@ -13,7 +15,7 @@ function createPublishHandlers({ deps, cmsStore, live, resolveSite, loadDraft, v
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
         const published = await cmsStore.publishSite(site.siteId);
-        if (deps.afterPublish) await Promise.resolve(deps.afterPublish(site.siteId, ctx)).catch(() => {});
+        if (deps.afterPublish) await Promise.resolve(deps.afterPublish(site.siteId, ctx)).catch((e) => log.warn('[CMS] afterPublish hook failed:', e.message));
         await deps.audit('cms.publish.mcp', 'cms_site', site.siteId, ctx.userId, null, { tokenName: ctx.token.name }, ctx.orgId || null);
         const liveSiteId = await live.getLiveSiteId();
         const draftWrap = await loadDraft(site.siteId, ctx);

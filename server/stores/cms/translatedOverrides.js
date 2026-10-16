@@ -10,7 +10,7 @@ const {
     isPlainObject, assertSiteId, pageKey, pageLocaleKey, projectKey, projectLocaleKey,
 } = require('./shared');
 const { withConfigGroup, realignRoot } = require('./overrideAlign');
-const { sanitizePageOverride, sanitizeSiteOverride } = require('./localeOverrides');
+const { sanitizePageOverride, sanitizeSiteOverride, assertLocale } = require('./localeOverrides');
 
 /**
  * @param {string} siteId
@@ -22,6 +22,7 @@ const { sanitizePageOverride, sanitizeSiteOverride } = require('./localeOverride
  */
 async function saveTranslatedPageOverride(siteId, pageId, locale, result, snapshotPage) {
     assertSiteId(siteId);
+    assertLocale(locale);
     const key = pageLocaleKey(siteId, pageId, locale);
     return withConfigGroup(pageKey(siteId, pageId), async (io) => {
         const current = await io.get(pageKey(siteId, pageId));
@@ -56,6 +57,7 @@ async function saveTranslatedPageOverride(siteId, pageId, locale, result, snapsh
  */
 async function saveTranslatedSiteOverride(siteId, locale, result, snapshotSite) {
     assertSiteId(siteId);
+    assertLocale(locale);
     const key = projectLocaleKey(siteId, locale);
     return withConfigGroup(projectKey(siteId), async (io) => {
         const current = await io.get(projectKey(siteId));

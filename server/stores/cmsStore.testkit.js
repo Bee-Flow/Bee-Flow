@@ -68,12 +68,14 @@ function createCmsConfigMocks() {
     const mockDb = {
         async getAll(sql, params) {
             const keys = [...configState.map.keys()];
+            const row = (k) => ({ key: k, value: JSON.stringify(configState.map.get(k)) });
             if (/key = \$1 OR key LIKE \$2/.test(sql)) {
-                const re = likeToRegex(params[1]);
-                return keys.filter((k) => k === params[0] || re.test(k)).map((k) => ({ key: k }));
+                // `key = $1 OR key LIKE $2 [OR key LIKE $3 ...]`
+                const res = params.slice(1).map(likeToRegex);
+                return keys.filter((k) => k === params[0] || res.some((re) => re.test(k))).map(row);
             }
             const re = likeToRegex(params[0]);
-            return keys.filter((k) => re.test(k)).map((k) => ({ key: k }));
+            return keys.filter((k) => re.test(k)).map(row);
         },
     };
     return { configState, mockConfigStore, mockDb };

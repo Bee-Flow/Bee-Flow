@@ -17,6 +17,7 @@ const { HttpError } = require('../core/http/errors');
 const { getLiveSiteId, setLiveSiteId, ensurePublishedSnapshot } = require('./cmsShared');
 const { provisionAnalyticsForSite } = require('./cmsAnalytics');
 const { clientRev } = require('../stores/cms/revision');
+const log = require('../telemetry/log');
 
 // ── Shared handler bodies ────────────────────────────────────────
 //
@@ -70,7 +71,9 @@ async function putSiteLocale(req, res) {
     try {
         const { override } = req.body || {};
         if (!override) return res.status(400).json({ error: 'override object required' });
-        await cmsStore.setSiteLocaleOverride(req.siteId, req.params.locale.toLowerCase(), override);
+        const locale = req.params.locale.toLowerCase();
+        if (!cmsStore.isValidLocale(locale)) return res.status(400).json({ error: 'Invalid locale' });
+        await cmsStore.setSiteLocaleOverride(req.siteId, locale, override);
         res.json({ success: true });
     } catch (err) { res.status(400).json({ error: err.message }); }
 }
@@ -136,7 +139,7 @@ async function postSitePublish(req, res) {
         provisionAnalyticsForSite(req.siteId, {
             name: project?.name || 'CMS site',
             domain: req.get('host'),
-        }).catch(() => {});
+        }).catch((e) => log.warn('[CMS] analytics provisioning after publish failed:', e.message));
         res.json({ success: true, ...result });
     } catch (err) { res.status(400).json({ error: err.message }); }
 }

@@ -29,6 +29,7 @@ const state = { page: { id: 'pg1', blocks: [] } };
 
 mock.method(cmsStore, 'getDefaultLocale', async () => 'en');
 mock.method(cmsStore, 'getPage', async (siteId, id) => (id === state.page?.id ? state.page : null));
+mock.method(cmsStore, 'getProject', async () => ({ id: 'pj_aaaa1111', pages: [{ id: 'pg1' }] }));
 mock.method(cmsStore, 'getPageLocaleOverride', async () => null);
 mock.method(cmsStore, 'saveTranslatedPageOverride', async (...args) => { calls.push(['saveTranslatedPageOverride', ...args]); return args[3]; });
 mock.method(cmsStore, 'setPageLocaleOverride', async (...args) => { calls.push(['setPageLocaleOverride', ...args]); });
@@ -131,7 +132,25 @@ test('deletePageHandler answers 404 for an unknown page and reports the outcome 
     assert.strictEqual(ok.body.neutralisedLinks, 3);
 });
 
+test('putPage answers 404 for a page the site does not list, and writes nothing', async () => {
+    await assert.rejects(
+        call(handlers.putPage, { params: { id: 'pg_x_locale_nl' }, body: { page: { title: 'T', rev: 0 } } }),
+        (e) => e.status === 404,
+    );
+    assert.deepStrictEqual(calls, []);
+});
+
 test('putPage without a revision still saves (soft path for one release), unchecked', async () => {
     await call(handlers.putPage, { params: { id: 'pg1' }, body: { page: { title: 'T' } } });
     assert.deepStrictEqual(calls, [['setPage', 'pj_aaaa1111', { id: 'pg1', title: 'T' }, { expectedRev: undefined }]]);
+});
+
+test('putPageLocale refuses an unknown page (404) and a malformed locale (400)', async () => {
+    await assert.rejects(
+        call(handlers.putPageLocale, { params: { id: 'pg_other', locale: 'nl' }, body: { override: { blocks: {} } } }),
+        (e) => e.status === 404,
+    );
+    const bad = await call(handlers.putPageLocale, { params: { id: 'pg1', locale: 'nl_page_x' }, body: { override: { blocks: {} } } });
+    assert.strictEqual(bad.statusCode, 400);
+    assert.deepStrictEqual(calls, []);
 });

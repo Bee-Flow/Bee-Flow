@@ -7,10 +7,9 @@ const configStore = require('../configStore');
 const { getAll } = require('../../db');
 const {
     KEY_LOCALE_INFIX, KEY_PAGE_INFIX, PUBLISHED_VERSION,
-    isPlainObject, assertSiteId, projectKey, publishedKey,
+    isPlainObject, assertSiteId, projectKey, pageKey, publishedKey,
 } = require('./shared');
-const { getProject } = require('./projects');
-const { getPage } = require('./pages');
+const { migrateSite } = require('./siteDoc');
 const { listPosts, collectPostLocaleOverrides } = require('./posts');
 const log = require('../../telemetry/log');
 
@@ -31,15 +30,47 @@ async function getPublishedSnapshot(siteId, { fresh = false } = {}) {
     return isPlainObject(v) ? v : null;
 }
 
+/**
+ * Parse a raw `config.value` the way configStore does: JSON, else the text.
+ * @param {string} raw
+ */
+function parseStored(raw) {
+    try { return JSON.parse(raw); } catch (_) { return raw; }
+}
+
+/**
+ * A LIKE pattern for "starts with `prefix`": `_`, `%` and `\` in the prefix
+ * (the key infixes contain underscores) match themselves, not any character.
+ * @param {string} prefix
+ */
+function likePrefix(prefix) {
+    return `${prefix.replace(/[\\%_]/g, '\\$&')}%`;
+}
+
 async function publishSite(siteId) {
     assertSiteId(siteId);
-    const site = await getProject(siteId);
-    if (!site) throw new Error('Project not found');
+
+    // ONE statement reads the site doc, every page and every locale override:
+    // a single MVCC snapshot straight from the database, so a publish can
+    // neither serve this replica's stale cache nor mix versions (key list from
+    // SQL but values from a cache, or a page saved halfway through the loop).
+    const base = projectKey(siteId);
+    const rows = await getAll(
+        `SELECT key, value FROM config WHERE key = $1 OR key LIKE $2 ESCAPE '\\' OR key LIKE $3 ESCAPE '\\'`,
+        [base, likePrefix(`${base}${KEY_PAGE_INFIX}`), likePrefix(`${base}${KEY_LOCALE_INFIX}`)]
+    );
+    const stored = new Map(rows.map((r) => [r.key, r.value]));
+    const rawSite = stored.has(base) ? parseStored(stored.get(base)) : null;
+    if (!isPlainObject(rawSite)) throw new Error('Project not found');
+    const site = migrateSite(structuredClone(rawSite));
 
     const pages = {};
     for (const entry of site.pages) {
-        const page = await getPage(siteId, entry.id);
-        if (page) pages[entry.id] = page;
+        const raw = stored.has(pageKey(siteId, entry.id)) ? parseStored(stored.get(pageKey(siteId, entry.id))) : null;
+        // The editing revision is not content: leaving it out keeps the
+        // published page (and its sitemap lastmod hash) the same across
+        // saves that changed nothing a visitor sees.
+        if (isPlainObject(raw)) { const { rev: _rev, ...content } = raw; pages[entry.id] = content; }
     }
 
     // Intrinsic width/height for every image the snapshot serves — the
@@ -56,14 +87,10 @@ async function publishSite(siteId) {
         log.warn('[CMS] publish media-dims enrichment skipped:', e.message);
     }
 
-    const allLocaleKeys = await getAll(
-        `SELECT key FROM config WHERE key LIKE $1`,
-        [`${projectKey(siteId)}%${KEY_LOCALE_INFIX}%`]
-    );
     const siteLocaleOverrides = {};
     const pageLocaleOverrides = {};
-    for (const r of allLocaleKeys) {
-        const tail = r.key.substring(projectKey(siteId).length);
+    for (const [key, raw] of stored) {
+        const tail = key.substring(base.length);
         if (tail.startsWith(KEY_PAGE_INFIX)) {
             const inner = tail.substring(KEY_PAGE_INFIX.length);
             const splitAt = inner.indexOf(KEY_LOCALE_INFIX);
@@ -71,10 +98,10 @@ async function publishSite(siteId) {
             const pageId = inner.substring(0, splitAt);
             const locale = inner.substring(splitAt + KEY_LOCALE_INFIX.length);
             pageLocaleOverrides[pageId] = pageLocaleOverrides[pageId] || {};
-            pageLocaleOverrides[pageId][locale] = await configStore.getConfig(r.key);
+            pageLocaleOverrides[pageId][locale] = parseStored(raw);
         } else if (tail.startsWith(KEY_LOCALE_INFIX)) {
             const locale = tail.substring(KEY_LOCALE_INFIX.length);
-            siteLocaleOverrides[locale] = await configStore.getConfig(r.key);
+            siteLocaleOverrides[locale] = parseStored(raw);
         }
     }
 

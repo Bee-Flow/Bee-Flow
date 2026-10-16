@@ -9,6 +9,7 @@
  * - Chrome writes never carry the page list: a page created meanwhile stays.
  * - The projects-index touch after a site write cannot drop a site created at
  *   the same moment.
+ * - publishSite reads the database, not this replica's cache.
  *
  * The real config store runs over an in-memory config table (the database pool
  * seam of testUtils/routeHarness, no module mocking). "Another replica" writes
@@ -49,6 +50,14 @@ recordDb((sql, params = []) => {
     if (/^\s*DELETE FROM config WHERE key = \$1/i.test(sql)) {
         return { rows: [], rowCount: table.delete(params[0]) ? 1 : 0 };
     }
+    if (/SELECT key, value FROM config WHERE key = \$1 OR key LIKE \$2/i.test(sql)) {
+        const patterns = params.slice(1).map(likeToRegex);
+        return {
+            rows: [...table.keys()]
+                .filter((k) => k === params[0] || patterns.some((re) => re.test(k)))
+                .map((key) => ({ key, value: JSON.stringify(table.get(key)) })),
+        };
+    }
     if (/SELECT key FROM config WHERE key LIKE \$1/i.test(sql)) {
         const re = likeToRegex(params[0]);
         return { rows: [...table.keys()].filter((k) => re.test(k)).map((key) => ({ key })) };
@@ -59,7 +68,9 @@ recordDb((sql, params = []) => {
 const configStore = require('../configStore');
 const projects = require('./projects');
 const pages = require('./pages');
+const publishing = require('./publishing');
 const { removePage } = require('./pageRemoval');
+const { setPageLocaleOverride } = require('./localeOverrides');
 const { projectKey, pageKey, KEY_PROJECTS_INDEX } = require('./shared');
 
 test.beforeEach(() => { table.clear(); });
@@ -151,6 +162,34 @@ test('a site write does not drop a site another replica added to the projects in
     const ids = table.get(KEY_PROJECTS_INDEX).projects.map((p) => p.id);
     assert.ok(ids.includes('pj_0123456789abcdef'), 'the site created elsewhere is still listed');
     assert.strictEqual(table.get(KEY_PROJECTS_INDEX).projects.find((p) => p.id === siteId).name, 'New');
+});
+
+test('publishSite publishes what the database holds, not this replica\'s cached copy', async () => {
+    const { siteId, pageId } = await siteWithPage();
+    await pages.getPage(siteId, pageId);             // warm the page cache
+    await projects.getProject(siteId);               // and the site cache
+    const saved = clone(table.get(pageKey(siteId, pageId)));
+    saved.title = 'Saved on another replica';
+    saved.rev += 1;
+    table.set(pageKey(siteId, pageId), saved);
+    const site = clone(table.get(projectKey(siteId)));
+    site.name = 'Renamed on another replica';
+    table.set(projectKey(siteId), site);
+
+    await publishing.publishSite(siteId);
+
+    const snapshot = await publishing.getPublishedSnapshot(siteId, { fresh: true });
+    assert.strictEqual(snapshot.pages[pageId].title, 'Saved on another replica');
+    assert.strictEqual(snapshot.site.name, 'Renamed on another replica');
+    assert.strictEqual(snapshot.pages[pageId].rev, undefined, 'the editing revision is not published content');
+});
+
+test('locale overrides need a well-formed locale (it becomes part of a parsed config key)', async () => {
+    const { siteId, pageId } = await siteWithPage();
+    await assert.rejects(setPageLocaleOverride(siteId, pageId, 'nl_page_x', { blocks: {} }), /Invalid locale/);
+    await assert.rejects(setPageLocaleOverride(siteId, pageId, 'NL', { blocks: {} }), /Invalid locale/);
+    await setPageLocaleOverride(siteId, pageId, 'nl', { blocks: {} });
+    assert.ok(table.has(`${pageKey(siteId, pageId)}_locale_nl`));
 });
 
 test('the config store seam is the real one (guards the harness)', () => {

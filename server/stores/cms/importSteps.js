@@ -12,7 +12,7 @@ const {
 const { restorePosts, POST_LIMITS } = require('./posts');
 const { ensureUniqueSlug } = require('./projects');
 const { setPage } = require('./pages');
-const { setSiteLocaleOverride, setPageLocaleOverride } = require('./localeOverrides');
+const { setSiteLocaleOverride, setPageLocaleOverride, isValidLocale } = require('./localeOverrides');
 
 // Structural caps on import payloads. Imports come from admin users, so
 // the threat model isn't anonymous DoS — it's a compromised admin
@@ -282,22 +282,42 @@ function pageLocaleOverrideOut({ override, locale, blockIdMap, slug, warnings, r
 async function restoreLocaleOverrides({
     newSiteId, incomingChrome, pagesOut, pagesInAligned, slugToNewId, blockIdMapByPageIndex, importedLocales, warnings, remapPageLinks,
 }) {
-    const chromeOverrides = isPlainObject(incomingChrome.localeOverrides)
-        ? incomingChrome.localeOverrides : {};
+    // A bundle may come from another tool or be edited by hand: language codes
+    // are lowercased, and one that is still not a language code (it would break
+    // the config key it becomes part of) is skipped with a warning, so the rest
+    // of the import still goes through.
+    /** @param {string} code @returns {string | null} */
+    const canonLocale = (code) => {
+        const lower = String(code).trim().toLowerCase();
+        if (isValidLocale(lower)) return lower;
+        warnings.push('Skipped translations for an unrecognised language code');
+        return null;
+    };
+    // The cap counts what the bundle carries, before invalid codes are skipped.
+    const rawCodes = new Set(isPlainObject(incomingChrome.localeOverrides) ? Object.keys(incomingChrome.localeOverrides) : []);
+    for (const src of pagesInAligned) {
+        if (src && isPlainObject(src.locales)) for (const code of Object.keys(src.locales)) rawCodes.add(code);
+    }
+    if (rawCodes.size > IMPORT_MAX_LOCALES) {
+        throw new Error(`Too many locales in import (max ${IMPORT_MAX_LOCALES})`);
+    }
+    /** @type {Record<string, any>} */
+    const chromeOverrides = {};
+    if (isPlainObject(incomingChrome.localeOverrides)) {
+        for (const [code, override] of Object.entries(incomingChrome.localeOverrides)) {
+            const locale = canonLocale(code);
+            if (locale) chromeOverrides[locale] = override;
+        }
+    }
     const pageLocalePairs = [];
     for (let i = 0; i < pagesOut.length; i++) {
         const src = pagesInAligned[i];
         if (!src || !isPlainObject(src.locales)) continue;
-        for (const [locale, override] of Object.entries(src.locales)) {
-            if (isPlainObject(override)) pageLocalePairs.push([i, locale, override]);
+        for (const [code, override] of Object.entries(src.locales)) {
+            if (!isPlainObject(override)) continue;
+            const locale = canonLocale(code);
+            if (locale) pageLocalePairs.push([i, locale, override]);
         }
-    }
-    const distinctLocales = new Set([
-        ...Object.keys(chromeOverrides),
-        ...pageLocalePairs.map(([, locale]) => locale),
-    ]);
-    if (distinctLocales.size > IMPORT_MAX_LOCALES) {
-        throw new Error(`Too many locales in import (max ${IMPORT_MAX_LOCALES})`);
     }
 
     for (const [locale, override] of Object.entries(chromeOverrides)) {

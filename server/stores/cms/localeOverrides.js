@@ -24,6 +24,17 @@ function isValidLocale(code) {
     return typeof code === 'string' && LOCALE_RE.test(code);
 }
 
+/**
+ * The locale becomes part of a config key (`..._locale_{xx}`) that the sitemap
+ * and publishSite parse back by splitting on `_locale_`, so a malformed one
+ * would be read as something else entirely.
+ * @param {unknown} locale
+ */
+function assertLocale(locale) {
+    if (!locale) throw new Error('Locale required');
+    if (!isValidLocale(locale)) throw new Error('Invalid locale');
+}
+
 async function getDefaultLocale({ fresh = false } = {}) {
     const read = fresh ? configStore.getConfigFresh : configStore.getConfig;
     const v = await read(KEY_DEFAULT_LOCALE);
@@ -65,7 +76,7 @@ function sanitizeSiteOverride(override) {
 
 async function setSiteLocaleOverride(siteId, locale, override) {
     assertSiteId(siteId);
-    if (!locale) throw new Error('Locale required');
+    assertLocale(locale);
     if (!isPlainObject(override)) throw new Error('Override must be an object');
     const sanitized = sanitizeSiteOverride(override);
     // Same lock as the site document: a content save re-keys overrides inside it.
@@ -105,7 +116,7 @@ function sanitizePageOverride(override) {
 async function setPageLocaleOverride(siteId, pageId, locale, override) {
     assertSiteId(siteId);
     if (!pageId) throw new Error('pageId required');
-    if (!locale) throw new Error('Locale required');
+    assertLocale(locale);
     if (!isPlainObject(override)) throw new Error('Override must be an object');
     const sanitized = sanitizePageOverride(override);
     await withConfigGroup(pageKey(siteId, pageId), (io) => io.set(pageLocaleKey(siteId, pageId, locale), sanitized));
@@ -179,7 +190,7 @@ async function pruneBlockLocaleOverrides(siteId, pageId, blockId) {
 }
 
 module.exports = {
-    isValidLocale, getDefaultLocale, setDefaultLocale,
+    isValidLocale, assertLocale, getDefaultLocale, setDefaultLocale,
     getSiteLocaleOverride, setSiteLocaleOverride, deleteSiteLocaleOverride,
     getPageLocaleOverride, setPageLocaleOverride, deletePageLocaleOverride,
     collectLocaleOverrides, pruneBlockLocaleOverrides, writeSiteAligned,
