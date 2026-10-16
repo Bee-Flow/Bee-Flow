@@ -47,6 +47,7 @@
  */
 
 const { RESOURCE_KINDS, resolveNcScope, normalizeFolderPath } = require('./ncScope');
+const { resolveScopeOrg, clearOrgMemo } = require('./ncScopeOrg');
 
 // Longest-prefix wins — 'nextcloud_calendar_list' must resolve to the
 // calendar family, not files. Mirrors core/integrations/integrationToolMap
@@ -498,59 +499,33 @@ function _remembers(key, kind, value) {
     return !!hit[kind] && hit[kind].has(String(value).trim());
 }
 
-// Last-resort org lookup.
-//
-// The session fallbacks above only work for a session that carries connector
-// fields or a `user` object — and the background callers are exactly the ones
-// that carry neither: triggerBus.loadSession returns
-// {accessToken, refreshToken, oauthProvider, automationProviders, _source} on its
-// two non-connector paths. With org null, resolveNcScope skips the org layer
-// entirely (it reads the org doc only `orgId ? ... : null`), so an org that had
-// switched an integration off had that decision silently dropped for every
-// OAuth and app-password user — the ceiling gone while the user layer still
-// looked enforced. Memoised on the same TTL as the scope itself.
-const _orgMemo = new Map();
-
-async function _orgForUser(userId) {
-    if (!userId) return null;
-    const hit = _orgMemo.get(userId);
-    if (hit && Date.now() - hit.at < SCOPE_CACHE_TTL_MS) return hit.orgId;
-    let orgId = null;
-    try {
-        const row = await require('../../stores/userStore').getUser(userId);
-        orgId = row?.organizationId || row?.organization_id || null;
-    } catch (_) {
-        orgId = null; // resolveNcScope still applies the user layer
-    }
-    _orgMemo.set(userId, { at: Date.now(), orgId });
-    return orgId;
-}
-
 function invalidateScopeCache(userId) {
     // The Mail memory is derived from a scope that just changed, so it goes
     // with it — otherwise a mailbox learned under the old selection would keep
     // vouching for itself after the user narrowed things down.
-    if (!userId) { _scopeCache.clear(); _mailMemo.clear(); _orgMemo.clear(); return; }
+    if (!userId) { _scopeCache.clear(); _mailMemo.clear(); clearOrgMemo(); return; }
     for (const key of _scopeCache.keys()) {
         if (key.split('|')[1] === String(userId)) _scopeCache.delete(key);
     }
     for (const key of _mailMemo.keys()) {
         if (key.split('|')[1] === String(userId)) _mailMemo.delete(key);
     }
-    _orgMemo.delete(String(userId));
-    _orgMemo.delete(userId);
+    clearOrgMemo(userId);
 }
 
 /**
  * Gate one Nextcloud tool call. Returns null when allowed, or the structured
  * { error } the dispatcher should hand back to the model.
  */
-async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, agentId = null }) {
+async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, agentId = null, session = null }) {
     const integrationId = integrationIdForTool(toolName);
     if (!integrationId) return null; // not a Nextcloud tool — not ours to gate
 
     let scope;
     try {
+        // The org ceiling is resolved HERE so every caller gets it; an explicit
+        // orgId stays authoritative. A failed lookup denies (fail closed).
+        orgId = await resolveScopeOrg({ orgId, session, userId });
         scope = await _effectiveScope({ userId, orgId, agentId });
     } catch (e) {
         // Fail closed: a privacy boundary that cannot be read must deny.
@@ -658,12 +633,13 @@ function _filterArray(arr, predicate) {
  * filter cannot positively identify is REMOVED (fail-closed). Non-filter
  * tools and mode!=selected return the result untouched.
  */
-async function filterResult({ toolName, result, userId, orgId = null, agentId = null }) {
+async function filterResult({ toolName, result, userId, orgId = null, agentId = null, session = null }) {
     const integrationId = integrationIdForTool(toolName);
     if (!integrationId || !result || typeof result !== 'object' || result.error) return result;
 
     let scope;
     try {
+        orgId = await resolveScopeOrg({ orgId, session, userId });
         scope = await _effectiveScope({ userId, orgId, agentId });
     } catch (_) {
         return { error: 'Nextcloud access settings are temporarily unavailable — the result was withheld.', nc_scope_denied: true };
@@ -883,12 +859,11 @@ function _filterContainers(result, keep) {
  * @returns the executor's result, filtered — or the structured denial
  */
 async function guardedNcCall(toolName, toolArgs, { userId, session = null, orgId = null, agentId = null }, run) {
-    const org = orgId || session?.connectorOrgId || session?.user?.organizationId || await _orgForUser(userId);
-    const denial = await checkToolCall({ toolName, toolArgs, userId, orgId: org, agentId });
+    const denial = await checkToolCall({ toolName, toolArgs, userId, orgId, agentId, session });
     if (denial) return denial;
     const raw = await run();
     if (raw === undefined) return raw;
-    return await filterResult({ toolName, result: raw, userId, orgId: org, agentId });
+    return await filterResult({ toolName, result: raw, userId, orgId, agentId, session });
 }
 
 module.exports = {
