@@ -21,7 +21,11 @@ export function trackWhenReady(name: string, data: Record<string, string>, tries
     if (typeof window === 'undefined') return;
     const fn = (window as UmamiWindow).umami?.track;
     if (typeof fn === 'function') {
-        try { fn(name, data); } catch { /* analytics must never break the page */ }
+        try {
+            fn(name, data);
+        } catch {
+            return; // analytics must never break the page
+        }
         return;
     }
     if (tries > 0) setTimeout(() => trackWhenReady(name, data, tries - 1), RETRY_MS);

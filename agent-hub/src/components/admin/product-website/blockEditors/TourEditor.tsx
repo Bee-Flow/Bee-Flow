@@ -57,9 +57,9 @@ export function TourEditor({ data = {}, onChange }: BlockEditorProps<TourData>) 
                 )}
                 addLabel={t('cms_site.blocks.tour.add_step', 'Add step')}
             />
-            <TextField label={t('cms_site.blocks.tour.label_previous', 'Previous button')} value={labels.previous || ''} onChange={v => setLabel('previous', v)} placeholder="Previous step" />
-            <TextField label={t('cms_site.blocks.tour.label_next', 'Next button')} value={labels.next || ''} onChange={v => setLabel('next', v)} placeholder="Next step" />
-            <TextField label={t('cms_site.blocks.tour.label_step_of', 'Step counter')} value={labels.stepOf || ''} onChange={v => setLabel('stepOf', v)} placeholder="Step {n} of {total}" />
+            <TextField label={t('cms_site.blocks.tour.label_previous', 'Previous button')} value={labels.previous || ''} onChange={v => setLabel('previous', v)} placeholder={t('cms_site.blocks.tour.default_previous', 'Previous step')} />
+            <TextField label={t('cms_site.blocks.tour.label_next', 'Next button')} value={labels.next || ''} onChange={v => setLabel('next', v)} placeholder={t('cms_site.blocks.tour.default_next', 'Next step')} />
+            <TextField label={t('cms_site.blocks.tour.label_step_of', 'Step counter')} value={labels.stepOf || ''} onChange={v => setLabel('stepOf', v)} placeholder={t('cms_site.blocks.tour.default_step_of', 'Step {n} of {total}')} />
         </>
     );
 }

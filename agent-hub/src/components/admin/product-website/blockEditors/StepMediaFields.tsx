@@ -21,7 +21,6 @@ export function StepMediaFields({ media = {}, onChange }: { media?: StepMedia; o
                 value={media.src || ''}
                 onChange={v => patch('src', v)}
                 uploadLabel={t('cms_site.blocks.story_media.upload', 'Upload image')}
-                placeholder="https://… or /api/cms/asset/cms/…"
             />
             <TextField
                 label={t('cms_site.blocks.story_media.alt', 'Alt text')}
