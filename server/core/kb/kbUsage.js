@@ -141,7 +141,7 @@ const SCANS = Object.freeze({
  *
  * @param {string} kbId
  * @param {object} [opts]
- * @param {object} [opts.db]    injection seam for the tests
+ * @param {any} [opts.db]    injection seam for the tests
  * @returns {Promise<{ rows: Array, partial: string[] }>}
  *          `partial` names the kinds that could NOT be answered — a table that
  *          is absent, or a query that failed. A caller must treat a non-empty

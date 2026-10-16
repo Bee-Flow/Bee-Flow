@@ -91,10 +91,10 @@ const DESTINATION_OF_STEP = Object.freeze({
  * `call_block`), the providers of an agent behind an AI step, the saved HTTP
  * credentials, and whether any step dispatches tools at all.
  *
- * @param {object} definition
+ * @param {any} definition
  * @param {{ providerForTool: (t: string) => string|null,
- *           loadBlockDefinition?: (id: string) => Promise<object|null>,
- *           stepProviders?: (aiStep: object) => Promise<string[]> }} lookups
+ *           loadBlockDefinition?: (id: string) => Promise<any|null>,
+ *           stepProviders?: (aiStep: any) => Promise<string[]> }} lookups
  * @returns {Promise<{ providers: string[], httpConnections: Array<{stepId: string, connectionId: string}>, usesTools: boolean, destinations: string[] }>}
  */
 async function collectRequirements(definition, lookups) {
@@ -162,7 +162,7 @@ function unavailable(message) {
  * own session, groups, org role and organisation, read fresh. The organisation
  * must be the run's own, or the run fails closed.
  *
- * @returns {Promise<{ userId: string, session: object|null, orgId: string|null, userGroupIds: string[], orgRole: string|null, homeOrgId: string|null, isAdmin: boolean }>}
+ * @returns {Promise<{ userId: string, session: any|null, orgId: string|null, userGroupIds: string[], orgRole: string|null, homeOrgId: string|null, isAdmin: boolean }>}
  */
 async function buildCallerIdentity(deps, callerUserId, runOrgId) {
     const user = await deps.loadUserStore().getUser(callerUserId);
@@ -219,7 +219,7 @@ async function assertNoticeAcknowledged(deps, automation, callerUserId) {
  * Fail the run before step 1 (same shape as the Privacy Shield block): the
  * run row ends in error with a stable class, the marker is released.
  *
- * @returns {Promise<object>} the failed run row
+ * @returns {Promise<any>} the failed run row
  */
 async function failRunBeforeSteps(deps, { error, run, heartbeatTimer, startedAt, automation, ownsMarker, emitLifecycle }) {
     const { automationStore, clearRunCancellation } = deps;
@@ -253,9 +253,9 @@ async function failRunBeforeSteps(deps, { error, run, heartbeatTimer, startedAt,
  * place (stored on ctx.callerOnly by the caller), or `{ failedRow }` when a
  * live run was refused. Every failure to build the identity fails closed.
  *
- * @param {object} deps
- * @param {{ callerUserId: string|null, missingStarter?: boolean, automation: object, runOrgId: string|null,
- *           effectiveMode: string, locked?: boolean, failCtx: object }} args
+ * @param {any} deps
+ * @param {{ callerUserId: string|null, missingStarter?: boolean, automation: any, runOrgId: string|null,
+ *           effectiveMode: string, locked?: boolean, failCtx: any }} args
  */
 async function applyCallerOnly(deps, { callerUserId, missingStarter = false, automation, runOrgId, effectiveMode, locked = false, failCtx }) {
     const fail = async (error) => ({ identity: null, failedRow: await failRunBeforeSteps(deps, { ...failCtx, error }) });

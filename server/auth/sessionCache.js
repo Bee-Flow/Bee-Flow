@@ -30,9 +30,9 @@ const CACHE_TTL_SECONDS = 15 * 60; // 15 min — same order as session prune int
 /**
  * Wrap a connect-pg-simple store with a Redis read-through cache.
  *
- * @param {object} pgStore    - Instance of connect-pg-simple
- * @param {object} redis      - the shared ioredis client from db.js (getRedis())
- * @returns {object}          - A drop-in session store replacement
+ * @param {any} pgStore    - Instance of connect-pg-simple
+ * @param {any} redis      - the shared ioredis client from db.js (getRedis())
+ * @returns {any}          - A drop-in session store replacement
  */
 function wrapWithRedisCache(pgStore, redis) {
     // If Redis is not available return the pgStore unwrapped

@@ -267,8 +267,9 @@ function makeSheetImport(deps = {}) {
     return { importWorkbook };
 }
 
-module.exports = makeSheetImport();
-module.exports.makeSheetImport = makeSheetImport;
-module.exports.formatOf = formatOf;
-module.exports.functionsIn = functionsIn;
-module.exports.LIMITS = Object.freeze({ MAX_TABS, MAX_TOTAL_CELLS });
+module.exports = Object.assign(makeSheetImport(), {
+    makeSheetImport,
+    formatOf,
+    functionsIn,
+    LIMITS: Object.freeze({ MAX_TABS, MAX_TOTAL_CELLS }),
+});

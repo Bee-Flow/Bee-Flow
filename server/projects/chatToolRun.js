@@ -29,20 +29,20 @@ function toolsPrompt(definitions) {
 
 /**
  * @param {object} p
- * @param {object} p.tools           projects/chatTools surface (forAnswer)
+ * @param {any} p.tools           projects/chatTools surface (forAnswer)
  * @param {any[]} p.definitions      what was offered
  * @param {Function} p.runToolLoop   llmClient.runToolLoop-shaped: (modelId, messages, tools, options, executeTool, maxRounds)
  * @param {any} p.shield             projects/chatShield surface (toolGate, restoreArgs)
- * @param {object|null} p.shieldConfig
+ * @param {any|null} p.shieldConfig
  * @param {{ id: string, organizationId?: string|null }} p.project
  * @param {string} p.userId
  * @param {string|null} p.orgId
- * @param {object|null} p.session
+ * @param {any|null} p.session
  * @param {string} p.modelId
  * @param {any[]} p.messages
- * @param {object} p.options
+ * @param {any} p.options
  * @param {Record<string,string>|null} p.tokenMap  placeholders the model saw, to put back in what it writes
- * @param {object} p.auditBase       ids for the guardrail event rows
+ * @param {any} p.auditBase       ids for the guardrail event rows
  */
 async function answerWithTools({ tools, definitions, runToolLoop, shield, shieldConfig, project, userId, orgId, session, modelId, messages, options, tokenMap, auditBase }) {
     const run = tools.forAnswer({ project, userId, orgId, session });

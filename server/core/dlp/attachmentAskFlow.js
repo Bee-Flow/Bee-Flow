@@ -30,16 +30,16 @@ const dlpRunner = require('./dlpRunner');
  *                                   for review — findings' offsets are
  *                                   relative to exactly this string.
  * @param {Array}  p.findings
- * @param {object} [p.summary]       The scan summary (byCategory, pages, count, ...). Carried
+ * @param {any} [p.summary]       The scan summary (byCategory, pages, count, ...). Carried
  *                                   through so the audit row can name what was found.
  * @param {string} p.filename
- * @param {object} [p.provider]      Provider classification, for the modal's "sent to X" line.
- * @param {object} p.orgShield
+ * @param {any} [p.provider]      Provider classification, for the modal's "sent to X" line.
+ * @param {any} p.orgShield
  * @param {string} [p.conversationId]
  * @param {string} [p.userId]
  * @param {Function} [p.emit]        (type, data) => void — the chat stream's onEvent/send.
  * @param {Function} [p.registerDecision]  decisionQueue.register (injected for tests).
- * @returns {Promise<{action:'block'|'pass'|'tokenize', text:(string|null), findings:Array, summary:object, tokenMap:(object|null), reason?:string}>}
+ * @returns {Promise<{action:'block'|'pass'|'tokenize', text:(string|null), findings:Array, summary:any, tokenMap:(any|null), reason?:string}>}
  */
 async function resolveAttachmentAsk({ text, findings, summary, filename, provider, orgShield, conversationId, userId, emit, registerDecision }) {
     const reg = registerDecision || register;

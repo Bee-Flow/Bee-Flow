@@ -54,7 +54,7 @@ function indexQuery({ tag, page = undefined }) {
 
 /**
  * <head> for a blog URL.
- * @param {object} ctx  { origin, eff, locale, defaultLocale, locales, siteName }
+ * @param {any} ctx  { origin, eff, locale, defaultLocale, locales, siteName }
  */
 function buildBlogHead({ origin, eff, locale, defaultLocale, locales, siteName }) {
     const blog = eff.blog;
@@ -205,8 +205,8 @@ function xmlText(v) {
 
 /**
  * RSS 2.0 for the newest posts of one locale.
- * @param {object[]} posts summaries WITH body (getLatestPublishedPosts withBody)
- * @param {object} opts { origin, siteName, title, description, locale, defaultLocale, lastBuildDate }
+ * @param {any[]} posts summaries WITH body (getLatestPublishedPosts withBody)
+ * @param {any} opts { origin, siteName, title, description, locale, defaultLocale, lastBuildDate }
  */
 function buildFeed(posts, { origin, siteName, title, description, locale, defaultLocale, lastBuildDate }) {
     const self = `${origin}${feedPath(locale, defaultLocale)}`;

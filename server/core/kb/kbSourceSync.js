@@ -44,11 +44,11 @@ function matchFor(automationId) {
  * Reconcile one automation's `automation` sources.
  *
  * @param {string} automationId
- * @param {object} definition
+ * @param {any} definition
  * @param {object} p
  * @param {string} p.userId          the automation's OWNER — whose write rights decide
  * @param {string} [p.title]         the automation's title, shown in the Sources list
- * @param {object} [p.deps]
+ * @param {any} [p.deps]
  * @returns {Promise<{added: string[], kept: string[], removed: string[]}>}
  */
 async function syncKbSources(automationId, definition, { userId, title = '', deps = {} } = /** @type {any} */ ({})) {

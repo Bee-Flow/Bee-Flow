@@ -71,18 +71,18 @@ const H = require('./commentsHandlers');
  * @param {Function} [deps.requireProjectRole]  (minRole) => Express middleware (auth/projectAccess)
  * @param {Function} [deps.getProjectRole]      (userId, projectId) => role|null, for mentions
  * @param {Function} [deps.getProject]          (id) => project row
- * @param {object}   [deps.store]               stores/projectCommentStore surface
- * @param {object}   [deps.taskNotifier]        projects/taskNotify surface: mentioned(...), the bell for someone mentioned on a task
- * @param {object}   [deps.commentCrypto]       { forProject(project) }
- * @param {object}   [deps.assistant]           { requestReply(...) } (projects/comments/commentAssistant)
- * @param {object}   [deps.participation]       { notify(p), cancel(threadId) } (projects/comments/surface)
+ * @param {any}   [deps.store]               stores/projectCommentStore surface
+ * @param {any}   [deps.taskNotifier]        projects/taskNotify surface: mentioned(...), the bell for someone mentioned on a task
+ * @param {any}   [deps.commentCrypto]       { forProject(project) }
+ * @param {any}   [deps.assistant]           { requestReply(...) } (projects/comments/commentAssistant)
+ * @param {any}   [deps.participation]       { notify(p), cancel(threadId) } (projects/comments/surface)
  * @param {Function} [deps.resolveOrgs]         (req) => { orgId, limitOrgId }
  * @param {Function} [deps.emit]                (projectId, event) => durable event
  * @param {Function} [deps.logActivity]         (projectId, actorId, action, details) => activity row
  * @param {Function} [deps.postLimiter]         Express middleware on posting
- * @param {object}   [deps.participationStore]  { recordFeedback, feedbackFor } (stores/projectAiParticipationStore)
- * @param {object}   [deps.policy]              { resolveOrgPolicy } (projects/participation/policy)
- * @param {object}   [deps.collabNotifier]      projects/collabNotify surface: commentMentioned(...), the bell for someone mentioned on a document or notebook
+ * @param {any}   [deps.participationStore]  { recordFeedback, feedbackFor } (stores/projectAiParticipationStore)
+ * @param {any}   [deps.policy]              { resolveOrgPolicy } (projects/participation/policy)
+ * @param {any}   [deps.collabNotifier]      projects/collabNotify surface: commentMentioned(...), the bell for someone mentioned on a document or notebook
  * @param {Function} [deps.signalProjectChanged]  (project, reason) => void (routes/projects/complianceSignal)
  * @param {() => number} [deps.now]
  * @param {Function} [deps.newId]
@@ -121,5 +121,6 @@ const router = makeProjectCommentsRouter();
 // makes that true on every replica; without the engine it is a no-op.
 require('../../projects/comments/surface').ensureCommentSurface();
 
-module.exports = router;
-module.exports.makeProjectCommentsRouter = makeProjectCommentsRouter;
+module.exports = Object.assign(router, {
+    makeProjectCommentsRouter,
+});

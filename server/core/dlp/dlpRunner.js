@@ -579,10 +579,10 @@ function preWarmPiiScan({ messages, orgShieldConfig, providerConfig }) {
  *
  * @param {object} params
  * @param {Array}  params.messages            Full messages array (we scan the last user message)
- * @param {object} params.orgShieldConfig     Resolved config from `resolveOrgShield`
+ * @param {any} params.orgShieldConfig     Resolved config from `resolveOrgShield`
  * @param {string} [params.orgId]             Org ID (unused since custom terms moved into detectPii; callers still pass it)
  * @param {string} params.conversationId      Scope for the per-conversation remembered choice + tokenMap
- * @param {object} params.providerConfig      { providerType, url, displayName } for classification
+ * @param {any} params.providerConfig      { providerType, url, displayName } for classification
  * @param {function} [params.onProgress]      Called per scanned window of a big paste
  *                                            ({ done, total, ... }); the caller renders it.
  * @param {boolean} [params.hasAttachments]  the turn also carries attachments
@@ -600,11 +600,11 @@ function preWarmPiiScan({ messages, orgShieldConfig, providerConfig }) {
  * @typedef {object} DlpResult
  * @property {'allow'|'redact'|'block'|'ask'} action
  * @property {Array}    findings
- * @property {object}   provider             { isExternal, reason, displayName }
+ * @property {any}   provider             { isExternal, reason, displayName }
  * @property {string|null} redactedText      Present when action is 'redact'
- * @property {object|null} tokenMap          Map<token, original> when action is 'redact'
+ * @property {any|null} tokenMap          Map<token, original> when action is 'redact'
  * @property {string}   scanStatus           'ok' | 'failed' | 'skipped'
- * @property {object}   summary              { label → count }
+ * @property {any}   summary              { label → count }
  * @property {string}   [reason]             why a block was chosen, when it was
  */
 async function scan({ messages, orgShieldConfig, conversationId, providerConfig, onProgress, hasAttachments = false, ephemeral = false }) {

@@ -221,7 +221,7 @@ function drawDepthEdges(rgba, depth, size, radius) {
 
 /**
  * Render a STEP/IGES buffer to one labelled PNG sheet.
- * @returns {Promise<{png: Buffer, stats: object}>}
+ * @returns {Promise<{png: Buffer, stats: any}>}
  */
 async function renderCadSheet(buffer, { format = 'step' } = {}) {
     if (!Buffer.isBuffer(buffer) || !buffer.length) throw new Error('cadRender: empty buffer');

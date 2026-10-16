@@ -127,8 +127,8 @@ async function resolveConversationAccess(conversationId, viewerId, type = 'direc
  * For a project-scoped conversation the identity of the requester is irrelevant
  * — only the project matters.
  *
- * @param {object} access result of resolveConversationAccess
- * @param {object} [session] the caller's session, for the private-conversation case
+ * @param {any} access result of resolveConversationAccess
+ * @param {any} [session] the caller's session, for the private-conversation case
  */
 function cryptoOptsForConversation(access, session = null) {
     if (access?.cryptoScope === 'project' && access.projectId) {

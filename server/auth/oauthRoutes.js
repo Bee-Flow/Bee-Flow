@@ -22,8 +22,9 @@ router.use(require('./oauth/ssoConfigRoutes'));
 router.use(require('./oauth/microsoftBindingRoutes'));
 router.use(credentialRoutes);
 
-module.exports = router;
-// Shared with the integration connectors' disconnect flows, which require it
-// from this path (routes/integrations/{googleWorkspace,microsoft365,withings,
-// connections}.js).
-module.exports.revokeProviderCredential = credentialRoutes.revokeProviderCredential;
+module.exports = Object.assign(router, {
+    // Shared with the integration connectors' disconnect flows, which require it
+    // from this path (routes/integrations/{googleWorkspace,microsoft365,withings,
+    // connections}.js).
+    revokeProviderCredential: credentialRoutes.revokeProviderCredential,
+});

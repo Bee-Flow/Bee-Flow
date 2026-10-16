@@ -422,5 +422,4 @@ function suggestionsRouter(req, res, next) {
     return defaultRouter(req, res, next);
 }
 
-module.exports = suggestionsRouter;
-module.exports.createSuggestionsRouter = createSuggestionsRouter;
+module.exports = Object.assign(suggestionsRouter, { createSuggestionsRouter });

@@ -149,7 +149,7 @@ function rrfFuse(legs, { k = RRF_K, weights = LEG_WEIGHTS } = {}) {
  * than replacing them. That keeps one threshold meaning one thing across both
  * retrieval paths.
  *
- * @param {object} memory
+ * @param {any} memory
  * @param {number} rrfScore
  * @param {{now?: number}} [options]
  */
@@ -208,9 +208,9 @@ function _clip(memory, max) {
 }
 
 /**
- * @param {Array<{memory: object, score: number, relevant?: boolean, vector?: number[]|null}>} items
+ * @param {Array<{memory: any, score: number, relevant?: boolean, vector?: number[]|null}>} items
  * @param {number} charLimit
- * @returns {object[]} memories with `why: 'profile' | 'relevant'`, profile first
+ * @returns {any[]} memories with `why: 'profile' | 'relevant'`, profile first
  */
 /**
  * `profile: false` + a larger `relevantMax` is the explicit-search mode of the

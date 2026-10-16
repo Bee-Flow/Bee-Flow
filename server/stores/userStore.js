@@ -128,7 +128,6 @@ module.exports = {
     setOrgSubscriptionRespectingOverride, setConsumerSubscriptionRespectingOverride,
     setOrgSubscriptionWithLock,
     claimNotificationSlot, getDunningCounts,
+    // Facade: het schema woont in user/schema.js — migrateDb wacht dáárop.
+    initDB: require('./user/schema').initDB,
 };
-
-// Facade: het schema woont in user/schema.js — migrateDb wacht dáárop.
-module.exports.initDB = require('./user/schema').initDB;

@@ -41,7 +41,7 @@ const CollabBody = bodyOf({
  * @param {Function} [deps.requireAuth]        Express middleware: 401 without a session
  * @param {Function} [deps.resolveUserOrgIds]  (req) => Set<orgId> | null (null = every org, a super admin)
  * @param {Function} [deps.isOrgAdmin]         (req, orgId) => boolean
- * @param {object}   [deps.settings]           core/collab/settings surface
+ * @param {any}   [deps.settings]           core/collab/settings surface
  * @param {Function} [deps.getConfig]          configStore.getConfig: the stored row, read fresh by GET
  */
 function makeOrgCollabRouter(deps = {}) {
@@ -100,5 +100,6 @@ function makeOrgCollabRouter(deps = {}) {
 
 const router = makeOrgCollabRouter();
 
-module.exports = router;
-module.exports.makeOrgCollabRouter = makeOrgCollabRouter;
+module.exports = Object.assign(router, {
+    makeOrgCollabRouter,
+});

@@ -62,12 +62,12 @@ const BREAKER_FAILURES = Object.freeze(['timeout', 'error', 'unparseable', 'mode
 
 /**
  * @param {object} deps
- * @param {object}   deps.store          stores/projectAiParticipationStore surface
- * @param {object}   deps.policy         policy.makePolicy() surface
+ * @param {any}   deps.store          stores/projectAiParticipationStore surface
+ * @param {any}   deps.policy         policy.makePolicy() surface
  * @param {Function} deps.gate           relevanceGate.makeRelevanceGate() result
  * @param {Function} [deps.checkLimits]  (limitOrgId, userId) => error text | null
  * @param {Function} [deps.isLockHeld]   (containerId) => boolean
- * @param {object}   [deps.writer]       answerWriter.makeAnswerWriter() surface
+ * @param {any}   [deps.writer]       answerWriter.makeAnswerWriter() surface
  * @param {() => number} [deps.now]
  * @param {() => string} [deps.newId]
  */

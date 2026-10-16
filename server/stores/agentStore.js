@@ -171,7 +171,6 @@ module.exports = {
     listAgentFavorites: agentFavorites.listFavorites,
     addAgentFavorite: agentFavorites.addFavorite,
     removeAgentFavorite: agentFavorites.removeFavorite,
+    // Facade: het schema woont in agent/initSchema.js — migrateDb wacht dáárop.
+    initDB: require('./agent/initSchema').initDB,
 };
-
-// Facade: het schema woont in agent/initSchema.js — migrateDb wacht dáárop.
-module.exports.initDB = require('./agent/initSchema').initDB;

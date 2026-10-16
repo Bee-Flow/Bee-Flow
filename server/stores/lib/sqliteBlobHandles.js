@@ -12,7 +12,7 @@ const path = require('path');
 const Database = require('better-sqlite3');
 
 /**
- * @param {object} deps  handles (the engine's Map), maybeEvict (from the
+ * @param {any} deps  handles (the engine's Map), maybeEvict (from the
  *                       flusher), dbKey, workDir, storage, runQuery, metaTable,
  *                       entityLabel, assertServable — see createSqliteBlobEngine.
  */

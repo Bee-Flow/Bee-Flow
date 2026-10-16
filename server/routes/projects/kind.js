@@ -34,8 +34,8 @@ const S = require('./schemas');
 /**
  * @param {object} [deps]
  * @param {Function} [deps.requireProjectRole]   (minRole) => middleware named requireProjectRoleMw
- * @param {object}   [deps.store]                stores/projectStore ({ getProject, setProjectKind })
- * @param {object}   [deps.kindChange]           projects/kindChange ({ refusedContent })
+ * @param {any}   [deps.store]                stores/projectStore ({ getProject, setProjectKind })
+ * @param {any}   [deps.kindChange]           projects/kindChange ({ refusedContent })
  * @param {Function} [deps.recordProjectChange]  projects/changeFeed recordProjectChange
  */
 function makeKindRouter(deps = {}) {
@@ -83,5 +83,6 @@ function makeKindRouter(deps = {}) {
     return router;
 }
 
-module.exports = makeKindRouter();
-module.exports.makeKindRouter = makeKindRouter;
+module.exports = Object.assign(makeKindRouter(), {
+    makeKindRouter,
+});

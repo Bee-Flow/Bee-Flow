@@ -60,7 +60,6 @@ module.exports = {
     listProjectMeetings: projects.listProjectMeetings,
     countProjectMeetings: projects.countProjectMeetings,
     clearProjectFromTranscriptions: projects.clearProjectFromTranscriptions,
+    // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
+    initDB,
 };
-
-// Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
-module.exports.initDB = initDB;

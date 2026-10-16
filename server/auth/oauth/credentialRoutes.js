@@ -138,5 +138,6 @@ router.delete('/integrations/credentials/:provider', async (req, res) => {
     res.json({ success: result.deleted, providerRevokeAttempted: result.providerRevokeAttempted, providerRevokeOk: result.providerRevokeOk });
 });
 
-module.exports = router;
-module.exports.revokeProviderCredential = revokeProviderCredential;
+module.exports = Object.assign(router, {
+    revokeProviderCredential,
+});

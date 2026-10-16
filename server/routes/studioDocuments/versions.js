@@ -53,11 +53,11 @@ const REF = /^(current|[\w-]{1,200})$/;
 
 /**
  * @param {object} [deps]
- * @param {object} [deps.documents]       stores/documentStore surface
+ * @param {any} [deps.documents]       stores/documentStore surface
  * @param {Function} [deps.requireAuth]
  * @param {Function} [deps.hasPermission]
  * @param {Function} [deps.liveCollabFor]  (doc) => collab facade | null
- * @param {object} [deps.feed]             { recordContentChange }
+ * @param {any} [deps.feed]             { recordContentChange }
  * @param {Function} [deps.describePeople]
  * @param {Function} [deps.sanitize]       body HTML → safe HTML
  * @param {Function} [deps.pinnedVersionIds] () => the document revisions an automation or an app pins
@@ -232,6 +232,7 @@ function makeDocumentVersionsRouter(deps = {}) {
     return router;
 }
 
-module.exports = makeDocumentVersionsRouter();
-module.exports.makeDocumentVersionsRouter = makeDocumentVersionsRouter;
-module.exports._schemas = { S, z };
+module.exports = Object.assign(makeDocumentVersionsRouter(), {
+    makeDocumentVersionsRouter,
+    _schemas: { S, z },
+});

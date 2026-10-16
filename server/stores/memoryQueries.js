@@ -45,7 +45,7 @@ function makeListing({ db, crypto, ready }, presentMemories) {
      * are private to the person they belong to, in every scope.
      *
      * @param {string} userId
-     * @param {object} f
+     * @param {any} f
      */
     function buildWhere(userId, f) {
         const params = [userId];

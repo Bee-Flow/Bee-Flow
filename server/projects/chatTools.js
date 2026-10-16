@@ -100,10 +100,10 @@ const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
  * @param {object} [deps]
  * @param {Function} [deps.getProjectRole]   (userId, projectId) => role|null
  * @param {Function} [deps.getUser]          (id) => user row
- * @param {object}   [deps.projectOrg]       projects/projectOrg surface: projectOrgOf, belongsToProjectOrg, itemOrgFor
- * @param {object}   [deps.documents]        stores/documentStore surface: createDocument
- * @param {object}   [deps.notebooks]        stores/notebookStore surface: createNotebook, updateNotebook
- * @param {object}   [deps.membership]       projects/membership surface: isAllowedIn
+ * @param {any}   [deps.projectOrg]       projects/projectOrg surface: projectOrgOf, belongsToProjectOrg, itemOrgFor
+ * @param {any}   [deps.documents]        stores/documentStore surface: createDocument
+ * @param {any}   [deps.notebooks]        stores/notebookStore surface: createNotebook, updateNotebook
+ * @param {any}   [deps.membership]       projects/membership surface: isAllowedIn
  * @param {Function} [deps.recordCreated]    ({ projectId, itemType, itemId, actorId }) => void, one "created" entry in the project feed
  * @param {Function} [deps.markdownToHtml]   (md) => html
  * @param {Function} [deps.searchDefinition]  () => the agent_search tool definition, as a normal chat offers it

@@ -354,8 +354,7 @@ module.exports = {
     createWorkflow, getWorkflows, getAllWorkflows, getWorkflow, getWorkflowById, updateWorkflow, deleteWorkflow,
     shareResource, unshareResource, getShares, getShare,
     migrateFromJson,
-    createExecution, completeExecution, getExecutionHistory, getWorkflowExecutionHistory, getExecution, cleanupOldExecutions
+    createExecution, completeExecution, getExecutionHistory, getWorkflowExecutionHistory, getExecution, cleanupOldExecutions,
+    // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
+    initDB,
 };
-
-// Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
-module.exports.initDB = initDB;

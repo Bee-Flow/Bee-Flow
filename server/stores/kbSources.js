@@ -199,7 +199,7 @@ const KbSourcesStore = {
      * @param {string} p.knowledgeBaseId
      * @param {string} p.kind - one of SOURCE_KINDS
      * @param {string} [p.name='']
-     * @param {object} [p.config={}] - kind-specific; the route layer decides which part is public
+     * @param {any} [p.config={}] - kind-specific; the route layer decides which part is public
      * @param {string} [p.refreshMode='manual']
      * @param {string|null} [p.refreshCron]
      * @param {string|null} [p.refreshTz]
@@ -282,7 +282,7 @@ const KbSourcesStore = {
      * @param {string} kbId
      * @param {string} kind
      * @param {object} [opts]
-     * @param {object} [opts.configMatch] - JSON subset the config must contain
+     * @param {any} [opts.configMatch] - JSON subset the config must contain
      */
     findOne: async (kbId, kind, { configMatch = null } = {}) => {
         await initDB();
@@ -383,7 +383,7 @@ const KbSourcesStore = {
      * @param {number} [limit=10]
      * @param {object} [opts]
      * @param {number} [opts.staleMinutes=15] - a claim older than this is reclaimable
-     * @returns {Promise<object[]>} mapped rows, now in status 'refreshing'
+     * @returns {Promise<any[]>} mapped rows, now in status 'refreshing'
      */
     claimDue: async (limit = 10, { staleMinutes = DEFAULT_STALE_MINUTES } = {}) => {
         await initDB();
@@ -681,7 +681,7 @@ const KbSourcesStore = {
     },
 };
 
-module.exports = KbSourcesStore;
-
-// Awaitbare init-ingang voor migrateDb.
-module.exports.initDB = initDB;
+module.exports = Object.assign(KbSourcesStore, {
+    // Awaitbare init-ingang voor migrateDb.
+    initDB,
+});

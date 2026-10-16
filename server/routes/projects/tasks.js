@@ -59,14 +59,14 @@ const P = require('./tasksPoker');
  * @param {Function} [deps.requireProjectRole]  (minRole) => Express middleware
  * @param {Function} [deps.getProjectRole]      (userId, projectId) => role|null
  * @param {Function} [deps.getProject]          (id) => project row
- * @param {object}   [deps.store]               stores/projectTaskStore surface
- * @param {object}   [deps.chatStore]           stores/projectChatStore surface, for chat and thread links
- * @param {object}   [deps.chatCrypto]          { forProject(project, { what }) }
- * @param {object}   [deps.assistant]          projects/taskAssistant surface: forMeeting, forTask
+ * @param {any}   [deps.store]               stores/projectTaskStore surface
+ * @param {any}   [deps.chatStore]           stores/projectChatStore surface, for chat and thread links
+ * @param {any}   [deps.chatCrypto]          { forProject(project, { what }) }
+ * @param {any}   [deps.assistant]          projects/taskAssistant surface: forMeeting, forTask
  * @param {Function} [deps.resolveOrgs]         (req) => { orgId, limitOrgId } for the asker's model tier and limits
  * @param {Function} [deps.improveLimiter]      Express middleware on the AI routes
- * @param {object}   [deps.notifier]           projects/taskNotify surface: assigned({project, actorId, assigneeIds, taskId}), the bell for a task given to someone
- * @param {object}   [deps.commentStore]       stores/projectCommentStore surface: deleteForTarget, so a deleted task takes its comment threads with it
+ * @param {any}   [deps.notifier]           projects/taskNotify surface: assigned({project, actorId, assigneeIds, taskId}), the bell for a task given to someone
+ * @param {any}   [deps.commentStore]       stores/projectCommentStore surface: deleteForTarget, so a deleted task takes its comment threads with it
  * @param {Function} [deps.readMeeting]         (req, project, meetingId) => the meeting note (with `actionItems`) when it is filed in this project, else null
  * @param {Function} [deps.listPeople]          (project) => [{ id, name }] the members that can be given a task
  * @param {Function} [deps.query]              (sql, params) => { rows }, what the default `filedIds` asks
@@ -117,5 +117,6 @@ function makeProjectTasksRouter(deps = {}) {
 
 const router = makeProjectTasksRouter();
 
-module.exports = router;
-module.exports.makeProjectTasksRouter = makeProjectTasksRouter;
+module.exports = Object.assign(router, {
+    makeProjectTasksRouter,
+});

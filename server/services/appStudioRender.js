@@ -472,13 +472,13 @@ function unavailable(reason, code) {
  * Render one App Studio screen headless and screenshot it.
  *
  * @param {object} [input]
- * @param {object}  [input.app]      - the studio_apps row ({ id, userId }); data pass skipped without it
- * @param {object}  [input.definition] - canonical app definition
- * @param {object}  [input.model]    - the app's data model (or null)
+ * @param {any}  [input.app]      - the studio_apps row ({ id, userId }); data pass skipped without it
+ * @param {any}  [input.definition] - canonical app definition
+ * @param {any}  [input.model]    - the app's data model (or null)
  * @param {string}  [input.screenId] - screen to render (default: home screen)
  * @param {string}  [input.asRole]   - render + read data as this role (must exist in model.roles)
- * @param {string|object} [input.viewport] - 'desktop' | 'tablet' | 'mobile' | { width, height }
- * @param {object}  [input.deps]     - injectable edges (tests): readBundle, capture,
+ * @param {string|any} [input.viewport] - 'desktop' | 'tablet' | 'mobile' | { width, height }
+ * @param {any}  [input.deps]     - injectable edges (tests): readBundle, capture,
  *                                     dbQuery, runDataset, getDataset, hardTimeoutMs
  */
 async function renderAppScreenshot({ app = null, definition = null, model = null, screenId = null, asRole = null, viewport = 'desktop', deps = null } = {}) {

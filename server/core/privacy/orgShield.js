@@ -88,7 +88,7 @@ async function applyTierClampsToShield(shield, { organizationId, userId } = {}) 
  * Returns null if no shield is configured or enabled.
  * 
  * @param {string} orgId - Organization ID
- * @returns {Promise<{ enabled: boolean, rulesWithNames: Array, scope: object, action: string, [key: string]: any } | null>}
+ * @returns {Promise<{ enabled: boolean, rulesWithNames: Array, scope: any, action: string, [key: string]: any } | null>}
  *   plus every other field of the stored shield config (dlpEnabled, euModeEnabled, ...)
  */
 async function resolveOrgShield(orgId) {
@@ -365,8 +365,8 @@ function classifyToolClass(toolName, toolArgs = {}) {
  *
  * @param {string} toolName
  * @param {string[]} detectedCategories  canonical PII category ids (entity.category)
- * @param {object} policy                resolved toolPiiPolicy from resolveOrgShield
- * @param {object} [toolArgs]            the call's arguments (see classifyToolClass)
+ * @param {any} policy                resolved toolPiiPolicy from resolveOrgShield
+ * @param {any} [toolArgs]            the call's arguments (see classifyToolClass)
  * @returns {{ blocked: boolean, blockedCategories: string[], toolClass: string }}
  */
 function isBlockedForTool(toolName, detectedCategories, policy, toolArgs = {}) {
@@ -388,9 +388,9 @@ function isBlockedForTool(toolName, detectedCategories, policy, toolArgs = {}) {
  * Org rules come first. Action uses the stricter of the two ('delete' > 'redact').
  * Scope is merged with OR (if either enables a scope, it's enabled).
  * 
- * @param {object|null} orgConfig - From resolveOrgShield()
- * @param {object|null} localConfig - Agent or direct chat regex config
- * @returns {object|null} Merged config, or null if nothing enabled
+ * @param {any|null} orgConfig - From resolveOrgShield()
+ * @param {any|null} localConfig - Agent or direct chat regex config
+ * @returns {any|null} Merged config, or null if nothing enabled
  */
 function mergeWithOrgShield(orgConfig, localConfig) {
     if (!orgConfig && !localConfig) return null;

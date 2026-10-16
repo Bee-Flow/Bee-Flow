@@ -250,8 +250,8 @@ function pieSvg(chart, th, box, donut) {
 }
 
 /**
- * @param {object} chart  deckChart model
- * @param {object} th     resolved deck theme (chartColors, text, muted, tableLine, background, fontStack)
+ * @param {any} chart  deckChart model
+ * @param {any} th     resolved deck theme (chartColors, text, muted, tableLine, background, fontStack)
  * @param {{width?:number, height?:number}} [size]
  * @returns {string} an <svg> element
  */

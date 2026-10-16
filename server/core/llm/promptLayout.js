@@ -52,10 +52,10 @@ function supportsLateSystemBlock(providerType, { isLocal = false } = {}) {
  * into, and the local adapter turns a trailing system message into its own
  * user turn.
  *
- * @param {Array<object>} messages
- * @param {object} volatileMessage the exact object placed at index 1 during
+ * @param {Array<any>} messages
+ * @param {any} volatileMessage the exact object placed at index 1 during
  *   assembly; absent from the list is fine (it is inserted, not duplicated)
- * @returns {Array<object>} the same array
+ * @returns {Array<any>} the same array
  */
 function placeVolatileBlock(messages, volatileMessage) {
     if (!Array.isArray(messages) || !volatileMessage) return messages;

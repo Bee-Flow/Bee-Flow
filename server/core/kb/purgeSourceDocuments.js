@@ -55,7 +55,7 @@ const MAX_ROUNDS = 200;
  * hoort het pas te nemen als `complete` waar is.
  *
  * @param {object} p
- * @param {object} p.kbStore                stores/knowledgeBases (of een double)
+ * @param {any} p.kbStore                stores/knowledgeBases (of een double)
  * @param {Function} p.deleteDocumentChunks core/kb/kbIngestionHelpers.deleteDocumentChunks
  * @param {string} p.kbId                   kennisbank waar de bron in zit
  * @param {string} p.sourceId               `kb_sources.id`

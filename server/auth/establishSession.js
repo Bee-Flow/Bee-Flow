@@ -35,15 +35,15 @@
 /**
  * @param {import('express').Request} req
  * @param {object} opts
- * @param {object}   opts.user      Stored verbatim on req.session.user (required).
+ * @param {any}   opts.user      Stored verbatim on req.session.user (required).
  * @param {boolean}  [opts.isAdmin] req.session.isAdmin (default false).
  * @param {string[]} [opts.preserve] Pre-auth session keys copied across the
  *                                   regeneration (only keys that are defined
  *                                   on the old session are re-applied).
- * @param {object}   [opts.extra]   Site-specific keys written verbatim after
+ * @param {any}   [opts.extra]   Site-specific keys written verbatim after
  *                                   the canonical shape (explicit null is
  *                                   written, not skipped).
- * @param {object}   [opts.audit]   {method, organizationId, details} for the
+ * @param {any}   [opts.audit]   {method, organizationId, details} for the
  *                                  login_succeeded audit row. Omitted still
  *                                  writes a row, tagged method 'unknown'.
  */
@@ -56,7 +56,7 @@ async function establishSession(req, { user, isAdmin = false, preserve = [], ext
     for (const key of preserve) {
         if (old[key] !== undefined) snapshot[key] = old[key];
     }
-    await new Promise((resolve, reject) => old.regenerate((err) => (err ? reject(err) : resolve())));
+    await /** @type {Promise<void>} */ (new Promise((resolve, reject) => old.regenerate((err) => (err ? reject(err) : resolve()))));
     // regenerate() replaced req.session with a fresh object — only touch
     // req.session from here on.
     Object.assign(req.session, snapshot);
@@ -64,7 +64,7 @@ async function establishSession(req, { user, isAdmin = false, preserve = [], ext
     req.session.user = user;
     req.session.isAdmin = isAdmin;
     for (const [k, v] of Object.entries(extra)) req.session[k] = v;
-    await new Promise((resolve, reject) => req.session.save((err) => (err ? reject(err) : resolve())));
+    await /** @type {Promise<void>} */ (new Promise((resolve, reject) => req.session.save((err) => (err ? reject(err) : resolve()))));
 
     // After the save, never before: a session that failed to persist was not
     // established, and an audit trail that records sessions which never existed

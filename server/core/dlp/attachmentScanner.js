@@ -372,7 +372,7 @@ function _finaliseCompleteScan({ text, findings, summary, action, conversationId
  * inside tokenizeText dedupes any overlap between the two for free).
  *
  * @param {{ text: string, findings: Array, conversationId?: string, filename?: string }} params
- * @returns {Promise<{ action: 'tokenize', text: string, findings: Array, summary: object, tokenMap: object|null }>}
+ * @returns {Promise<{ action: 'tokenize', text: string, findings: Array, summary: any, tokenMap: any|null }>}
  */
 async function applyAttachmentRedactionChoice({ text, findings, conversationId, filename }) {
     const existing = conversationId ? getConversationTokenMap(conversationId) : null;
@@ -390,7 +390,7 @@ async function applyAttachmentRedactionChoice({ text, findings, conversationId, 
  * @param {string} params.text                Concatenated extracted text.
  * @param {Array<{pageNumber:number,text:string}>} [params.pages]  Per-page text (PDF). Optional.
  * @param {string} params.filename
- * @param {object} params.orgShield           Resolved Privacy Shield config.
+ * @param {any} params.orgShield           Resolved Privacy Shield config.
  * @param {string} [params.conversationId]    Used to merge attachment tokens into the conv map.
  * @param {number} [params.maxPages]
  * @param {number} [params.concurrency]       pages scanned in parallel

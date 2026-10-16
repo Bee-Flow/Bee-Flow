@@ -28,7 +28,7 @@ async function _doInit() {
     log.info('[IpGeoCacheStore] dropped the retired ip_geo_cache table (IP addresses without a retention rule)');
 }
 
-module.exports = {};
-
-// Awaitable init entry point for migrateDb.
-module.exports.initDB = initDB;
+module.exports = {
+    // Awaitable init entry point for migrateDb.
+    initDB,
+};

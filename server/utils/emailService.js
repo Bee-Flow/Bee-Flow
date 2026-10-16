@@ -487,7 +487,7 @@ function _renderField(str, vars, { multiline = false } = {}) {
  *
  * @param {'verification'|'welcome'} templateId
  * @param {string} locale
- * @param {Object} vars  e.g. { name, orgName, verifyUrl } or { name, orgName, loginUrl }
+ * @param {any} vars  e.g. { name, orgName, verifyUrl } or { name, orgName, loginUrl }
  */
 /**
  * Build {subject, html, text} from an already-resolved template object
@@ -574,7 +574,7 @@ async function sendWelcomeEmail({ email, displayName, loginUrl, orgName, locale 
  * it never throws (the bell of the same event has already rung).
  *
  * @param {{ userId: string, locale?: string, event: string, vars?: { project?: string, actor?: string, intro?: string, detail?: string }, ctaUrl?: string|null }} opts
- * @param {object} [deps]  injectable for tests
+ * @param {any} [deps]  injectable for tests
  * @returns {Promise<{ sent: boolean }>}
  */
 async function sendProjectCollabEmail({ userId, locale, event, vars = {}, ctaUrl = null }, deps = {}) {

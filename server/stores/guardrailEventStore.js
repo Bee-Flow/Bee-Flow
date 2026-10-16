@@ -444,7 +444,6 @@ module.exports = {
     getGuardrailByCategory,
     getGuardrailByAction,
     getRecentGuardrailEvents,
+    // Awaitbare init-ingang voor migrateDb.
+    initDB,
 };
-
-// Awaitbare init-ingang voor migrateDb.
-module.exports.initDB = initDB;

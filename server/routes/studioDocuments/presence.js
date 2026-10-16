@@ -36,14 +36,14 @@ const Beat = bodyOf({
 
 /**
  * @param {object} [deps]
- * @param {object} [deps.documents]       stores/documentStore surface ({ getDocument })
- * @param {object} [deps.presence]        core/documents/sectionPresence surface
+ * @param {any} [deps.documents]       stores/documentStore surface ({ getDocument })
+ * @param {any} [deps.presence]        core/documents/sectionPresence surface
  * @param {Function} [deps.publishTransient]
  * @param {Function} [deps.publishChannel]   the `doc:<id>` channel
  * @param {Function} [deps.requireAuth]
  * @param {Function} [deps.limiter]       rate limit for the beats
  * @param {Function} [deps.describePeople]
- * @param {object} [deps.log]
+ * @param {any} [deps.log]
  */
 function makeDocumentPresenceRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
@@ -90,5 +90,6 @@ function makeDocumentPresenceRouter(deps = {}) {
     return router;
 }
 
-module.exports = makeDocumentPresenceRouter();
-module.exports.makeDocumentPresenceRouter = makeDocumentPresenceRouter;
+module.exports = Object.assign(makeDocumentPresenceRouter(), {
+    makeDocumentPresenceRouter,
+});

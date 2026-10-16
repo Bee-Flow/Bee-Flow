@@ -23,7 +23,7 @@ function _parseSharedGroups(value) {
 /**
  * Decide whether a user is allowed to read/use a published entity.
  *
- * @param {object} entity - Row with the publish/audience columns. Either
+ * @param {any} entity - Row with the publish/audience columns. Either
  *   `owner_id` or `tenant_id` is treated as "owner". `organization_id`,
  *   `is_published`, and `shared_groups` (array or JSON string) are read.
  * @param {object} ctx

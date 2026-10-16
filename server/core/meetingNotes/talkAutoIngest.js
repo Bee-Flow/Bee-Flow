@@ -59,7 +59,7 @@ async function resolveUserFromNcUid(orgId, ncUid) {
 
 /**
  * @param {object} args
- * @param {object} args.payload  normalized file.new payload ({ path, name, extension, actor, ... })
+ * @param {any} args.payload  normalized file.new payload ({ path, name, extension, actor, ... })
  * @param {string|null} args.userId  Bee Flow user mapped from the event actor (may be null)
  * @param {string|null} args.orgId   org the event belongs to (from the connector instance)
  */

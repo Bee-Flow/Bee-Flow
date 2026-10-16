@@ -232,11 +232,11 @@ async function handleStepFailure(deps, err, f) {
  * The `dispatchStep` of one run: what runDag (and every container step that
  * recurses through it) calls to execute a single step.
  *
- * @param {object} deps  execution.js's RUN_DEPS
+ * @param {any} deps  execution.js's RUN_DEPS
  * @param {object} args
- * @param {object} args.run   the run row (its id addresses the cancel flag)
+ * @param {any} args.run   the run row (its id addresses the cancel flag)
  * @param {AbortSignal} args.cancelSignal  the run's in-process cancel signal
- * @param {object} args.runPolicy  the automation's run policy (default retry)
+ * @param {any} args.runPolicy  the automation's run policy (default retry)
  */
 function makeStepDispatcher(deps, { run, cancelSignal, runPolicy }) {
     const { isCancelRequested } = deps;

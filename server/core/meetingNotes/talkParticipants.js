@@ -34,8 +34,8 @@
  * Het deelnemersaantal dat ZONDER een extra Talk-aanroep vast te stellen is.
  *
  * @param {object} p
- * @param {object|null} p.room      een rij uit `nextcloud_talk_list_rooms`
- * @param {object|null} p.meeting   de agenda-afspraak (talkCalendar), of null
+ * @param {any|null} p.room      een rij uit `nextcloud_talk_list_rooms`
+ * @param {any|null} p.meeting   de agenda-afspraak (talkCalendar), of null
  * @param {string} p.autoRecordScope 'calendar' | 'all'
  * @returns {number|null} het aantal, of null als het van hieruit niet te weten is
  */

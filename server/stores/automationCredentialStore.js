@@ -167,7 +167,6 @@ module.exports = {
     listProvidersForUser,
     // Exported for tests / debugging. Do not call from app code.
     _internals: { _encrypt, _decrypt, _orgVaultKey },
+    // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
+    initDB,
 };
-
-// Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
-module.exports.initDB = initDB;

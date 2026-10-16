@@ -200,7 +200,7 @@ function visibleNow(post, now) {
 }
 
 /**
- * @param {{ cmsStore: object, resolveSite: Function, audit: Function, now?: () => number }} deps
+ * @param {{ cmsStore: any, resolveSite: Function, audit: Function, now?: () => number }} deps
  */
 function createBlogHandlers(deps) {
     const { cmsStore, resolveSite } = deps;

@@ -153,13 +153,13 @@ async function saveNote(row, savedAudio) {
  * @param {string[]}[opts.participantNames] real attendee roster for diarization
  * @param {string} [opts.source]           provenance tag ('nextcloud', 'gmeet', …)
  * @param {string} [opts.sourceUri]        canonical dedup key
- * @param {object} [opts.extraStoreFields] extra createTranscription fields
- * @param {{text?: string, segments: object[]}} [opts.transcriptResponse]
+ * @param {any} [opts.extraStoreFields] extra createTranscription fields
+ * @param {{text?: string, segments: any[]}} [opts.transcriptResponse]
  *        an already-made transcript (Teams VTT): transcription is skipped and
  *        `filePath` may be absent, in which case the note has no audio
  * @param {boolean} [opts.speakersNamed]   the segments' speakerIds are real
  *        names (from the platform), so the LLM naming pass is skipped
- * @returns {Promise<object>} the saved-note payload (+ `dedup`)
+ * @returns {Promise<any>} the saved-note payload (+ `dedup`)
  */
 async function ingestLocalRecording(opts) {
     const {

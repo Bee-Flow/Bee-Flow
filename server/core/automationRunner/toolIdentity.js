@@ -13,7 +13,7 @@
  * nothing from running the owner's automation.
  */
 
-/** @typedef {{ userId: string|undefined, session: object|null|undefined, orgId: string|null|undefined, userGroupIds: string[], orgRole: string|null|undefined, homeOrgId: string|null|undefined, isAdmin: boolean }} ToolIdentity */
+/** @typedef {{ userId: string|undefined, session: any|null|undefined, orgId: string|null|undefined, userGroupIds: string[], orgRole: string|null|undefined, homeOrgId: string|null|undefined, isAdmin: boolean }} ToolIdentity */
 
 const isAdminSession = (session) => !!(session && (session.isAdmin || session.user?.role === 'admin'));
 
@@ -59,9 +59,9 @@ const toolNameOf = (t) => t?.function?.name;
  * the owner's, as ever. For a caller-only run it is the owner's catalog
  * intersected with the caller's, so neither side can widen the other.
  *
- * @param {object} ctx
- * @param {(opts: object) => Promise<{ tools?: any[] }>} getIntegrationTools
- * @param {object} [options]  `lend`: ask with the connection-lending policy (owner runs only);
+ * @param {any} ctx
+ * @param {(opts: any) => Promise<{ tools?: any[] }>} getIntegrationTools
+ * @param {any} [options]  `lend`: ask with the connection-lending policy (owner runs only);
  *                            everything else goes to the lookup as is (automationStep, grants, ...)
  */
 async function permittedCatalog(ctx, getIntegrationTools, options = {}) {

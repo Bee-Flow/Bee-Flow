@@ -25,7 +25,7 @@ const defaultLog = require('../telemetry/log');
 
 /**
  * @param {{ use: Function }} app
- * @param {object} [deps]
+ * @param {any} [deps]
  */
 function applyCookieSession(app, deps = {}) {
     const log = deps.log || defaultLog;
@@ -107,7 +107,7 @@ function applyCookieSession(app, deps = {}) {
 
 /**
  * @param {{ use: Function }} app
- * @param {object} [deps]
+ * @param {any} [deps]
  */
 function applySessionBridge(app, deps = {}) {
     const log = deps.log || defaultLog;

@@ -26,8 +26,8 @@ const { makeProjectStreamHandler } = require('./collabStream');
 /**
  * @param {object} deps
  * @param {Function} deps.requireProjectRole        (minRole) => middleware named requireProjectRoleMw
- * @param {object}   deps.projectStore              stores/projectStore
- * @param {object}   deps.notificationPrefsStore    stores/notificationPrefsStore
+ * @param {any}   deps.projectStore              stores/projectStore
+ * @param {any}   deps.notificationPrefsStore    stores/notificationPrefsStore
  * @param {Function} deps.getUserId                 (req) => the caller's user id
  * @param {Function} deps.perUserRateLimit          utils/perUserRateLimit perUserRateLimit
  * @param {Function} deps.projectFiles              () => projects/projectFiles (loaded on first use)

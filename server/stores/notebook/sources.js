@@ -95,7 +95,7 @@ const SOURCE_COLUMNS = {
 
 /**
  * @param {string} id
- * @param {object} updates
+ * @param {any} updates
  * @param {{ onlyIfProcessing?: boolean }} [opts] With `onlyIfProcessing` the
  *   write only lands while the row is still `processing`, so a cancel or a
  *   delete that happened meanwhile wins over the ingestion still running.
@@ -155,7 +155,7 @@ async function countSources(notebookId) {
 /**
  * Delete several sources of ONE notebook in two statements. Ids that do not
  * belong to `notebookId` are skipped, exactly like deleteSource.
- * @returns {Promise<object[]>} the deleted sources (mapped), for artifact cleanup
+ * @returns {Promise<any[]>} the deleted sources (mapped), for artifact cleanup
  */
 async function deleteSources(ids, notebookId) {
     await initDB();

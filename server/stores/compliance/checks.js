@@ -121,7 +121,7 @@ function createChecks({ run, getAll, initDB }) {
 
     // ───────────────────────── Score history ─────────────────────────
     /**
-     * @param {object} row  organization_id, overall_score, pass/warn/fail/na,
+     * @param {any} row  organization_id, overall_score, pass/warn/fail/na,
      *   run_type, the legacy gdpr_score/aia_score/iso_score and/or `scores`
      *   ({<framework_id>: number|null}), and `coverage` — what the number was
      *   computed over. Either score side fills the other when only one is given,

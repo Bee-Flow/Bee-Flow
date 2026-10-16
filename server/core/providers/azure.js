@@ -271,8 +271,9 @@ class AzureProvider extends OpenAIProvider {
     }
 }
 
-module.exports = AzureProvider;
-module.exports.toV1BaseUrl = toV1BaseUrl;
-module.exports.parseDeployments = parseDeployments;
-module.exports.isResponsesUnsupported = isResponsesUnsupported;
-module.exports.isCacheRetentionRejected = isCacheRetentionRejected;
+module.exports = Object.assign(AzureProvider, {
+    toV1BaseUrl,
+    parseDeployments,
+    isResponsesUnsupported,
+    isCacheRetentionRejected,
+});

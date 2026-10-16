@@ -28,9 +28,9 @@ const { findRelatedParts } = require('../../projects/relatedParts');
 /**
  * @param {object} deps
  * @param {Function} deps.requireProjectRole     (minRole) => middleware named requireProjectRoleMw
- * @param {object}   deps.projectStore           stores/projectStore
- * @param {object}   deps.membership             projects/membership (the kind registry)
- * @param {object}   deps.itemFiling             projects/itemFiling makeItemFiling(...)
+ * @param {any}   deps.projectStore           stores/projectStore
+ * @param {any}   deps.membership             projects/membership (the kind registry)
+ * @param {any}   deps.itemFiling             projects/itemFiling makeItemFiling(...)
  * @param {Function} deps.buildGraphForProject   (projectId) => { graph, members, unavailable }
  * @param {Function} deps.completeness           () => projects/completeness (loaded on first use)
  * @param {Function} deps.getUserId              (req) => the caller's user id

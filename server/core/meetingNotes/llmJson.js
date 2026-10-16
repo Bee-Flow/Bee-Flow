@@ -45,7 +45,7 @@ function parseJsonArray(content) {
  * Parse a JSON object from an LLM reply, salvaging a truncated tail.
  *
  * @param {string} content Raw model reply.
- * @returns {{ value: object, salvaged: boolean }|null} null when nothing usable.
+ * @returns {{ value: any, salvaged: boolean }|null} null when nothing usable.
  */
 function parseJsonObject(content) {
     const slice = sliceBetween(content, '{', '}');

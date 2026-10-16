@@ -24,7 +24,7 @@ async function _initDB() {
 /**
  * Get the previous state for a watcher
  * @param {string} watcherId
- * @returns {Promise<{ items: Object, lastCheck: string } | null>}
+ * @returns {Promise<{ items: any, lastCheck: string } | null>}
  */
 async function getWatcherState(watcherId) {
     await initDB();
@@ -44,7 +44,7 @@ async function getWatcherState(watcherId) {
 /**
  * Save the current state for a watcher
  * @param {string} watcherId
- * @param {Object} items
+ * @param {any} items
  */
 async function saveWatcherState(watcherId, items) {
     await initDB();
@@ -89,8 +89,7 @@ module.exports = {
     getWatcherState,
     saveWatcherState,
     deleteWatcherState,
-    getAllWatcherStates
+    getAllWatcherStates,
+    // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
+    initDB,
 };
-
-// Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
-module.exports.initDB = initDB;

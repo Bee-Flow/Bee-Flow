@@ -229,5 +229,6 @@ function createNotificationStore(pool, { tag = 'NotificationStore' } = {}) {
     };
 }
 
-module.exports = createNotificationStore(require('../db').pool);
-module.exports.createNotificationStore = createNotificationStore;
+module.exports = Object.assign(createNotificationStore(require('../db').pool), {
+    createNotificationStore,
+});

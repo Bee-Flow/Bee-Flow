@@ -49,10 +49,10 @@ const ANSWER_CHARS = 10000;
 
 /**
  * @param {object} [deps]
- * @param {object}   [deps.store]          stores/projectCommentStore surface
- * @param {object}   [deps.commentCrypto]  { forProject(project) }
+ * @param {any}   [deps.store]          stores/projectCommentStore surface
+ * @param {any}   [deps.commentCrypto]  { forProject(project) }
  * @param {Function} [deps.getProject]     (id) => project row
- * @param {object}   [deps.itemReader]     { read({projectId, targetType, targetId, userId, sectionId}) }
+ * @param {any}   [deps.itemReader]     { read({projectId, targetType, targetId, userId, sectionId}) }
  * @param {Function} [deps.emit]           (projectId, event) => durable event
  * @param {Function} [deps.newId]
  */
@@ -209,7 +209,7 @@ function defaultEngine() {
  * Register the comment surface with the engine, once per process. Returns
  * whether it is registered.
  *
- * @param {{ engine?: object|null, surface?: object }} [opts]
+ * @param {{ engine?: any|null, surface?: any }} [opts]
  */
 function ensureCommentSurface({ engine, surface } = {}) {
     if (registered && !engine) return true;
@@ -232,7 +232,7 @@ function ensureCommentSurface({ engine, surface } = {}) {
  *
  * @param {{ threadId: string, commentId: string, authorUserId: string, orgId: string|null,
  *           limitOrgId: string|null, projectId: string, explicit?: boolean }} p
- * @param {{ engine?: object|null }} [opts]
+ * @param {{ engine?: any|null }} [opts]
  * @returns {Promise<boolean>} whether the engine took it
  */
 async function notifyHumanComment({ threadId, commentId, authorUserId, orgId, limitOrgId, projectId, explicit = false }, { engine } = {}) {
@@ -255,7 +255,7 @@ async function notifyHumanComment({ threadId, commentId, authorUserId, orgId, li
  * deleted. Never throws.
  *
  * @param {string} threadId
- * @param {{ engine?: object|null }} [opts]
+ * @param {{ engine?: any|null }} [opts]
  */
 async function cancelCommentThread(threadId, { engine } = {}) {
     const target = engine === undefined ? defaultEngine() : engine;

@@ -102,12 +102,12 @@ function collectKbSteps(definition) {
 /**
  * Findings for the knowledge bases an automation's steps name.
  *
- * @param {object} definition
+ * @param {any} definition
  * @param {object} p
  * @param {string} p.orgId        the automation's organisation (null for a personal automation)
  * @param {string} p.userId       the automation's owner
  * @param {'draft'|'activate'} p.stage
- * @param {object} [p.deps]
+ * @param {any} [p.deps]
  * @returns {Promise<Array<{code,severity,path,message,hint}>>}
  */
 async function kbStepFindings(definition, { orgId, userId, stage = 'draft', deps = {} } = /** @type {any} */ ({})) {

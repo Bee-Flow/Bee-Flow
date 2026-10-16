@@ -17,7 +17,7 @@ const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
  * Fetch the full pricing JSON (2000+ models).
  * Uses a 24h in-memory cache.
  * @param {boolean} [forceRefresh=false]
- * @returns {Promise<Object>} Map of model keys → pricing objects
+ * @returns {Promise<any>} Map of model keys → pricing objects
  */
 async function fetchAllPricing(forceRefresh = false) {
     const now = Date.now();
@@ -217,7 +217,7 @@ function _extras(entry) {
  * (`source`: 'community' data or our own 'repo' snapshot), the data key it was
  * read from, and the tier / long-context rates when the data has them.
  * @returns {{ input: number, output: number, cacheRead: number, source: string, key: string|null,
- *             tiers: object, longCtx: object|null } | null}
+ *             tiers: any, longCtx: any|null } | null}
  */
 function getModelPricingDetail(modelId, providerType) {
     if (!modelId) return null;
@@ -265,7 +265,7 @@ function getPricingByKey(key) {
 /**
  * Get all pricing data converted to our format (per 1M tokens).
  * Used by the config UI to show full pricing list.
- * @returns {Object} Map of modelId → { input, output, provider }
+ * @returns {any} Map of modelId → { input, output, provider }
  */
 function getAllModelPricing() {
     if (!_cachedPricing) return {};

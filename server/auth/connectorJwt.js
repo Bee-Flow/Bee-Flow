@@ -298,7 +298,7 @@ async function _reuseCookieSession(req) {
         // well as the JWT re-auth + login handlers that repopulate the session.
         // regenerate() leaves a fresh, empty, valid session object in its place.
         log.info(`[ConnectorJWT] Dropping stale session for missing user ${req.session.user.id}`);
-        await new Promise(resolve => req.session.regenerate(() => resolve()));
+        await /** @type {Promise<void>} */ (new Promise(resolve => req.session.regenerate(() => resolve())));
     }
     return false;
 }
@@ -396,11 +396,12 @@ async function connectorJwtMiddleware(req, res, next) {
     }
 }
 
-module.exports = connectorJwtMiddleware;
-module.exports.invalidateTenantKeyCache = invalidateTenantKeyCache;
-module.exports._verifyHs256 = _verifyHs256; // exported for tests
-module.exports._isOrgAdminRequester = phases._isOrgAdminRequester; // exported for tests
-module.exports._resolveRequesterNcUid = phases._resolveRequesterNcUid; // exported for tests
-module.exports._resolveSessionNcUid = phases._resolveSessionNcUid; // exported for tests
-module.exports._resolveTenant = _resolveTenant; // shared with /connector/status (phone-home) — single two-pass key resolver
-module.exports._unverifiedEmailDomain = _unverifiedEmailDomain; // exported for tests
+module.exports = Object.assign(connectorJwtMiddleware, {
+    invalidateTenantKeyCache,
+    _verifyHs256, // exported for tests
+    _isOrgAdminRequester: phases._isOrgAdminRequester, // exported for tests
+    _resolveRequesterNcUid: phases._resolveRequesterNcUid, // exported for tests
+    _resolveSessionNcUid: phases._resolveSessionNcUid, // exported for tests
+    _resolveTenant, // shared with /connector/status (phone-home) — single two-pass key resolver
+    _unverifiedEmailDomain, // exported for tests
+});

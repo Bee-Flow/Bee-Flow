@@ -99,7 +99,6 @@ module.exports = {
     contentHash,
     // Co-editing
     writeCollabContent,
+    // Awaitable init entry for migrateDb (memoised: the same promise as the load-time init).
+    initDB,
 };
-
-// Awaitable init entry for migrateDb (memoised: the same promise as the load-time init).
-module.exports.initDB = initDB;

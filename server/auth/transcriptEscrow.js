@@ -118,7 +118,7 @@ function _normOrgId(rawOrgId) {
  * open, which is not.
  *
  * @param {string} rawOrgId
- * @param {object} [deps] injection seam for tests
+ * @param {any} [deps] injection seam for tests
  * @returns {Promise<Buffer|null>}
  */
 async function getTranscriptDek(rawOrgId, deps = {}) {

@@ -163,7 +163,7 @@ async function markFailed(userId, provider, errorCode) {
  * Store (or replace) a user's voiceprint. The template is encrypted under the
  * org's vault key before it touches the DB.
  *
- * @returns {Promise<object>} the metadata row (never the template)
+ * @returns {Promise<any>} the metadata row (never the template)
  * @param {{userId: string, organizationId: string, provider?: string, model?: string, voiceprintBase64: string, durationSeconds?: number|null, language?: string|null, jobId?: string|null, consent?: {at?: Date, version?: number, ip?: string, userAgent?: string}}} opts
  */
 async function upsertVoiceprint({
@@ -350,7 +350,6 @@ module.exports = {
     deleteVoiceprintsForOrg,
     // exported for tests
     toMeta,
+    // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
+    initDB,
 };
-
-// Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
-module.exports.initDB = initDB;

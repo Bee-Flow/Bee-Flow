@@ -24,7 +24,7 @@ function makeCatalogFns(ctx) {
          * @param {string} name
          * @param {string} description
          * @param {string|null} organizationId - Organization this KB belongs to (null = personal)
-         * @param {object} extra - Optional { categoryId, icon, sourceKind, usageContexts }
+         * @param {any} extra - Optional { categoryId, icon, sourceKind, usageContexts }
          *   - sourceKind: 'manual' | 'webpage_auto' | 'notebook_auto' (default 'manual')
          *   - usageContexts: array of 'agent' | 'direct_chat' | 'webpage' (default all three)
          */
