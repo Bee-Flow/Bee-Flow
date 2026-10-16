@@ -19,7 +19,7 @@ import AppIcon from '../../components/icons/AppIcon';
  */
 const LUCIDE_NAME = /^[A-Z][A-Za-z0-9]*$/;
 
-export default function NavIcon({ icon, className = '' }) {
+export default function NavIcon({ icon, className = '' }: { icon?: string | null; className?: string }) {
     if (!icon) return null;
     if (LUCIDE_NAME.test(icon)) {
         return <AppIcon name={icon} className={className} aria-hidden="true" />;

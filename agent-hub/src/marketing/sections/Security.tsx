@@ -7,8 +7,28 @@ import PopupModal from '../components/PopupModal';
 import SectionFrame from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';
 import SectionHeader from '../components/SectionHeader';
+import type { SectionDataBase } from './sectionData.types';
 
-export default function Security({ data }) {
+interface SecurityCard {
+    icon?: string;
+    title?: string;
+    summary?: string;
+    titleAlign?: string;
+    summaryAlign?: string;
+    details?: string[];
+    // Read only behind the `card.link && …` guard (hasRowLink); old cards lack it.
+    link: { label?: string; href?: string };
+    cardAction?: string;
+    cardUrl?: string;
+    popupEmbed?: string;
+}
+
+interface SecurityData extends SectionDataBase {
+    cards?: SecurityCard[];
+    variant?: string;
+}
+
+export default function Security({ data }: { data?: SecurityData | null }) {
     // Hooks must run unconditionally — declared BEFORE the `enabled`
     // early-return so toggling enabled on/off doesn't change hook order.
     const [openIdx, setOpenIdx] = useState(-1);
@@ -101,7 +121,7 @@ export default function Security({ data }) {
                                                             // Never bubble into the card's popup
                                                             // action; keep inline editing usable.
                                                             e.stopPropagation();
-                                                            if (e.target.closest && e.target.closest('.cms-editable')) e.preventDefault();
+                                                            if ((e.target as Element).closest && (e.target as Element).closest('.cms-editable')) e.preventDefault();
                                                         }}
                                                     >
                                                         <span aria-hidden="true">→</span>

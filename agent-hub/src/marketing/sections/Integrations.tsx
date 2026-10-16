@@ -7,6 +7,24 @@ import { resolveAssetUrl } from '../assetUrl';
 import { sectionBgClass } from './sectionBg';
 import { inlineTextStyle } from './textStyle';
 import { getIntegrationLogo } from '../../utils/integrationLogos';
+import type { SectionDataBase } from './sectionData.types';
+
+interface IntegrationItem {
+    label?: string;
+    icon?: string;
+    logoId?: string;
+    logoSrc?: string;
+}
+
+interface IntegrationCategory {
+    heading?: string;
+    headingAlign?: string;
+    items?: IntegrationItem[];
+}
+
+interface IntegrationsData extends SectionDataBase {
+    categories?: IntegrationCategory[];
+}
 
 /* The product already ships official brand SVGs for every integration it can
    talk to (`utils/integrationLogos`). The marketing wall drew Lucide glyphs
@@ -14,9 +32,9 @@ import { getIntegrationLogo } from '../../utils/integrationLogos';
    envelope/ticket outline in the same accent colour — the page said "44
    integrations" while looking like one. Reusing the product's registry keeps
    the two surfaces honest: if the app grows a mark, the website gets it. */
-const brandLogo = (id) => (id ? getIntegrationLogo(id) : null);
+const brandLogo = (id: string | undefined) => (id ? getIntegrationLogo(id) : null);
 
-function BrandMark({ id }) {
+function BrandMark({ id }: { id: string | undefined }) {
     const Logo = brandLogo(id);
     if (!Logo) return null;
     return (
@@ -26,7 +44,7 @@ function BrandMark({ id }) {
     );
 }
 
-export default function Integrations({ data }) {
+export default function Integrations({ data }: { data?: IntegrationsData | null }) {
     if (!data?.enabled) return null;
     return (
         <SectionFrame id="integrations" name="Integrations" enabled={data.enabled}>
