@@ -20,7 +20,7 @@ import {
 import { WEB_TOKENS } from './generated/webTokens.generated';
 import { PALETTES, RADII } from './tokens';
 
-const APPLY_THEME = path.resolve(__dirname, '../../../../agent-hub/src/components/theme/applyTheme.js');
+const APPLY_THEME = path.resolve(__dirname, '../../../../agent-hub/src/components/theme/applyTheme.ts');
 
 describe('color', () => {
     it('measures WCAG contrast, and treats a non-hex value as no contrast', () => {

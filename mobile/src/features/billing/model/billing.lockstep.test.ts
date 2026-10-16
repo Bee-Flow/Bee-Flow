@@ -14,7 +14,7 @@ import { currencySymbol, hasPaidBillingRelationship, PORTAL_ELIGIBLE_PAYMENT_STA
 const web = loadWebModule<{
     hasPaidBillingRelationship: (sub: unknown) => boolean;
     PORTAL_ELIGIBLE_PAYMENT_STATUSES: string[];
-}>('utils/billing.js');
+}>('utils/billing.ts');
 
 describe('billing lockstep', () => {
     it('asks the web’s question about the Customer Portal', () => {

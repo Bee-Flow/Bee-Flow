@@ -43,9 +43,34 @@ import { buildBfElementsScript } from './bfElementsRuntime';
 // previewInline.mjs; these are their generated mirrors).
 export { defangScriptClose, buildSelectionBridgeScript, buildBridgeHeadScripts };
 
-const toBase64 = (text) => btoa(unescape(encodeURIComponent(text)));
+/** The three editable slots of a webpage; each may be empty. */
+export interface WebpageSlots {
+    html?: string | null;
+    css?: string | null;
+    js?: string | null;
+}
 
-export function composeWebpageDocument({ html, css, js }, options = {}) {
+/** One extra project file, as the preview wants it (text inlined, binary as a data URL). */
+export interface PreviewExtraFile {
+    path?: string;
+    isText?: unknown;
+    mimeType?: string;
+    content?: string;
+    dataUrl?: string;
+}
+
+/** What the preview needs beyond the slots. */
+export interface WebpageDocumentOptions {
+    selectionBridge?: boolean;
+    extraFiles?: PreviewExtraFile[];
+    dbToken?: string | null;
+    dbApiBase?: string | null;
+    dbWebpageId?: string | null;
+}
+
+const toBase64 = (text: string): string => btoa(unescape(encodeURIComponent(text)));
+
+export function composeWebpageDocument({ html, css, js }: WebpageSlots, options: WebpageDocumentOptions = {}): string {
     const { selectionBridge = false, extraFiles = [], dbToken = null, dbApiBase = null, dbWebpageId = null } = options;
     const safeHtml = html && html.trim()
         ? html

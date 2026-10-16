@@ -50,13 +50,13 @@
  * juist wél weten waaróm er niets staat.
  */
 
-import { BF_ELEMENTS } from './bfElements';
+import { BF_ELEMENTS, type BfElementDef } from './bfElements';
 
 /** Het voorvoegsel van alle elementen; de rest van de naam is de renderersleutel. */
 const PREFIX = 'bf-';
 
 /** De sleutel waaronder een element zijn renderer vindt: de naam ná het voorvoegsel. */
-export function localNameOf(tag) {
+export function localNameOf(tag?: string | null): string {
     return String(tag || '').slice(PREFIX.length);
 }
 
@@ -70,7 +70,7 @@ export function localNameOf(tag) {
  * noemt het "unsupported" en de lezer krijgt een melding in plaats van een lege
  * plek. Wie een element toevoegt, zet zijn sleutel hier neer.
  */
-export const CLIENT_HANDLING = Object.freeze({
+export const CLIENT_HANDLING: Readonly<Record<string, string>> = Object.freeze({
     table: 'live',
     stat: 'live',
     button: 'live',
@@ -88,7 +88,7 @@ export const CLIENT_HANDLING = Object.freeze({
  * controle groen en `window.beeflowBf` "live" beweren over een element dat op de
  * pagina "unsupported" toonde — de brug loog dan tegen de pagina.
  */
-export function rendererNameOf(local) {
+export function rendererNameOf(local?: string | null): string {
     return 'render' + String(local || '').charAt(0).toUpperCase() + String(local || '').slice(1);
 }
 
@@ -99,8 +99,8 @@ export function rendererNameOf(local) {
  *   maar hier niet bediend. `stray`: hier bediend, maar het vocabulaire kent
  *   het niet (meer).
  */
-export function clientCoverageGaps(body = null) {
-    const locals = BF_ELEMENTS.map(def => localNameOf(def.tag));
+export function clientCoverageGaps(body: string | null = null): { missing: string[]; stray: string[]; unimplemented: string[] } {
+    const locals = BF_ELEMENTS.map((def: BfElementDef) => localNameOf(def.tag));
     const declared = Object.keys(CLIENT_HANDLING);
     // Derde richting: verklaard, maar er staat geen functie voor in de
     // uitgezonden code. Alleen te toetsen op de BRONTEKST, want de renderers
@@ -121,8 +121,8 @@ export function clientCoverageGaps(body = null) {
  * teksten van de andere twee plekken blijven achter — die gaan de pagina van
  * een lezer niet aan.
  */
-function clientVocabulary(unimplemented = []) {
-    return BF_ELEMENTS.map((def) => {
+function clientVocabulary(unimplemented: string[] = []) {
+    return BF_ELEMENTS.map((def: BfElementDef) => {
         const local = localNameOf(def.tag);
         const served = !!CLIENT_HANDLING[local] && !unimplemented.includes(local);
         return {
@@ -152,7 +152,7 @@ function clientVocabulary(unimplemented = []) {
 }
 
 /** JSON dat veilig binnen een inline <script> staat. */
-function jsonLiteral(value) {
+function jsonLiteral(value: unknown): string {
     return JSON.stringify(value)
         .replace(/</g, '\\u003c')
         .replace(/\u2028/g, '\\u2028')
@@ -167,7 +167,7 @@ function jsonLiteral(value) {
  * kan overschrijven (deze stijl staat vóór de zijne in de <head>).
  */
 function buildBfStyles() {
-    const selector = BF_ELEMENTS.map(def => def.tag).join(',');
+    const selector = BF_ELEMENTS.map((def: BfElementDef) => def.tag).join(',');
     return `<style>
 ${selector}{display:block;margin:.5em 0}
 .bf-own[hidden]{display:none!important}
@@ -192,7 +192,7 @@ ${selector}{display:block;margin:.5em 0}
 }
 
 /** Het vocabulaire, de brug-opzoeker en alle zinnen die de lezer kan zien. */
-function emitVocabulary(unimplemented = []) {
+function emitVocabulary(unimplemented: string[] = []): string {
     return `
   var ELEMENTS = ${jsonLiteral(clientVocabulary(unimplemented))};
   var PREFIX = ${jsonLiteral(PREFIX)};

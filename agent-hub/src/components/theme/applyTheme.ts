@@ -18,21 +18,25 @@
  * (red) without each consumer hardcoding `text-black` or `text-white`.
  */
 
-export const FONT_STACKS = {
+import type { GlassTier, ThemeSettings } from '../appearance/ThemeContext.types';
+
+type ThemeInput = Partial<ThemeSettings>;
+
+export const FONT_STACKS: Record<string, string> = {
     system: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     inter: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     plex: "'IBM Plex Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
     geist: "'Geist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
 };
 
-export function applyThemeToDocument(state, root = document.documentElement) {
+export function applyThemeToDocument(state: ThemeInput, root: HTMLElement = document.documentElement): void {
     applyCoreVars(root, state);
     applyWallpaperVars(root, state);
     applyGlassVars(root, state);
     applyGlassTierOverrides(root, state);
 }
 
-function applyCoreVars(root, state) {
+function applyCoreVars(root: HTMLElement, state: ThemeInput): void {
     root.setAttribute('data-theme', state.preset || 'light');
     if (state.accent) {
         root.style.setProperty('--accent-primary', state.accent);
@@ -46,7 +50,7 @@ function applyCoreVars(root, state) {
     }
 }
 
-function applyWallpaperVars(root, state) {
+function applyWallpaperVars(root: HTMLElement, state: ThemeInput): void {
     if (state.wallpaperOverlay !== undefined && state.wallpaperOverlay !== null) {
         root.style.setProperty('--wallpaper-overlay', `rgba(255, 255, 255, ${state.wallpaperOverlay})`);
     }
@@ -59,7 +63,7 @@ function applyWallpaperVars(root, state) {
     }
 }
 
-function applyGlassVars(root, state) {
+function applyGlassVars(root: HTMLElement, state: ThemeInput): void {
     if (state.glassIntensity !== undefined && state.glassIntensity !== null) {
         root.style.setProperty('--glass-intensity', String(state.glassIntensity));
     }
@@ -71,13 +75,13 @@ function applyGlassVars(root, state) {
     if (state.glassBorder)     root.setAttribute('data-glass-border', state.glassBorder);
 }
 
-function applyGlassTierOverrides(root, state) {
+function applyGlassTierOverrides(root: HTMLElement, state: ThemeInput): void {
     writeTier(root, 'subtle',  state.glassTierSubtle);
     writeTier(root, 'default', state.glassTierDefault);
     writeTier(root, 'opaque',  state.glassTierOpaque);
 }
 
-function writeTier(root, key, tier) {
+function writeTier(root: HTMLElement, key: string, tier: GlassTier | null | undefined): void {
     if (tier && typeof tier === 'object') {
         root.style.setProperty(`--glass-tier-${key}-blur`, `${tier.blur}px`);
         root.style.setProperty(`--glass-tier-${key}-saturate`, `${tier.saturate}%`);
@@ -96,10 +100,10 @@ function writeTier(root, key, tier) {
  *
  * Accepts `#rgb`, `#rrggbb`, or `#rrggbbaa`. Returns `#fff` for unknown input.
  */
-export function readableForeground(hex) {
+export function readableForeground(hex?: string | null): string {
     if (typeof hex !== 'string' || !hex.startsWith('#')) return '#ffffff';
     const stripped = hex.slice(1);
-    let r, g, b;
+    let r: number, g: number, b: number;
     if (stripped.length === 3) {
         r = parseInt(stripped[0] + stripped[0], 16);
         g = parseInt(stripped[1] + stripped[1], 16);
@@ -112,7 +116,7 @@ export function readableForeground(hex) {
         return '#ffffff';
     }
     if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return '#ffffff';
-    const lin = (c) => {
+    const lin = (c: number): number => {
         const s = c / 255;
         return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
     };

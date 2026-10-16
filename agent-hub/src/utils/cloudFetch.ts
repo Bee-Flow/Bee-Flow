@@ -1,4 +1,14 @@
 import { authFetch } from './helpers';
+import type { AuthFetchOptions } from './helpers.types';
+
+/** What {@link cloudFetch} resolves to instead of a Response when it skips the call. */
+export interface SkippedCloudResponse {
+    ok: false;
+    status: 0;
+    skipped: true;
+    json: () => Promise<null>;
+    text: () => Promise<string>;
+}
 
 /**
  * Wrapper around authFetch for endpoints the SaaS only mounts in cloud mode
@@ -18,7 +28,7 @@ import { authFetch } from './helpers';
  *   if (!res?.ok) return;   // covers both self-hosted skip AND real failures
  *   const data = await res.json();
  */
-export async function cloudFetch(deploymentMode, ...args) {
+export async function cloudFetch(deploymentMode: string | null | undefined, ...args: [url: string, options?: AuthFetchOptions]): Promise<Response | SkippedCloudResponse> {
     if (deploymentMode !== 'cloud') {
         return { ok: false, status: 0, skipped: true, json: async () => null, text: async () => '' };
     }
