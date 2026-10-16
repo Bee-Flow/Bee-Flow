@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Structured error hierarchy for the automation runner. Phase 1 lands
  * the classes and a classifier; the runner doesn't throw these yet — a
@@ -140,13 +141,17 @@ const REMEDIATION_BY_CODE = {
     TimeoutError: 'This looks transient — retry; if it persists the connector or service may be down.',
     TransientError: 'A temporary upstream issue — retry in a moment.',
     ValidationError: 'A required field is empty or malformed — open the step and fill the highlighted input.',
+    // The author halted the run on purpose; the message they wrote is the cause.
+    stop_error: '',
+    http_unreachable: 'The request did not reach the server. Check the URL and that the server is reachable, then retry.',
     IntegrationError: 'Check the target exists (room token / board id / file path) and that the app is enabled.',
     ApprovalExpired: 'The approval window elapsed — re-run the automation to request approval again.',
     UserCanceledError: 'The run was canceled — start it again if that was unintended.',
 };
 
 function remediationFor(code) {
-    return REMEDIATION_BY_CODE[code] || 'Open run history for the raw error detail.';
+    if (Object.prototype.hasOwnProperty.call(REMEDIATION_BY_CODE, code)) return REMEDIATION_BY_CODE[code];
+    return 'Open run history for the raw error detail.';
 }
 
 module.exports = {

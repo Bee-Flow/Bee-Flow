@@ -19,6 +19,7 @@
  */
 
 const JSZip = require('jszip');
+const { coerceCell, rowsToMatrix } = require('./rowsMatrix');
 const { xmlEscape, isNumericCell, colLetter, sanitizeSheetName, buildXlsxWorkbook } = require('./xlsxWorkbook');
 
 // ── MIME types (match Nextcloud's mimetypemapping.json) ─────────────────
@@ -32,44 +33,6 @@ const CONTENT_TYPES = {
 };
 
 // ── Small helpers ───────────────────────────────────────────────────────
-/** Coerce an arbitrary value into a spreadsheet/document-safe cell value. */
-function coerceCell(v) {
-    if (v === null || v === undefined) return '';
-    if (typeof v === 'number' || typeof v === 'boolean' || typeof v === 'string') return v;
-    try { return JSON.stringify(v); } catch { return String(v); }
-}
-
-/**
- * Normalise `rows` into a 2D matrix of cell values (first row = header).
- *  - rows of OBJECTS: columns come from `columns` (if given) else the union of
- *    keys in first-seen order; header row = the column names.
- *  - rows of ARRAYS: used verbatim; `columns` (if given) is prepended as header.
- */
-function rowsToMatrix(rows, columns) {
-    const list = Array.isArray(rows) ? rows : [];
-    if (list.length && list.every((r) => Array.isArray(r))) {
-        const m = list.map((r) => r.map(coerceCell));
-        if (Array.isArray(columns) && columns.length) m.unshift(columns.map(coerceCell));
-        return m;
-    }
-    let cols = Array.isArray(columns) && columns.length ? columns.slice() : [];
-    if (!cols.length) {
-        const seen = new Set();
-        for (const r of list) {
-            if (r && typeof r === 'object') {
-                for (const k of Object.keys(r)) {
-                    if (!seen.has(k)) { seen.add(k); cols.push(k); }
-                }
-            }
-        }
-    }
-    const matrix = [cols.map(coerceCell)];
-    for (const r of list) {
-        matrix.push(cols.map((c) => coerceCell(r && typeof r === 'object' ? r[c] : undefined)));
-    }
-    return matrix;
-}
-
 /** Pick the output format from an explicit arg, else the path extension, else fallback. */
 function resolveOfficeFormat(explicit, path, allowed, fallback) {
     const e = explicit ? String(explicit).toLowerCase().replace(/^\./, '') : '';

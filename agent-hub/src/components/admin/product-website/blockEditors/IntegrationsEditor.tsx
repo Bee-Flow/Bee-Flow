@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextField, IconField, ImageField, RepeatableList } from '../fields';
+import { TextField, IconAssetField, ImageField, RepeatableList } from '../fields';
 import { InlineHint, BackgroundCard } from '../primitives';
 import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields } from './shared';
@@ -55,7 +55,7 @@ export function IntegrationsEditor({ data = {}, onChange }: BlockEditorProps<Int
                                         value={it?.logoSrc || ''}
                                         onChange={v => updateItem({ ...(it || {}), logoSrc: v })}
                                     />
-                                    <IconField
+                                    <IconAssetField
                                         label={t('cms_site.blocks.integrations.icon_fallback', 'Icon (fallback)')}
                                         value={it?.icon}
                                         onChange={v => updateItem({ ...(it || {}), icon: v })}

@@ -38,6 +38,7 @@
 
 // The custom-integration auth renderer is integrations/', reached through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
+const { toolIdentity } = require('./toolIdentity');
 
 const MASK_VALUES = Symbol.for('beeflow.automation.maskValues');
 
@@ -91,11 +92,14 @@ async function resolveHttpAuthHeaders({ connectionId, blockPrivateTargets = true
     const hosts = allowedHosts ?? (auth && typeof auth === 'object' ? auth.allowedHosts : null);
     if (!hostAllowed(hosts, url)) throw new Error(NOT_AVAILABLE_MSG);
     const store = deps.store || require('../../stores/integrationConnectionStore');
+    // The identity the run dispatches as: the caller's own on a run that uses
+    // its starter's connections, so a saved credential is authorised for THEM.
+    const who = toolIdentity(ctx);
     const authz = await store.authorizeConnectionUse({
         connectionId,
-        runningUserId: ctx.userId,
-        runningUserOrgId: ctx.orgId,
-        runningUserGroups: ctx.userGroupIds || [],
+        runningUserId: who.userId,
+        runningUserOrgId: who.orgId,
+        runningUserGroups: who.userGroupIds,
     });
     if (!authz.ok) {
         if (authz.reason === 'not_found' || authz.reason === 'forbidden') {

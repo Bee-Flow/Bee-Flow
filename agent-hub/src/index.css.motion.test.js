@@ -23,7 +23,8 @@ import { describe, it, expect } from 'vitest';
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const CSS = fs.readFileSync(path.join(here, 'index.css'), 'utf8');
+// The motion rules sit in app.css (split from index.css, issue 245).
+const CSS = ['index.css', 'app.css'].map((f) => fs.readFileSync(path.join(here, f), 'utf8')).join('\n');
 
 const REDUCED_MOTION = '@media (prefers-reduced-motion: reduce)';
 

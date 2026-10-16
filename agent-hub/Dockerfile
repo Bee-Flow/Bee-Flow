@@ -60,7 +60,7 @@ ENV NODE_OPTIONS=--max-old-space-size=4096
 
 # ── Main build ───────────────────────────────────────────────────────────────
 FROM src AS build
-RUN npm run build
+RUN npm run build && node scripts/precompress.mjs dist
 
 # ── Embed-flavored second build (Nextcloud connector shell) ──────────────────
 # The NC connector proxies its embedded SPA shell from this build at /embed/
@@ -97,7 +97,8 @@ RUN if [ "$BUILD_EMBED" = "true" ]; then \
                 -e "s|'/bee-flow-logo|'bee-flow-logo|g" \
                 -e "s|'/BeeFlow-logo|'BeeFlow-logo|g" \
         && VITE_API_URL=/index.php/apps/app_api/proxy/${APP_ID} \
-           npm run build -- --base=/index.php/apps/app_api/proxy/${APP_ID}/ --outDir dist-embed ; \
+           npm run build -- --base=/index.php/apps/app_api/proxy/${APP_ID}/ --outDir dist-embed \
+        && node scripts/precompress.mjs dist-embed ; \
     else \
         echo "BUILD_EMBED=false — skipping the embed-flavored build. This image will NOT serve a working Nextcloud connector /embed/ shell; only use this for fast local iteration on the main app." \
         && mkdir -p dist-embed ; \

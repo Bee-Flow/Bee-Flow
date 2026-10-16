@@ -141,9 +141,6 @@ export default function useCmsPanelState() {
         scopedStorage.setItem('cmsTranslateTier', t);
         setTranslateTier(t);
     }, []);
-    // D4 guard bookkeeping — warn once per block per session when a list is
-    // reordered in the default locale while translations exist for it.
-    const reorderWarnedRef = useRef<Set<string>>(new Set());
     // ── AI assistant (builder) state ────────────────────────────────
     const [assistantOpen, setAssistantOpen] = useState(() =>
         scopedStorage.getItem('cmsFocusMode') !== '1' && scopedStorage.getItem('cmsAssistantOpen') === '1');
@@ -246,7 +243,7 @@ export default function useCmsPanelState() {
         confirm, confirmDialog,
         navOpen, setNavOpen, inspectorOpen, setInspectorOpen, toggleNav, toggleInspector,
         dirtySincePublish, setDirtySincePublish,
-        device, changeDevice, translateTier, changeTranslateTier, reorderWarnedRef,
+        device, changeDevice, translateTier, changeTranslateTier,
         assistantOpen, setAssistantOpen, toggleAssistant,
         focusMode, toggleFocusMode,
         builderRunning, setBuilderRunning, builderRunningRef, builderTurnRef,

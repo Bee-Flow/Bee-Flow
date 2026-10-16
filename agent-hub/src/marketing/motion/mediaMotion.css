@@ -1,0 +1,27 @@
+/* Scroll-linked motion on framed media (issue 244): pure CSS, no scroll listener.
+   Browsers without scroll-driven animations, and visitors who ask for reduced
+   motion, get the static frame. */
+@supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+        .marketing-root .cms-frame--motion-parallax .cms-frame-body { overflow: hidden; }
+        .marketing-root .cms-frame--motion-parallax .cms-frame-media {
+            transform: scale(1.12);
+            animation: cms-media-parallax linear both;
+            animation-timeline: view();
+            animation-range: cover 0% cover 100%;
+        }
+        .marketing-root .cms-frame--motion-scale {
+            animation: cms-media-scale linear both;
+            animation-timeline: view();
+            animation-range: entry 0% cover 45%;
+        }
+    }
+}
+@keyframes cms-media-parallax {
+    from { transform: scale(1.12) translateY(-5%); }
+    to { transform: scale(1.12) translateY(5%); }
+}
+@keyframes cms-media-scale {
+    from { transform: scale(0.9); opacity: 0.6; }
+    to { transform: scale(1); opacity: 1; }
+}

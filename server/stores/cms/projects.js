@@ -5,20 +5,24 @@
 // page is a SiteDoc mutation and belongs here rather than with the PageDocs.
 
 const configStore = require('../configStore');
+const { revOf, assertRevMatches } = require('./revision');
 const { getAll } = require('../../db');
 const { SITE_DEFAULTS, DESIGN_DEFAULTS } = require('../../i18n/defaults/cmsDefaults');
 const {
     KEY_PROJECTS_INDEX, SITE_VERSION, INDEX_VERSION,
     newId, isPlainObject, clone, normalizeSlug, isReservedSlug, assertSiteId,
-    sanitizeDesign, sanitizeAnalytics, sanitizeBlogSettings,
+    sanitizeAnalytics, sanitizeBlogSettings,
     projectKey, publishedKey,
 } = require('./shared');
-const { emptyPage, getPage, setPage, deletePage } = require('./pages');
+const { emptyPage, getPage, setPage, mutatePage } = require('./pages');
+const { migrateSite, sanitizeSite, sanitizePageIndexEntry } = require('./siteDoc');
 const { applyTemplate } = require('./templates');
 const {
-    collectLocaleOverrides, setSiteLocaleOverride, setPageLocaleOverride,
+    collectLocaleOverrides, setSiteLocaleOverride, setPageLocaleOverride, writeSiteAligned,
 } = require('./localeOverrides');
+const { withConfigGroup, realignSiteOverrides } = require('./overrideAlign');
 const { listPosts, collectPostLocaleOverrides, restorePosts } = require('./posts');
+const redirectsStore = require('./redirects');
 
 // ── Projects index ───────────────────────────────────────────────────
 
@@ -43,9 +47,9 @@ async function setProjectsIndex(index) {
 // concurrent site create/import/delete on another pod can't drop an entry
 // (which would orphan a cms_project_* doc). `mutator(index)` edits the index in
 // place. Use this — not getProjectsIndex→mutate→setProjectsIndex — whenever the
-// set of projects changes. Automation field touches (name/updatedAt via
-// setProject) stay on the plain path: a lost update there costs only a stale
-// timestamp, never membership.
+// set of projects changes. The name/updatedAt touch after every site write
+// (touchProjectsIndexEntry) goes through here too, so it can never restore a
+// stale index over a concurrent create.
 async function mutateProjectsIndex(mutator) {
     return configStore.mutateConfig(KEY_PROJECTS_INDEX, (cur) => {
         const index = (isPlainObject(cur) && Array.isArray(cur.projects)) ? cur : emptyIndex();
@@ -137,99 +141,24 @@ async function getProject(siteId, { fresh = false } = {}) {
 }
 
 /**
- * The lazy, in-place upgrades of a stored SiteDoc to the current shape. Sync
- * and side-effect free on anything but `v`, so it also runs inside
- * mutateProject's locked read-modify-write.
- * @param {any} v a private copy of the stored SiteDoc
+ * Full replace of a SiteDoc, page list included. Only for seeding and tests —
+ * a caller that holds a copy older than the stored page list would bring back
+ * deleted pages and orphan new ones. Product code edits chrome through
+ * updateSiteChrome and the page list through the page-list operations below.
+ * @param {string} siteId
+ * @param {any} site
+ * @param {{ localeOverrides?: Record<string, any> }} [report] receives the site translations that were re-aligned
+ * @param {{ expectedRev?: number }} [opts]
  */
-function migrateSite(v) {
-    // Lazy v1 → v2 migration: pages used to auto-merge into the header
-    // nav at render time. That merge was removed; without a one-shot
-    // seed, existing live sites would lose their visible nav after the
-    // deploy. Seed header.nav from the current page list — but only when
-    // the user hasn't customised nav already (empty array or unset). Once
-    // setProject persists the bumped version field this branch is inert
-    // for that site, so opting back into "no nav at all" by clearing the
-    // list later is preserved.
-    const storedVersion = typeof v.version === 'number' ? v.version : 1;
-    if (storedVersion < SITE_VERSION) {
-        const header = isPlainObject(v.header) ? v.header : clone(SITE_DEFAULTS.header);
-        const navEmpty = !Array.isArray(header.nav) || header.nav.length === 0;
-        const pages = Array.isArray(v.pages) ? v.pages : [];
-        if (navEmpty && pages.length > 0) {
-            header.nav = pages
-                .filter(p => isPlainObject(p) && !p.isHomepage)
-                // Preserve the old auto-nav filtering so users who'd
-                // already toggled "Show in nav" off don't suddenly see
-                // those pages re-appear post-migration.
-                .filter(p => p.showInNav !== false)
-                .slice()
-                .sort((a, b) => (a.navOrder ?? 0) - (b.navOrder ?? 0))
-                .map(p => ({
-                    id: newId('nav'),
-                    label: p.title || p.slug,
-                    link: { kind: 'page', pageId: p.id },
-                }));
-            v.header = header;
-        }
-
-        // v2 → v3: header now supports a `ctas` array. Seed it from the
-        // legacy single-CTA fields once so existing sites keep rendering
-        // both their Log in + Get started buttons exactly as before.
-        // Order: Log in (ghost) first, primary CTA last — matches the old
-        // Header.jsx layout. Skipped if the user already has ctas set
-        // (idempotent: re-running the migration is a no-op).
-        const ctasEmpty = !Array.isArray(header.ctas) || header.ctas.length === 0;
-        if (ctasEmpty) {
-            header.ctas = [
-                // The old Header always rendered a Log in button with a
-                // hard-coded `/app` href, falling back to the literal
-                // "Log in" when loginLabel was empty. Match that exactly.
-                {
-                    id: newId('cta'),
-                    label: (typeof header.loginLabel === 'string' && header.loginLabel.trim())
-                        ? header.loginLabel
-                        : 'Log in',
-                    link: { kind: 'app', path: '/app' },
-                    style: 'ghost',
-                },
-                // Primary CTA — derived from ctaLabel + ctaLink. Falls
-                // back to a sensible default so a site with no legacy
-                // CTA at all gets a starter "Get started" button rather
-                // than a blank header.
-                {
-                    id: newId('cta'),
-                    label: header.ctaLabel || 'Get started',
-                    link: isPlainObject(header.ctaLink)
-                        ? header.ctaLink
-                        : { kind: 'app', path: '/app' },
-                    style: 'primary',
-                },
-            ];
-            v.header = header;
-        }
-    }
-
-    // Versioning fields — ensured lazily so sites stored before versioning
-    // existed still resolve a groupId. Such a site is its own group
-    // (groupId = its id), named "v1". Persisted on the next setProject.
-    if (typeof v.versionGroupId !== 'string' || !v.versionGroupId) {
-        v.versionGroupId = v.id;
-    }
-    if (typeof v.versionName !== 'string' || !v.versionName) {
-        v.versionName = 'v1';
-    }
-
-    return v;
-}
-
-async function setProject(siteId, site) {
+async function setProject(siteId, site, report, { expectedRev } = {}) {
     assertSiteId(siteId);
     if (!isPlainObject(site)) throw new Error('Site must be an object');
     const sanitized = sanitizeSite(siteId, site);
-    await configStore.setConfig(projectKey(siteId), sanitized);
+    /** @type {{ localeOverrides?: Record<string, any>, rev?: number }} */
+    const written = report || {};
+    await writeSiteAligned(siteId, sanitized, written, { expectedRev, bumpRev: true });
     await touchProjectsIndexEntry(siteId, sanitized);
-    return sanitized;
+    return { ...sanitized, rev: written.rev ?? 0 };
 }
 
 /**
@@ -242,74 +171,83 @@ async function setProject(siteId, site) {
  * The mutator must be synchronous and side-effect free (it runs inside the
  * transaction); throwing aborts the write. Returns the saved site and
  * whatever the mutator returned.
+ *
+ * `rev` is the revision of the site CHROME (name, header, footer, design, ...):
+ * `bumpRev` marks a chrome edit and raises it, `expectedRev` refuses the edit
+ * with 409 when the chrome was saved elsewhere since the caller read it.
+ * Page-list operations leave it alone, so creating a page never makes an open
+ * chrome editor stale.
  * @template T
  * @param {string} siteId
  * @param {(site: any) => T} mutator
- * @returns {Promise<{ site: any, result: T }>}
+ * @param {{ expectedRev?: number, bumpRev?: boolean | ((result: T) => boolean) }} [opts]
+ *   `bumpRev` may be a function of the mutator's result when only some edits touch chrome
+ * @returns {Promise<{ site: any, result: T, localeOverrides: Record<string, any> }>}
  */
-async function mutateProject(siteId, mutator) {
+async function mutateProject(siteId, mutator, { expectedRev, bumpRev = false } = {}) {
     assertSiteId(siteId);
     /** @type {any} */
     let result;
-    const saved = await configStore.mutateConfig(projectKey(siteId), (cur) => {
+    /** @type {Record<string, any>} */
+    let moved = {};
+    // Same transaction as the re-alignment of the site translations: a mutator
+    // that removes or reorders header/footer items must not shift them.
+    const saved = await withConfigGroup(projectKey(siteId), async (io) => {
+        const cur = await io.get(projectKey(siteId));
         if (!isPlainObject(cur)) throw new Error('Project not found');
+        const curRev = revOf(cur);
+        assertRevMatches(cur, expectedRev, 'site');
         const site = migrateSite(structuredClone(cur));
         if (!Array.isArray(site.pages)) site.pages = [];
         result = mutator(site);
-        return sanitizeSite(siteId, site);
+        const sanitized = sanitizeSite(siteId, site);
+        const nextRev = (typeof bumpRev === 'function' ? bumpRev(result) : bumpRev) ? curRev + 1 : curRev;
+        const stored = { ...sanitized, rev: nextRev };
+        await io.set(projectKey(siteId), stored);
+        moved = await realignSiteOverrides(io, siteId, cur, sanitized);
+        return stored;
     });
     await touchProjectsIndexEntry(siteId, saved);
-    return { site: saved, result };
+    return { site: saved, result, localeOverrides: moved };
 }
 
-// Touch the index so listProjects() reflects the new name + updatedAt.
+/** The SiteDoc fields an editor may write: chrome, never the page list. */
+const SITE_CHROME_FIELDS = ['name', 'header', 'footer', 'cookieBanner', 'announcement', 'analytics', 'design', 'blog'];
+
+/**
+ * Save the chrome fields of `patch` onto the CURRENT SiteDoc (read under the
+ * lock). `pages` and `homepageId` in `patch` are ignored on purpose: the page
+ * list belongs to the page-list operations.
+ * @param {string} siteId
+ * @param {Record<string, any>} patch
+ * @param {{ expectedRev?: number, report?: { localeOverrides?: Record<string, any> } }} [opts]
+ *   `report` receives the site translations that were re-aligned
+ */
+async function updateSiteChrome(siteId, patch, { expectedRev, report } = {}) {
+    if (!isPlainObject(patch)) throw new Error('Site must be an object');
+    const { site, localeOverrides } = await mutateProject(siteId, (s) => {
+        for (const field of SITE_CHROME_FIELDS) {
+            if (patch[field] !== undefined) s[field] = patch[field];
+        }
+    }, { expectedRev, bumpRev: true });
+    if (report) report.localeOverrides = localeOverrides;
+    return site;
+}
+
+// Touch the index so listProjects() reflects the new name + updatedAt. Under
+// the index lock: a plain read-modify-write here used to restore a stale index
+// and drop a site created or imported at the same moment.
 async function touchProjectsIndexEntry(siteId, sanitized) {
-    const index = await getProjectsIndex();
-    const entry = index.projects.find(p => p.id === siteId);
-    if (entry) {
+    await mutateProjectsIndex((index) => {
+        const entry = index.projects.find(p => p.id === siteId);
+        if (!entry) return;
         entry.name = sanitized.name;
         // Mirror versioning fields onto the index entry so listProjects()
         // can build the version switcher without reading every SiteDoc.
         entry.versionGroupId = sanitized.versionGroupId;
         entry.versionName = sanitized.versionName;
         entry.updatedAt = new Date().toISOString();
-        await setProjectsIndex(index);
-    }
-}
-
-function sanitizeSite(siteId, site) {
-    const sanitized = {
-        version: SITE_VERSION,
-        id: siteId,
-        name: typeof site.name === 'string' && site.name ? site.name : 'Untitled site',
-        // Versioning: groupId is immutable once set (falls back to this
-        // site's own id for sites that pre-date versioning); versionName
-        // is a free-form label ("v1", "v2", …) capped to a sane length.
-        versionGroupId: (typeof site.versionGroupId === 'string' && /^pj_[a-f0-9]+$/.test(site.versionGroupId))
-            ? site.versionGroupId
-            : siteId,
-        versionName: (typeof site.versionName === 'string' && site.versionName.trim())
-            ? site.versionName.trim().slice(0, 40)
-            : 'v1',
-        homepageId: site.homepageId || null,
-        pages: Array.isArray(site.pages) ? site.pages.map(sanitizePageIndexEntry).filter(Boolean) : [],
-        header: isPlainObject(site.header) ? site.header : clone(SITE_DEFAULTS.header),
-        footer: isPlainObject(site.footer) ? site.footer : clone(SITE_DEFAULTS.footer),
-        cookieBanner: isPlainObject(site.cookieBanner) ? site.cookieBanner : clone(SITE_DEFAULTS.cookieBanner),
-        announcement: isPlainObject(site.announcement) ? site.announcement : clone(SITE_DEFAULTS.announcement),
-        analytics: sanitizeAnalytics(site.analytics),
-        design: sanitizeDesign(site.design),
-        blog: sanitizeBlogSettings(site.blog),
-    };
-
-    if (sanitized.homepageId && !sanitized.pages.find(p => p.id === sanitized.homepageId)) {
-        sanitized.homepageId = sanitized.pages[0]?.id || null;
-    }
-    sanitized.pages = sanitized.pages.map(p => ({
-        ...p,
-        isHomepage: p.id === sanitized.homepageId,
-    }));
-    return sanitized;
+    });
 }
 
 /**
@@ -332,7 +270,7 @@ async function deleteProject(siteId) {
 }
 
 async function renameProject(siteId, name) {
-    const { site } = await mutateProject(siteId, (s) => { s.name = name; });
+    const { site } = await mutateProject(siteId, (s) => { s.name = name; }, { bumpRev: true });
     return site;
 }
 
@@ -409,6 +347,7 @@ async function duplicateProject(sourceSiteId) {
         blog: sanitizeBlogSettings(source.blog),
     };
     await configStore.setConfig(projectKey(newSiteId), newSite);
+    await redirectsStore.restoreRedirects(newSiteId, await redirectsStore.getRedirects(sourceSiteId, { fresh: true }));
 
     // Deep-copy each PageDoc with a fresh page id + fresh block ids,
     // remapping any internal page links inside block content too. Block ids
@@ -496,24 +435,6 @@ async function duplicateProject(sourceSiteId) {
     return { id: newSiteId, name: newSite.name, versionGroupId, versionName, createdAt: now, updatedAt: now };
 }
 
-function sanitizePageIndexEntry(entry) {
-    if (!isPlainObject(entry) || !entry.id) return null;
-    // showInNav / navOrder were used by the old auto-merge of pages into
-    // the header nav. Pages no longer drive the nav, so those fields are
-    // intentionally omitted here — old persisted values are dropped on
-    // the next save (lazy cleanup, no migration script needed).
-    return {
-        id: String(entry.id),
-        slug: normalizeSlug(entry.slug || ''),
-        title: typeof entry.title === 'string' ? entry.title : '',
-        isHomepage: !!entry.isHomepage,
-        hideHeader: !!entry.hideHeader,
-        hideFooter: !!entry.hideFooter,
-        noAnalytics: !!entry.noAnalytics,
-        isNotFound: !!entry.isNotFound,
-    };
-}
-
 // ── Page-list operations (mutate site doc atomically) ────────────────
 
 /**
@@ -573,6 +494,8 @@ async function createPage(siteId, { slug, title, copyFromId, templateId } = {}) 
         page.slug = savedSlug;
         await setPage(siteId, page);
     }
+    // The page owns this address now: a redirect from it would shadow the page.
+    await redirectsStore.releaseSlug(siteId, savedSlug);
     return { id, slug: savedSlug };
 }
 
@@ -586,10 +509,14 @@ function ensureUniqueSlug(slug, pages, ignoreId) {
 }
 
 async function updatePageMeta(siteId, pageId, patch = {}) {
+    let previousSlug = '';
+    let wasHomepage = false;
     const { result: current } = await mutateProject(siteId, (site) => {
         const idx = site.pages.findIndex(p => p.id === pageId);
         if (idx < 0) throw new Error('Page not found');
         const entry = site.pages[idx];
+        previousSlug = entry.slug;
+        wasHomepage = site.homepageId === pageId;
 
         if (patch.slug !== undefined) {
             const next = normalizeSlug(patch.slug) || entry.slug;
@@ -607,12 +534,21 @@ async function updatePageMeta(siteId, pageId, patch = {}) {
         return entry;
     });
 
+    // The old address keeps working: a 301 to the new one (not for the homepage,
+    // whose URL is "/" whatever its slug).
+    if (patch.slug !== undefined && !wasHomepage && previousSlug !== current.slug) {
+        await redirectsStore.recordRename(siteId, previousSlug, current.slug);
+    }
+
     // The PageDoc mirrors the slug/title the locked write settled on.
-    const page = await getPage(siteId, pageId);
-    if (page) {
-        if (patch.slug  !== undefined) page.slug  = current.slug;
-        if (patch.title !== undefined) page.title = current.title;
-        await setPage(siteId, page);
+    // Under the page's revision check, so a block edit saved meanwhile survives.
+    const mirrorsIndex = patch.slug !== undefined || patch.title !== undefined;
+    if (mirrorsIndex && await getPage(siteId, pageId, { fresh: true })) {
+        await mutatePage(siteId, pageId, (page) => {
+            if (patch.slug  !== undefined) page.slug  = current.slug;
+            if (patch.title !== undefined) page.title = current.title;
+            return page;
+        });
     }
     return current;
 }
@@ -639,54 +575,12 @@ async function reorderPages(siteId, orderedIds) {
     });
 }
 
-// Recursively walk a site-chrome subtree (header/footer) and strip any
-// link references to the given pageId. The renderer's resolveLink already
-// degrades broken page links gracefully ({ href: '#', broken: true }), but
-// stored references also show up as ghost nav items in the editor, so we
-// clean them at delete time.
-//
-// Two patterns are handled:
-//   1. Array items keyed by `link` (nav items, ctas, footer column links):
-//      drop the whole item when its link points at the deleted page.
-//   2. Direct link objects on a parent property (e.g. logo.link): replace
-//      with an inert anchor link so the parent's shape stays valid.
-function stripPageRefsToDeleted(node, deletedPageId) {
-    if (Array.isArray(node)) {
-        return node
-            .filter(item => !(isPlainObject(item)
-                && isPlainObject(item.link)
-                && item.link.kind === 'page'
-                && item.link.pageId === deletedPageId))
-            .map(item => stripPageRefsToDeleted(item, deletedPageId));
-    }
-    if (!isPlainObject(node)) return node;
-    const out = {};
-    for (const [k, v] of Object.entries(node)) {
-        if (isPlainObject(v) && v.kind === 'page' && v.pageId === deletedPageId) {
-            out[k] = { kind: 'anchor', anchor: '' };
-            continue;
-        }
-        out[k] = stripPageRefsToDeleted(v, deletedPageId);
-    }
-    return out;
-}
-
-async function removePage(siteId, pageId) {
-    await mutateProject(siteId, (site) => {
-        site.pages = site.pages.filter(p => p.id !== pageId);
-        if (site.homepageId === pageId) site.homepageId = site.pages[0]?.id || null;
-        if (isPlainObject(site.header)) site.header = stripPageRefsToDeleted(site.header, pageId);
-        if (isPlainObject(site.footer)) site.footer = stripPageRefsToDeleted(site.footer, pageId);
-    });
-    await deletePage(siteId, pageId);
-}
-
 module.exports = {
     // projects index
     getProjectsIndex, setProjectsIndex, mutateProjectsIndex, listProjects,
     // project CRUD
-    emptySite, createProject, getProject, setProject, mutateProject,
+    emptySite, createProject, getProject, setProject, mutateProject, updateSiteChrome,
     deleteProject, renameProject, duplicateProject, sanitizePageIndexEntry,
     // page-list operations
-    createPage, ensureUniqueSlug, updatePageMeta, setHomepage, reorderPages, removePage,
+    createPage, ensureUniqueSlug, updatePageMeta, setHomepage, reorderPages,
 };

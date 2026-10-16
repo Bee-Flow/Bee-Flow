@@ -683,5 +683,5 @@ module.exports = {
     CONFIG_INVALIDATE_CHANNEL,
 };
 
-// Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
-module.exports.initDB = initDB;
+// Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init); withConfigGroup: zie configStoreGroup.js.
+Object.assign(module.exports, { initDB, withConfigGroup: require('./configStoreGroup').createWithConfigGroup({ initDB, withTransaction, onWritten: (k) => { _cacheInvalidate(k); _notifyInvalidate(k); } }) });

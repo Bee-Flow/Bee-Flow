@@ -39,6 +39,11 @@ const BASE_COMPONENTS = {
     cardStyle: 'hairline',
     cardPadding: 'default',
     shadow: 'soft',
+    tileShape: 'default',
+    tileFill: 'default',
+    tileSize: 'default',
+    tileIconColor: 'default',
+    labelStyle: 'mono',
 };
 const BASE_LAYOUT = { containerWidth: 'default', sectionRhythm: 'default' };
 
@@ -52,6 +57,7 @@ const THEME_PRESETS = [
                 primary: '#F5A623', secondary: '#1F2937', accent: '#FFD166',
                 background: '#FAF8F4', surface: '#F3EFE7',
                 textPrimary: '#1C1917', textSecondary: '#57534E',
+                cta: '', link: '', highlight: '', tile: '',
             },
             darkColors: {
                 background: '#101012', surface: '#17171B',
@@ -74,6 +80,7 @@ const THEME_PRESETS = [
                 primary: '#F5A623', secondary: '#1F2937', accent: '#FFC53D',
                 background: '#FAF8F4', surface: '#F3EFE7',
                 textPrimary: '#1C1917', textSecondary: '#57534E',
+                cta: '', link: '', highlight: '', tile: '',
             },
             darkColors: {
                 background: '#0C0B09', surface: '#141310',
@@ -96,6 +103,7 @@ const THEME_PRESETS = [
                 primary: '#CE3F26', secondary: '#18181B', accent: '#F97316',
                 background: '#FFFFFF', surface: '#F4F4F5',
                 textPrimary: '#18181B', textSecondary: '#52525B',
+                cta: '', link: '', highlight: '', tile: '',
             },
             darkColors: {
                 background: '#0E0E11', surface: '#17171B',
@@ -122,6 +130,7 @@ const THEME_PRESETS = [
                 primary: '#FA500F', secondary: '#101010', accent: '#FFB000',
                 background: '#FAF7F0', surface: '#F0EBE0',
                 textPrimary: '#101010', textSecondary: '#4A4744',
+                cta: '', link: '', highlight: '', tile: '',
             },
             darkColors: {
                 background: '#0F0E0C', surface: '#1A1815',
@@ -149,6 +158,7 @@ const THEME_PRESETS = [
                 primary: '#111111', secondary: '#0A0A0A', accent: '#1D4ED8',
                 background: '#FFFFFF', surface: '#F6F6F7',
                 textPrimary: '#0A0A0A', textSecondary: '#52525B',
+                cta: '', link: '', highlight: '', tile: '',
             },
             darkColors: {
                 background: '#0B0B0C', surface: '#141416',
@@ -177,6 +187,7 @@ const THEME_PRESETS = [
                 primary: '#7A2BD6', secondary: '#17151F', accent: '#D01A8E',
                 background: '#FFFFFF', surface: '#F7F5FB',
                 textPrimary: '#17151F', textSecondary: '#57536B',
+                cta: '', link: '', highlight: '', tile: '',
             },
             darkColors: {
                 background: '#100C18', surface: '#1A1526',
@@ -203,6 +214,7 @@ const THEME_PRESETS = [
                 primary: '#0B5CD5', secondary: '#0F172A', accent: '#0EA5E9',
                 background: '#FFFFFF', surface: '#F3F6FB',
                 textPrimary: '#111827', textSecondary: '#4B5563',
+                cta: '', link: '', highlight: '', tile: '',
             },
             darkColors: {
                 background: '#0B1220', surface: '#131C2E',
@@ -229,6 +241,7 @@ const THEME_PRESETS = [
                 primary: '#1567D3', secondary: '#1F2430', accent: '#7CB2F0',
                 background: '#FBFCFE', surface: '#EDF2FB',
                 textPrimary: '#1F2430', textSecondary: '#4E5567',
+                cta: '', link: '', highlight: '', tile: '',
             },
             darkColors: {
                 background: '#0E1116', surface: '#171B22',

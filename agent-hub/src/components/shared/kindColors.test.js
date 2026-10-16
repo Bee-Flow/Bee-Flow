@@ -5,6 +5,7 @@ import * as lucide from 'lucide-react';
 import { describe, it, expect } from 'vitest';
 
 import { KIND_KEYS, kindOf, kindColorVar, kindTint, kindTileStyle, cardRadius, kindIcon } from './kindColors';
+import { readAppCss, readStylesheet } from '../../test/appStylesheets';
 
 /**
  * The completeness net for the kind palette, copied from
@@ -16,15 +17,20 @@ import { KIND_KEYS, kindOf, kindColorVar, kindTint, kindTileStyle, cardRadius, k
  * looks fine on the developer's theme and vanishes on the customer's. So
  * this file proves, for every kind, that it has a colour, an icon and a
  * shape, and that every CSS variable the module emits is declared in EVERY
- * one of the eight theme blocks of src/index.css.
+ * one of the eight theme blocks of the app stylesheets (index.css holds the
+ * default dark :root and the light theme, themes.css the --type-* / --kind-*
+ * two-set blocks and the six alternate themes; issue 245).
  */
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const INDEX_CSS = fs.readFileSync(path.resolve(HERE, '../../index.css'), 'utf8');
+const APP_CSS = readAppCss();
+// The --type-* and --kind-* two-set blocks live in themes.css: the block and
+// order assertions below read that one file, so they pin the real layout.
+const THEMES_CSS = readStylesheet('themes.css');
 const SELF = fs.readFileSync(path.join(HERE, 'kindColors.ts'), 'utf8');
 
 const THEMES = ['dark', 'light', 'glass', 'glass-dark', 'high-contrast', 'paper', 'obsidian', 'sepia'];
-const NO_COMMENTS = INDEX_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
+const NO_COMMENTS = APP_CSS.replace(/\/\*[\s\S]*?\*\//g, '');
 
 /**
  * Which themes declare `token` in a TOP-LEVEL theme block — `:root` (the
@@ -91,7 +97,7 @@ describe('kindColors — twelve kinds, one legend', () => {
     });
 });
 
-describe('kindColors — every variable it emits is declared in EVERY theme block of src/index.css', () => {
+describe('kindColors — every variable it emits is declared in EVERY theme block of the app stylesheets', () => {
     it('the source scan found the module\'s tokens', () => {
         expect(EMITTED).toEqual(expect.arrayContaining(['--kind-app', '--kind-web', '--kind-skill', '--kind-kb', '--kind-meet', '--kind-playbook', '--kind-compliance', '--type-trigger', '--type-ai', '--text-secondary', '--text-tertiary']));
     });
@@ -105,8 +111,8 @@ describe('kindColors — every variable it emits is declared in EVERY theme bloc
 
     it('the --kind-* tokens and the --*-ink pair sit in BOTH the dark and the light set', () => {
         // Same block regexes as nodeTypeColors.test.js, keyed on --kind-app.
-        const dark = INDEX_CSS.match(/:root,\n\[data-theme="glass-dark"\],\n\[data-theme="obsidian"\] \{[^}]*--kind-app[^}]*\}/);
-        const light = INDEX_CSS.match(/\[data-theme="light"\],\n\[data-theme="glass"\],\n\[data-theme="high-contrast"\],\n\[data-theme="paper"\],\n\[data-theme="sepia"\] \{[^}]*--kind-app[^}]*\}/);
+        const dark = THEMES_CSS.match(/:root,\n\[data-theme="glass-dark"\],\n\[data-theme="obsidian"\] \{[^}]*--kind-app[^}]*\}/);
+        const light = THEMES_CSS.match(/\[data-theme="light"\],\n\[data-theme="glass"\],\n\[data-theme="high-contrast"\],\n\[data-theme="paper"\],\n\[data-theme="sepia"\] \{[^}]*--kind-app[^}]*\}/);
         expect(dark, 'dark --kind-* block').toBeTruthy();
         expect(light, 'light --kind-* block').toBeTruthy();
         for (const t of ['--kind-app', '--kind-web', '--kind-skill', '--kind-kb', '--kind-meet', '--kind-playbook', '--kind-compliance', '--success-ink', '--warning-ink', '--error-ink']) {
@@ -116,17 +122,22 @@ describe('kindColors — every variable it emits is declared in EVERY theme bloc
     });
 
     it('the --kind-* block sits directly after the --type-* block (third two-set block, one place to look)', () => {
-        const typeLight = INDEX_CSS.indexOf('--type-guard: #2e6f86;');
-        const kindBlock = INDEX_CSS.indexOf('--kind-app');
-        const rootBlock = INDEX_CSS.indexOf('\n:root {\n');
+        const typeLight = THEMES_CSS.indexOf('--type-guard: #2e6f86;');
+        const kindBlock = THEMES_CSS.indexOf('--kind-app');
+        const glassBlock = THEMES_CSS.indexOf('\n[data-theme="glass"] {\n');
         expect(typeLight).toBeGreaterThan(0);
         expect(kindBlock).toBeGreaterThan(typeLight);
-        expect(rootBlock).toBeGreaterThan(kindBlock);
+        expect(glassBlock).toBeGreaterThan(kindBlock);
+        // DIRECTLY after: between the light --type-* declaration and the first
+        // --kind-* one there is only the close of the --type-* block, comments
+        // and the dark two-set selector, no other rule.
+        const between = THEMES_CSS.slice(typeLight, kindBlock).replace(/\/\*[\s\S]*?\*\//g, '');
+        expect(between).toMatch(/^--type-guard: #2e6f86;\s*\}\s*:root,\n\[data-theme="glass-dark"\],\n\[data-theme="obsidian"\] \{\s*$/);
     });
 
     it('the retuned pair is NOT its --type-* twin — the legend must teach nine kinds, not eight', () => {
         const value = (t) => {
-            const m = NO_COMMENTS.match(new RegExp(`${t}:\\s*(#[0-9a-f]{6})`, 'g')) || [];
+            const m = THEMES_CSS.replace(/\/\*[\s\S]*?\*\//g, '').match(new RegExp(`${t}:\\s*(#[0-9a-f]{6})`, 'g')) || [];
             return m.map(s => s.slice(-7));
         };
         const [webDark, webLight] = value('--kind-web');

@@ -152,7 +152,9 @@ const KEY_RE = /^[a-z][a-z0-9_]{0,62}$/;
 // (catalogs, pg_temp/pg_toast magic), SQLite owns sqlite_ (sqlite_master,
 // sqlite_sequence). A table or field key starting with either could shadow or
 // collide with engine internals, so BOTH dialects refuse them at validation.
-const RESERVED_KEY_PREFIX_RE = /^(pg_|sqlite_)/;
+// pragma_ is SQLite's table-valued pragma namespace, which the page statement
+// guard refuses in queries; reserving it here refuses such a key at design time.
+const RESERVED_KEY_PREFIX_RE = /^(pg_|sqlite_|pragma_)/;
 
 // Connector id grammar (mirrors tbl_/fld_): conn_<hex>.
 const CONNECTOR_ID_RE = /^conn_[a-z0-9]{4,}$/;

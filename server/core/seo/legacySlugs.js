@@ -36,4 +36,12 @@ const LEGACY_SLUGS = {
     notitieboeken: 'notebooks',
 };
 
-module.exports = { LEGACY_SLUGS };
+/**
+ * Slugs that existed, were removed on purpose and have no replacement. Only
+ * these answer 410 Gone; every other unknown URL is a plain 404, so a typo or a
+ * page that is merely unpublished for a while is not dropped from search as
+ * "removed for good". Add a slug here when a page is deleted for good.
+ */
+const GONE_SLUGS = new Set([]);
+
+module.exports = { LEGACY_SLUGS, GONE_SLUGS };

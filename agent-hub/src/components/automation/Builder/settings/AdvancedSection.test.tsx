@@ -55,6 +55,24 @@ describe('Settings › Advanced', () => {
         expect(screen.getByText('waiting for people does not count')).toBeTruthy();
     });
 
+    it('lets the owner pick whose connections shared and agent runs use, defaulting to the owner', async () => {
+        hook.current = webhookCtl();
+        const user = userEvent.setup();
+        const onSave = vi.fn().mockResolvedValue(undefined);
+        render(<AdvancedSection automation={automation} onSave={onSave} defaultOpen />);
+        expect(screen.getByRole('radio', { name: 'Mine, as the owner' }).getAttribute('aria-checked')).toBe('true');
+        await user.click(screen.getByRole('radio', { name: 'Only the person who runs it' }));
+        expect(onSave).toHaveBeenLastCalledWith({ definition: { steps: [{ id: 's1' }], runPolicy: { retry: { max: 2, then: 'stop_notify' }, connections: 'caller' } } });
+    });
+
+    it('shows the stored connections choice and cannot be changed in a read-only view', () => {
+        hook.current = webhookCtl();
+        const callerOnly = { ...automation, definition: { ...automation.definition, runPolicy: { connections: 'caller' as const } } };
+        render(<AdvancedSection automation={callerOnly} onSave={vi.fn()} defaultOpen readOnly />);
+        expect(screen.getByRole('radio', { name: 'Only the person who runs it' }).getAttribute('aria-checked')).toBe('true');
+        expect(screen.getByRole('radio', { name: 'Mine, as the owner' }).matches(':disabled')).toBe(true);
+    });
+
     it('shows the webhook card with copy, cURL, renew and revoke', async () => {
         const ctl = webhookCtl();
         hook.current = ctl;

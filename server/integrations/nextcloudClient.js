@@ -1,16 +1,16 @@
+// @typecheck
 /**
  * Nextcloud Client — Shared HTTP helper for OAuth Bearer access to WebDAV + OCS.
  *
- * Mirrors msGraphClient.js: a single fetch wrapper that injects the Bearer
- * token from the session and transparently refreshes on 401 using the stored
- * refresh token. Used by nextcloudTools.js when the session is in OAuth mode;
- * the Basic-auth (app-password) path bypasses this module entirely.
+ * Mirrors msGraphClient.js: a single fetch wrapper that injects the Bearer token from the session
+ * and transparently refreshes on 401 using the stored refresh token. Used by nextcloudTools.js when
+ * the session is in OAuth mode; the Basic-auth (app-password) path bypasses this module entirely.
  */
 
 const { loadConfig } = require('../auth/permissions');
 const configStore = require('../stores/configStore');
 const { assertAllowedNextcloudHost, isMetadataHost, nextcloudFetch } = require('./nextcloudTarget');
-const { signedConnectorHeaders } = require('./ncSigning');
+const { signedConnectorHeaders, connectorWireUrl } = require('./ncSigning');
 const log = require('../telemetry/log');
 
 const REQUEST_TIMEOUT_MS = 20000;
@@ -170,7 +170,7 @@ async function _doRefreshAccessToken(session) {
         throw new Error('Nextcloud token refresh failed — user must re-authenticate');
     }
 
-    const tokenData = await response.json();
+    const tokenData = /** @type {{ access_token?: string, refresh_token?: string, expires_in?: number|string }} */ (await response.json());
 
     if (tokenData.access_token) creds.accessToken = tokenData.access_token;
     // Nextcloud rotates refresh tokens; always overwrite when present.
@@ -237,7 +237,7 @@ async function resolveUid(session, baseUrl) {
     if (!res.ok) {
         throw new Error(`Failed to resolve Nextcloud uid (${res.status})`);
     }
-    const body = await res.json();
+    const body = /** @type {{ ocs?: { data?: { id?: string } } }} */ (await res.json());
     const uid = body?.ocs?.data?.id;
     if (!uid) throw new Error('Nextcloud uid not present in OCS response');
     creds.uid = uid;
@@ -283,7 +283,6 @@ async function retryOnThrottle(initialResponse, doFetch, options = {}) {
     }
     return response;
 }
-
 
 /**
  * Fetch wrapper: injects Bearer auth, retries once on 401 after refreshing,
@@ -445,7 +444,7 @@ async function resolveConnectorAuth(session, userId) {
         // org's connector callback URL (admin-configured, not user-supplied),
         // carries no credentials — the connector signs with the tenant key —
         // and self-host connectors legitimately live on a private network.
-        const doOnce = () => fetch(url, {
+        const doOnce = () => fetch(connectorWireUrl(url, baseUrl), {
             ...options,
             method: wireMethod,
             headers: signedHeaders(),
@@ -506,6 +505,7 @@ function isConnectorSession(session) {
     return !!(session?.user?.provider === 'nextcloud_connector' || session?.connectorOrgId);
 }
 
+/** @returns {Promise<import('./nextcloudClient.types').NcAuth>} */
 async function resolveAuth(session, userId) {
     // Connector path takes priority: if the user came in via the Nextcloud
     // ExApp connector, we have an instance binding and zero credentials —

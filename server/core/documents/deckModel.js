@@ -130,7 +130,7 @@ function classifyImageRef(src, alt = '') {
     if (proxy) {
         let key;
         try { key = proxy[1].split('/').map(decodeURIComponent).join('/'); } catch { return { rejected: raw, alt: String(alt || '') }; }
-        return { storageKey: key.replace(/^\/+/, ''), alt: String(alt || '') };
+        return key.split('/').includes('..') ? { rejected: raw, alt: String(alt || '') } : { storageKey: key.replace(/^\/+/, ''), alt: String(alt || '') };
     }
     if (/^users\/[^/]+\/[^/]+\/.+/.test(raw) && !raw.includes('..')) {
         return { storageKey: raw, alt: String(alt || '') };
@@ -708,7 +708,7 @@ function clampDeck(deck, limits, warnings) {
     const slides = [];
     deck.slides.forEach((s, i) => {
         const clamped = clampSlide(s, i, limits, warnings);
-        if (isEmptySlide(clamped)) return;
+        if (isEmptySlide(clamped)) { warnings.push(`slide ${i + 1} was empty and was skipped`); return; }
         for (const part of splitOverflow(clamped, limits, warnings, i)) slides.push(part);
     });
     if (slides.length > limits.maxSlides) {

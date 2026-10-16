@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — applying a trigger call to the draft: builder_set_trigger's
  * per-kind shaping (schedule, webhook, app_event, form, app_trigger,
@@ -6,6 +7,7 @@
  */
 
 const { agentCallFieldsFrom, validateAgentCallTrigger, agentCallParams } = require('../../agentCallContract');
+const { appEventWarnings } = require('../triggerAdvice');
 
 /**
  * What a re-proposal of the SAME kind keeps from the trigger it replaces: the
@@ -108,7 +110,10 @@ function applyTrigger(draft, args) {
     draft.trigger = { id: 'trg', type: 'trigger', kind: args.kind, output: {}, ...carriedOver(draft.trigger, args) };
     if (args.kind === 'schedule') draft.trigger.schedule = { cron: args.cron, tz: args.tz || 'Europe/Amsterdam' };
     if (args.kind === 'webhook') draft.trigger.webhook = {};
-    if (args.kind === 'app_event') draft.trigger.appEvent = { provider: args.appProvider, event: args.appEvent, filter: args.filter || null };
+    if (args.kind === 'app_event') {
+        draft.trigger.appEvent = { provider: args.appProvider, event: args.appEvent, filter: args.filter || null };
+        warnings.push(...appEventWarnings(draft.trigger.appEvent));
+    }
     if (args.kind === 'form') draft.trigger.form = buildForm(args.form);
     if (args.kind === 'app_trigger') draft.trigger.params = buildAppParams(args.params);
     if (args.kind === 'agent_call') {

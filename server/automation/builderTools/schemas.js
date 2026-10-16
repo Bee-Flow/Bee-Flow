@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder-agent tool schemas (§WS5, extracted verbatim from builderTools.js).
  * NOTE: applyToolCall mutates this array in place (scope/forEach/error-branch
@@ -35,6 +36,7 @@ const WHOLE_RUN_DOCTRINE = 'A condition decides ONCE for the whole run: one that
 
 const SPLICE_DESCRIPTION = 'Default false: the new step is added BESIDE the current successor of afterStepId (that edge stays, so the two run in parallel). true: INSERT the new step between afterStepId and its current successor(s) - the successor edge is re-pointed to the new step, so downstream steps can depend on it. Pass branch/caseName as well when the anchor is a condition/switch. A switch can only be spliced in when it has arrayRef (the old successor moves to its first case).';
 
+/** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
 const TOOL_SCHEMAS = [
     {
         type: 'function',
@@ -188,7 +190,8 @@ APP_EVENT TRIGGERS (pick the most specific; use filters to narrow):
     Filters: tableId, actorEquals, and a value test on one column:
              columnId (NUMERIC) + valueEquals | valueContains, plus
              changedOnly:true to fire only when that column actually changed
-             (tables.row.updated only).
+             (tables.row.updated only). Without columnId, valueEquals /
+             valueContains / changedOnly hold when ANY column satisfies them.
     Payload: {tableId, rowId, values, actor, datetime}; tables.row.updated
              also carries {previousValues}.
     NOTE: values are keyed by NUMERIC column id in the trigger payload, because
@@ -937,7 +940,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                     afterStepId: { type: 'string' },
                     splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     op: { type: 'string', enum: ['now', 'parse', 'format', 'addDays', 'addHours', 'addMinutes', 'diff', 'extract'] },
-                    input: { type: 'string', description: 'Path to a date value (ISO string or epoch ms). Omit for op:now.' },
+                    input: { type: 'string', description: 'Path to a date value (ISO string, or epoch seconds/ms number). A date that does not exist (2026-02-30) fails the step. Omit for op:now.' },
                     input2: { type: 'string', description: 'Second date path. Required for op:diff.' },
                     amount: { type: 'number', description: 'Offset amount (positive or negative). Required for addDays/addHours/addMinutes.' },
                     format: { type: 'string', description: 'Format string with tokens yyyy/MM/dd/HH/mm/ss. Required for op:format.' },
@@ -945,6 +948,8 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                     unit: { type: 'string', enum: ['days', 'hours', 'minutes', 'seconds'], description: 'Required for op:diff.' },
                     arrayRef: { type: 'string', description: 'LIST MODE: path to an upstream list, e.g. steps.x.output.results. The operation then runs per ROW and the result is ADDED AS A COLUMN to every row; `input` addresses the row as `item`, e.g. "item.updated". Output is {items,count}. Omit entirely to work on one date.' },
                     target: { type: 'string', description: 'List mode only: the name of the column the result goes into. Defaults to the part (op:extract), else the operation name.' },
+                    timezone: { type: 'string', description: 'IANA timezone, e.g. Europe/Amsterdam. Default UTC. It sets the wall clock that op:format and op:extract use, how a date WITHOUT a zone ("2026-07-01 09:00") is read, and makes op:addDays keep the clock time across a daylight-saving change. Output iso stays UTC.' },
+                    epochUnit: { type: 'string', enum: ['auto', 'seconds', 'ms'], description: 'How a NUMBER input is read. auto (default): below 1e11 is epoch seconds, otherwise milliseconds. Set seconds or ms to force one (needed for milliseconds between 1966 and 1970, which are negative and small).' },
                     label: { type: 'string' },
                 },
                 required: ['op'],
@@ -1561,7 +1566,7 @@ EXAMPLE — each resolved ticket becomes an article: {knowledgeBaseId:"kb_9f2",t
         function: {
             name: 'builder_request_dry_run',
             description: 'Execute the draft in dry-run mode. Call this ONCE, when EVERY planned step exists — never mid-build. Side-effect actions are simulated (no real emails sent, no real issues created); read-only and AI steps run for real. Returns ok + note and, per step, its status and a `_hint` of the REAL runtime keys and shape — trust those over any assumption; only a failed step carries its error and input, a forEach reports its failed items, a step that produced nothing says empty:true. If steps errored, fix them ALL with one builder_update_steps call, then dry-run again (both in the SAME reply — calls execute in order). Only after a clean dry-run (ok:true) should you call builder_finalize.',
-            parameters: { type: 'object', properties: { triggerPayload: { type: 'object', description: 'Optional fake trigger payload (used to feed app_event triggers a sample).' }, triggerStepId: { type: 'string', description: 'Which trigger to enter through when the automation has ADDITIONAL triggers (an additional trigger\'s own id). Omit for the primary trigger. Dry-run each root separately.' } } },
+            parameters: { type: 'object', properties: { triggerPayload: { type: 'object', description: 'Optional fake trigger payload (used to feed app_event triggers a sample). Omitted or {} on an app_event trigger: the event\'s declared sample is used instead (triggerPayloadSource says which one ran).' }, triggerStepId: { type: 'string', description: 'Which trigger to enter through when the automation has ADDITIONAL triggers (an additional trigger\'s own id). Omit for the primary trigger. Dry-run each root separately.' } } },
         },
     },
     {

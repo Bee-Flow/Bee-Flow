@@ -90,6 +90,7 @@ async function runGrantedAutomation(ask, toolName, toolArgs) {
             _via: 'beeflowAI.ask',
         },
         mode: 'live',
+        startedByUserId: viewerUserId || null,
     });
     return { runId: run.id, status: run.status, output: run.output ?? null, error: run.error || null };
 }

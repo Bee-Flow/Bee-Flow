@@ -17,10 +17,10 @@ test('unknown applicability and missing applicable data block final output', () 
     assert.throws(() => assertFinal(fill), e => e.status === 422);
     assert.equal(prepareDocument(security(),{...base,remoteAccess:true,cloudServices:false}).valid,false);
 });
-test('typed zero and false are present; text is not silently coerced', () => {
+test('typed zero and false are present; non-numeric text is not coerced', () => {
     const doc = { bodyHtml:'{{count}} {{enabled}}',settings:{contract:{parameters:[{key:'count',type:'number',required:true},{key:'enabled',type:'boolean',required:true}]}} };
     assert.equal(prepareDocument(doc,{count:0,enabled:false}).valid,true);
-    assert.equal(prepareDocument(doc,{count:'0',enabled:'false'}).valid,false);
+    assert.equal(prepareDocument(doc,{count:'abc',enabled:'false'}).valid,false);
 });
 test('groups use three-valued logic and reviewed overrides are explicit', () => {
     const rule = {all:[{parameter:'known',operator:'equals',value:true},{parameter:'unknown',operator:'equals',value:true}]};
@@ -61,4 +61,37 @@ test('a presentation document is filled as text: its outline keeps an ampersand,
     assert.equal(filled.bodyHtml, '# Bee & Co\n\n## One\n- <b>');
     const page = prepareDocument({ docType:'letter', bodyHtml:'<p>{{customer.name}}</p>' }, { customer:{ name:'Bee & Co' } });
     assert.equal(page.bodyHtml, '<p>Bee &amp; Co</p>');
+});
+
+test('number parameters accept numeric strings, defaults and list fields; "abc" is refused by name', () => {
+    const doc = { bodyHtml: '{{btw}} {{rate}}', settings: { contract: { parameters: [
+        { key: 'btw', type: 'number', default: '21' },
+        { key: 'rate', type: 'number' },
+        { key: 'lines', type: 'list', fields: [{ key: 'amount', type: 'number' }] },
+    ] } } };
+    const unbound = prepareDocument(doc, {});
+    assert.equal(unbound.valid, true);
+    assert.match(unbound.bodyHtml, /^21 /);
+    assert.equal(prepareDocument(doc, { btw: '21', rate: '21,5' }).valid, true);
+    assert.equal(prepareDocument(doc, { btw: 21 }).valid, true);
+    assert.equal(prepareDocument(doc, { lines: [{ amount: '3.5' }] }).valid, true);
+    const bad = prepareDocument(doc, { btw: 'abc' });
+    assert.equal(bad.valid, false);
+    assert.match(bad.issues[0].message, /btw must be a number, got "abc"/);
+});
+
+test('ambiguous thousands separators are refused, plain decimals accepted, list input not mutated', () => {
+    const doc = { bodyHtml: '{{n}}', settings: { contract: { parameters: [
+        { key: 'n', type: 'number' },
+        { key: 'lines', type: 'list', fields: [{ key: 'amount', type: 'number' }] },
+    ] } } };
+    for (const v of ['1,000', '1.000', '12,345', '1.234,5']) {
+        const r = prepareDocument(doc, { n: v });
+        assert.equal(r.valid, false, v);
+        assert.match(r.issues[0].message, /without a thousands separator, got/);
+    }
+    for (const v of ['21,5', '3.5']) assert.equal(prepareDocument(doc, { n: v }).valid, true, v);
+    const lines = [{ amount: '3.5' }];
+    assert.equal(prepareDocument(doc, { lines }).valid, true);
+    assert.equal(lines[0].amount, '3.5');
 });

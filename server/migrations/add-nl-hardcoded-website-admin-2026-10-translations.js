@@ -30,7 +30,7 @@ const DATA = require(path.join(__dirname, 'data', 'hardcoded-website-admin-2026-
  * install that already ran this migration. Pinning the data's hash here makes
  * every data change a change to this file; the test fails until it is updated.
  */
-const DATA_SHA256 = '60aeddf34df05abfd6aedb51d1c4674957304cecd762a7defdd30846f4873023';
+const DATA_SHA256 = 'b28736971cbb25ea34d6175ded895af849e4049604eef440e49f2024cbb7f325';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 

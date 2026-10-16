@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * POST /:id/diagnose-trigger: the trigger pipeline health check, split out of
  * routes/automation/runs.js (which mounts this router in its old place, so the
@@ -73,6 +74,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
         }
 
         // 2) Auth mode (observational — reports how NC tools authenticate)
+        /** @type {Record<string, any>|null} */
         let session = null;
         try { session = await require('../../automation/triggerBus').loadSession(userId); } catch { session = null; }
         const isConnector = !!(session && (session._source === 'connector' || session.connectorOrgId || session.user?.provider === 'nextcloud_connector'));
@@ -107,7 +109,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
         if (pollerBacked) {
             checks.push({ name: 'deliverability', status: 'ok', message: 'Poller-backed — fires on the poll tick with no connector dependency.' });
         } else if (isPushPending('nextcloud', event)) {
-            checks.push({ name: 'deliverability', status: 'warn', message: 'This event requires the Bee Flow ExApp connector and is pending live validation.' });
+            checks.push({ name: 'deliverability', status: 'warn', message: 'This event has no producer (no webhook, no poller): it will never fire.' });
         } else {
             checks.push({ name: 'deliverability', status: 'warn', message: 'No producer for this event yet — it will not fire until a poller or the connector delivers it.' });
         }
@@ -237,8 +239,8 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
 
     // 4) Latest matching message — same lookup the manual run uses
     try {
-        const triggerBus = require('../../automation/triggerBus');
-        const latest = await triggerBus.fetchLatestGmailMatch(userId, trig.appEvent.filter || null);
+        const latestBus = require('../../automation/triggerBus');
+        const latest = await latestBus.fetchLatestGmailMatch(userId, trig.appEvent.filter || null);
         if (!latest) {
             checks.push({
                 name: 'recent_match',

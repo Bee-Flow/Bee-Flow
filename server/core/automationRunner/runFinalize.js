@@ -21,6 +21,7 @@ const crypto = require('crypto');
 const { sanitizeError } = require('../privacy/errorSanitizer');
 const { classifyUnknownError, remediationFor } = require('../automationErrors');
 const { bindingMissSummary } = require('./bindingMisses');
+const { truncationSummary } = require('./truncations');
 // What this module needs from automation/ (a feature) comes through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
 const { releaseMarker, notifyRunEnd, advancePrimarySchedule } = require('./runFinalizeEffects');
@@ -93,7 +94,7 @@ function runSummary({ automation, ctx, firstRunNeedsConfirm, runStatus, runError
     // act on yesterday's data and then fail?".
     // Mappings that found nothing ride on both lines too: on a failure
     // they are often WHY ("to is required" because its mapping was empty).
-    const misses = bindingMissSummary(ctx._bindingMisses);
+    const misses = bindingMissSummary(ctx._bindingMisses) + truncationSummary(ctx._truncations);
     if (runErrorMsg) return withReuse(`${runRemediation ? `Failed: ${userSafeError}. ${runRemediation}` : `Failed: ${userSafeError}`}${misses}`);
     const base = runnerPort('summarise').summariseDefinition(automation.definition || {}).summary;
     const withErrors = handledErrorCount > 0
@@ -255,4 +256,4 @@ function withLastOutput(runRow, lastOutput) {
     return runRow ? { ...runRow, lastOutput: lastOutput ?? null } : runRow;
 }
 
-module.exports = { finalizeRun, writeRunOutcome, withLastOutput };
+module.exports = { finalizeRun, writeRunOutcome, withLastOutput, runSummary };

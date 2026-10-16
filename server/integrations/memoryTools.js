@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Memory Tools — the user's own long-term memory (stores/memoryStore.js) as two
  * tools a chat agent or an automation step can call.
@@ -87,7 +88,7 @@ function rememberResult(r, { type, content }) {
         case 'created':
             return { ...base, id: r.id, stored: true, message: 'Remembered.' };
         case 'confirmed':
-            return { ...base, id: r.id, stored: true, message: 'Already known: confirmed the existing memory.' };
+            return { ...base, id: r.id, stored: true, message: 'Already known: the existing memory was confirmed and its text left as it was.' };
         case 'superseded':
             return { ...base, id: r.id, stored: true, replaced: r.supersededId || null, message: 'Updated: this replaces an older memory about the same thing.' };
         case 'pending_review':
@@ -154,10 +155,12 @@ async function executeMemoryTool(toolName, args = {}, context = {}) {
     if (toolName === 'memory_remember') {
         if (!policy.write) return { stored: false, disabled: true, reason: policy.reason, message: `${MEMORY_OFF_MESSAGE}: nothing was saved.` };
         const type = MEMORY_TYPES.includes(args.type) ? args.type : null;
-        const content = String(args.content || '').trim().slice(0, 200);
+        const fullContent = String(args.content || '').trim();
+        const content = fullContent.slice(0, 200);
         if (!type) return { error: `type must be one of ${MEMORY_TYPES.join(', ')}` };
         if (!content) return { error: 'content is required' };
-        const importance = Math.max(0, Math.min(1, Number.isFinite(Number(args.importance)) ? Number(args.importance) : 0.6));
+        const askedImportance = Number.isFinite(Number(args.importance)) ? Number(args.importance) : 0.6;
+        const importance = Math.max(0, Math.min(1, askedImportance));
         const subject = args.subject ? String(args.subject).trim().slice(0, 120) : null;
         const attribute = args.attribute ? String(args.attribute).trim().slice(0, 80) : null;
         const value = args.value != null ? String(args.value).trim().slice(0, 200) : null;
@@ -169,7 +172,11 @@ async function executeMemoryTool(toolName, args = {}, context = {}) {
                 conversationId: context.conversationId || null, origin: 'tool',
             },
         );
-        return rememberResult(result, { type, content });
+        const adjusted = [];
+        if (fullContent.length > content.length) adjusted.push(`the content was shortened to ${content.length} characters`);
+        if (importance !== askedImportance) adjusted.push(`importance ${askedImportance} was limited to ${importance}`);
+        const out = rememberResult(result, { type, content });
+        return adjusted.length ? { ...out, adjusted, message: `${out.message} Note: ${adjusted.join('; ')}.` } : out;
     }
 
     return { error: `Unknown memory tool: ${toolName}` };

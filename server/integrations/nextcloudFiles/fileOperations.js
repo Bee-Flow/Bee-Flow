@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Files and folders over WebDAV — listing, reading, uploading, creating,
  * deleting and server-side move/copy — plus the OCS endpoints that act on a
@@ -5,6 +6,22 @@
  */
 
 const { MAX_TEXT_BYTES, PROPFIND_BODY, joinDavPath, parsePropfind, ensureParentFolders } = require('./webdav');
+
+/** Compose each node's absolute path from its parent's and write it onto the node. */
+function withFullPaths(nodes, parentPath) {
+    if (!Array.isArray(nodes)) return [];
+    return nodes.map((node) => {
+        if (!node || typeof node !== 'object') return node;
+        const name = node.basename ?? node.name ?? node.displayName ?? null;
+        const own = node.path ?? node.href ?? null;
+        const leaf = name ?? (own ? String(own).split('/').filter(Boolean).pop() : null);
+        if (!leaf) return node;
+        const base = parentPath === '/' ? '' : parentPath;
+        const full = `${base}/${leaf}`;
+        const childKey = Array.isArray(node.children) ? 'children' : (Array.isArray(node.entries) ? 'entries' : null);
+        return childKey ? { ...node, path: full, [childKey]: withFullPaths(node[childKey], full) } : { ...node, path: full };
+    });
+}
 
 // Returns undefined when the tool belongs to another Nextcloud file family, so
 // the facade can hand it to the next handler.
@@ -76,16 +93,37 @@ async function executeFileOperationTool(toolName, args, ctx) {
 
         case 'nextcloud_folder_tree': {
             const depth = Math.min(Math.max(args.depth || 3, 1), 10);
-            const res = await ncFetch(`${baseUrl}/ocs/v2.php/apps/files/api/v1/folder-tree?depth=${depth}&format=json`, {
+            // An OCS ApiRoute whose body is a bare JSON array (not the usual OCS envelope).
+            const params = new URLSearchParams({ depth: String(depth) });
+            if (args.path) params.set('path', String(args.path));
+            if (args.withParents) params.set('withParents', 'true');
+            const res = await ncFetch(`${baseUrl}/ocs/v2.php/apps/files/api/v1/folder-tree?${params.toString()}`, {
                 headers: { 'OCS-APIRequest': 'true', 'Accept': 'application/json' },
             });
             if (res.status === 401) return { error: authError };
             if (res.status === 404) {
+                await res.text().catch(() => '');
+                // The route answers 404 for a missing PATH too. Probe the root once:
+                // if that works the endpoint exists and the path is what is missing.
+                if (args.path) {
+                    const probe = await ncFetch(`${baseUrl}/ocs/v2.php/apps/files/api/v1/folder-tree?depth=1`, {
+                        headers: { 'OCS-APIRequest': 'true', 'Accept': 'application/json' },
+                    });
+                    await probe.text().catch(() => '');
+                    if (probe.status === 401) return { error: authError };
+                    if (probe.ok) return { error: `Folder not found: ${args.path}` };
+                }
                 return { error: 'The folder-tree endpoint is unavailable on this Nextcloud (needs 31+). Use nextcloud_list_files instead.' };
             }
             if (!res.ok) return { error: `Nextcloud folder tree failed (${res.status})` };
             const data = await res.json().catch(() => null);
-            return { depth, tree: data?.ocs?.data ?? [] };
+            const raw = Array.isArray(data) ? data : (data?.ocs?.data ?? []);
+            // Nodes are relative to the requested start folder (unless the
+            // parents came along). Write the FULL path on every node so the
+            // scope guard prunes against real paths, not "/Secret" for
+            // "/Shared/Secret".
+            const start = args.withParents ? '/' : `/${String(args.path || '').split('/').filter(Boolean).join('/')}`;
+            return { depth, tree: withFullPaths(raw, start) };
         }
 
         case 'nextcloud_direct_link': {
@@ -117,6 +155,13 @@ async function executeFileOperationTool(toolName, args, ctx) {
             if (!res.ok) return { error: `Nextcloud read failed (${res.status})` };
             const contentType = res.headers.get('content-type') || '';
             const buf = Buffer.from(await res.arrayBuffer());
+            // A GET on a collection answers 200 with Sabre's HTML banner, which
+            // would otherwise come back as the "content" of the file.
+            const isWebdavBanner = /html/i.test(contentType)
+                && /This is the WebDAV interface/i.test(buf.slice(0, 2048).toString('utf-8'));
+            if (/\/$/.test(args.path) || isWebdavBanner) {
+                return { error: `path "${args.path}" is a folder, not a file. Use nextcloud_list_files to see what is in it.` };
+            }
             const filename = args.path.split('/').pop() || args.path;
             const att = { name: filename, type: contentType };
 
@@ -126,6 +171,7 @@ async function executeFileOperationTool(toolName, args, ctx) {
             // Office docs).
             const { extractAttachment, isPdf, isDocx, isSpreadsheet, isPptx } = require('../../core/documents/attachmentExtractor');
             if (isPdf(att) || isDocx(att) || isSpreadsheet(att) || isPptx(att)) {
+                /** @type {{ kind: string, text?: string, source?: string, meta?: any, reason?: string, images?: any }} */
                 const result = await extractAttachment({
                     name: filename,
                     type: contentType,
@@ -166,7 +212,11 @@ async function executeFileOperationTool(toolName, args, ctx) {
                 return { error: `File appears to be binary (${contentType || 'unknown type'}). Reading binary files of this type is not supported.`, size: buf.length, contentType };
             }
             const truncated = buf.length > MAX_TEXT_BYTES;
-            const content = buf.slice(0, MAX_TEXT_BYTES).toString('utf-8');
+            // Cut on a character boundary: a continuation byte (10xxxxxx) at the
+            // cut means the last character is split, so drop its start too.
+            let end = Math.min(buf.length, MAX_TEXT_BYTES);
+            while (truncated && end > 0 && (buf[end] & 0xC0) === 0x80) end--;
+            const content = buf.slice(0, end).toString('utf-8');
             return {
                 path: args.path,
                 size: buf.length,
@@ -183,6 +233,11 @@ async function executeFileOperationTool(toolName, args, ctx) {
             if (hasHandle && hasContent) return { error: 'Pass either sourceHandle or content, not both.' };
             if (!hasHandle && !hasContent) {
                 return { error: 'Either sourceHandle (preferred for binary) or content (for inline text) is required.' };
+            }
+
+            // A folder path is only fine for a generated file, which takes its own name.
+            if (/\/$/.test(String(args.path)) && !(hasHandle && args.sourceHandle.kind === 'generated_file')) {
+                return { error: `path "${args.path}" is a folder. Give a file name, e.g. "${args.path}report.txt".` };
             }
 
             // Resolve to bytes. Handles stay opaque to the model — this is what
@@ -221,11 +276,22 @@ async function executeFileOperationTool(toolName, args, ctx) {
                     return { error: `Unsupported sourceHandle.kind: ${kind}` };
                 }
             } else if (args.isBase64) {
-                body = Buffer.from(args.content, 'base64');
+                // Buffer.from(..., 'base64') never throws: it skips what it
+                // cannot read and stores the rest, so check the text first.
+                const b64 = args.content.replace(/\s+/g, '');
+                if (!/^[A-Za-z0-9+/_-]*={0,2}$/.test(b64) || b64.length % 4 === 1) {
+                    return { error: 'content is not valid base64. Send base64 text, or set isBase64 to false for plain text.' };
+                }
+                body = Buffer.from(b64, 'base64');
             } else {
                 body = args.content;
             }
 
+            // joinDavPath drops a trailing slash, so "/Docs/" would PUT a file
+            // named "Docs" and fail on its missing parent. A folder is not a file.
+            if (/\/$/.test(String(args.path))) {
+                return { error: `path "${args.path}" is a folder. Give a file name, e.g. "${args.path}report.txt".` };
+            }
             const url = joinDavPath(root, args.path);
             const put = () => ncFetch(url, {
                 method: 'PUT',
@@ -237,16 +303,19 @@ async function executeFileOperationTool(toolName, args, ctx) {
                 body,
             });
             let res = await put();
-            // 409 = a parent folder is missing. Create the chain once and retry,
+            let retried = false;
+            // 409 or 404 = a parent folder is missing (Nextcloud answers 404 for
+            // a PUT into a missing folder, 409 on older servers). Create the chain once and retry,
             // so an automation saving into "/Invoices/Vendor/" needs no create-folder
             // steps (which fail with "already exists" on every later run). The
             // happy path still costs a single PUT.
-            if (res.status === 409) {
+            if (res.status === 409 || res.status === 404) {
                 await ensureParentFolders(ncFetch, root, args.path);
                 res = await put();
+                retried = true;
             }
             if (res.status === 401) return { error: authError };
-            if (res.status === 409) return { error: `Parent folder for ${args.path} does not exist and could not be created.` };
+            if (res.status === 409 || (retried && res.status === 404)) return { error: `Parent folder for ${args.path} does not exist and could not be created.` };
             if (!res.ok && res.status !== 201 && res.status !== 204) {
                 const text = await res.text().catch(() => '');
                 return { error: `Upload failed (${res.status}): ${text.slice(0, 200)}` };

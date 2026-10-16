@@ -20,6 +20,11 @@ export type HeaderCta = {
     labelFont?: string;
     labelSize?: number;
     labelColor?: string;
+    kind?: string;
+    repoUrl?: string;
+    starsFallback?: number;
+    starsText?: string;
+    newTabText?: string;
 };
 export type MegaItem = {
     id?: string;

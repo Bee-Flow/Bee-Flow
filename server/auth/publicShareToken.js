@@ -145,6 +145,20 @@ function verifyCsrf(token, expectedShareId) {
     return !!(p && p.s === expectedShareId);
 }
 
+// ── Website-form token (CMS form block) ─────────────────────────────
+//
+// Its own purpose, so a share-unlock CSRF can never stand in for it and the
+// other way round. `scope` binds the form, the site and the issue time.
+
+function issueCmsFormToken(scope) {
+    return signPayload('cmsform', { s: scope, e: Date.now() + CSRF_TTL_MS });
+}
+
+function verifyCmsFormToken(token, expectedScope) {
+    const p = verifyPayload('cmsform', token);
+    return !!(p && p.s === expectedScope);
+}
+
 // ── View token (opaque-origin sub-frame auth) ──────────────────────
 //
 // The content iframe runs `sandbox="allow-scripts allow-forms"` with NO
@@ -241,6 +255,8 @@ module.exports = {
     verifyUnlockCookie,
     issueCsrf,
     verifyCsrf,
+    issueCmsFormToken,
+    verifyCmsFormToken,
     issueViewToken,
     verifyViewToken,
     issueBridgeToken,

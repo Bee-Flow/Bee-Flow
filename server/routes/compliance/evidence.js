@@ -4,6 +4,7 @@
  */
 
 const express = require('express');
+const { sendStream } = require('../../core/http/sendStream');
 const router = express.Router();
 
 const crypto = require('crypto');
@@ -82,7 +83,7 @@ router.get('/evidence/file/:id', requireAuth, requirePermission('admin_complianc
         if (contentLength) res.setHeader('Content-Length', contentLength);
         const filename = row.payload?.filename || `evidence-${row.id}`;
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        stream.pipe(res);
+        sendStream(stream, res);
     } catch (e) {
         if (e?.name === 'NoSuchKey') return res.status(404).json({ error: 'file_gone' });
         next(e);

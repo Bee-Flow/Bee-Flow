@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MANAGED_COLUMNS } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
 import DatatablesStudio from './DatatablesStudio';
+import { readAppCss } from '../../../../test/appStylesheets';
 
 /**
  * The hygiene half of the section: the things that were WRONG rather than
@@ -84,7 +85,7 @@ beforeEach(() => {
 // ── Theme tokens ────────────────────────────────────────────────────────────
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const CSS = fs.readFileSync(path.resolve(HERE, '../../../../index.css'), 'utf8');
+const CSS = readAppCss();
 
 function sectionSources() {
     return fs.readdirSync(HERE)
@@ -107,7 +108,7 @@ describe('the section paints itself in tokens the app actually defines', () => {
         expect(offenders).toEqual([]);
     });
 
-    it('every CSS variable it reads is defined in index.css', () => {
+    it('every CSS variable it reads is defined in the app stylesheets', () => {
         // The general form of the rule above, so the next invented token is
         // caught the day it is written rather than the day someone notices the
         // colour is wrong in one theme.

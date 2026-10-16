@@ -99,6 +99,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     onExecuteStep,      // (stepId) — n8n-style per-node ▶ button
     executingStepId = null,
     runInFlight = false,
+    runIdentity = null,       // flow/useFailedRunBanner RunIdentity — which run the failure banner talks about
     catalog = null,           // tool catalog — needed for auto-mapping on connect
     realOutputById = null,    // Map<stepId, output> (mapping/realOutputs) — real run/pinned data for auto-map + chips
     autoMapEnabled = true,    // auto-map inputs when an edge is drawn
@@ -170,7 +171,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
         onOpenLayer, layerSummaries, highlightedStepId, onToggleInline, layerRefCounts,
         onDefinitionChange, catalog, realOutputById, autoMapEnabled, onAutoMapped,
     });
-    const { runFocus, focusRunStep } = useRunFocus({ runSteps, runInFlight, definition, rf, absPositionOf });
+    const { runFocus, focusRunStep, dismissRunBanner } = useRunFocus({ runSteps, runInFlight, definition, rf, absPositionOf, runIdentity, focusRef: wrapperRef });
 
     // The quick-add "+" only exists where structural edits are allowed.
     const onAddAfterForLayout = (editable && !structuralEditsBlocked) ? onRequestAddAfter : null;
@@ -265,7 +266,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
             onMoveEnd={onMoveEnd}
             overlays={{
                 definition, allowEdgeEdits, handleArrange, structuralEditsBlocked, reducedMotion, resumeFollow, fitCanvasFully,
-                presenter, togglePresenter, shortCanvas, onToggleFlowlets, flowletsOpen, flowletCount, runFocus, focusRunStep,
+                presenter, togglePresenter, shortCanvas, onToggleFlowlets, flowletsOpen, flowletCount, runFocus, focusRunStep, onDismissRunBanner: dismissRunBanner, runIdentity,
                 formUrl, onOpenFormOverlay, selectedCount: selectedIds.length, selectionInDrawer, deleteSelection, clearSelection,
                 interactive: !readOnly, editable, buildCue, following, editingStepId, stepNumberById: runtimeContextValue.stepNumberById,
                 fatalError, validation, aborted, onDismissFatal, onFocusStep, edgeColorMode, setEdgeColorMode, onDefinitionChange,

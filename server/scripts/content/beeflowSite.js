@@ -1443,7 +1443,7 @@ const cloud = {
                 { icon: 'Server', label: 'Scaleway - hosting', sublabel: 'France (EEA). Our primary infrastructure; EU data centres by default.', href: '' },
                 { icon: 'CreditCard', label: 'Stripe - payments', sublabel: 'Ireland (EEA), onward to the US under the Data Privacy Framework and/or standard contractual clauses.', href: '' },
                 { icon: 'Bot', label: 'Model providers - your choice', sublabel: 'Anthropic, OpenAI, Microsoft, Mistral. Which one runs depends on the model you select. Anthropic is NOT DPF-certified; those transfers rely on SCCs plus supplementary measures.', href: '' },
-                { icon: 'Bell', label: '30 days\' notice before any change', sublabel: 'You get advance notice and a right to object before we add or replace a sub-processor. The current list is published.', href: '/legal/subprocessors' },
+                { icon: 'Bell', label: '30 days\' notice before any change', sublabel: 'You get advance notice and a right to object before we add or replace a sub-processor. The current list is published.', href: '/subprocessors' },
             ],
         }),
 

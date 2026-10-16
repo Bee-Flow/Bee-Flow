@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Teams Tools — the org chart Nextcloud actually shares against.
  *
@@ -20,6 +21,10 @@
  */
 
 const ncClient = require('./nextcloudClient');
+const { addMembers } = require('./nextcloudTeamsMembers');
+const { deleteTeam } = require('./nextcloudTeamsDelete');
+const { nextcloudHttpError } = require('./nextcloudHttpError');
+const { toShareId } = require('./nextcloudFiles/sharing');
 
 const CIRCLES_API = '/ocs/v2.php/apps/circles/circles';
 
@@ -181,18 +186,11 @@ async function readJsonSafe(res) {
     try { return JSON.parse(text); } catch { return text; }
 }
 
+/** @returns {Promise<{ error?: string, ok?: boolean, data?: any, ocs?: any }>} */
 async function handle(res, authError, what) {
-    if (res.status === 401 || res.status === 403) return { error: authError };
-    if (res.status === 404) {
-        return { error: `Nextcloud Teams did not answer the ${what} call — enable the "Circles"/"Teams" app in Nextcloud, or check the team id.` };
-    }
-    if (!res.ok) {
-        const body = await readJsonSafe(res);
-        const detail = typeof body === 'string' ? body.slice(0, 200) : (body?.ocs?.meta?.message || '');
-        return { error: `Nextcloud Teams ${what} failed (${res.status})${detail ? `: ${detail}` : ''}` };
-    }
+    if (!res.ok) return nextcloudHttpError(res, { authError, what: `Teams ${what}`, app: 'Teams' });
     const body = await readJsonSafe(res);
-    return { ok: true, data: body?.ocs?.data ?? body };
+    return { ok: true, data: body?.ocs?.data ?? body, ocs: body?.ocs };
 }
 
 function levelName(level) {
@@ -274,24 +272,13 @@ async function executeNextcloudTeamsTool(toolName, args, userId, session) {
                 authError, 'team create',
             );
             if (out.error) return out;
-            return { success: true, team: mapTeam(out.data || {}) };
+            // `population` is stale at create time; the creator is already the owner.
+            const team = mapTeam(out.data || {});
+            return { success: true, team: { ...team, memberCount: Math.max(1, team.memberCount || 0) } };
         }
 
-        case 'nextcloud_teams_add_members': {
-            if (!args.teamId) return { error: 'teamId is required' };
-            const ids = Array.isArray(args.userIds) ? args.userIds.filter(Boolean) : [];
-            if (!ids.length) return { error: 'userIds must be a non-empty array of Nextcloud user ids' };
-            // The /members/multi endpoint takes [{id, type}] with type 1 = user.
-            const out = await handle(
-                await ncFetch(`${api}/${encodeURIComponent(args.teamId)}/members/multi`, {
-                    method: 'POST', headers: HEADERS,
-                    body: JSON.stringify({ members: ids.map(id => ({ id: String(id), type: 1 })) }),
-                }),
-                authError, 'member add',
-            );
-            if (out.error) return out;
-            return { success: true, teamId: args.teamId, added: ids };
-        }
+        case 'nextcloud_teams_add_members':
+            return addMembers({ api, ncFetch, authError, handle, HEADERS }, args);
 
         case 'nextcloud_teams_remove_member': {
             if (!args.teamId) return { error: 'teamId is required' };
@@ -351,15 +338,8 @@ async function executeNextcloudTeamsTool(toolName, args, userId, session) {
             return { success: true, teamId: args.teamId, updated };
         }
 
-        case 'nextcloud_teams_delete': {
-            if (!args.teamId) return { error: 'teamId is required' };
-            const out = await handle(
-                await ncFetch(`${api}/${encodeURIComponent(args.teamId)}`, { method: 'DELETE', headers: HEADERS }),
-                authError, 'team delete',
-            );
-            if (out.error) return out;
-            return { success: true, teamId: args.teamId };
-        }
+        case 'nextcloud_teams_delete':
+            return deleteTeam({ api, ncFetch, authError, handle, HEADERS }, args);
 
         case 'nextcloud_share_with_team': {
             if (!args.path) return { error: 'path is required' };
@@ -383,7 +363,8 @@ async function executeNextcloudTeamsTool(toolName, args, userId, session) {
             const share = out.data || {};
             return {
                 success: true,
-                shareId: share.id ?? null,
+                id: toShareId(share.id),
+                shareId: toShareId(share.id),
                 path: args.path,
                 teamId: args.teamId,
                 permissions: share.permissions ?? Number(args.permissions || 1),

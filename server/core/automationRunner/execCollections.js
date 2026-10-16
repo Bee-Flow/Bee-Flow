@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Collection operators (Phase B, extracted verbatim from engine.js):
  * filter/limit/dedupe/aggregate/summarize plus the shared arrayRef
@@ -41,6 +42,7 @@ function collectionCap(step) {
 }
 
 function tooLargeError(length, cap) {
+    /** @type {import('./runnerError.types').RunnerError} */
     const err = new Error(`Collection op input has ${length} items (max ${cap}). Add a Limit step upstream to cut the list down first (Limit is exempt from this cap), or raise AUTOMATION_COLLECTION_MAX_ITEMS.`);
     // Stable class for run-history facets, same pattern as
     // automationErrors.js codes — recordRunStep call sites read
@@ -230,13 +232,14 @@ async function execSummarize(step, ctx, runState) {
     switch (step.op) {
         case 'count': result = arr.length; break;
         case 'sum':   result = values.reduce((a, b) => a + b, 0); break;
-        case 'avg':   result = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0; break;
+        case 'avg':   result = values.length ? values.reduce((a, b) => a + b, 0) / values.length : null; break;
         case 'min':   result = values.length ? Math.min(...values) : null; break;
         case 'max':   result = values.length ? Math.max(...values) : null; break;
         // Validator-blocked (validate.js summarize.op_invalid), but hand-written
         // and AI-authored definitions still reach it — fail loud rather than
         // record a success with a null result (A17, as execDateTime does).
         default: {
+            /** @type {import('./runnerError.types').RunnerError} */
             const err = new Error(`Unknown summarize op: ${step.op}`);
             err.errorClass = 'summarize_op_unknown';
             throw err;
@@ -270,6 +273,7 @@ async function execFlatten(step, ctx, runState) {
     if (!res) return flattenUnresolved(step, runState);
     if (res.inputCount > cap) throw tooLargeError(res.inputCount, cap);
     if (res.over) {
+        /** @type {import('./runnerError.types').RunnerError} */
         const err = new Error(`This step would make more than ${cap.toLocaleString('en-US')} rows. Put a Filter or a Limit before it to make the list smaller.`);
         err.errorClass = 'collection_too_large';
         throw err;

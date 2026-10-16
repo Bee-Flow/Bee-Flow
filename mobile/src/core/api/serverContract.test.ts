@@ -956,6 +956,8 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
     const agentSteps = read('routes/automation/agentStepRoutes.js');
     const versions = read('routes/automation/versions.js');
     const runs = read('routes/automation/runs.js');
+    // The run bodies runs.js validates with (split out of it).
+    const runSchemas = read('routes/automation/runSchemas.js');
     const links = read('routes/automation/webhooksAndRunOps.js');
     const activate = read('routes/automation/activate.js');
     // GET /:id/counts, registered inside makeActionsRouter.
@@ -1087,9 +1089,11 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
 
     it('the test runs still take the modes the editor sends and answer the rows it reads', () => {
         // STEP_RUN_MODES in src/features/flow-editor/api/types.ts.
-        const partial = declSlice(runs, 'PartialRunBody');
+        expect(runs).toContain("require('./runSchemas')");
+        expect(runs).toContain('validate({ body: PartialRunBody })');
+        const partial = declSlice(runSchemas, 'PartialRunBody');
         for (const mode of ['only', 'from', 'upTo']) expect(partial).toContain(`'${mode}'`);
-        expect(missingFrom(declSlice(runs, 'RUN_SHAPE'), ['triggerPayload', 'triggerStepId'])).toEqual([]);
+        expect(missingFrom(declSlice(runSchemas, 'RUN_SHAPE'), ['triggerPayload', 'triggerStepId'])).toEqual([]);
         expect(routeSlice(runs, "router.post('/:id/dry-run'")).toContain('res.json({ run, steps })');
         expect(routeSlice(runs, "router.post('/:id/steps/:stepId/run'")).toContain('res.json({ run, steps, stepRecord })');
     });
@@ -1544,11 +1548,14 @@ describe('the run log (server/stores/automationStore/runs.js + routes/automation
     // (rowToOrgRunRow), so a field dropped there is gone from the org scope
     // without a word — which is what this pin is for.
     const store = read('stores/automationStore/runs.js');
+    // rowToOrgRunRow hands the mapped row to projectOrgRun, split out of runs.js.
+    const orgRunRow = read('stores/automationStore/orgRunRow.js');
     const routes = read('routes/automation/runs.js');
 
     it('rowToOrgRunRow still carries every field the log row reads, and `mine`', () => {
+        expect(functionSlice(store, 'rowToOrgRunRow')).toContain('projectOrgRun(rowToRunWithAutomation(r), viewerUserId)');
         expect(
-            missingFrom(functionSlice(store, 'rowToOrgRunRow'), [
+            missingFrom(functionSlice(orgRunRow, 'projectOrgRun'), [
                 'id', 'journeyRunId', 'automationId', 'automationTitle', 'automationKind',
                 'rootStepId', 'rootTriggerLabel', 'triggerKind', 'mode', 'status',
                 'startedAt', 'finishedAt', 'durationMs', 'summary', 'error', 'errorClass',

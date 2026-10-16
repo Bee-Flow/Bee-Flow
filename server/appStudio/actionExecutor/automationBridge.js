@@ -351,6 +351,8 @@ async function runAutomationStep(app, step, ctx) {
         triggerKind: 'studio_app',
         triggerPayload,
         mode: 'live',
+        // The signed-in viewer pressing the button, from the server-side context.
+        startedByUserId: ctx.viewerId ?? null,
     });
 
     if (run && run.status === 'cancelled' && /already running/i.test(run.error || '')) {

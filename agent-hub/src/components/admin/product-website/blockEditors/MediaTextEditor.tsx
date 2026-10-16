@@ -9,6 +9,8 @@ import {
     BackgroundCard,
 } from '../primitives';
 import { ClipFields } from './ClipFields';
+import { TourCard, MediaMotionSelect } from './MotionFields';
+import type { TourValue } from './MotionFields';
 import type { CmsLink } from '../fields';
 import type { StyleBlob } from '../primitives.types';
 import type { BlockEditorWithPagesProps } from './editorProps';
@@ -26,6 +28,7 @@ type MediaSlot = {
     poster?: string;
     captionsSrc?: string;
     captionsLang?: string;
+    motion?: string;
 };
 type MediaTextCta = { label?: string; link?: CmsLink | null; style?: string };
 type MediaTextData = {
@@ -45,6 +48,7 @@ type MediaTextData = {
     subheadingStyle?: StyleBlob;
     bodyStyle?: StyleBlob;
     ctaStyle?: StyleBlob;
+    tour?: TourValue;
 };
 
 export function MediaTextEditor({ data = {}, pages = [], onChange }: BlockEditorWithPagesProps<MediaTextData>) {
@@ -276,11 +280,14 @@ export function MediaTextEditor({ data = {}, pages = [], onChange }: BlockEditor
                             onChange={v => updateMedia('frame', v)}
                         />
                         {media.frame === 'hairline' || media.frame === 'browser' ? (
-                            <ImageField
-                                label={t('cms_site.blocks.media_text.dark_theme_image_optional', 'Dark-theme image (optional)')}
-                                value={media.srcDark || ''}
-                                onChange={v => updateMedia('srcDark', v)}
-                            />
+                            <>
+                                <ImageField
+                                    label={t('cms_site.blocks.media_text.dark_theme_image_optional', 'Dark-theme image (optional)')}
+                                    value={media.srcDark || ''}
+                                    onChange={v => updateMedia('srcDark', v)}
+                                />
+                                <MediaMotionSelect value={media.motion} onChange={v => updateMedia('motion', v)} />
+                            </>
                         ) : null}
                     </>
                 ) : null}
@@ -304,6 +311,8 @@ export function MediaTextEditor({ data = {}, pages = [], onChange }: BlockEditor
                     onChange={v => setField('mediaSize', v)}
                 />
             </CollapsibleCard>
+
+            <TourCard value={data.tour} onChange={v => setField('tour', v)} persistKey="blk.media-text.tour" />
 
             <BackgroundCard data={data} onChange={onChange} persistKey="blk.media-text.background" />
         </>

@@ -16,6 +16,7 @@ import { StepsEditor } from './StepsEditor';
 import { TechStatsEditor } from './TechStatsEditor';
 import { TestimonialsEditor } from './TestimonialsEditor';
 import { FaqEditor } from './FaqEditor';
+import { FormEditor } from './FormEditor';
 import { TrustBandEditor } from './TrustBandEditor';
 import { ShowcaseEditor } from './ShowcaseEditor';
 import { FeatureDemoEditor } from './FeatureDemoEditor';
@@ -23,6 +24,15 @@ import { RoadmapEditor } from './RoadmapEditor';
 import { CompareTableEditor } from './CompareTableEditor';
 import { GitHubStatsEditor } from './GitHubStatsEditor';
 import { ReleaseNotesEditor } from './ReleaseNotesEditor';
+import { TabsEditor } from './TabsEditor';
+import { StoryHeaderEditor } from './StoryHeaderEditor';
+import { CustomerStoriesEditor } from './CustomerStoriesEditor';
+import { ProductMockupEditor } from './ProductMockupEditor';
+import { CardCarouselEditor } from './CardCarouselEditor';
+import { ScrollStoryEditor } from './ScrollStoryEditor';
+import { TourEditor } from './TourEditor';
+import { withExperiment } from './ExperimentCard';
+import { supportsExperiment } from '../../../../marketing/experiments/altPolicy';
 
 // ── Catalogue + registries ────────────────────────────────────────────
 //
@@ -62,6 +72,7 @@ export const BLOCK_CATALOGUE: Record<string, BlockCatalogueEntry> = {
     'live-component': { type: 'live-component', label: 'Live Component', icon: 'Code',         category: 'Content' },
     pricing:      { type: 'pricing',      label: 'Pricing',        icon: 'CreditCard',       category: 'Conversion' },
     'customer-support': { type: 'customer-support', label: 'Customer Support', icon: 'LifeBuoy', category: 'Conversion' },
+    form:         { type: 'form',        label: 'Form',           icon: 'ListChecks',       category: 'Conversion' },
     // ROLLBACK CAVEAT: exports containing the four types below, imported
     // into an OLDER deployment, silently drop those blocks (unknown-type in
     // normalizeBlockRecord) — land schema + renderer as one deploy unit.
@@ -75,9 +86,16 @@ export const BLOCK_CATALOGUE: Record<string, BlockCatalogueEntry> = {
     'github-stats':  { type: 'github-stats',  label: 'GitHub stats',     icon: 'Github',           category: 'Trust' },
     'release-notes': { type: 'release-notes', label: 'Release notes',    icon: 'ScrollText',       category: 'Trust' },
     'blog-latest':   { type: 'blog-latest',   label: 'Latest posts',     icon: 'Newspaper',        category: 'Content' },
+    tabs:            { type: 'tabs',          label: 'Tabs',             icon: 'Layers',         category: 'Content' },
+    'story-header':     { type: 'story-header',     label: 'Customer story header', icon: 'Quote', category: 'Trust' },
+    'customer-stories': { type: 'customer-stories', label: 'Customer stories',      icon: 'Users', category: 'Trust' },
+    'product-mockup': { type: 'product-mockup', label: 'Product mockup', icon: 'AppWindow',        category: 'Content' },
+    'card-carousel':  { type: 'card-carousel',  label: 'Card carousel',  icon: 'Layers',           category: 'Content' },
+    scrollStory:     { type: 'scrollStory',   label: 'Scroll story',     icon: 'GalleryVertical',  category: 'Content' },
+    tour:            { type: 'tour',          label: 'Product tour',     icon: 'Route',            category: 'Content' },
 };
 
-export const BLOCK_EDITORS = {
+const RAW_BLOCK_EDITORS = {
     hero:         { component: HeroEditor,         label: 'Hero',           icon: 'Megaphone'   },
     socialProof:  { component: SocialProofEditor,  label: 'Social proof',   icon: 'Users'       },
     content:      { component: ContentEditor,      label: 'Content',        icon: 'Type'             },
@@ -93,6 +111,7 @@ export const BLOCK_EDITORS = {
     'live-component': { component: LiveComponentEditor, label: 'Live Component', icon: 'Code'        },
     pricing:      { component: PricingEditor,      label: 'Pricing',        icon: 'CreditCard'        },
     'customer-support': { component: CustomerSupportEditor, label: 'Customer Support', icon: 'LifeBuoy' },
+    form:         { component: FormEditor,         label: 'Form',           icon: 'ListChecks'        },
     testimonials: { component: TestimonialsEditor, label: 'Testimonials', icon: 'Quote'                 },
     faq:          { component: FaqEditor,          label: 'FAQ',          icon: 'MessageCircleQuestion' },
     'trust-band': { component: TrustBandEditor,    label: 'Trust band',   icon: 'ShieldCheck'           },
@@ -103,4 +122,22 @@ export const BLOCK_EDITORS = {
     'github-stats':  { component: GitHubStatsEditor,  label: 'GitHub stats',     icon: 'Github' },
     'release-notes': { component: ReleaseNotesEditor, label: 'Release notes',    icon: 'ScrollText' },
     'blog-latest':   { component: LatestPostsEditor,  label: 'Latest posts',     icon: 'Newspaper' },
+    tabs:            { component: TabsEditor,         label: 'Tabs',             icon: 'Layers' },
+    'story-header':     { component: StoryHeaderEditor,     label: 'Customer story header', icon: 'Quote' },
+    'customer-stories': { component: CustomerStoriesEditor, label: 'Customer stories',      icon: 'Users' },
+    'product-mockup': { component: ProductMockupEditor, label: 'Product mockup', icon: 'AppWindow' },
+    'card-carousel':  { component: CardCarouselEditor,  label: 'Card carousel',  icon: 'Layers' },
+    scrollStory:     { component: ScrollStoryEditor,  label: 'Scroll story',     icon: 'GalleryVertical' },
+    tour:            { component: TourEditor,         label: 'Product tour',     icon: 'Route' },
 };
+
+// Every block's editor gets the A/B test card underneath (ExperimentCard.tsx),
+// except blocks that take submissions (form, customer-support): their consent
+// and fields are checked against the published block, so they run no test.
+type EditorEntry = typeof RAW_BLOCK_EDITORS[keyof typeof RAW_BLOCK_EDITORS];
+export const BLOCK_EDITORS = Object.fromEntries(
+    Object.entries(RAW_BLOCK_EDITORS).map(([type, def]) => [
+        type,
+        supportsExperiment(type) ? { ...def, component: withExperiment(def.component) } : def,
+    ]),
+) as { [K in keyof typeof RAW_BLOCK_EDITORS]: Omit<EditorEntry, 'component'> & { component: ReturnType<typeof withExperiment> } };

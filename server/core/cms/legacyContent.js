@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The legacy keyed `content` shape the public marketing renderer expects.
  *
@@ -10,6 +11,17 @@
  *
  * Pure: depends only on the `eff` payload handed to it.
  */
+
+/**
+ * A stored list the flattener maps over. A wrong-typed value (a string where a
+ * list belongs) reads as empty and non-object entries are skipped, so one bad
+ * setting cannot throw for every page.
+ * @param {unknown} v
+ * @returns {any[]}
+ */
+function objs(v) {
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'object' && x !== null) : [];
+}
 
 /**
  * Convert the v2 effective payload into the legacy keyed `content` object
@@ -39,7 +51,8 @@ function synthesizeLegacyContent(eff) {
             // logo passes through via the spread; Header.jsx prefers
             // logo.text and logo.src when present, falling back to the
             // legacy logoText / letter-avatar otherwise.
-            navLinks: (eff.header.nav || []).map(n => {
+            navLinks: objs(eff.header.nav).map(n => {
+                /** @type {Record<string, any>} */
                 const item = {
                     label: n.label,
                     href:  n.link?.href || '#',
@@ -48,7 +61,7 @@ function synthesizeLegacyContent(eff) {
                     // Dropdown children get the same flat shape; their
                     // `link.href` was already resolved by resolveLinksInTree
                     // when getEffective walked the header tree.
-                    children: (n.children || []).map(c => ({
+                    children: objs(n.children).map(c => ({
                         label: c.label,
                         href:  c.link?.href || '#',
                         ...(c.link?.target ? { target: c.link.target } : {}),
@@ -67,9 +80,9 @@ function synthesizeLegacyContent(eff) {
                 if (n.dropdown?.layout === 'columns') {
                     item.dropdown = {
                         layout: 'columns',
-                        columns: (n.dropdown.columns || []).map(col => ({
+                        columns: objs(n.dropdown.columns).map(col => ({
                             heading: col.heading || '',
-                            items: (col.items || []).map(mi => ({
+                            items: objs(col.items).map(mi => ({
                                 label:       mi.label || '',
                                 href:        mi.link?.href || '#',
                                 description: mi.description || '',
@@ -88,7 +101,7 @@ function synthesizeLegacyContent(eff) {
             // typography (labelFont / labelSize / labelColor) is forwarded
             // verbatim so the renderer can apply inline overrides without
             // re-reading the storage shape.
-            ctas: (eff.header.ctas || []).map(cta => ({
+            ctas: objs(eff.header.ctas).map(cta => ({
                 id: cta.id,
                 label: cta.label,
                 href:  cta.link?.href || '/app',
@@ -116,16 +129,16 @@ function synthesizeLegacyContent(eff) {
                 blurb: eff.footer.blurb,
                 showDot: eff.footer.showBrandDot === true,
             },
-            columns: (eff.footer.columns || []).map(c => ({
+            columns: objs(eff.footer.columns).map(c => ({
                 heading: c.heading,
-                links: (c.links || []).map(l => ({
+                links: objs(c.links).map(l => ({
                     label: l.label,
                     href:  l.link?.href || '#',
                     ...(l.link?.target ? { target: l.link.target } : {}),
                     ...(l.link?.rel    ? { rel:    l.link.rel    } : {}),
                 })),
             })),
-            socials: (eff.footer.socials || []).map(s => ({
+            socials: objs(eff.footer.socials).map(s => ({
                 platform: s.platform,
                 href:     s.link?.href || '#',
                 ...(s.link?.target ? { target: s.link.target } : {}),

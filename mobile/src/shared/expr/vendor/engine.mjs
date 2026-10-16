@@ -1,18 +1,16 @@
+// @typecheck
 /**
  * Restricted expression evaluator — SHARED between the automation runtime
  * (server) and App Studio (client + server live preview / validation).
  *
- * Ported verbatim from server/automation/expr.js (which now re-exports this)
- * plus: an extended function whitelist (functions.mjs), `compile()` returning
- * the referenced root identifiers for validation-without-execution, and
- * `tryEvaluate()` that never throws (runtime formulas degrade to undefined).
+ * Ported verbatim from server/automation/expr.js (which now re-exports this) plus: an extended function
+ * whitelist (functions.mjs), `compile()` returning the referenced root identifiers for
+ * validation-without-execution, and `tryEvaluate()` that never throws (runtime formulas degrade to undefined).
  *
- * We deliberately do NOT use eval/new Function — a tiny recursive-descent
- * parser makes the surface auditable and impossible to smuggle calls/lookups
- * through. The ONLY callable forms are the closed whitelist in FUNCTIONS; any
- * other `ident(` throws at PARSE time. Member access (dot + computed bracket)
- * is prototype-safe (hasOwnProperty gate), so `x["constructor"]` resolves to
- * undefined rather than walking to Function.
+ * We deliberately do NOT use eval/new Function — a tiny recursive-descent parser makes the surface auditable
+ * and impossible to smuggle calls/lookups through. The ONLY callable forms are the closed whitelist in
+ * FUNCTIONS; any other `ident(` throws at PARSE time. Member access (dot + computed bracket) is prototype-safe
+ * (hasOwnProperty gate), so `x["constructor"]` resolves to undefined rather than walking to Function.
  *
  * Grammar:
  *   expr     := ternary
@@ -43,7 +41,7 @@
  * of guessing.
  */
 
-import { FUNCTIONS, EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } from './functions.mjs';
+import { FUNCTIONS, EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES, checkDateUnit } from './functions.mjs';
 import { jsonCacheFor, stepInto, stepMatch, walkTokens } from './path.mjs';
 
 export class ExprError extends Error {
@@ -276,7 +274,7 @@ function parse(tokens, host) {
                     while (accept(TOKEN.COMMA)) args.push(ternary());
                 }
                 eat(TOKEN.RPAREN);
-                if (!spec) return { kind: 'call', name: tk.v, args };
+                if (!spec) return { kind: 'call', name: tk.v, args: checkDateUnit(tk, args, ExprError) };
                 // A host call inside another host call's arguments would need
                 // its own answer before the caller could collect what to ask.
                 if (args.some((a) => collectHostCalls(a).length > 0)) {
@@ -286,6 +284,7 @@ function parse(tokens, host) {
                 if (problem) throw new ExprError(problem, tk.i);
                 return { kind: 'hostcall', name: tk.v, args };
             }
+            /** @type {Array<{ kind: string, [field: string]: any }>} */
             const path = [{ kind: 'name', v: tk.v }];
             while (true) {
                 if (accept(TOKEN.DOT)) {

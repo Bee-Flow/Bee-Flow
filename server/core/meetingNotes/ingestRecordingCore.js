@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ingestRecordingCore — provider-agnostic middle of the Meeting Notes ingest
  * pipeline. Takes a recording that already sits on local disk and turns it
@@ -5,11 +6,10 @@
  * provider, ./ingestTranscription.js), diarized speakers anchored to a
  * participant roster, summary, AI title and action items.
  *
- * Shared by the provider wrappers (`ingestNextcloudRecording.js`,
- * `ingestGmeetRecording.js`) which own download/auth/roster resolution and
- * any provider-specific write-back. The core CONSUMES `filePath`: on success
- * the audio is copied into saved-recordings and the original removed; on
- * failure or dedup the file is unlinked.
+ * Shared by the provider wrappers (`ingestNextcloudRecording.js`, `ingestGmeetRecording.js`)
+ * which own download/auth/roster resolution and any provider-specific write-back. The core
+ * CONSUMES `filePath`: on success the audio is copied into saved-recordings and the original
+ * removed; on failure or dedup the file is unlinked.
  */
 
 const crypto = require('crypto');
@@ -100,6 +100,7 @@ async function writeSummary(named, { userId, orgId, language, fileName, titleHin
     // fell over or could not be parsed then produced a finished note claiming
     // nothing was agreed, and an auto-import has no other channel at all to
     // report that — there was no screen watching.
+    /** @type {{ ok?: boolean, actionItems?: any[], decisions?: any[], questions?: any[], tags?: string[] }} */
     const artifacts = await extractMeetingArtifacts(transcript, language, orgId, {
         meetingDateIso: new Date().toISOString().slice(0, 10),
         personNames: [...named.speakers.map((s) => s.id), ...(participantNames || [])],
@@ -408,7 +409,6 @@ async function resolveOwnerDefaultTemplate(userId, orgId) {
         return null;
     }
 }
-
 
 module.exports = {
     ingestLocalRecording,

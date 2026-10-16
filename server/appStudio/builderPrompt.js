@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder — system prompt + draft-state rendering.
  *
@@ -47,16 +48,16 @@ const DOCUMENTS_VIA_TOOLS = '_(call `app_search_documents` for the owner\'s desi
 
 /**
  * @param {Object} opts
- * @param {'full'|'core'} [opts.toolset]     — which tool menu the model sees; 'core' delegates to corePrompt.js
- * @param {'full'|'filtered'} [opts.catalogMode] — 'filtered' = the compact catalog (the small band's profile value)
- * @param {string}        [opts.catalogText] — a catalog text (injectable for tests; overrides catalogMode)
- * @param {'note'|'tools'} [opts.ownerContext] — where the full prompt says the owner's automations and
+ * @param {string} [opts.toolset] - 'full' (default) or 'core' (a plain string, so the checker does not narrow it after the early return) - which tool menu the model sees; 'core' delegates to corePrompt.js
+ * @param {'full'|'filtered'} [opts.catalogMode] - 'filtered' = the compact catalog (the small band's profile value)
+ * @param {string}        [opts.catalogText] - a catalog text (injectable for tests; overrides catalogMode)
+ * @param {'note'|'tools'} [opts.ownerContext] - where the full prompt says the owner's automations and
  *   documents are: 'note' = the OWNER CONTEXT machine note the route folds into every user
  *   message; 'tools' (default) = the list tools, for a caller that sends no such note (the MCP guide)
- * @param {string}        [opts.automationsText] — legacy: an owner's-automations list rendered INTO the prompt.
+ * @param {string}        [opts.automationsText] - legacy: an owner's-automations list rendered INTO the prompt.
  *   The route no longer passes it (the list rides the OWNER CONTEXT note); when
  *   given it is honoured, byte for byte as before.
- * @param {string}        [opts.documentsText] — legacy, same as automationsText
+ * @param {string}        [opts.documentsText] - legacy, same as automationsText
  */
 function buildSystemPrompt({ toolset = 'full', catalogMode = 'full', catalogText = null, ownerContext = 'tools', automationsText = '', documentsText = '' } = {}) {
     const catalog = catalogText || (catalogMode === 'filtered' ? renderCompactCatalogText() : renderCatalogText());
@@ -544,8 +545,9 @@ function summariseSteps(steps) {
 // ── Data block — the app's data model rendered compact & ID-bearing ──
 
 /** One line per field: `name text required unique options=[a,b] →tbl_x`. */
-function renderDataField(f) {
+function renderDataField(f, withId = false) {
     const bits = [`    ${f.key} ${f.type}`];
+    if (withId && typeof f.id === 'string') bits.push(`id=${f.id}`);
     if (f.required) bits.push('required');
     if (f.unique) bits.push('unique');
     if ((f.type === 'select' || f.type === 'multiselect') && Array.isArray(f.options)) {
@@ -563,7 +565,8 @@ function renderDataField(f) {
  * field keys the model must use in bindings/steps; rowCounts ground seeding
  * decisions; dataset/roles lines mirror the rest of the model.
  */
-function renderDataBlock(dataModel, datasets, rowCounts, linkedTables = null) {
+function renderDataBlock(dataModel, datasets, rowCounts, linkedTables = null, opts = {}) {
+    const withFieldIds = !!(opts && opts.fieldIds);
     const lines = ['data:'];
     const tables = (dataModel && Array.isArray(dataModel.tables)) ? dataModel.tables : [];
     if (!tables.length) {
@@ -595,7 +598,7 @@ function renderDataBlock(dataModel, datasets, rowCounts, linkedTables = null) {
             linked = ` linked=${t.source.mode || 'read'} (live rows; never seed)`;
         }
         lines.push(`  table ${t.id} ${q(t.name || t.key)} key=${t.key}${rows} access=${t.access?.default || 'app'}${linked}`);
-        for (const f of t.fields || []) lines.push(renderDataField(f));
+        for (const f of t.fields || []) lines.push(renderDataField(f, withFieldIds));
     }
     const dsList = Array.isArray(datasets) ? datasets : [];
     if (dsList.length) {
@@ -629,9 +632,9 @@ function renderDataBlock(dataModel, datasets, rowCounts, linkedTables = null) {
  */
 /**
  * @param {object} def
- * @param {object} [extras] — { dataModel, datasets, rowCounts }; the data block
+ * @param {object} [extras] - { dataModel, datasets, rowCounts }; the data block
  *                            is emitted only when dataModel is present.
- * @param {object|null} [projection] — { screenId?, section? } to read PART of a
+ * @param {object|null} [projection] - { screenId?, section? } to read PART of a
  *   large draft instead of the whole tree. Omitted (the turn-injected path and
  *   every existing caller) renders exactly as before, byte for byte.
  */

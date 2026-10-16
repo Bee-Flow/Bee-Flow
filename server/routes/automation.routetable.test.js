@@ -180,6 +180,8 @@ const EXPECTED = [
     'POST /:id/deactivate',
     'POST /:id/run',
     'POST /:id/diagnose-trigger',
+    'GET /:id/caller-notice',
+    'POST /:id/caller-notice/seen',
     'POST /:id/dry-run',
     'POST /:id/steps/:stepId/run',
     'GET /_runs/active',

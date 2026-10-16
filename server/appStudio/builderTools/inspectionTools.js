@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — read-only inspection: app_dry_run, the
  * app_screenshot visual check, draft reads (app_get_draft, app_find_nodes),
@@ -7,9 +8,11 @@
 
 'use strict';
 
-const { EVENT_NAMES, COMPONENT_SPECS, COMPONENT_TYPES, STEP_KINDS } = require('../componentSpecs');
+const { COMPONENT_TYPES, STEP_KINDS } = require('../componentSpecs');
+const log = require('../../telemetry/log');
 const { pickClosestId } = require('../../automation/validate/helpers');
 const { canonicalComponentType } = require('./componentAliases');
+const { applyFindNodes } = require('./findNodesTool');
 const { INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS } = require('./schemas');
 
 /**
@@ -20,7 +23,7 @@ const { INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS } = require('.
  * not in MUTATING_TOOLS, so it neither persists nor emits a draft.
  */
 async function applyDryRun(draftWrap, args) {
-    const { appDryRun } = require('../appDryRun');
+    const { appDryRun, dryRunFailure } = require('../appDryRun');
     const screenId = typeof args?.screenId === 'string' && args.screenId ? args.screenId : null;
     const asRole = typeof args?.asRole === 'string' && args.asRole ? args.asRole : null;
 
@@ -44,7 +47,7 @@ async function applyDryRun(draftWrap, args) {
             ownerId: draftWrap.userId,
         }, { screenId, asRole });
     } catch (e) {
-        return { error: `Dry-run failed: ${e.message}`, _fixHint: 'This is a transient read error — retry app_dry_run, or continue with app_finalize (which re-runs the static checks).' };
+        return dryRunFailure(e, draftWrap.appId);
     }
 }
 
@@ -121,6 +124,7 @@ async function applyAppScreenshot(draftWrap, args) {
     } catch (_) { app = null; }
 
     draftWrap._screenshotsThisTurn = (draftWrap._screenshotsThisTurn || 0) + 1;
+    /** @type {import('../../services/appStudioRender.types').ScreenshotResult} */
     let shot;
     try {
         shot = await renderAppScreenshot({
@@ -134,6 +138,10 @@ async function applyAppScreenshot(draftWrap, args) {
     } catch (e) {
         // The service contract is "never throws" — this is belt-and-braces.
         shot = { ok: false, reason: e.message };
+    }
+    if (shot && shot.code === 'no_renderer') {
+        // Nothing the caller can fix (no runtime bundle in this build): say so, so it skips screenshots.
+        return { content: `This server cannot render screenshots (${shot.reason || 'renderer unavailable'}). Do not retry app_screenshot; verify with app_dry_run and app_get_draft instead.` };
     }
     if (!shot || shot.ok !== true || !shot.dataUrl) {
         return { content: `No screenshot: ${(shot && shot.reason) || 'the renderer returned nothing'}. Continue building — only retry after you have fixed the cause.` };
@@ -177,6 +185,13 @@ function applyGetDraft(draftWrap, args = {}) {
         ? 'screens'
         : (DRAFT_SECTIONS.has(args?.section) ? args.section : null);
 
+    if (screenId && !(draftWrap.def?.screens || []).some((s) => s && s.id === screenId)) {
+        return {
+            error: `No screen ${screenId} in this draft.`,
+            _fixHint: `Known screens: ${(draftWrap.def?.screens || []).map((s) => s && s.id).filter(Boolean).join(', ') || '(none)'}.`,
+        };
+    }
+
     if (!screenId && !section) return { draft: renderDraftState(draftWrap.def) };
 
     // The data block is only rendered when the caller asked for it — a plain
@@ -186,129 +201,6 @@ function applyGetDraft(draftWrap, args = {}) {
         ? { dataModel: draftWrap.dataModel ?? null, datasets: draftWrap.datasetIds, rowCounts: draftWrap.rowCounts }
         : {};
     return { draft: renderDraftState(draftWrap.def, extras, { screenId, section }) };
-}
-
-// ── app_find_nodes ───────────────────────────────────────────────────
-
-const MAX_FIND_HITS = 60;
-
-/**
- * Search the draft instead of reading all of it.
- *
- * The walks this exposes already existed server-side (collectDataBindings for
- * the binding side, collectVariableRefs for variables) — they were simply
- * unreachable from a tool, so the only way to answer "where is this table used"
- * was to pull a 500-node tree and eyeball it. That is what makes a builder
- * delete a table and leave four dangling bindings behind.
- *
- * Read-only and total: an unknown id yields `hits: []` plus a note, never an
- * error, so a speculative check costs nothing.
- */
-function applyFindNodes(draftWrap, args = {}) {
-    const def = draftWrap.def || {};
-    const componentType = typeof args?.componentType === 'string' ? args.componentType.trim() : '';
-    const tableId = typeof args?.tableId === 'string' ? args.tableId.trim() : '';
-    const actionId = typeof args?.actionId === 'string' ? args.actionId.trim() : '';
-    const variable = typeof args?.variable === 'string' ? args.variable.trim() : '';
-    const screenId = typeof args?.screenId === 'string' ? args.screenId.trim() : '';
-
-    if (!componentType && !tableId && !actionId && !variable) {
-        return {
-            error: 'app_find_nodes needs at least one of componentType, tableId, actionId or variable.',
-            _fixHint: 'Pass what you are looking for, e.g. { tableId: "tbl_x" } to find everything bound to that table.',
-        };
-    }
-    if (componentType && !COMPONENT_SPECS[componentType]) {
-        return {
-            error: `Unknown component type "${componentType}".`,
-            _fixHint: `Valid types: ${COMPONENT_TYPES.join(', ')}`,
-        };
-    }
-
-    // A component matches a table when ANY of its bindings names it; the binding
-    // walker already handles nesting (a stat's value, a list's item source).
-    const bindingsByNode = new Map();
-    if (tableId) {
-        const { collectDataBindings } = require('../collectDataBindings');
-        for (const { nodeId, prop, binding } of collectDataBindings(def, screenId || null)) {
-            if (!nodeId || binding?.tableId !== tableId) continue;
-            if (!bindingsByNode.has(nodeId)) bindingsByNode.set(nodeId, []);
-            bindingsByNode.get(nodeId).push(prop);
-        }
-    }
-
-    const hits = [];
-    let truncated = false;
-    const push = (hit) => {
-        if (hits.length >= MAX_FIND_HITS) { truncated = true; return; }
-        hits.push(hit);
-    };
-
-    const nodeMentionsVariable = (node) => {
-        if (!variable) return false;
-        // A variable is referenced as `vars.<name>` in formulas and templates,
-        // wherever they sit on the node — so a raw scan of the node's own props
-        // is both the simplest and the most complete test.
-        let json;
-        try { json = JSON.stringify(node.props ?? {}); } catch { return false; }
-        return json.includes(`vars.${variable}`);
-    };
-    const nodeRunsAction = (node) => {
-        if (!actionId) return false;
-        return EVENT_NAMES.some((ev) => node[ev] === actionId);
-    };
-
-    const visit = (node, screen, path) => {
-        if (!node || typeof node !== 'object') return;
-        const here = [...path, node.type || 'node'];
-        const reasons = [];
-        if (componentType && node.type === componentType) reasons.push('type');
-        if (tableId && bindingsByNode.has(node.id)) reasons.push(`bound via ${bindingsByNode.get(node.id).join(', ')}`);
-        if (actionId && nodeRunsAction(node)) reasons.push('runs action');
-        if (variable && nodeMentionsVariable(node)) reasons.push('reads variable');
-        if (reasons.length) {
-            push({
-                kind: 'component',
-                id: node.id,
-                type: node.type,
-                screenId: screen.id,
-                screenName: screen.name || screen.id,
-                path: here.join(' > '),
-                why: reasons.join('; '),
-            });
-        }
-        for (const child of Array.isArray(node.children) ? node.children : []) visit(child, screen, here);
-    };
-
-    for (const screen of def.screens || []) {
-        if (!screen || typeof screen !== 'object') continue;
-        if (screenId && screen.id !== screenId) continue;
-        for (const section of screen.sections || []) {
-            for (const node of (section && section.children) || []) visit(node, screen, [section.id]);
-        }
-    }
-
-    // Actions are matched on their serialised form: a step's tableId, a target
-    // variable and a nested action id all live in the same object graph, and a
-    // structural walk per step kind would go stale the moment a kind is added.
-    if (tableId || variable || actionId) {
-        for (const [id, action] of Object.entries(def.actions || {})) {
-            let json;
-            try { json = JSON.stringify(action ?? {}); } catch { continue; }
-            const reasons = [];
-            if (tableId && json.includes(`"${tableId}"`)) reasons.push('touches table');
-            if (variable && (json.includes(`vars.${variable}`) || json.includes(`"${variable}"`))) reasons.push('reads/writes variable');
-            if (actionId && id === actionId) reasons.push('is this action');
-            if (reasons.length) {
-                push({ kind: 'action', id, type: action?.kind || 'sequence', why: reasons.join('; ') });
-            }
-        }
-    }
-
-    const note = hits.length
-        ? (truncated ? `Showing the first ${MAX_FIND_HITS} matches — narrow the query with screenId.` : undefined)
-        : 'Nothing in the draft matches. Safe to remove — or check the id, if you expected hits.';
-    return { hits, hitCount: hits.length, ...(truncated ? { truncated: true } : {}), ...(note ? { note } : {}) };
 }
 
 // ── app_inspect_catalog ──────────────────────────────────────────────
@@ -328,8 +220,9 @@ function applyFindNodes(draftWrap, args = {}) {
 function applyInspectCatalog(args) {
     const names = (v) => (Array.isArray(v) ? v : (typeof v === 'string' && v.trim() ? [v] : []))
         .map((x) => String(x || '').trim()).filter(Boolean);
-    const components = names(args?.components);
-    const steps = names(args?.steps);
+    // Duplicates collapse; unknown names are answered but do not use up the cap.
+    const components = [...new Set(names(args?.components))];
+    const steps = [...new Set(names(args?.steps))];
     if (!components.length && !steps.length) {
         return {
             error: 'Name at least one component type in `components` or one step kind in `steps`.',
@@ -341,8 +234,9 @@ function applyInspectCatalog(args) {
     const unknown = [];
     const skipped = [];
     const aliased = [];
-    for (const [i, type] of components.entries()) {
-        if (i >= INSPECT_CATALOG_MAX_COMPONENTS) { skipped.push(type); continue; }
+    let answeredComponents = 0;
+    for (const type of components) {
+        if (answeredComponents >= INSPECT_CATALOG_MAX_COMPONENTS) { skipped.push(type); continue; }
         // The same reading app_add_components gives a name: "data grid" is
         // data_grid, "datatable" too. Answered under the real type — the
         // did-you-mean is for what does not resolve at all (before this,
@@ -351,6 +245,7 @@ function applyInspectCatalog(args) {
         const canon = canonicalComponentType(type) || type;
         const entry = renderComponentEntry(canon);
         if (entry) {
+            answeredComponents += 1;
             out.components[canon] = entry;
             if (canon !== type) aliased.push(`"${type}" is ${canon}`);
             continue;
@@ -358,10 +253,11 @@ function applyInspectCatalog(args) {
         const near = pickClosestId(type, COMPONENT_TYPES);
         unknown.push(`${type} is not a component type${near ? ` — did you mean "${near}"?` : ''}`);
     }
-    for (const [i, kind] of steps.entries()) {
-        if (i >= INSPECT_CATALOG_MAX_STEPS) { skipped.push(kind); continue; }
+    let answeredSteps = 0;
+    for (const kind of steps) {
+        if (answeredSteps >= INSPECT_CATALOG_MAX_STEPS) { skipped.push(kind); continue; }
         const entry = renderStepEntry(kind);
-        if (entry) { out.steps[kind] = entry; continue; }
+        if (entry) { answeredSteps += 1; out.steps[kind] = entry; continue; }
         const near = pickClosestId(kind, STEP_KINDS);
         unknown.push(`${kind} is not a step kind${near ? ` — did you mean "${near}"?` : ''}`);
     }
@@ -391,17 +287,26 @@ function automationSummaryRow(a) {
     return row;
 }
 
-async function applyListAutomations(draftWrap) {
+const MAX_LISTED_AUTOMATIONS = 30;
+
+async function applyListAutomations(draftWrap, args = {}) {
     const automationStore = require('../../stores/automationStore');
     let rows = [];
     try {
         rows = await automationStore.getAutomationsForUser(draftWrap.userId);
     } catch (e) {
-        return { error: `Could not list the owner's automations: ${e.message}` };
+        log.warn('app_list_automations failed', { error: e.message });
+        return { error: "Could not list the owner's automations right now." };
     }
-    const automations = (rows || []).slice(0, 100).map(automationSummaryRow);
+    const query = typeof args?.query === 'string' ? args.query.trim().toLowerCase() : '';
+    const matching = (rows || []).filter((a) => !query
+        || String(a.title || '').toLowerCase().includes(query)
+        || String(a.description || '').toLowerCase().includes(query));
+    const limit = Math.min(Math.max(parseInt(args?.limit, 10) || MAX_LISTED_AUTOMATIONS, 1), 100);
+    const automations = matching.slice(0, limit).map(automationSummaryRow);
     return {
         automations,
+        ...(matching.length > automations.length ? { total: matching.length, truncated: `Showing ${automations.length} of ${matching.length}; narrow with query or raise limit (max 100).` } : {}),
         note: automations.length
             ? 'Wire one via app_set_action { action: { kind:"run_automation", automationId:"<id>", inputMapping:{…} } }. `params` are the input names to map.'
             : 'The owner has no automations yet — run_automation actions can ship with automationId:null and be connected later.',
@@ -416,13 +321,15 @@ async function applyInspectAutomation(draftWrap, args) {
     try {
         a = await automationStore.getAutomation(automationId);
     } catch (e) {
-        return { error: `Could not inspect the automation: ${e.message}` };
+        log.warn('app_inspect_automation failed', { error: e.message });
+        return { error: 'Could not inspect the automation right now.' };
     }
     if (!a || a.userId !== draftWrap.userId) {
         return { error: `No automation "${automationId}" found for the app owner. Call app_list_automations for the real ids.` };
     }
     const row = automationSummaryRow(a);
     const trigger = a?.definition?.trigger || {};
+    /** @type {Record<string, any>} */
     const detail = { ...row };
     if (trigger.kind === 'agent_call' && trigger.parametersSchema && typeof trigger.parametersSchema === 'object') {
         detail.parametersSchema = trigger.parametersSchema;
@@ -434,9 +341,9 @@ async function applyInspectAutomation(draftWrap, args) {
 
 module.exports = {
     applyDryRun,
+    applyFindNodes,
     applyAppScreenshot,
     applyGetDraft,
-    applyFindNodes,
     applyInspectCatalog,
     applyListAutomations,
     applyInspectAutomation,

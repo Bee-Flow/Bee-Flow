@@ -41,7 +41,7 @@ export interface BuilderTabState {
     proposal?: BuilderProposal | null;
     webSearch?: BuilderWebSearchStatus | null;
     turn?: { firstEventAt?: unknown } | null;
-    dryRun?: DryRun | null;
+    dryRun?: (DryRun & { isTest?: boolean; startedAt?: string | number | null }) | null;
     dryRunSeq?: unknown;
     pendingExternalDraft?: unknown;
     validation?: unknown;
@@ -107,6 +107,8 @@ export interface BuildTabProps {
     onCloseFormTest?: Fn;
     /** (runId) — open that form overlay attached to a run parked on a page. */
     onOpenFormOverlay?: Fn<[runId: string]>;
+    /** (runId) — open that run in Runs (the failed-run banner's "View run"). */
+    onOpenRun?: Fn<[runId: string]>;
     state: BuilderTabState;
     automation?: { id?: string | null; [key: string]: unknown } | null;
     rootDef: FlowDefinition | null;

@@ -6,7 +6,7 @@
 
 const { SITE_DEFAULTS, DESIGN_DEFAULTS } = require('../../i18n/defaults/cmsDefaults');
 const {
-    isPlainObject, clone, deepMerge, mergeLocaleContent, normalizeSlug, sanitizeDesign,
+    isPlainObject, clone, deepMerge, mergeLocaleContent, normalizeStoredSlug, sanitizeDesign,
 } = require('./shared');
 const { getProject } = require('./projects');
 const { getPage } = require('./pages');
@@ -14,6 +14,7 @@ const {
     getDefaultLocale, getSiteLocaleOverride, getPageLocaleOverride,
 } = require('./localeOverrides');
 const { getPublishedSnapshot } = require('./publishing');
+const { cleanOverrideMedia, applyOverrideMedia } = require('./localeMedia');
 
 // ── Effective content (preview-time render) ──────────────────────────
 
@@ -107,7 +108,12 @@ async function resolveEffective(siteId, slug, locale, ctx) {
     if (!site) return { found: false, page: null, header: null, footer: null, cookieBanner: null, announcement: null, pages: [], design: clone(DESIGN_DEFAULTS), analytics: null };
 
     const defaultLocale = await getDefaultLocale();
-    const reqLocale = (locale || defaultLocale || 'en').toLowerCase().split('-')[0];
+    // The full tag ("pt-br") is the key overrides are stored under; a regional
+    // request falls back to its base language ("pt") when no exact override exists.
+    const reqLocale = (locale || defaultLocale || 'en').toLowerCase();
+    const baseOf = (/** @type {string} */ loc) => loc.split('-')[0];
+    const withBaseFallback = async (/** @type {(loc: string) => Promise<any>} */ read) =>
+        (await read(reqLocale)) || (baseOf(reqLocale) !== reqLocale ? read(baseOf(reqLocale)) : null);
 
     // Design is global per site (no locale layer per call F).
     // sanitizeDesign also fills missing fields for sites that pre-date the
@@ -136,20 +142,20 @@ async function resolveEffective(siteId, slug, locale, ctx) {
              || site.pages[0]
              || null;
     } else {
-        const norm = normalizeSlug(slug);
+        const norm = normalizeStoredSlug(slug);
         entry = site.pages.find(p => p.slug === norm) || null;
     }
 
     const siteOverride = reqLocale && reqLocale !== defaultLocale
-        ? await ctx.getSiteLocaleOverride(reqLocale)
+        ? await withBaseFallback((loc) => ctx.getSiteLocaleOverride(loc))
         : null;
     let header = deepMerge(clone(SITE_DEFAULTS.header), site.header);
     let footer = deepMerge(clone(SITE_DEFAULTS.footer), site.footer);
     if (siteOverride) {
         // Locale chrome overrides are sparse text-only patches: merge by index
         // so nav/footer link structure (kind/url/style) stays owned by base.
-        if (siteOverride.header) header = mergeLocaleContent(header, siteOverride.header);
-        if (siteOverride.footer) footer = mergeLocaleContent(footer, siteOverride.footer);
+        if (siteOverride.header) header = mergeLocaleContent(header, cleanOverrideMedia(siteOverride.header));
+        if (siteOverride.footer) footer = mergeLocaleContent(footer, cleanOverrideMedia(siteOverride.footer));
     }
     header = resolveLinksInTree(header, site.pages);
     footer = resolveLinksInTree(footer, site.pages);
@@ -170,13 +176,16 @@ async function resolveEffective(siteId, slug, locale, ctx) {
     let blocks = pageDoc.blocks.map(b => clone(b));
     // Fetched once and reused for block content + SEO translation below.
     const pageOverride = reqLocale !== defaultLocale
-        ? await ctx.getPageLocaleOverride(entry.id, reqLocale)
+        ? await withBaseFallback((loc) => ctx.getPageLocaleOverride(entry.id, loc))
         : null;
     if (pageOverride?.blocks) {
         blocks = blocks.map(b => {
             const ov = pageOverride.blocks[b.id];
             if (!ov) return b;
-            return { ...b, content: mergeLocaleContent(b.content, ov.content || {}) };
+            // Text first, then the media addresses (re-validated here: a snapshot or an
+            // import may hold an override that predates the write-time check).
+            const ovContent = cleanOverrideMedia(ov.content || {});
+            return { ...b, content: applyOverrideMedia(mergeLocaleContent(b.content, ovContent), ovContent) };
         });
     }
 

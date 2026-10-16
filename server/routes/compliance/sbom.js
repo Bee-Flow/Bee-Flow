@@ -14,6 +14,7 @@
 // thing either of them can answer with.
 
 const express = require('express');
+const { sendStream } = require('../../core/http/sendStream');
 const fs = require('fs');
 const path = require('path');
 const router = express.Router();
@@ -68,7 +69,7 @@ router.get('/sbom', requireAuth, requirePermission('admin_compliance'), async (r
             if (!res.headersSent) next(e);
             else res.destroy(e);
         });
-        stream.pipe(res);
+        sendStream(stream, res);
     } catch (e) {
         if (!res.headersSent) next(e);
     }

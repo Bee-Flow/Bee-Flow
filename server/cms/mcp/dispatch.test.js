@@ -64,9 +64,16 @@ function makeHarness(over = {}) {
         getAdminPayload: async (id) => ({ site: structuredClone(projects[id]), pages: [], defaultLocale: 'en', localeOverrides: { siteByLocale: {}, pagesByLocale: {} } }),
         getDefaultLocale: async () => 'en',
         isValidLocale: (c) => /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/.test(c),
-        setProject: async (id, site) => { calls.setProject.push([id, site]); projects[id] = site; return site; },
+        validateSiteChrome: require('../../stores/cms/chromeValidation').validateSiteChrome,
+        mutateProject: async (id, fn) => {
+            const draft = structuredClone(projects[id]);
+            const result = fn(draft);
+            calls.setProject.push([id, draft]);
+            projects[id] = draft;
+            return { site: draft, result };
+        },
         publishSite: async (id) => { calls.publish.push(id); return { publishedAt: '2026-10-10T10:00:00.000Z' }; },
-        removePage: async (id, pageId) => { calls.removed.push([id, pageId]); },
+        removePage: async (id, pageId) => { calls.removed.push([id, pageId]); return { removed: { id: pageId, slug: 'x' }, newHomepage: { id: 'pg_1', slug: 'home' }, neutralisedLinks: 2 }; },
         duplicateProject: async (id) => ({ id: 'pj_cccc3333', copiedFrom: id }),
         getTemplates: async () => [{ id: 'tpl_1', name: 'Landing', blocks: [{}, {}] }],
         setSiteLocaleOverride: async (...a) => { calls.live.push(['site-override', ...a]); },
@@ -98,7 +105,10 @@ function makeHarness(over = {}) {
         live: {
             getLiveSiteId: async () => liveSiteId,
             setLiveSiteId: async (id) => { liveSiteId = id; return id; },
-            ensurePublishedSnapshot: async (id) => { calls.live.push(['snapshot', id]); },
+            ensurePublishedSnapshot: async (id) => {
+                if (calls.failSnapshot) throw new Error('storage unavailable');
+                calls.live.push(['snapshot', id]);
+            },
             SITE_ID_RE: /^pj_[a-f0-9]{4,}$/,
         },
         tickets,
@@ -109,7 +119,7 @@ function makeHarness(over = {}) {
         rpc: { classifyRpc, parseToolCall, PROTOCOL_VERSION, INVALID_REQUEST },
         ...over,
     };
-    return { mcp: createCmsMcp(deps), calls, projects, kv, setLive: (id) => { liveSiteId = id; } };
+    return { mcp: createCmsMcp(deps), calls, projects, kv, cmsStore, setLive: (id) => { liveSiteId = id; } };
 }
 
 const ctxOf = (scopes, over = {}) => ({
@@ -253,6 +263,39 @@ test('cms_set_live_site goes live, snapshots, and audits as cms.live.mcp', async
     assert.deepEqual(calls.audit[0].slice(0, 6), ['cms.live.mcp', 'cms_site', OTHER, 'u1', null, { tokenName: 'laptop', live: true }]);
 });
 
+test('cms_set_live_site names the (empty) homepage so an agent fills it instead of creating a second one', async () => {
+    const { mcp } = makeHarness();
+    const body = JSON.parse(textOf(await rpcCall(mcp, ctxOf(FULL), 'cms_set_live_site', { siteId: SITE })));
+    assert.equal(body.homepage.pageId, 'pg_1');
+    assert.equal(body.homepage.slug, 'home');
+    assert.equal(body.homepage.empty, true);
+    assert.match(body.note, /pg_1/);
+    const none = JSON.parse(textOf(await rpcCall(mcp, ctxOf(FULL), 'cms_set_live_site', { siteId: OTHER })));
+    assert.equal(none.homepage, null);
+});
+
+test('cms_set_live_site still reports success when the homepage report cannot be built', async () => {
+    const { mcp, cmsStore, calls } = makeHarness();
+    cmsStore.getAdminPayload = async () => { throw new Error('draft unavailable'); };
+    const res = await rpcCall(mcp, ctxOf(FULL), 'cms_set_live_site', { siteId: OTHER });
+    const body = JSON.parse(textOf(res));
+    assert.equal(body.live, true);
+    assert.equal(body.homepage, null);
+    assert.ok(calls.audit.some((a) => a[0] === 'cms.live.mcp'));
+});
+
+test('cms_set_live_site refuses when the publish fails and the live site stays', async () => {
+    const { mcp, calls } = makeHarness();
+    calls.failSnapshot = true;
+    const res = await rpcCall(mcp, ctxOf(FULL), 'cms_set_live_site', { siteId: OTHER });
+    assert.match(textOf(res), /not set live/);
+    assert.doesNotMatch(textOf(res), /storage unavailable/);
+    assert.deepEqual(calls.audit, []);
+    calls.failSnapshot = false;
+    const miss = JSON.parse(textOf(await rpcCall(mcp, ctxOf(FULL), 'cms_set_live_site', { siteId: OTHER, live: false })));
+    assert.equal(miss.liveSiteId, SITE);
+});
+
 test('cms_set_live_site live:false only clears the live site when it is the live one', async () => {
     const { mcp } = makeHarness();
     const miss = JSON.parse(textOf(await rpcCall(mcp, ctxOf(FULL), 'cms_set_live_site', { siteId: OTHER, live: false })));
@@ -341,7 +384,7 @@ test('cms_get_site_settings returns the requested sections only', async () => {
     assert.equal(body.defaultLocale, 'en');
 });
 
-test('cms_update_site_settings merges a footer patch, validates and saves through setProject', async () => {
+test('cms_update_site_settings merges a footer patch, validates and saves through mutateProject', async () => {
     const { mcp, calls } = makeHarness();
     const res = await rpcCall(mcp, ctxOf(FULL), 'cms_update_site_settings', {
         footer: { copyright: '© Acme', blurb: 'We build' }, analytics: { gaMeasurementId: 'g-abc123xyz' }, name: ' Renamed ',
@@ -365,6 +408,8 @@ test('cms_update_site_settings rejects unknown sections, unknown keys, header.na
         [{ footer: 'text' }, /must be an object/],
         [{ cookieBanner: { enabled: 'yes' } }, /true or false/],
         [{ analytics: { gaMeasurementId: 'UA-1' } }, /not a Google Analytics 4 id/],
+        [{ footer: { columns: 'x' } }, /footer\.columns must be a list/],
+        [{ header: { ctas: [{ label: 1, link: { kind: 'bogus' } }] } }, /header\.ctas\[0\]\.label must be text/],
         [{ name: '' }, /name must be text/],
         [{}, /Nothing to change/],
     ];
@@ -398,6 +443,23 @@ test('cms_set_locale_override writes site and page overrides, validates locale a
     assert.equal((await rpcCall(mcp, ctx, 'cms_set_locale_override', { locale: 'nl', override: 'x' })).result.isError, true);
 });
 
+test('cms_set_locale_override warns when the language is not publicly routable (#229)', async () => {
+    const { mcp } = makeHarness();
+    const ctx = ctxOf(FULL);
+    const de = JSON.parse(textOf(await rpcCall(mcp, ctx, 'cms_set_locale_override', { locale: 'de', override: { pageTitles: {} } })));
+    assert.equal(de.saved, true);
+    assert.match(de.warning, /"de" is saved but not publicly routable/);
+    const nl = JSON.parse(textOf(await rpcCall(mcp, ctx, 'cms_set_locale_override', { locale: 'nl', override: { pageTitles: {} } })));
+    assert.equal(nl.warning, undefined);
+});
+
+test('cms_set_locale_override warns when the override targets the default language', async () => {
+    const { mcp } = makeHarness();
+    const out = JSON.parse(textOf(await rpcCall(mcp, ctxOf(FULL), 'cms_set_locale_override', { locale: 'en', override: { pageTitles: {} } })));
+    assert.equal(out.saved, true);
+    assert.match(out.warning, /default language/);
+});
+
 test('cms_set_locale_override rejects page block translations that are not under content', async () => {
     const { mcp, calls } = makeHarness();
     const ctx = ctxOf(FULL);
@@ -422,8 +484,10 @@ test('list sites flags the live one; duplicate; templates; delete page', async (
     assert.equal(sites.sites.find((s) => s.id === OTHER).live, false);
     assert.equal(JSON.parse(textOf(await rpcCall(mcp, ctx, 'cms_duplicate_site'))).id, 'pj_cccc3333');
     assert.equal(JSON.parse(textOf(await rpcCall(mcp, ctx, 'cms_list_templates'))).templates[0].blockCount, 2);
-    await rpcCall(mcp, ctx, 'cms_delete_page', { pageId: 'pg_2' });
+    const deleted = JSON.parse(textOf(await rpcCall(mcp, ctx, 'cms_delete_page', { pageId: 'pg_2' })));
     assert.deepEqual(calls.removed, [[SITE, 'pg_2']]);
+    assert.deepEqual(deleted.newHomepage, { id: 'pg_1', slug: 'home' });
+    assert.equal(deleted.neutralisedLinks, 2);
     assert.equal((await rpcCall(mcp, ctx, 'cms_delete_page', { pageId: 'pg_nope' })).result.isError, true);
 });
 

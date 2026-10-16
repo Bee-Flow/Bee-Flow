@@ -24,26 +24,26 @@ const assert = require('node:assert');
 const Module = require('module');
 const querystring = require('node:querystring');
 
-const page = { translations: ['en', 'nl'] };
+const page = { translations: ['en', 'nl'], snapshot: {} };
 
 const MOCKS = {
     '../stores/cmsStore': {
         getDefaultLocale: async () => 'en',
-        getEffectivePublished: async (siteId, slug) => ({
+        getEffectivePublished: async (siteId, slug) => (slug === 'missing' || slug === 'retired-page' ? { found: false } : {
             found: true, design: {}, header: {},
             page: { id: 'p1', slug, title: 'Pricing', blocks: [], isHomepage: false },
         }),
-        getPublishedSnapshot: async () => ({}),
+        getPublishedSnapshot: async () => page.snapshot,
     },
     '../stores/configStore': { getConfig: async () => 'site-1' },
     '../stores/languageStore': { getAvailableLocales: async () => [{ code: 'en' }, { code: 'nl' }] },
     '../core/seo/head': { buildHead: () => '<title>Pricing</title>' },
-    '../core/seo/renderBlocks': { renderBlocks: () => '<main>Pricing</main>', PREHYDRATE_CSS: '' },
+    '../core/seo/renderBlocks': { renderBlocksWithHints: () => ({ html: '<main>Pricing</main>', heroImage: null, headLinks: [] }), PREHYDRATE_CSS: '' },
     '../core/seo/shell': { getShell: async () => '<html><head></head><body><div id="root"></div></body></html>' },
     '../core/seo/inject': { injectIntoShell: (shell, { body }) => shell.replace('<div id="root"></div>', `<div id="root">${body}</div>`) },
     '../core/seo/sitemap': { buildSitemap: () => '', buildRobots: () => '', buildLlmsTxt: () => '' },
     '../core/seo/locales': { localesForPage: () => page.translations },
-    '../core/seo/legacySlugs': { LEGACY_SLUGS: {} },
+    '../core/seo/legacySlugs': { LEGACY_SLUGS: {}, GONE_SLUGS: new Set(['retired-page']) },
     '../core/cms/legacyContent': { synthesizeLegacyContent: () => ({}) },
 };
 
@@ -86,7 +86,7 @@ function get(url) {
     });
 }
 
-test.beforeEach(() => { page.translations = ['en', 'nl']; });
+test.beforeEach(() => { page.translations = ['en', 'nl']; page.snapshot = {}; });
 
 test('a parameter the route has never heard of still gets the page', async () => {
     const res = await get('/pricing?gclid=abc&utm_source=news');
@@ -119,4 +119,49 @@ test('the consolidation still drops locale itself and keeps every other key', as
     const res = await get('/pricing?utm_campaign=q4&locale=NL-be');
     assert.strictEqual(res.statusCode, 301);
     assert.strictEqual(res.location, '/nl/pricing?utm_campaign=q4');
+});
+
+test('/legal/<doc> redirects to the CMS page of that name, locale kept', async () => {
+    const res = await get('/legal/imprint');
+    assert.strictEqual(res.statusCode, 301);
+    assert.strictEqual(res.location, '/imprint');
+    const nl = await get('/nl/legal/dpa');
+    assert.strictEqual(nl.location, '/nl/dpa');
+    const kept = await get('/legal/dpa?utm_source=news');
+    assert.strictEqual(kept.location, '/dpa?utm_source=news');
+});
+
+test('/privacy and /terms are served from the CMS like any other page', async () => {
+    for (const p of ['/privacy', '/terms']) {
+        const res = await get(p);
+        assert.strictEqual(res.statusCode, 200, p);
+        assert.match(res.body, /<main>Pricing<\/main>/);
+    }
+});
+
+test('a URL no page ever had answers 404, flagged for nginx so it is not turned into a 200 shell', async () => {
+    const res = await get('/missing');
+    assert.strictEqual(res.statusCode, 404);
+    assert.strictEqual(res.headers['x-beeflow-render'], 'not-found');
+});
+
+test('only a slug on the retired list answers 410', async () => {
+    const res = await get('/nl/retired-page');
+    assert.strictEqual(res.statusCode, 410);
+    assert.strictEqual(res.headers['x-beeflow-render'], 'not-found');
+});
+
+test('a managed redirect answers before the page, carries the query and the locale prefix', async () => {
+    page.snapshot = { redirects: [{ from: '/pricing', to: '/plans', status: 301, external: false }], site: { pages: [] } };
+    const res = await get('/pricing?utm_source=news');
+    assert.strictEqual(res.statusCode, 301);
+    assert.strictEqual(res.location, '/plans?utm_source=news');
+    const nl = await get('/nl/pricing');
+    assert.strictEqual(nl.location, '/nl/plans');
+});
+
+test('a page that exists at the address wins over a redirect from it', async () => {
+    page.snapshot = { redirects: [{ from: '/pricing', to: '/plans', status: 301, external: false }], site: { pages: [{ slug: 'pricing' }] } };
+    const res = await get('/pricing');
+    assert.strictEqual(res.statusCode, 200);
 });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The steps that reshape data in place rather than fetching or sending it:
  * the `code` escape hatch, the `layer_output` a layer returns, and the
@@ -19,6 +20,7 @@ const {
     DATETIME_OPS, DATETIME_PARTS, DATETIME_DIFF_UNITS,
 } = require('../constants');
 const { impliedListMode } = require('../../datetimeListMode');
+const { checkDatetimeOptions } = require('./datetimeOptionRules');
 
 /**
  * What a code step's `limits` block may ask for — the authoring-side mirror of
@@ -336,6 +338,7 @@ function checkDatetime(ctx, step, at) {
         if ((op === 'addDays' || op === 'addHours' || op === 'addMinutes') && typeof step.amount !== 'number') pushE({ code: 'datetime.amount_missing', severity: 'error', path: at + '.amount', message: `Step ${step.id}: datetime op "${op}" requires numeric \`amount\`.`, hint: 'Positive or negative integer.' });
         if (op === 'extract' && (!step.part || !DATETIME_PARTS.has(step.part))) pushE({ code: 'datetime.part_invalid', severity: 'error', path: at + '.part', message: `Step ${step.id}: datetime op "extract" requires \`part\` in ${Array.from(DATETIME_PARTS).join('/')}.`, hint: 'Pick one of the supported parts.' });
         if (op === 'diff' && (!step.unit || !DATETIME_DIFF_UNITS.has(step.unit))) pushE({ code: 'datetime.unit_invalid', severity: 'error', path: at + '.unit', message: `Step ${step.id}: datetime op "diff" requires \`unit\` in ${Array.from(DATETIME_DIFF_UNITS).join('/')}.`, hint: 'Pick the unit you want the difference reported in.' });
+        checkDatetimeOptions(ctx, step, at);
         // Every op except `now` reads an input date; `diff` reads two. An
         // empty input used to produce {iso:null, error:…} recorded as a
         // SUCCESS — the run went green while every downstream binding got

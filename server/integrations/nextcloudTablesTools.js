@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Tables Tools — structured data inside Nextcloud.
  *
@@ -21,6 +22,8 @@
  */
 
 const ncClient = require('./nextcloudClient');
+const { nextcloudHttpError } = require('./nextcloudHttpError');
+const { columnKind, toWireValue, fromWireValue, mapTable, mapColumn, describeColumn } = require('./nextcloudTablesValues');
 
 const TABLES_API = '/index.php/apps/tables/api/1';
 // A table with tens of thousands of rows would blow the model's context and
@@ -112,7 +115,10 @@ const NEXTCLOUD_TABLES_TOOLS = [
                     subtype: { type: 'string', description: 'Optional subtype, e.g. "line" or "long" for text, "date" for datetime, "check" for selection.' },
                     mandatory: { type: 'boolean', description: 'Whether the column is required.' },
                     description: { type: 'string', description: 'Optional column description.' },
-                    selectionOptions: { type: 'array', items: { type: 'string' }, description: 'For "selection" columns: the list of allowed option labels.' }
+                    selectionOptions: { type: 'array', items: { type: 'string' }, description: 'For "selection" columns: the list of allowed option labels. Rows are then written and read by label.' },
+                    numberDecimals: { type: 'integer', description: 'For "number" columns: how many decimals are kept (default 0, so 3.5 is stored as 3). Set 2 for amounts.' },
+                    numberPrefix: { type: 'string', description: 'For "number" columns: optional prefix such as a currency symbol.' },
+                    numberSuffix: { type: 'string', description: 'For "number" columns: optional suffix such as a unit.' }
                 },
                 required: ['tableId', 'title']
             }
@@ -213,7 +219,7 @@ async function readJsonSafe(res) {
  * Shared response handling. The Tables app answers with a bare JSON body, but
  * a misrouted call can still come back inside an OCS envelope, so unwrap both.
  */
-async function handle(res, authError, what) {
+async function handle(res, authError, what, opts = {}) {
     // 401 is the connector/session itself. 403 is NOT: the Tables app answers
     // 403 for a table id that does not exist or belongs to someone else, and
     // reporting that as "the Bee Flow connector could not reach Nextcloud"
@@ -223,73 +229,19 @@ async function handle(res, authError, what) {
     if (res.status === 401) return { error: authError };
     if (res.status === 403) {
         return {
-            error: `No access to this Nextcloud ${what}. It may not exist, or it belongs to another user — `
+            error: opts.forbidden || `No access to this Nextcloud ${what}. It may not exist, or it belongs to another user — `
                 + 'call nextcloud_tables_list to get the id of a table you can write to.',
         };
     }
     if (res.status === 404) {
+        if (opts.missing) return { error: `No ${opts.missing} with that id exists (it may already be deleted).` };
         return { error: `Nextcloud Tables is not installed or the ${what} does not exist. Install the "Tables" app in Nextcloud to use these tools.` };
     }
-    if (!res.ok) {
-        const body = await readJsonSafe(res);
-        const detail = typeof body === 'string' ? body.slice(0, 200) : (body?.message || body?.ocs?.meta?.message || '');
-        return { error: `Nextcloud Tables ${what} failed (${res.status})${detail ? `: ${detail}` : ''}` };
-    }
+    // Other failures go through the shared mapper: a 5xx body (raw SQL, the
+    // table prefix) is never echoed, a 4xx shows only Nextcloud's own reason.
+    if (!res.ok) return nextcloudHttpError(res, { authError, what: `Tables ${what}`, app: 'Tables' });
     const body = await readJsonSafe(res);
     return { ok: true, data: body?.ocs?.data ?? body };
-}
-
-function mapTable(t) {
-    return {
-        id: t.id,
-        title: t.title,
-        emoji: t.emoji || null,
-        ownership: t.ownership,
-        isShared: !!t.isShared,
-        archived: !!t.archived,
-        rowsCount: t.rowsCount ?? null,
-        columnsCount: Array.isArray(t.columns) ? t.columns.length : (t.columnsCount ?? null),
-    };
-}
-
-function mapColumn(c) {
-    return {
-        id: c.id,
-        title: c.title,
-        type: c.type,
-        subtype: c.subtype || null,
-        mandatory: !!c.mandatory,
-        description: c.description || '',
-    };
-}
-
-/**
- * The FULL column object, for a caller that has to reproduce the column
- * rather than describe it to a model: the mirror engine
- * (core/dataEngine/sources/nextcloudTable) needs the selection options to
- * translate ids to labels, the mandatory flag, and — on a Tables release that
- * has them — the relation settings. `mapColumn` above stays the slim agent
- * view; this one parses what the API hands over as JSON-in-a-string.
- */
-function describeColumn(c) {
-    let selectionOptions = [];
-    if (Array.isArray(c.selectionOptions)) selectionOptions = c.selectionOptions;
-    else if (typeof c.selectionOptions === 'string' && c.selectionOptions.trim()) {
-        try { const parsed = JSON.parse(c.selectionOptions); if (Array.isArray(parsed)) selectionOptions = parsed; } catch { /* not a list */ }
-    }
-    return {
-        ...mapColumn(c),
-        orderWeight: Number.isFinite(c.orderWeight) ? c.orderWeight : 0,
-        selectionOptions: selectionOptions
-            .filter(o => o && typeof o === 'object' && o.id !== undefined && o.id !== null)
-            .map(o => ({ id: o.id, label: String(o.label ?? '') })),
-        selectionDefault: c.selectionDefault ?? null,
-        numberDecimals: Number.isFinite(c.numberDecimals) ? c.numberDecimals : null,
-        numberPrefix: c.numberPrefix || '',
-        numberSuffix: c.numberSuffix || '',
-        datetimeDefault: c.datetimeDefault ?? null,
-        customSettings: (c.customSettings && typeof c.customSettings === 'object') ? c.customSettings : {},
-    };
 }
 
 /**
@@ -338,7 +290,10 @@ const TABLE_SCOPED_TOOLS = new Set([
 
 async function fetchColumns(api, ncFetch, authError, tableId) {
     const res = await ncFetch(`${api}/tables/${encodeURIComponent(tableId)}/columns`, { headers: HEADERS });
-    const out = await handle(res, authError, 'column list');
+    const out = await handle(res, authError, 'column list', {
+        forbidden: `Table ${tableId} is not accessible: it does not exist (was it deleted?) or belongs to another user. `
+            + 'Call nextcloud_tables_list to get the id of a table you can use.',
+    });
     if (out.error) return out;
     const columns = Array.isArray(out.data) ? out.data.map(mapColumn) : [];
     return { columns };
@@ -408,7 +363,9 @@ function resolveValues(values, columns) {
             return { error: `Two keys in values map onto the same column "${col.title}" — send each column once.` };
         }
         seenCols.add(col.id);
-        data.push({ columnId: col.id, value });
+        const wire = toWireValue(col, value);
+        if ('error' in wire) return { error: wire.error };
+        data.push({ columnId: col.id, value: wire.value });
     }
     if (unknown.length) {
         return {
@@ -422,12 +379,14 @@ function resolveValues(values, columns) {
 }
 
 /** Turn the API's columnId-keyed row data back into a title-keyed object. */
-function mapRow(row, columns) {
-    const titleById = new Map(columns.map(c => [String(c.id), c.title]));
+function mapRow(row, columns, { fillEmpty = false } = {}) {
+    const colById = new Map(columns.map(c => [String(c.id), c]));
     const values = {};
+    // Tables omits empty cells; a stable shape lets a caller bind every column.
+    if (fillEmpty) for (const c of columns) values[c.title] = null;
     for (const cell of Array.isArray(row.data) ? row.data : []) {
-        const title = titleById.get(String(cell.columnId));
-        if (title !== undefined) values[title] = cell.value;
+        const col = colById.get(String(cell.columnId));
+        if (col !== undefined) values[col.title] = fromWireValue(col, cell.value);
         else values[`column_${cell.columnId}`] = cell.value;
     }
     return {
@@ -453,6 +412,37 @@ const FILTER_OPS = {
     is_empty: (a) => a === null || a === undefined || String(a) === '',
     is_not_empty: (a) => !(a === null || a === undefined || String(a) === ''),
 };
+
+/**
+ * The answer of a row write is the row as STORED, read back: the write
+ * response echoes the request, so a number the column rounded (3.5 in a column
+ * with no decimals) would be reported as sent. Differences are named.
+ */
+async function storedRow(api, ncFetch, written, columns, sentPairs) {
+    let row = written;
+    const warnings = [];
+    if (written.id !== undefined) {
+        const res = await ncFetch(`${api}/rows/${encodeURIComponent(written.id)}`, { headers: HEADERS });
+        if (res.ok) {
+            const body = await readJsonSafe(res);
+            const fresh = body?.ocs?.data ?? body;
+            if (fresh && typeof fresh === 'object' && Array.isArray(fresh.data)) row = fresh;
+        } else {
+            warnings.push('Could not re-read the stored row; values are as sent.');
+        }
+    }
+    const mapped = mapRow(row, columns);
+    for (const { columnId, value } of sentPairs) {
+        const col = columns.find(c => String(c.id) === String(columnId));
+        if (!col || columnKind(col) !== 'number' || typeof value !== 'number') continue;
+        const cell = (Array.isArray(row.data) ? row.data : []).find(c => String(c.columnId) === String(columnId));
+        if (cell && Number(cell.value) !== value) {
+            warnings.push(`Column "${col.title}" stores ${col.numberDecimals ?? 0} decimals: ${value} was stored as ${cell.value}. `
+                + 'Create the column with numberDecimals to keep more.');
+        }
+    }
+    return warnings.length ? { success: true, row: mapped, warnings } : { success: true, row: mapped };
+}
 
 async function executeNextcloudTablesTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
@@ -539,6 +529,11 @@ async function executeNextcloudTablesTool(toolName, args, userId, session) {
                     args.selectionOptions.map((label, i) => ({ id: i, label: String(label) }))
                 );
             }
+            if (type === 'number') {
+                if (Number.isInteger(args.numberDecimals)) payload.numberDecimals = args.numberDecimals;
+                if (args.numberPrefix) payload.numberPrefix = String(args.numberPrefix);
+                if (args.numberSuffix) payload.numberSuffix = String(args.numberSuffix);
+            }
             const res = await ncFetch(`${api}/tables/${encodeURIComponent(args.tableId)}/columns`, {
                 method: 'POST', headers: HEADERS, body: JSON.stringify(payload),
             });
@@ -552,7 +547,7 @@ async function executeNextcloudTablesTool(toolName, args, userId, session) {
             const res = await ncFetch(`${api}/columns/${encodeURIComponent(args.columnId)}`, {
                 method: 'DELETE', headers: HEADERS,
             });
-            const out = await handle(res, authError, 'column delete');
+            const out = await handle(res, authError, 'column delete', { missing: 'column' });
             if (out.error) return out;
             return { success: true, columnId: args.columnId };
         }
@@ -563,7 +558,9 @@ async function executeNextcloudTablesTool(toolName, args, userId, session) {
             if (cols.error) return cols;
 
             const limit = Math.min(Math.max(args.limit || DEFAULT_ROWS, 1), MAX_ROWS);
-            const params = new URLSearchParams({ limit: String(limit) });
+            // Ask for one row more than we return: that extra row is the proof
+            // there is more, so exactly `limit` rows is not reported as cut off.
+            const params = new URLSearchParams({ limit: String(limit + 1) });
             if (args.offset) params.set('offset', String(args.offset));
             const res = await ncFetch(
                 `${api}/tables/${encodeURIComponent(args.tableId)}/rows?${params.toString()}`,
@@ -572,7 +569,9 @@ async function executeNextcloudTablesTool(toolName, args, userId, session) {
             const out = await handle(res, authError, 'row list');
             if (out.error) return out;
 
-            let rows = (Array.isArray(out.data) ? out.data : []).map(r => mapRow(r, cols.columns));
+            const fetched = Array.isArray(out.data) ? out.data : [];
+            const truncated = fetched.length > limit;
+            let rows = fetched.slice(0, limit).map(r => mapRow(r, cols.columns, { fillEmpty: true }));
 
             if (args.filterColumn) {
                 const op = args.filterOperator || 'equals';
@@ -592,7 +591,7 @@ async function executeNextcloudTablesTool(toolName, args, userId, session) {
                 count: rows.length,
                 // Say so when the cap bit, rather than letting an automation treat
                 // a truncated page as the whole table.
-                truncated: rows.length === limit,
+                truncated,
                 columns: cols.columns.map(c => c.title),
                 rows,
             };
@@ -610,7 +609,7 @@ async function executeNextcloudTablesTool(toolName, args, userId, session) {
             });
             const out = await handle(res, authError, 'row create');
             if (out.error) return out;
-            return { success: true, row: mapRow(out.data || {}, cols.columns) };
+            return storedRow(api, ncFetch, out.data || {}, cols.columns, resolved.data);
         }
 
         case 'nextcloud_tables_update_row': {
@@ -624,9 +623,9 @@ async function executeNextcloudTablesTool(toolName, args, userId, session) {
             const res = await ncFetch(`${api}/rows/${encodeURIComponent(args.rowId)}`, {
                 method: 'PUT', headers: HEADERS, body: JSON.stringify({ data: toWireData(resolved.data) }),
             });
-            const out = await handle(res, authError, 'row update');
+            const out = await handle(res, authError, 'row update', { missing: 'row' });
             if (out.error) return out;
-            return { success: true, row: mapRow(out.data || {}, cols.columns) };
+            return storedRow(api, ncFetch, out.data || {}, cols.columns, resolved.data);
         }
 
         case 'nextcloud_tables_delete_row': {
@@ -634,7 +633,7 @@ async function executeNextcloudTablesTool(toolName, args, userId, session) {
             const res = await ncFetch(`${api}/rows/${encodeURIComponent(args.rowId)}`, {
                 method: 'DELETE', headers: HEADERS,
             });
-            const out = await handle(res, authError, 'row delete');
+            const out = await handle(res, authError, 'row delete', { missing: 'row' });
             if (out.error) return out;
             return { success: true, rowId: args.rowId };
         }

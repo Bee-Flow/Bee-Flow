@@ -337,3 +337,46 @@ test('synthesizeLegacyContent: columns dropdown defaults missing item fields lik
         }],
     });
 });
+
+// ── A live site without a snapshot ──────────────────────────────────
+
+test('a live site without a snapshot answers 503 and never publishes inside the visitor request', async () => {
+    const { mock } = require('node:test');
+    const unpublished = await cmsStore.createProject({ name: 'Unpublished' });
+    const previous = await mockConfigStore.getConfig('cms_live_site_id');
+    await mockConfigStore.setConfig('cms_live_site_id', unpublished.id);
+    let started = 0;
+    const stub = mock.method(cmsStore, 'publishSite', () => { started++; return new Promise(() => {}); });
+    try {
+        const res = await Promise.race([
+            fetch(`${baseUrl}/site?v=2`),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('request hung')), 3000)),
+        ]);
+        assert.strictEqual(res.status, 503);
+        assert.ok(res.headers.get('retry-after'));
+        // The heal runs in the background, once, even for a second visitor.
+        await fetch(`${baseUrl}/site?v=2`);
+        assert.strictEqual(started, 1);
+    } finally {
+        stub.mock.restore();
+        await mockConfigStore.setConfig('cms_live_site_id', previous);
+    }
+});
+
+test('after a failed background publish the next visitors do not start another for a while', async () => {
+    const { mock } = require('node:test');
+    const unpublished = await cmsStore.createProject({ name: 'Broken storage' });
+    const previous = await mockConfigStore.getConfig('cms_live_site_id');
+    await mockConfigStore.setConfig('cms_live_site_id', unpublished.id);
+    let started = 0;
+    const stub = mock.method(cmsStore, 'publishSite', async () => { started++; throw new Error('storage down'); });
+    try {
+        assert.strictEqual((await fetch(`${baseUrl}/site?v=2`)).status, 503);
+        await new Promise((r) => setTimeout(r, 50)); // let the failed attempt settle
+        assert.strictEqual((await fetch(`${baseUrl}/site?v=2`)).status, 503);
+        assert.strictEqual(started, 1);
+    } finally {
+        stub.mock.restore();
+        await mockConfigStore.setConfig('cms_live_site_id', previous);
+    }
+});

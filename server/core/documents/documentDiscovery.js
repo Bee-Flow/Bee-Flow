@@ -1,15 +1,20 @@
 // @typecheck
 'use strict';
+const log = require('../../telemetry/log');
 const { getContract, evaluateCondition, setPath } = require('./documentContract');
+const MAX_BODY_CHARS = 20000;
 function schemas(prefix) {
     return [
-        { type:'function', function:{ name:`${prefix}_search_documents`, description:'Search all accessible private and team document templates. Paginate with offset; the prompt catalog is only a sample. Read the selected document contract before configuring a fill_document step.', parameters:{ type:'object',properties:{ query:{type:'string'},offset:{type:'integer'},limit:{type:'integer'} } } } },
-        { type:'function', function:{ name:`${prefix}_read_document`, description:'Read the complete document contract: all typed parameters, requirements, instructions, section outline and pinned revision. Optionally read one section or the document body for context. Required before building or updating a fill_document binding.', parameters:{ type:'object',properties:{documentId:{type:'string'},versionId:{type:'string'},sectionId:{type:'string'},includeBody:{type:'boolean'}},required:['documentId'] } } },
+        { type:'function', function:{ name:`${prefix}_search_documents`, description:'Search the accessible private and team documents that can be filled in (templates and ordinary designed documents). Every word of the query must match the name or description, in any order. Paginate with offset; the prompt catalog is only a sample. Read the selected document contract before configuring a fill_document step.', parameters:{ type:'object',properties:{ query:{type:'string'},offset:{type:'integer'},limit:{type:'integer'} } } } },
+        { type:'function', function:{ name:`${prefix}_read_document`, description:'Read the complete document contract: all typed parameters, requirements, instructions, section outline and pinned revision. Optionally read one section or the document body for context (the body is capped at 20000 characters; bodyTruncated says so). Required before building or updating a fill_document binding.', parameters:{ type:'object',properties:{documentId:{type:'string'},versionId:{type:'string'},sectionId:{type:'string'},includeBody:{type:'boolean'}},required:['documentId'] } } },
     ];
 }
 async function execute(name,args,wrap) {
     try { return await executeRead(name,args,wrap); }
-    catch (e) { return {error:e.message || 'Could not read the document library. Please retry.',code:e.errorClass || 'document_discovery_failed'}; }
+    catch (e) {
+        log.warn('document discovery failed', { tool: name, error: e.message });
+        return {error:'Could not read the document library. Please retry.',code:e.errorClass || 'document_discovery_failed'};
+    }
 }
 async function executeRead(name,args,wrap) {
     const store = require('../../stores/documentStore');
@@ -31,11 +36,14 @@ async function executeRead(name,args,wrap) {
     let bodyHtml;
     if (args.sectionId) {
         const section = contract.sections.find(s => s.id === args.sectionId);
-        if (!section) return { error:'Section not found',contract };
+        if (!section) return { error:'Section not found', sectionIds:contract.sections.map(s => s.id) };
         const $ = require('cheerio').load(doc.bodyHtml,{xmlMode:true},false);
         bodyHtml = $(`[data-doc-section="${section.id}"]`).html();
     } else if (args.includeBody) bodyHtml = doc.bodyHtml;
-    return { contract,...(bodyHtml !== undefined ? {bodyHtml} : {}) };
+    // One document can be an ordinary customer file, so the body is capped.
+    const truncated = typeof bodyHtml === 'string' && bodyHtml.length > MAX_BODY_CHARS;
+    if (truncated) bodyHtml = bodyHtml.slice(0, MAX_BODY_CHARS);
+    return { contract,...(bodyHtml !== undefined ? {bodyHtml} : {}),...(truncated ? {bodyTruncated:true} : {}) };
 }
 // Runs before mutation, including batch tools, so failed inspection never leaves
 // a partially wired document step behind. Existing non-document edits are untouched.

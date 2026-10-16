@@ -2,7 +2,7 @@
  * A run's steps are named, never shown by id.
  *
  * `friendlyStepName` / `buildNameMap` / `nameFor` are pinned to the web
- * (DryRunPanel.jsx) by flow-editor's run.lockstep.test.ts; this file pins what
+ * (DryRunPanel.tsx) by flow-editor's run.lockstep.test.ts; this file pins what
  * the Automations screens add on top: loop bodies, branches and secondary
  * triggers named too, a kind in the web's words, and the fallbacks when the
  * definition does not know the step.

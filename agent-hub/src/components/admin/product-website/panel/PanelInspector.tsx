@@ -9,7 +9,10 @@ import type useCmsPageMeta from './useCmsPageMeta';
 import type useCmsPanelState from './useCmsPanelState';
 import type useCmsPreviewBridge from './useCmsPreviewBridge';
 import type useCmsPublishing from './useCmsPublishing';
+import RedirectsInspector from '../inspector/RedirectsInspector';
 import { COOKIE_VIRTUAL_ID } from '../sentinels';
+import type { EditableDesign } from '../../../../marketing/ProductWebsite.types';
+import type { FieldPath } from '../translatable';
 
 interface PanelInspectorProps {
     ps: ReturnType<typeof useCmsPanelState>;
@@ -45,11 +48,11 @@ function translateProps({ ps, activePage, activePageOverride, activeSiteOverride
         pageOverride: activePageOverride,
         siteOverride: activeSiteOverride,
         aiStatus,
-        onPageLeaf: (blockId: string, fieldPath: string[], value: unknown) =>
+        onPageLeaf: (blockId: string, fieldPath: FieldPath, value: unknown) =>
             activePage && updatePageOverride(activePage.id, activeLocale, ['blocks', blockId, 'content', ...fieldPath], value),
         onPageSeo: (field: string, value: unknown) =>
             activePage && updatePageOverride(activePage.id, activeLocale, ['seo', field], value),
-        onChromeLeaf: (storagePath: string[], value: unknown) =>
+        onChromeLeaf: (storagePath: FieldPath, value: unknown) =>
             updateSiteOverride(activeLocale, storagePath, value),
         onSelectBlock: selectAndScrollToBlock,
         tier: translateTier,
@@ -78,6 +81,7 @@ export default function PanelInspector(props: PanelInspectorProps) {
                     updateSiteChrome={publish.updateSiteChrome}
                 />
             ) : null}
+            redirectsInspector={<RedirectsInspector siteId={ps.activeSiteId} onSaved={() => ps.setDirtySincePublish(true)} />}
             activePageId={ps.activePageId}
             activePage={activePage}
             translationMode={translationMode}
@@ -90,8 +94,9 @@ export default function PanelInspector(props: PanelInspectorProps) {
                 onChangeSite: publish.updateSiteChrome,
             }}
             designProps={{
-                design: site?.design,
-                onChange: publish.updateDesign,
+                // The stored design is an open record; the editor works on its typed view.
+                design: site?.design as EditableDesign | undefined,
+                onChange: (next: EditableDesign) => publish.updateDesign({ ...next } as Record<string, unknown>),
             }}
             analyticsProps={{
                 site,

@@ -3,6 +3,9 @@ import Button from '../components/Button';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import { inlineTextStyle } from './textStyle';
+import BackgroundVideo from '../motion/BackgroundVideo';
+import { backgroundVideoSectionClass } from '../motion/backgroundVideo';
+import type { BackgroundVideoData } from '../motion/motion.types';
 import type { CmsHref, SectionDataBase, TextStyleBlob } from './sectionData.types';
 
 interface CtaBannerCta extends CmsHref {
@@ -20,6 +23,7 @@ interface CtaBannerData extends SectionDataBase {
     subheadingAlign?: string;
     primaryCta?: CtaBannerCta;
     secondaryCta?: CtaBannerCta;
+    backgroundVideo?: BackgroundVideoData;
 }
 
 // True inside the CMS editor's preview iframe (?preview) — empty fields keep
@@ -63,6 +67,7 @@ export default function CtaBanner({ data }: { data?: CtaBannerData }) {
     const sectionClass = [
         'cta-banner-block',
         backgroundVariant !== 'default' ? `cms-bg--${backgroundVariant}` : '',
+        backgroundVideoSectionClass(data.backgroundVideo),
     ].filter(Boolean).join(' ');
 
     const innerClass = [
@@ -73,6 +78,7 @@ export default function CtaBanner({ data }: { data?: CtaBannerData }) {
     return (
         <SectionFrame id="cta-banner" name="CTA Banner" enabled={data.enabled}>
             <section className={sectionClass}>
+                <BackgroundVideo video={data.backgroundVideo} priority={false} />
                 <div className="container">
                     <div className={innerClass}>
                         <div className="cta-banner-block-text">

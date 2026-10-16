@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Talk Tools — chat rooms, messages, reactions.
  *
@@ -11,6 +12,10 @@
  */
 
 const ncClient = require('./nextcloudClient');
+const { nextcloudHttpError } = require('./nextcloudHttpError');
+const {
+    mapRoom, mapParticipant, mapMessage, pollError, bareVoteKeys, REACTION_SYSTEM_MESSAGES,
+} = require('./nextcloudTalkMappers');
 const {
     normalizeFolder, folderPrefix, RECORDING_SUBFOLDER,
 } = require('../core/meetingNotes/talkRecordingPaths');
@@ -108,7 +113,7 @@ const NEXTCLOUD_TALK_TOOLS = [
         type: 'function',
         function: {
             name: 'nextcloud_talk_list_messages',
-            description: 'Fetch the most recent messages from a Talk room. Returns id, actor, message text, mentions, reactions, parent (for replies), timestamp.',
+            description: 'Fetch the most recent messages from a Talk room. Returns id, actor, message text, mentions, reactions, parent (for replies), timestamp. Reaction system messages are omitted (reactions are on the target message).',
             parameters: {
                 type: 'object',
                 properties: {
@@ -308,45 +313,6 @@ const COMMON_HEADERS = {
     'Accept': 'application/json',
 };
 
-function mapRoom(r) {
-    return {
-        token: r.token,
-        type: r.type,
-        name: r.displayName || r.name,
-        description: r.description,
-        unreadMessages: r.unreadMessages,
-        unreadMention: r.unreadMention,
-        lastActivity: r.lastActivity,
-        lastMessage: r.lastMessage ? { id: r.lastMessage.id, actor: r.lastMessage.actorDisplayName, message: r.lastMessage.message, timestamp: r.lastMessage.timestamp } : null,
-        participantType: r.participantType,   // 1=owner, 2=moderator (may start recording)
-        canStartCall: r.canStartCall,
-        readOnly: r.readOnly,
-        // Call + recording state (used by auto-record). callRecording: 0 none,
-        // 1 video, 2 audio, 3 starting-video, 4 starting-audio.
-        hasCall: !!r.hasCall,
-        callFlag: r.callFlag,
-        callRecording: r.callRecording,
-        callStartTime: r.callStartTime,
-        // objectType 'event' (+ objectId '<startUnix>#<endUnix>') when the room
-        // was created from a calendar event.
-        objectType: r.objectType || '',
-        objectId: r.objectId || '',
-    };
-}
-
-function mapParticipant(p) {
-    return {
-        attendeeId: p.attendeeId,
-        actorType: p.actorType,
-        actorId: p.actorId,
-        displayName: p.displayName || p.actorId,
-        participantType: p.participantType,   // 1 owner, 2 moderator
-        // inCall bitmask: 1 in-call, 2 provides audio, 4 provides video, 8 SIP.
-        inCall: p.inCall,
-        lastPing: p.lastPing,
-    };
-}
-
 /**
  * Classify a recording start/stop OCS response into a stable result shape.
  * Verified error semantics: 403 → not a moderator; 400 with OCS message
@@ -445,20 +411,6 @@ async function getTalkRecordingCapability(session, userId) {
     }
 }
 
-function mapMessage(m) {
-    return {
-        id: m.id,
-        actor: m.actorDisplayName || m.actorId,
-        actorId: m.actorId,
-        actorType: m.actorType,
-        timestamp: m.timestamp,
-        message: m.message,
-        messageParameters: m.messageParameters,
-        systemMessage: m.systemMessage || null,
-        parent: m.parent ? mapMessage(m.parent) : null,
-        reactions: m.reactions || {},
-    };
-}
 
 async function executeNextcloudTalkTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
@@ -560,7 +512,8 @@ async function executeNextcloudTalkTool(toolName, args, userId, session) {
             if (res.status === 304) return { token: args.token, count: 0, messages: [] };
             if (!res.ok) return { error: `Talk message fetch failed (${res.status})` };
             const data = await readJsonSafe(res);
-            const messages = Array.isArray(data?.ocs?.data) ? data.ocs.data.map(mapMessage) : [];
+            const raw = Array.isArray(data?.ocs?.data) ? data.ocs.data : [];
+            const messages = raw.filter(m => !REACTION_SYSTEM_MESSAGES.has(m.systemMessage)).map(mapMessage);
             return { token: args.token, count: messages.length, messages };
         }
 
@@ -626,8 +579,8 @@ async function executeNextcloudTalkTool(toolName, args, userId, session) {
             });
             if (res.status === 401) return { error: authError };
             if (res.status === 404) return { error: `Message not found: ${args.messageId}` };
-            if (res.status === 405) return { error: 'Message cannot be deleted (too old or not your own).' };
-            if (!res.ok && res.status !== 200 && res.status !== 202) return { error: `Talk delete failed (${res.status})` };
+            if (res.status === 405) return { error: 'Message cannot be deleted: it may already be deleted, be too old, or not be your own.' };
+            if (!res.ok && res.status !== 200 && res.status !== 202) return nextcloudHttpError(res, { authError, what: 'message delete', app: 'Talk' });
             return { success: true, messageId: args.messageId };
         }
 
@@ -641,17 +594,25 @@ async function executeNextcloudTalkTool(toolName, args, userId, session) {
                 body: JSON.stringify({ reaction: args.reaction }),
             });
             if (res.status === 401) return { error: authError };
-            if (!res.ok && res.status !== 200 && res.status !== 201) {
-                const err = await readJsonSafe(res);
-                return { error: `Reaction ${method} failed (${res.status})`, detail: err };
+            if (res.status === 404) {
+                return { error: method === 'POST'
+                    ? `Message ${args.messageId} not found in this conversation, so it cannot be reacted to.`
+                    : `Nothing to remove: message ${args.messageId} was not found, or you have no "${args.reaction}" reaction on it.` };
             }
+            if (res.status === 400) {
+                return { error: method === 'POST'
+                    ? `Reaction "${args.reaction}" was refused: it must be a single emoji, and you may not have reacted with it already.`
+                    : `Reaction "${args.reaction}" could not be removed: it must be the exact emoji you used.` };
+            }
+            if (!res.ok && res.status !== 200 && res.status !== 201) return nextcloudHttpError(res, { authError, what: 'reaction', app: 'Talk' });
             return { success: true };
         }
 
         case 'nextcloud_talk_create_poll': {
             if (!args.token) return { error: 'token is required' };
             if (!args.question) return { error: 'question is required' };
-            const options = Array.isArray(args.options) ? args.options.map(String).filter(Boolean) : [];
+            const options = Array.isArray(args.options) ? args.options.map(o => String(o ?? '').trim()) : [];
+            if (options.some(o => !o)) return { error: 'options must not contain empty choices' };
             if (options.length < 2) return { error: 'options must contain at least two choices' };
             const res = await ncFetch(`${v1(baseUrl)}/poll/${encodeURIComponent(args.token)}?format=json`, {
                 method: 'POST',
@@ -664,7 +625,7 @@ async function executeNextcloudTalkTool(toolName, args, userId, session) {
                 }),
             });
             if (res.status === 401) return { error: authError };
-            if (!res.ok) return { error: `Create poll failed (${res.status})` };
+            if (!res.ok) return pollError(res, authError, 'create');
             const data = await res.json().catch(() => null);
             const poll = data?.ocs?.data || {};
             return { success: true, pollId: poll.id ?? null, question: poll.question || args.question, options };
@@ -679,15 +640,16 @@ async function executeNextcloudTalkTool(toolName, args, userId, session) {
             );
             if (res.status === 401) return { error: authError };
             if (res.status === 404) return { error: `Poll ${args.pollId} not found in that conversation.` };
-            if (!res.ok) return { error: `Get poll failed (${res.status})` };
+            if (!res.ok) return pollError(res, authError, 'lookup');
             const data = await res.json().catch(() => null);
             const p = data?.ocs?.data || {};
             return {
                 pollId: p.id ?? args.pollId,
                 question: p.question || '',
                 options: p.options || [],
-                // `votes` is keyed "option-<index>"; `numVoters` is the headcount.
-                votes: p.votes || {},
+                // `votes` is keyed by the bare 0-based option index (Talk's "option-<index>" is
+                // normalised); `numVoters` is the headcount.
+                votes: bareVoteKeys(p.votes),
                 numVoters: p.numVoters ?? null,
                 // 0 = open, 1 = closed.
                 status: p.status === 1 ? 'closed' : 'open',
@@ -698,7 +660,11 @@ async function executeNextcloudTalkTool(toolName, args, userId, session) {
         case 'nextcloud_talk_vote_poll': {
             if (!args.token) return { error: 'token is required' };
             if (args.pollId === undefined) return { error: 'pollId is required' };
-            const optionIds = Array.isArray(args.optionIds) ? args.optionIds.map(Number).filter(n => Number.isFinite(n)) : [];
+            const rawIds = Array.isArray(args.optionIds) ? args.optionIds : [];
+            const optionIds = rawIds.map(n => (typeof n === 'string' && n.trim() === '' ? NaN : Number(n)));
+            if (optionIds.some(n => !Number.isInteger(n) || n < 0)) {
+                return { error: 'optionIds must be 0-based option indexes (non-negative integers)' };
+            }
             if (!optionIds.length) return { error: 'optionIds must contain at least one 0-based option index' };
             const res = await ncFetch(
                 `${v1(baseUrl)}/poll/${encodeURIComponent(args.token)}/${encodeURIComponent(args.pollId)}?format=json`,
@@ -709,7 +675,7 @@ async function executeNextcloudTalkTool(toolName, args, userId, session) {
                 },
             );
             if (res.status === 401) return { error: authError };
-            if (!res.ok) return { error: `Vote failed (${res.status})` };
+            if (!res.ok) return pollError(res, authError, 'vote');
             return { success: true, pollId: args.pollId, optionIds };
         }
 
@@ -721,7 +687,7 @@ async function executeNextcloudTalkTool(toolName, args, userId, session) {
                 { method: 'DELETE', headers: COMMON_HEADERS },
             );
             if (res.status === 401) return { error: authError };
-            if (!res.ok) return { error: `Close poll failed (${res.status})` };
+            if (!res.ok) return pollError(res, authError, 'close');
             return { success: true, pollId: args.pollId, status: 'closed' };
         }
 

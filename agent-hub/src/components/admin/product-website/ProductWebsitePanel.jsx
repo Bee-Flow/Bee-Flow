@@ -103,7 +103,7 @@ export default function ProductWebsitePanel({ onExit, onNavigate } = {}) {
         rightView, setRightView, setAddBlockRequest,
         setTemplates, pendingTemplatePage, setPendingTemplatePage,
         confirm, setInspectorOpen,
-        setDirtySincePublish, translateTier, reorderWarnedRef,
+        setDirtySincePublish, translateTier,
         assistantOpen, toggleAssistant,
         builderRunning, setBuilderRunning, builderRunningRef, builderTurnRef,
         builderUndoAvailable, setBuilderUndoAvailable, builderUndoAvailableRef, disarmBuilderUndo,
@@ -119,6 +119,7 @@ export default function ProductWebsitePanel({ onExit, onNavigate } = {}) {
     const { scheduleSave, flushSaves, retrySave, drainPendingSaves } = useCmsAutosave({
         activeSiteIdRef, builderRunningRef, pendingSaves, saveTimerRef, saveStatusTimer,
         inFlightSaveRef, failedSavesRef, setSaveStatus, setError, setDirtySincePublish,
+        localeOverridesRef, setLocaleOverrides,
     });
 
     const { siteStateRef, pagesStateRef, history, historyResetRef, runHistoryHotkey } = useCmsHistory({
@@ -136,7 +137,7 @@ export default function ProductWebsitePanel({ onExit, onNavigate } = {}) {
     const mutations = useCmsContentMutations({
         pages, activePage, activePageId, activeLocale, locales, translateTier,
         aiStatus, setAiStatus, localeOverrides, setLocaleOverrides, localeOverridesRef,
-        reorderWarnedRef, aiRunningRef, activeSiteIdRef, siteStateRef, pagesStateRef,
+        aiRunningRef, activeSiteIdRef, siteStateRef, pagesStateRef,
         history, scheduleSave, drainPendingSaves, confirm,
     });
     const { updatePage, updatePageOverride, updateSiteOverride } = mutations;

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Nextcloud tool family: the per-app executors behind every nextcloud_*
  * tool, and the scope-guarded entry the dispatcher runs them through.
@@ -66,13 +67,13 @@ async function executeNextcloudFamilyTool(toolName, toolArgs, userId, session, e
 async function executeGuardedNextcloudTool(toolName, toolArgs, context) {
     const { userId, orgId, session, runScope } = context;
     const ncScopeGuard = require('../core/integrations/ncScopeGuard');
-    const denial = await ncScopeGuard.checkToolCall({ toolName, toolArgs, userId, orgId });
+    const denial = await ncScopeGuard.checkToolCall({ toolName, toolArgs, userId, orgId, session });
     if (denial) return denial;
     const raw = await executeNextcloudFamilyTool(toolName, toolArgs, userId, session, { runScope: runScope || null });
     // No family matched (a nextcloud_-prefixed tool owned elsewhere) — the
     // dispatcher falls through to the families and fallbacks after this one.
     if (raw === undefined) return NOT_HANDLED;
-    return await ncScopeGuard.filterResult({ toolName, result: raw, userId, orgId });
+    return await ncScopeGuard.filterResult({ toolName, result: raw, userId, orgId, session });
 }
 
 /**
@@ -82,7 +83,7 @@ async function executeGuardedNextcloudTool(toolName, toolArgs, context) {
  */
 async function executeCheckedNextcloudTool(toolName, toolArgs, { userId, orgId, session, runScope }) {
     const ncScopeGuard = require('../core/integrations/ncScopeGuard');
-    return (await ncScopeGuard.checkToolCall({ toolName, toolArgs, userId, orgId }))
+    return (await ncScopeGuard.checkToolCall({ toolName, toolArgs, userId, orgId, session }))
         || await executeNextcloudFamilyTool(toolName, toolArgs, userId, session, { runScope: runScope || null });
 }
 

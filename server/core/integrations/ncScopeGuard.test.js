@@ -37,7 +37,8 @@ inject('../../stores/configStore.js', {
 });
 inject('../../stores/guardrailEventStore.js', { logGuardrailEvent: async () => {} });
 const userRows = new Map();
-inject('../../stores/userStore.js', { getUser: async (id) => userRows.get(id) || null });
+let userStoreFail = false;
+inject('../../stores/userStore.js', { getUser: async (id) => { if (userStoreFail) throw new Error('db down'); return userRows.get(id) || null; } });
 
 const guard = require('./ncScopeGuard');
 require('./ncScope');
@@ -55,7 +56,7 @@ function setOrgScope(integrations) {
     guard.invalidateScopeCache();
 }
 
-beforeEach(() => { store.clear(); userRows.clear(); configFail = false; guard.invalidateScopeCache(); });
+beforeEach(() => { store.clear(); userRows.clear(); configFail = false; userStoreFail = false; guard.invalidateScopeCache(); });
 
 // ── Base modes ──────────────────────────────────────────────────────────────
 
@@ -794,4 +795,76 @@ test('a table Bee Flow just created says so, instead of silently vanishing', asy
         userId: USER,
     });
     assert.equal(inScope.nc_scope_note, undefined, 'no note when the id is already shared');
+});
+
+test('folder_tree from a start folder: a node named like another selected root does not leak', async () => {
+    // The executor writes the full path on every node ("/Shared/Secret"), so a
+    // selection of {/Shared/B, /Secret} must not let it through as "/Secret".
+    setUserScope({ nextcloud: { mode: 'selected', selected: ['/Shared/B', '/Secret'] } });
+    const out = await guard.filterResult({
+        toolName: 'nextcloud_folder_tree',
+        result: { depth: 2, tree: [
+            { name: 'Secret', path: '/Shared/Secret', children: [{ name: 'x', path: '/Shared/Secret/x' }] },
+            { name: 'B', path: '/Shared/B' },
+        ] },
+        userId: USER,
+    });
+    assert.deepEqual(out.tree.map(n => n.path), ['/Shared/B']);
+});
+
+// ── The dispatched entry must apply the ORG ceiling even without an orgId ───
+//
+// The /mcp integrations surface calls the dispatcher with a userId and a
+// session but no orgId. The guarded entry passed that undefined straight on,
+// so resolveNcScope skipped the org layer: a Nextcloud Tables list over MCP
+// showed a table the org ceiling excluded, while the automation runner (which
+// does pass orgId) hid it.
+test('the guarded entry derives the org from the session when the context has none', async () => {
+    const { executeGuardedNextcloudTool } = require('../../integrations/nextcloudToolFamily');
+    setOrgScope({ 'nextcloud-tables': { mode: 'selected', selected: ['4', '5'] } });
+    const denial = await executeGuardedNextcloudTool(
+        'nextcloud_tables_list_rows', { tableId: '6' },
+        { userId: USER, session: { user: { id: USER, organizationId: ORG } } },
+    );
+    assert.ok(denial && denial.nc_scope_denied, 'the org ceiling applies on a caller that passes no orgId');
+});
+
+test('the guarded entry falls back to the stored user row for the org', async () => {
+    const { executeGuardedNextcloudTool } = require('../../integrations/nextcloudToolFamily');
+    setOrgScope({ 'nextcloud-tables': { mode: 'selected', selected: ['4', '5'] } });
+    userRows.set(USER, { organizationId: ORG });
+    const denial = await executeGuardedNextcloudTool(
+        'nextcloud_tables_list_rows', { tableId: '6' },
+        { userId: USER, session: {} },
+    );
+    assert.ok(denial && denial.nc_scope_denied);
+});
+
+test('a user row that cannot be read denies, and is not memoised as "no org"', async () => {
+    setOrgScope({ 'nextcloud-tables': { mode: 'selected', selected: ['4'] } });
+    userRows.set(USER, { organizationId: ORG });
+    userStoreFail = true;
+    const denial = await guard.checkToolCall({ toolName: 'nextcloud_tables_list_rows', toolArgs: { tableId: '6' }, userId: USER });
+    assert.ok(denial && denial.nc_scope_denied, 'fail closed');
+    userStoreFail = false;
+    const again = await guard.checkToolCall({ toolName: 'nextcloud_tables_list_rows', toolArgs: { tableId: '6' }, userId: USER });
+    assert.ok(again && again.nc_scope_denied, 'the failure left no org=null memo behind');
+});
+
+test('an explicit orgId beats the session org', async () => {
+    store.set('org_nc_scope_org-2', { v: 1, integrations: { 'nextcloud-tables': { mode: 'off' } } });
+    guard.invalidateScopeCache();
+    const denial = await guard.checkToolCall({
+        toolName: 'nextcloud_tables_list', toolArgs: {}, userId: USER, orgId: 'org-2',
+        session: { user: { id: USER, organizationId: ORG } },
+    });
+    assert.ok(denial && denial.nc_scope_denied, 'org-2 (explicit) applies, not org-1 (session, unrestricted)');
+});
+
+test('the checked entry applies the org ceiling from the session', async () => {
+    const { executeCheckedNextcloudTool } = require('../../integrations/nextcloudToolFamily');
+    setOrgScope({ nextcloud: { mode: 'selected', selected: ['/Allowed'] } });
+    const denial = await executeCheckedNextcloudTool('nextcloud_upload_file', { path: '/Other/x.txt' },
+        { userId: USER, session: { user: { id: USER, organizationId: ORG } } });
+    assert.ok(denial && denial.nc_scope_denied);
 });

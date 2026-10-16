@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The stage ladder's completeness list: the error codes a half-built flow may
  * legitimately carry, downgraded to warnings at `stage: 'draft'` and blocking
@@ -30,6 +31,9 @@ const COMPLETENESS_CODES = new Set([
     // Required fields the user simply hasn't filled in yet. The *_parse codes
     // belong here too: an expression is half-typed for as long as it takes to
     // type it, and autosave fires mid-keystroke.
+    // An expr binding that does not parse is half-typed mid-keystroke too; it
+    // still blocks finalize and go-live (stage 'activate').
+    'expr.parse',
     'integration_action.tool_missing',
     'integration_action.tool_unknown',
     'integration_action.param_missing',
@@ -163,6 +167,10 @@ const COMPLETENESS_CODES = new Set([
     // automation while reordering or rebuilding part of a flow.
     'ref.unknown_step',
     'ref.forward',
+    // Two steps reading each other (a data cycle with no edge cycle): usually
+    // one binding is repointed while a flow is rebuilt, so building through it is
+    // fine; it blocks at activate.
+    'ref.cycle',
     // A loop.<var> read by a step that does not (yet) iterate as <var> — the
     // forEach is usually the next thing the author adds.
     'ref.loop_unbound',

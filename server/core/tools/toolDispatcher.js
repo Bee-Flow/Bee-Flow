@@ -105,6 +105,9 @@ function automationCallContext(context) {
         // between the model and this call, so a grant on 'ask' may run.
         confirmLayer: context.confirmLayer === true,
         runScope: context.runScope || null,
+        // Set inside an automation run that uses its starter's own connections:
+        // a nested automation call records that person as its starter.
+        connectionsCallerUserId: context.connectionsCallerUserId || null,
     };
 }
 

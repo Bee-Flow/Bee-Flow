@@ -91,7 +91,9 @@ describe('loopBodyEdges', () => {
     });
 
     it('mirrors the runtime chain: the server engine still builds a linear, brancher-aware body', () => {
-        const src = fs.readFileSync(path.join(REPO, 'server/core/automationRunner/execFlow.js'), 'utf8');
+        const execFlow = fs.readFileSync(path.join(REPO, 'server/core/automationRunner/execFlow.js'), 'utf8');
+        expect(execFlow).toContain("require('./linearEdges')");
+        const src = fs.readFileSync(path.join(REPO, 'server/core/automationRunner/linearEdges.js'), 'utf8');
         expect(src).toContain('function buildLinearEdges');
         expect(src).toMatch(/label: 'then'/);
         expect(src).toMatch(/case:default/);

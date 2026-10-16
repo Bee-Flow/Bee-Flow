@@ -238,6 +238,26 @@ test('import warns instead of failing when a translation points at a block the e
     assert.ok(heroId);
 });
 
+test('import lowercases a language code and skips one that is not a language code, with a warning', async () => {
+    const { siteId } = await buildSourceSite();
+    const bundle = await cmsStore.exportSite(siteId);
+    const home = bundle.site.pages.find(p => p.slug === 'home');
+    home.locales.NL = home.locales.nl;
+    home.locales.nl_page_x = home.locales.nl;
+    delete home.locales.nl;
+
+    const result = await cmsStore.importSite(bundle);
+
+    assert.deepStrictEqual(result.warnings.filter((w) => /unrecognised language code/.test(w)), [
+        'Skipped translations for an unrecognised language code',
+    ]);
+    const newSite = await cmsStore.getProject(result.siteId);
+    const newHome = newSite.pages.find(p => p.slug === 'home');
+    const doc = await cmsStore.getPage(result.siteId, newHome.id);
+    const ov = await cmsStore.getPageLocaleOverride(result.siteId, newHome.id, 'nl');
+    assert.strictEqual(ov.blocks[doc.blocks[0].id].content.lead, NL_LEAD);
+});
+
 test('import caps the number of locales', async () => {
     const { siteId } = await buildSourceSite();
     const bundle = await cmsStore.exportSite(siteId);
@@ -278,4 +298,52 @@ test('duplicateProject carries translations too (it had the same silent gap)', a
         'a duplicated site used to arrive English-only');
     assert.strictEqual(eff.page.title, NL_TITLE);
     assert.strictEqual(eff.header.logoText, NL_LOGO);
+});
+
+// ── Internal page links survive the id regeneration ───────────────────
+
+test('import re-points internal page links (header, footer, block content) at the new page ids', async () => {
+    const { siteId, homeId, aboutId, heroId } = await buildSourceSite({ withLocales: false });
+    const site = await cmsStore.getProject(siteId);
+    site.header = { ...site.header, nav: [{ label: 'About', link: { kind: 'page', pageId: aboutId } }] };
+    site.footer = { ...site.footer, extra: { link: { kind: 'page', pageId: homeId } } };
+    await cmsStore.setProject(siteId, site);
+    const home = await cmsStore.getPage(siteId, homeId);
+    home.blocks[0].content.cta = { label: 'More', link: { kind: 'page', pageId: aboutId } };
+    await cmsStore.setPage(siteId, home);
+
+    const bundle = await cmsStore.exportSite(siteId);
+    const result = await cmsStore.importSite(bundle);
+
+    const imported = await cmsStore.getProject(result.siteId);
+    const newAbout = imported.pages.find(p => p.slug === 'about');
+    const newHome = imported.pages.find(p => p.slug === 'home');
+    assert.ok(newAbout && newHome);
+    assert.strictEqual(imported.header.nav[0].link.pageId, newAbout.id);
+    assert.strictEqual(imported.footer.extra.link.pageId, newHome.id);
+    const doc = await cmsStore.getPage(result.siteId, newHome.id);
+    assert.strictEqual(doc.blocks[0].content.cta.link.pageId, newAbout.id);
+    assert.notStrictEqual(heroId, undefined);
+    assert.deepStrictEqual(result.warnings, []);
+});
+
+test('import reports a page link it cannot resolve instead of leaving it silently broken', async () => {
+    const { siteId, homeId } = await buildSourceSite({ withLocales: false });
+    const home = await cmsStore.getPage(siteId, homeId);
+    home.blocks[0].content.cta = { label: 'Gone', link: { kind: 'page', pageId: 'pg_missing' } };
+    await cmsStore.setPage(siteId, home);
+    const bundle = await cmsStore.exportSite(siteId);
+    const result = await cmsStore.importSite(bundle);
+    assert.ok(result.warnings.some(w => /page link/i.test(w)), JSON.stringify(result.warnings));
+});
+
+test('import keeps a sound bundle and replaces a wrong-typed footer with the default, with a warning (#231)', async () => {
+    const { siteId } = await buildSourceSite();
+    const bundle = await cmsStore.exportSite(siteId);
+    bundle.site.chrome.footer = { columns: 'x' };
+    const result = await cmsStore.importSite(bundle);
+    assert.strictEqual(result.warnings.filter((w) => /footer was not used/.test(w)).length, 1);
+    const site = await cmsStore.getProject(result.siteId);
+    assert.ok(Array.isArray(site.footer.columns), 'the default footer was stored');
+    assert.strictEqual(site.pages.length, bundle.site.pages.length, 'the rest of the bundle imported');
 });

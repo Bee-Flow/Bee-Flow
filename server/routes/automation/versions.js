@@ -28,6 +28,7 @@
 // said it collected while every answer was dropped (formAnswers/write.js skips
 // an unlinked table without a word).
 const express = require('express');
+const { connectionsChanged } = require('../../automation/ownerOnlyFields');
 const router = express.Router();
 const automationStore = require('../../stores/automationStore');
 // Handoff 5 sharing: `view` reads the history, `edit` restores a version.
@@ -142,6 +143,12 @@ router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: 
     if (!version) return res.status(404).json({ error: 'Version not found' });
     if (version.automationId !== a.id) return res.status(400).json({ error: 'Version does not belong to this automation' });
 
+    // Whose connections a shared or agent-called run uses is the owner's call;
+    // a restore must not move it behind the owner's back.
+    if (access.role !== 'owner' && connectionsChanged(a.definition, version.definition)) {
+        return res.status(403).json({ error: 'Only the owner can change whose connections this automation uses.', code: 'automation_forbidden', need: 'owner' });
+    }
+
     const v = validateDefinition(version.definition || {});
     if (!v.ok) return res.status(400).json({ error: 'Stored version no longer validates', details: v.errors });
     // Every other save path (create, PUT, the MCP builder) refuses an approver
@@ -182,6 +189,7 @@ router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: 
         hasLive ? { definition: version.definition } : { definition: version.definition, ...columns, nextRunAt }, userId,
         {
             forceVersion: true,
+            allowConnectionsChange: access.role === 'owner',
             versionMeta: {
                 description: `Restored from v${version.version}`,
                 descriptionJson: [{ code: 'restored', params: { version: version.version } }],

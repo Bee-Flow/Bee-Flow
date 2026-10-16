@@ -108,7 +108,7 @@ test('cms_update_page_meta: unknown page → hint with known ids; reserved slug 
     assert.ok(bad.error && bad._fixHint.includes('Known page ids'), JSON.stringify(bad));
 
     const home = homeId(draft);
-    const reserved = await applyToolCall(draft, 'cms_update_page_meta', { pageId: home, slug: 'privacy' });
+    const reserved = await applyToolCall(draft, 'cms_update_page_meta', { pageId: home, slug: 'login' });
     assert.ok(reserved.error && /reserved/i.test(reserved.error), JSON.stringify(reserved));
 
     const ok = await applyToolCall(draft, 'cms_update_page_meta', { pageId: home, title: 'Start', hideFooter: true });
@@ -215,6 +215,46 @@ test('cms_add_blocks: position end / afterBlockId / index; unknown afterBlockId 
 
     const bad = await applyToolCall(draft, 'cms_add_blocks', { pageId: home, blocks: [{ type: 'cta' }], position: { afterBlockId: 'blk_ghost' } });
     assert.ok(bad.error && bad._fixHint.includes(heroId), JSON.stringify(bad));
+});
+
+test('cms_update_block: style v2 keys (band, rhythm, reveal, glow, columns) are persisted and validated', async () => {
+    const draft = await makeDraft();
+    const home = homeId(draft);
+    const added = await applyToolCall(draft, 'cms_add_blocks', { pageId: home, blocks: [{ type: 'features' }] });
+    const blockId = added.blockIds[0];
+
+    const ok = await applyToolCall(draft, 'cms_update_block', {
+        pageId: home, blockId,
+        stylePatch: { band: 'dark', rhythm: 'tight', reveal: 'off', glow: true, columns: '3' },
+    });
+    assert.ok(!ok.error && !ok._hints, JSON.stringify(ok));
+    const saved = draft.pages.get(home).blocks[0];
+    assert.deepStrictEqual(
+        { band: saved.style.band, rhythm: saved.style.rhythm, reveal: saved.style.reveal, glow: saved.style.glow, columns: saved.style.columns },
+        { band: 'dark', rhythm: 'tight', reveal: 'off', glow: true, columns: 3 },
+    );
+
+    for (const [patch, hint] of [
+        [{ band: 'neon' }, /default, surface, tint, dark, primary/],
+        [{ rhythm: 'loose' }, /tight, compact, default, spacious/],
+        [{ reveal: true }, /on, off/],
+        [{ glow: 'yes' }, /true or false/],
+        [{ columns: 5 }, /2, 3, 4/],
+    ]) {
+        const bad = await applyToolCall(draft, 'cms_update_block', { pageId: home, blockId, stylePatch: patch });
+        assert.ok(bad.error, JSON.stringify(patch));
+        assert.match(bad._fixHint, hint);
+    }
+    assert.strictEqual(draft.pages.get(home).blocks[0].style.band, 'dark', 'a rejected patch changed nothing');
+});
+
+test('cms_update_block: the tool description and STYLE_KEYS list the same style keys', () => {
+    const schema = TOOL_SCHEMAS.find((s) => s.function.name === 'cms_update_block');
+    const text = schema.function.description.split('stylePatch merges into the block\'s style wrapper:')[1].split('enabled=false')[0];
+    // Keys are the words at the start of each comma-separated entry, outside any (...) / {...}.
+    const flat = text.replace(/\([^)]*\)|\{[^}]*\}/g, '');
+    const documented = flat.split(',').map((e) => e.trim().split(/\s/)[0]).filter(Boolean);
+    assert.deepStrictEqual([...documented].sort(), [..._test.STYLE_KEYS].sort());
 });
 
 test('cms_update_block: content deep-merge (arrays wholesale), style enums validated, enabled toggle', async () => {
@@ -544,7 +584,7 @@ test('cms_update_design: schema in the roster; deep-merge patch persists through
     // logo/favicon are uploaded asset keys — never settable by the model.
     const props = Object.keys(schema.function.parameters.properties).sort();
     assert.deepStrictEqual(props, [
-        'colorsPatch', 'componentsPatch', 'darkColorsPatch', 'fontsPatch', 'gradient',
+        'colorsPatch', 'componentsPatch', 'darkBand', 'darkColorsPatch', 'fontsPatch', 'gradient',
         'grain', 'layoutPatch', 'motion', 'preset', 'radius', 'theme', 'typographyPatch',
     ], props.join(','));
     assert.deepStrictEqual(schema.function.parameters.properties.preset.enum, THEME_PRESET_IDS);
@@ -664,7 +704,8 @@ test('cms_update_design: teaching-signal rejections; nothing persists on a rejec
         ['unknown component enum', { componentsPatch: { buttonShape: 'squircle' } }, /not a legal value/i],
         ['unknown component key', { componentsPatch: { buttonGlow: 'on' } }, /not a field/i],
         ['unknown layout enum', { layoutPatch: { containerWidth: 'gigantic' } }, /not a legal value/i],
-        ['unknown typography value', { typographyPatch: { headingWeight: 800 } }, /not a legal value/i],
+        ['unknown typography value', { typographyPatch: { headingWeight: 1000 } }, /not a legal value/i],
+        ['unknown display tracking', { typographyPatch: { displayTracking: 'wide' } }, /not a legal value/i],
         ['unknown theme', { theme: 'sepia' }, /invalid/i],
         ['unknown motion', { motion: 'wild' }, /invalid/i],
         ['non-boolean grain', { grain: 'yes' }, /true or false/],
@@ -692,6 +733,28 @@ test('cms_update_design: teaching-signal rejections; nothing persists on a rejec
     assert.ok(!blankOk.error, JSON.stringify(blankOk));
     const blankBad = await applyToolCall(draft, 'cms_update_design', { darkColorsPatch: { background: '' } });
     assert.ok(blankBad.error && /#rrggbb/i.test(blankBad.error), JSON.stringify(blankBad));
+});
+
+test('cms_update_design: numeric strings are coerced for numeric enums, other values get an accurate error', async () => {
+    const draft = await makeDraft();
+    const ok = await applyToolCall(draft, 'cms_update_design', { typographyPatch: { headingWeight: '700', bodySize: ' 17 ' } });
+    assert.ok(!ok.error, JSON.stringify(ok));
+    const stored = await cmsStore.getProject(draft.siteId);
+    assert.strictEqual(stored.design.typography.headingWeight, 700);
+    assert.strictEqual(stored.design.typography.bodySize, 17);
+
+    const bad = await applyToolCall(draft, 'cms_update_design', { typographyPatch: { headingWeight: 'bold' } });
+    assert.match(bad.error, /"bold" is not a legal value\. Valid \(a number\): 500, 600, 700, 800, 900\./);
+    const heavy = await applyToolCall(draft, 'cms_update_design', { typographyPatch: { headingWeight: '900', displayTracking: 'tighter' } });
+    assert.ok(!heavy.error, JSON.stringify(heavy));
+    const heavyStored = await cmsStore.getProject(draft.siteId);
+    assert.strictEqual(heavyStored.design.typography.headingWeight, 900);
+    assert.strictEqual(heavyStored.design.typography.displayTracking, 'tighter');
+    const out = await applyToolCall(draft, 'cms_update_design', { typographyPatch: { headingWeight: '850' } });
+    assert.match(out.error, /"850" is not a legal value/);
+    // String enums keep their quoting in the message.
+    const str = await applyToolCall(draft, 'cms_update_design', { componentsPatch: { buttonShape: 'squircle' } });
+    assert.match(str.error, /Valid: "/);
 });
 
 test('cms_update_design: the summary reports what was PERSISTED, not what was requested', async () => {
@@ -835,10 +898,19 @@ test('validateSiteDraft: duplicate + reserved slugs surface as errors (legacy/im
     // Corrupt the index directly (imports/legacy data can carry collisions
     // the store would never mint itself).
     draft.site.pages[1].slug = 'home';
-    draft.site.pages.push({ id: 'pg_legacy1', slug: 'privacy', title: 'Old', isHomepage: false, hideHeader: false, hideFooter: false, isNotFound: false });
+    draft.site.pages.push({ id: 'pg_legacy1', slug: 'login', title: 'Old', isHomepage: false, hideHeader: false, hideFooter: false, isNotFound: false });
     const v = validateSiteDraft(draft);
     assert.ok(v.errors.some((e) => e.code === 'duplicate_slug'), JSON.stringify(v.errors));
-    assert.ok(v.errors.some((e) => e.code === 'reserved_slug' && e.message.includes('privacy')), JSON.stringify(v.errors));
+    assert.ok(v.errors.some((e) => e.code === 'reserved_slug' && e.message.includes('login')), JSON.stringify(v.errors));
+});
+
+test('validateSiteDraft: stored slugs the router cannot reach are reported (underscore, locale prefix)', async () => {
+    const draft = await makeDraft();
+    draft.site.pages.push({ id: 'pg_legacy2', slug: 'about_us', title: 'Old', isHomepage: false, hideHeader: false, hideFooter: false, isNotFound: false });
+    draft.site.pages.push({ id: 'pg_legacy3', slug: 'nl', title: 'Dutch', isHomepage: false, hideHeader: false, hideFooter: false, isNotFound: false });
+    const v = validateSiteDraft(draft);
+    assert.ok(v.warnings.some((w) => w.code === 'unroutable_slug' && w.message.includes('about_us')), JSON.stringify(v.warnings));
+    assert.ok(v.errors.some((e) => e.code === 'reserved_slug' && e.message.includes('"nl"')), JSON.stringify(v.errors));
 });
 
 test('validateSiteDraft: header/footer icons exempt from unknown_icon; page blocks still checked; header links still checked', async () => {
@@ -887,4 +959,40 @@ test('cmsStore builder session: round-trip + ≤64KB trim drops OLDEST messages 
     assert.ok(stored.messages[stored.messages.length - 1].content.startsWith('19:'), 'newest kept');
     assert.ok(!stored.messages.some((m) => m.content.startsWith('0:')), 'oldest dropped first');
     assert.strictEqual(stored.sessionId, 'cms_trim');
+});
+
+// ── Parallel tool calls (the MCP agent issues them concurrently) ─────
+
+test('cms_update_block: two parallel calls on one page each keep the other\'s edit', async () => {
+    const draft = await makeDraft();
+    const home = homeId(draft);
+    const added = await applyToolCall(draft, 'cms_add_blocks', {
+        pageId: home, blocks: [{ type: 'faq' }, { type: 'faq' }],
+    });
+    const [first, second] = added.blockIds;
+
+    const [a, b] = await Promise.all([
+        applyToolCall(draft, 'cms_update_block', { pageId: home, blockId: first, contentPatch: { heading: 'edited A' } }),
+        applyToolCall(draft, 'cms_update_block', { pageId: home, blockId: second, contentPatch: { heading: 'edited B' } }),
+    ]);
+
+    assert.ok(!a.error && !b.error, JSON.stringify([a, b]));
+    const stored = await cmsStore.getPage(draft.siteId, home, { fresh: true });
+    assert.strictEqual(stored.blocks.find((x) => x.id === first).content.heading, 'edited A');
+    assert.strictEqual(stored.blocks.find((x) => x.id === second).content.heading, 'edited B');
+});
+
+test('cms_update_header_nav and cms_update_design in parallel keep each other and a page created meanwhile', async () => {
+    const draft = await makeDraft();
+    const [nav, design, created] = await Promise.all([
+        applyToolCall(draft, 'cms_update_header_nav', { nav: [{ label: 'Home', link: { kind: 'page', pageId: homeId(draft) } }] }),
+        applyToolCall(draft, 'cms_update_design', { colorsPatch: { primary: '#112233' } }),
+        applyToolCall(draft, 'cms_create_page', { slug: 'extra', title: 'Extra' }),
+    ]);
+
+    assert.ok(!nav.error && !design.error && !created.error, JSON.stringify([nav, design, created]));
+    const site = await cmsStore.getProject(draft.siteId, { fresh: true });
+    assert.deepStrictEqual(site.header.nav.map((i) => i.label), ['Home']);
+    assert.strictEqual(site.design.colors.primary, '#112233');
+    assert.deepStrictEqual(site.pages.map((p) => p.slug), ['home', 'extra']);
 });

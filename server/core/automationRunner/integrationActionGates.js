@@ -15,6 +15,7 @@
 const log = require('../../telemetry/log');
 // The built-in step-type table is automation/'s, reached through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
+const { permittedCatalog } = require('./toolIdentity');
 
 /**
  * Throws when `step.tool` is no longer in the user's CURRENT allowed tool set.
@@ -36,16 +37,7 @@ async function assertStepToolPermitted(step, ctx, sideEffect, deps) {
             // owner's LENT providers' tools must be in the allowed set too, else
             // the permission gate below would reject a validly-borrowed tool.
             // Inert unless the flag is on AND an owner is provided.
-            const lendPolicy = (ctx.resourceOwnerUserId && ctx.resourceOwnerUserId !== ctx.userId)
-                ? { ownerUserId: ctx.resourceOwnerUserId, resourceType: 'automation', resourceId: ctx.automationId || null }
-                : null;
-            const r = await getIntegrationTools({
-                userId: ctx.userId,
-                session: ctx.session,
-                isAdmin: !!ctx.session?.isAdmin || ctx.session?.user?.role === 'admin',
-                automationStep: true,
-                connectionPolicy: lendPolicy,
-            });
+            const r = await permittedCatalog(ctx, getIntegrationTools, { automationStep: true, lend: true });
             ctx.allowedToolNames = new Set((r.tools || []).map(t => t?.function?.name).filter(Boolean));
         } catch (e) {
             // If we can't resolve the catalog, fail closed for side-effects
@@ -80,6 +72,13 @@ async function resolveLendingIdentity(step, ctx, deps) {
     // non-owner may borrow the owner's named connection for this step. Inert
     // unless INTEGRATION_CONNECTION_LENDING_ENABLED is set AND a resource owner
     // distinct from the runner is provided — so today's behavior is unchanged.
+    //
+    // A run on `runPolicy.connections = 'caller'` dispatches as the starter and
+    // never lends: the owner's connection is not an option, so there is
+    // nothing to fall back to (callerConnections.js).
+    if (ctx.callerOnly) {
+        return { stepUserId: ctx.callerOnly.userId, stepOrgId: ctx.callerOnly.orgId, stepSession: ctx.callerOnly.session, lentConnection: null };
+    }
     let stepUserId = ctx.userId;
     let stepOrgId = ctx.orgId;
     let lentConnection = null;
@@ -96,7 +95,7 @@ async function resolveLendingIdentity(step, ctx, deps) {
             if (ov) { stepUserId = ov.integrationUserId; stepOrgId = ov.integrationOrgId; lentConnection = ov; }
         }
     } catch (_) { /* fail closed to bring-your-own */ }
-    return { stepUserId, stepOrgId, lentConnection };
+    return { stepUserId, stepOrgId, stepSession: ctx.session, lentConnection };
 }
 
 /**

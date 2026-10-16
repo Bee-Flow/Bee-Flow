@@ -18,6 +18,7 @@
  */
 const express = require('express');
 const cors = require('cors');
+const { parseAllowedOrigins, isAllowedOrigin: matchesAllowedOrigin } = require('../utils/allowedOrigins');
 const defaultLog = require('../telemetry/log');
 const { safeForLog } = require('../utils/safeForLog');
 
@@ -55,16 +56,10 @@ const CORS_WARN_MAX_PER_WINDOW = 20;
  * @param {{ log?: { warn: Function } }} [opts]
  */
 function applyCors(app, { log = defaultLog } = {}) {
-    const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || 'http://localhost:5173')
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean);
+    const ALLOWED_ORIGINS = parseAllowedOrigins(process.env.CORS_ORIGIN);
 
     /** Trailing-slash-insensitive membership test against the allow-list. */
-    function isAllowedOrigin(origin) {
-        const normalized = origin.endsWith('/') ? origin.slice(0, -1) : origin;
-        return ALLOWED_ORIGINS.some(o => (o.endsWith('/') ? o.slice(0, -1) : o) === normalized);
-    }
+    const isAllowedOrigin = (origin) => matchesAllowedOrigin(origin, ALLOWED_ORIGINS);
 
     // The counters behind the ceilings above, one set per dispatcher.
     const _corsWarnedAt = new Map();

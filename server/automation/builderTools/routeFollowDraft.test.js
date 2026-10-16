@@ -121,3 +121,17 @@ test('a list switch replaced by a filter hands its first output back to items', 
     assert.strictEqual(stepOf(graph, 'ra').forEach.overRef, 'steps.r.output.items');
     assert.deepStrictEqual(followReplacedRoute(graph, { id: 'r', type: 'condition', expr: 'true' }, 'nope'), []);
 });
+
+test('a second list Condition chained after the first narrows it, and the note says how to branch instead', () => {
+    const f1 = { id: 'f1', type: 'filter', arrayRef: 'steps.rm.output.messages', expr: 'a' };
+    const f2 = { id: 'f2', type: 'filter', arrayRef: 'steps.rm.output.messages', expr: 'b' };
+    const graph = {
+        trigger: { id: 'trg', type: 'trigger', kind: 'manual' },
+        steps: [{ id: 'rm', type: 'integration_action', tool: 'gmail_read_many' }, f1, f2],
+        edges: [{ from: 'trg', to: 'rm' }, { from: 'rm', to: 'f1' }, { from: 'f1', to: 'f2' }],
+    };
+    const notes = followAddedSteps(graph, ['f2']);
+    assert.strictEqual(stepOf(graph, 'f1').arrayRef, 'steps.rm.output.messages', 'the first filter is never touched');
+    assert.strictEqual(stepOf(graph, 'f2').arrayRef, 'steps.f1.output.items');
+    assert.match(notes[0], /in series narrow each other.*afterStepId/);
+});

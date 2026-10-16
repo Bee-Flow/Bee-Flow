@@ -224,8 +224,7 @@ test('non-run_automation action (navigate) answers 404', async () => {
 test('unpublished app + non-owner answers 404 (no existence leak)', async () => {
     const app = makeApp({ published: false, actionsPub: { act1: RUN_ACTION }, actionsDraft: { act1: RUN_ACTION } });
     const r = await dispatch({ url: `/${app.id}/actions/act1/run`, orgIds: [ORG], body: {} });
-    assert.strictEqual(r.statusCode, 404);
-    assert.strictEqual(r.body.error, 'App not found');
+    assert.deepStrictEqual([r.statusCode, r.body.error], [404, 'App not found']);
     assert.strictEqual(runnerCalls.length, 0);
 });
 
@@ -288,7 +287,7 @@ test('non-owner ALWAYS runs the published definition, even with ?draft=1', async
     const r = await dispatch({ url: `/${app.id}/actions/act1/run?draft=1`, orgIds: [ORG], body: {}, query: { draft: '1' } });
     assert.strictEqual(r.statusCode, 200);
     assert.strictEqual(runnerCalls.length, 1);
-    assert.strictEqual(runnerCalls[0].automation.id, 'auto-owner');
+    assert.deepStrictEqual([runnerCalls[0].automation.id, runnerCalls[0].opts.startedByUserId], ['auto-owner', 'viewer-1'], 'the signed-in person is the starter, from the session');
 });
 
 test('owner + ?draft=1 runs the working draft; owner without it runs the published copy', async () => {
@@ -778,12 +777,13 @@ test('poll: a foreign run (not the app owner\'s) answers 403', async () => {
 });
 
 test('poll: an owner run started by a DIFFERENT app answers 403', async () => {
-    // Defense-in-depth: even the owner's own runs are only pollable through
-    // the app that started them (the bridge stamps _studioAppId).
     const app = makeApp({ actionsPub: { act1: RUN_ACTION } });
     runsById.set('run-x', { id: 'run-x', userId: OWNER, status: 'success', output: { n: 9 }, error: null, triggerPayload: { _studioAppId: 'some-other-app' } });
     const r = await dispatch({ method: 'GET', url: `/${app.id}/actions/runs/run-x`, orgIds: [ORG] });
     assert.strictEqual(r.statusCode, 403);
+    runsById.set('run-c', { id: 'run-c', userId: OWNER, status: 'success', output: { n: 5 }, error: null, connectionsMode: 'caller', startedByUserId: 'viewer-1', triggerPayload: { _studioAppId: app.id } });
+    assert.strictEqual((await dispatch({ method: 'GET', url: `/${app.id}/actions/runs/run-c`, orgIds: [ORG], user: 'viewer-2' })).statusCode, 403, 'a caller-mode run: not for another viewer');
+    assert.strictEqual((await dispatch({ method: 'GET', url: `/${app.id}/actions/runs/run-c`, orgIds: [ORG], user: 'viewer-1' })).body.output.n, 5);
 });
 
 test('poll: missing run answers 404; non-visible app answers 404 before the run is looked at', async () => {

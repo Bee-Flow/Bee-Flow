@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Shared constants, run-state helpers and DAG-traversal primitives for the
  * automation engine (extracted verbatim from engine.js). Leaf relative to
@@ -165,7 +166,7 @@ function enrichNextcloudError(toolName, err, rawText) {
     if (!err || !toolName || !String(toolName).startsWith('nextcloud_')) return err;
     try {
         const { classifyNextcloudError } = require('../integrations/nextcloudErrorClassifier');
-        const c = classifyNextcloudError(rawText != null ? rawText : err);
+        const c = classifyNextcloudError(rawText != null ? rawText : err, { tool: toolName });
         err.ncRawMessage = err.message;
         err.ncError = { code: c.code, category: c.category, remediation: c.remediation };
         err.errorClass = c.errorClass;

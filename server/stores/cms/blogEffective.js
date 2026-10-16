@@ -86,7 +86,7 @@ function localesForPost(overrides, postId, defaultLocale, siteLocales) {
 /**
  * @param {string} siteId
  * @param {{ state?: 'published'|'draft', view?: 'index'|'post', postSlug?: string, tag?: string,
- *           page?: number, locale?: string, siteLocales?: string[], now?: number,
+ *           page?: number | string, locale?: string, siteLocales?: string[], now?: number,
  *           draftPost?: object }} opts
  *   draftPost — an unsaved post to preview instead of the stored one (admin preview)
  * @returns {Promise<object|null>} null when there is no published snapshot (state published)

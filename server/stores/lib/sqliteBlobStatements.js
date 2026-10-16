@@ -7,6 +7,8 @@
  * the loader, plus the stateless SQL/param helpers they share.
  */
 
+const { assertPageStatement } = require('./sqliteStatementGuard');
+
 const MAX_SQL_BYTES = 500_000;
 const MAX_RESULT_ROWS = 10_000;
 
@@ -19,6 +21,9 @@ function validateSql(sql) {
     if (Buffer.byteLength(sql, 'utf8') > MAX_SQL_BYTES) {
         throw new Error(`sql is larger than the ${MAX_SQL_BYTES}-byte limit`);
     }
+    // Every statement that reaches a page database passes this one check, so
+    // each entry point (query, exec, batch, applyMigration) is covered.
+    assertPageStatement(sql);
 }
 
 function normalizeParams(params) {

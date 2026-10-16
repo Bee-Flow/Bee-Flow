@@ -102,6 +102,7 @@ const safety = require('./safety');
 const { memoKeyParts, memoKeyFromParts } = require('./toolMemo');
 const { envFlagOn, resolveCachePolicy, resolveCachePolicyFresh } = require('./integrationCachePolicy');
 const log = require('../../telemetry/log');
+const { toolIdentity, stepKeyIdentity } = require('./toolIdentity');
 
 /**
  * EVERY method may be cached. This is a deliberate product decision taken by the
@@ -549,8 +550,7 @@ async function lookup({
     // with this step's setting.
     const identity = memoKeyParts({
         toolName: 'http_request',
-        stepUserId: ctx.userId,
-        stepOrgId: ctx.orgId,
+        ...stepKeyIdentity(ctx),
         connectionId,
         grantId,
         integrationServer: parsedUrl.origin,
@@ -572,7 +572,7 @@ async function lookup({
         // The durable row carries an owner, because erasure has to be able to
         // find it: a cached answer was fetched with this person's credentials
         // and is about the things they can see.
-        userId: ctx.userId,
+        userId: toolIdentity(ctx).userId,
         hostname: parsedUrl.hostname,
         method,
         // The REDACTED url, split for the two visible columns and built here so

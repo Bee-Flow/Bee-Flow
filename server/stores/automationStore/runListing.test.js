@@ -30,7 +30,7 @@ before(async () => {
             id TEXT PRIMARY KEY, automation_id TEXT NOT NULL, user_id TEXT, root_run_id TEXT,
             started_by_user_id TEXT, submitted_by_user_id TEXT, status TEXT, trigger_kind TEXT, mode TEXT DEFAULT 'live',
             summary TEXT, outcome_json JSONB, trigger_payload JSONB, is_test BOOLEAN NOT NULL DEFAULT FALSE,
-            started_at TIMESTAMPTZ DEFAULT NOW()
+            started_at TIMESTAMPTZ DEFAULT NOW(), connections_mode TEXT
         );
         CREATE TABLE automation_run_steps (
             run_id TEXT, step_id TEXT, parent_step_id TEXT, step_type TEXT, status TEXT, attempts INT DEFAULT 1,
@@ -49,6 +49,11 @@ before(async () => {
             -- r4's head says success; its continuation (r4b) is what the list shows.
             ('r4', 'a1', 'u-anna', 'r4', NULL, NULL, 'success', 'Resumed', NULL, NULL, FALSE, NOW() - INTERVAL '1 minutes'),
             ('r4b', 'a1', 'u-anna', 'r4', NULL, NULL, 'awaiting_approval', 'Waiting', '{"code":"waiting_approval","text":"Waiting for approval from Finance"}', NULL, FALSE, NOW());
+
+        -- A run on its starter's own connections (u-bas started it): its summary,
+        -- outcome sentence and payload belong to u-bas alone.
+        INSERT INTO automation_runs (id, automation_id, user_id, root_run_id, started_by_user_id, status, summary, outcome_json, trigger_payload, connections_mode, started_at) VALUES
+            ('rc', 'a1', 'u-anna', 'rc', 'u-bas', 'success', 'Quarterly zebra report', '{"code":"success","text":"Sent the zebra report"}', '{"subject":"zebra payroll"}', 'caller', NOW() - INTERVAL '30 seconds');
 
         INSERT INTO automation_run_steps (run_id, step_id, parent_step_id, step_type, status, attempts, started_at) VALUES
             ('r4', 's1', NULL, 'integration_action', 'success', 1, NOW() - INTERVAL '50 seconds'),
@@ -83,7 +88,7 @@ test('q: the outcome sentence, the summary of the newest leg, and the starter\'s
     assert.deepStrictEqual(await ids(A1, { q: 'from finance' }), ['r4'], 'the continuation\'s outcome is the journey\'s');
     assert.deepStrictEqual(await ids(A1, { q: 'resumed' }), [], 'the head\'s stale summary is not what the row shows');
     assert.deepStrictEqual(await ids(A1, { q: 'de vries' }), ['r1']);
-    assert.deepStrictEqual(await ids(A1, { q: 'BAS' }), ['r2'], 'the person who filled in the form counts too');
+    assert.deepStrictEqual(await ids(A1, { q: 'BAS' }), ['r2', 'rc'], 'the person who filled in the form counts too');
 });
 
 test('q: trigger-payload STRING values at any depth, never keys', async () => {
@@ -108,9 +113,9 @@ test('q on the org log: no payload search', async () => {
 
 test('startedBy and tests narrow the scope', async () => {
     assert.deepStrictEqual(await ids(A1, { startedBy: 'u-anna' }), ['r1']);
-    assert.deepStrictEqual(await ids(A1, { startedBy: 'u-bas' }), ['r2']);
+    assert.deepStrictEqual(await ids(A1, { startedBy: 'u-bas' }), ['r2', 'rc']);
     assert.deepStrictEqual(await ids(A1, { tests: 'only' }), ['r1']);
-    assert.deepStrictEqual(await ids(A1, { tests: 'exclude' }), [RUN_LINK_ID, 'r2', 'r3', 'r4']);
+    assert.deepStrictEqual(await ids(A1, { tests: 'exclude' }), [RUN_LINK_ID, 'r2', 'r3', 'r4', 'rc']);
     assert.deepStrictEqual(await ids(A1, { tests: 'exclude', q: '23 files' }), []);
 });
 
@@ -131,4 +136,16 @@ test('getVersionDefinitions: the newest snapshot per (automation, version)', asy
 test('getPendingApprovalIdsForRuns: the pending one only', async () => {
     const map = await getPendingApprovalIdsForRuns(['r4b', 'r1'], { query });
     assert.deepStrictEqual([...map.entries()], [['r4b', 'ap1']]);
+});
+
+test('q: a run on its starter\'s own connections is searchable by its data only by the starter', async () => {
+    for (const q of ['zebra report', 'sent the zebra', 'zebra payroll']) {
+        assert.deepStrictEqual(await ids(A1, { q, viewerUserId: 'u-anna' }), [], `the owner finds nothing for "${q}"`);
+        assert.deepStrictEqual(await ids(A1, { q }), [], `nobody (no viewer) finds nothing for "${q}"`);
+        assert.deepStrictEqual(await ids(A1, { q, viewerUserId: 'u-bas' }), ['rc'], `the starter finds it for "${q}"`);
+    }
+    // The owner's own ordinary searches are unchanged.
+    assert.deepStrictEqual(await ids(A1, { q: '23 files', viewerUserId: 'u-anna' }), ['r1']);
+    // The org log never searches payloads and hides the caller run's text too.
+    assert.deepStrictEqual(await ids({ org: { orgId: 'org1' } }, { q: 'zebra', viewerUserId: 'u-anna' }), []);
 });

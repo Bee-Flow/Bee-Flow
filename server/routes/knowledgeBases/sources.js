@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Knowledge Bases — sources (K1).
  *

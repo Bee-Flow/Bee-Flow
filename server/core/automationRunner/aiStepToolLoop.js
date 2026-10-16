@@ -12,6 +12,7 @@ const { isSideEffect } = require('../automationModel/sideEffectMap');
 const { synthesizeDryRunOutput } = require('./execIntegrationAction');
 // Safety/monitoring backbone — PII + regex guardrails + egress logging, mirroring
 // the agent/direct-chat pipeline so automations stop bypassing those controls.
+const { toolIdentity } = require('./toolIdentity');
 const safety = require('./safety');
 const { runWithProbe, markLocal } = require('../http/outboundProbe');
 
@@ -49,6 +50,7 @@ function assistantToolCallMessage(response) {
 async function dispatchAiToolCall(tc, callArgs, toolAudit, env) {
     const { ctx, mode, policy, agentBinding, executeTool } = env;
     const aiToolT0 = Date.now();
+    const who = toolIdentity(ctx);
     const ran = await runWithProbe(async () => {
         const { resolveIntegration } = require('../integrations/integrationToolMap');
         const meta = resolveIntegration(tc.function.name, callArgs, { nextcloudUrl: ctx.nextcloudUrl });
@@ -57,8 +59,11 @@ async function dispatchAiToolCall(tc, callArgs, toolAudit, env) {
             return {
                 ok: true,
                 value: await executeTool(tc.function.name, callArgs, {
-                    userId: ctx.userId, session: ctx.session, orgId: ctx.orgId,
-                    userGroupIds: ctx.userGroupIds || [],
+                    userId: who.userId, session: who.session, orgId: who.orgId,
+                    userGroupIds: who.userGroupIds,
+                    // The person whose connections this run uses, so a nested
+                    // automation call records the same starter (agentCallableTools).
+                    connectionsCallerUserId: ctx.callerOnly ? ctx.callerOnly.userId : null,
                     // The automation this step belongs to — what lets a
                     // self-scoped tool (automation_*) act on its own automation
                     // and nothing else.
@@ -221,4 +226,4 @@ async function runAiStepChat(call) {
     return { response, hitIterationCap: !!(response && response.toolCalls && response.toolCalls.length) };
 }
 
-module.exports = { runAiStepChat, MAX_AI_STEP_TOOL_ITERATIONS };
+module.exports = { runAiStepChat, MAX_AI_STEP_TOOL_ITERATIONS, dispatchAiToolCall };

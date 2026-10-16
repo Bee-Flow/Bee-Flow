@@ -4,12 +4,15 @@
 // had to drop.
 
 const configStore = require('../configStore');
+const { revOf, CONFLICT_CODE } = require('./revision');
 const { getAll } = require('../../db');
 const { BLOCK_DEFAULTS, BLOCK_TYPE_IDS } = require('../../i18n/defaults/cmsDefaults');
+const { sanitizeBlockDesignStyle } = require('../../i18n/defaults/blockStyleEnums');
 const {
     PAGE_VERSION, KEY_LOCALE_INFIX,
-    newId, isPlainObject, clone, normalizeSlug, assertSiteId, pageKey,
+    newId, isPlainObject, clone, normalizeStoredSlug, assertSiteId, pageKey,
 } = require('./shared');
+const { writePageAligned } = require('./overrideAlign');
 
 // ── Pages ────────────────────────────────────────────────────────────
 
@@ -41,17 +44,24 @@ async function getPage(siteId, pageId, { fresh = false } = {}) {
     assertSiteId(siteId);
     const read = fresh ? configStore.getConfigFresh : configStore.getConfig;
     const v = await read(pageKey(siteId, pageId));
-    return isPlainObject(v) ? v : null;
+    // `rev` is always present for the caller (0 for pages saved before revisions).
+    return isPlainObject(v) ? { ...v, rev: revOf(v) } : null;
 }
 
-async function setPage(siteId, page) {
+/**
+ * @param {string} siteId
+ * @param {any} page
+ * @param {{ expectedRev?: number }} [opts] when set, the save is refused with
+ *   409 unless the stored page is still at that revision
+ */
+async function setPage(siteId, page, { expectedRev } = {}) {
     assertSiteId(siteId);
     if (!isPlainObject(page) || !page.id) throw new Error('page.id required');
     const { blocks, dropped } = sanitizeBlocks(Array.isArray(page.blocks) ? page.blocks : []);
     const sanitized = {
         version: PAGE_VERSION,
         id: String(page.id),
-        slug: normalizeSlug(page.slug || ''),
+        slug: normalizeStoredSlug(page.slug || ''),
         title: typeof page.title === 'string' ? page.title : '',
         seo: isPlainObject(page.seo) ? {
             metaTitle:       typeof page.seo.metaTitle === 'string' ? page.seo.metaTitle : '',
@@ -61,11 +71,36 @@ async function setPage(siteId, page) {
         } : { metaTitle: '', metaDescription: '', ogImage: '', noIndex: false },
         blocks,
     };
-    await configStore.setConfig(pageKey(siteId, sanitized.id), sanitized);
+    // Content, re-keyed locale overrides and the revision land in one transaction.
+    const report = {};
+    const localeOverrides = await writePageAligned(siteId, sanitized, { expectedRev, report });
     // Return the dropped blocks alongside the saved page so callers can warn
     // the user (the render + persist layers otherwise discard unknown-type
     // blocks silently — the "import → empty page, no error" failure mode).
-    return { page: sanitized, dropped };
+    return { page: { ...sanitized, rev: report.rev ?? 0 }, dropped, localeOverrides };
+}
+
+/**
+ * Read-modify-write of one page that never loses a concurrent save: `change`
+ * gets a private copy of the CURRENT stored page and returns the page to save;
+ * if somebody saves in between, the change is applied again to their version.
+ * `change` must be pure (it can run more than once) and may throw to abort.
+ * @param {string} siteId
+ * @param {string} pageId
+ * @param {(page: any) => any} change
+ * @param {{ attempts?: number }} [opts]
+ */
+async function mutatePage(siteId, pageId, change, { attempts = 5 } = {}) {
+    for (let attempt = 1; ; attempt++) {
+        const cur = await getPage(siteId, pageId, { fresh: true });
+        if (!cur) throw new Error('Page not found');
+        const next = change(clone(cur));
+        try {
+            return await setPage(siteId, { ...next, id: pageId }, { expectedRev: cur.rev });
+        } catch (e) {
+            if (e?.code !== CONFLICT_CODE || attempt >= attempts) throw e;
+        }
+    }
 }
 
 // Forgiving aliases for casing/spelling variants of our block type strings —
@@ -79,8 +114,12 @@ const BLOCK_TYPE_ALIASES = {
     livecomponent: 'live-component', live_component: 'live-component',
     customersupport: 'customer-support', customer_support: 'customer-support',
     'call-to-action': 'cta', calltoaction: 'cta',
-    testimonial: 'testimonials', faqs: 'faq',
+    testimonial: 'testimonials', faqs: 'faq', forms: 'form',
     trustband: 'trust-band', trust_band: 'trust-band',
+    productmockup: 'product-mockup', product_mockup: 'product-mockup', mockup: 'product-mockup',
+    cardcarousel: 'card-carousel', card_carousel: 'card-carousel', carousel: 'card-carousel',
+    'scroll-story': 'scrollStory', scrollstory: 'scrollStory', scroll_story: 'scrollStory',
+    producttour: 'tour', 'product-tour': 'tour', product_tour: 'tour',
 };
 const BLOCK_STRUCTURAL_KEYS = new Set(['id', 'type', 'enabled', 'content', 'style', 'meta', 'version']);
 
@@ -116,7 +155,7 @@ function normalizeBlockRecord(block, index) {
             type,
             enabled: block.enabled !== false,
             content,
-            style: isPlainObject(block.style) ? block.style : {},
+            style: isPlainObject(block.style) ? sanitizeBlockDesignStyle(block.style) : {},
         },
         dropped: null,
     };
@@ -151,6 +190,6 @@ async function deletePage(siteId, pageId) {
 }
 
 module.exports = {
-    emptyPage, makeBlock, getPage, setPage,
+    emptyPage, makeBlock, getPage, setPage, mutatePage,
     normalizeBlockRecord, sanitizeBlocks, sanitizeBlock, deletePage,
 };

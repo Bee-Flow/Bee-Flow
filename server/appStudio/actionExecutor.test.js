@@ -316,6 +316,7 @@ test('run_automation: owner-owned automation runs acts-as-owner and returns outp
     assert.strictEqual(runnerCalls[0].automation.id, 'auto-1');
     assert.deepStrictEqual(runnerCalls[0].opts.triggerPayload.inputs, { name: 'Tom' });
     assert.strictEqual(runnerCalls[0].opts.triggerPayload._viewerUserId, OWNER);
+    assert.strictEqual(runnerCalls[0].opts.startedByUserId, OWNER, 'the viewer is the starter (runPolicy.connections = caller)');
     assert.strictEqual(runnerCalls[0].opts.mode, 'live');
 });
 

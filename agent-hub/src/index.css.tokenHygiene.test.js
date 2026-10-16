@@ -26,7 +26,10 @@ import { describe, it, expect } from 'vitest';
  *      token with a runtime source of truth: --announce-height, --pill-tint,
  *      --cms-cols and the --app-* theme vars are deliberately never in CSS,
  *      because an ABSENT property is what makes their `var(--x, fallback)`
- *      fall back (marketing.css:3448 says so in as many words);
+ *      fall back (marketing.css:3448 says so in as many words). A table of
+ *      `[key, '--x']` pairs that a loop writes into such a style object counts
+ *      too: marketing/designRoles.ts maps the colour roles that way
+ *      (`['tile', '--tile-color']`), and designTiles.ts reads the result;
  *   3. a Tailwind arbitrary PROPERTY class that sets it on the element,
  *      `[--x:var(--type-ai)]` (Builder/ndv/familyVar.ts sets `--fam` this way,
  *      so one class per family paints a whole header without a style object).
@@ -73,6 +76,7 @@ for (const f of SOURCE_FILES) {
     for (const m of src.matchAll(/setProperty\(\s*['"](--[a-zA-Z0-9_-]+)['"]/g)) setFromScript.add(m[1]);
     for (const m of src.matchAll(/['"](--[a-zA-Z0-9_-]+)['"]\s*(?::|\]\s*=)/g)) setFromScript.add(m[1]);
     for (const m of src.matchAll(/\[(--[a-zA-Z0-9_-]+):/g)) setFromScript.add(m[1]);
+    for (const m of src.matchAll(/\[\s*['"][\w-]+['"]\s*,\s*['"](--[a-zA-Z0-9_-]+)['"]\s*\]/g)) setFromScript.add(m[1]);
 }
 
 describe('src/index.css — token hygiene, repo-wide', () => {
@@ -85,6 +89,7 @@ describe('src/index.css — token hygiene, repo-wide', () => {
         expect(declared.has('--success-ink')).toBe(true);
         expect(setFromScript.has('--announce-height')).toBe(true);
         expect(setFromScript.has('--pill-tint')).toBe(true);
+        expect(setFromScript.has('--tile-color')).toBe(true);
     });
 
     it('every var(--x) read under src/ is declared in a stylesheet or set from script', () => {

@@ -21,6 +21,8 @@
 'use strict';
 
 const { BLOG_TOOLS } = require('./blog');
+const { REDIRECT_TOOLS } = require('./redirects');
+const { LINK_TOOLS } = require('./linkHandlers');
 
 const SITE_ID_PROP = Object.freeze({
     type: 'string',
@@ -29,7 +31,7 @@ const SITE_ID_PROP = Object.freeze({
 
 const LOCALE_PROP = Object.freeze({
     type: 'string',
-    description: 'A language code such as "en", "nl" or "pt-br".',
+    description: 'A language code such as "en", "nl" or "pt-br". Only the default language and the languages the public site routes ("nl") are reachable by visitors; others are stored with a warning.',
 });
 
 const RANGE_PROPS = Object.freeze({
@@ -95,7 +97,7 @@ const MCP_ONLY_TOOLS = [
                 name: { type: 'string', description: 'New site name (max 200 chars).' },
                 header: { type: 'object', description: 'Patch for the header (logoText, logo, ctas, enabled, …). Not nav.' },
                 footer: { type: 'object', description: 'Patch for the footer (brandText, blurb, columns, socials, copyright, accountability, showLanguageSwitcher, …).' },
-                cookieBanner: { type: 'object', description: 'Patch for the cookie banner (enabled, text per language).' },
+                cookieBanner: { type: 'object', description: 'Patch for the cookie banner (enabled, layout card|bar|corner — bar is a slim full-width strip at the bottom that leaves the hero buttons uncovered, corner a small bottom-left card — and text per language).' },
                 announcement: { type: 'object', description: 'Patch for the announcement bar (enabled, text per language, link, …).' },
                 analytics: {
                     type: 'object',
@@ -120,7 +122,7 @@ const MCP_ONLY_TOOLS = [
     },
     {
         name: 'cms_set_locale_override',
-        description: 'Write the translation of the DRAFT for one language: a site-level override (omit pageId: {header, footer, pageTitles}) or a page-level one (pageId given: {blocks:{<blockId>:{content:{…text fields only…}}}, seo:{metaTitle,metaDescription}}; the text of every block sits under `content`, mirroring the content shape of that block (arrays by index)). The override REPLACES the existing one for that language and scope, so read it with cms_get_locale_overrides first and send it whole. Text only: structure, icons, links and styles always come from the default language. Pass remove:true to delete the override.',
+        description: 'Write the translation of the DRAFT for one language: a site-level override (omit pageId: {header, footer, pageTitles}) or a page-level one (pageId given: {blocks:{<blockId>:{content:{…text fields and media addresses…}}}, seo:{metaTitle,metaDescription}}; the text of every block sits under `content`, mirroring the content shape of that block (arrays by index)). The override REPLACES the existing one for that language and scope, so read it with cms_get_locale_overrides first and send it whole. Text and media: the media addresses of a block (`src`, `srcDark`, `poster`, `captionsSrc` anywhere under `content`, e.g. {content:{media:{src:"cms/nl-intro.mp4", poster:"cms/nl-poster.jpg"}}}) may differ per language; they must be uploaded asset keys (cms/…), /api/cms/asset/… paths or http(s) URLs, anything else is dropped. Structure, icons, links and styles always come from the default language. Pass remove:true to delete the override.',
         parameters: {
             type: 'object',
             properties: {
@@ -140,7 +142,11 @@ const MCP_ONLY_TOOLS = [
         description: 'Delete a page from the DRAFT (not the live site until it is published). Cannot be undone. Links to it in the header and footer are removed; if it was the homepage, the first remaining page becomes the homepage (set another with cms_set_homepage).',
         parameters: {
             type: 'object',
-            properties: { siteId: SITE_ID_PROP, pageId: { type: 'string', description: 'The page id (pg_…).' } },
+            properties: {
+                siteId: SITE_ID_PROP,
+                pageId: { type: 'string', description: 'The page id (pg_…).' },
+                redirectTo: { type: 'string', description: 'Optional: a path on this site (e.g. "/pricing") the deleted page\'s address should 301 to, so its links and ranking are kept. Not used for the homepage.' },
+            },
             required: ['pageId'],
         },
         readOnly: false,
@@ -288,6 +294,10 @@ const MCP_ONLY_TOOLS = [
     },
     // Blog posts: cms/mcp/blog.js (list, get, create, update, delete, translate, index settings).
     ...BLOG_TOOLS,
+    // Redirects: cms/mcp/redirects.js (list, set, delete).
+    ...REDIRECT_TOOLS,
+    // Link check: cms/mcp/linkHandlers.js.
+    ...LINK_TOOLS,
 ];
 
 /**

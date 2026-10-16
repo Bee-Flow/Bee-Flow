@@ -29,7 +29,12 @@ function fakeStore() {
         posts,
         overrides,
         getProject: async () => structuredClone(project),
-        setProject: async (_id, next) => { Object.assign(project, next); return structuredClone(project); },
+        mutateProject: async (_id, fn) => {
+            const draft = structuredClone(project);
+            const result = fn(draft);
+            Object.assign(project, draft);
+            return { site: structuredClone(project), result };
+        },
         getDefaultLocale: async () => 'en',
         isValidLocale: (c) => /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/.test(c),
         sanitizeBlogSettings: (b) => ({ title: b?.title || {}, description: b?.description || {}, postsPerPage: b?.postsPerPage || 10 }),

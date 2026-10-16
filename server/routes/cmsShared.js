@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS route shared middleware — mechanical extraction from routes/cms.js so
  * the CMS AI builder route (routes/ai/cmsBuilder.js) and the analytics router
@@ -12,6 +13,7 @@ const cmsStore = require('../stores/cmsStore');
 const configStore = require('../stores/configStore');
 const { hasPermission } = require('../auth/permissions');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 
 const SITE_ID_RE = /^pj_[a-f0-9]{4,}$/;
 
@@ -49,14 +51,36 @@ async function attachSiteIdFromParam(req, res, next) {
     next();
 }
 
+/**
+ * Check a stored live-site id against the project store. The pointer is
+ * cleared only when the store ANSWERS that the project is gone; a failed read
+ * (pool timeout, connection blip) says nothing about the site, so it is
+ * logged and the id is served without a write.
+ * @param {string} stored
+ * @param {{ getProject: (id: string) => Promise<any>, clearLive: () => Promise<any>, log: { warn: (...a: any[]) => void } }} deps
+ * @returns {Promise<string | null>}
+ */
+async function checkStoredLiveSite(stored, deps) {
+    let project;
+    try {
+        project = await deps.getProject(stored);
+    } catch (e) {
+        deps.log.warn('[CMS] live-site check failed, keeping the pointer:', e instanceof Error ? e.message : String(e));
+        return stored;
+    }
+    if (project) return stored;
+    await deps.clearLive();
+    return null;
+}
+
 async function getLiveSiteId() {
     const stored = await configStore.getConfig(KEY_CMS_LIVE_SITE_ID);
     if (typeof stored === 'string' && SITE_ID_RE.test(stored)) {
-        // Validate the project still exists; clear stale ids defensively.
-        const project = await cmsStore.getProject(stored).catch(() => null);
-        if (project) return stored;
-        await configStore.setConfig(KEY_CMS_LIVE_SITE_ID, null);
-        return null;
+        return checkStoredLiveSite(stored, {
+            getProject: (id) => cmsStore.getProject(id),
+            clearLive: () => configStore.setConfig(KEY_CMS_LIVE_SITE_ID, null),
+            log,
+        });
     }
     if (stored !== undefined && stored !== null) return null;
 
@@ -86,16 +110,37 @@ async function setLiveSiteId(siteId) {
 }
 
 // A site that is Live must always serve a PUBLISHED snapshot — never its
-// in-progress draft. Publishing on the Live transition guarantees
-// "public == published": once live, later edits stay private until the user
-// clicks Publish again. Idempotent + best-effort (a publish hiccup must not
-// block the Live toggle; the public route self-heals as a backstop).
-async function ensurePublishedSnapshot(siteId) {
+// in-progress draft, and never nothing. So going Live PUBLISHES FIRST and only
+// then switches the live id (callers: ensurePublishedSnapshot, then
+// setLiveSiteId). When the publish fails or stalls this throws and the previous
+// live site stays untouched; the public site must never be blanked by a
+// half-finished go-live. Idempotent: an existing snapshot is kept.
+const PUBLISH_TIMEOUT_MS = 30000;
+
+async function ensurePublishedSnapshot(siteId, { timeoutMs = PUBLISH_TIMEOUT_MS } = {}) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- SITE_ID_RE is anchored with one bounded class run: linear
+    if (typeof siteId !== 'string' || !SITE_ID_RE.test(siteId)) {
+        throw new HttpError(400, 'cms_invalid_site_id', 'Invalid siteId');
+    }
+    let timer;
     try {
+        const project = await cmsStore.getProject(siteId);
+        if (!project) throw new HttpError(404, 'cms_site_not_found', 'Site not found');
         const snap = await cmsStore.getPublishedSnapshot(siteId, { fresh: true });
-        if (!snap) await cmsStore.publishSite(siteId);
+        if (snap) return;
+        await Promise.race([
+            cmsStore.publishSite(siteId),
+            new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error('publish timed out')), timeoutMs);
+            }),
+        ]);
     } catch (e) {
-        log.warn(`[CMS] ensurePublishedSnapshot failed for ${siteId}: ${e.message}`);
+        if (e instanceof HttpError) throw e;
+        log.warn(`[CMS] publish before going live failed for ${siteId}: ${e.message}`);
+        throw new HttpError(502, 'cms_publish_failed',
+            'This version could not be published, so it was not set live. The current live site is unchanged. Publish it first and try again.');
+    } finally {
+        clearTimeout(timer);
     }
 }
 
@@ -106,6 +151,7 @@ module.exports = {
     attachSiteIdFromParam,
     SITE_ID_RE,
     getLiveSiteId,
+    checkStoredLiveSite,
     setLiveSiteId,
     KEY_CMS_LIVE_SITE_ID,
     KEY_CMS_ENABLED,

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS builder tools — the function-calling surface the conversational CMS
  * page-building agent uses to mutate a site draft.
@@ -26,10 +27,12 @@
 
 const crypto = require('crypto');
 const cmsStore = require('../stores/cmsStore');
+const { sanitizeNavIcon } = require('./navIcon');
+const { validateStylePatch, STYLE_KEYS } = require('./blockStyle');
 const {
     BLOCK_DEFAULTS, BLOCK_TYPE_IDS,
-    DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS,
-    DISPLAY_SIZES, HEADING_WEIGHTS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS,
+    DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS, DARK_BANDS,
+    DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS,
 } = require('../i18n/defaults/cmsDefaults');
 const { THEME_PRESETS, THEME_PRESET_IDS } = require('../i18n/defaults/themePresets');
 const { TOOL_SCHEMAS, LINK_HINT, DESIGN_HINT } = require('./schemas');
@@ -76,17 +79,13 @@ const FONT_ROLES = ['heading', 'body', 'mono'];
 const TYPOGRAPHY_ENUMS = {
     displaySize: DISPLAY_SIZES,
     headingWeight: HEADING_WEIGHTS,
+    displayTracking: DISPLAY_TRACKINGS,
     bodySize: BODY_SIZES,
 };
 // darkColors.primary/accent take '' = "reuse the light value" (see
 // DESIGN_DEFAULTS.darkColors) — every other colour must be a real hex.
 const BLANKABLE_DARK_COLORS = ['primary', 'accent'];
 
-const STYLE_MAX_WIDTHS = ['narrow', 'medium', 'wide', 'full'];
-const STYLE_ALIGNS = ['left', 'center', 'right'];
-const COLOR_TOKENS = ['primary', 'secondary', 'accent', 'background', 'surface', 'textPrimary', 'textSecondary'];
-const SPACING_KEYS = ['paddingTop', 'paddingBottom'];
-const STYLE_KEYS = ['colorOverrides', 'spacing', 'backgroundImage', 'backgroundOverlay', 'maxWidth', 'align', 'cssClass'];
 
 // ── Small helpers ────────────────────────────────────────────────────
 
@@ -152,12 +151,18 @@ async function getPageDoc(draftWrap, pageId) {
 
 /** Refresh the SiteDoc after a site-index mutation. */
 async function refreshSite(draftWrap) {
-    draftWrap.site = await cmsStore.getProject(draftWrap.siteId);
+    draftWrap.site = await cmsStore.getProject(draftWrap.siteId, { fresh: true });
 }
 
-/** Persist a PageDoc through the store's sanitizer and refresh the cache. */
-async function persistPage(draftWrap, pageDoc) {
-    const { page, dropped } = await cmsStore.setPage(draftWrap.siteId, pageDoc);
+/**
+ * Apply `change` to the CURRENT stored PageDoc (not the per-turn cache copy)
+ * and persist it through the store's sanitizer and revision check, so two
+ * tool calls running in parallel on one page each keep the other's edit.
+ * `change(doc)` gets a private copy, returns the page to save, may run again
+ * on a newer version, and throws to abort.
+ */
+async function persistPage(draftWrap, pageId, change) {
+    const { page, dropped } = await cmsStore.mutatePage(draftWrap.siteId, pageId, change);
     draftWrap.pages.set(page.id, page);
     draftWrap.touchedPageIds.add(page.id);
     return { page, dropped };
@@ -184,7 +189,7 @@ function summariseDesign(design) {
         `background ${colors.background || '?'}`,
         `fonts ${fonts.heading || '?'}/${fonts.body || '?'}/${fonts.mono || '?'}`,
         `radius ${d.radius ?? '?'}`,
-        `type ${ty.displaySize || '?'}/${ty.headingWeight ?? '?'}/${ty.bodySize ?? '?'}`,
+        `type ${ty.displaySize || '?'}/${ty.headingWeight ?? '?'}/${ty.bodySize ?? '?'}/${ty.displayTracking || 'default'}`,
         `motion ${d.motion || '?'}`,
         `grain ${d.grain ? 'on' : 'off'}`,
         `gradient ${d.gradient ? 'on' : 'off'}`,
@@ -336,8 +341,9 @@ async function applyUpdatePageSeo(draftWrap, args) {
     }
     const doc = await getPageDoc(draftWrap, pageId);
     if (!doc) return { error: `Page document for ${pageId} is missing.`, _fixHint: pageIdsHint(draftWrap) };
-    const next = { ...clone(doc), seo: { ...(isPlainObject(doc.seo) ? doc.seo : {}), ...patch } };
-    const { page } = await persistPage(draftWrap, next);
+    const { page } = await persistPage(draftWrap, pageId, (d) => ({
+        ...d, seo: { ...(isPlainObject(d.seo) ? d.seo : {}), ...patch },
+    }));
     return { pageId, seo: clone(page.seo) };
 }
 
@@ -398,20 +404,48 @@ async function applyAddBlocks(draftWrap, args) {
         const type = probe.blocks[0].type;
         if (type !== entry.type) warnings.push(`blocks[${i}]: type "${entry.type}" was normalized to "${type}".`);
         const content = deepMerge(BLOCK_DEFAULTS[type] || {}, isPlainObject(entry.content) ? entry.content : {});
-        minted.push({ id: newBlockId(), type, enabled: true, content, style: {} });
+        let style = {};
+        if (entry.style !== undefined) {
+            const validated = validateStylePatch(entry.style);
+            if ('error' in validated) {
+                dropped.push({ index: i, type: entry.type, reason: 'invalid-style', message: validated.error, _fixHint: validated._fixHint });
+                return;
+            }
+            style = validated.style;
+            for (const h of validated.hints) warnings.push(`blocks[${i}]: ${h}`);
+        }
+        minted.push({ id: newBlockId(), type, enabled: true, content, style });
     });
 
     if (!minted.length) {
+        const typeDrops = dropped.filter((d) => d.reason !== 'invalid-style');
+        const styleDrops = dropped.filter((d) => d.reason === 'invalid-style');
+        const noun = `entr${list.length === 1 ? 'y' : 'ies'}`;
+        const causes = [];
+        if (typeDrops.length) causes.push(`unknown or missing types (${typeDrops.map((d) => JSON.stringify(d.type)).join(', ')})`);
+        if (styleDrops.length) causes.push(`an invalid style (${styleDrops.map((d) => d.message).join('; ')})`);
+        // A style rejection carries its own hint; the type list only helps
+        // when a type was the cause.
+        const hints = [];
+        if (typeDrops.length) hints.push(typesHint());
+        for (const d of styleDrops) if (d._fixHint) hints.push(d._fixHint);
         return {
-            error: `No blocks added — all ${list.length} entr${list.length === 1 ? 'y' : 'ies'} had unknown or missing types (${dropped.map((d) => JSON.stringify(d.type)).join(', ')}).`,
-            _fixHint: typesHint(),
+            error: `No blocks added — all ${list.length} ${noun} had ${causes.join(' and ')}.`,
+            _fixHint: hints.join(' '),
             dropped,
         };
     }
 
-    const blocks = [...(doc.blocks || [])];
-    blocks.splice(pos.index, 0, ...minted);
-    const { page } = await persistPage(draftWrap, { ...clone(doc), blocks });
+    const { page } = await persistPage(draftWrap, pageId, (d) => {
+        const blocks = [...(d.blocks || [])];
+        // The index was resolved against the copy this turn loaded; on a newer
+        // version keep the same anchor when it still exists, else clamp.
+        const anchor = isPlainObject(args.position) && typeof args.position.afterBlockId === 'string'
+            ? resolveInsertIndex(blocks, args.position, d) : null;
+        const at = anchor && !anchor.error ? anchor.index : Math.min(pos.index, blocks.length);
+        blocks.splice(at, 0, ...minted);
+        return { ...d, blocks };
+    });
     const survivors = new Set(page.blocks.map((b) => b.id));
     const result = {
         pageId,
@@ -425,61 +459,6 @@ async function applyAddBlocks(draftWrap, args) {
     return result;
 }
 
-/**
- * Shallow-validate a stylePatch against the block style wrapper shape.
- * Returns { style, hints } (validated patch + repair notes) or { error, _fixHint }.
- */
-function validateStylePatch(patch) {
-    if (!isPlainObject(patch)) return { error: 'stylePatch must be an object.' };
-    const out = {};
-    const hints = [];
-    for (const [key, value] of Object.entries(patch)) {
-        if (!STYLE_KEYS.includes(key)) {
-            hints.push(`stylePatch.${key}: unknown style key, dropped. Valid keys: ${STYLE_KEYS.join(', ')}.`);
-            continue;
-        }
-        if (key === 'maxWidth') {
-            if (!STYLE_MAX_WIDTHS.includes(value)) {
-                return { error: `stylePatch.maxWidth ${JSON.stringify(value)} is invalid.`, _fixHint: `Valid maxWidth values: ${STYLE_MAX_WIDTHS.join(', ')}.` };
-            }
-            out.maxWidth = value;
-        } else if (key === 'align') {
-            if (!STYLE_ALIGNS.includes(value)) {
-                return { error: `stylePatch.align ${JSON.stringify(value)} is invalid.`, _fixHint: `Valid align values: ${STYLE_ALIGNS.join(', ')}.` };
-            }
-            out.align = value;
-        } else if (key === 'colorOverrides') {
-            if (!isPlainObject(value)) {
-                return { error: 'stylePatch.colorOverrides must be an object of color tokens.', _fixHint: `Valid tokens: ${COLOR_TOKENS.join(', ')}.` };
-            }
-            const colors = {};
-            for (const [tok, col] of Object.entries(value)) {
-                if (!COLOR_TOKENS.includes(tok)) { hints.push(`colorOverrides.${tok}: unknown token, dropped. Valid tokens: ${COLOR_TOKENS.join(', ')}.`); continue; }
-                if (typeof col !== 'string') { hints.push(`colorOverrides.${tok}: must be a color string, dropped.`); continue; }
-                colors[tok] = col;
-            }
-            out.colorOverrides = colors;
-        } else if (key === 'spacing') {
-            if (!isPlainObject(value)) {
-                return { error: 'stylePatch.spacing must be an object.', _fixHint: `Valid spacing keys: ${SPACING_KEYS.join(', ')} (numbers).` };
-            }
-            const spacing = {};
-            for (const [sk, sv] of Object.entries(value)) {
-                if (!SPACING_KEYS.includes(sk)) { hints.push(`spacing.${sk}: unknown key, dropped. Valid keys: ${SPACING_KEYS.join(', ')}.`); continue; }
-                if (typeof sv !== 'number' || !Number.isFinite(sv)) { hints.push(`spacing.${sk}: must be a number, dropped.`); continue; }
-                spacing[sk] = sv;
-            }
-            out.spacing = spacing;
-        } else if (key === 'backgroundImage' || key === 'cssClass') {
-            if (typeof value !== 'string') { hints.push(`stylePatch.${key}: must be a string, dropped.`); continue; }
-            out[key] = value;
-        } else if (key === 'backgroundOverlay') {
-            if (typeof value !== 'number' && typeof value !== 'string') { hints.push('stylePatch.backgroundOverlay: must be a number or color string, dropped.'); continue; }
-            out.backgroundOverlay = value;
-        }
-    }
-    return { style: out, hints };
-}
 
 async function applyUpdateBlock(draftWrap, args) {
     const pageId = typeof args?.pageId === 'string' ? args.pageId : null;
@@ -500,31 +479,43 @@ async function applyUpdateBlock(draftWrap, args) {
         return { error: 'Nothing to change — pass contentPatch, stylePatch and/or enabled.' };
     }
 
-    const block = doc.blocks[idx];
-    const next = clone(block);
     let styleHints = [];
-    if (hasContent) next.content = deepMerge(block.content, args.contentPatch);
+    let validatedStyle = null;
     if (hasStyle) {
         const validated = validateStylePatch(args.stylePatch);
         if (validated.error) return validated;
         styleHints = validated.hints;
-        const mergedStyle = { ...(isPlainObject(block.style) ? clone(block.style) : {}) };
-        for (const [k, v] of Object.entries(validated.style)) {
-            if ((k === 'colorOverrides' || k === 'spacing') && isPlainObject(mergedStyle[k])) {
-                mergedStyle[k] = { ...mergedStyle[k], ...v };
-            } else {
-                mergedStyle[k] = v;
-            }
-        }
-        next.style = mergedStyle;
+        validatedStyle = validated.style;
     }
-    if (hasEnabled) next.enabled = args.enabled;
+    // Applied to the block as stored NOW, so a patch on one field never undoes
+    // a patch another call made to the same block a moment ago.
+    const patchBlock = (block) => {
+        const next = clone(block);
+        if (hasContent) next.content = deepMerge(block.content, args.contentPatch);
+        if (validatedStyle) {
+            const mergedStyle = { ...(isPlainObject(block.style) ? clone(block.style) : {}) };
+            for (const [k, v] of Object.entries(validatedStyle)) {
+                if ((k === 'colorOverrides' || k === 'spacing') && isPlainObject(mergedStyle[k])) {
+                    mergedStyle[k] = { ...mergedStyle[k], ...v };
+                } else {
+                    mergedStyle[k] = v;
+                }
+            }
+            next.style = mergedStyle;
+        }
+        if (hasEnabled) next.enabled = args.enabled;
+        return next;
+    };
 
-    const blocks = [...doc.blocks];
-    blocks[idx] = next;
-    const { page } = await persistPage(draftWrap, { ...clone(doc), blocks });
+    const { page } = await persistPage(draftWrap, pageId, (d) => {
+        const at = (d.blocks || []).findIndex((b) => b.id === blockId);
+        if (at < 0) throw new Error(`Block ${JSON.stringify(blockId)} was removed from page ${pageId} by another edit.`);
+        const blocks = [...d.blocks];
+        blocks[at] = patchBlock(d.blocks[at]);
+        return { ...d, blocks };
+    });
     const saved = page.blocks.find((b) => b.id === blockId);
-    const result = { pageId, blockId, type: saved?.type, enabled: saved ? saved.enabled : next.enabled };
+    const result = { pageId, blockId, type: saved?.type, enabled: saved ? saved.enabled : patchBlock(doc.blocks[idx]).enabled };
     if (styleHints.length) result._hints = styleHints;
     return result;
 }
@@ -540,8 +531,7 @@ async function applyRemoveBlock(draftWrap, args) {
     if (!(doc.blocks || []).some((b) => b.id === blockId)) {
         return { error: `Unknown blockId ${JSON.stringify(blockId)} on page ${pageId}.`, _fixHint: blockIdsHint(doc) };
     }
-    const blocks = doc.blocks.filter((b) => b.id !== blockId);
-    await persistPage(draftWrap, { ...clone(doc), blocks });
+    await persistPage(draftWrap, pageId, (d) => ({ ...d, blocks: (d.blocks || []).filter((b) => b.id !== blockId) }));
     // Server twin of the admin panel's client-side pruning: drop every
     // locale's translation entry for the removed block.
     const prunedLocales = await cmsStore.pruneBlockLocaleOverrides(draftWrap.siteId, pageId, blockId);
@@ -573,9 +563,14 @@ async function applyReorderBlocks(draftWrap, args) {
             _fixHint: blockIdsHint(doc),
         };
     }
-    const byId = new Map(doc.blocks.map((b) => [b.id, b]));
-    const blocks = ordered.map((id) => byId.get(id));
-    await persistPage(draftWrap, { ...clone(doc), blocks });
+    await persistPage(draftWrap, pageId, (d) => {
+        const byId = new Map((d.blocks || []).map((b) => [b.id, b]));
+        // Blocks another edit added meanwhile are not in `ordered`: keep them, at the end.
+        const placed = ordered.filter((id) => byId.has(id));
+        const placedSet = new Set(placed);
+        const blocks = [...placed.map((id) => byId.get(id)), ...(d.blocks || []).filter((b) => !placedSet.has(b.id))];
+        return { ...d, blocks };
+    });
     return { pageId, order: ordered };
 }
 
@@ -628,8 +623,8 @@ async function applyReorderPages(draftWrap, args) {
 // dropdown? }. children[] = flat sub-items { id, label, link }; dropdown =
 // mega menu { layout:'columns'|'list', columns:[{ id, heading, items:[{ id,
 // label, link, description?, icon?, openInNewTab? }] }] }. A mega item's
-// icon is an EMOJI or short text by design (see the agent-hub HeaderEditor),
-// NOT a Lucide name. There is no header-specific store updater — the tool
+// icon is a Lucide name or an uploaded asset (NavIcon renders both); an emoji
+// is legacy content that still renders. There is no header-specific store updater — the tool
 // persists read-modify-write through cmsStore.setProject, which stores nav
 // VERBATIM, so every check lives here.
 
@@ -680,7 +675,11 @@ function sanitizeNavEntry(draftWrap, raw, path, { withExtras = false } = {}) {
     };
     if (withExtras) {
         if (typeof raw.description === 'string' && raw.description) item.description = raw.description;
-        if (typeof raw.icon === 'string' && raw.icon) item.icon = raw.icon;
+        if (typeof raw.icon === 'string' && raw.icon) {
+            const icon = sanitizeNavIcon(raw.icon, path);
+            if ('error' in icon) return { error: icon.error, _fixHint: icon._fixHint };
+            item.icon = icon.icon;
+        }
         if (typeof raw.openInNewTab === 'boolean') item.openInNewTab = raw.openInNewTab;
     }
     return { item };
@@ -772,23 +771,14 @@ function sanitizeHeaderNav(draftWrap, rawNav) {
 async function applyUpdateHeaderNav(draftWrap, args) {
     const sanitized = sanitizeHeaderNav(draftWrap, args?.nav);
     if (sanitized.error) return sanitized;
-    // Re-read the SiteDoc IMMEDIATELY before the write. draftWrap.site is
-    // loaded once at turn start and only refreshed after an earlier
-    // site-index tool, so it can be minutes stale by the time the model
-    // calls this — and setProject rewrites the WHOLE doc (name, pages
-    // index, homepageId, chrome, design, analytics) with no CAS. Without
-    // this refresh, a concurrent edit by another admin (sessions are
-    // site-scoped and shared) would be silently reverted and any page they
-    // created mid-turn would be dropped from the index. Every sibling tool
-    // gets this for free by re-reading inside the store at call time.
-    await refreshSite(draftWrap);
-    if (!isPlainObject(draftWrap.site)) {
-        return { error: 'No site loaded — reload the builder.' };
-    }
-    const site = clone(draftWrap.site);
-    site.header = { ...(isPlainObject(site.header) ? site.header : {}), nav: sanitized.nav };
+    // The edit is applied to the SiteDoc as stored NOW, under the store's lock
+    // (draftWrap.site can be minutes stale, and sessions are shared between
+    // admins): only header.nav changes, so a page another admin created
+    // meanwhile, or any other chrome they saved, stays.
     try {
-        await cmsStore.setProject(draftWrap.siteId, site);
+        await cmsStore.mutateProject(draftWrap.siteId, (site) => {
+            site.header = { ...(isPlainObject(site.header) ? site.header : {}), nav: sanitized.nav };
+        }, { bumpRev: true });
     } catch (e) {
         return { error: e.message };
     }
@@ -847,7 +837,7 @@ function sanitizeDesignPatch(args) {
     };
 
     if (args.colorsPatch !== undefined) {
-        const r = colourGroup(args.colorsPatch, COLOR_KEYS, 'colorsPatch', []);
+        const r = colourGroup(args.colorsPatch, COLOR_KEYS, 'colorsPatch', BLANKABLE_COLORS);
         if (r.error) return r;
         if (Object.keys(r.out).length) patch.colors = r.out;
     }
@@ -881,19 +871,25 @@ function sanitizeDesignPatch(args) {
             if (!allowed) {
                 return bad(`${path}.${key} is not a field of ${path}. Valid fields: ${Object.keys(enums).join(', ')}.`);
             }
-            if (!allowed.includes(value)) {
-                return bad(`${path}.${key} ${JSON.stringify(value ?? null)} is not a legal value. Valid: ${allowed.join(', ')}.`);
+            // MCP clients often send numbers as strings: a numeric enum accepts "700".
+            const numeric = allowed.every((a) => typeof a === 'number');
+            const v = numeric && typeof value === 'string' && /^\s*\d+\s*$/.test(value) ? Number(value) : value;
+            if (!allowed.includes(v)) {
+                const list = allowed.map((a) => JSON.stringify(a)).join(', ');
+                return bad(`${path}.${key} ${JSON.stringify(value ?? null)} is not a legal value. Valid${numeric ? ' (a number)' : ''}: ${list}.`);
             }
-            out[key] = value;
+            out[key] = v;
         }
         return { out };
     };
 
-    for (const [arg, enums, field] of [
+    /** @type {Array<[string, Record<string, Array<string|number>>, string]>} */
+    const enumGroups = [
         ['typographyPatch', TYPOGRAPHY_ENUMS, 'typography'],
         ['componentsPatch', DESIGN_COMPONENT_ENUMS, 'components'],
         ['layoutPatch', DESIGN_LAYOUT_ENUMS, 'layout'],
-    ]) {
+    ];
+    for (const [arg, enums, field] of enumGroups) {
         if (args[arg] === undefined) continue;
         const r = enumGroup(args[arg], enums, arg);
         if (r.error) return r;
@@ -918,6 +914,12 @@ function sanitizeDesignPatch(args) {
         }
         patch.motion = args.motion;
     }
+    if (args.darkBand !== undefined) {
+        if (!DARK_BANDS.includes(args.darkBand)) {
+            return bad(`darkBand ${JSON.stringify(args.darkBand ?? null)} is invalid. Valid: ${DARK_BANDS.join(', ')}.`);
+        }
+        patch.darkBand = args.darkBand;
+    }
     for (const flag of ['grain', 'gradient']) {
         if (args[flag] === undefined) continue;
         if (typeof args[flag] !== 'boolean') return bad(`${flag} must be true or false.`);
@@ -925,7 +927,7 @@ function sanitizeDesignPatch(args) {
     }
 
     if (!Object.keys(patch).length) {
-        return bad('Nothing to change — pass at least one of: preset, colorsPatch, darkColorsPatch, fontsPatch, typographyPatch, componentsPatch, layoutPatch, radius, theme, motion, grain, gradient.');
+        return bad('Nothing to change — pass at least one of: preset, colorsPatch, darkColorsPatch, fontsPatch, typographyPatch, componentsPatch, layoutPatch, radius, theme, motion, darkBand, grain, gradient.');
     }
     return { patch };
 }
@@ -933,42 +935,30 @@ function sanitizeDesignPatch(args) {
 async function applyUpdateDesign(draftWrap, args) {
     const sanitized = sanitizeDesignPatch(args);
     if (sanitized.error) return sanitized;
-    // Re-read the SiteDoc IMMEDIATELY before the write. draftWrap.site is
-    // loaded once at turn start and only refreshed after an earlier
-    // site-index tool, so it can be minutes stale by the time the model
-    // calls this — and setProject rewrites the WHOLE doc (name, pages
-    // index, homepageId, chrome, design, analytics) with no CAS. Without
-    // this refresh, a concurrent edit by another admin (sessions are
-    // site-scoped and shared) would be silently reverted and any page they
-    // created mid-turn would be dropped from the index. Every sibling tool
-    // gets this for free by re-reading inside the store at call time.
-    await refreshSite(draftWrap);
-    if (!isPlainObject(draftWrap.site)) {
-        return { error: 'No site loaded — reload the builder.' };
-    }
-    const site = clone(draftWrap.site);
-    let design = isPlainObject(site.design) ? clone(site.design) : {};
-    const { preset, ...groups } = sanitized.patch;
-
-    // A preset MATERIALIZES its concrete values first (the renderer never
-    // looks a preset up), mirroring applyPreset() on the client: nested
-    // groups are re-cloned wholesale so nothing leaks from the old theme,
-    // and the uploaded logo/favicon are kept.
-    if (preset) {
-        const entry = THEME_PRESETS.find((p) => p.id === preset);
-        design = { ...design, ...clone(entry.design), logo: design.logo || '', favicon: design.favicon || '', preset };
-    }
-    // Then the explicit patches layer on top, DEEP-MERGED per group so
-    // { colorsPatch:{primary} } keeps the other six colours.
-    for (const [key, value] of Object.entries(groups)) {
-        design[key] = isPlainObject(value) && isPlainObject(design[key])
-            ? { ...design[key], ...value }
-            : value;
-    }
-    site.design = design;
-
+    // Applied to the SiteDoc as stored NOW, under the store's lock: only
+    // `design` changes, so pages and chrome saved meanwhile by another admin stay.
     try {
-        await cmsStore.setProject(draftWrap.siteId, site);
+        await cmsStore.mutateProject(draftWrap.siteId, (site) => {
+            let design = isPlainObject(site.design) ? clone(site.design) : {};
+            const { preset, ...groups } = sanitized.patch;
+
+            // A preset MATERIALIZES its concrete values first (the renderer never
+            // looks a preset up), mirroring applyPreset() on the client: nested
+            // groups are re-cloned wholesale so nothing leaks from the old theme,
+            // and the uploaded logo/favicon are kept.
+            if (preset) {
+                const entry = THEME_PRESETS.find((p) => p.id === preset);
+                design = { ...design, ...clone(entry.design), logo: design.logo || '', favicon: design.favicon || '', preset };
+            }
+            // Then the explicit patches layer on top, DEEP-MERGED per group so
+            // { colorsPatch:{primary} } keeps the other six colours.
+            for (const [key, value] of Object.entries(groups)) {
+                design[key] = isPlainObject(value) && isPlainObject(design[key])
+                    ? { ...design[key], ...value }
+                    : value;
+            }
+            site.design = design;
+        }, { bumpRev: true });
     } catch (e) {
         return { error: e.message };
     }
@@ -976,7 +966,7 @@ async function applyUpdateDesign(draftWrap, args) {
     // CRITICAL: report what was PERSISTED, never the request. sanitizeDesign
     // coerces silently, so echoing the patch back would tell the model an
     // edit succeeded that the store had already dropped.
-    const saved = isPlainObject(draftWrap.site?.design) ? draftWrap.site.design : design;
+    const saved = isPlainObject(draftWrap.site?.design) ? draftWrap.site.design : {};
     return { design: clone(saved), summary: summariseDesign(saved) };
 }
 
@@ -1024,5 +1014,5 @@ module.exports = {
     NAV_LIMITS,
     applyToolCall,
     // internals exposed for unit tests
-    _test: { deepMerge, validateStylePatch, resolveInsertIndex, summariseDesign, sanitizeHeaderNav, sanitizeDesignPatch },
+    _test: { deepMerge, validateStylePatch, STYLE_KEYS, resolveInsertIndex, summariseDesign, sanitizeHeaderNav, sanitizeDesignPatch },
 };

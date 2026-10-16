@@ -1,6 +1,8 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
+import SocialProofChips, { SocialProofStats } from './SocialProofChips';
+import type { SocialProofChip } from './SocialProofChips';
 import { inlineTextStyle } from './textStyle';
 import type { SectionDataBase } from './sectionData.types';
 
@@ -12,6 +14,7 @@ interface Logo {
 interface SocialProofData extends SectionDataBase {
     logos?: Logo[];
     stats?: { number?: string; label?: string }[];
+    chips?: SocialProofChip[];
     logoTint?: number;
     variant?: string;
     eyebrowAlign?: 'left' | 'center' | 'right';
@@ -36,41 +39,25 @@ export default function SocialProof({ data }: { data?: SocialProofData }) {
     // the strip so the filter rule reads it without rebuilding styles.
     const tint = Number.isFinite(data.logoTint) ? data.logoTint as number : 0;
 
-    // 'numbers' variant: a hard-numbers row (stars, users, uptime — the
-    // OSS trust stack) renders above the logo wall. Absent/unknown ⇒
-    // classic wall only.
-    const variant = data.variant === 'numbers' ? 'numbers' : 'classic';
+    // Variants (the shared BLOCK_VARIANTS list): classic = the logo wall;
+    // numbers = a hard-numbers row above the wall; stats = that row alone;
+    // chips = text chips with an optional icon, no logos. Absent or unknown
+    // ⇒ classic. The logo strip only renders when there is a logo to show,
+    // so a block without logos never reserves an empty strip.
+    const variant = (['numbers', 'stats', 'chips'] as (string | undefined)[]).includes(data.variant)
+        ? data.variant as 'numbers' | 'stats' | 'chips'
+        : 'classic';
     const stats = Array.isArray(data.stats) ? data.stats : [];
-    const showStats = variant === 'numbers' && (stats.length > 0 || isEditable());
+    const chips = (Array.isArray(data.chips) ? data.chips : []).filter(c => c.label || isEditable());
+    const showStats = (variant === 'numbers' || variant === 'stats') && (stats.length > 0 || isEditable());
+    const showChips = variant === 'chips' && chips.length > 0;
+    const showLogos = (variant === 'classic' || variant === 'numbers') && logos.length > 0;
 
     return (
         <SectionFrame id="socialProof" name="Social proof" enabled={data.enabled}>
             <section className="social-proof">
                 <div className="container">
-                    {showStats ? (
-                        <div className="social-proof-stats reveal">
-                            {stats.map((s, i) => (
-                                <div key={i} className="social-proof-stat">
-                                    <EditableText
-                                        as="div"
-                                        path={`socialProof.stats.${i}.number`}
-                                        placeholder="4.7★"
-                                        className="social-proof-stat-number tnum"
-                                    >
-                                        {s.number || ''}
-                                    </EditableText>
-                                    <EditableText
-                                        as="div"
-                                        path={`socialProof.stats.${i}.label`}
-                                        placeholder="G2 rating"
-                                        className="social-proof-stat-label"
-                                    >
-                                        {s.label || ''}
-                                    </EditableText>
-                                </div>
-                            ))}
-                        </div>
-                    ) : null}
+                    {showStats ? <SocialProofStats stats={stats} /> : null}
                     {showEyebrow ? (
                         <div
                             className="social-proof-eyebrow"
@@ -100,7 +87,8 @@ export default function SocialProof({ data }: { data?: SocialProofData }) {
                             </EditableText>
                         </div>
                     ) : null}
-                    <SocialProofLogos logos={logos} tint={tint} />
+                    {showChips ? <SocialProofChips chips={chips} /> : null}
+                    {showLogos ? <SocialProofLogos logos={logos} tint={tint} /> : null}
                 </div>
             </section>
         </SectionFrame>

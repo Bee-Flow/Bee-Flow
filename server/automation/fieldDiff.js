@@ -226,7 +226,7 @@ const SETTING_LABELS = {
     filter: 'Filter', url: 'Address', method: 'Method', headers: 'Headers', categories: 'Categories',
     sourceRef: 'Source', source: 'Source', timeoutMs: 'Time limit', values: 'Values', matchColumn: 'Match on',
     folder: 'Folder', path: 'Path', to: 'Recipient', recipient: 'Recipient', subject: 'Subject',
-    description: 'Description', runPolicy: 'Run settings', retry: 'If a step fails', maxDurationMin: 'Maximum duration',
+    description: 'Description', runPolicy: 'Run settings', connections: 'Whose connections', retry: 'If a step fails', maxDurationMin: 'Maximum duration',
     concurrency: 'Running at the same time', retentionDays: 'Keep runs', notificationSettings: 'Notifications',
     appButtons: 'App buttons', manualTriggerPayload: 'Test input', skipHolidays: 'Skip public holidays',
     pinnedOutput: 'Pinned sample', assignee: 'Approver', approvers: 'Approvers',

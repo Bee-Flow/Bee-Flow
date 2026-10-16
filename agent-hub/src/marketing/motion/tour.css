@@ -1,0 +1,61 @@
+.marketing-root .tour-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 18px 10px 14px;
+    border: 1px solid var(--hairline-strong);
+    border-radius: 999px;
+    background: var(--surface-0);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: var(--text-small);
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color var(--motion-fast) var(--ease-soft), transform var(--motion-fast) var(--ease-soft);
+}
+.marketing-root .tour-pill:hover { border-color: var(--accent); transform: translateY(-1px); }
+.marketing-root .tour-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.marketing-root .tour-pill-icon { width: 16px; height: 16px; flex: none; }
+.marketing-root .tour-pill--on-dark {
+    background: rgba(0, 0, 0, 0.55);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #fff;
+    backdrop-filter: blur(8px);
+}
+.marketing-root .hero .tour-pill, .marketing-root .media-text-block-text .tour-pill { margin-top: 16px; }
+
+/* Teaser loop: 16:9 box reserved, the pill centred over a dimmed loop. */
+.marketing-root .tour-teaser {
+    position: relative;
+    margin: 0;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    aspect-ratio: 16 / 9;
+    background: var(--surface-1);
+}
+.marketing-root .tour-teaser-media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    object-fit: cover;
+    filter: saturate(1.05);
+}
+.marketing-root .tour-teaser::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+}
+.marketing-root .tour-teaser-pill {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.marketing-root .tour-teaser-pill .tour-pill { margin: 0; }
+

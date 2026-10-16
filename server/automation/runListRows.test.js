@@ -132,3 +132,29 @@ test('segmentCounts: all / failed / waiting / running', () => {
     });
     assert.deepEqual(segmentCounts(null), { all: 0, failed: 0, waiting: 0, running: 0, byStatus: {} });
 });
+
+test('decorate: a run on its starter\'s own connections shows its data to the starter only; steps and timing stay for everybody', async () => {
+    const rows = () => [{
+        id: 'r1', automationId: 'a1', version: 1, status: 'error', startedAt: 't0', startedByUserId: 'starter',
+        connectionsMode: 'caller', summary: 'private', error: 'private', triggerPayload: { subject: 'private' },
+        outcome: { code: 'c', params: { x: 'private' }, text: 'private' },
+    }, {
+        id: 'r2', automationId: 'a1', version: 1, status: 'success', startedAt: 't1', startedByUserId: 'owner',
+        connectionsMode: null, summary: 'fine', error: null, triggerPayload: { subject: 'fine' }, outcome: null,
+    }];
+    const { decorate } = makeRunRowDecorator({
+        store: { getJourneyStepStatuses: async () => new Map([['r1', [st('s1', 'error')]]]) },
+        getUsersByIds: async () => [],
+    });
+    const forOwner = await decorate(rows(), { automation: { id: 'a1', definition: DEF }, viewerId: 'owner' });
+    assert.ok(!('triggerPayload' in forOwner[0]) && !('summary' in forOwner[0]) && !('error' in forOwner[0]));
+    assert.deepEqual(forOwner[0].outcome, { code: 'c', params: {}, text: null });
+    assert.equal(forOwner[0].status, 'error');
+    assert.deepEqual(forOwner[0].stepStatuses.slice(0, 1), ['error'], 'the step bars stay');
+    assert.equal(forOwner[1].summary, 'fine', 'an ordinary run is unchanged');
+    const forStarter = await decorate(rows(), { automation: { id: 'a1', definition: DEF }, viewerId: 'starter' });
+    assert.equal(forStarter[0].summary, 'private');
+    assert.deepEqual(forStarter[0].triggerPayload, { subject: 'private' });
+    const nobody = await decorate(rows(), { automation: { id: 'a1', definition: DEF } });
+    assert.ok(!('summary' in nobody[0]), 'no viewer named means hidden');
+});

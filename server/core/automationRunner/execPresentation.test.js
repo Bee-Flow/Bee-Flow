@@ -272,3 +272,10 @@ test('presentation: saveCopy keeps the deck in Studio → Documents as a present
     await execPresentation({ id: 'deck', type: 'presentation', slides: '{{steps.write.output.text}}', saveCopy: true }, CTX, runState, 'dry_run');
     assert.strictEqual(library.created.length, 1);
 });
+
+test('a deck PDF rendered without a browser is a warning on the run', async () => {
+    renderer.result = ok({ degraded: true });
+    const runState = { steps: { w: { status: 'success', output: { text: '# T\n\n## A\n- a' } } }, _templateWarnings: [] };
+    await execPresentation({ id: 'p1', type: 'presentation', slides: '{{steps.w.output.text}}' }, CTX, runState, 'live');
+    assert.match(runState._templateWarnings.join('\n'), /p1: the PDF was rendered without a browser/);
+});

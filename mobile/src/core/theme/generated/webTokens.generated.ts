@@ -61,6 +61,7 @@ export interface WebColors {
 
 /** Flow-editor step families (`--type-*`). */
 export interface WebStepType {
+    end: string;
     trigger: string;
     ai: string;
     app: string;
@@ -69,7 +70,6 @@ export interface WebStepType {
     data: string;
     pause: string;
     guard: string;
-    end: string;
 }
 
 /** Studio object kinds (`--kind-*`). */
@@ -155,6 +155,7 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             itemActiveBg: 'rgba(156, 163, 175, 0.12)',
         },
         stepType: {
+            end: '#f8fafc',
             trigger: '#5cc2b3',
             ai: '#82aaf0',
             app: '#c8ad74',
@@ -163,7 +164,6 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             data: '#9fb0c8',
             pause: '#c2a98a',
             guard: '#6cb8d3',
-            end: '#f8fafc',
         },
         kind: {
             app: '#a996ee',
@@ -246,6 +246,7 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             itemActiveBg: 'rgba(156, 163, 175, 0.12)',
         },
         stepType: {
+            end: '#0f172a',
             trigger: '#2b7f74',
             ai: '#3f6fc4',
             app: '#7c6a3f',
@@ -254,7 +255,6 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             data: '#5a6b82',
             pause: '#7d6b55',
             guard: '#2e6f86',
-            end: '#0f172a',
         },
         kind: {
             app: '#6b4fbb',
@@ -337,6 +337,7 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             itemActiveBg: 'rgba(107, 114, 128, 0.12)',
         },
         stepType: {
+            end: '#0f172a',
             trigger: '#2b7f74',
             ai: '#3f6fc4',
             app: '#7c6a3f',
@@ -345,7 +346,6 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             data: '#5a6b82',
             pause: '#7d6b55',
             guard: '#2e6f86',
-            end: '#0f172a',
         },
         kind: {
             app: '#6b4fbb',
@@ -428,6 +428,7 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             itemActiveBg: 'rgba(156, 163, 175, 0.12)',
         },
         stepType: {
+            end: '#f8fafc',
             trigger: '#5cc2b3',
             ai: '#82aaf0',
             app: '#c8ad74',
@@ -436,7 +437,6 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             data: '#9fb0c8',
             pause: '#c2a98a',
             guard: '#6cb8d3',
-            end: '#f8fafc',
         },
         kind: {
             app: '#a996ee',
@@ -519,6 +519,7 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             itemActiveBg: 'rgba(255, 212, 0, 0.12)',
         },
         stepType: {
+            end: '#ffffff',
             trigger: '#2b7f74',
             ai: '#82aaf0',
             app: '#7c6a3f',
@@ -527,7 +528,6 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             data: '#5a6b82',
             pause: '#7d6b55',
             guard: '#2e6f86',
-            end: '#ffffff',
         },
         kind: {
             app: '#6b4fbb',
@@ -610,6 +610,7 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             itemActiveBg: 'rgba(180, 83, 9, 0.12)',
         },
         stepType: {
+            end: '#1c1917',
             trigger: '#2b7f74',
             ai: '#3f6fc4',
             app: '#7c6a3f',
@@ -618,7 +619,6 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             data: '#5a6b82',
             pause: '#7d6b55',
             guard: '#2e6f86',
-            end: '#1c1917',
         },
         kind: {
             app: '#6b4fbb',
@@ -701,6 +701,7 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             itemActiveBg: 'rgba(231, 229, 228, 0.12)',
         },
         stepType: {
+            end: '#fafaf9',
             trigger: '#5cc2b3',
             ai: '#82aaf0',
             app: '#c8ad74',
@@ -709,7 +710,6 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             data: '#9fb0c8',
             pause: '#c2a98a',
             guard: '#6cb8d3',
-            end: '#fafaf9',
         },
         kind: {
             app: '#a996ee',
@@ -792,6 +792,7 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             itemActiveBg: 'rgba(194, 65, 12, 0.12)',
         },
         stepType: {
+            end: '#44322c',
             trigger: '#2b7f74',
             ai: '#3f6fc4',
             app: '#7c6a3f',
@@ -800,7 +801,6 @@ export const WEB_TOKENS: Record<WebTheme, WebThemeTokens> = {
             data: '#5a6b82',
             pause: '#7d6b55',
             guard: '#2e6f86',
-            end: '#44322c',
         },
         kind: {
             app: '#6b4fbb',

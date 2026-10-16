@@ -15,6 +15,7 @@
  */
 
 const webpageDbStore = require('../stores/webpageDbStore');
+const { publicDbErrorMessage } = require('../stores/lib/publicDbError');
 
 const WEBPAGE_DB_TOOLS = [
     {
@@ -29,13 +30,13 @@ const WEBPAGE_DB_TOOLS = [
         type: 'function',
         function: {
             name: 'webpage_db_query',
-            description: 'Read rows from the webpage\'s SQLite database. SELECT / WITH / PRAGMA only.\n\nWhen to use: any time you need to look at data. NOT for writes — the engine refuses to run a statement that would mutate the database and tells you to call webpage_db_exec instead.\n\nReturn shape: { rows: [...], columns: [string], truncated: boolean, message }. Rows are capped at 10000; `truncated: true` means there were more — narrow the query (add WHERE, LIMIT, etc.) and call again.\n\nAlways use ? placeholders + params for any value that came from user input or another tool — never interpolate strings into the SQL.',
+            description: 'Read rows from the webpage\'s SQLite database. SELECT / WITH only, plus the schema PRAGMAs table_info, index_list, index_info and foreign_key_list.\n\nWhen to use: any time you need to look at data. NOT for writes — the engine refuses to run a statement that would mutate the database and tells you to call webpage_db_exec instead.\n\nReturn shape: { rows: [...], columns: [string], truncated: boolean, message }. Rows are capped at 10000; `truncated: true` means there were more — narrow the query (add WHERE, LIMIT, etc.) and call again.\n\nAlways use ? placeholders + params for any value that came from user input or another tool — never interpolate strings into the SQL.',
             parameters: {
                 type: 'object',
                 properties: {
                     sql: {
                         type: 'string',
-                        description: 'A read-only SQL statement (SELECT / WITH / PRAGMA). Use ? placeholders for values.',
+                        description: 'A read-only SQL statement (SELECT / WITH, or a schema PRAGMA such as table_info). Use ? placeholders for values.',
                     },
                     params: {
                         type: 'array',
@@ -95,7 +96,7 @@ async function executeDbTool(toolName, args, { webpageId, userId }) {
                 : `${result.tables.length} table${result.tables.length === 1 ? '' : 's'}: ${result.tables.map(t => t.name).join(', ')}`;
             return { ...result, message: summary };
         } catch (err) {
-            return { error: `Schema lookup failed: ${err.message}` };
+            return { error: `Schema lookup failed: ${publicDbErrorMessage(err)}` };
         }
     }
 
@@ -109,7 +110,7 @@ async function executeDbTool(toolName, args, { webpageId, userId }) {
                 message: `Returned ${result.rows.length} row${result.rows.length === 1 ? '' : 's'}${result.truncated ? ' (truncated at 10000)' : ''}.`,
             };
         } catch (err) {
-            return { error: `Query failed: ${err.message}` };
+            return { error: `Query failed: ${publicDbErrorMessage(err)}` };
         }
     }
 
@@ -127,7 +128,7 @@ async function executeDbTool(toolName, args, { webpageId, userId }) {
                 message: msg,
             };
         } catch (err) {
-            return { error: `Exec failed: ${err.message}` };
+            return { error: `Exec failed: ${publicDbErrorMessage(err)}` };
         }
     }
 

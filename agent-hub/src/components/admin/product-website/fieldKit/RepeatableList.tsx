@@ -15,6 +15,8 @@ interface RepeatableListProps<T> {
     collapsible?: boolean;
     /** Opt-in "Duplicate": returns the clone, inserted directly after the source. */
     duplicateItem?: (item: T) => T;
+    /** Opt-in cap: at this many rows the "Add" button is not rendered. */
+    maxItems?: number;
 }
 
 /**
@@ -119,7 +121,7 @@ function RowHeader({ idx, count, customLabel, collapsible, isCollapsed, onToggle
  * "Duplicate" button between ↓ and Remove. When omitted, the button isn't
  * rendered — no other repeater sees any change.
  */
-export function RepeatableList<T>({ items = [], onChange, renderItem, makeNew, label, addLabel, itemLabel, collapsible = false, duplicateItem }: RepeatableListProps<T>) {
+export function RepeatableList<T>({ items = [], onChange, renderItem, makeNew, label, addLabel, itemLabel, collapsible = false, duplicateItem, maxItems }: RepeatableListProps<T>) {
     const { t } = useTranslation();
     const { collapsedMap, toggleCollapsed, expand } = useCollapsedRows(items, collapsible);
     const update = (idx: number, next: T) => {
@@ -184,13 +186,15 @@ export function RepeatableList<T>({ items = [], onChange, renderItem, makeNew, l
                     );
                 })}
             </div>
-            <button
-                type="button"
-                onClick={handleAdd}
-                className="mt-2 px-3 py-1.5 text-xs rounded-md border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors"
-            >
-                + {addLabel || t('cms_site.site.fields.add_item', 'Add item')}
-            </button>
+            {maxItems === undefined || items.length < maxItems ? (
+                <button
+                    type="button"
+                    onClick={handleAdd}
+                    className="mt-2 px-3 py-1.5 text-xs rounded-md border border-dashed border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)] hover:text-[var(--accent-primary)] transition-colors"
+                >
+                    + {addLabel || t('cms_site.site.fields.add_item', 'Add item')}
+                </button>
+            ) : null}
         </div>
     );
 }

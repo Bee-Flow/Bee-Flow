@@ -17,8 +17,8 @@
 'use strict';
 
 const {
-    DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS,
-    DISPLAY_SIZES, HEADING_WEIGHTS, BODY_SIZES, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS,
+    DESIGN_COMPONENT_ENUMS, DESIGN_LAYOUT_ENUMS, DESIGN_THEMES, DESIGN_MOTIONS, DARK_BANDS,
+    DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS,
 } = require('../i18n/defaults/cmsDefaults');
 const { THEME_PRESET_IDS } = require('../i18n/defaults/themePresets');
 
@@ -40,10 +40,10 @@ const DESIGN_HINT = [
     'EVERY colour is a literal "#rrggbb" hex string — no colour names, no rgb()/hsl(), no 3-digit shorthand; darkColors.primary and darkColors.accent also accept "" meaning "reuse the light value".',
     'radius: a whole number 0-24 (px).',
     `fontsPatch keys: heading, body, mono — each value MUST be one of: ${DESIGN_FONTS.join(', ')}.`,
-    `typographyPatch: displaySize (${DISPLAY_SIZES.join('|')}), headingWeight (${HEADING_WEIGHTS.join('|')}), bodySize (${BODY_SIZES.join('|')}).`,
+    `typographyPatch: displaySize (${DISPLAY_SIZES.join('|')}), headingWeight (${HEADING_WEIGHTS.join('|')}), displayTracking (${DISPLAY_TRACKINGS.join('|')}), bodySize (${BODY_SIZES.join('|')}).`,
     `componentsPatch: ${enumList(DESIGN_COMPONENT_ENUMS)}.`,
     `layoutPatch: ${enumList(DESIGN_LAYOUT_ENUMS)}.`,
-    `theme (${DESIGN_THEMES.join('|')}), motion (${DESIGN_MOTIONS.join('|')}), grain and gradient are booleans.`,
+    `theme (${DESIGN_THEMES.join('|')}), motion (${DESIGN_MOTIONS.join('|')}), darkBand (${DARK_BANDS.join('|')} — what a block with band 'dark' is filled with: the dark-mode background colour, or the theme's secondary colour), grain and gradient are booleans.`,
     `preset: one of ${THEME_PRESET_IDS.join(', ')}.`,
 ].join(' ');
 
@@ -126,7 +126,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'cms_add_blocks',
-            description: `Add 1-10 blocks to a page. Each entry is { type, content? }: the block is seeded from that type's defaults, then your content is DEEP-MERGED over it — objects merge key-by-key, but ARRAYS REPLACE WHOLESALE (send the complete items/columns/stats array, never a partial one). Unknown types are dropped and reported. ${LINK_HINT}`,
+            description: `Add 1-10 blocks to a page. Each entry is { type, content?, style? }: the block is seeded from that type's defaults, then your content is DEEP-MERGED over it — objects merge key-by-key, but ARRAYS REPLACE WHOLESALE (send the complete items/columns/stats array, never a partial one). Unknown types are dropped and reported. ${LINK_HINT}`,
             parameters: {
                 type: 'object',
                 properties: {
@@ -139,6 +139,7 @@ const TOOL_SCHEMAS = [
                             properties: {
                                 type: { type: 'string', description: 'A block type from the catalogue (e.g. hero, features, media-text, cta-banner).' },
                                 content: { type: 'object', description: 'Partial content merged over the type\'s defaults. Arrays replace wholesale.' },
+                                style: { type: 'object', description: 'Optional block style wrapper (band, rhythm, colorOverrides, cssClass, … — the same closed key set as cms_update_block\'s stylePatch). An invalid value drops that entry and says why.' },
                             },
                             required: ['type'],
                         },
@@ -165,7 +166,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'cms_update_block',
-            description: `Edit one block in place. contentPatch DEEP-MERGES into the block's content (arrays replace wholesale — resend the whole array to change one item). stylePatch merges into the block's style wrapper: colorOverrides {primary,secondary,accent,background,surface,textPrimary,textSecondary}, spacing {paddingTop,paddingBottom}, backgroundImage, backgroundOverlay, maxWidth (narrow|medium|wide|full), align (left|center|right), cssClass, band (default|surface|tint|dark|primary — section background treatment, works on every type; 'dark' is the premium charcoal band), rhythm (compact|default|spacious — vertical padding preset), reveal (on|off — entrance animation), glow (boolean — soft accent glow behind the block), columns (2|3|4 — card-grid column count; features/steps/security/techStats only). enabled=false hides the block without deleting it. ${LINK_HINT}`,
+            description: `Edit one block in place. contentPatch DEEP-MERGES into the block's content (arrays replace wholesale — resend the whole array to change one item). stylePatch merges into the block's style wrapper: colorOverrides {primary,secondary,accent,background,surface,textPrimary,textSecondary}, spacing {paddingTop,paddingBottom}, backgroundImage, backgroundOverlay, backgroundSize (cover|contain|auto|a width such as "480px" — placement of backgroundImage), backgroundPosition (top-left|top|top-right|left|center|right|bottom-left|bottom|bottom-right), backgroundRepeat (no-repeat|repeat|repeat-x|repeat-y), backgroundHideMobile (boolean — hide the background image on phones), motif (none|honeycomb — the built-in brand honeycomb pattern in the brand colours, no upload needed), motifSide (right|left|center — where the motif sits), motifTiles (boolean — add filled hexagon tiles to the motif), decor (default|none — none switches off the hero's blurred colour blobs), cardFill (tint|white|none — fill of the cards inside the block; white makes cards stand out on a tinted band), labelStyle (mono|plain — trust-band chip labels: monospace uppercase, or plain sentence case in the body font), maxWidth (narrow|medium|wide|full), align (left|center|right), cssClass, band (default|surface|tint|dark|primary — section background treatment, works on every type; 'dark' is the premium charcoal band), rhythm (tight|compact|default|spacious — vertical padding preset), reveal (on|off — entrance animation), glow (boolean — soft accent glow behind the block), columns (2|3|4 — card-grid column count; features/steps/security/techStats only). enabled=false hides the block without deleting it. ${LINK_HINT}`,
             parameters: {
                 type: 'object',
                 properties: {
@@ -239,7 +240,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'cms_update_header_nav',
-            description: `Replace the public site header's menu. nav REPLACES the entire existing menu WHOLESALE — send every item you want to keep, in render order (max 20). Item: { id?, label, link, children?, dropdown? }; keep the nav_… ids from the draft state for items you keep (ids anchor locale overrides), omit id for new items. children = flat sub-menu of { label, link } (max 10). dropdown = MULTI-COLUMN mega menu { columns:[{ heading, items:[{ label, link, description?, icon?, openInNewTab? }] }] } (max 4 columns × 10 items; a mega item's icon is an EMOJI or short text like 🚀 — NOT a Lucide name) — for a simple flat dropdown use children instead. ${LINK_HINT}`,
+            description: `Replace the public site header's menu. nav REPLACES the entire existing menu WHOLESALE — send every item you want to keep, in render order (max 20). Item: { id?, label, link, children?, dropdown? }; keep the nav_… ids from the draft state for items you keep (ids anchor locale overrides), omit id for new items. children = flat sub-menu of { label, link } (max 10). dropdown = MULTI-COLUMN mega menu { columns:[{ heading, items:[{ label, link, description?, icon?, openInNewTab? }] }] } (max 4 columns × 10 items; a mega item's icon is a Lucide name like ShieldCheck or an uploaded asset url from cms_list_assets; emoji is legacy only) — for a simple flat dropdown use children instead. ${LINK_HINT}`,
             parameters: {
                 type: 'object',
                 properties: {
@@ -252,8 +253,8 @@ const TOOL_SCHEMAS = [
                                 id: { type: 'string', description: 'Existing nav_… id to preserve; omit for new items (one is minted).' },
                                 label: { type: 'string', description: 'Visible menu label (non-empty).' },
                                 link: { type: 'object', description: 'Link object (see the link union in the tool description).' },
-                                children: { type: 'array', description: 'Optional flat sub-menu: { label, link } items (max 10).', items: { type: 'object' } },
-                                dropdown: { type: 'object', description: 'Optional multi-column mega menu: { columns:[{ heading, items }] } (max 4 columns × 10 items). Use children for a flat dropdown.' },
+                                children: { type: 'array', description: 'Optional flat sub-menu: { id?, label, link } items (max 10); keep the existing ids so translations stay attached.', items: { type: 'object' } },
+                                dropdown: { type: 'object', description: 'Optional multi-column mega menu: { columns:[{ id?, heading, items:[{ id?, label, link }] }] } (max 4 columns × 10 items; keep existing ids). Use children for a flat dropdown.' },
                             },
                             required: ['label', 'link'],
                         },
@@ -278,7 +279,7 @@ const TOOL_SCHEMAS = [
                     },
                     colorsPatch: {
                         type: 'object',
-                        description: `Light-mode colours to change: ${COLOR_KEYS.join(', ')} — each a "#rrggbb" hex string.`,
+                        description: `Light-mode colours to change: ${COLOR_KEYS.join(', ')} — each a "#rrggbb" hex string; the roles ${BLANKABLE_COLORS.join(', ')} also accept "" (follow the primary colour).`,
                     },
                     darkColorsPatch: {
                         type: 'object',
@@ -290,7 +291,7 @@ const TOOL_SCHEMAS = [
                     },
                     typographyPatch: {
                         type: 'object',
-                        description: `Type scale to change: { displaySize? (${DISPLAY_SIZES.join('|')}), headingWeight? (${HEADING_WEIGHTS.join('|')}), bodySize? (${BODY_SIZES.join('|')}) }.`,
+                        description: `Type scale to change: { displaySize? (${DISPLAY_SIZES.join('|')}), headingWeight? (${HEADING_WEIGHTS.join('|')}), displayTracking? (${DISPLAY_TRACKINGS.join('|')}), bodySize? (${BODY_SIZES.join('|')}) }.`,
                     },
                     componentsPatch: {
                         type: 'object',
@@ -303,6 +304,7 @@ const TOOL_SCHEMAS = [
                     radius: { type: 'number', description: 'Global corner radius in px, 0-24.' },
                     theme: { type: 'string', enum: DESIGN_THEMES, description: 'Which palette the public site renders by default.' },
                     motion: { type: 'string', enum: DESIGN_MOTIONS, description: 'Animation level.' },
+                    darkBand: { type: 'string', enum: DARK_BANDS, description: "Fill of blocks with style.band 'dark': the dark-mode background colour (palette) or the theme's secondary colour." },
                     grain: { type: 'boolean', description: 'Subtle film-grain texture overlay.' },
                     gradient: { type: 'boolean', description: 'Gradient treatment on primary surfaces/CTAs.' },
                 },

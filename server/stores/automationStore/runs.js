@@ -12,6 +12,7 @@ const { truncatePayload } = require('../../automation/payloadTruncation');
 const { persistableOutput } = require('./runFullOutputs');
 const { persistableBindingWarnings } = require('./bindingWarnings');
 const log = require('../../telemetry/log');
+const { projectOrgRun } = require('./orgRunRow');
 
 // ── Runs ───────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ const log = require('../../telemetry/log');
  * CONTINUES a paused one passes its parent's root, and that is what collapses a
  * multi-page form's child runs into a single row in the history.
  */
-async function createRun({ automationId, version, userId, triggerKind, triggerPayload = null, mode = 'live', parentRunId = null, rootRunId = null, rootStepId = null, isTest = false, startedByUserId = null, callerAgentId = null, callerConversationId = null }) {
+async function createRun({ automationId, version, userId, triggerKind, triggerPayload = null, mode = 'live', parentRunId = null, rootRunId = null, rootStepId = null, isTest = false, startedByUserId = null, callerAgentId = null, callerConversationId = null, connectionsMode = null }) {
     await initDB();
     const id = crypto.randomUUID();
     // `rootStepId` — the trigger node this run entered through (NULL = the
@@ -33,10 +34,11 @@ async function createRun({ automationId, version, userId, triggerKind, triggerPa
     // who pressed the button, and which agent conversation started the run.
     await run(
         `INSERT INTO automation_runs (id, automation_id, version, user_id, trigger_kind, trigger_payload, mode, status, started_at, parent_run_id, root_run_id, root_step_id,
-                                      is_test, started_by_user_id, caller_agent_id, caller_conversation_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'queued',NOW(),$8,COALESCE($9,$1),$10,$11,$12,$13,$14)`,
+                                      is_test, started_by_user_id, caller_agent_id, caller_conversation_id, connections_mode)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'queued',NOW(),$8,COALESCE($9,$1),$10,$11,$12,$13,$14,$15)`,
         [id, automationId, version, userId, triggerKind, triggerPayload ? JSON.stringify(triggerPayload) : null, mode, parentRunId, rootRunId, rootStepId || null,
-            !!isTest, startedByUserId || null, callerAgentId || null, callerConversationId || null],
+            !!isTest, startedByUserId || null, callerAgentId || null, callerConversationId || null,
+            connectionsMode === 'caller' ? 'caller' : null],
     );
     return getRun(id);
 }
@@ -111,75 +113,9 @@ function rowToRunWithAutomation(r) {
     };
 }
 
-/**
- * The ORG-scoped row (Track H2) — an EXPLICIT ALLOW-LIST, not rowToRun minus a
- * field, and that distinction is the whole reason this function exists.
- *
- * rowToRun maps `triggerPayload`: the data a run STARTED with. For your own
- * runs that is yours — it is the form you filled in, the mail that arrived. In
- * an organisation-wide list it is a COLLEAGUE'S: every submission of every
- * published form, every inbound e-mail body, name, address and attachment
- * reference in the organisation, shipped to the browser of anyone holding
- * manage_automations — for a table that renders none of it. It also carries
- * `awaitingStepExpiresAt`, `cancelRequested` and the rest of the runner's
- * plumbing, which the list has no use for either.
- *
- * So this builds the row from the fields the executions table actually reads
- * (ExecutionsTable.jsx + runLanguage.js), one by one. Removing keys from
- * rowToRun instead would work exactly once: the next column somebody adds to
- * automation_runs would start travelling the day it is added, and nothing
- * would say so. CLAUDE.md draws the same line for outbound payloads; the
- * reasoning is identical when the "outside" is another person's data.
- *
- * `mine` is the viewer's own ownership of the run, computed here and checked
- * FOR TRUE by the client. The raw `userId` deliberately does NOT travel: the
- * list shows what ran, not who ran it, and an owner id is one join away from a
- * name the screen never asked for.
- *
- * WHAT IS ON THE LIST BY DECISION, not by accident: `summary` and `error`.
- * They are a run's own free text and can quote whatever the run touched, so
- * including them in an organisation-wide read is a real choice and is made
- * here rather than left implicit. It follows GET /approvals?scope=org, which
- * hands an org admin the approval `prompt` under the same shape of check, and
- * it is what the surface is FOR: an admin who can see that something broke but
- * not what broke cannot act on it. Two things keep it bounded — the
- * permission, and the fact that the strip above the table (nowRunning.js)
- * summarises by error CLASS only, so the free text appears in the log rather
- * than in the glance. If a later stage wants the tighter reading, the change
- * is to drop these two fields from THIS list and leave the class behind; the
- * run itself stays reachable by its owner either way.
- */
+/** The org-scoped row: an explicit allow-list, see orgRunRow.js. */
 function rowToOrgRunRow(r, viewerUserId = null) {
-    const full = rowToRunWithAutomation(r);
-    return {
-        id: full.id,
-        journeyRunId: full.journeyRunId ?? null,
-        automationId: full.automationId,
-        automationTitle: full.automationTitle,
-        automationKind: full.automationKind,
-        automationIcon: full.automationIcon,
-        automationTriggerType: full.automationTriggerType,
-        rootStepId: full.rootStepId,
-        rootTriggerLabel: full.rootTriggerLabel,
-        triggerKind: full.triggerKind,
-        mode: full.mode,
-        status: full.status,
-        startedAt: full.startedAt,
-        finishedAt: full.finishedAt,
-        durationMs: full.durationMs,
-        summary: full.summary ?? null,
-        error: full.error ?? null,
-        errorClass: full.errorClass ?? null,
-        handledErrorCount: full.handledErrorCount ?? 0,
-        // Handoff 5: which version ran, whether it was a test, and the outcome
-        // with its data-derived params (folder, file name, values) left out.
-        version: full.version ?? null,
-        isTest: !!full.isTest,
-        outcome: require('../../automation/runOutcome').outcomeForOrgRow(full.outcome),
-        // Ownership, not identity. Only ever true for a real match: a null
-        // viewer (or a null owner) is "not mine", never "probably fine".
-        mine: !!(viewerUserId && full.userId && String(full.userId) === String(viewerUserId)),
-    };
+    return projectOrgRun(rowToRunWithAutomation(r), viewerUserId);
 }
 
 // Encode/decode an opaque keyset cursor — (started_at, id) of the last row on
@@ -338,7 +274,7 @@ function buildRunFilterWhere(scope, filters = {}, startIdx = 1) {
     if (filters.tests === 'exclude') clauses.push('r.is_test = FALSE');
     if (filters.tests === 'only') clauses.push('r.is_test = TRUE');
     if (filters.q) {
-        const search = require('./runListing').buildRunSearch(filters.q, i, { payload: !orgId });
+        const search = require('./runListing').buildRunSearch(filters.q, i, { payload: !orgId, viewerUserId: filters.viewerUserId || userId || null });
         if (search) { clauses.push(search.clause); params.push(...search.params); i += search.params.length; }
     }
     return { clause: clauses.join(' AND '), params, nextIdx: i, joinUsers };
@@ -799,7 +735,7 @@ async function recordRunStep(args) {
  * recordRunStep's body over an injected `run(sql, params)`, so a test can put
  * its real SQL against an in-process Postgres without mocking the store's db.
  */
-async function recordRunStepWith(run, { runId, stepId, parentStepId = null, stepType, attempts = 1, status, startedAt, finishedAt, input, output, error, errorClass = null, branchIndex = null, piiSummary = null, secretValues = [], toolName = null, toolsWithheld = null, errorInfo = null, bindingWarnings = null }) {
+async function recordRunStepWith(run, { runId, stepId, parentStepId = null, stepType, attempts = 1, status, startedAt, finishedAt, input, output, error, errorClass = null, branchIndex = null, piiSummary = null, secretValues = [], publicValues = [], toolName = null, toolsWithheld = null, errorInfo = null, bindingWarnings = null, identityUserId = null }) {
     if (!runId || !stepId) {
         // Defensive: NOT NULL columns; skip rather than crash the whole run.
         log.warn(`[AutomationStore] recordRunStep called with null runId/stepId — skipping (runId=${runId}, stepId=${stepId})`);
@@ -815,7 +751,7 @@ async function recordRunStepWith(run, { runId, stepId, parentStepId = null, step
     // Talk room `token`) from the key-name redaction — they're not credentials
     // and downstream steps need them. Secret shapes/values are still masked.
     const allowKeys = safeOutputKeysForTool(toolName);
-    const redact = (v) => redactForPersistence(v, { secretValues, allowKeys }).value;
+    const redact = (v) => redactForPersistence(v, { secretValues, allowKeys, publicValues }).value;
     // NUL bytes can't live in jsonb/text columns — Postgres rejects them with
     // "unsupported Unicode escape sequence" and aborts the whole run record.
     // A single NUL in extracted tool output (e.g. a CID-font PDF) would
@@ -865,8 +801,8 @@ async function recordRunStepWith(run, { runId, stepId, parentStepId = null, step
     const warnings = persistableBindingWarnings(bindingWarnings, { clean: (v) => stripNulDeep(redact(v)) });
     const warningsJson = warnings ? JSON.stringify(warnings) : null;
     await run(
-        `INSERT INTO automation_run_steps (run_id, step_id, parent_step_id, step_type, attempts, status, started_at, finished_at, input_json, output_json, error, error_class, branch_index, pii_summary, tools_withheld, error_info, binding_warnings)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+        `INSERT INTO automation_run_steps (run_id, step_id, parent_step_id, step_type, attempts, status, started_at, finished_at, input_json, output_json, error, error_class, branch_index, pii_summary, tools_withheld, error_info, binding_warnings, identity_user_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
          ON CONFLICT (run_id, step_id, attempts) DO UPDATE SET
             status = EXCLUDED.status,
             finished_at = EXCLUDED.finished_at,
@@ -887,7 +823,8 @@ async function recordRunStepWith(run, { runId, stepId, parentStepId = null, step
             -- erase what the step recorded.
             tools_withheld = COALESCE(EXCLUDED.tools_withheld, automation_run_steps.tools_withheld),
             error_info = COALESCE(EXCLUDED.error_info, automation_run_steps.error_info),
-            binding_warnings = COALESCE(EXCLUDED.binding_warnings, automation_run_steps.binding_warnings)`,
+            binding_warnings = COALESCE(EXCLUDED.binding_warnings, automation_run_steps.binding_warnings),
+            identity_user_id = COALESCE(EXCLUDED.identity_user_id, automation_run_steps.identity_user_id)`,
         [
             runId, stepId, parentStepId || null, stepType, attempts, status,
             startedAt || null, finishedAt || null,
@@ -900,6 +837,7 @@ async function recordRunStepWith(run, { runId, stepId, parentStepId = null, step
             withheldJson,
             errorInfoJson,
             warningsJson,
+            identityUserId || null,
         ],
     );
 }

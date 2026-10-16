@@ -17,6 +17,12 @@ const { collectPendingRefs } = require('./pendingDatatables');
  * Persist the draft to the automations table. Creates a row on the first
  * call and updates thereafter. Setting `finalize:true` flips is_draft to
  * false (still inactive — user must Activate explicitly).
+ *
+ * Resolves to the stored row; `error` is set when the store refused the write
+ * and `validationErrors` when the draft was saved but is not yet valid.
+ * @param {*} draftWrap
+ * @param {{ finalize?: boolean }} [opts]
+ * @returns {Promise<Awaited<ReturnType<typeof automationStore.createAutomation>> & { error?: string, validationErrors?: object[] }>}
  */
 async function persistDraft(draftWrap, { finalize = false } = {}) {
     const def = draftWrap.def;

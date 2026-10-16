@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Step dispatch for one run (moved verbatim out of execution.js's
  * executeAutomation).
@@ -212,7 +213,8 @@ async function handleStepFailure(deps, err, f) {
     // be retried whole here — that would re-run the entire fan-out.
     // A step's own retry wins; without one the automation's
     // runPolicy.retry.max is the default (handoff 5).
-    const retry = stepRetryFor(step, runPolicy);
+    // A mapping that read nothing reads nothing again: no retry for it.
+    const retry = err.errorClass === 'binding_unresolved' ? null : stepRetryFor(step, runPolicy);
     if (retry && retry.max && retry.max > 0 && !err.foreachHandled) {
         const retried = await retryStep(deps, retry, { ...f, inputForRecord, slot });
         if (retried !== undefined) return retried;
@@ -231,9 +233,10 @@ async function handleStepFailure(deps, err, f) {
  * recurses through it) calls to execute a single step.
  *
  * @param {object} deps  execution.js's RUN_DEPS
- * @param {object} run   the run row (its id addresses the cancel flag)
- * @param {AbortSignal} cancelSignal  the run's in-process cancel signal
- * @param {object} runPolicy  the automation's run policy (default retry)
+ * @param {object} args
+ * @param {object} args.run   the run row (its id addresses the cancel flag)
+ * @param {AbortSignal} args.cancelSignal  the run's in-process cancel signal
+ * @param {object} args.runPolicy  the automation's run policy (default retry)
  */
 function makeStepDispatcher(deps, { run, cancelSignal, runPolicy }) {
     const { isCancelRequested } = deps;

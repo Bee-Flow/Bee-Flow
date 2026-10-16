@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Server-rendered marketing pages.
  *
@@ -42,16 +43,23 @@ const cmsStore = require('../stores/cmsStore');
 const configStore = require('../stores/configStore');
 const languageStore = require('../stores/languageStore');
 const { parsePublicPath, buildPublicPath, LOCALE_PREFIXES } = require('../core/seo/publicPath');
+const { legalRedirectTarget } = require('../core/seo/legalPaths');
 const { buildHead } = require('../core/seo/head');
-const { renderBlocks, PREHYDRATE_CSS } = require('../core/seo/renderBlocks');
+const { renderBlocksWithHints, PREHYDRATE_CSS } = require('../core/seo/renderBlocks');
 const { getShell } = require('../core/seo/shell');
 const { injectIntoShell } = require('../core/seo/inject');
-const { buildSitemap, buildRobots, buildLlmsTxt } = require('../core/seo/sitemap');
+const { buildSitemap, buildRobots } = require('../core/seo/sitemap');
 const { localesForPage } = require('../core/seo/locales');
-const { LEGACY_SLUGS } = require('../core/seo/legacySlugs');
+const { LEGACY_SLUGS, GONE_SLUGS } = require('../core/seo/legacySlugs');
+const { resolveSiteRedirect } = require('../core/seo/siteRedirect');
+const { versionOf } = require('../core/seo/ogCard');
 const { jsonForScript } = require('../core/seo/html');
+const { sendNotFound } = require('../core/seo/notFound');
 const { synthesizeLegacyContent } = require('../core/cms/legacyContent');
-const { buildBlogHead, renderBlogBody, buildFeed, blogSitemapEntries } = require('../core/seo/blog');
+const { buildBlogHead, renderBlogBody, buildFeed } = require('../core/seo/blog');
+const { buildAtomFeed } = require('../core/seo/blogAtom');
+const { listGalleryItems, integrationSitemapEntries } = require('../core/seo/integrationsDirectory');
+const { blogSitemap } = require('./publicRenderBlogSitemap');
 const log = require('../telemetry/log');
 
 const router = express.Router();
@@ -172,8 +180,7 @@ router.get('/sitemap.xml', async (req, res, _next) => {
         const snapshot = await cmsStore.getPublishedSnapshot(siteId);
         if (!snapshot) return emptySitemap();
 
-        // Per-page when the snapshot carries it (see cmsStore.publishSite);
-        // the site-wide publish date is the fallback for older snapshots.
+        // Per-page when the snapshot carries it (cmsStore.publishSite), else the site-wide publish date.
         const lastmod = snapshot.publishedAt || null;
         const pages = (snapshot.site?.pages || [])
             .map(entry => {
@@ -186,12 +193,11 @@ router.get('/sitemap.xml', async (req, res, _next) => {
                 };
             });
 
-        // Blog: the index and every post visitors can see now, each in the
-        // languages it is translated into.
+        // Blog: the index and every visible post, in the languages it is translated into.
         const blogEntries = await blogSitemap(siteId, { snapshot, defaultLocale, locales, lastmod });
 
         res.type('application/xml').set('Cache-Control', 'public, max-age=600');
-        return res.send(buildSitemap([...pages, ...blogEntries], { origin, defaultLocale, locales }));
+        return res.send(buildSitemap([...pages, ...blogEntries, ...integrationSitemapEntries(listGalleryItems(), { defaultLocale, lastmod })], { origin, defaultLocale, locales }));
     } catch (err) {
         log.warn('[SEO] sitemap failed:', err.message);
         res.type('application/xml').set('Cache-Control', 'no-store');
@@ -199,23 +205,10 @@ router.get('/sitemap.xml', async (req, res, _next) => {
     }
 });
 
-async function blogSitemap(siteId, { snapshot, defaultLocale, locales, lastmod }) {
-    if (!snapshot?.posts || !Object.keys(snapshot.posts).length) return [];
-    // A legacy page slugged "blog" owns /blog; the posts below it still list.
-    const { posts } = await cmsStore.getLatestPublishedPosts(siteId, { locale: defaultLocale, limit: 50_000 });
-    const { localesForPost } = require('../stores/cms/blogEffective');
-    const overrides = snapshot.postLocaleOverrides || {};
-    const byPost = {};
-    for (const p of posts) byPost[p.id] = localesForPost(overrides, p.id, defaultLocale, locales);
-    const index = [defaultLocale, ...locales.filter(l => l !== defaultLocale && posts.some(p => byPost[p.id].includes(l)))];
-    const full = posts.map(p => ({ ...p, seo: snapshot.posts[p.id]?.seo || {} }));
-    return blogSitemapEntries({ posts: full, overridesLocales: { index, byPost }, lastmod });
-}
-
-// ── blog feed (RSS 2.0) ──────────────────────────────────────────────
+// ── blog feeds (RSS 2.0 at feed.xml, Atom 1.0 at atom.xml) ──────────────────────────────────────────────
 // /blog/feed.xml and /<locale>/blog/feed.xml. Like the sitemap, never falls
 // through to the SPA: a feed reader that got HTML would report a broken feed.
-router.get(/^\/(?:([a-z]{2,3})\/)?blog\/feed\.xml$/, async (req, res) => {
+router.get(/^\/(?:([a-z]{2,3})\/)?blog\/(feed|atom)\.xml$/, async (req, res) => {
     const origin = resolveOrigin(req);
     try {
         const siteId = await getLiveSiteId();
@@ -232,10 +225,12 @@ router.get(/^\/(?:([a-z]{2,3})\/)?blog\/feed\.xml$/, async (req, res) => {
         const { blogLabels } = require('../stores/cms/blogEffective');
         const labels = await blogLabels(locale);
         const siteName = latest.site?.header?.logoText || latest.site?.name || 'Bee Flow';
-        res.type('application/rss+xml; charset=utf-8')
+        // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- req.params[1] is only compared with 'atom', never written
+        const atom = req.params[1] === 'atom';
+        res.type(atom ? 'application/atom+xml; charset=utf-8' : 'application/rss+xml; charset=utf-8')
             .set('Cache-Control', 'public, max-age=300, s-maxage=600');
-        // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write, ajinabraham.njsscan.xss.xss_node.express_xss -- buildFeed escapes every string into XML; the response type is application/rss+xml
-        return res.send(buildFeed(latest.posts, {
+        // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write, ajinabraham.njsscan.xss.xss_node.express_xss -- buildFeed and buildAtomFeed escape every string into XML; the response type is application/rss+xml or application/atom+xml
+        return res.send((atom ? buildAtomFeed : buildFeed)(latest.posts, {
             origin, siteName, locale, defaultLocale,
             title: pick(blogSettings.title) || labels.title || 'Blog',
             description: pick(blogSettings.description),
@@ -261,7 +256,7 @@ async function renderBlog(req, res, { origin, siteId, parsed, defaultLocale, loc
         view: parsed.blog.view,
         postSlug: parsed.blog.postSlug,
         tag: q.get('tag') || '',
-        page: q.get('page') || 1,
+        page: Number.parseInt(q.get('page') || '1', 10) || 1,
         locale,
         siteLocales: locales,
     });
@@ -269,14 +264,9 @@ async function renderBlog(req, res, { origin, siteId, parsed, defaultLocale, loc
     if (parsed.blog.view === 'index' && (eff.pages || []).some(p => p.slug === 'blog')) return false;
 
     if (!eff.found || (!eff.blog?.post && parsed.blog.view === 'post')) {
-        const shell410 = await getShell();
-        if (!shell410) return false;
-        res.status(410).type('html').set('Cache-Control', 'no-store');
-        res.send(injectIntoShell(shell410, {
-            head: ['<title>Page not found — Bee Flow</title>', '<meta name="robots" content="noindex, follow">'].join('\n    '),
-            body: '',
-            lang: locale,
-        }));
+        const notFoundShell = await getShell();
+        if (!notFoundShell) return false;
+        sendNotFound(res, notFoundShell, locale, false);
         return true;
     }
 
@@ -313,39 +303,12 @@ async function renderBlog(req, res, { origin, siteId, parsed, defaultLocale, loc
     return true;
 }
 
-// ── llms.txt ─────────────────────────────────────────────────────────
-// Same source as the sitemap, addressed to language models rather than
-// crawlers. Falls through when nothing is published or the host is not the
-// indexable one — an empty Markdown file would still claim to be a real one,
-// and a preview host has no business advertising itself to assistants.
-router.get('/llms.txt', async (req, res, next) => {
-    try {
-        const origin = resolveOrigin(req);
-        const siteId = await getLiveSiteId();
-        if (!siteId || !isIndexableHost(origin)) return next();
-
-        const snapshot = await cmsStore.getPublishedSnapshot(siteId);
-        if (!snapshot) return next();
-
-        const pages = (snapshot.site?.pages || []).map(entry => ({
-            ...entry,
-            seo: (snapshot.pages?.[entry.id] || {}).seo || {},
-        }));
-        const home = pages.find(p => p.isHomepage);
-
-        res.type('text/plain').set('Cache-Control', 'public, max-age=3600');
-        return res.send(buildLlmsTxt(pages, {
-            origin,
-            siteName: snapshot.site?.name || 'Bee Flow',
-            summary: String(home?.seo?.metaDescription || '').trim(),
-        }));
-    } catch (err) {
-        log.warn('[SEO] llms.txt failed:', err.message);
-        return next();
-    }
-});
+router.use(require('./publicLlmsRender').createLlmsRouter({ resolveOrigin, getLiveSiteId, isIndexableHost }));
 
 // ── marketing pages ──────────────────────────────────────────────────
+router.use(require('./publicSearchIndexRender').createSearchIndexRouter({ getLiveSiteId, siteLocales }));
+router.use(require('./publicIntegrationsRender').createIntegrationsRouter({ resolveOrigin, getLiveSiteId }));
+
 router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res, next) => {
     try {
         const origin = resolveOrigin(req);
@@ -353,7 +316,22 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res
         if (!siteId) return next();
 
         const { defaultLocale, locales } = await siteLocales();
+
+        // Editor-managed redirects (renamed or merged pages), answered before this address is taken for a page, a 410 or the SPA.
+        // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- the target was validated when saved (stores/cms/redirectRules.js): a site path, or an https URL on the site's allow-list
+        const managed = resolveSiteRedirect(await cmsStore.getPublishedSnapshot(siteId), req.path, locales, rawQuery(req));
+        if (managed) {
+            res.set('Cache-Control', 'public, max-age=60, s-maxage=300');
+            return res.redirect(managed.status, managed.location);
+        }
+
         // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect, ajinabraham.njsscan.xss.xss_node.express_xss -- parsePublicPath only yields [a-z0-9-] slugs; every redirect target below is buildPublicPath(...), a same-site path starting with one "/", and pages are rendered through the escaping head/body builders
+        const legalTarget = legalRedirectTarget(req.path, locales, defaultLocale);
+        if (legalTarget) {
+            const qs = rawQuery(req).toString();
+            return res.redirect(301, qs ? `${legalTarget}?${qs}` : legalTarget);
+        }
+        // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss, ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- parsePublicPath only yields [a-z0-9-] slugs, every redirect below goes to buildPublicPath(...) (a same-site path), and pages render through the escaping head and body builders
         let parsed = parsePublicPath(req.path, locales);
         if (!parsed) return next();
 
@@ -402,31 +380,23 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res
            V1 pages above are still listed months after they stopped existing.
            A status code is the only way to say "stop listing this".
 
-           410 rather than 404, for a mechanical reason: nginx's @render block
-           maps `error_page 404 … = @shell`, so a 404 from here is swallowed and
-           reappears as a 200 shell — the very thing being fixed. That mapping
-           is load-bearing (it is how genuine app routes reach the SPA when this
-           route declines them), so the fix must not disturb it. 410 is not in
-           that list, passes through untouched, and Google documents it as
-           equivalent to 404 for removal, only acted on slightly sooner. Which
-           is honest here: these are pages that are gone, not pages that never
-           were.
+           404, except for a slug on GONE_SLUGS (deleted on purpose), which is
+           410: Google drops a 410 quickly, so it must not be the answer for
+           typos or a page that is only unpublished for a while.
+
+           nginx's @render block maps `error_page 404 … = @shell`, which would
+           turn this 404 back into a 200 shell. sendNotFound therefore sets
+           `X-Beeflow-Render: not-found`, and @shell (agent-hub/nginx.conf.template)
+           keeps the 404 for responses that carry it, while a plain 404 (a genuine
+           app route this renderer declines) still reaches the SPA as before.
 
            Reserved and multi-segment paths never get here — parsePublicPath
            returned null for those above, and they still fall through to the
            SPA exactly as before. */
         if (!eff || !eff.found || !eff.page) {
-            const shell410 = await getShell();
-            if (!shell410) return next();
-            res.status(410).type('html').set('Cache-Control', 'no-store');
-            return res.send(injectIntoShell(shell410, {
-                head: [
-                    '<title>Page not found — Bee Flow</title>',
-                    '<meta name="robots" content="noindex, follow">',
-                ].join('\n    '),
-                body: '',
-                lang: locale,
-            }));
+            const notFoundShell = await getShell();
+            if (!notFoundShell) return next();
+            return sendNotFound(res, notFoundShell, locale, GONE_SLUGS.has(parsed.slug));
         }
 
         const shell = await getShell();
@@ -459,11 +429,13 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res
             return res.redirect(301, qs ? `${target}?${qs}` : target);
         }
 
+        await require('../stores/cms/stories').fillCustomerStories(siteId, eff.page, locale);
+        const { html: body, headLinks } = renderBlocksWithHints(eff.page.blocks, { fallbackTitle: eff.page.title, chrome: { header: eff.header, footer: eff.footer } });
         const head = buildHead({
             origin, slug: parsed.slug, locale, defaultLocale, locales: pageLocales,
-            page: eff.page, design: eff.design || {}, siteName,
+            page: eff.page, design: eff.design || {}, siteName, shareImageVersion: versionOf(snapshot && snapshot.publishedAt),
+            extraLinks: headLinks,
         });
-        const body = renderBlocks(eff.page.blocks, { fallbackTitle: eff.page.title });
 
         /* The same payload GET /api/cms/site would return, inlined.
          *

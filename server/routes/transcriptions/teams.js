@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Transcriptions — Microsoft Teams meetings & imports.
  *

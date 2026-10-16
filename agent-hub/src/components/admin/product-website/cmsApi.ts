@@ -33,6 +33,8 @@ export const cmsApi = {
     // ── Per-site editor operations ──
     siteLive:            (siteId: string)                      => `${root}/sites/${siteId}/live`,
     sitePublish:         (siteId: string)                      => `${root}/sites/${siteId}/publish`,
+    // Link check of the draft (POST { external?: boolean }): internal links by default.
+    siteLinkCheck:       (siteId: string)                      => `${root}/sites/${siteId}/link-check`,
     siteGraph:           (siteId: string)                      => `${root}/sites/${siteId}/graph`,
     siteLocaleOverride:  (siteId: string, locale: string)              => `${root}/sites/${siteId}/site/locale/${encodeURIComponent(locale)}`,
     pages:               (siteId: string)                      => `${root}/sites/${siteId}/pages`,

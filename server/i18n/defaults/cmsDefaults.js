@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS Defaults — schema-of-record for the website builder.
  *
@@ -79,16 +80,17 @@ const SITE_DEFAULTS = {
     // means a fresh site shows the banner until the visitor chooses.
     cookieBanner: {
         enabled: true,
+        layout: 'card',
         text: {
             en: {
-                message: 'We use cookies to improve your experience.',
+                message: 'Cookie settings: choose what you allow.',
                 accept: 'Accept',
                 decline: 'Decline',
                 privacyLabel: 'Privacy Policy',
                 privacyUrl: '/privacy',
             },
             nl: {
-                message: 'Wij gebruiken cookies om je ervaring te verbeteren.',
+                message: 'Cookie-instellingen: kies wat je toestaat.',
                 accept: 'Accepteren',
                 decline: 'Weigeren',
                 privacyLabel: 'Privacybeleid',
@@ -180,9 +182,12 @@ const BLOCK_DEFAULTS = {
         titleStyle:   { fontFamily: '', fontSize: 32, color: '' },
         logos: [],
         // 'classic' = logo wall only; 'numbers' adds a hard-numbers row
-        // (stars / users / uptime) above the wall. See BLOCK_VARIANTS.
+        // (stars / users / uptime) above the wall; 'stats' is that row alone;
+        // 'chips' is a row of text chips (label + optional icon), no logos.
+        // See BLOCK_VARIANTS.
         variant: 'classic',
         stats: [],
+        chips: [],
     },
 
     // Flexible Content block — column + elements system. Each column holds
@@ -407,6 +412,31 @@ const BLOCK_DEFAULTS = {
         backgroundVariant: 'surface',
     },
 
+    // Form — a lead-capture form (demo request, newsletter, gated download)
+    // that posts to a Bee Flow automation of the SAME install, so the visitor's
+    // details never leave it (routes/cmsForms.js). `fields[].id` is the name
+    // the answer arrives under in the automation (trigger.output.<id>) and is
+    // structural (never translated); select `options[].value` likewise.
+    // `automationId` only takes effect once an admin has enabled that
+    // automation for website forms. Kept in sync with core/cms/websiteForms.js.
+    form: {
+        eyebrow: '',
+        title: 'Request a demo',
+        lead: 'Tell us a little about your team and we will get back to you.',
+        fields: [
+            { id: 'name', type: 'text', label: 'Name', placeholder: '', required: true },
+            { id: 'email', type: 'email', label: 'Work email', placeholder: 'you@company.com', required: true },
+            { id: 'message', type: 'textarea', label: 'How can we help?', placeholder: '', required: false },
+        ],
+        consent: { enabled: true, text: 'I agree that my details are used to answer my request.' },
+        submitLabel: 'Send',
+        successTitle: 'Thank you',
+        successBody: 'We have received your request and will be in touch.',
+        errorText: 'Something went wrong. Please try again.',
+        automationId: '',
+        backgroundVariant: 'surface',
+    },
+
     // Testimonials — quantified social proof (name + role + company always;
     // NEVER star ratings). 'quotes' (default) = 3-up hairline cards; 'case'
     // leads each card with metric.number/label; 'spotlight' renders only the
@@ -476,6 +506,8 @@ const BLOCK_DEFAULTS = {
         feature: 'automations',
         height: 720,
         theme: 'light',                 // 'light' | 'dark' — passed to the demo
+        caption: '',                    // one short line above the frame: what you can do here
+        poster: '',                     // still image shown until the visitor clicks "Try it"
         note: 'This is the real interface running on sample data. Nothing you do here is saved, and nothing leaves your browser.',
         // No default CTA under the frame — the demo itself is the pitch. An
         // authored cta { label, link } still renders if a block carries one.
@@ -532,6 +564,72 @@ const BLOCK_DEFAULTS = {
         footnote: '',
     },
 
+    // Tabs / switcher: one section that serves several audiences ("Bee Flow
+    // for IT / Legal / DPO"). 2-6 tabs, each with a heading, text, an optional
+    // media slot and an optional CTA. `tabId` is the stable key behind the
+    // `?tab=` deep link: it ends in "Id", so the translation denylist keeps it
+    // out of locale overrides (the visible `label` translates, the link does
+    // not change per language). `cta` is null while switched off.
+    tabs: {
+        eyebrow: '',
+        title: 'One platform, every team',
+        lead: '',
+        items: [
+            {
+                tabId: 'tab-1', label: 'Team 1', title: 'Heading for the first team',
+                body: 'Describe how this team uses the product.',
+                media: { src: '', srcDark: '', alt: '', frame: 'hairline', kind: 'image' },
+                cta: null,
+            },
+            {
+                tabId: 'tab-2', label: 'Team 2', title: 'Heading for the second team',
+                body: 'Describe how this team uses the product.',
+                media: { src: '', srcDark: '', alt: '', frame: 'hairline', kind: 'image' },
+                cta: null,
+            },
+        ],
+    },
+
+    // Customer story: the header of a case-study PAGE. A story is an ordinary
+    // CMS page (own slug, SEO, translations, sitemap entry, publish snapshot)
+    // that starts with this block; the rest of the page is any other blocks.
+    // The "Customer stories" grid reads these headers from the live site's
+    // published pages (stores/cms/stories.js), so the facts below are written
+    // once. `metrics` holds 2-4 { stat, label } pairs ("60%", "less review time").
+    // `sectorId` (grid) / the sector text decide the filter; `title` is the
+    // story's headline and the page's h1.
+    'story-header': {
+        customer: 'Customer name',
+        sector: 'Sector',
+        title: 'How the customer reached the result',
+        lead: 'One or two sentences that summarise the story. They are also shown on the story card.',
+        logo: { src: '', srcDark: '', alt: '', frame: 'none', kind: 'image' },
+        quote: '',
+        quoteBy: '',
+        metrics: [
+            { stat: '60%', label: 'less time on review' },
+            { stat: '3 weeks', label: 'to go live' },
+        ],
+    },
+
+    // Grid of customer stories with a sector filter. Stores NO stories: they
+    // come from GET /api/cms/stories (the pages of the live site that carry a
+    // story-header block, as last published) and are inlined into the
+    // server-rendered HTML, like release-notes and blog-latest. `sectorId`
+    // pre-filters to one sector (its URL form; it ends in "Id", so it is never
+    // translated). Wording around the grid is block content and translates.
+    'customer-stories': {
+        eyebrow: '',
+        title: 'Customer stories',
+        lead: '',
+        limit: 6,
+        sectorId: '',
+        showFilter: true,
+        allLabel: 'All',
+        linkLabel: 'Read the story',
+        emptyText: '',
+    },
+
     // Live repository facts (stars, latest release) fetched client-side from
     // /api/public/github-stats. The block itself stores no numbers — stored
     // star counts would be stale the week after publishing.
@@ -583,6 +681,69 @@ const BLOCK_DEFAULTS = {
         linkLabel: 'All posts',
         emptyText: '',
     },
+
+    // Animated product mockup (issue 244): a tilted app panel where `prompt`
+    // types itself and `steps` appear one by one. All text, so it translates and
+    // needs no video. `role` is 'user' | 'assistant' | 'card' (denylisted).
+    'product-mockup': {
+        eyebrow: '',
+        title: 'See it work',
+        lead: '',
+        tilt: 'right',
+        scrollTilt: true,
+        windowTitle: 'Bee Flow',
+        prompt: 'Create an agent that summarises my inbox every morning',
+        steps: [
+            { role: 'assistant', title: '', text: 'On it. Which mailbox should I watch?' },
+            { role: 'card', title: 'Morning summary', text: 'Runs every day at 08:00 and posts the summary to your chat.' },
+        ],
+    },
+
+    // Horizontal snap carousel of large gradient cards (issue 244). `gradient`
+    // is 'primary' | 'accent' | 'mix' | 'dark'; the colours come from the theme.
+    'card-carousel': {
+        eyebrow: '',
+        title: 'Explore',
+        lead: '',
+        animated: true,
+        showNumerals: true,
+        prevLabel: 'Previous',
+        nextLabel: 'Next',
+        cards: [
+            { title: 'First card', body: 'Describe it in a sentence or two.', gradient: 'primary', numeral: '', linkLabel: '', link: { kind: 'anchor', anchor: '' } },
+            { title: 'Second card', body: 'Describe it in a sentence or two.', gradient: 'mix', numeral: '', linkLabel: '', link: { kind: 'anchor', anchor: '' } },
+            { title: 'Third card', body: 'Describe it in a sentence or two.', gradient: 'dark', numeral: '', linkLabel: '', link: { kind: 'anchor', anchor: '' } },
+        ],
+    },
+
+    // Scroll story. Steps run down one side; one sticky media panel on the
+    // other changes with the step in view. The same media is also rendered
+    // inside each step for phones, reduced motion and no-JS, so the story
+    // reads in order without any scroll linking. `steps[].media` is the
+    // usual slot ({ kind: 'image' | 'video' | 'clip', src, srcDark, alt }).
+    scrollStory: {
+        eyebrow: '',
+        title: 'How it works',
+        lead: '',
+        steps: [],
+    },
+
+    // Click-through product tour. One screenshot per step, numbered
+    // hotspots on it; a hotspot opens its explanation under the image. The
+    // coordinates `x` and `y` are percentages of the image (0-100). `labels`
+    // is the prose half (button names, "Step 1 of 3") and translates.
+    tour: {
+        eyebrow: '',
+        title: 'Take the tour',
+        lead: '',
+        steps: [],
+        labels: {
+            previous: 'Previous step',
+            next: 'Next step',
+            stepOf: 'Step {n} of {total}',
+            hotspot: 'Hotspot {n}',
+        },
+    },
 };
 
 // ── Block type catalogue (drives the "Add block" picker) ─────────────
@@ -603,6 +764,7 @@ const BLOCK_TYPES = [
     { type: 'live-component', label: 'Live Component', icon: 'Code',           category: 'Content' },
     { type: 'pricing',      label: 'Pricing',        icon: 'CreditCard',    category: 'Conversion' },
     { type: 'customer-support', label: 'Customer Support', icon: 'LifeBuoy', category: 'Conversion' },
+    { type: 'form', label: 'Form', icon: 'ListChecks', category: 'Conversion' },
     // ROLLBACK CAVEAT: site exports containing the five types below,
     // imported into an OLDER deployment that doesn't know them, silently
     // drop those blocks (normalizeBlockRecord → unknown-type). Land schema
@@ -622,7 +784,32 @@ const BLOCK_TYPES = [
     // Same rollback caveat: an export with this block imported into an older
     // deployment drops it.
     { type: 'blog-latest',   label: 'Latest posts',     icon: 'Newspaper',          category: 'Content' },
+    // Same rollback caveat: an export with this block imported into an older
+    // deployment drops it.
+    { type: 'tabs',          label: 'Tabs',             icon: 'Layers',           category: 'Content' },
+    // Same rollback caveat (customer stories): an export with these blocks
+    // imported into an older deployment drops them.
+    { type: 'story-header',     label: 'Customer story header', icon: 'Quote',  category: 'Trust' },
+    { type: 'customer-stories', label: 'Customer stories',      icon: 'Users',  category: 'Trust' },
+    // Same rollback caveat: motion blocks (issue 244).
+    { type: 'product-mockup', label: 'Product mockup',  icon: 'AppWindow',          category: 'Content' },
+    { type: 'card-carousel',  label: 'Card carousel',   icon: 'Layers',  category: 'Content' },
+    // Same rollback caveat: an export with these blocks imported into an older
+    // deployment drops them.
+    { type: 'scrollStory',   label: 'Scroll story',     icon: 'GalleryVertical',    category: 'Content' },
+    { type: 'tour',          label: 'Product tour',     icon: 'Route',              category: 'Content' },
 ];
+
+// Bounds of a tabs block. The editor stops at the maximum; the validator warns
+// outside the range (a stored block is never rewritten for being out of range).
+const TABS_MIN = 2;
+const TABS_MAX = 6;
+
+// Bounds of the customer-stories feature: metrics on a story header, and cards
+// in one grid.
+const STORY_METRICS_MIN = 2;
+const STORY_METRICS_MAX = 4;
+const STORY_GRID_MAX = 24;
 
 const BLOCK_TYPE_IDS = BLOCK_TYPES.map(t => t.type);
 
@@ -663,7 +850,7 @@ const BLOCK_VARIANTS = {
     features:    ['classic', 'bento'],
     steps:       ['classic', 'chapters'],
     security:    ['classic', 'ledger'],
-    socialProof: ['classic', 'numbers'],
+    socialProof: ['classic', 'numbers', 'stats', 'chips'],
     // New types have no legacy layout — the FIRST entry is the default and
     // the absent/unknown fallback (their renderers fall back to it, not to
     // a 'classic').
@@ -673,37 +860,6 @@ const BLOCK_VARIANTS = {
     // compact = one entry for a homepage strip; full = the /changelog archive.
     'release-notes': ['compact', 'full'],
 };
-
-// Reserved slugs that must never become a CMS page (they collide with real
-// app routes or the static marketing pages). Lowercase, no leading slash.
-// Kept in sync with the CLIENT router's claim list in
-// agent-hub/src/utils/cmsPublicRouting.js (RESERVED_TOP_LEVEL) — a slug the
-// client router never routes to the CMS is unreachable even if stored.
-// Enforced on page CREATE and slug RENAME only; the site-import path
-// deliberately bypasses this (importSite → ensureUniqueSlug) so restoring an
-// old export that predates an entry here never fails.
-const RESERVED_SLUGS = new Set([
-    'app', 'api', 'admin', 'auth', 'login', 'logout', 'register', 'signup',
-    'dashboard', 'settings', 'embed', 'oauth', 'callback',
-    // legacy short-id prefixes + app sub-surfaces claimed by App.jsx parsers
-    'chat', 'd', 'a', 'agent',
-    // hosted form-trigger pages: /f/<token> (routes/automation/formPublic.js)
-    'f',
-    // public Studio-app pages: /p/<token> (routes/studioAppPublic.js)
-    'p',
-    'org-settings',
-    // static public pages (served from in-repo markdown / static components)
-    // `pricing` was removed from this list (2026-07): the CMS now owns
-    // /pricing and the hardcoded PricingPage is only the fallback. See
-    // agent-hub/src/utils/cmsPublicRouting.js. `privacy`/`terms`/`legal`
-    // stay — those are served from in-repo markdown at fixed URLs.
-    'privacy', 'terms', 'legal',
-    '__cms_preview__',
-    // The blog index and its posts live at /blog and /blog/<post-slug>
-    // (stores/cms/posts.js, core/seo/publicPath.js). A page here would be
-    // shadowed by the blog — or shadow it — so new pages may not take it.
-    'blog',
-]);
 
 // ── Design system defaults ───────────────────────────────────────────
 //
@@ -741,6 +897,14 @@ const DESIGN_DEFAULTS = {
         surface:       '#F3EFE7',  // card / section bg
         textPrimary:   '#1C1917',  // warm ink
         textSecondary: '#57534E',
+        // Colour ROLES. '' = follow `primary`, so a site that never sets them
+        // renders as before. cta: buttons and the focus ring; link: text links;
+        // highlight: badges, eyebrows, hover borders (the "accent" role; `accent`
+        // above is already the gradient end); tile: icon tile fill and glyph.
+        cta:           '',
+        link:          '',
+        highlight:     '',
+        tile:          '',
     },
     // Dark-mode layout palette. primary/accent are optional per-mode brand
     // adjustments; empty string = reuse the light brand colors unchanged.
@@ -765,10 +929,12 @@ const DESIGN_DEFAULTS = {
     preset:   'custom',
     typography: {
         displaySize:   'lg',    // 'md' | 'lg' | 'xl' → caps the display clamp at 64/80/96px
-        headingWeight: 600,     // 500 | 600 | 700 — premium formula keeps headings ≤600
+        headingWeight: 600,     // 500 | 600 | 700 | 800 | 900 — premium formula keeps headings ≤600
+        displayTracking: 'default', // 'default' | 'tight' | 'tighter' | 'tightest' — letter-spacing of the display size
         bodySize:      16,      // 16 | 17 | 18 (px)
     },
     motion: 'full',             // 'none' | 'subtle' | 'full'
+    darkBand: 'palette',        // 'palette' | 'secondary' — what the dark band (style.band = 'dark') is filled with
     grain:  false,              // subtle page-wide noise overlay
 
     // ── Component shape + size ───────────────────────────────────────
@@ -787,6 +953,11 @@ const DESIGN_DEFAULTS = {
         cardStyle:       'hairline',  // hairline | soft | flat | elevated
         cardPadding:     'default',   // compact .75× | default 1× | roomy 1.3×
         shadow:          'soft',      // none | soft | medium | strong
+        tileShape:       'default',   // default (as before) | square | rounded | circle | hexagon
+        tileFill:        'default',   // default (tint + ring) | tint | solid | none
+        tileSize:        'default',   // default | sm | lg
+        tileIconColor:   'default',   // default (the tile colour) | light | dark
+        labelStyle:      'mono',      // mono (mono caps) | plain (body font, sentence case); a block's style.labelStyle overrides it
     },
     layout: {
         containerWidth:  'default',   // narrow 1120 | default 1280 | wide 1440 | full 1760
@@ -806,7 +977,15 @@ const DESIGN_COMPONENT_ENUMS = {
     cardStyle:       ['hairline', 'soft', 'flat', 'elevated'],
     cardPadding:     ['compact', 'default', 'roomy'],
     shadow:          ['none', 'soft', 'medium', 'strong'],
+    tileShape:       ['default', 'square', 'rounded', 'circle', 'hexagon'],
+    tileFill:        ['default', 'tint', 'solid', 'none'],
+    tileSize:        ['default', 'sm', 'lg'],
+    tileIconColor:   ['default', 'light', 'dark'],
+    labelStyle:      ['mono', 'plain'],
 };
+// Where the cookie banner sits: today's floating card, a slim full-width bar
+// along the bottom edge, or a small card in the bottom-left corner.
+const COOKIE_BANNER_LAYOUTS = ['card', 'bar', 'corner'];
 const DESIGN_LAYOUT_ENUMS = {
     containerWidth: ['narrow', 'default', 'wide', 'full'],
     sectionRhythm:  ['tight', 'default', 'airy'],
@@ -815,11 +994,20 @@ const DESIGN_LAYOUT_ENUMS = {
 // Scalar design enums (shared with the AI design tool so its rejections can
 // name the legal set instead of guessing).
 const DESIGN_THEMES   = ['light', 'dark'];
+// Templates of the generated share image (core/seo/ogCard.js pins its own list to this one).
+const SHARE_IMAGE_TEMPLATES = ['light', 'dark', 'brand'];
 const DESIGN_MOTIONS  = ['none', 'subtle', 'full'];
+// 'palette' = the dark-mode background colour (darkColors.background); 'secondary' = the theme's secondary colour.
+const DARK_BANDS = ['palette', 'secondary'];
 const DISPLAY_SIZES   = ['md', 'lg', 'xl'];
-const HEADING_WEIGHTS = [500, 600, 700];
+const HEADING_WEIGHTS = [500, 600, 700, 800, 900];
+// Letter-spacing of the display headline. 'default' emits nothing (the
+// token's own value); the others map to a fixed em value in the renderer.
+const DISPLAY_TRACKINGS = ['default', 'tight', 'tighter', 'tightest'];
 const BODY_SIZES      = [16, 17, 18];
 const COLOR_KEYS      = Object.keys(DESIGN_DEFAULTS.colors);
+// Colour roles that take '' = "follow the primary colour".
+const BLANKABLE_COLORS = ['cta', 'link', 'highlight', 'tile'];
 const DARK_COLOR_KEYS = Object.keys(DESIGN_DEFAULTS.darkColors);
 
 // Font allowlist — mirrors the curated FONT_LIBRARY in
@@ -846,18 +1034,24 @@ module.exports = {
     BLOCK_DEFAULTS,
     BLOCK_TYPES,
     BLOCK_TYPE_IDS,
+    TABS_MIN, TABS_MAX,
+    STORY_METRICS_MIN, STORY_METRICS_MAX, STORY_GRID_MAX,
     BLOCK_VARIANTS,
     DEMO_FEATURE_IDS,
-    RESERVED_SLUGS,
     DESIGN_DEFAULTS,
     DESIGN_COMPONENT_ENUMS,
     DESIGN_LAYOUT_ENUMS,
+    COOKIE_BANNER_LAYOUTS,
     DESIGN_THEMES,
+    SHARE_IMAGE_TEMPLATES,
     DESIGN_MOTIONS,
+    DARK_BANDS,
     DISPLAY_SIZES,
     HEADING_WEIGHTS,
+    DISPLAY_TRACKINGS,
     BODY_SIZES,
     COLOR_KEYS,
+    BLANKABLE_COLORS,
     DARK_COLOR_KEYS,
     DESIGN_FONTS,
 };

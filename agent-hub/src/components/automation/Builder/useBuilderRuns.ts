@@ -1,7 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from '../../shared/Toast';
 import { shouldAutoOpenFormOverlay, awaitingFormStepId, dismissKey } from './flow/formOverlayAutoOpen';
+import { runWithCallerNotice } from './callerNotice';
+import { acknowledgeCallerNotice, fetchCallerNotice } from '../../../api/queries/automation/callerNotice';
+import { useTranslation } from '../../../hooks/useTranslation';
 
+
+/** The live run's answer: a skip, a hand-off to the run history, or the finished run. */
+interface LiveRunReply {
+    skipped?: boolean;
+    pending?: boolean;
+    message?: string;
+    run?: { status?: string };
+    steps?: unknown;
+}
 
 export interface UseBuilderRunsOptions {
     api: any;
@@ -32,6 +44,7 @@ export default function useBuilderRuns({
     api, state, effectiveDef, executeStep, watchActiveRun, setRunResult, settleRun, clearDryRun,
     ensureAutomationCreated, noteManagedRefusal, setBusy, setError, confirm, setTab, ndvStepId, openNdv,
 }: UseBuilderRunsOptions) {
+    const { t } = useTranslation();
     // Executing a step does NOT open its editor. Hitting ▶ on the canvas is a
     // question about DATA — "how much came out, and what goes to the next
     // node" — and the answer now lands on the connection itself (see
@@ -191,7 +204,13 @@ export default function useBuilderRuns({
             // `test: true`: the editor runs what is on the canvas (the working
             // copy). Without it the server runs the LIVE version, which on a
             // automation with changes not yet live is not what the author sees.
-            const r = await api.run(aid, { ...body, test: true });
+            // The first run of an automation on the caller's own connections is held
+            // for a one-time notice (callerNotice.ts); declining starts nothing.
+            const started = await runWithCallerNotice<LiveRunReply>(
+                { run: api.run, getCallerNotice: fetchCallerNotice, ackCallerNotice: acknowledgeCallerNotice }, aid, { ...body, test: true }, confirm, t,
+            );
+            if (started.declined) { clearDryRun(); return null; }
+            const r = started.result;
             if (r?.skipped) {
                 clearDryRun();
                 toast.success(r.message || 'Nothing to run against yet.');

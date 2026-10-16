@@ -14,56 +14,12 @@
 const { test } = require('node:test');
 const assert = require('assert');
 
-// Stub automationStore + userStore before requiring dispatch.js so it loads
-// without booting a DB pool, and so we can hand back synthetic subscriptions
-// spanning two different orgs' users.
-const storePath = require.resolve('../stores/automationStore');
-const SUBS = [
-    { id: 'sub-orgA', automationId: 'auto-orgA', userId: 'user-orgA', filter: null },
-    { id: 'sub-orgB', automationId: 'auto-orgB', userId: 'user-orgB', filter: null },
-];
-require.cache[storePath] = {
-    id: storePath,
-    filename: storePath,
-    loaded: true,
-    exports: {
-        getSubscriptionsForProvider: async () => SUBS,
-        getAutomation: async (id) => ({ id, isActive: true, isDraft: false }),
-    },
-};
-
-const userStorePath = require.resolve('../stores/userStore');
-const USERS = {
-    'user-orgA': { id: 'user-orgA', organizationId: 'org-A' },
-    'user-orgB': { id: 'user-orgB', organizationId: 'org-B' },
-};
-require.cache[userStorePath] = {
-    id: userStorePath,
-    filename: userStorePath,
-    loaded: true,
-    exports: { getUser: async (uid) => USERS[uid] || null },
-};
-
-const runnerPath = require.resolve('../core/automationRunner');
-const dispatchedRuns = [];
-require.cache[runnerPath] = {
-    id: runnerPath,
-    filename: runnerPath,
-    loaded: true,
-    exports: {
-        executeAutomation: async (automation) => {
-            dispatchedRuns.push(automation.id);
-            return { id: `run-${automation.id}` };
-        },
-    },
-};
+// Stub automationStore, userStore and the runner before requiring dispatch.js
+// (synthetic subscriptions spanning two orgs' users; see triggerBus.testkit.js).
+const { installDispatchStubs, tick } = require('./triggerBus.testkit');
+const { SUBS, dispatchedRuns } = installDispatchStubs();
 
 const { dispatchEvent, dispatchToSubscription, dispatchOrgScopedEvent } = require('./triggerBus/dispatch');
-
-// executeAutomation now runs fire-and-forget (setImmediate) inside dispatch.js
-// so ingest routes / the polling tick never block on a slow automation —
-// give scheduled setImmediate callbacks a turn before asserting on side effects.
-const tick = () => new Promise((resolve) => setImmediate(resolve));
 
 test('dispatchEvent: nextcloud event with no userId AND no orgId is dropped, not fanned out', async () => {
     dispatchedRuns.length = 0;
@@ -129,4 +85,34 @@ test('dispatchToSubscription: only dispatches to the ONE subscription given, not
     assert.strictEqual(runs.length, 1);
     assert.strictEqual(runs[0].subId, 'sub-1');
     assert.deepStrictEqual(dispatchedRuns, ['auto-1'], 'sibling sub-2 (same user, same provider+event) must NOT also fire');
+});
+
+// A connector install pushes file.new / file.changed AND the activity poller
+// owns them (subscriptionSync forces mode='polling'), so a push must not also
+// fire a polling-mode subscription. Other events and webhook-mode subs keep
+// the push path.
+test('dispatchEvent: push file.new / file.changed skips polling-mode subs (the poller is authoritative)', async () => {
+    const saved = SUBS.splice(0, SUBS.length,
+        { id: 'sub-poll', automationId: 'auto-poll', userId: 'user-orgA', mode: 'polling', lastCursor: 'c1', filter: null },
+        { id: 'sub-hook', automationId: 'auto-hook', userId: 'user-orgA', mode: 'webhook', filter: null });
+    try {
+        for (const event of ['file.new', 'file.changed']) {
+            dispatchedRuns.length = 0;
+            await dispatchEvent({ provider: 'nextcloud', event, payload: {}, userId: 'user-orgA', orgId: 'org-A' });
+            await tick();
+            assert.deepStrictEqual(dispatchedRuns, ['auto-hook'], `${event}: only the webhook-mode sub fires from a push`);
+        }
+        dispatchedRuns.length = 0;
+        await dispatchEvent({ provider: 'nextcloud', event: 'file.deleted', payload: {}, userId: 'user-orgA', orgId: 'org-A' });
+        await tick();
+        assert.deepStrictEqual(dispatchedRuns.sort(), ['auto-hook', 'auto-poll'], 'push-only events are unchanged');
+        // A polling sub the poller has not bootstrapped yet (no cursor) still gets the push.
+        SUBS[0].lastCursor = null;
+        dispatchedRuns.length = 0;
+        await dispatchEvent({ provider: 'nextcloud', event: 'file.new', payload: {}, userId: 'user-orgA', orgId: 'org-A' });
+        await tick();
+        assert.deepStrictEqual(dispatchedRuns.sort(), ['auto-hook', 'auto-poll']);
+    } finally {
+        SUBS.splice(0, SUBS.length, ...saved);
+    }
 });

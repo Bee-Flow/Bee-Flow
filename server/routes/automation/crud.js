@@ -38,6 +38,7 @@ const { activateAutomation, publishAutomation } = require('./activate');
 // may carry. The live/working split itself lives in the store and the runner.
 const { makeTrashHandlers } = require('./trash');
 const { withSanitizedRunPolicy, resolveRunPolicy, runTimeoutMsFor } = require('../../core/automationRunner/runPolicy');
+const { ownerOnlyRefusal } = require('../../automation/ownerOnlyFields');
 // Handoff 5, sharing and roles: one answer to "may this caller do that with
 // this automation" (automation/access.js). Owner first and free; org admins with
 // manage_automations and people/groups the automation is shared with after.
@@ -460,10 +461,9 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
     const access = await automationAccess.guard(req, res, existing, 'edit');
     if (!access) return;
     const ownerId = existing.userId || userId;
-    // The sidebar folder is the owner's filing, not a setting of the automation.
-    if (req.body.folderId !== undefined && access.role !== 'owner') {
-        return res.status(403).json({ error: 'Only the owner can move this automation to another folder.', code: 'automation_forbidden', need: 'owner' });
-    }
+    // The sidebar folder and whose connections runs use are the owner's calls.
+    const ownerOnly = ownerOnlyRefusal({ body: req.body, existing, role: access.role, userId });
+    if (ownerOnly) return res.status(403).json({ error: ownerOnly, code: 'automation_forbidden', need: 'owner' });
 
     const updates = {};
     const fields = ['title', 'description', 'definition', 'isDraft', 'triggerType', 'scheduleCron', 'scheduleTz'];
@@ -610,7 +610,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
     }
     // `false` when nothing was left to write (a live automation's schedule
     // columns only, stripped above): the row stands as it was.
-    const updated = (await automationStore.updateAutomation(req.params.id, updates, userId)) || existing;
+    const updated = (await automationStore.updateAutomation(req.params.id, updates, userId, { allowConnectionsChange: access.role === 'owner' })) || existing;
 
     // A trigger switched TO `form` needs its public page; one switched away
     // keeps its row, exactly as before — the page survives so the old link

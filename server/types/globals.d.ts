@@ -18,3 +18,9 @@ interface Error {
     statusCode?: number;
     expose?: boolean;
 }
+
+// App Studio's headless render (services/appStudioRender.js) passes callbacks
+// to Playwright's page.evaluate / waitForFunction. They are serialised and run
+// in the browser page, where `window` carries the preview bundle's mount flags.
+// Declared here only so those callbacks type-check; the server has no window.
+declare const window: { __bfMounted?: boolean; __bfMountError?: string };

@@ -193,3 +193,13 @@ test('an ingest failure never fails the ack — Talk marks a slow bot unhealthy'
     assert.equal(res.statusCode, 202);
     require.cache[ingestPath].exports.handleTalkReaction = saved;
 });
+
+test('a push from a resolved actor is stamped as the actor\'s own action (excludeOwn* filters)', async () => {
+    rec.dispatched = []; rec.reactions = [];
+    await handler(signedReq({ event: 'file.deleted', ncUid: 'ada', payload: { path: '/x.txt' } }), makeRes());
+    await drain();
+    assert.equal(rec.dispatched.length, 1);
+    assert.equal(rec.dispatched[0].payload.isOwn, true);
+    assert.equal(rec.dispatched[0].payload.isOwnAction, true);
+    assert.equal(rec.dispatched[0].payload.path, '/x.txt');
+});

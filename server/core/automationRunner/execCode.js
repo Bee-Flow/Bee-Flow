@@ -19,6 +19,7 @@ const safety = require('./safety');
 // Each outbound call runs in its own capture context (core/http/captureCall.js).
 const { captureCall: captured } = require('../http/captureCall');
 const log = require('../../telemetry/log');
+const { toolIdentity, permittedCatalog } = require('./toolIdentity');
 
 const sandbox = () => runnerPort('codeSandbox');
 
@@ -78,16 +79,7 @@ async function allowedCodeTools(step, ctx) {
     if (declaredTools.size > 0 && !ctx.allowedToolNames) {
         try {
             const { getIntegrationTools } = require('../integrations/integrationTools');
-            const lendPolicy = (ctx.resourceOwnerUserId && ctx.resourceOwnerUserId !== ctx.userId)
-                ? { ownerUserId: ctx.resourceOwnerUserId, resourceType: 'automation', resourceId: ctx.automationId || null }
-                : null;
-            const r = await getIntegrationTools({
-                userId: ctx.userId,
-                session: ctx.session,
-                isAdmin: !!ctx.session?.isAdmin || ctx.session?.user?.role === 'admin',
-                automationStep: true,
-                connectionPolicy: lendPolicy,
-            });
+            const r = await permittedCatalog(ctx, getIntegrationTools, { automationStep: true, lend: true });
             ctx.allowedToolNames = new Set((r.tools || []).map(t => t?.function?.name).filter(Boolean));
         } catch (e) {
             log.warn(`[AutomationRunner] Permission catalog lookup failed (code step): ${e.message}`);
@@ -127,9 +119,11 @@ function makeExecuteToolBridge(step, ctx, mode, allowedTools) {
         // Dispatched inside this bridge's own capture context, so the
         // dispatcher's chokepoint sees a probe and leaves the row to
         // the logEgress calls below (one row, with the peers).
+        const who = toolIdentity(ctx);
         const call = await captured(() => executeTool(name, guardedCall.payload, {
-            userId: ctx.userId, session: ctx.session, orgId: ctx.orgId,
-            userGroupIds: ctx.userGroupIds || [],
+            userId: who.userId, session: who.session, orgId: who.orgId,
+            userGroupIds: who.userGroupIds,
+            connectionsCallerUserId: ctx.callerOnly ? ctx.callerOnly.userId : null,
             userOrgIds: ctx.userOrgIds || [],
             runScope: ctx.runId ? { runId: ctx.runId, rootRunId: ctx.rootRunId || ctx.runId } : null,
             egress: false,

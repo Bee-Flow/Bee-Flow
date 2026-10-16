@@ -3115,3 +3115,6 @@ component_studio.designer.tools_used
 component_studio.designer.unknown_stream_error
 component_studio.designer.welcome_hint
 component_studio.designer.welcome_title
+
+# Failed-run banner (2026-10): replaced by automations.canvas.run_step_failed.
+automations.canvas.run_failed

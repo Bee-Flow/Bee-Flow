@@ -1,0 +1,85 @@
+/* Tabs block — owned by Tabs.tsx (imported there, NOT part of marketing.css).
+   Scoped under .marketing-root so every token resolves and re-derives inside
+   band/dark scopes like the built-in sections. */
+
+.marketing-root .tabs-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-8);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--hairline);
+}
+
+.marketing-root .tabs-tab {
+    appearance: none;
+    cursor: pointer;
+    padding: 10px 18px;
+    min-height: 44px; /* touch target */
+    font: inherit;
+    font-size: var(--text-small);
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    transition: background var(--motion-fast, 150ms), color var(--motion-fast, 150ms), border-color var(--motion-fast, 150ms);
+}
+
+.marketing-root .tabs-tab:hover {
+    color: var(--text-primary);
+    background: var(--surface-2);
+}
+
+.marketing-root .tabs-tab:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+}
+
+.marketing-root .tabs-tab--active,
+.marketing-root .tabs-tab--active:hover {
+    color: var(--text-primary);
+    background: var(--accent-tint-14);
+    border-color: var(--hairline-accent);
+}
+
+.marketing-root .tabs-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-12);
+    align-items: center;
+}
+
+/* [hidden] must win over the grid above. */
+.marketing-root .tabs-panel[hidden] {
+    display: none;
+}
+
+.marketing-root .tabs-panel--text {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 68ch;
+}
+
+.marketing-root .tabs-panel-copy > * + * {
+    margin-top: var(--space-4);
+}
+
+.marketing-root .tabs-panel-cta {
+    margin-top: var(--space-6);
+}
+
+@media (max-width: 768px) {
+    .marketing-root .tabs-panel {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-6);
+    }
+    /* Many tabs on a phone: one scrollable row instead of wrapping rows. */
+    .marketing-root .tabs-list {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .marketing-root .tabs-tab {
+        flex: 0 0 auto;
+    }
+}

@@ -466,3 +466,13 @@ test('the paths the canvas picker builds for a code step resolve at run time', a
     assert.strictEqual(r.tickets.length, 15);
     assert.strictEqual(r.description[14], 'Ticket 15');
 });
+
+test('execCallLayer fails a non-numeric value for a number param, naming the param', async () => {
+    const layer = layerDef();
+    layer.trigger.params = [{ name: 'qty', type: 'number' }];
+    const step = { id: 'cl1', type: 'call_layer', layerKey: 'L', inputs: { qty: { kind: 'literal', value: 'abc' } } };
+    await assert.rejects(
+        () => runner.execCallLayer(step, { layers: { L: layer }, stepRecord: rootRecord() }, { secrets: {}, steps: {}, vars: {} }, 'live', dispatch),
+        (e) => e.errorClass === 'ValidationError' && /"qty"/.test(e.message),
+    );
+});

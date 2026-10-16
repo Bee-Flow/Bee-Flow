@@ -22,6 +22,14 @@ export interface HeaderCta {
     labelFont?: string;
     labelSize?: number;
     labelColor?: string;
+    /** 'link' (default) or 'github': a GitHub button with the cached star count. */
+    kind?: string;
+    repoUrl?: string;
+    /** Shown when the server has no cached count yet, or its count is for another repository. */
+    starsFallback?: number;
+    /** Screen-reader text of the GitHub button: the word after the count, and the new-tab note. */
+    starsText?: string;
+    newTabText?: string;
 }
 
 export interface HeaderData extends Pick<SectionDataBase, 'enabled'> {
@@ -31,4 +39,9 @@ export interface HeaderData extends Pick<SectionDataBase, 'enabled'> {
     activeSlug?: string;
     navStyle?: TextStyleBlob;
     ctas?: HeaderCta[];
+}
+
+export interface HeaderProps {
+    data?: HeaderData;
+    showLanguageSwitcher?: boolean;
 }

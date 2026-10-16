@@ -116,7 +116,7 @@ function validateDataModel(model) {
         if (typeof table.key !== 'string' || !KEY_RE.test(table.key)) {
             errors.push(`${where}.key "${table.key}" must match ${KEY_RE}`);
         } else if (RESERVED_KEY_PREFIX_RE.test(table.key)) {
-            errors.push(`${where}.key "${table.key}" may not start with a reserved engine prefix (pg_, sqlite_)`);
+            errors.push(`${where}.key "${table.key}" may not start with a reserved engine prefix (pg_, sqlite_, pragma_)`);
         } else if (tableKeys.has(table.key)) {
             errors.push(`${where}.key "${table.key}" is duplicated`);
         } else { tableKeys.add(table.key); }
@@ -148,7 +148,7 @@ function validateDataModel(model) {
             if (typeof field.key !== 'string' || !KEY_RE.test(field.key)) {
                 errors.push(`${fw}.key "${field.key}" must match ${KEY_RE}`);
             } else if (RESERVED_KEY_PREFIX_RE.test(field.key)) {
-                errors.push(`${fw}.key "${field.key}" may not start with a reserved engine prefix (pg_, sqlite_)`);
+                errors.push(`${fw}.key "${field.key}" may not start with a reserved engine prefix (pg_, sqlite_, pragma_)`);
             } else if (SYSTEM_COLUMNS.includes(field.key)) {
                 errors.push(`${fw}.key "${field.key}" collides with a reserved system column`);
             } else if (fieldKeys.has(field.key)) {

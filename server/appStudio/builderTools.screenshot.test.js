@@ -160,6 +160,19 @@ test('success: string content for the model + the image on the side channel', as
     assert.strictEqual(call.asRole, null);
 });
 
+test('only a missing runtime bundle says screenshots cannot be rendered; an unknown screen keeps its normal message', async () => {
+    const wrap = savedWrap();
+    renderState.result = { ok: false, unavailable: true, reason: 'screen "scr_nope" is not in the app definition' };
+    const unknownScreen = await applyToolCall('app_screenshot', { screenId: 'scr_nope' }, wrap);
+    assert.match(unknownScreen.content, /^No screenshot: screen "scr_nope" is not in the app definition/);
+    assert.doesNotMatch(unknownScreen.content, /cannot render/);
+
+    renderState.result = { ok: false, unavailable: true, code: 'no_renderer', reason: 'the app runtime bundle is not in this build' };
+    const noRenderer = await applyToolCall('app_screenshot', {}, wrap);
+    assert.match(noRenderer.content, /cannot render screenshots/);
+    assert.match(noRenderer.content, /Do not retry/);
+});
+
 test('screenId + asRole pass through and show up in content and caption', async () => {
     const wrap = savedWrap();
     const scr = wrap.def.screens[0];

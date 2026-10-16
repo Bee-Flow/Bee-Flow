@@ -129,6 +129,7 @@ async function runAutomationConnector(connector, { app, viewerId, params, deps }
             _studioAppId: app.id,
         },
         mode: 'live',
+        startedByUserId: viewerId || null,
     });
     if (run && run.status && run.status !== 'success') {
         return { rows: [] };

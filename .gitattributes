@@ -20,4 +20,5 @@ Dockerfile* text eol=lf
 
 # Generated files — collapse in diffs and exclude from GitHub language stats.
 agent-hub/src/i18n/en-defaults.js linguist-generated=true
+agent-hub/src/i18n/en/*.generated.mjs linguist-generated=true
 package-lock.json linguist-generated=true

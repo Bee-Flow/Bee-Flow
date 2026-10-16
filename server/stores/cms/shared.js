@@ -6,12 +6,15 @@
 const crypto = require('crypto');
 const {
     SITE_DEFAULTS,
-    RESERVED_SLUGS,
     DESIGN_DEFAULTS,
     DESIGN_COMPONENT_ENUMS,
-    DESIGN_LAYOUT_ENUMS,
+    DESIGN_LAYOUT_ENUMS, SHARE_IMAGE_TEMPLATES,
+    HEADING_WEIGHTS,
+    DARK_BANDS,
+    DISPLAY_TRACKINGS,
 } = require('../../i18n/defaults/cmsDefaults');
 const { THEME_PRESET_IDS } = require('../../i18n/defaults/themePresets');
+const { normalizeSlug, normalizeStoredSlug, isReservedSlug } = require('./slugRules');
 
 const KEY_DEFAULT_LOCALE  = 'cms_default_locale';
 const KEY_PROJECTS_INDEX  = 'cms_projects_index';
@@ -99,20 +102,6 @@ function mergeLocaleContent(base, override) {
     return base;
 }
 
-function normalizeSlug(raw) {
-    return String(raw || '')
-        .toLowerCase()
-        .trim()
-        .replace(/^\/+/, '')
-        .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9_-]/g, '')
-        .slice(0, 64);
-}
-
-function isReservedSlug(slug) {
-    return RESERVED_SLUGS.has(String(slug || '').toLowerCase());
-}
-
 function assertSiteId(siteId) {
     if (!siteId || typeof siteId !== 'string' || !/^pj_[a-f0-9]{4,}$/.test(siteId)) {
         throw new Error('Invalid siteId');
@@ -144,6 +133,8 @@ function sanitizeDesign(input) {
     const numClamp = (v, lo, hi, fb) =>
         (typeof v === 'number' && v >= lo && v <= hi) ? Math.round(v) : fb;
     const oneOf = (v, set, fb) => (set.includes(v) ? v : fb);
+    // A colour role: a literal #rrggbb or '' (follow the primary colour).
+    const role = (v) => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v : '');
     return {
         colors: {
             primary:       str(c.primary,       DESIGN_DEFAULTS.colors.primary),
@@ -153,6 +144,10 @@ function sanitizeDesign(input) {
             surface:       str(c.surface,       DESIGN_DEFAULTS.colors.surface),
             textPrimary:   str(c.textPrimary,   DESIGN_DEFAULTS.colors.textPrimary),
             textSecondary: str(c.textSecondary, DESIGN_DEFAULTS.colors.textSecondary),
+            cta:           role(c.cta),
+            link:          role(c.link),
+            highlight:     role(c.highlight),
+            tile:          role(c.tile),
         },
         darkColors: {
             background:    str(dk.background,    DESIGN_DEFAULTS.darkColors.background),
@@ -177,13 +172,20 @@ function sanitizeDesign(input) {
         preset:   oneOf(d.preset, THEME_PRESET_IDS, 'custom'),
         typography: {
             displaySize:   oneOf(ty.displaySize,   ['md', 'lg', 'xl'], DESIGN_DEFAULTS.typography.displaySize),
-            headingWeight: oneOf(ty.headingWeight, [500, 600, 700],    DESIGN_DEFAULTS.typography.headingWeight),
+            headingWeight: oneOf(ty.headingWeight, HEADING_WEIGHTS,    DESIGN_DEFAULTS.typography.headingWeight),
+            displayTracking: oneOf(ty.displayTracking, DISPLAY_TRACKINGS, DESIGN_DEFAULTS.typography.displayTracking),
             bodySize:      oneOf(ty.bodySize,      [16, 17, 18],       DESIGN_DEFAULTS.typography.bodySize),
         },
         motion: oneOf(d.motion, ['none', 'subtle', 'full'], DESIGN_DEFAULTS.motion),
         grain:  d.grain === true,
+        darkBand: oneOf(d.darkBand, DARK_BANDS, DESIGN_DEFAULTS.darkBand),
         components: sanitizeEnumGroup(d.components, DESIGN_COMPONENT_ENUMS, DESIGN_DEFAULTS.components),
         layout:     sanitizeEnumGroup(d.layout,     DESIGN_LAYOUT_ENUMS,    DESIGN_DEFAULTS.layout),
+        // The generated share image of pages without an og:image (core/seo/ogCard.js).
+        shareImage: {
+            template: oneOf(isPlainObject(d.shareImage) ? d.shareImage.template : null, SHARE_IMAGE_TEMPLATES, 'light'),
+            motif:    !isPlainObject(d.shareImage) || d.shareImage.motif !== false,
+        },
     };
 }
 
@@ -245,13 +247,14 @@ function projectLocaleKey(siteId, locale)          { return `${KEY_PROJECT_PFX}$
 function pageKey(siteId, pageId)                   { return `${KEY_PROJECT_PFX}${siteId}${KEY_PAGE_INFIX}${pageId}`; }
 function pageLocaleKey(siteId, pageId, locale)     { return `${KEY_PROJECT_PFX}${siteId}${KEY_PAGE_INFIX}${pageId}${KEY_LOCALE_INFIX}${locale}`; }
 function publishedKey(siteId)                      { return `${KEY_PUBLISHED_PFX}${siteId}`; }
+function redirectsKey(siteId)                      { return `${KEY_PROJECT_PFX}${siteId}_redirects`; }
 
 module.exports = {
     KEY_DEFAULT_LOCALE, KEY_PROJECTS_INDEX, KEY_PROJECT_PFX, KEY_LOCALE_INFIX,
     KEY_PAGE_INFIX, KEY_PUBLISHED_PFX, KEY_TEMPLATES,
     SITE_VERSION, PAGE_VERSION, LOCALE_OVERRIDE_VERSION, INDEX_VERSION, PUBLISHED_VERSION,
     newId, isPlainObject, clone, deepMerge, mergeLocaleContent,
-    normalizeSlug, isReservedSlug, assertSiteId,
+    normalizeSlug, normalizeStoredSlug, isReservedSlug, assertSiteId,
     sanitizeDesign, sanitizeAnalytics, sanitizeBlogSettings,
-    projectKey, projectLocaleKey, pageKey, pageLocaleKey, publishedKey,
+    projectKey, projectLocaleKey, pageKey, pageLocaleKey, publishedKey, redirectsKey,
 };

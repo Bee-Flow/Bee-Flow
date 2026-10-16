@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -196,8 +197,11 @@ function realDeps() {
     const policy = () => require('../../core/memory/memoryPolicy');
     return {
         log,
+        /** @param {Parameters<typeof import('../../stores/memoryStore').createMemory>} a */
         createMemory: (...a) => store().createMemory(...a),
+        /** @param {Parameters<typeof import('../../stores/memoryStore').findByKey>} a */
         findByKey: (...a) => store().findByKey(...a),
+        /** @param {Parameters<typeof import('../../stores/memoryStore').findSimilarMemories>} a */
         findSimilarMemories: (...a) => store().findSimilarMemories(...a),
         confirm: (id) => lifecycle().confirm(id),
         supersede: (o, n) => lifecycle().supersede(o, n),
@@ -295,7 +299,9 @@ function createMemoryWriter(overrides = {}) {
         if (c.subject && c.attribute) {
             const existing = await d.findByKey(ctx.userId, c.type, c.subject, c.attribute, ctx.projectId || null, ctx.agentId || null);
             if (existing) {
-                if (norm(existing.value) === norm(c.value)) return confirmed(existing.id);
+                // The same value is the same fact. Without a value there is only the
+                // text to compare: other text under the same key is an update.
+                if (norm(existing.value) === norm(c.value) && (norm(c.value) || norm(existing.content) === norm(c.content))) return confirmed(existing.id);
                 if (existing.origin === 'explicit' && ctx.origin !== 'explicit') return parkAgainstExplicit(c, ctx, existing.id);
                 // createMemory supersedes the active row of this key.
                 const id = await store(c, ctx);

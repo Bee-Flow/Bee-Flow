@@ -23,10 +23,13 @@ describe('FramedMedia clip', () => {
         expect(container.querySelector('video track').getAttribute('src')).toBe('/api/cms/asset/cms/1-demo.en.vtt');
     });
 
-    it('keeps kind video as the silent autoplay loop', () => {
+    it('keeps kind video as the silent loop, but only fetches it once it is on screen', () => {
         const { container } = render(<FramedMedia media={{ kind: 'video', src: 'cms/1-loop.mp4' }} />);
         const video = container.querySelector('video');
-        expect(video.hasAttribute('autoplay')).toBe(true);
+        expect(video.hasAttribute('loop')).toBe(true);
+        expect(video.muted).toBe(true);
         expect(video.hasAttribute('controls')).toBe(false);
+        expect(video.getAttribute('preload')).toBe('none');
+        expect(video.getAttribute('src')).toBeNull();
     });
 });

@@ -2,26 +2,79 @@
 // moved verbatim from ProductWebsitePanel.jsx. All state/refs are owned by
 // the panel (threaded in as arguments); this hook only groups the save
 // callbacks + lifecycle effects.
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type useCmsPanelState from './useCmsPanelState';
 import { messageOf, errorMessage } from '../../../../utils/caughtError';
 import { authFetch } from '../../../../utils/helpers';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
+import { adoptRealignedOverrides } from './realignedOverrides';
+import { CONFLICT_CODE, SaveConflictError, noteSavedRev, revisionFor, storedRev, withRev } from './cmsRevisions';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 
+
 interface AutosaveInput extends Pick<PanelState,
     'activeSiteIdRef' | 'builderRunningRef' | 'pendingSaves' | 'saveTimerRef' | 'saveStatusTimer'
-    | 'inFlightSaveRef' | 'failedSavesRef' | 'setSaveStatus' | 'setError' | 'setDirtySincePublish'> {}
+    | 'inFlightSaveRef' | 'failedSavesRef' | 'setSaveStatus' | 'setError' | 'setDirtySincePublish'
+    | 'localeOverridesRef' | 'setLocaleOverrides'> {}
+
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
+/**
+ * One queued save as its request. Per-locale translation overrides use
+ * namespaced keys so they ride the same debounce/retry machinery as base saves
+ * without colliding (real keys are 'site' or a pg_… id, never 'locale:').
+ */
+function sendSave(siteId: string, key: string, payload: unknown, rev: number): Promise<Response> {
+    if (key.startsWith('locale:site:')) {
+        const locale = key.slice('locale:site:'.length);
+        return authFetch(cmsApi.siteLocaleOverride(siteId, locale), {
+            method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify({ override: payload }),
+        });
+    }
+    if (key.startsWith('locale:page:')) {
+        const rest = key.slice('locale:page:'.length);
+        const at = rest.lastIndexOf(':');       // pageId may contain no ':'
+        return authFetch(cmsApi.pageLocaleOverride(siteId, rest.slice(0, at), rest.slice(at + 1)), {
+            method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify({ override: payload }),
+        });
+    }
+    if (key === 'site') {
+        return authFetch(cmsApi.site(siteId), {
+            method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify({ site: withRev(payload, rev) }),
+        });
+    }
+    return authFetch(cmsApi.page(siteId, key), {
+        method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify({ page: withRev(payload, rev) }),
+    });
+}
 
 export default function useCmsAutosave({
     activeSiteIdRef, builderRunningRef, pendingSaves, saveTimerRef, saveStatusTimer,
     inFlightSaveRef, failedSavesRef, setSaveStatus, setError, setDirtySincePublish,
+    localeOverridesRef, setLocaleOverrides,
 }: AutosaveInput) {
+    // The server re-aligns the stored translations when a page/site save
+    // reorders items and returns them (locale -> override). Replace the
+    // in-memory copy, or the next translation edit would write the old order
+    // straight back. A locale with an edit still queued is left alone.
+    const adoptRealigned = useCallback((scope: string, moved: unknown) => {
+        const prefix = scope === 'site' ? 'locale:site:' : `locale:page:${scope}:`;
+        const next = adoptRealignedOverrides(localeOverridesRef.current, scope, moved,
+            (locale) => `${prefix}${locale}` in pendingSaves.current);
+        if (next === localeOverridesRef.current) return;
+        localeOverridesRef.current = next;
+        setLocaleOverrides(next);
+    }, [localeOverridesRef, pendingSaves, setLocaleOverrides]);
+
     // ── auto-save (debounced) ────────────────────────────────────────
 
-    const flushSaves = useCallback(async () => {
+    // Flushes run one after another: a second save must be based on the
+    // revision the first one produced, so it may not start before that answer.
+    const flushQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+
+    const performFlush = useCallback(async () => {
         // Read from the ref so debounced timers always target whichever
         // site was active when scheduleSave queued the work — switching
         // sites flushes pending saves BEFORE updating the ref, so the
@@ -39,63 +92,53 @@ export default function useCmsAutosave({
         failedSavesRef.current = null;
         setSaveStatus('saving');
         try {
-            const tasks = Object.entries(batch).map(([key, payload]) => {
-                // Per-locale translation overrides — namespaced keys so they
-                // ride the same debounce/retry machinery as base saves without
-                // colliding (real keys are 'site' or a pg_… id, never 'locale:').
-                if (key.startsWith('locale:site:')) {
-                    const locale = key.slice('locale:site:'.length);
-                    return authFetch(cmsApi.siteLocaleOverride(siteId, locale), {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ override: payload }),
-                    });
-                }
-                if (key.startsWith('locale:page:')) {
-                    const rest = key.slice('locale:page:'.length);
-                    const at = rest.lastIndexOf(':');       // pageId may contain no ':'
-                    const pageId = rest.slice(0, at);
-                    const locale = rest.slice(at + 1);
-                    return authFetch(cmsApi.pageLocaleOverride(siteId, pageId, locale), {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ override: payload }),
-                    });
-                }
-                if (key === 'site') {
-                    return authFetch(cmsApi.site(siteId), {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ site: payload }),
-                    });
-                }
-                return authFetch(cmsApi.page(siteId, key), {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ page: payload }),
-                });
-            });
-            const results = await Promise.all(tasks);
+            const makeTask = ([key, payload]: [string, unknown]) => sendSave(siteId, key, payload, revisionFor(siteId, key, payload));
+            // Translations first, content second: the content save re-aligns the
+            // stored translations to a reordered list, so it must see them.
+            const entries = Object.entries(batch);
+            const isLocale = ([key]: [string, unknown]) => key.startsWith('locale:');
+            const localeResults = await Promise.all(entries.filter(isLocale).map(makeTask));
+            const contentEntries = entries.filter((e) => !isLocale(e));
+            const contentResults = await Promise.all(contentEntries.map(makeTask));
             let droppedTotal = 0;
-            for (const r of results) {
+            let mediaWarning = '';
+            let failure: Error | null = null;
+            const resultKeys = [...entries.filter(isLocale), ...contentEntries].map(([key]) => key);
+            for (const [i, r] of [...localeResults, ...contentResults].entries()) {
+                const key = resultKeys[i];
+                const idx = contentResults.indexOf(r);
                 const d = await r.json().catch(() => ({}));
-                if (!r.ok) throw new Error(d.error || `Save failed (${r.status})`);
+                if (!r.ok) {
+                    // Keep reading the other answers: their revisions must still be recorded.
+                    failure = failure ?? (r.status === 409 && d.code === CONFLICT_CODE
+                        ? new SaveConflictError(d.error || 'Changed elsewhere. Reload to get the latest version.')
+                        : new Error(d.error || `Save failed (${r.status})`));
+                    continue;
+                }
+                if (idx >= 0) adoptRealigned(key, d?.localeOverrides);
+                const rev = key === 'site' ? storedRev(d, 'site') : storedRev(d, 'page');
+                if (!key.startsWith('locale:')) noteSavedRev(siteId, key, rev);
                 // The server strips unknown-type blocks on save; surface it so
                 // an edited/AI block silently vanishing doesn't look like a
                 // "my change didn't stick" bug.
                 if (Array.isArray(d?.dropped)) droppedTotal += d.dropped.length;
+                // A translated media address the server refused: the default language shows instead.
+                if (typeof d?.mediaWarning === 'string') mediaWarning = d.mediaWarning;
             }
+            if (failure) throw failure;
             if (droppedTotal > 0) {
                 toast.error(`${droppedTotal} block(s) weren't saved — unrecognized block type. Use a supported block or the "Download example" template.`);
             }
+            if (mediaWarning) toast.error(mediaWarning);
             setSaveStatus('saved');
             setDirtySincePublish(true); // the draft now differs from the last publish
             if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current);
             saveStatusTimer.current = setTimeout(() => setSaveStatus('idle'), 1800);
             return true;
         } catch (err) {
-            // Keep the batch so the user can retry without retyping.
-            failedSavesRef.current = batch;
+            // A conflict cannot be fixed by retrying the same bytes: the editor has to
+            // be reloaded, so the batch is not kept for the Retry button.
+            failedSavesRef.current = err instanceof SaveConflictError ? null : batch;
             setError(messageOf(err, ''));
             setSaveStatus('error');
             toast.error(`Save failed: ${errorMessage(err)}`);
@@ -103,7 +146,14 @@ export default function useCmsAutosave({
         } finally {
             inFlightSaveRef.current = null;
         }
-    }, [activeSiteIdRef, failedSavesRef, pendingSaves, inFlightSaveRef, setSaveStatus, setDirtySincePublish, saveStatusTimer, setError]);
+    }, [activeSiteIdRef, failedSavesRef, pendingSaves, inFlightSaveRef, setSaveStatus, setDirtySincePublish, saveStatusTimer, setError, adoptRealigned]);
+
+    const flushSaves = useCallback((): Promise<boolean> => {
+        const run = flushQueueRef.current.then(performFlush);
+        // performFlush answers false instead of throwing; the chain only has to wait for it.
+        flushQueueRef.current = run.then(() => undefined, () => undefined);
+        return run;
+    }, [performFlush]);
 
     const scheduleSave = useCallback((key: string, payload: unknown) => {
         if (builderRunningRef.current) {

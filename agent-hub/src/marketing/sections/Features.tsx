@@ -1,25 +1,29 @@
 import React, { useState } from 'react';
 import { inlineTextStyle } from './textStyle';
-import AppIcon from '../../components/icons/AppIcon';
+import IconGlyph from '../components/IconGlyph';
 import CardActionWrapper from '../components/CardActionWrapper';
 import EditableText from '../components/EditableText';
 import FramedMedia from '../components/FramedMedia';
+import { columnSizes } from '../assetUrl';
 import PopupModal from '../components/PopupModal';
 import SectionFrame from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';
 import SectionHeader from '../components/SectionHeader';
+import { MEDIA_HEIGHTS, MEDIA_FITS } from '../blockStyleEnums.generated.mjs';
 import type { MediaSlot, SectionDataBase } from './sectionData.types';
 
 interface FeatureItem {
+    icon?: string;
     title?: string;
     body?: string;
-    icon?: string;
-    span?: number | string;
-    media?: MediaSlot;
     titleColor?: string;
     bodyColor?: string;
     titleAlign?: string;
     bodyAlign?: string;
+    span?: number | string;
+    media?: MediaSlot;
+    mediaHeight?: string;
+    mediaFit?: string;
     cardAction?: string;
     cardUrl?: string;
     popupEmbed?: string;
@@ -29,6 +33,15 @@ interface FeaturesData extends SectionDataBase {
     items?: FeatureItem[];
     variant?: string;
     spotlight?: boolean;
+}
+
+// Height box + fit of a bento card's media. Only whitelisted names reach a
+// class; 'auto' (the default) adds nothing, so existing cards render as before.
+function mediaBoxClass(item: FeatureItem): string {
+    const height = MEDIA_HEIGHTS.includes(item.mediaHeight ?? '') && item.mediaHeight !== 'auto' ? item.mediaHeight : '';
+    if (!height) return 'feature-media';
+    const fit = MEDIA_FITS.includes(item.mediaFit ?? '') ? item.mediaFit : 'contain';
+    return `feature-media feature-media--h-${height} feature-media--fit-${fit}`;
 }
 
 // Spotlight hover — writes the cursor position into CSS vars the
@@ -88,7 +101,7 @@ export default function Features({ data }: { data?: FeaturesData | null }) {
                                     {...(spotlight ? { onMouseMove: trackSpotlight } : {})}
                                 >
                                     {item.icon ? (
-                                        <div className="icon-tile"><AppIcon name={item.icon} className="w-6 h-6" /></div>
+                                        <div className="icon-tile"><IconGlyph icon={item.icon} className="w-6 h-6" /></div>
                                     ) : null}
                                     <EditableText
                                         as="h3"
@@ -111,8 +124,8 @@ export default function Features({ data }: { data?: FeaturesData | null }) {
                                         {item.body || ''}
                                     </EditableText>
                                     {hasItemMedia ? (
-                                        <div className="feature-media">
-                                            <FramedMedia media={item.media} glow={false} />
+                                        <div className={mediaBoxClass(item)}>
+                                            <FramedMedia media={item.media} glow={false} sizes={isBento ? undefined : columnSizes(3)} />
                                         </div>
                                     ) : null}
                                 </CardActionWrapper>

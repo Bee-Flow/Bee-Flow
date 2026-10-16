@@ -48,6 +48,7 @@
     "lint:scc-ratchet": "node scripts/scc-ratchet.mjs server agent-hub mobile",
     "lint:duplication": "node scripts/duplication-ratchet.mjs",
     "lint:bundle": "node scripts/bundle-ratchet.mjs agent-hub",
+    "lint:entry-budget": "node scripts/entry-budget.mjs agent-hub",
     "lint:coverage": "node scripts/coverage-ratchet.mjs server && node scripts/coverage-ratchet.mjs agent-hub && node scripts/coverage-ratchet.mjs mobile",
     "lint:gitleaks": "./scripts/scan-secrets.sh",
     "lint:checks": "node scripts/check-required-checks.mjs",

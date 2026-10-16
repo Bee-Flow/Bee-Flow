@@ -242,6 +242,7 @@ test('a first submission carries the visitor, the session and the answers-table 
     await flush();
     const opts = state.executions[0];
     assert.strictEqual(opts.triggerKind, 'form');
+    assert.strictEqual(opts.startedByUserId, 'u7', 'the signed-in submitter of a members-only form is the run\'s starter (runPolicy.connections = caller)');
     assert.deepStrictEqual(opts.triggerPayload, { a: 1 });
     assert.strictEqual(opts.rootStepId, 'root1');
     assert.deepStrictEqual(opts.triggerHeaders, s.triggerHeaders);
@@ -255,9 +256,21 @@ test('a first submission carries the visitor, the session and the answers-table 
     assert.deepStrictEqual(calls.slice(1), [['markCompleted', 'dt1', 'row9'], ['markCompleted', 'dt1', 'row9']]);
 });
 
+test('a PUBLIC form is a system start: a signed-in visitor runs like an anonymous one (no starter), the submission is still attributed', async () => {
+    state.runs.set('run9', { id: 'run9' });
+    const s = session('f9');
+    await formQueue.accept({ automation: { id: 'auto1' }, session: s, work: { kind: 'submit', payload: {}, submitterId: 'u7', publicForm: true } }, makeRes());
+    await flush();
+    const opts = state.executions.at(-1);
+    assert.strictEqual(opts.startedByUserId, null);
+    await opts.onRunCreated({ id: 'run9' });
+    assert.strictEqual(state.runs.get('run9').submittedByUserId, 'u7');
+});
+
 test('without an answers row there is no finish hook and no null rootStepId surprise', async () => {
     await submit('f2');
     await flush();
+    assert.strictEqual(state.executions[0].startedByUserId, null, 'an anonymous visitor has no starter');
     assert.strictEqual(state.executions[0].onRunFinished, null);
     assert.strictEqual(state.executions[0].rootStepId, null);
 });

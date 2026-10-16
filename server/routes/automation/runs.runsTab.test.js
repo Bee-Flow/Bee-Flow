@@ -87,10 +87,10 @@ test('GET /:id/runs: filters reach the store, rows are decorated, counts ride on
     assert.strictEqual(res.status, 200);
     assert.deepStrictEqual(seen.listFilters[0], {
         status: ['error'], sinceTs: '2026-09-21T00:00:00.000Z', q: 'invoice', startedBy: 'owner', tests: 'exclude',
-        cursor: undefined, limit: undefined,
+        cursor: undefined, limit: undefined, viewerUserId: 'owner',
     });
     // The counts ignore the status being chosen, and nothing else.
-    assert.deepStrictEqual(seen.facetFilters[0], { sinceTs: '2026-09-21T00:00:00.000Z', q: 'invoice', startedBy: 'owner', tests: 'exclude' });
+    assert.deepStrictEqual(seen.facetFilters[0], { sinceTs: '2026-09-21T00:00:00.000Z', q: 'invoice', startedBy: 'owner', tests: 'exclude', viewerUserId: 'owner' });
     assert.deepStrictEqual(res.body.facets, {
         all: 6, failed: 1, waiting: 1, running: 1,
         byStatus: { success: 3, error: 1, awaiting_approval: 1, running: 1 },

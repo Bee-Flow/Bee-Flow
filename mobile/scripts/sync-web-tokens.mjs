@@ -40,6 +40,8 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const MOBILE = path.resolve(HERE, '..');
 const WEB_CSS = path.resolve(MOBILE, '../agent-hub/src/index.css');
+// The alternate themes live in a sibling file (agent-hub/src/themes.css), loaded after index.css.
+const WEB_THEMES_CSS = path.resolve(MOBILE, '../agent-hub/src/themes.css');
 const WEB_APPLY_THEME = path.resolve(MOBILE, '../agent-hub/src/components/theme/applyTheme.ts');
 const OUT = path.join(MOBILE, 'src/core/theme/generated/webTokens.generated.ts');
 
@@ -509,7 +511,7 @@ export function generate({ css, applyThemeSrc }) {
 
 function main() {
     const out = generate({
-        css: fs.readFileSync(WEB_CSS, 'utf8'),
+        css: `${fs.readFileSync(WEB_CSS, 'utf8')}\n${fs.readFileSync(WEB_THEMES_CSS, 'utf8')}`,
         applyThemeSrc: fs.readFileSync(WEB_APPLY_THEME, 'utf8'),
     });
     if (process.argv.includes('--print')) {

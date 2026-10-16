@@ -3,7 +3,7 @@
  *
  *   runStatus.ts ↔ flow/runStatus.js  (effectiveRunByStep)
  *   runFocus.ts  ↔ flow/runFocus.js   (computeRunFocus, formatElapsed)
- *   runRows.ts   ↔ DryRunPanel.jsx    (friendlyStepName, buildNameMap and
+ *   runRows.ts   ↔ DryRunPanel.tsx    (friendlyStepName, buildNameMap and
  *                                       stripDryRunMeta, evaluated from the
  *                                       component file's own source: they are
  *                                       module-private there)
@@ -16,6 +16,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import ts from 'typescript';
 
 import type { FlowDefinition } from '@/features/flow-editor/model';
 import { clone, FIXTURES, templateDefinitions } from '@/features/flow-editor/model/testing/fixtures';
@@ -37,13 +38,13 @@ const TEMPLATES_JS = path.resolve(__dirname, '../../../../../../server/automatio
 const TEMPLATES = templateDefinitions(fs.readFileSync(TEMPLATES_JS, 'utf8'), require(TEMPLATES_JS).getTemplate);
 /* eslint-enable @typescript-eslint/no-require-imports */
 
-const PANEL = fs.readFileSync(`${BUILDER}/DryRunPanel.jsx`, 'utf8');
+const PANEL = fs.readFileSync(`${BUILDER}/DryRunPanel.tsx`, 'utf8');
 
-/** A module-private function of DryRunPanel.jsx, as its source defines it. */
+/** A module-private function of DryRunPanel.tsx, as its source defines it. */
 function panelFunction(name: string, deps: Record<string, unknown> = {}): (...args: unknown[]) => unknown {
     const start = PANEL.indexOf(`function ${name}(`);
     const end = PANEL.indexOf('\n}\n', start) + 2;
-    const body = PANEL.slice(start, end);
+    const body = ts.transpileModule(PANEL.slice(start, end), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
     return new Function(...Object.keys(deps), `${body}\nreturn ${name};`)(...Object.values(deps));
 }
 
@@ -148,7 +149,7 @@ describe('the result sheet', () => {
     });
 
     it('reads the dry-run flags DryRunPanel reads', () => {
-        for (const needle of ['out.wouldNotify', 'out._dryRun', 'out._dryRunSynthesised', "'live_failed'", "'live_empty'", 'out.wouldHaveCalled', 'out.withArgs', '!s.parentStepId']) {
+        for (const needle of ['out.wouldNotify', 'out._dryRun', 'out._dryRunSynthesised', 'live_failed:', 'live_empty:', 'not_connected:', 'simulated_upstream:', 'out.wouldHaveCalled', 'out.withArgs', '!s.parentStepId']) {
             expect(PANEL).toContain(needle);
         }
     });

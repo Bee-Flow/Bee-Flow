@@ -113,6 +113,9 @@ const NOT_A_START = /[\p{L}\p{N}\p{M}_$@.\-\]]/u;
  * [steps, a, output, e-mail]. For heuristics that need every read a step
  * makes, whatever field it sits in; the scoping checks use the precise
  * per-surface readers above.
+ *
+ * @param {string} text
+ * @param {Iterable<string>} [roots]
  */
 function findRefPaths(text, roots = REF_ROOTS) {
     const out = [];

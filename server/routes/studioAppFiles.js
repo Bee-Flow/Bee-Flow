@@ -44,6 +44,7 @@
  */
 
 const express = require('express');
+const { sendStream } = require('../core/http/sendStream');
 const crypto = require('crypto');
 const { z } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
@@ -293,8 +294,7 @@ router.get('/:id/data/attachments/:fileId', requireAuth, readLimiter, validate({
     res.setHeader('Content-Disposition', inline ? 'inline' : 'attachment');
     if (obj.contentLength) res.setHeader('Content-Length', obj.contentLength);
 
-    obj.stream.on('error', next);
-    obj.stream.pipe(res);
+    sendStream(obj.stream, res, next);
 });
 
 // ── GET /:id/data/attachments/:fileId/preview ───────────────────────
@@ -363,8 +363,7 @@ router.get('/:id/data/attachments/:fileId/preview', requireAuth, readLimiter, va
         // Immutable: the key already contains the file's hash AND the
         // renderer version, so these bytes can never change meaning.
         res.setHeader('Cache-Control', 'private, max-age=86400, immutable');
-        obj.stream.on('error', next);
-        obj.stream.pipe(res);
+        sendStream(obj.stream, res, next);
     };
 
     try {

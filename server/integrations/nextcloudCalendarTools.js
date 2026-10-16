@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Nextcloud Calendar Tools — CalDAV CRUD over /remote.php/dav/calendars/<uid>/.
  *
@@ -13,6 +14,9 @@ const crypto = require('crypto');
 const ICAL = require('ical.js');
 const { XMLParser } = require('fast-xml-parser');
 const ncClient = require('./nextcloudClient');
+const { hasWritePrivilege } = require('./nextcloudDavProps');
+const { extractReason } = require('./nextcloudHttpError');
+const { CalendarInputError, buildVCalendarEvent, updateVCalendarEvent } = require('./nextcloudCalendarIcs');
 
 const xmlParser = new XMLParser({
     ignoreAttributes: false,
@@ -20,6 +24,7 @@ const xmlParser = new XMLParser({
     removeNSPrefix: true,
     parseTagValue: false,
     trimValues: true,
+    htmlEntities: true,
 });
 
 const PROPFIND_CALENDARS = `<?xml version="1.0" encoding="utf-8" ?>
@@ -146,7 +151,8 @@ const NEXTCLOUD_CALENDAR_TOOLS = [
                     end: { type: 'string', description: 'ISO 8601.' },
                     description: { type: 'string' },
                     location: { type: 'string' },
-                    attendees: { type: 'array', items: { type: 'string' } }
+                    attendees: { type: 'array', items: { type: 'string' } },
+                    allDay: { type: 'boolean', description: 'Switch between all-day and timed; start is then required.' }
                 },
                 required: ['calendar', 'uid']
             }
@@ -241,57 +247,6 @@ function parseICal(text) {
     return vevents.map(eventFromIcal);
 }
 
-function buildVCalendarEvent({ uid, summary, start, end, description, location, attendees, allDay }) {
-    const cal = new ICAL.Component(['vcalendar', [], []]);
-    cal.updatePropertyWithValue('prodid', '-//Bee Flow//Nextcloud Calendar Tool//EN');
-    cal.updatePropertyWithValue('version', '2.0');
-    cal.updatePropertyWithValue('calscale', 'GREGORIAN');
-
-    const vevent = new ICAL.Component('vevent');
-    const event = new ICAL.Event(vevent);
-    event.uid = uid;
-    if (summary) event.summary = summary;
-    if (description) event.description = description;
-    if (location) event.location = location;
-
-    const startDate = new Date(start);
-    if (isNaN(startDate.getTime())) throw new Error(`Invalid start: ${start}`);
-    if (allDay) {
-        const sIso = startDate.toISOString().slice(0, 10).replace(/-/g, '');
-        const startTime = ICAL.Time.fromDateString(`${sIso.slice(0, 4)}-${sIso.slice(4, 6)}-${sIso.slice(6, 8)}`);
-        event.startDate = startTime;
-        if (end) {
-            const eDate = new Date(end);
-            const eIso = eDate.toISOString().slice(0, 10);
-            event.endDate = ICAL.Time.fromDateString(eIso);
-        }
-    } else {
-        event.startDate = ICAL.Time.fromJSDate(startDate, true);
-        if (end) {
-            const eDate = new Date(end);
-            if (isNaN(eDate.getTime())) throw new Error(`Invalid end: ${end}`);
-            event.endDate = ICAL.Time.fromJSDate(eDate, true);
-        }
-    }
-
-    vevent.updatePropertyWithValue('dtstamp', ICAL.Time.fromJSDate(new Date(), true));
-
-    if (Array.isArray(attendees)) {
-        for (const a of attendees) {
-            if (!a) continue;
-            const prop = new ICAL.Property('attendee', vevent);
-            prop.setParameter('cn', String(a));
-            prop.setParameter('role', 'REQ-PARTICIPANT');
-            prop.setParameter('partstat', 'NEEDS-ACTION');
-            prop.setValue(`mailto:${a}`);
-            vevent.addProperty(prop);
-        }
-    }
-
-    cal.addSubcomponent(vevent);
-    return cal.toString();
-}
-
 // ─── DAV helpers ──────────────────────────────────────────────────
 
 function calendarsRoot(baseUrl, uid) {
@@ -328,13 +283,6 @@ function supportsVEvent(props) {
     return comps.some((c) => c && (c['@_name'] === 'VEVENT' || c.name === 'VEVENT'));
 }
 
-function hasWritePrivilege(props) {
-    const ps = props['current-user-privilege-set'];
-    if (!ps) return false;
-    const privs = Array.isArray(ps.privilege) ? ps.privilege : (ps.privilege ? [ps.privilege] : []);
-    return privs.some((p) => p && (p.write !== undefined || p['write-content'] !== undefined));
-}
-
 function parsePropfindCalendars(xml, baseUrl, uid) {
     const root = `/remote.php/dav/calendars/${decodeURIComponent(uid)}`;
     const calendars = [];
@@ -364,6 +312,16 @@ function parseMultiStatus(xml) {
             // fast-xml-parser already decoded entities; calendar-data is the inner ICS text.
             calendarData: props['calendar-data'] || '',
         }));
+}
+
+function eventWriteError(action, status, body) {
+    if (status >= 500) return `Event ${action} failed (${status}): the Nextcloud server reported an internal error.`;
+    const reason = extractReason(body);
+    return `Event ${action} failed (${status})${reason ? `: ${reason}` : ''}`;
+}
+
+function readOnlyError(calendar) {
+    return `Calendar "${calendar}" is read-only or you lack permission to change it (403). Use nextcloud_calendar_list to see which calendars are writable.`;
 }
 
 // ─── Tool execution ──────────────────────────────────────────────
@@ -479,17 +437,22 @@ async function executeNextcloudCalendarTool(toolName, args, userId, session) {
                 return { error: 'calendar, summary, and start are required' };
             }
             const eventUid = `${crypto.randomUUID()}@${new URL(baseUrl).hostname}`;
-            const end = args.end || new Date(new Date(args.start).getTime() + 60 * 60_000).toISOString();
-            const ical = buildVCalendarEvent({
-                uid: eventUid,
-                summary: args.summary,
-                start: args.start,
-                end,
-                description: args.description,
-                location: args.location,
-                attendees: args.attendees,
-                allDay: !!args.allDay,
-            });
+            let ical;
+            try {
+                ical = buildVCalendarEvent({
+                    uid: eventUid,
+                    summary: args.summary,
+                    start: args.start,
+                    end: args.end,
+                    description: args.description,
+                    location: args.location,
+                    attendees: args.attendees,
+                    allDay: !!args.allDay,
+                });
+            } catch (err) {
+                if (err instanceof CalendarInputError) return { error: err.message };
+                throw err;
+            }
             const res = await ncFetch(eventHref(baseUrl, uid, args.calendar, eventUid), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'If-None-Match': '*' },
@@ -497,9 +460,10 @@ async function executeNextcloudCalendarTool(toolName, args, userId, session) {
             });
             if (res.status === 401) return { error: authError };
             if (res.status === 404) return { error: `Calendar not found: ${args.calendar}` };
+            if (res.status === 403) return { error: readOnlyError(args.calendar) };
             if (!res.ok && res.status !== 201 && res.status !== 204) {
                 const body = await res.text().catch(() => '');
-                return { error: `Event create failed (${res.status}): ${body.slice(0, 200)}` };
+                return { error: eventWriteError('create', res.status, body) };
             }
             return { success: true, calendar: args.calendar, uid: eventUid, etag: res.headers.get('etag') };
         }
@@ -513,19 +477,21 @@ async function executeNextcloudCalendarTool(toolName, args, userId, session) {
             if (!getRes.ok) return { error: `Could not load event for update (${getRes.status})` };
             const currentText = await getRes.text();
             const currentEtag = getRes.headers.get('etag');
-            const current = parseICal(currentText)[0] || {};
-
-            const merged = {
-                uid: args.uid,
-                summary: args.summary !== undefined ? args.summary : current.summary,
-                start: args.start !== undefined ? args.start : current.dtstart,
-                end: args.end !== undefined ? args.end : current.dtend,
-                description: args.description !== undefined ? args.description : current.description,
-                location: args.location !== undefined ? args.location : current.location,
-                attendees: args.attendees !== undefined ? args.attendees : (current.attendees || []).map(a => a.email),
-                allDay: current.allDay,
-            };
-            const ical = buildVCalendarEvent(merged);
+            let ical;
+            try {
+                ical = updateVCalendarEvent(currentText, {
+                    summary: args.summary,
+                    description: args.description,
+                    location: args.location,
+                    start: args.start,
+                    end: args.end,
+                    attendees: args.attendees,
+                    allDay: args.allDay,
+                });
+            } catch (err) {
+                if (err instanceof CalendarInputError) return { error: err.message };
+                throw err;
+            }
             const putRes = await ncFetch(eventHref(baseUrl, uid, args.calendar, args.uid), {
                 method: 'PUT',
                 headers: {
@@ -535,10 +501,11 @@ async function executeNextcloudCalendarTool(toolName, args, userId, session) {
                 body: ical,
             });
             if (putRes.status === 401) return { error: authError };
+            if (putRes.status === 403) return { error: readOnlyError(args.calendar) };
             if (putRes.status === 412) return { error: 'Event was modified by another client; refetch and retry.' };
             if (!putRes.ok && putRes.status !== 204) {
                 const body = await putRes.text().catch(() => '');
-                return { error: `Event update failed (${putRes.status}): ${body.slice(0, 200)}` };
+                return { error: eventWriteError('update', putRes.status, body) };
             }
             return { success: true, calendar: args.calendar, uid: args.uid, etag: putRes.headers.get('etag') };
         }

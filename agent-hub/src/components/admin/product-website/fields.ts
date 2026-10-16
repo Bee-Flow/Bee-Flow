@@ -6,6 +6,7 @@ export {
 } from './fieldKit/basicFields';
 export type { Align } from './fieldKit/basicFields';
 export { ImageField, resolveCmsAssetUrl } from './fieldKit/ImageField';
+export { IconAssetField } from './fieldKit/IconAssetField';
 export { CreatePageContext, LinkField } from './fieldKit/LinkField';
 export type { CmsLink, CmsPageOption, CreatePageFn } from './fieldKit/LinkField';
 export { RepeatableList } from './fieldKit/RepeatableList';

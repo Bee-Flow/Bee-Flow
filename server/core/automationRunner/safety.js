@@ -981,7 +981,7 @@ function restoreForRunState(value, ctx) {
 // before returning, and engine.js awaits logEgress — monitoring sat on the
 // critical path of EVERY automation step. The shared logger detaches the
 // scan+insert; this function returns in microseconds.
-
+/** @param {import('./safety.types').EgressEntry} entry */
 async function logEgress({ toolName, toolArgs, result, error, blocked, probe, policy, auditBase, mode, durationMs, integMeta: metaOverride, servedFromCache = false }) {
     try {
         // `metaOverride` is for outbound paths that are not catalog tools —

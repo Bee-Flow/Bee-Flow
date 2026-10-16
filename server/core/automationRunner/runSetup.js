@@ -12,6 +12,7 @@
  */
 
 const { buildTriggerState } = require('./triggerState');
+const { PUBLIC_VALUES } = require('./publicValues');
 // Handoff 5: which copy a run executes (live vs working) and the automation's
 // run policy (default retry, time budget, concurrency).
 const { automationForRun, isTestRun } = require('./definitionForRun');
@@ -117,6 +118,8 @@ async function buildRunState(deps, { enteredTrigger, triggerKind, triggerPayload
         // walkers); folded into secretValuesFor at the recordRunStep
         // chokepoint. Sub-states share this array by reference.
         [MASK_VALUES]: [],
+        // Room tokens Talk steps emitted (publicValues.js); shared by sub-states.
+        [PUBLIC_VALUES]: new Set(),
         // Normally filled per iteration by execLoop / execForEachStep. Seeded
         // up-front for ONE case: a partial run of a step that lives inside a
         // loop body, where the surrounding iteration is what gives the step its

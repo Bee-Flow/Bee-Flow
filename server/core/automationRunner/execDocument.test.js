@@ -204,3 +204,12 @@ test('markingOutcome reports the RESULT, never the request', () => {
     // A renderer that reports nothing is not evidence of a marking.
     assert.deepStrictEqual(markingOutcome(MARKING, {}), { requested: true, visible: false, metadata: false });
 });
+
+test('a PDF rendered without a browser is a warning on the run, once', async () => {
+    renderer.result = { ...pdfResult({ visible: true, metadata: true }), degraded: true };
+    port.setMarkingResolver(async () => MARKING);
+    const runState = { ...RUN_STATE, _templateWarnings: [] };
+    await execDocument.execGenerateDocument(STEP, CTX, runState, 'live');
+    await execDocument.execGenerateDocument(STEP, CTX, runState, 'live');
+    assert.deepStrictEqual(runState._templateWarnings, ['doc_1: the PDF was rendered without a browser, so it uses the plain fallback layout']);
+});

@@ -738,3 +738,25 @@ test('every breach with a processor involved records when they told us', () => {
     assert.equal(parent.became_aware_at, processorBreach.told_us_at,
         'when a processor reports it, the moment they told us IS the moment we became aware');
 });
+
+// ── THE COUNTDOWN BANNER ────────────────────────────────────────────────────
+
+const findComponent = (node, id) => {
+    if (!node || typeof node !== 'object') return null;
+    if (node.id === id && node.type) return node;
+    for (const v of Object.values(node)) {
+        const hit = findComponent(v, id);
+        if (hit) return hit;
+    }
+    return null;
+};
+
+test('a deadline passed by under an hour reads as ran out, not "0 hours left"', async () => {
+    const expr = findComponent(definition, 'cmp_brclock').props.contentFrom.expr;
+    const breach = { notify_due_at: '2026-08-15T09:00:00.000Z', became_aware_at: '2026-08-12T09:00:00.000Z' };
+    const at = (now) => evalExpr(expr, { vars: { breach }, now });
+    assert.match(await at('2026-08-15T09:20:00.000Z'), /ran out 0 hours ago/);
+    assert.match(await at('2026-08-15T08:40:00.000Z'), /^\*\*0 hours left\./);
+    assert.match(await at('2026-08-15T06:00:00.000Z'), /^\*\*3 hours left\./);
+    assert.match(await at('2026-08-15T11:30:00.000Z'), /ran out 2 hours ago/);
+});

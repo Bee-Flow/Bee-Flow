@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — server-side screen render + screenshot.
  *
@@ -19,7 +20,6 @@
  *     → { ok:true, png:Buffer, dataUrl, width, height, ... }
  *     | { ok:false, unavailable:true, reason:'<one plain sentence>' }
  */
-
 'use strict';
 
 const fs = require('fs').promises;
@@ -278,7 +278,7 @@ async function buildDataState({ definition, model, app, screen, roleArg, viewer,
     if (!app || !app.id) return dataState; // nothing to read against — bindings render as loading
     const scope = buildRenderScope(currentUser, definition.variables, screen);
     for (const { binding } of collectDataBindings(definition, screen.id)) {
-        let resolved = { binding };
+        let resolved = /** @type {{ binding?: any, skipped?: boolean }} */ ({ binding });
         if (binding.kind !== 'dataset') {
             resolved = resolveShape(binding, scope);
             if (!resolved.skipped) resolved = resolveFilters(resolved.binding, scope);
@@ -464,21 +464,21 @@ function defaultDeps() {
     };
 }
 
-function unavailable(reason) {
-    return { ok: false, unavailable: true, reason };
+function unavailable(reason, code) {
+    return { ok: false, unavailable: true, reason, ...(code ? { code } : {}) };
 }
 
 /**
  * Render one App Studio screen headless and screenshot it.
  *
- * @param {object} input
- * @param {object}  input.app        — the studio_apps row ({ id, userId }); data pass skipped without it
- * @param {object}  input.definition — canonical app definition
- * @param {object}  [input.model]    — the app's data model (or null)
- * @param {string}  [input.screenId] — screen to render (default: home screen)
- * @param {string}  [input.asRole]   — render + read data as this role (must exist in model.roles)
- * @param {string|object} [input.viewport] — 'desktop' | 'tablet' | 'mobile' | { width, height }
- * @param {object}  [input.deps]     — injectable edges (tests): readBundle, capture,
+ * @param {object} [input]
+ * @param {object}  [input.app]      - the studio_apps row ({ id, userId }); data pass skipped without it
+ * @param {object}  [input.definition] - canonical app definition
+ * @param {object}  [input.model]    - the app's data model (or null)
+ * @param {string}  [input.screenId] - screen to render (default: home screen)
+ * @param {string}  [input.asRole]   - render + read data as this role (must exist in model.roles)
+ * @param {string|object} [input.viewport] - 'desktop' | 'tablet' | 'mobile' | { width, height }
+ * @param {object}  [input.deps]     - injectable edges (tests): readBundle, capture,
  *                                     dbQuery, runDataset, getDataset, hardTimeoutMs
  */
 async function renderAppScreenshot({ app = null, definition = null, model = null, screenId = null, asRole = null, viewport = 'desktop', deps = null } = {}) {
@@ -504,7 +504,7 @@ async function renderAppScreenshot({ app = null, definition = null, model = null
 
         const bundle = await d.readBundle();
         if (!bundle || !bundle.js || !bundle.css) {
-            return unavailable('the app runtime bundle is not in this build');
+            return unavailable('the app runtime bundle is not in this build', 'no_renderer');
         }
 
         // Owner renders as the owner; asRole renders as a synthetic non-owner

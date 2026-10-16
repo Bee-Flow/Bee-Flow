@@ -128,6 +128,10 @@ const MIGRATIONS = [
     // before its 202, so a deploy or crash no longer drops it
     // (automation/formQueue.js). Additive, no backfill.
     'automation-form-session-pending-2026-10',
+    // runs that use the caller's own connections (runPolicy.connections =
+    // 'caller'): the run's fixed mode, the identity a step ran as, and the
+    // one-time notice a caller has seen. Additive.
+    'automation-caller-connections-2026-10',
 ];
 
 const initDB = makeStoreInit('AutomationStore', _initDB);

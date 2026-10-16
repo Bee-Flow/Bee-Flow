@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { Suspense, lazy, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useTranslation } from '../../hooks/useTranslation';
 import remarkGfm from 'remark-gfm';
@@ -28,9 +28,9 @@ import PageRenderer from './PageRenderer';
 import { logger } from '../../utils/logger';
 import ResearchRenderer from './ResearchRenderer';
 import TestReportRenderer from './TestReportRenderer';
-import VegaLiteRenderer from './VegaLiteRenderer';
+const VegaLiteRenderer = lazy(() => import('./VegaLiteRenderer'));
 import MapEmbedRenderer from './MapEmbedRenderer';
-import MermaidRenderer from './MermaidRenderer';
+const MermaidRenderer = lazy(() => import('./MermaidRenderer'));
 import WebpageLinkCard from '../webpages/WebpageLinkCard';
 import DocumentLinkCard from '../documents/DocumentLinkCard';
 
@@ -440,7 +440,7 @@ const CodeRenderer = ({ node, className, children, isLoading = false, ...props }
                     whiteSpace: 'normal',
                     fontFamily: 'var(--font-sans)'
                 }}>
-                    <VegaLiteRenderer spec={codeString} />
+                    <Suspense fallback={null}><VegaLiteRenderer spec={codeString} /></Suspense>
                 </div>
             );
         } catch {
@@ -468,7 +468,7 @@ const CodeRenderer = ({ node, className, children, isLoading = false, ...props }
                 whiteSpace: 'normal',
                 fontFamily: 'var(--font-sans)'
             }}>
-                <MermaidRenderer code={codeString} />
+                <Suspense fallback={null}><MermaidRenderer code={codeString} /></Suspense>
             </div>
         );
     }

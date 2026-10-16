@@ -62,10 +62,11 @@ test('index body and head: list, paging links, Blog JSON-LD', () => {
         blog: {
             view: 'index', locale: 'en', defaultLocale: 'en', basePath: '/blog', title: 'Blog', description: 'News', labels,
             posts: [{ slug: 'a-post', title: 'A <post>', excerpt: 'x', tags: [], publishedAt: '2026-10-01T00:00:00Z', readingMinutes: 1 }],
-            page: 2, pageCount: 3, total: 21, tag: { slug: 'product', label: 'Product' }, tags: [],
+            page: 2, pageCount: 3, total: 21, tag: { slug: 'product', label: 'Product' }, tags: [{ slug: 'product', label: 'Product' }, { slug: 'x', label: 'R&D' }],
         },
     };
     const html = renderBlogBody(eff);
+    assert.match(html, /<nav aria-label="Tags"><a href="\/blog">All posts<\/a> · <a href="\/blog\?tag=product" aria-current="page">Product<\/a> · <a href="\/blog\?tag=x">R&amp;D<\/a><\/nav>/);
     assert.match(html, /<h1>Tagged Product<\/h1>/);
     assert.match(html, /<a href="\/blog\/a-post">A &lt;post&gt;<\/a>/);
     assert.match(html, /href="\/blog\?tag=product">Newer/);

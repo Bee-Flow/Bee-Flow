@@ -28,6 +28,7 @@ const { pgliteDb } = require('../../testUtils/pgliteDb');
 const { recordRunStepWith } = require('./runs');
 const { rowToRunStep } = require('./rowMappers');
 const migration = require('../../migrations/automation-run-step-binding-warnings-2026-10');
+const callerMigration = require('../../migrations/automation-caller-connections-2026-10');
 
 const { pg, db } = pgliteDb();
 const run = (sql, params) => db.query(sql, params);
@@ -53,6 +54,9 @@ before(async () => {
         pii_summary JSONB, tools_withheld JSONB, error_info JSONB,
         PRIMARY KEY (run_id, step_id, attempts))`);
     await migration.up({ exec: (sql) => pg.exec(sql) });
+    // identity_user_id (which connection an integration step used) is written on every row.
+    await pg.exec('CREATE TABLE automations (id TEXT PRIMARY KEY); CREATE TABLE automation_runs (id TEXT PRIMARY KEY)');
+    await callerMigration.up({ exec: (sql) => pg.exec(sql) });
 });
 after(async () => { await pg.close(); });
 
@@ -100,4 +104,15 @@ test('the stored copy is redacted like the step error', async () => {
     const raw = (await pg.query(`SELECT binding_warnings::text AS t FROM automation_run_steps WHERE step_id = 'auth'`)).rows[0].t;
     assert.ok(!raw.includes(key));
     assert.ok(!raw.includes('hunter2-secret'));
+});
+
+test('a run-emitted Talk room token stays readable in a container step, other tokens do not', async () => {
+    await record({
+        stepId: 'rooms', stepType: 'filter', status: 'success', publicValues: ['room1abc'],
+        output: { items: [{ token: 'room1abc' }, { token: 'opaque-api-token' }], api_key: 'room1abc' },
+    });
+    const row = await stepRow('rooms');
+    assert.equal(row.output.items[0].token, 'room1abc');
+    assert.equal(row.output.items[1].token, '«redacted:key»');
+    assert.equal(row.output.api_key, '«redacted:key»');
 });
