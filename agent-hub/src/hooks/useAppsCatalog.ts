@@ -12,47 +12,23 @@
  * this hook returns no "selected" value — a cowork brief and a chat message
  * draw on the same list, which is also how the backend sees it.
  */
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
-import { useIntegrationStatus, type IntegrationStatus } from './useIntegrationStatus';
-import { APP_DEFS, buildAppCatalog, filterAvailableApps } from '../components/apps/appCatalog';
+import { useIntegrationStatus } from './useIntegrationStatus';
+import {
+    APP_DEFS, buildAppCatalog, filterAvailableApps,
+    type AppDef, type ExposedStepSource, type McpServerSource, type N8nWorkflowSource,
+} from '../components/apps/appCatalog';
 
-/** One entry of the picker. Beside these, each entry carries its own gate
- *  flags (requiresGoogle, isMcp, stepId, …) that filterAvailableApps reads. */
-export interface CatalogApp {
-    id: string;
-    label: string;
-    description: string;
-    iconSvg: (size?: string) => ReactNode;
-    [key: string]: unknown;
-}
+/** One entry of the picker (the gate flags filterAvailableApps reads included). */
+export type CatalogApp = AppDef;
 
-interface N8nWorkflow {
+interface N8nWorkflow extends N8nWorkflowSource {
     enabled?: boolean;
     allowKbIngestion?: boolean;
-    [key: string]: unknown;
 }
 
-interface McpServer {
-    toolCount?: number;
-    [key: string]: unknown;
-}
-
-// appCatalog.jsx is still JavaScript, so TS reads each `= []` / `= null`
-// default as that parameter's whole type and rejects every real argument.
-// These views state the contract the module documents; they go away when it
-// becomes TypeScript.
-const buildCatalog = buildAppCatalog as (sources: {
-    n8nWorkflows?: N8nWorkflow[];
-    mcpServers?: McpServer[];
-    exposedSteps?: unknown[];
-}) => CatalogApp[];
-
-const filterApps = filterAvailableApps as (apps: CatalogApp[], gates: {
-    integrationStatus?: IntegrationStatus;
-    orgEnabledIntegrations?: string[] | null;
-    agentIntegrations?: string[] | null;
-}) => CatalogApp[];
+type McpServer = McpServerSource;
 
 export interface UseAppsCatalogOptions {
     /** The agent's own integration allow-list, when a chat runs as an agent. */
@@ -74,7 +50,7 @@ export default function useAppsCatalog(
 
     const [n8nWorkflows, setN8nWorkflows] = useState<N8nWorkflow[]>([]);
     const [mcpServers, setMcpServers] = useState<McpServer[]>([]);
-    const [exposedSteps, setExposedSteps] = useState<unknown[]>([]);
+    const [exposedSteps, setExposedSteps] = useState<ExposedStepSource[]>([]);
     // null = every app enabled. Seeded from the cached settings payload and
     // then owned locally, so toggling never has to invalidate that cache.
     const [enabledApps, setEnabledApps] = useState<string[] | null>(null);
@@ -136,8 +112,8 @@ export default function useAppsCatalog(
         [enabledApps],
     );
 
-    const availableApps = filterApps(
-        buildCatalog({ n8nWorkflows, mcpServers, exposedSteps }),
+    const availableApps = filterAvailableApps(
+        buildAppCatalog({ n8nWorkflows, mcpServers, exposedSteps }),
         {
             integrationStatus: integrationStatus || {},
             orgEnabledIntegrations: (integrationStatus?.orgEnabledIntegrations as string[] | null) ?? null,
