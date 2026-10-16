@@ -3,6 +3,7 @@ import {
     isDeniedKey, isTranslatableValue, collectStrings, labelForPath,
     buildPageGroups, coverageForLocale, detectArrayReorder, blockHasArrayOverrides,
 } from './translatable';
+import type { FieldPath, FoundString, TranslatableRow } from './translatable';
 
 const PAGE = {
     id: 'pg_1', slug: 'home', title: 'Home',
@@ -36,7 +37,7 @@ describe('field enumeration (server-parity rules)', () => {
         expect(isTranslatableValue('Hello')).toBe(true);
     });
     it('collects exactly the translatable leaves of a block', () => {
-        const out = [];
+        const out: FoundString[] = [];
         collectStrings(PAGE.blocks[0].content, [], out);
         expect(out.map(o => o.fieldPath.join('.'))).toEqual([
             'lead', 'titleParts.0.text', 'titleParts.1.text', 'primaryCta.label',
@@ -53,7 +54,7 @@ describe('groups + coverage', () => {
         const pageOv = { version: 1, blocks: { b1: { content: { lead: 'Vlieg met ons' } } } };
         const groups = buildPageGroups(PAGE, pageOv, null);
         expect(groups.map(g => g.key)).toEqual(['meta', 'b1', 'b2']);
-        const leadRow = groups[1].rows.find(r => r.target.fieldPath.join('.') === 'lead');
+        const leadRow = groups[1].rows.find(r => (r.target as { fieldPath: FieldPath }).fieldPath.join('.') === 'lead') as TranslatableRow;
         expect(leadRow.value).toBe('Vlieg met ons');
     });
     it('computes site-wide coverage without double-counting page titles', () => {
@@ -96,7 +97,7 @@ describe('roadmap status is structural, not prose', () => {
     });
 
     it('collects the labels and the item copy, but never the status value', () => {
-        const out = [];
+        const out: FoundString[] = [];
         collectStrings(
             {
                 statusLabels: { beta: 'In beta' },

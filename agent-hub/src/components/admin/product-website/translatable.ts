@@ -10,8 +10,17 @@
 
 import { BLOCK_EDITORS } from './editors';
 import { getLocalePath } from './localeMerge';
+import type { CmsPageDoc, CmsSiteDoc, CmsLocaleOverrides } from './panel/cmsPanelTypes';
 
-// Keys whose value (and subtree) are structural — never translatable.
+export type FieldPath = (string | number)[];
+export interface FoundString { fieldPath: FieldPath; source: string }
+type RowTarget =
+    | { type: 'chrome'; path: FieldPath }
+    | { type: 'seo'; field: string }
+    | { type: 'block'; blockId: string; fieldPath: FieldPath };
+export interface TranslatableRow { key: string; label: string; source: string; value: unknown; target: RowTarget }
+export interface TranslatableGroup { key: string; title: string; icon: string; rows: TranslatableRow[]; blockId?: string }
+
 export const DENY_KEYS = new Set([
     'id', 'kind', 'type', 'slug', 'src', 'href', 'url', 'link', 'anchor',
     'path', 'pageId', 'page', 'target', 'rel', 'icon', 'platform',
@@ -29,12 +38,12 @@ export const DENY_KEYS = new Set([
 ]);
 export const DENY_SUFFIX = /(Style|Color|Font|Align|Size|Variant|Url|Src|Id|Link)$/;
 
-export function isDeniedKey(k) {
+export function isDeniedKey(k: unknown): boolean {
     if (typeof k !== 'string') return false;
     return DENY_KEYS.has(k) || DENY_SUFFIX.test(k);
 }
 
-export function isTranslatableValue(s) {
+export function isTranslatableValue(s: string): boolean {
     const t = s.trim();
     if (!t) return false;
     if (/^#[0-9a-fA-F]{3,8}$/.test(t)) return false;
@@ -43,9 +52,9 @@ export function isTranslatableValue(s) {
 }
 
 // Walk content emitting { fieldPath, source } for every translatable leaf.
-export function collectStrings(node, path, out) {
+export function collectStrings(node: unknown, path: FieldPath, out: FoundString[]): void {
     if (Array.isArray(node)) {
-        node.forEach((el, i) => collectStrings(el, [...path, i], out));
+        node.forEach((el: unknown, i: number) => collectStrings(el, [...path, i], out));
         return;
     }
     if (node && typeof node === 'object') {
@@ -58,7 +67,7 @@ export function collectStrings(node, path, out) {
     if (typeof node === 'string' && isTranslatableValue(node)) out.push({ fieldPath: path, source: node });
 }
 
-export function humanize(key) {
+export function humanize(key: unknown): string {
     return String(key)
         .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
         .replace(/[_-]+/g, ' ')
@@ -67,7 +76,7 @@ export function humanize(key) {
 
 // Friendlier names for the most common field keys — additive over the
 // humanized fallback, so unknown paths still get a sensible label.
-const LABELS = {
+const LABELS: Record<string, string> = {
     lead: 'Lead paragraph',
     eyebrow: 'Eyebrow (small heading)',
     blurb: 'Tagline',
@@ -99,22 +108,22 @@ const LABELS = {
 };
 
 // "Feature #2 · Title" — item positions first, friendly key name last.
-export function labelForPath(fieldPath) {
-    const lastKey = [...fieldPath].reverse().find(s => typeof s === 'string');
-    const indices = fieldPath.filter(s => typeof s === 'number');
+export function labelForPath(fieldPath: FieldPath): string {
+    const lastKey = [...fieldPath].reverse().find((s): s is string => typeof s === 'string');
+    const indices = fieldPath.filter((s): s is number => typeof s === 'number');
     const base = (lastKey && LABELS[lastKey]) || (lastKey ? humanize(lastKey) : 'Text');
     return indices.length ? `${base} (#${indices.map(i => i + 1).join('·')})` : base;
 }
 
 // ── Row-group builders (pure — rows carry a `target` descriptor) ─────
 
-export function buildPageGroups(page, pageOverride, siteOverride) {
+export function buildPageGroups(page: CmsPageDoc | null | undefined, pageOverride: unknown, siteOverride: unknown): TranslatableGroup[] {
     if (!page) return [];
-    const groups = [];
+    const groups: TranslatableGroup[] = [];
 
     // Page & SEO group. Title lives in the SITE override (pageTitles); SEO in
     // the PAGE override — both routed via their target descriptors.
-    const metaRows = [];
+    const metaRows: TranslatableRow[] = [];
     if (typeof page.title === 'string' && page.title.trim()) {
         metaRows.push({
             key: 'page:title',
@@ -124,7 +133,7 @@ export function buildPageGroups(page, pageOverride, siteOverride) {
             target: { type: 'chrome', path: ['pageTitles', page.id] },
         });
     }
-    for (const f of ['metaTitle', 'metaDescription']) {
+    for (const f of ['metaTitle', 'metaDescription'] as const) {
         const src = page.seo?.[f];
         if (typeof src === 'string' && src.trim()) {
             metaRows.push({
@@ -139,10 +148,10 @@ export function buildPageGroups(page, pageOverride, siteOverride) {
     if (metaRows.length) groups.push({ key: 'meta', title: 'Page & SEO', icon: 'FileText', rows: metaRows });
 
     for (const block of page.blocks || []) {
-        const found = [];
+        const found: FoundString[] = [];
         collectStrings(block.content, [], found);
         if (!found.length) continue;
-        const def = BLOCK_EDITORS[block.type] || {};
+        const def: { label?: string; icon?: string } = (BLOCK_EDITORS as Record<string, { label?: string; icon?: string }>)[block.type] || {};
         groups.push({
             key: block.id,
             blockId: block.id,
@@ -160,12 +169,12 @@ export function buildPageGroups(page, pageOverride, siteOverride) {
     return groups;
 }
 
-export function buildSiteGroups(site, siteOverride) {
-    const groups = [];
+export function buildSiteGroups(site: CmsSiteDoc | null | undefined, siteOverride: unknown): TranslatableGroup[] {
+    const groups: TranslatableGroup[] = [];
     for (const region of ['header', 'footer']) {
-        const node = site?.[region];
+        const node = site?.[region as 'header' | 'footer'];
         if (!node) continue;
-        const found = [];
+        const found: FoundString[] = [];
         collectStrings(node, [], found);
         if (!found.length) continue;
         groups.push({
@@ -181,7 +190,7 @@ export function buildSiteGroups(site, siteOverride) {
             })),
         });
     }
-    const titleRows = [];
+    const titleRows: TranslatableRow[] = [];
     for (const p of site?.pages || []) {
         if (typeof p.title === 'string' && p.title.trim()) {
             titleRows.push({
@@ -203,14 +212,14 @@ export function buildSiteGroups(site, siteOverride) {
 // the panel already holds (no extra endpoint). Wording is deliberately soft:
 // a filled field is not necessarily a FRESH translation (D3 — overrides
 // don't track source-text changes), so never present 100% as "done".
-export function coverageForLocale(site, pages, localeOverrides, locale) {
+export function coverageForLocale(site: CmsSiteDoc | null | undefined, pages: CmsPageDoc[] | null | undefined, localeOverrides: CmsLocaleOverrides | null | undefined, locale: string): { done: number; total: number } {
     let total = 0;
     let done = 0;
     const siteOv = localeOverrides?.siteByLocale?.[locale] || null;
     for (const g of buildSiteGroups(site, siteOv)) {
         for (const r of g.rows) {
             total += 1;
-            if ((r.value || '').trim()) done += 1;
+            if (((r.value as string) || '').trim()) done += 1;
         }
     }
     for (const pageDoc of pages || []) {
@@ -221,7 +230,7 @@ export function coverageForLocale(site, pages, localeOverrides, locale) {
             for (const r of g.rows) {
                 if (r.key === 'page:title') continue;
                 total += 1;
-                if ((r.value || '').trim()) done += 1;
+                if (((r.value as string) || '').trim()) done += 1;
             }
         }
     }
@@ -236,7 +245,7 @@ export function coverageForLocale(site, pages, localeOverrides, locale) {
 // change (deferred D4) — but we can detect the reorder and warn. Returns
 // true when any array in `next` holds the same multiset of items as `prev`
 // in a different order.
-export function detectArrayReorder(prev, next) {
+export function detectArrayReorder(prev: unknown, next: unknown): boolean {
     if (Array.isArray(prev) && Array.isArray(next)) {
         if (prev.length === next.length && prev.length > 1) {
             const a = prev.map(x => JSON.stringify(x));
@@ -250,7 +259,7 @@ export function detectArrayReorder(prev, next) {
     }
     if (prev && next && typeof prev === 'object' && typeof next === 'object') {
         for (const k of Object.keys(next)) {
-            if (detectArrayReorder(prev[k], next[k])) return true;
+            if (detectArrayReorder((prev as Record<string, unknown>)[k], (next as Record<string, unknown>)[k])) return true;
         }
     }
     return false;
@@ -258,16 +267,16 @@ export function detectArrayReorder(prev, next) {
 
 // True when a block has any array-path override leaf in ANY locale — the
 // precondition for the D4 warning.
-export function blockHasArrayOverrides(localeOverrides, pageId, blockId) {
+export function blockHasArrayOverrides(localeOverrides: CmsLocaleOverrides | null | undefined, pageId: string, blockId: string): boolean {
     const perLocale = localeOverrides?.pagesByLocale?.[pageId] || {};
     for (const ov of Object.values(perLocale)) {
-        const blockOv = ov?.blocks?.[blockId]?.content;
+        const blockOv = (ov as { blocks?: Record<string, { content?: unknown } | undefined> } | undefined)?.blocks?.[blockId]?.content;
         if (blockOv && subtreeHasArray(blockOv)) return true;
     }
     return false;
 }
 
-function subtreeHasArray(node) {
+function subtreeHasArray(node: unknown): boolean {
     if (Array.isArray(node)) return true;
     if (node && typeof node === 'object') return Object.values(node).some(subtreeHasArray);
     return false;
