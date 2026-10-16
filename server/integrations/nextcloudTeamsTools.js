@@ -21,6 +21,7 @@
 
 const ncClient = require('./nextcloudClient');
 const { addMembers } = require('./nextcloudTeamsMembers');
+const { deleteTeam } = require('./nextcloudTeamsDelete');
 const { nextcloudHttpError } = require('./nextcloudHttpError');
 const { toShareId } = require('./nextcloudFiles/sharing');
 
@@ -187,7 +188,7 @@ async function readJsonSafe(res) {
 async function handle(res, authError, what) {
     if (!res.ok) return nextcloudHttpError(res, { authError, what: `Teams ${what}`, app: 'Teams' });
     const body = await readJsonSafe(res);
-    return { ok: true, data: body?.ocs?.data ?? body };
+    return { ok: true, data: body?.ocs?.data ?? body, ocs: body?.ocs };
 }
 
 function levelName(level) {
@@ -335,15 +336,8 @@ async function executeNextcloudTeamsTool(toolName, args, userId, session) {
             return { success: true, teamId: args.teamId, updated };
         }
 
-        case 'nextcloud_teams_delete': {
-            if (!args.teamId) return { error: 'teamId is required' };
-            const out = await handle(
-                await ncFetch(`${api}/${encodeURIComponent(args.teamId)}`, { method: 'DELETE', headers: HEADERS }),
-                authError, 'team delete',
-            );
-            if (out.error) return out;
-            return { success: true, teamId: args.teamId };
-        }
+        case 'nextcloud_teams_delete':
+            return deleteTeam({ api, ncFetch, authError, handle, HEADERS }, args);
 
         case 'nextcloud_share_with_team': {
             if (!args.path) return { error: 'path is required' };
