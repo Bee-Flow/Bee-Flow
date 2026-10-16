@@ -14,6 +14,7 @@ function variantLabels(t: TranslateFn): Record<string, string> {
         chapters: t('cms_site.blocks.variant_picker.chapters', 'Chapters'),
         ledger: t('cms_site.blocks.variant_picker.ledger', 'Ledger'),
         numbers: t('cms_site.blocks.variant_picker.numbers', 'Numbers'),
+        stats: t('cms_site.blocks.variant_picker.stats', 'Stats only'),
         quotes: t('cms_site.blocks.variant_picker.quotes', 'Quotes'),
         case: t('cms_site.blocks.variant_picker.case', 'Case'),
         spotlight: t('cms_site.blocks.variant_picker.spotlight', 'Spotlight'),

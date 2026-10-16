@@ -183,9 +183,12 @@ const BLOCK_DEFAULTS = {
         titleStyle:   { fontFamily: '', fontSize: 32, color: '' },
         logos: [],
         // 'classic' = logo wall only; 'numbers' adds a hard-numbers row
-        // (stars / users / uptime) above the wall. See BLOCK_VARIANTS.
+        // (stars / users / uptime) above the wall; 'stats' is that row alone;
+        // 'chips' is a row of text chips (label + optional icon), no logos.
+        // See BLOCK_VARIANTS.
         variant: 'classic',
         stats: [],
+        chips: [],
     },
 
     // Flexible Content block — column + elements system. Each column holds
@@ -848,7 +851,7 @@ const BLOCK_VARIANTS = {
     features:    ['classic', 'bento'],
     steps:       ['classic', 'chapters'],
     security:    ['classic', 'ledger'],
-    socialProof: ['classic', 'numbers'],
+    socialProof: ['classic', 'numbers', 'stats', 'chips'],
     // New types have no legacy layout — the FIRST entry is the default and
     // the absent/unknown fallback (their renderers fall back to it, not to
     // a 'classic').
