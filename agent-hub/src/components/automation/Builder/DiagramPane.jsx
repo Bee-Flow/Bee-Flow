@@ -1,19 +1,14 @@
-import { ReactFlowProvider, Background, useReactFlow } from '@xyflow/react';
+import { ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import React, { forwardRef, useMemo } from 'react';
 import '@xyflow/react/dist/style.css';
 
-import { NodeRuntimeContext } from './flow/NodeRuntimeContext';
-import { PresenterContext } from './flow/PresenterContext';
+import { CanvasContextMenu, DropHint } from './flow/DiagramCanvasChrome';
+import DiagramCanvasFrame from './flow/DiagramCanvasFrame';
 import DiagramEmptyState from './flow/DiagramEmptyState';
-import DiagramOverlays from './flow/DiagramOverlays';
 import { EdgeCrossingProvider } from './flow/EdgeCrossingContext';
 import { edgeTypes } from './flow/edges';
 import { buildLayout } from './flow/layout';
 import { NODE_TYPES } from './flow/nodeTypes';
-import useTranslation from '../../../hooks/useTranslation';
-import RibbonFlightLayer from './flow/RibbonFlightLayer';
-import { CanvasContextMenu, DropHint } from './flow/DiagramCanvasChrome';
-import { DiagramReactFlow } from './flow/DiagramReactFlow';
 import { useBuildFilm } from './flow/useBuildFilm';
 import { useCanvasEditing } from './flow/useCanvasEditing';
 import { useCanvasView } from './flow/useCanvasView';
@@ -22,6 +17,7 @@ import { useLiveNodeMirror } from './flow/useLiveNodeMirror';
 import { useNodeRuntime } from './flow/useNodeRuntime';
 import { useRenderedGraph } from './flow/useRenderedGraph';
 import { useRunFocus } from './flow/useRunFocus';
+import useTranslation from '../../../hooks/useTranslation';
 
 // The step-type → node-component registry lives in flow/nodeTypes.js —
 // re-exported so flow/nodeDefs.test.js and every other importer keep this
@@ -209,7 +205,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     });
     const {
         nodeDropTarget, dropHintPos, selectedIds, clearSelection, deleteSelection, onEdgeDeleteClick, onEdgeSetColor,
-        onEdgeInsertClick, ctxMenu, closeCtxMenu, dropTarget, onDragOver, onDragLeave, onDrop,
+        onEdgeInsertClick, ctxMenu, closeCtxMenu, dropTarget,
     } = edit;
 
     // Edge/node decoration pipeline and the Arrange action (flow/useRenderedGraph.ts).
@@ -249,90 +245,34 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
     const selectionInDrawer = !!editingStepId && selectedIds.length === 1 && selectedIds[0] === editingStepId;
 
     return (
-        <PresenterContext.Provider value={presenter}>
-        <NodeRuntimeContext.Provider value={runtimeContextValue}>
-        <div
-            ref={wrapperRef}
-            // While a step is open in the drawer the host sets the canvas's
-            // floor (BuildTab: 220px); a floor of our own would run the pane
-            // under the drawer, zoom stack and minimap included.
-            className={`w-full h-full relative ${editingStepId ? '' : 'min-h-[320px]'}`}
-            onDrop={onDrop}
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            // Present while the choreography is live — a styling hook for the
-            // building state, absent under reduced motion so nothing keys on it
-            // when today's behaviour is what plays.
-            data-building={structuralEditsBlocked && !reducedMotion ? '' : undefined}
-            // Presenter mode (flow/presenterMode.js): the stylesheet's hook for
-            // the bigger south bar, badges and ghost caption.
-            data-presenter={presenter ? 'on' : undefined}
+        <DiagramCanvasFrame
+            presenter={presenter}
+            runtimeContextValue={runtimeContextValue}
+            wrapperRef={wrapperRef}
+            editingStepId={editingStepId}
+            structuralEditsBlocked={structuralEditsBlocked}
+            reducedMotion={reducedMotion}
+            edit={edit}
+            nodeTypes={NODE_TYPES}
+            edgeTypes={edgeTypes}
+            nodes={nodesWithDropTarget}
+            edges={renderedEdges}
+            fitViewOptions={mountFitOptions}
+            readOnly={readOnly}
+            editable={editable}
+            hasNodeClickHandler={typeof onNodeClick === 'function'}
+            onMoveStart={onMoveStartGuarded}
+            onMoveEnd={onMoveEnd}
+            overlays={{
+                definition, allowEdgeEdits, handleArrange, structuralEditsBlocked, reducedMotion, resumeFollow, fitCanvasFully,
+                presenter, togglePresenter, shortCanvas, onToggleFlowlets, flowletsOpen, flowletCount, runFocus, focusRunStep,
+                formUrl, onOpenFormOverlay, selectedCount: selectedIds.length, selectionInDrawer, deleteSelection, clearSelection,
+                interactive: !readOnly, editable, buildCue, following, editingStepId, stepNumberById: runtimeContextValue.stepNumberById,
+                fatalError, validation, aborted, onDismissFatal, onFocusStep, edgeColorMode, setEdgeColorMode, onDefinitionChange,
+                hasPiiData, legendOpen, toggleLegend, typeGroupById: runtimeContextValue.typeGroupById,
+            }}
+            flight={{ ghosts: flightGhosts, rf, nodes: computedNodes }}
         >
-            <DiagramReactFlow
-                nodes={nodesWithDropTarget}
-                edges={renderedEdges}
-                fitViewOptions={mountFitOptions}
-                nodeTypes={NODE_TYPES}
-                edgeTypes={edgeTypes}
-                readOnly={readOnly}
-                editable={editable}
-                structuralEditsBlocked={structuralEditsBlocked}
-                hasNodeClickHandler={typeof onNodeClick === 'function'}
-                // Any viewport move we did not start is the presenter taking
-                // the camera (flow/useBuildChoreography.js).
-                onMoveStart={onMoveStartGuarded}
-                onMoveEnd={onMoveEnd}
-                onNodeClick={edit.onNodeClickWithSelection}
-                handlers={edit}
-            >
-                <Background gap={16} size={1} color="var(--border-default)" />
-                <DiagramOverlays
-                    definition={definition}
-                    allowEdgeEdits={allowEdgeEdits}
-                    handleArrange={handleArrange}
-                    structuralEditsBlocked={structuralEditsBlocked}
-                    reducedMotion={reducedMotion}
-                    resumeFollow={resumeFollow}
-                    fitCanvasFully={fitCanvasFully}
-                    presenter={presenter}
-                    togglePresenter={togglePresenter}
-                    shortCanvas={shortCanvas}
-                    onToggleFlowlets={onToggleFlowlets}
-                    flowletsOpen={flowletsOpen}
-                    flowletCount={flowletCount}
-                    runFocus={runFocus}
-                    focusRunStep={focusRunStep}
-                    formUrl={formUrl}
-                    onOpenFormOverlay={onOpenFormOverlay}
-                    selectedCount={selectedIds.length}
-                    selectionInDrawer={selectionInDrawer}
-                    deleteSelection={deleteSelection}
-                    clearSelection={clearSelection}
-                    interactive={!readOnly}
-                    editable={editable}
-                    buildCue={buildCue}
-                    following={following}
-                    editingStepId={editingStepId}
-                    stepNumberById={runtimeContextValue.stepNumberById}
-                    fatalError={fatalError}
-                    validation={validation}
-                    aborted={aborted}
-                    onDismissFatal={onDismissFatal}
-                    onFocusStep={onFocusStep}
-                    edgeColorMode={edgeColorMode}
-                    setEdgeColorMode={setEdgeColorMode}
-                    onDefinitionChange={onDefinitionChange}
-                    hasPiiData={hasPiiData}
-                    legendOpen={legendOpen}
-                    toggleLegend={toggleLegend}
-                    typeGroupById={runtimeContextValue.typeGroupById}
-                />
-            </DiagramReactFlow>
-
-            {/* The ghosts flying from the ribbon to their slots. Portalled to
-                <body> by the layer itself, but MOUNTED here so it unmounts with
-                the canvas and no ghost outlives the pane it was aimed at. */}
-            <RibbonFlightLayer ghosts={flightGhosts} rf={rf} nodes={computedNodes} />
             {ctxMenu && (
                 <CanvasContextMenu
                     menu={ctxMenu}
@@ -351,9 +291,7 @@ const DiagramPaneInner = forwardRef(function DiagramPaneInner({
             {nodeDropTarget && dropHintPos && (
                 <DropHint kind={nodeDropTarget.kind} x={dropHintPos.x} y={dropHintPos.y} />
             )}
-        </div>
-        </NodeRuntimeContext.Provider>
-        </PresenterContext.Provider>
+        </DiagramCanvasFrame>
     );
 });
 

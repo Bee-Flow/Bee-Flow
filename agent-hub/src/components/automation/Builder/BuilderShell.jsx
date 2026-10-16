@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import AppRefBreadcrumb from './AppRefBreadcrumb';
-import BuilderShellLayout from './BuilderShellLayout';
 import BuildTab from './BuildTab';
-import { headerStatus, secondaryTriggerOptions } from './builderHeaderState';
-import { followUpPlanId } from './chat/planBuild';
+import { buildHeaderProps, secondaryTriggerOptions } from './builderHeaderState';
+import { makeBuilderSend } from './builderSend';
+import BuilderShellView from './BuilderShellView';
 import { triggerAppRef } from './flow/appRefLabel';
-import { normalizeDefinitionShape, isBlankDefinition } from './flow/normalizeDefinition';
-import { triggerTypeLabel } from './flow/triggerLabels';
+import { isBlankDefinition } from './flow/normalizeDefinition';
+import RunsTab from './runs/RunsTab';
 import useAutoLabelSteps from './useAutoLabelSteps';
 import useAutomationPersistence, { makeBlockSkeleton } from './useAutomationPersistence';
 import useBuilderChatPanel from './useBuilderChatPanel';
@@ -22,14 +22,12 @@ import useFlowletActions from './useFlowletActions';
 import useFlowletScope from './useFlowletScope';
 import useManagedPart from './useManagedPart';
 import useNdvState from './useNdvState';
-import RunsTab from './runs/RunsTab';
 import usePatternOrigin from './usePatternOrigin';
 import VersionsTab from './versions/VersionsTab';
 import { useOrgGroupsQuery } from '../../../api/queries/orgGroups';
 import useAutomationApi from '../../../hooks/useAutomationApi';
 import useAutomationBuilderStream from '../../../hooks/useAutomationBuilderStream';
 import useTranslation from '../../../hooks/useTranslation';
-import scopedStorage from '../../../utils/scopedStorage';
 import ExecutionsPanel from '../../admin/Studio/Executions/ExecutionsPanel';
 import ManagedPartBanner from '../../shared/ManagedPartBanner';
 import useConfirm from '../../shared/useConfirm';
@@ -56,28 +54,28 @@ export function canAutoSend({ autoSendInput, automationId, messageCount }) {
 /** The org groups a Step shares with, until the query has answered. */
 const NO_GROUPS = [];
 
+// Hosting hooks for a page that DRIVES the builder (Studio Playbooks):
+//   onTurnEnd({ finalized, aborted, error, automationId, messageCount })
+//     fires once per turn when the stream stops — the only way a host can
+//     tell a finished build from one that asked a question or aborted
+//     (onBuilderStateChange is URL state, onPublished is Step mode only).
+//   forcedTier — a tier the host pins for every send of this mount; never
+//     written to the user's remembered preference.
+//   backLabel — the header's back destination in the host's words.
+//   forceAssistantOpen — the host is about to auto-send a brief, so the
+//     chat must be visible: `automationsAssistantOpen` is a per-user
+//     preference and defaults to CLOSED, which meant a playbook could fire
+//     its brief into a pane nobody could see and the room watched a static
+//     canvas. The person may still close it; only the initial state is
+//     forced, and the host's mount never writes the preference back.
+//   seedMetadata — { title?, description? } a host already knows for the
+//     draft the first send CREATES (the playbook stage reads `Title "…"`
+//     off its brief). Sent with every send; the server honours it only
+//     when that send creates the draft, so a re-send cannot rename.
+//   patternOrigin — the "Find repeating work" pattern this new build
+//     was opened from ({ signature?, suggestion }); usePatternOrigin
+//     records `built` for it once the build is done.
 export default function BuilderShell({ automationId, onBack, onOpenList = null, onExportJson = null, user, initialChatInput = '', autoSendInput = null, onAutomationIdResolved = null, initialScopeKey = null, onScopeChange = null, mode = 'automation', onPublished = null, initialTab = null, initialRunId = null, initialRunStepId = null, onBuilderStateChange = null, initialAppRef = null,
-    // Hosting hooks for a page that DRIVES the builder (Studio Playbooks):
-    //   onTurnEnd({ finalized, aborted, error, automationId, messageCount })
-    //     fires once per turn when the stream stops — the only way a host can
-    //     tell a finished build from one that asked a question or aborted
-    //     (onBuilderStateChange is URL state, onPublished is Step mode only).
-    //   forcedTier — a tier the host pins for every send of this mount; never
-    //     written to the user's remembered preference.
-    //   backLabel — the header's back destination in the host's words.
-    //   forceAssistantOpen — the host is about to auto-send a brief, so the
-    //     chat must be visible: `automationsAssistantOpen` is a per-user
-    //     preference and defaults to CLOSED, which meant a playbook could fire
-    //     its brief into a pane nobody could see and the room watched a static
-    //     canvas. The person may still close it; only the initial state is
-    //     forced, and the host's mount never writes the preference back.
-    //   seedMetadata — { title?, description? } a host already knows for the
-    //     draft the first send CREATES (the playbook stage reads `Title "…"`
-    //     off its brief). Sent with every send; the server honours it only
-    //     when that send creates the draft, so a re-send cannot rename.
-    //   patternOrigin — the "Find repeating work" pattern this new build
-    //     was opened from ({ signature?, suggestion }); usePatternOrigin
-    //     records `built` for it once the build is done.
     onTurnEnd = null, forcedTier = null, backLabel = null, forceAssistantOpen = false, seedMetadata = null, patternOrigin = null }) {
     const api = useAutomationApi();
     // Step mode (kind='block'): same builder, but persistence targets the
@@ -199,46 +197,7 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
 
     stepByIdForAssistant.current = stepById;
 
-    // InputArea calls onSendMessage(text, attachments, parentId).
-    // We read webSearchEnabled / disabledMedia from scopedStorage so the
-    // toggles in the input UI are picked up automatically.
     const turnBaseRef = useRef(null);
-    const onSend = async (text, attachments, options = {}) => {
-        if (readOnlyRef.current) return;
-        try {
-        const pendingSave = forceSaveNow();
-        if (pendingSave) await pendingSave;
-        const targetAutomationId = state.automationId || serverAutomation?.id || (!isBlankDefinition(effectiveDef) ? await ensureAutomationCreated(effectiveDef) : null);
-        setError(null);
-        const webSearchEnabled = scopedStorage.getItem('webSearchEnabled') !== 'false';
-        const disabledMedia = scopedStorage.getJSON('disabledMedia', {}) || {};
-        // Until the approved plan is done every message continues it ("continue",
-        // "fix X", the answer to a question the build asked); only then does the
-        // user's own work mode apply to the next request again.
-        const approvedPlanId = options.approvedPlanId || followUpPlanId({ plan: state.reviewPlan, questionsPlanId: state.reviewQuestionsPlanId, answering: !!options.answers });
-        turnBaseRef.current = workMode === 'build' || approvedPlanId ? structuredClone(effectiveDef || normalizeDefinitionShape(null)) : null;
-        send({
-            message: text,
-            // Set when the text answers the builder's questions: the chat shows
-            // the structured list, the model gets the text.
-            answers: options.answers || null,
-            targetAutomationId,
-            workMode: approvedPlanId ? 'plan' : workMode,
-            approvedPlanId,
-            alwaysPlanLarge: !!alwaysPlanLarge && !autoSendInput && !forcedTier,
-            pauseAfterStep: options.pauseAfterStep ?? (!!approvedPlanId && !!state.reviewPlan?.pauseAfterStep),
-            selectedStepId: assistantContext?.id || ndvStepId || null,
-            modelTier: tierForSend,
-            attachments: attachments || [],
-            webSearchEnabled,
-            disabledMedia,
-            // Which canvas the user is looking at — lets the server hint
-            // the model's default `scope` for builder tool calls.
-            canvasScope: scopeKey,
-            seedMetadata: seedMetadata || null,
-        });
-        } catch (error) { setError(error.message || String(error)); }
-    };
 
     // "Build it directly" — when the parent opens a fresh builder with an
     // autoSendInput spec (from a suggestion card), fire it once automatically
@@ -289,6 +248,12 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
         api, isStep, apiCreateOne, apiUpdateOne, unwrapRow, state, serverAutomation, setServerAutomation,
         hydrate, setDraft, markServerConfirmed, setValidation, noteManagedRefusal, readOnlyRef,
         effectiveDef, scopeKey, setScopeKey, t,
+    });
+    // Defined after the persistence hook it saves through; the auto-send effect above only calls it once mounted.
+    const onSend = makeBuilderSend({
+        readOnlyRef, forceSaveNow, state, serverAutomation, effectiveDef, ensureAutomationCreated, setError, workMode,
+        alwaysPlanLarge, autoSendInput, forcedTier, tierForSend, assistantContext, ndvStepId, scopeKey, seedMetadata,
+        turnBaseRef, send,
     });
     const { formTest, handleExecuteStep, onDryRun, onRunLive, onFormTestRun, closeFormTest, openFormOverlay } = useBuilderRuns({
         api, state, effectiveDef, executeStep, watchActiveRun, setRunResult, settleRun, clearDryRun,
@@ -344,149 +309,47 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
     });
 
 
-    const isActive = !!serverAutomation?.isActive;
-    const isDraft = !!serverAutomation?.isDraft;
-    const title = serverAutomation?.title || (isStep ? 'New Step' : 'New automation');
-    // Diagnose button only makes sense for app_event triggers — schedule
-    // and manual triggers have nothing to probe externally.
-    const isAppEventTrigger = effectiveDef?.trigger?.kind === 'app_event';
-    const { statusLabel, statusBadgeClass } = headerStatus(isDraft, isActive);
-
     const { applyingProposal, catalogNonce, clearReview, applyProposal } = useBuilderReview({
         state, serverAutomation, effectiveDef, dismissPlan, dismissProposal, onVisualEditRoot, onSaveAutomation, t,
     });
 
-    const triggerKind = effectiveDef?.trigger?.kind || serverAutomation?.triggerType;
     const aidForHistory = state.automationId || automationId;
-
-    // Whether the Activate control is enabled. A DRAFT can be activated as soon
-    // as it's structurally complete (a trigger + at least one step) — the server
-    // /activate route finalises (isDraft:false) AND validates the definition, so
-    // it's the real gate. This decouples going-live from a successful chat
-    // `builder_finalize` turn (which can be interrupted, e.g. by a connector
-    // gateway timeout, leaving an otherwise-complete workflow stuck in Draft).
-    const canActivate = !isStep
-        && !!effectiveDef?.trigger
-        && Array.isArray(effectiveDef?.steps) && effectiveDef.steps.length > 0;
 
     // The "Start from" choice in the header's run menu: every additional
     // trigger by name, plus what to call the primary one.
     const secondaryTriggers = useMemo(() => secondaryTriggerOptions(effectiveDef), [effectiveDef]);
-    const primaryTriggerLabel = effectiveDef?.trigger?.label || triggerTypeLabel(effectiveDef?.trigger);
-
-    // Header props bundled so the SAME header renders either at the shell level
-    // (Settings / Run history / Version history) or inside BuildTab (the Editor
-    // view, where it also hosts the add-step ribbon) — one unified top bar in
-    // both cases. The view's id stays `build`; only its label reads "Editor".
-    const headerProps = {
-        title, triggerKind, isActive, isDraft, statusLabel, statusBadgeClass, canActivate,
-        canDiagnose: isAppEventTrigger, busy, onBack, backLabel, onOpenList, onExportJson: isStep ? null : onExportJson, onActivate, onDeactivate,
-        onDryRun, onRunLive, onDiagnose, onRename, mode,
-        onAssistant: isStep || readOnly ? null : () => askAssistant(), assistantOpen: assistantOpen && !readOnly,
-        triggers: secondaryTriggers, primaryTriggerLabel,
-        step: isStep ? serverAutomation : null, orgGroups, onPublishStep,
-        onSetStepSharing, onSetStepExpose, onSetStepIcon, onSetStepCategory, scope, onExitScope,
-        onDeleteLayer, diagnoseAnchorRef, savingState, tab, onTabChange: setTab,
-        // `managed` rides on the row the header derives its live state from.
-        automation: isStep ? null : (readOnly && serverAutomation ? { ...serverAutomation, managed: managedPart || {} } : serverAutomation),
-        onPublish,
-        // Undo/redo act on the CANVAS draft — pressing them from Settings or
-        // Runs used to mutate a definition the user could not see. Jump to
-        // the Editor first, so the change lands in view.
-        onUndo: () => { if (tab !== 'build') setTab('build'); draftHistory.undo(); },
-        onRedo: () => { if (tab !== 'build') setTab('build'); draftHistory.redo(); },
-        canUndo: draftHistory.canUndo, canRedo: draftHistory.canRedo,
-        // Rendered by the header itself, so the strip follows the bar into
-        // BuildTab's ribbon instead of only existing on the other views.
-        //
+    const headerProps = buildHeaderProps({
+        serverAutomation, effectiveDef, isStep, readOnly, managedPart, busy, tab, setTab, draftHistory, assistantOpen, askAssistant,
+        onBack, backLabel, onOpenList, onExportJson, onActivate, onDeactivate, onDryRun, onRunLive, onDiagnose, onRename, mode,
+        orgGroups, onPublishStep, onSetStepSharing, onSetStepExpose, onSetStepIcon, onSetStepCategory, scope, onExitScope,
+        onDeleteLayer, diagnoseAnchorRef, savingState, onPublish, triggers: secondaryTriggers,
         breadcrumbSlot: breadcrumbSlot({ appRef, isStep, persistedAutomationId, readOnly, managedPart, managedNotDeployed }),
-    };
+    });
 
     return (
-        <BuilderShellLayout
-            {...{
+        <BuilderShellView
+            BuildTab={BuildTab}
+            VersionsTab={VersionsTab}
+            layout={{
                 confirm, confirmDialog, aiActGate, setAiActGate, retryAfterAiAct, serverAutomation, state, tab, setTab,
                 headerProps, diagnoseOpen, diagnoseResult, diagnoseLoading, diagnoseError, setDiagnoseOpen, diagnoseAnchorRef,
                 onSaveAutomation, settingsSection, workMode, setWorkMode, isStep, setServerAutomation, onDryRun, t,
             }}
-            editor={tab === 'build' && (
-                <BuildTab
-                    headerProps={headerProps}
-                    mode={mode}
-                    // A managed automation's canvas is read-only for real (the
-                    // draft never changes, nothing is saved) and the AI
-                    // builder cannot be opened from it.
-                    readOnly={readOnly}
-                    assistantOpen={assistantOpen && !readOnly}
-                    setAssistantOpen={readOnly ? noop : setAssistantOpen}
-                    chatWidth={chatWidth}
-                    onChatResizeStart={onChatResizeStart}
-                    formTest={formTest}
-                    onFormTestRun={onFormTestRun}
-                    onCloseFormTest={closeFormTest}
-                    onOpenFormOverlay={openFormOverlay}
-                    state={state}
-                    // The persisted row — the webhook trigger's node panel
-                    // needs its id to list/create webhook URLs (BFSF-320).
-                    automation={serverAutomation}
-                    rootDef={effectiveDef}
-                    scopedDef={scopedDef}
-                    scopeKey={scopeKey}
-                    setScopeKey={setScopeKey}
-                    onVisualEditRoot={onVisualEditRoot}
-                    chatInput={chatInput}
-                    setChatInput={setChatInput}
-                    modelTiers={modelTiers}
-                    selectedTier={tierForSend}
-                    setSelectedTier={setTierForPicker}
-                    user={user}
-                    onSend={onSend}
-                    workMode={workMode}
-                    setWorkMode={setWorkMode}
-                    alwaysPlanLarge={alwaysPlanLarge}
-                    setAlwaysPlanLarge={setAlwaysPlanLarge}
-                    assistantContext={assistantContext}
-                    onClearAssistantContext={() => setAssistantContext(null)}
-                    onAskAssistant={readOnly ? null : askAssistant}
-                    onApplyProposal={applyProposal}
-                    applyingProposal={applyingProposal}
-                    catalogNonce={catalogNonce}
-                    onDiscardProposal={() => clearReview('discardProposal', state.proposal?.id)}
-                    onRejectPlan={() => clearReview('rejectPlan', state.reviewPlan?.id)}
-                    onApprovePlan={(pauseAfterStep) => onSend(t('automations.assistant.approved_prompt', 'I approve this plan. Build it and report any deviations.'), [], { approvedPlanId: state.reviewPlan?.id, pauseAfterStep })}
-                    onStopBuild={stopBuild}
-                    messagesContainerRef={messagesContainerRef}
-                    messagesBodyRef={messagesBodyRef}
-                    messagesEndRef={messagesEndRef}
-                    onMessagesScroll={onMessagesScroll}
-                    ndvStepId={ndvStepId}
-                    ndvDensity={ndvDensity}
-                    setNdvDensity={setNdvDensity}
-                    ndvMode={ndvMode}
-                    onNdvModeChange={setNdvMode}
-                    openNdv={openNdv}
-                    closeNdv={closeNdv}
-                    stepById={stepById}
-                    runStepById={runStepById}
-                    onSaveStep={onSaveStep}
-                    onVisualEdit={onVisualEdit}
-                    onExecuteStep={handleExecuteStep}
-                    onRetryFromStep={retryFromStep}
-                    onStopRun={stopRun}
-                    pollRunProgress={pollRunProgress}
-                    fatalError={error || state.error}
-                    onDismissFatal={handleDismissFatal}
-                    onDiagnose={onDiagnose}
-                    acceptExternalDraft={acceptExternalDraft}
-                    dismissExternalDraft={dismissExternalDraft}
-                    onBuildLayer={onBuildLayer}
-                    onRefineLayer={onRefineLayer}
-                    layerAgentState={layerAgent.state}
-                />
-            )}
-            versions={tab === 'versions' && (
-                <VersionsTab automation={serverAutomation} onRestored={syncServerRow} />
-            )}
+            build={{
+                headerProps, mode, state, user, onSend, workMode, setWorkMode, alwaysPlanLarge, setAlwaysPlanLarge,
+                assistantContext, chatWidth, onChatResizeStart, formTest, onFormTestRun, onCloseFormTest: closeFormTest,
+                onOpenFormOverlay: openFormOverlay,
+                // The persisted row: the webhook trigger's node panel needs its id to list/create webhook URLs (BFSF-320).
+                automation: serverAutomation,
+                rootDef: effectiveDef, scopedDef, scopeKey, setScopeKey, onVisualEditRoot, chatInput, setChatInput, modelTiers,
+                selectedTier: tierForSend, setSelectedTier: setTierForPicker, onApplyProposal: applyProposal, applyingProposal,
+                catalogNonce, onStopBuild: stopBuild, messagesContainerRef, messagesBodyRef, messagesEndRef, onMessagesScroll,
+                ndvStepId, ndvDensity, setNdvDensity, ndvMode, onNdvModeChange: setNdvMode, openNdv, closeNdv, stepById,
+                runStepById, onSaveStep, onVisualEdit, onExecuteStep: handleExecuteStep, onRetryFromStep: retryFromStep,
+                onStopRun: stopRun, pollRunProgress, onDismissFatal: handleDismissFatal, onDiagnose, acceptExternalDraft,
+                dismissExternalDraft, onBuildLayer, onRefineLayer, layerAgentState: layerAgent.state,
+            }}
+            {...{ readOnly, assistantOpen, setAssistantOpen, setAssistantContext, askAssistant, error, clearReview, syncServerRow }}
             // Mounted HIDDEN by the layout rather than conditionally, see there.
             history={historySlot({
                 automationId: aidForHistory,
@@ -505,7 +368,6 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
 // surfaces these records as a sticky bottom-right pill on the Build tab
 // instead of a top-of-canvas row that pushes content down.
 
-function noop() { /* the AI builder has no way in on a managed automation */ }
 /**
  * The strips the header renders itself, so they follow the bar into BuildTab's
  * ribbon instead of only existing on the other views.
