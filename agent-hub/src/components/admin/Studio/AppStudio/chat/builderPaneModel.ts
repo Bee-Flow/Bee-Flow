@@ -40,8 +40,8 @@ export function boundTableIdFor(definition: AppDefinition | null | undefined, no
 // mutates tables/rows/roles/datasets mid-stream (`data_model` SSE event),
 // every family is invalidated so the canvas, TablesManager, QueryBuilder and
 // RolesManager reflect the AI's work live. Keys must match:
-//   bi/useAppTables.js         → ['studio-app-tables', appId]
-//   bi/useDatasets.js          → ['studio-app-datasets', appId]
+//   bi/useAppTables.ts         → ['studio-app-tables', appId]
+//   bi/useDatasets.ts          → ['studio-app-datasets', appId]
 //   rbac/useAppRoles.js        → ['studio-app-schema', appId] + ['studio-app-members', appId]
 //   runtime/useAppDataSource.js / AppDataScope → ['studio-app-data', appId]
 export const DATA_QUERY_KEY_FAMILIES = (appId: string): Array<[string, string]> => [

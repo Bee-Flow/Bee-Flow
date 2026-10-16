@@ -7,8 +7,8 @@
  * cue this pane publishes (AppEditorShell).
  */
 import { Sparkles } from 'lucide-react';
-import type { ComponentType, ReactNode } from 'react';
-import AppBuilderActivityJs from './AppBuilderActivity';
+import type { ReactNode } from 'react';
+import AppBuilderActivity from './AppBuilderActivity';
 import PlanCard from './PlanCard';
 import { ErrorItem, ScreenshotItem } from './TranscriptItems';
 import type { TranscriptImage } from './TranscriptItems';
@@ -16,12 +16,8 @@ import WhatChanged from './WhatChanged';
 import type { TurnChange } from './WhatChanged';
 import type { BuilderMessage } from '../../../../../hooks/builderStream';
 import useTranslation from '../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import MessageBubble from '../../../../automation/Builder/chat/MessageBubble';
 import BuilderWaitingCard from '../../../../shared/builder/BuilderWaitingCard';
-
-// AppBuilderActivity.jsx defaults `t` to null, which would type it as null-only.
-const AppBuilderActivity = AppBuilderActivityJs as unknown as ComponentType<{ toolCalls: unknown; running: boolean; t: TranslateFn }>;
 
 /** The empty pane's invitation. */
 export function TranscriptEmptyState() {

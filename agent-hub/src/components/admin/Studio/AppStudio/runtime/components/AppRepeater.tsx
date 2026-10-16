@@ -4,6 +4,9 @@ import { resolveBinding } from '../resolveBinding';
 import { rowKey, useRuntime } from '../RuntimeContext';
 import { spaceSteps } from '../styleResolver';
 import { EmptyText, SkeletonLines } from '../uiBits';
+import type { NodeStyle } from '../../inspector/appDefinition';
+import type { BindingInput } from '../resolveBinding.types';
+import type { NodeProps } from './appNode.types';
 
 /**
  * App Studio runtime — 'repeater' (container). Spec: server/appStudio/componentSpecs.js.
@@ -26,7 +29,18 @@ import { EmptyText, SkeletonLines } from '../uiBits';
  * the renderer repeated (forEach present).
  */
 
-export default function AppRepeater({ node, children }) {
+interface RepeaterItemAction {
+    actionId?: string;
+    label?: string;
+}
+
+interface RepeaterProps {
+    itemActions?: RepeaterItemAction[];
+    emptyText?: string;
+    source?: BindingInput;
+}
+
+export default function AppRepeater({ node, children }: NodeProps<RepeaterProps>) {
     const { t } = useTranslation();
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
     const { itemActions = [], emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.') } = node.props || {};
@@ -47,9 +61,9 @@ export default function AppRepeater({ node, children }) {
     // Flattened (renderer repeated via forEach) → chunk per item; otherwise
     // fall back to the single rendered subtree per item.
     const flattened = childCount > 0 && rendered.length === items.length * childCount;
-    const gap = Number.isFinite(node.style?.gap) ? node.style.gap : 3;
+    const gap = Number.isFinite(node.style?.gap) ? (node.style as NodeStyle).gap : 3;
 
-    const groupFor = (i, row) => {
+    const groupFor = (i: number, row: string) => {
         const slice = flattened ? rendered.slice(i * childCount, (i + 1) * childCount) : rendered;
         return slice.map((el, j) => (React.isValidElement(el)
             ? React.cloneElement(el, { key: `${el.key ?? j}::${row}` })

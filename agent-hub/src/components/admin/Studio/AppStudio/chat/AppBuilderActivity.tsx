@@ -1,6 +1,9 @@
 import { Check, ChevronRight, Hammer, Layers, Loader2, Sparkles, TriangleAlert } from 'lucide-react';
 import React from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { appDetailPayload, describeAppToolCall, landedIcon } from './appToolCallDisplay';
+import type { AppToolCall, AppToolCallRow } from './appToolCallDisplay';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { StepBadge, TimelineRail } from '../../../../chat/MessageItem/timelineParts';
 
 /**
@@ -21,13 +24,13 @@ import { StepBadge, TimelineRail } from '../../../../chat/MessageItem/timelinePa
  *
  * No durations, no invented denominators — the stream measures neither.
  */
-export default function AppBuilderActivity({ toolCalls, running = false, t = null }) {
-    const calls = Array.isArray(toolCalls) ? toolCalls : [];
+export default function AppBuilderActivity({ toolCalls, running = false, t = null }: { toolCalls: unknown; running?: boolean; t?: TranslateFn | null }) {
+    const calls = Array.isArray(toolCalls) ? (toolCalls as AppToolCall[]) : [];
     if (calls.length === 0) return null;
     const rows = calls.map((tc) => describeAppToolCall(tc, t));
     const failed = rows.filter((r) => r.status === 'failed').length;
     const activeIdx = running ? rows.length - 1 : -1;
-    const tr = (key, en, params) => (t ? t(key, en, params) : en.replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m)));
+    const tr = (key: string, en: string, params?: Record<string, unknown>): string => (t ? t(key, en, params) : en.replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m)));
 
     return (
         <div
@@ -59,13 +62,13 @@ export default function AppBuilderActivity({ toolCalls, running = false, t = nul
     );
 }
 
-const TILE_BASE = {
+const TILE_BASE: CSSProperties = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     background: 'color-mix(in srgb, var(--editor-accent, var(--accent)) 14%, transparent)',
     color: 'var(--editor-accent, var(--accent))',
 };
 
-function tileStyle(size, failed) {
+function tileStyle(size: number, failed: boolean): CSSProperties {
     return {
         ...TILE_BASE,
         width: size, height: size, borderRadius: Math.round(size * 0.32),
@@ -73,13 +76,13 @@ function tileStyle(size, failed) {
     };
 }
 
-function Glyph({ type, size, fallback }) {
+function Glyph({ type, size, fallback }: { type: unknown; size: number; fallback: ReactNode }) {
     const Icon = landedIcon(type);
     if (Icon) return <Icon size={size} aria-hidden="true" />;
     return fallback;
 }
 
-function ActivityRow({ n, row, tc, active }) {
+function ActivityRow({ n, row, tc, active }: { n: number; row: AppToolCallRow; tc: AppToolCall | undefined; active: boolean }) {
     const failed = row.status === 'failed';
     const batch = row.added.length > 1;
     const single = row.added.length === 1 ? row.added[0] : null;
