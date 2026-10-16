@@ -9,6 +9,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const studioAppStore = require('../../stores/studioAppStore');
 const studioAppDataStore = require('../../stores/studioAppDataStore');
 const queryCompiler = require('../../appStudio/queryCompiler');
@@ -140,7 +141,10 @@ function handleErr(res, err, _where) {
     if (status === 422 || status === 400 || status === 403) {
         return res.status(status).json({ error: err.message });
     }
-    throw err;
+    // Only an HttpError may carry its own message and status; anything else is
+    // a generic 500 (the terminal handler logs the cause), as before the move.
+    if (err instanceof HttpError) throw err;
+    throw Object.assign(new Error('Data request failed'), { cause: err });
 }
 
 // ── Shared data context ─────────────────────────────────────────────
