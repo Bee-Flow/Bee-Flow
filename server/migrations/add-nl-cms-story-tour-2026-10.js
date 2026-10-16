@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Dutch for the website CMS scroll story and product tour blocks (2026-10).
+ * Dutch for the website CMS scroll story and product tour blocks and the A/B test card (2026-10). The card sits
+ * under every block editor.
  *
  * Idempotent: only fills keys that are missing, so a workspace that curated its
  * own wording keeps it. ADD, NEVER RENAME. Auto-runs from server boot
@@ -35,6 +36,17 @@ const NL_TRANSLATIONS = {
     "cms_site.blocks.tour.label_previous": "Knop Vorige",
     "cms_site.blocks.tour.label_next": "Knop Volgende",
     "cms_site.blocks.tour.label_step_of": "Stapteller",
+    "cms_site.blocks.experiment.title": "A/B-test",
+    "cms_site.blocks.experiment.hint": "Laat een deel van de paginaweergaven een alternatieve versie van dit blok zien en vergelijk hoe vaak bezoekers doorklikken. Er wordt niets in de browser van de bezoeker bewaard, geen cookies en geen identificatie; de resultaten tellen paginaweergaven, geen personen.",
+    "cms_site.blocks.experiment.enable": "Een alternatief voor dit blok testen",
+    "cms_site.blocks.experiment.name": "Naam van de test",
+    "cms_site.blocks.experiment.name_hint": "Staat in het analyticsrapport. Letters, cijfers, - en _.",
+    "cms_site.blocks.experiment.share": "Aandeel dat het alternatief ziet (%)",
+    "cms_site.blocks.experiment.goal": "Naam van de doelgebeurtenis",
+    "cms_site.blocks.experiment.goal_hint": "Telt mee wanneer een bezoeker in dit blok op een knop of link klikt, of er een formulier verstuurt.",
+    "cms_site.blocks.experiment.original": "Origineel",
+    "cms_site.blocks.experiment.alternative": "Alternatief",
+    "cms_site.blocks.experiment.alt_hint": "Pas aan wat anders moet zijn. Velden die je laat staan volgen het origineel.",
 };
 
 async function up() {

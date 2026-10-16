@@ -39,6 +39,7 @@ const { BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FO
 const { checkTabs, checkStoryHeader, checkScrollStory } = require('./validateBlocks');
 const { slugProblem } = require('../stores/cms/slugRules');
 const { checkPageMedia } = require('./validateMedia');
+const { experimentWarnings } = require('./experiments');
 
 // Lucide component names are PascalCase ASCII (Star, ShieldCheck, BarChart3).
 const LUCIDE_NAME_RE = /^[A-Z][A-Za-z0-9]*$/;
@@ -296,6 +297,7 @@ function validateSiteDraft(draftWrap) {
             if (b?.type === 'tabs') checkTabs(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             if (b?.type === 'scrollStory') checkScrollStory(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             if (b?.type === 'story-header') checkStoryHeader(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
+            warnings.push(...experimentWarnings(b, `pages.${entry.id}.blocks[${i}].content`));
             // Style v2 enum sanity — invalid values are ignored by the
             // renderer, so warnings only (the model self-corrects).
             const st = b?.style;

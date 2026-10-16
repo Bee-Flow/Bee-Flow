@@ -29,6 +29,16 @@ test('tour hotspot labels and explanations are rendered, their coordinates are n
     assert.doesNotMatch(html, /\b80\b/);
 });
 
+test('the crawler sees the control, never the experiment alternative', () => {
+    const html = page([{ type: 'scrollStory', content: {
+        title: 'Control title', abKey: 'story-title', abGoal: 'signup', abShare: 50,
+        abAlt: { title: 'Alternative title', lead: 'Alternative lead' }, steps: [],
+    } }]);
+    assert.match(html, /Control title/);
+    assert.doesNotMatch(html, /Alternative/);
+    assert.doesNotMatch(html, /story-title|signup/);
+});
+
 test('both new block types are known to the store and have defaults', () => {
     for (const type of ['scrollStory', 'tour']) {
         assert.ok(BLOCK_TYPE_IDS.includes(type));
@@ -37,4 +47,11 @@ test('both new block types are known to the store and have defaults', () => {
     const { blocks, dropped } = sanitizeBlocks([{ type: 'scroll-story', content: {} }, { type: 'product-tour', content: {} }]);
     assert.deepEqual(blocks.map(b => b.type), ['scrollStory', 'tour']);
     assert.deepEqual(dropped, []);
+});
+
+test('the translator leaves the experiment name and goal alone but translates the alternative copy', () => {
+    const { isDeniedKey } = require('../cms/cmsTranslate');
+    assert.equal(isDeniedKey('abKey'), true);
+    assert.equal(isDeniedKey('abGoal'), true);
+    assert.equal(isDeniedKey('abAlt'), false);
 });

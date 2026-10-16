@@ -28,6 +28,10 @@ describe('field enumeration (server-parity rules)', () => {
         expect(isDeniedKey('titleStyle')).toBe(true);
         expect(isDeniedKey('buttonUrl')).toBe(true);
         expect(isDeniedKey('lead')).toBe(false);
+        // A/B bookkeeping is an identifier Umami groups on; the alternative copy is prose.
+        expect(isDeniedKey('abKey')).toBe(true);
+        expect(isDeniedKey('abGoal')).toBe(true);
+        expect(isDeniedKey('abAlt')).toBe(false);
     });
     it('rejects colors, URLs and empty strings as values', () => {
         expect(isTranslatableValue('#ff00aa')).toBe(false);

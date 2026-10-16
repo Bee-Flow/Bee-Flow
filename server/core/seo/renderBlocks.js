@@ -46,6 +46,9 @@ const SKIP_KEYS = new Set([
     'code', 'codeRight', 'popupEmbed', 'embed', 'iframe', 'style', 'variant',
     'layout', 'background', 'backgroundVariant', 'theme', 'frame',
     'seo', 'enabled', 'status', 'span', 'height', 'feature', 'logoSrc',
+    // A/B experiment fields: the crawler is served the control (the block's
+    // own content), never the alternative held in abAlt.
+    'abKey', 'abGoal', 'abShare', 'abAlt',
 ]);
 
 const isProse = (v) => typeof v === 'string' && v.trim() !== '';

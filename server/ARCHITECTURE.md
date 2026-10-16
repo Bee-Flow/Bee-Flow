@@ -331,3 +331,22 @@ violation — and with the guard sitting exactly at its baseline, that put all
   from a row, so a column added later cannot leak by default. Email is the one
   exception, because there the data goes to the person it is about. Reading *in*
   from a third party is unconstrained. Full rule: CLAUDE.md → Security.
+
+## CMS A/B tests on a block
+
+A block becomes an experiment through four content fields: `abKey`, `abAlt`
+(the fields that differ), `abShare` (1-99, default 50) and `abGoal`.
+`cmsBuilder/experiments.js` warns about bad values; `core/seo/renderBlocks.js`
+ignores them, so crawlers always get the original; `core/cms/cmsTranslate.js`
+leaves `abKey`/`abGoal` alone and translates `abAlt`.
+
+The split is cookieless by construction: the variant is drawn in the browser
+(`agent-hub/src/marketing/experiments/experiment.ts`, `crypto.getRandomValues`)
+once per page view and held in memory. Nothing is written to cookies,
+localStorage, sessionStorage or the URL, and there is no visitor id, so there
+is nothing to consent to. The cost is that a reload draws again, so results
+count page views, not people. Events go to the site's own Umami through
+`window.umami.track`, which only exists once the (consent-gated) tracker has
+loaded: `ab_view` on render and the goal event on the first click on a link or
+button, or form submit, inside the block, each with `{ experiment, variant }`
+and nothing else. The editor preview never draws; it shows the original.

@@ -31,6 +31,8 @@ import { ProductMockupEditor } from './ProductMockupEditor';
 import { CardCarouselEditor } from './CardCarouselEditor';
 import { ScrollStoryEditor } from './ScrollStoryEditor';
 import { TourEditor } from './TourEditor';
+import { withExperiment } from './ExperimentCard';
+import { supportsExperiment } from '../../../../marketing/experiments/altPolicy';
 
 // ── Catalogue + registries ────────────────────────────────────────────
 //
@@ -93,7 +95,7 @@ export const BLOCK_CATALOGUE: Record<string, BlockCatalogueEntry> = {
     tour:            { type: 'tour',          label: 'Product tour',     icon: 'Route',            category: 'Content' },
 };
 
-export const BLOCK_EDITORS = {
+const RAW_BLOCK_EDITORS = {
     hero:         { component: HeroEditor,         label: 'Hero',           icon: 'Megaphone'   },
     socialProof:  { component: SocialProofEditor,  label: 'Social proof',   icon: 'Users'       },
     content:      { component: ContentEditor,      label: 'Content',        icon: 'Type'             },
@@ -128,3 +130,14 @@ export const BLOCK_EDITORS = {
     scrollStory:     { component: ScrollStoryEditor,  label: 'Scroll story',     icon: 'GalleryVertical' },
     tour:            { component: TourEditor,         label: 'Product tour',     icon: 'Route' },
 };
+
+// Every block's editor gets the A/B test card underneath (ExperimentCard.tsx),
+// except blocks that take submissions (form, customer-support): their consent
+// and fields are checked against the published block, so they run no test.
+type EditorEntry = typeof RAW_BLOCK_EDITORS[keyof typeof RAW_BLOCK_EDITORS];
+export const BLOCK_EDITORS = Object.fromEntries(
+    Object.entries(RAW_BLOCK_EDITORS).map(([type, def]) => [
+        type,
+        supportsExperiment(type) ? { ...def, component: withExperiment(def.component) } : def,
+    ]),
+) as { [K in keyof typeof RAW_BLOCK_EDITORS]: Omit<EditorEntry, 'component'> & { component: ReturnType<typeof withExperiment> } };

@@ -38,6 +38,9 @@ export const DENY_KEYS = new Set([
     // it matches no bucket and the item silently disappears from the page.
     // Its prose counterpart, `statusLabels`, is NOT denied and does translate.
     'status',
+    // A/B experiment bookkeeping (server: cmsTranslate.js): a translated name
+    // splits the report per language, an invalid one switches the test off.
+    'abKey', 'abGoal',
 ]);
 export const DENY_SUFFIX = /(Style|Color|Font|Align|Size|Variant|Url|Src|Id|Link)$/;
 

@@ -63,6 +63,7 @@ function buildSystemPrompt() {
 - A PAGE = title + slug + seo + an ordered list of BLOCKS. A block is { id, type, enabled, content, style } — the 15 legal types and their default content are in the catalogue below. Blocks render top-to-bottom in array order.
 - Adding blocks: your content is DEEP-MERGED over the type's defaults. Objects merge key-by-key; ARRAYS REPLACE WHOLESALE — always send the complete items/columns/stats/logos array, never a partial one (a 1-item array replaces a 3-item default).
 - Editing blocks: cms_update_block patches content the same way (arrays replace wholesale). Use enabled:false to hide a block without losing its content.
+- A/B test on a block: add \`abKey\` (a-z, 0-9, - _), \`abAlt\` (an object with only the content fields that differ in the alternative) and optionally \`abShare\` (1-99, default 50) and \`abGoal\` (event name) to its content. Visitors are split per page view in the browser, with no cookie or stored id; Umami receives \`ab_view\` and the goal event with the test name and variant. Crawlers see the original.
 
 ## Content-shape rules (get these exactly right)
 

@@ -41,6 +41,10 @@ const DENY_KEYS = new Set([
     // it matches no bucket and the item silently disappears from the page.
     // Its prose counterpart, `statusLabels`, is NOT denied and does translate.
     'status',
+    // A/B experiment bookkeeping: the experiment's name and goal event are
+    // identifiers Umami groups on, so a translation would split the report.
+    // `abAlt` (the alternative copy) is prose and does translate.
+    'abKey', 'abGoal',
 ]);
 // Style-ish suffixes (fontSize, titleColor, headingAlign, labelFont, ...).
 const DENY_SUFFIX = /(Style|Color|Font|Align|Size|Variant|Url|Src|Id|Link)$/;

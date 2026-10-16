@@ -60,6 +60,7 @@ import useCmsHead from './useCmsHead';
 import { BlockIdContext } from './components/EditableText';
 import { PreviewBlockChrome, InsertZone } from './components/PreviewBlockChrome';
 import { resolveAssetUrl } from './assetUrl';
+import ExperimentSection, { experimentAttrs } from './experiments/ExperimentSection';
 import { LOCALE_PREFIXES } from '../utils/cmsPublicRouting';
 import type {
     BlockStyle, CmsActiveState, CmsBlock, DesignComponents, DesignLayout,
@@ -936,11 +937,11 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
                                 {overrideCss ? <style>{overrideCss}</style> : null}
                                 <div
                                     data-cms-block-id={b.id}
-                                    // Read by analyticsEvents.js so a CTA click can
-                                    // be attributed to the block it came from.
+                                    // Read by analyticsEvents.js: attributes a CTA click to its block.
                                     data-cms-block-type={b.type}
                                     className={`${blockWrapClasses(b.style, { type: b.type, inPreview })}${isActive ? ' cms-block-active' : ''}`}
                                     style={blockWrapStyle(b.style)}
+                                    {...experimentAttrs(b.content as Record<string, unknown> | undefined, { preview: inPreview, type: b.type })} // A/B goal attrs, see track.ts
                                     // Clicking anywhere in the block (images,
                                     // buttons, empty space — not just editable
                                     // text) selects it in the panel. Bubbles up
@@ -952,11 +953,10 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
                                             { type: 'cms-select', blockId: b.id }, '*')
                                         : undefined}
                                 >
-                                    {/* Stamp this block's id onto every EditableText
-                                        inside so inline edits write back to THIS
-                                        block, not the first one of its type. */}
+                                    {/* Stamp this block's id onto every EditableText inside so inline edits
+                                        write back to THIS block, not the first one of its type. */}
                                     <BlockIdContext.Provider value={b.id}>
-                                        <Comp data={{ enabled: b.enabled !== false, ...(b.content || {}) }} />
+                                        <ExperimentSection Comp={Comp} block={b} preview={inPreview} />
                                     </BlockIdContext.Provider>
                                     {/* Name tag + floating toolbar (preview only) —
                                         a view of the panel's selection/lock state. */}
