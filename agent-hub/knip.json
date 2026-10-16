@@ -4,7 +4,7 @@
     "src/main.jsx",
     "src/test/setup.ts",
     "src/**/*.test.{js,jsx,ts,tsx}",
-    "src/editor/serialization/index.js",
+    "src/editor/serialization/index.ts",
     "src/shared/expr/index.mjs",
     "scripts/*.mjs",
     "vite.config.js",
