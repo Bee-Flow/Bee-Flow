@@ -2774,6 +2774,8 @@
     -webkit-mask-size: 84px auto, 252px auto;
             mask-size: 84px auto, 252px auto;
 }
+/* A section with its own band fill (cta on dark) paints over a motif at z-index 0: lift it above the fill. */
+.marketing-root .cms-block-wrap.cms-motif:has(> [class*="cms-bg--"])::after { z-index: 2; }
 @media (max-width: 767px) {
     .marketing-root .cms-block-wrap.cms-motif--right::after,
     .marketing-root .cms-block-wrap.cms-motif--left::after { left: 0; right: 0; opacity: 0.12; }

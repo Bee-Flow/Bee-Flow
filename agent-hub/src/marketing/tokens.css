@@ -66,7 +66,7 @@
     --space-6: 24px; --space-8: 32px;  --space-12: 48px; --space-16: 64px;
     --space-24: 96px; --space-32: 128px;
     --section-y:      clamp(56px, 5vw + 24px, 96px);
-    --section-y-hero: clamp(88px, 8vw + 48px, 152px);
+    --section-y-hero: clamp(88px, 6vw + 40px, 120px);
 
     /* ── Motion tokens ──────────────────────────────────────────────── */
     --motion-fast: 150ms;
@@ -187,6 +187,8 @@
 .marketing-root .cms-rhythm--tight    { --section-y: clamp(40px, 3vw + 20px, 64px); }
 .marketing-root .cms-rhythm--compact  { --section-y: 48px; }
 .marketing-root .cms-rhythm--spacious { --section-y: clamp(128px, 11vw, 176px); }
+/* The hero follows the block rhythm too (its bottom padding is --section-y-hero). */
+.marketing-root :is(.cms-rhythm--tight, .cms-rhythm--compact, .cms-rhythm--spacious) { --section-y-hero: calc(var(--section-y) + 24px); }
 
 /* Accent glow behind a block (::after — ::before belongs to the
    background-image overlay). Content sits at z-index 1 already. */
