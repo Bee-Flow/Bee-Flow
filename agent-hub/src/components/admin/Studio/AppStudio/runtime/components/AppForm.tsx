@@ -1,11 +1,16 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { Loader2, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { AppNode, NodeStyle, ValidationRule } from '../../inspector/appDefinition';
 import { FormContext, registerFormReset } from '../formContext';
+import type { FormFieldMeta } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { spaceSteps } from '../styleResolver';
+import type { NodeProps } from './appNode.types';
 
 /**
  * App Studio runtime — 'form' (container). Spec: server/appStudio/componentSpecs.js.
@@ -34,30 +39,45 @@ import { spaceSteps } from '../styleResolver';
 // and the server validator's typed spelling of the same checks (format with
 // format:'email'|'url', formula with expr).
 
+/** The props of an input the form's validation reads. */
+interface RuleProps {
+    name?: string;
+    min?: number;
+    max?: number;
+}
+
+interface FormProps {
+    name?: string;
+    resetKey?: unknown;
+    submitLabel?: string;
+    showReset?: boolean;
+    showSubmit?: boolean;
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Empty for validation: null/undefined, '' and an EMPTY ARRAY (multi-fields). */
-function isEmptyValue(v) {
+function isEmptyValue(v: unknown) {
     if (v == null || v === '') return true;
     return Array.isArray(v) && v.length === 0;
 }
 
-function lengthOf(v) {
+function lengthOf(v: unknown) {
     return (Array.isArray(v) || typeof v === 'string') ? v.length : String(v).length;
 }
 
-function ruleKind(rule) {
+function ruleKind(rule: ValidationRule | null | undefined) {
     if (rule?.type === 'format') return String(rule.format || '').toLowerCase();
     if (rule?.type === 'formula') return 'expr';
     return rule?.type;
 }
 
-function isUrl(v) {
+function isUrl(v: unknown) {
     try { return !!new URL(String(v)).host; } catch { return false; }
 }
 
 /** True when the rule REJECTS this value. Never throws — a bad rule passes. */
-function ruleFails(rule, value, fieldScope) {
+function ruleFails(rule: ValidationRule, value: unknown, fieldScope: Record<string, unknown>) {
     const kind = ruleKind(rule);
     // An unchecked box is `false`, which is not "empty" by any of the tests
     // above — so a consent checkbox marked required submitted unticked, and the
@@ -89,7 +109,7 @@ function ruleFails(rule, value, fieldScope) {
 }
 
 /** The author's message, or sensible copy generated from the rule itself. */
-function ruleMessage(rule, t) {
+function ruleMessage(rule: ValidationRule, t: TranslateFn) {
     if (typeof rule?.message === 'string' && rule.message.trim()) return rule.message;
     switch (ruleKind(rule)) {
         case 'required': return t('studio_apps_runtime.form.required', 'This field is required.');
@@ -113,9 +133,9 @@ function ruleMessage(rule, t) {
  * spelled as ordinary rules so they run through exactly the same machinery (and
  * message copy) as an authored one.
  */
-function propRules(node) {
+function propRules(node: AppNode<RuleProps> | null | undefined) {
     if (node?.type !== 'input_number') return null;
-    const out = [];
+    const out: ValidationRule[] = [];
     const { min, max } = node.props || {};
     if (Number.isFinite(min)) out.push({ type: 'min', value: min });
     if (Number.isFinite(max)) out.push({ type: 'max', value: max });
@@ -130,9 +150,9 @@ function propRules(node) {
  * Prop-implied rules come first so an authored rule with the same bound (and a
  * hand-written message) is the one the user sees.
  */
-function collectValidations(node) {
-    const out = new Map();
-    const visit = (n) => {
+function collectValidations(node: Pick<AppNode, 'children'>) {
+    const out = new Map<string, ValidationRule[]>();
+    const visit = (n: AppNode<RuleProps> | null | undefined) => {
         if (!n || typeof n !== 'object') return;
         const fieldName = n.props?.name;
         if (fieldName) {
@@ -154,7 +174,7 @@ function collectValidations(node) {
  * could never clear. A form without a resetKey keys on nothing and behaves
  * exactly as it always has.
  */
-export default function AppForm({ node, children }) {
+export default function AppForm({ node, children }: NodeProps<FormProps>) {
     const { actionState, dataState, scope } = useRuntime();
     const resetKey = node.props?.resetKey;
     let token = 'form';
@@ -165,14 +185,14 @@ export default function AppForm({ node, children }) {
     return <FormBody key={token} node={node}>{children}</FormBody>;
 }
 
-function FormBody({ node, children }) {
+function FormBody({ node, children }: NodeProps<FormProps>) {
     const { t } = useTranslation();
     const { mode, runAction, actionState, registerFormValue, scope } = useRuntime();
     const { submitLabel = t('studio_apps_runtime.form.submit', 'Submit'), showReset = false, showSubmit = true } = node.props || {};
     const formName = node.props?.name || node.id;
-    const [values, setValues] = useState({});
-    const [errors, setErrors] = useState({});
-    const fieldsRef = useRef(new Map()); // name → { required, label, defaultValue }
+    const [values, setValues] = useState<Record<string, unknown>>({});
+    const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+    const fieldsRef = useRef(new Map<string, FormFieldMeta>()); // name → { required, label, defaultValue }
 
     const pending = !!(node.onSubmit && actionState?.[node.onSubmit]?.status === 'running');
     // The spinner was the only thing read off the action's state, so a
@@ -184,7 +204,7 @@ function FormBody({ node, children }) {
         if (typeof registerFormValue === 'function') registerFormValue(formName, values);
     }, [registerFormValue, formName, values]);
 
-    const register = useCallback((name, meta) => {
+    const register = useCallback((name: string, meta: FormFieldMeta) => {
         fieldsRef.current.set(name, meta);
         // Seed the default so untouched fields still submit their value.
         setValues((prev) => (Object.prototype.hasOwnProperty.call(prev, name)
@@ -192,17 +212,17 @@ function FormBody({ node, children }) {
             : { ...prev, [name]: meta.defaultValue ?? null }));
     }, []);
 
-    const unregister = useCallback((name) => {
+    const unregister = useCallback((name: string) => {
         fieldsRef.current.delete(name);
     }, []);
 
-    const setValue = useCallback((name, value) => {
+    const setValue = useCallback((name: string, value: unknown) => {
         setValues((prev) => ({ ...prev, [name]: value }));
         setErrors((prev) => (prev[name] ? { ...prev, [name]: undefined } : prev));
     }, []);
 
     const handleReset = useCallback(() => {
-        const next = {};
+        const next: Record<string, unknown> = {};
         for (const [name, meta] of fieldsRef.current) next[name] = meta.defaultValue ?? null;
         setValues(next);
         setErrors({});
@@ -212,10 +232,10 @@ function FormBody({ node, children }) {
     // module-level bus — the same key the runtime files form values under.
     useEffect(() => registerFormReset(formName, handleReset), [formName, handleReset]);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (mode !== 'run' || pending) return;
-        const nextErrors = {};
+        const nextErrors: Record<string, string> = {};
         for (const [name, meta] of fieldsRef.current) {
             // A field the author switched off (enabledWhen:false) is inert on
             // screen — validating it puts an error the user cannot clear under
@@ -263,7 +283,7 @@ function FormBody({ node, children }) {
         [values, setValue, errors, register, unregister, pending],
     );
 
-    const gap = Number.isFinite(node.style?.gap) ? node.style.gap : 3;
+    const gap = Number.isFinite(node.style?.gap) ? (node.style as NodeStyle).gap : 3;
     return (
         <FormContext.Provider value={ctx}>
             <form onSubmit={handleSubmit} noValidate className="flex flex-col" style={{ gap: spaceSteps(gap) }}>
