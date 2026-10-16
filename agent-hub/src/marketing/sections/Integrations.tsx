@@ -47,7 +47,7 @@ function IntegrationTile({ item, path }: { item: IntegrationItem; path: string }
             ) : brandLogo(logoId) ? (
                 <BrandMark id={logoId} />
             ) : item.icon ? (
-                <span className="icon-tile"><IconGlyph icon={item.icon} className="w-4 h-4" /></span>
+                <span className="icon-tile icon-tile--neutral"><IconGlyph icon={item.icon} className="w-4 h-4" /></span>
             ) : null}
             <EditableText path={path} placeholder="Tool name">
                 {item.label || ''}

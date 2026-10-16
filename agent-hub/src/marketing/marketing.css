@@ -1348,7 +1348,8 @@
 .marketing-root .section-header p { margin: 0 auto; }
 
 /* ── Features ─────────────────────────────────────────────────────────── */
-.marketing-root .features-grid {
+.marketing-root .features-grid,
+.marketing-root .testimonials-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 24px;
@@ -2085,6 +2086,11 @@
     background: var(--surface-1, rgba(0, 0, 0, 0.03));
     filter: saturate(0.9);
     transition: filter var(--transition-fast), transform var(--transition-fast);
+}
+.marketing-root .integration-item .icon-tile--neutral,
+.marketing-root .integration-item:hover .icon-tile--neutral {
+    background: var(--surface-1, rgba(0, 0, 0, 0.03));
+    color: var(--text-secondary);
 }
 .marketing-root .integration-item:hover .integration-logo-mark {
     filter: saturate(1.1);
@@ -2938,7 +2944,8 @@
     overflow: hidden;
     background: #000;
 }
-.marketing-root .content-el-video-wrap iframe {
+.marketing-root .content-el-video-wrap iframe,
+.marketing-root .media-text-block-video iframe {
     position: absolute; inset: 0;
     width: 100%; height: 100%;
     border: 0;
@@ -3075,13 +3082,6 @@
     border-radius: var(--radius-lg);
     overflow: hidden;
     background: #000;
-}
-.marketing-root .media-text-block-video iframe {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    border: 0;
 }
 .marketing-root .media-text-block-media-placeholder {
     aspect-ratio: 16 / 9;
@@ -3365,11 +3365,6 @@ section.customer-support-block {
    name + role + company always; NEVER star ratings. Tokens only, so dark
    theme and band retheme come for free. */
 
-.marketing-root .testimonials-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-}
 .marketing-root .testimonial-card {
     /* Hover changes ONLY the border — keep the fill and stay flat. */
     --card-hover-bg: var(--surface-2);
