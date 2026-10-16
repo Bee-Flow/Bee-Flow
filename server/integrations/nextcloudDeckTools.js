@@ -92,7 +92,7 @@ const NEXTCLOUD_DECK_TOOLS = [
         type: 'function',
         function: {
             name: 'nextcloud_deck_delete_stack',
-            description: 'Delete a stack (column) from a Deck board. This also removes the stack\'s cards. Always confirm with the user before calling — deletion cannot be undone via the API.',
+            description: 'Delete a stack (column) from a Deck board. This also removes the stack\'s cards. Always confirm with the user before calling — Deck keeps a deleted stack in its deleted items, but this API cannot restore it.',
             parameters: {
                 type: 'object',
                 properties: {

@@ -5,6 +5,7 @@
  */
 
 const { nextcloudHttpError } = require('./nextcloudHttpError');
+const { toUtcIso, keepDue } = require('./nextcloudDeckDates');
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
@@ -195,6 +196,8 @@ async function getCard(args, { api, ncFetch, authError }) {
 
 async function createCard(args, { api, ncFetch, authError }) {
     if (!args.boardId || !args.stackId || !args.title) return { error: 'boardId, stackId, title required' };
+    const due = toUtcIso(args.duedate);
+    if ('error' in due) return due;
     const res = await deckJson(ncFetch, `${api}/boards/${args.boardId}/stacks/${args.stackId}/cards`, {
         method: 'POST',
         headers: REST_HEADERS,
@@ -203,7 +206,7 @@ async function createCard(args, { api, ncFetch, authError }) {
             type: args.type || 'plain',
             order: 999,
             description: args.description || '',
-            duedate: args.duedate || null,
+            duedate: due.iso,
         },
     });
     if (res.status === 401) return { error: authError };
@@ -216,6 +219,8 @@ async function createCard(args, { api, ncFetch, authError }) {
 
 async function updateCard(args, { api, ncFetch, authError }) {
     if (!args.boardId || !args.stackId || !args.cardId) return { error: 'boardId, stackId, cardId required' };
+    const due = toUtcIso(args.duedate);
+    if ('error' in due) return due;
     // Deck's PUT replaces the card — fetch first and merge.
     const cardRes = await ncFetch(`${api}/boards/${args.boardId}/stacks/${args.stackId}/cards/${args.cardId}`, {
         headers: REST_HEADERS,
@@ -228,7 +233,8 @@ async function updateCard(args, { api, ncFetch, authError }) {
     const merged = {
         title: args.title !== undefined ? args.title : current.title,
         description: args.description !== undefined ? args.description : current.description,
-        duedate: args.duedate !== undefined ? (args.duedate === '' ? null : args.duedate) : current.duedate,
+        // Deck's PUT replaces the card, so an unchanged due date is sent again (as UTC).
+        duedate: args.duedate !== undefined ? due.iso : keepDue(current.duedate),
         type: current.type || 'plain',
         owner: current.owner?.uid || current.owner,
         order: args.order !== undefined ? args.order : current.order,
@@ -246,16 +252,27 @@ async function updateCard(args, { api, ncFetch, authError }) {
     const updated = await readJsonSafe(putRes);
 
     // Move to a different stack if requested.
-    if (args.targetStackId && args.targetStackId !== args.stackId) {
+    if (args.targetStackId && String(args.targetStackId) !== String(args.stackId)) {
+        const target = Number(args.targetStackId);
         const moveRes = await deckJson(ncFetch, `${api}/boards/${args.boardId}/stacks/${args.stackId}/cards/${args.cardId}/reorder`, {
             method: 'PUT',
             headers: REST_HEADERS,
-            body: { order: args.order !== undefined ? args.order : 0, stackId: args.targetStackId },
+            body: { order: args.order !== undefined ? args.order : 0, stackId: Number.isNaN(target) ? args.targetStackId : target },
         });
         if (!moveRes.ok) {
             const body = await readJsonSafe(moveRes);
             return { success: true, updated, moveError: `Card update succeeded but move failed (${moveRes.status})`, moveDetail: body };
         }
+        // Deck can answer 200 without moving the card: look where it is now.
+        const movedRes = await ncFetch(`${api}/boards/${args.boardId}/stacks/${args.targetStackId}/cards/${args.cardId}`, { headers: REST_HEADERS });
+        if (!movedRes.ok && movedRes.status !== 404) {
+            return { success: true, updated, moveError: `Card updated, but the move could not be verified (${movedRes.status}).` };
+        }
+        const moved = movedRes.ok ? await readJsonSafe(movedRes) : null;
+        if (!moved || (moved.stackId !== undefined && String(moved.stackId) !== String(args.targetStackId))) {
+            return { success: true, updated, moveError: `Card updated, but it did not move to stack ${args.targetStackId}.` };
+        }
+        return { success: true, card: moved };
     }
     return { success: true, card: updated };
 }
@@ -274,7 +291,7 @@ async function archiveCard(args, { api, ncFetch }) {
         body: {
             title: current.title,
             description: current.description || '',
-            duedate: current.duedate || null,
+            duedate: keepDue(current.duedate),
             type: current.type || 'plain',
             owner: current.owner?.uid || current.owner,
             order: current.order,
