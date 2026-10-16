@@ -6,6 +6,12 @@ import { pickBetaIcon } from '../../utils/betaFeatureIcon';
 import { useLicenseContext } from '../../components/licensing/LicenseContext';
 import UpgradePrompt from '../../components/billing/UpgradePrompt';
 
+interface BetaFeature {
+    id: string;
+    name?: string;
+    description?: string;
+}
+
 /**
  * Consumer Beta features section.
  * Read-only listing of beta features the user has access to. Consumer
@@ -17,8 +23,8 @@ const ConsumerBetaFeaturesSection = () => {
     const { t } = useTranslation();
     const { hasTier, upgradeUrl, deploymentMode, loading: licenseLoading } = useLicenseContext();
     const [loading, setLoading] = useState(true);
-    const [allowed, setAllowed] = useState([]);
-    const [registry, setRegistry] = useState([]);
+    const [allowed, setAllowed] = useState<string[]>([]);
+    const [registry, setRegistry] = useState<BetaFeature[]>([]);
 
     useEffect(() => {
         (async () => {

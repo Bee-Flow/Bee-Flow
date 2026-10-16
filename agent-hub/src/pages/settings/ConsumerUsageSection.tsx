@@ -1,23 +1,32 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { Activity, Zap, DollarSign, BarChart3, Bot, MessageSquare, BookOpen, Search, Code, LayoutTemplate } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
+import type { UsageModelRow, UsageSourceRow, UsageSummary, UsageTimelineRow } from './usage/usage.types';
 
-const fNum = (n) => {
+const fNum = (n?: number | null): string => {
     if (n == null) return '0';
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
     if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
     return n.toLocaleString();
 };
-const fCur = (c) => `$${(c || 0).toFixed(2)}`;
+const fCur = (c?: number | null): string => `$${(c || 0).toFixed(2)}`;
 
-const shortModel = (m) => {
+const shortModel = (m?: string | null): string => {
     if (!m) return 'Unknown';
     return m.replace(/^(openai\/|anthropic\/|google\/|azure\/|mistral\/)/, '')
             .replace(/-\d{4}-\d{2}-\d{2}$/, '');
 };
 
-const SOURCE_MAP = {
+interface SourceMeta {
+    label: string;
+    icon: LucideIcon;
+    color: string;
+}
+
+const SOURCE_MAP: Record<string, SourceMeta> = {
     agent: { label: 'Agent Chat', icon: Bot, color: '#0ea5e9' },
     chat: { label: 'Agent Chat', icon: Bot, color: '#0ea5e9' },
     direct: { label: 'Direct Chat', icon: MessageSquare, color: '#10b981' },
@@ -27,16 +36,29 @@ const SOURCE_MAP = {
     designer: { label: 'App Designer', icon: Code, color: '#0ea5e9' },
     agent_stream: { label: 'Agent Stream', icon: Bot, color: '#0ea5e9' },
 };
-const sourceFor = (k) => SOURCE_MAP[k] || { label: k || 'Other', icon: Bot, color: '#94a3b8' };
+const sourceFor = (k: string): SourceMeta => SOURCE_MAP[k] || { label: k || 'Other', icon: Bot, color: '#94a3b8' };
 
-const Card = ({ children, style }) => (
+interface CardProps {
+    children?: ReactNode;
+    style?: CSSProperties;
+}
+
+const Card = ({ children, style }: CardProps) => (
     <div style={{
         background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)',
         borderRadius: 12, overflow: 'hidden', ...style,
     }}>{children}</div>
 );
 
-const StatCard = ({ icon: Icon, label, value, sub, color }) => (
+interface StatCardProps {
+    icon: LucideIcon;
+    label: ReactNode;
+    value: ReactNode;
+    sub?: ReactNode;
+    color: string;
+}
+
+const StatCard = ({ icon: Icon, label, value, sub, color }: StatCardProps) => (
     <Card style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
             <div style={{
@@ -54,7 +76,18 @@ const StatCard = ({ icon: Icon, label, value, sub, color }) => (
 
 // Tiny inline SVG line — no chart dep. Renders a single sparkline over the
 // daily cost timeline so the user can see spend trend at a glance.
-const Sparkline = ({ data, color = '#0ea5e9', height = 60 }) => {
+interface SparklinePoint {
+    value: number;
+    label: string;
+}
+
+interface SparklineProps {
+    data: SparklinePoint[];
+    color?: string;
+    height?: number;
+}
+
+const Sparkline = ({ data, color = '#0ea5e9', height = 60 }: SparklineProps) => {
     const { t } = useTranslation();
     if (!Array.isArray(data) || data.length < 2) {
         return <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--text-muted)' }}>{t('settings.consumer_usage.not_enough_data', 'Not enough data yet')}</div>;
@@ -73,14 +106,33 @@ const Sparkline = ({ data, color = '#0ea5e9', height = 60 }) => {
     );
 };
 
+// These endpoints answer the same rows as the org dashboard, with call counts
+// and costs under their own names.
+interface ConsumerTimelineRow extends UsageTimelineRow {
+    cost?: number;
+    value?: number;
+    date?: string;
+    day?: string;
+}
+
+interface ConsumerModelRow extends UsageModelRow {
+    total_calls?: number;
+    total_cost?: number;
+}
+
+interface ConsumerSourceRow extends UsageSourceRow {
+    total_calls?: number;
+    total_cost?: number;
+}
+
 const ConsumerUsageSection = () => {
     const { t } = useTranslation();
     const [days, setDays] = useState(30);
     const [loading, setLoading] = useState(true);
-    const [summary, setSummary] = useState(null);
-    const [costTimeline, setCostTimeline] = useState([]);
-    const [byModel, setByModel] = useState([]);
-    const [bySource, setBySource] = useState([]);
+    const [summary, setSummary] = useState<UsageSummary | null>(null);
+    const [costTimeline, setCostTimeline] = useState<ConsumerTimelineRow[]>([]);
+    const [byModel, setByModel] = useState<ConsumerModelRow[]>([]);
+    const [bySource, setBySource] = useState<ConsumerSourceRow[]>([]);
 
     useEffect(() => {
         let cancelled = false;

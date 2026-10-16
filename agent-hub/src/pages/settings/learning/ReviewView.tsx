@@ -4,6 +4,21 @@ import { Card, Eyebrow, EmojiTile, PrimaryButton, SecondaryButton, shortDate, tO
 import { getLesson } from '../../../components/onboarding/lessons';
 import { deriveMistakes, deriveStaleReviewLessons, REVIEW_SESSION_SIZE, REVIEW_STALE_DAYS } from '../../../components/onboarding/reviewEngine';
 import { STEP_TYPES } from '../../../components/onboarding/stepTypes';
+import type { ProgressMap } from '../../../components/onboarding/lessons.types';
+import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { ReviewDue } from './learning.types';
+
+interface ReviewViewProps {
+    t: TranslateFn;
+    locale: string;
+    progressMap: ProgressMap;
+    reviewDue?: ReviewDue | null;
+    reviewBuilding?: boolean;
+    practiceableIds: Set<string>;
+    onStartReview: () => void;
+    onPractice: (lessonId: string) => void;
+    onOpenLesson: (lessonId: string) => void;
+}
 
 /**
  * ReviewView — the "Herhalen" tab. The handoff gives it a tab and a rail row
@@ -13,7 +28,7 @@ import { STEP_TYPES } from '../../../components/onboarding/stepTypes';
  * shape as the course screen. Nothing here is a nag: with nothing due the
  * page says so and stops.
  */
-export default function ReviewView({ t, locale, progressMap, reviewDue, reviewBuilding, practiceableIds, onStartReview, onPractice, onOpenLesson }) {
+export default function ReviewView({ t, locale, progressMap, reviewDue, reviewBuilding, practiceableIds, onStartReview, onPractice, onOpenLesson }: ReviewViewProps) {
     const mistakes = useMemo(() => deriveMistakes(progressMap, getLesson), [progressMap]);
     const stale = useMemo(() => deriveStaleReviewLessons(progressMap, getLesson), [progressMap]);
 

@@ -4,11 +4,18 @@
 
 import { Bot, MessageSquare, BookOpen, Search, LayoutTemplate, Code, Globe, Cpu } from 'lucide-react';
 import React from 'react';
+import type { ComponentType, CSSProperties } from 'react';
 import { shortModel } from './format';
 import { getIntegrationIcon, hasIntegrationIcon } from '../../../config/integrationIcons';
 
 // ── Source map ───────────────────────────────────────────────────────────────
-export const SOURCE_MAP = {
+interface SourceDetails {
+    label: string;
+    icon: ComponentType<{ style?: CSSProperties }>;
+    color: string;
+}
+
+export const SOURCE_MAP: Record<string, SourceDetails> = {
     agent: { label: 'Agent Chat', icon: Bot, color: '#0ea5e9' },
     chat: { label: 'Agent Chat', icon: Bot, color: '#0ea5e9' },
     direct: { label: 'Direct Chat', icon: MessageSquare, color: '#10b981' },
@@ -18,14 +25,27 @@ export const SOURCE_MAP = {
     designer: { label: 'App Designer', icon: Code, color: '#0ea5e9' },
     agent_stream: { label: 'Agent Stream', icon: Bot, color: '#0ea5e9' },
 };
-export const getSourceDetails = (source) => SOURCE_MAP[source] || { label: source || 'Other', icon: Bot, color: '#94a3b8' };
+export const getSourceDetails = (source: string): SourceDetails => SOURCE_MAP[source] || { label: source || 'Other', icon: Bot, color: '#94a3b8' };
 
 // ── Avatar ───────────────────────────────────────────────────────────────────
-export const Avatar = ({ user, name, color, size = 26 }) => {
+interface AvatarUser {
+    display_name?: string;
+    avatarType?: string;
+    avatar?: string;
+}
+
+interface AvatarProps {
+    user?: AvatarUser | null;
+    name?: string;
+    color?: string;
+    size?: number;
+}
+
+export const Avatar = ({ user, name, color, size = 26 }: AvatarProps) => {
     const displayName = user?.display_name || name || '?';
     const avatarType = user?.avatarType;
     const avatar = user?.avatar;
-    const base = {
+    const base: CSSProperties = {
         width: size, height: size, borderRadius: 99, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
     };
@@ -47,7 +67,13 @@ export const Avatar = ({ user, name, color, size = 26 }) => {
 };
 
 // ── IconBadge ────────────────────────────────────────────────────────────────
-export const IconBadge = ({ icon: Icon, color, size = 26 }) => (
+interface IconBadgeProps {
+    icon: ComponentType<{ style?: CSSProperties }>;
+    color: string;
+    size?: number;
+}
+
+export const IconBadge = ({ icon: Icon, color, size = 26 }: IconBadgeProps) => (
     <div style={{ width: size, height: size, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: `${color}12` }}>
         <Icon style={{ width: size * 0.5, height: size * 0.5, color }} />
     </div>
@@ -55,7 +81,13 @@ export const IconBadge = ({ icon: Icon, color, size = 26 }) => (
 
 // ── IntegrationLogo ──────────────────────────────────────────────────────────
 // Real brand logo for an integration; falls back to a colored IconBadge.
-export const IntegrationLogo = ({ integrationType, size = 26, fallbackColor }) => {
+interface IntegrationLogoProps {
+    integrationType?: string | null;
+    size?: number;
+    fallbackColor?: string;
+}
+
+export const IntegrationLogo = ({ integrationType, size = 26, fallbackColor }: IntegrationLogoProps) => {
     if (!hasIntegrationIcon(integrationType)) {
         return <IconBadge icon={Globe} color={fallbackColor || '#94a3b8'} size={size} />;
     }
@@ -73,7 +105,12 @@ export const IntegrationLogo = ({ integrationType, size = 26, fallbackColor }) =
 // Selected model + (optional) configured tier — the non-sensitive signal shown
 // in place of token counts in cloud/subscription mode. Mirrors the badge the
 // Feedback panel already renders per item.
-export const ModelTierBadge = ({ model, tier }) => (
+interface ModelTierBadgeProps {
+    model?: string;
+    tier?: string | null;
+}
+
+export const ModelTierBadge = ({ model, tier }: ModelTierBadgeProps) => (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }} title={model}>
             <Cpu style={{ width: 9, height: 9 }} /> {shortModel(model)}
