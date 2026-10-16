@@ -32,6 +32,8 @@ mock.method(cmsStore, 'getPage', async (siteId, id) => (id === state.page?.id ? 
 mock.method(cmsStore, 'getPageLocaleOverride', async () => null);
 mock.method(cmsStore, 'setPageLocaleOverride', async (...args) => { calls.push(['setPageLocaleOverride', ...args]); });
 mock.method(cmsStore, 'setPage', async (siteId, page) => { calls.push(['setPage', siteId, page]); return { page, dropped: 2 }; });
+mock.method(cmsStore, 'removePage', async (siteId, id) => (id === 'pg1'
+    ? { removed: { id, slug: 'x' }, newHomepage: null, neutralisedLinks: 3 } : null));
 mock.method(cmsStore, 'reorderPages', async (...args) => { calls.push(['reorderPages', ...args]); });
 mock.method(cmsStore, 'getTemplates', async () => [
     { id: 't1', name: 'Hero', createdAt: '2026-01-01', blocks: [{}, {}] },
@@ -118,4 +120,12 @@ test('postPageAiTranslate translates with the language name and persists the ove
     assert.strictEqual(args.languageName, 'Deutsch');
     assert.strictEqual(args.locale, 'de');
     assert.deepStrictEqual(calls.at(-1), ['setPageLocaleOverride', 'pj_aaaa1111', 'pg1', 'de', { blocks: {} }]);
+});
+
+test('deletePageHandler answers 404 for an unknown page and reports the outcome for a real one', async () => {
+    const missing = await call(handlers.deletePageHandler, { params: { id: 'pg_nope' } });
+    assert.strictEqual(missing.statusCode, 404);
+    const ok = await call(handlers.deletePageHandler, { params: { id: 'pg1' } });
+    assert.strictEqual(ok.statusCode, 200);
+    assert.strictEqual(ok.body.neutralisedLinks, 3);
 });

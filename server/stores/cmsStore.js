@@ -49,8 +49,9 @@ const {
 const {
     listProjects, createProject, getProject, setProject,
     deleteProject, renameProject, duplicateProject, sanitizePageIndexEntry,
-    createPage, removePage, updatePageMeta, setHomepage, reorderPages,
+    createPage, updatePageMeta, setHomepage, reorderPages,
 } = require('./cms/projects');
+const { removePage } = require('./cms/pageRemoval');
 const {
     getTemplates, saveTemplate, deleteTemplate, applyTemplate,
 } = require('./cms/templates');

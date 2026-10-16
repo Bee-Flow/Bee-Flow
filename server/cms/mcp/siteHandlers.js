@@ -54,14 +54,24 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
         };
     }
 
-    async function deletePage(args) {
+    async function deletePage(args, ctx) {
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
         const pageId = String(args.pageId || '');
         const entry = site.project.pages.find((p) => p.id === pageId);
         if (!entry) return err(`Page "${pageId.slice(0, 60)}" is not in this site.`, { _fixHint: `Known page ids: ${site.project.pages.map((p) => `${p.id} (${p.slug})`).join(', ') || 'none'}.` });
-        await cmsStore.removePage(site.siteId, pageId);
-        return { result: { siteId: site.siteId, deleted: { id: pageId, slug: entry.slug } } };
+        const outcome = await cmsStore.removePage(site.siteId, pageId);
+        if (!outcome) return err(`Page "${pageId.slice(0, 60)}" is not in this site.`);
+        const validation = validationOf(await loadDraft(site.siteId, ctx));
+        return {
+            result: {
+                siteId: site.siteId,
+                deleted: { id: pageId, slug: entry.slug },
+                ...(outcome.newHomepage ? { newHomepage: outcome.newHomepage } : {}),
+                ...(outcome.neutralisedLinks ? { neutralisedLinks: outcome.neutralisedLinks } : {}),
+                ...(validation ? { validation } : {}),
+            },
+        };
     }
 
     async function getSiteSettings(args) {

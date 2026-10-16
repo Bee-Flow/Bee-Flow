@@ -61,6 +61,7 @@ recordDb((sql, params = []) => {
 
 const configStore = require('../configStore');
 const projects = require('./projects');
+const { removePage } = require('./pageRemoval');
 const { projectKey, pageKey } = require('./shared');
 
 // Site ids are fresh per test and every write busts the key it wrote, so this
@@ -110,7 +111,7 @@ test('updatePageMeta, setHomepage, reorderPages and removePage do not resurrect 
 
     await projects.getProject(siteId);
     otherReplicaAddsPage(siteId, { id: 'pg_eeeeeeeeeeeeeeee', slug: 'faq', title: 'FAQ' });
-    await projects.removePage(siteId, homeId);
+    await removePage(siteId, homeId);
     assert.deepStrictEqual(slugs(siteId), ['news', 'pricing', 'jobs', 'team', 'faq']);
 
     const site = table.get(projectKey(siteId));

@@ -27,4 +27,32 @@ function annotatePageLinks(node, slugByPageId) {
     return /** @type {any} */ (out);
 }
 
-module.exports = { annotatePageLinks };
+/**
+ * Copy of `node` where every link to `pageId` is replaced by an inert anchor
+ * link, so the parent keeps its shape (a card stays a card). `stats.count`
+ * counts the links replaced.
+ *
+ * @template T
+ * @param {T} node
+ * @param {string} pageId
+ * @param {{ count: number }} stats
+ * @returns {T}
+ */
+function neutralisePageLinks(node, pageId, stats) {
+    if (Array.isArray(node)) {
+        return /** @type {any} */ (node.map(n => neutralisePageLinks(n, pageId, stats)));
+    }
+    if (!isPlainObject(node)) return node;
+    /** @type {Record<string, any>} */
+    const rec = node;
+    if (rec.kind === 'page' && rec.pageId === pageId) {
+        stats.count++;
+        return /** @type {any} */ ({ kind: 'anchor', anchor: '' });
+    }
+    /** @type {Record<string, any>} */
+    const out = {};
+    for (const [k, v] of Object.entries(node)) out[k] = neutralisePageLinks(v, pageId, stats);
+    return /** @type {any} */ (out);
+}
+
+module.exports = { annotatePageLinks, neutralisePageLinks };

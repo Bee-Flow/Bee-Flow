@@ -79,8 +79,9 @@ async function putPageHomepage(req, res) {
 
 async function deletePageHandler(req, res) {
     try {
-        await cmsStore.removePage(req.siteId, req.params.id);
-        res.json({ success: true });
+        const outcome = await cmsStore.removePage(req.siteId, req.params.id);
+        if (!outcome) return res.status(404).json({ error: 'Page not found' });
+        res.json({ success: true, ...outcome });
     } catch (err) { res.status(400).json({ error: err.message }); }
 }
 

@@ -13,7 +13,7 @@ const {
     sanitizeDesign, sanitizeAnalytics, sanitizeBlogSettings,
     projectKey, publishedKey,
 } = require('./shared');
-const { emptyPage, getPage, setPage, deletePage } = require('./pages');
+const { emptyPage, getPage, setPage } = require('./pages');
 const { applyTemplate } = require('./templates');
 const {
     collectLocaleOverrides, setSiteLocaleOverride, setPageLocaleOverride,
@@ -639,48 +639,6 @@ async function reorderPages(siteId, orderedIds) {
     });
 }
 
-// Recursively walk a site-chrome subtree (header/footer) and strip any
-// link references to the given pageId. The renderer's resolveLink already
-// degrades broken page links gracefully ({ href: '#', broken: true }), but
-// stored references also show up as ghost nav items in the editor, so we
-// clean them at delete time.
-//
-// Two patterns are handled:
-//   1. Array items keyed by `link` (nav items, ctas, footer column links):
-//      drop the whole item when its link points at the deleted page.
-//   2. Direct link objects on a parent property (e.g. logo.link): replace
-//      with an inert anchor link so the parent's shape stays valid.
-function stripPageRefsToDeleted(node, deletedPageId) {
-    if (Array.isArray(node)) {
-        return node
-            .filter(item => !(isPlainObject(item)
-                && isPlainObject(item.link)
-                && item.link.kind === 'page'
-                && item.link.pageId === deletedPageId))
-            .map(item => stripPageRefsToDeleted(item, deletedPageId));
-    }
-    if (!isPlainObject(node)) return node;
-    const out = {};
-    for (const [k, v] of Object.entries(node)) {
-        if (isPlainObject(v) && v.kind === 'page' && v.pageId === deletedPageId) {
-            out[k] = { kind: 'anchor', anchor: '' };
-            continue;
-        }
-        out[k] = stripPageRefsToDeleted(v, deletedPageId);
-    }
-    return out;
-}
-
-async function removePage(siteId, pageId) {
-    await mutateProject(siteId, (site) => {
-        site.pages = site.pages.filter(p => p.id !== pageId);
-        if (site.homepageId === pageId) site.homepageId = site.pages[0]?.id || null;
-        if (isPlainObject(site.header)) site.header = stripPageRefsToDeleted(site.header, pageId);
-        if (isPlainObject(site.footer)) site.footer = stripPageRefsToDeleted(site.footer, pageId);
-    });
-    await deletePage(siteId, pageId);
-}
-
 module.exports = {
     // projects index
     getProjectsIndex, setProjectsIndex, mutateProjectsIndex, listProjects,
@@ -688,5 +646,5 @@ module.exports = {
     emptySite, createProject, getProject, setProject, mutateProject,
     deleteProject, renameProject, duplicateProject, sanitizePageIndexEntry,
     // page-list operations
-    createPage, ensureUniqueSlug, updatePageMeta, setHomepage, reorderPages, removePage,
+    createPage, ensureUniqueSlug, updatePageMeta, setHomepage, reorderPages,
 };

@@ -66,7 +66,7 @@ function makeHarness(over = {}) {
         isValidLocale: (c) => /^[a-z]{2,3}(-[a-z0-9]{2,8})*$/.test(c),
         setProject: async (id, site) => { calls.setProject.push([id, site]); projects[id] = site; return site; },
         publishSite: async (id) => { calls.publish.push(id); return { publishedAt: '2026-10-10T10:00:00.000Z' }; },
-        removePage: async (id, pageId) => { calls.removed.push([id, pageId]); },
+        removePage: async (id, pageId) => { calls.removed.push([id, pageId]); return { removed: { id: pageId, slug: 'x' }, newHomepage: { id: 'pg_1', slug: 'home' }, neutralisedLinks: 2 }; },
         duplicateProject: async (id) => ({ id: 'pj_cccc3333', copiedFrom: id }),
         getTemplates: async () => [{ id: 'tpl_1', name: 'Landing', blocks: [{}, {}] }],
         setSiteLocaleOverride: async (...a) => { calls.live.push(['site-override', ...a]); },
@@ -437,8 +437,10 @@ test('list sites flags the live one; duplicate; templates; delete page', async (
     assert.equal(sites.sites.find((s) => s.id === OTHER).live, false);
     assert.equal(JSON.parse(textOf(await rpcCall(mcp, ctx, 'cms_duplicate_site'))).id, 'pj_cccc3333');
     assert.equal(JSON.parse(textOf(await rpcCall(mcp, ctx, 'cms_list_templates'))).templates[0].blockCount, 2);
-    await rpcCall(mcp, ctx, 'cms_delete_page', { pageId: 'pg_2' });
+    const deleted = JSON.parse(textOf(await rpcCall(mcp, ctx, 'cms_delete_page', { pageId: 'pg_2' })));
     assert.deepEqual(calls.removed, [[SITE, 'pg_2']]);
+    assert.deepEqual(deleted.newHomepage, { id: 'pg_1', slug: 'home' });
+    assert.equal(deleted.neutralisedLinks, 2);
     assert.equal((await rpcCall(mcp, ctx, 'cms_delete_page', { pageId: 'pg_nope' })).result.isError, true);
 });
 
