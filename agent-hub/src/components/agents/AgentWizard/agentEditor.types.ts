@@ -31,6 +31,9 @@ export interface ChatMessage {
     undoState?: string;
 }
 
+/** An automation as the skill picker lists it; the server row may lack an id or a title. */
+export interface AutomationRow { id?: string; title?: string; [key: string]: unknown }
+
 /** What the editor's pickers read, fetched once for the whole studio. */
 export interface AgentEditorBootstrap {
     allSkills: Skill[] | null;
@@ -39,7 +42,7 @@ export interface AgentEditorBootstrap {
     categoriesState: ReadState;
     orgGroups: OrgGroup[];
     tiers: ModelTierMap;
-    automations: Array<Record<string, unknown>>;
+    automations: AutomationRow[];
     automationsState: ReadState;
     loaded: boolean;
     refreshSkills: () => Promise<void>;
