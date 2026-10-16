@@ -31,7 +31,9 @@ function xlsxSheetXml(matrix, formulas, hasDrawing) {
             if (isNumericCell(val)) return `<c r="${ref}"><v>${val}</v></c>`;
             // Only for a model-built workbook (create_spreadsheet): a model
             // often sends amounts as strings, and =SUM() skips text cells.
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- NUMERIC_TEXT is anchored with bounded quantifiers: no backtracking
             if (formulas && ri > 0 && typeof val === 'string' && NUMERIC_TEXT.test(val)) return `<c r="${ref}"><v>${Number(val)}</v></c>`;
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored, a single unbounded run: linear
             if (formulas && typeof val === 'string' && /^=.+/.test(val)) {
                 return `<c r="${ref}"><f>${xmlEscape(val.slice(1))}</f></c>`;
             }

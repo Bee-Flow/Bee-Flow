@@ -60,6 +60,7 @@ const resolveWeb = (file: string) => (file.startsWith('/') ? file : `${AGENT_HUB
 
 /** A `.ts`/`.tsx` web file loses its type annotations first; a `.js` one is used as it is. */
 function stripTypes(file: string, src: string): string {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored, bounded: linear; a test helper run over repository file names
     if (!/\.tsx?$/.test(file)) return src;
     return ts.transpileModule(src, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.Preserve } }).outputText;
 }

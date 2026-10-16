@@ -98,6 +98,7 @@ export default function useRunStream({ enabled = true, automationId = null, onEv
         // ── SSE stream ──────────────────────────────────────────────────
         const scheduleReconnect = () => {
             if (stopped) return;
+            // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- reconnect backoff jitter, not a secret
             const jittered = Math.min(backoff, 30000) * (0.7 + Math.random() * 0.6);
             backoff = Math.min(backoff * 2, 30000);
             timer = setTimeout(() => { if (!stopped) startStream(); }, jittered);

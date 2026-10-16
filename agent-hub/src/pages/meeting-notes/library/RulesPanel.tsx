@@ -92,7 +92,7 @@ function hasRetryAfter(v: unknown): v is { retryAfter?: unknown } {
 }
 
 export function licenceMessage(err: unknown, t: TranslateFn): string | null {
-    const message = String(errorMessage(err) || err || '').trim();
+    const message = String(errorMessage(err) || err || '').trim(); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- word-bounded literal alternatives: linear
     const locked = LICENCE_TOKENS.has(message)
         || errorCode(err) === 'feature_locked' || errorCode(err) === 'tier_required'
         || errorStatus(err) === 402 || errorStatus(err) === 403

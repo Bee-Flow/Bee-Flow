@@ -57,6 +57,7 @@ async function _handleServiceEmailCallback(req, res) {
         });
         delete req.session.serviceEmailConnect;
         await new Promise((r) => req.session.save(() => r()));
+        // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write -- oauthClosePage.js escapes every value it writes (HTML text, script-encoded payload)
         res.send(_serviceEmailClosePage(true, address));
     } catch (err) {
         log.error('[ServiceEmail] oauth/callback error:', err.message);

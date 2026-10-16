@@ -40,6 +40,7 @@ function makeRoundCallback(w, round) {
             // adapters (incl. the Claude one which converts internally)
             // get a consistent assistant tool_calls history.
             round.toolCalls.push({
+                // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- fallback tool-call id that pairs a call with its result in the history, not a secret or a token
                 id: data.id || `call_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
                 type: 'function',
                 function: {

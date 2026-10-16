@@ -114,6 +114,7 @@ export default function EditableText({
         if (next) e.currentTarget.removeAttribute('data-cms-empty');
         else      e.currentTarget.setAttribute('data-cms-empty', 'true');
         if (next !== prev) {
+            // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- carries only the CMS field text and block id; the only receiver, the CMS panel, accepts it from its own same-origin iframe only
             window.parent?.postMessage(
                 { type: 'cms-edit', blockId, path, value: next },
                 '*'
@@ -145,6 +146,7 @@ export default function EditableText({
         // cms-edit will write to). Chrome editables (blockId null) don't map
         // to a page block, so they leave block selection untouched.
         if (blockId) {
+            // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- carries only a block id; the only receiver, the CMS panel, accepts it from its own same-origin iframe only
             window.parent?.postMessage(
                 { type: 'cms-select', blockId },
                 '*'

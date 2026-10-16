@@ -48,6 +48,7 @@ export function useLoginActions(deps: LoginActionsDeps) {
 
         try {
             if (setupMode) {
+                // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack -- compares the two password fields the person just typed (a typo check), not against a stored secret
                 if (password !== confirmPassword) {
                     setError(t('login.passwords_no_match'));
                     setIsLoading(false);

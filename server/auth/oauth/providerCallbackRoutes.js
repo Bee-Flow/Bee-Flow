@@ -258,6 +258,7 @@ router.get('/callback/:provider', async (req, res) => {
     delete req.session.oauthCodeVerifier;
 
     try {
+        // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- exchange.error is one of providerTokenExchange's fixed codes and returnTo comes from the session (see above)
         const exchange = await exchangeCodeForUser({
             provider, config, code, redirectUri: REDIRECT_URI, codeVerifier, nonce, session: req.session,
         });

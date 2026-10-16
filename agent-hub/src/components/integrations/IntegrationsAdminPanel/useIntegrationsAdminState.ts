@@ -104,6 +104,7 @@ export default function useIntegrationsAdminState() {
 
     const load = async () => {
         setLoading(true);
+        // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
         try {
             const [defRes, orgsRes] = await Promise.all([
                 authFetch(`${API_BASE}/auth/default-integrations`),
@@ -119,6 +120,7 @@ export default function useIntegrationsAdminState() {
             }
         } catch (e) { console.error(e); }
         // Load config status
+        // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
         try {
             const configRes = await authFetch(`${API_BASE}/ai/config`);
             if (configRes.ok) {
@@ -159,6 +161,7 @@ export default function useIntegrationsAdminState() {
                 if (configData.serviceEmailDisplayName) setServiceEmailDisplayName(configData.serviceEmailDisplayName);
             }
         } catch (e) { console.error(e); }
+        // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
         try {
             const searchDefRes = await authFetch(`${API_BASE}/ai/agent-search/defaults`);
             if (searchDefRes.ok) {
@@ -167,6 +170,7 @@ export default function useIntegrationsAdminState() {
             }
         } catch (e) { console.error(e); }
         // Load MCP servers
+        // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
         try {
             const mcpRes = await authFetch(`${API_BASE}/ai/mcp-servers`);
             if (mcpRes.ok) {

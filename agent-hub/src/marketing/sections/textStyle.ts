@@ -30,6 +30,7 @@ export function inlineTextStyle(style: TextStyleInput | null | undefined, align?
         if (typeof style.fontFamily === 'string' && style.fontFamily.trim()) {
             // Quote names with spaces; always include a system fallback so
             // the page renders before any Google Font has finished loading.
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- single-character patterns: linear
             const name = style.fontFamily.trim().replace(/"/g, '');
             const quoted = /\s/.test(name) ? `"${name}"` : name;
             out.fontFamily = `${quoted}, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;

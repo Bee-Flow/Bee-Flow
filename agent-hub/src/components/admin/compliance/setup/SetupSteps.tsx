@@ -104,6 +104,7 @@ export function applyAutoDetect(detected: SetupSettings | null | undefined, stor
     }
     // DPO is never auto-detected, but "from Organisation details" style hints
     // may arrive as dpo_* on the detect payload; only fill when nothing stored.
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a single literal character: linear
     if (!stored?.dpo_email && detected.dpo_email && /@/.test(detected.dpo_email)) {
         patch.dpo_email = detected.dpo_email; hit.push('dpo_email');
         if (!stored?.dpo_name && detected.dpo_name) { patch.dpo_name = detected.dpo_name; hit.push('dpo_name'); }

@@ -40,6 +40,7 @@ function refuseSecrets(ctx, resolvedValues) {
     if (!Array.isArray(secretValues) || !secretValues.length) return;
     for (const v of Object.values(resolvedValues)) {
         if (typeof v === 'string' && secretValues.some(sv => sv && v.includes(sv))) {
+            // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an error message ABOUT credentials, not a credential
             throw fail(
                 'That would write a credential into a datatable row. Use the secret where it is needed instead of storing it.',
                 'datatable_secret_refused',

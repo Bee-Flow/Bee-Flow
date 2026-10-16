@@ -72,7 +72,9 @@ export interface SyncProposal {
 }
 
 /** `tbl_`/`fld_` ids, mirroring the server's id shape. */
+// nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a local schema id for a new table, not a secret or a token
 function tableId() { return `tbl_${Math.random().toString(36).slice(2, 8)}`; }
+// nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a local schema id for a new field, not a secret or a token
 function fieldId() { return `fld_${Math.random().toString(36).slice(2, 8)}`; }
 
 interface TableTemplate {

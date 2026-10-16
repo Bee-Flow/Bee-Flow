@@ -56,6 +56,7 @@ async function downloadExamplePage() {
     const { exportPage } = await import('./pageIO');
     const defaults = BLOCK_DEFAULTS as Record<string, unknown>;
     const mk = (type: string) => ({
+        // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a block id in a downloadable example page, not a secret or a token
         id: `blk_${Math.random().toString(36).slice(2, 10)}`,
         type, enabled: true,
         content: JSON.parse(JSON.stringify(defaults[type] || {})),

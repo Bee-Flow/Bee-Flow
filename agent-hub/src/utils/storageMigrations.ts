@@ -57,6 +57,7 @@ import { scopedKey } from './scopedStorage';
 export const STORAGE_SCHEMA_VERSION = 1;
 export const DEVICE_SCHEMA_KEY = 'beeflow:storageSchema';
 // Stored under the user's scoped namespace: `beeflow:<userId>:storageSchema`.
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- a storage key name, not a username
 const USER_SCHEMA_KEY = 'storageSchema';
 
 // Cache-key prefixes shared with useTranslation / useIconPack so the sweep
