@@ -127,3 +127,13 @@ test('a capped rowCount says it was sampled', async () => {
     const few = await run(appWith({ kind: 'records', tableId: 'tbl_task01' }), model(), deps({ dbQuery: async () => ({ rows: rows.slice(0, 2) }) }));
     assert.strictEqual(few.bindings[0].sampled, undefined);
 });
+
+test('an aggregate returning exactly the sample size is not called sampled; one more is', async () => {
+    const src = { kind: 'aggregate', tableId: 'tbl_task01', aggregates: [{ fn: 'count', as: 'n' }], groupBy: [{ field: 'status' }] };
+    const rows = [{ n: 1 }, { n: 2 }, { n: 3 }, { n: 4 }];
+    const exact = await run(appWith(src), model(), deps({ dbQuery: async () => ({ rows: rows.slice(0, DRY_RUN_LIMIT) }) }));
+    assert.strictEqual(exact.bindings[0].rowCount, DRY_RUN_LIMIT);
+    assert.strictEqual(exact.bindings[0].sampled, undefined);
+    const more = await run(appWith(src), model(), deps({ dbQuery: async () => ({ rows: rows.slice(0, DRY_RUN_LIMIT + 1) }) }));
+    assert.strictEqual(more.bindings[0].sampled, true);
+});

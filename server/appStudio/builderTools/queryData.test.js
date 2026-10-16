@@ -133,6 +133,16 @@ test('a database error is generic to the client; a compile error keeps the filte
     });
 });
 
+test('rows are an allow-list of the declared fields, and the read runs in the app owner\'s scope', async () => {
+    const calls = [];
+    const extra = { ...row(1), secret_col: 'x', created_by: 'someone-else' };
+    await withPatches(dbReturning([extra], calls), async () => {
+        const r = await applyQueryData({ ...wrap(), userId: 'editor-2' }, { tableId: 'tbl_task01' });
+        assert.deepStrictEqual(Object.keys(r.rows[0]).sort(), ['created_at', 'id', 'status', 'title']);
+        assert.strictEqual(calls[0].owner, USER, 'the app owner, not the editor, scopes the database');
+    });
+});
+
 test('a linked table goes through the shared runner and keeps linked:true', async () => {
     const linkedModel = { ...model, tables: [{ ...model.tables[0], source: { kind: 'datatable', datatableId: 'dt_synthetic1', mode: 'read' } }] };
     const seen = [];

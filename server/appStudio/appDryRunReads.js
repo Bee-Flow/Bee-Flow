@@ -172,7 +172,7 @@ async function runAggregateBinding(binding, table, { roleArg, viewer, scope, app
         groupBy: binding.groupBy,
         aggregates: binding.aggregates,
         sort: binding.sort,
-        limit: DRY_RUN_LIMIT,
+        limit: DRY_RUN_LIMIT + 1, // one more than shown, so exactly-3 is not "sampled"
     };
     try {
         if (isDatatableBacked(table)) {
@@ -180,13 +180,13 @@ async function runAggregateBinding(binding, table, { roleArg, viewer, scope, app
             const ctx = linkedReadCtx(app, ownerScope, dataModel, roleArg, viewer);
             const out = await deps.readAggregate(ctx, table, descriptor);
             const rows = Array.isArray(out && out.rows) ? out.rows : [];
-            return readSummary(rows, resolved.filters, rows.length >= DRY_RUN_LIMIT);
+            return readSummary(rows, resolved.filters, rows.length > DRY_RUN_LIMIT);
         }
         const accessFilter = rlsGateway.compileAccessFilter(table, roleArg, viewer, 'read');
         const { sql, params } = queryCompiler.compileAggregate(table, descriptor, accessFilter);
         const out = await deps.dbQuery(ownerScope, app.id, sql, params);
         const rows = Array.isArray(out && out.rows) ? out.rows : [];
-        return readSummary(rows, resolved.filters, rows.length >= DRY_RUN_LIMIT);
+        return readSummary(rows, resolved.filters, rows.length > DRY_RUN_LIMIT);
     } catch (e) {
         return bindingFailure(e, binding);
     }

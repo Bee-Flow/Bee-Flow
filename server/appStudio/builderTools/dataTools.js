@@ -22,7 +22,7 @@ const {
     migrationPlan,
 } = require('../dataModel');
 const { adoptCanonical } = require('./shared');
-const { parseQueryArgs, shapeRow, pageDatasetRows, pageMeta, queryFailure, MAX_QUERY_LIMIT } = require('./queryDataArgs');
+const { parseQueryArgs, shapeTableRow, pageDatasetRows, pageMeta, queryFailure, MAX_QUERY_LIMIT } = require('./queryDataArgs');
 const { persistDraft } = require('./persistence');
 const { isDatatableBacked } = require('../datatableSource');
 const { keyFromTitle } = require('../../core/dataEngine/sources/mirror/keys');
@@ -837,14 +837,14 @@ async function applyQueryData(draftWrap, args) {
         const dataReadRunner = require('../dataReadRunner');
         const ctx = {
             app,
-            ownerScope: linked ? app.userId : draftWrap.userId,
+            ownerScope: app.userId,
             viewerId: draftWrap.userId,
             role: 'owner',
             viewer: { id: draftWrap.userId, role: 'owner' },
             model,
         };
         const out = await dataReadRunner.runRecordList(ctx, table, { filters: filter, sort, cursor, limit });
-        const rows = (Array.isArray(out.records) ? out.records : []).map(shapeRow);
+        const rows = (Array.isArray(out.records) ? out.records : []).map((r) => shapeTableRow(r, table));
         return {
             rows,
             rowCount: rows.length,

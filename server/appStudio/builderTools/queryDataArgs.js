@@ -41,7 +41,8 @@ function parseQueryArgs(args) {
     if (a.limit !== undefined && a.limit !== null) {
         const n = Number(a.limit);
         if (!Number.isInteger(n) || n < 1) {
-            return bad('limit must be a whole number of at least 1.', `Rows per call: 1-${MAX_QUERY_LIMIT} (default ${DEFAULT_QUERY_LIMIT}); page on with cursor.`);
+            const hint = `Rows per call: 1-${MAX_QUERY_LIMIT} (default ${DEFAULT_QUERY_LIMIT}); page on with cursor.`;
+            return bad('limit must be a whole number of at least 1.', hint);
         }
         limitClamped = n > MAX_QUERY_LIMIT;
         limit = Math.min(n, MAX_QUERY_LIMIT);
@@ -63,7 +64,9 @@ function parseQueryArgs(args) {
         filter = a.filter;
     }
 
-    if (a.cursor !== undefined && a.cursor !== null && typeof a.cursor !== 'string') return bad('cursor must be the nextCursor string of the previous call.');
+    if (a.cursor !== undefined && a.cursor !== null && typeof a.cursor !== 'string') {
+        return bad('cursor must be the nextCursor string of the previous call.');
+    }
     return { tableId, datasetId, limit, limitClamped, sort, filter, cursor: a.cursor || null };
 }
 
@@ -73,6 +76,18 @@ function shapeRow(row) {
     const out = { ...row };
     for (const k of HIDDEN_COLUMNS) delete out[k];
     return out;
+}
+
+// What a table row may show: the table's declared fields plus these. An
+// allow-list, so a column added to the physical table later does not leak.
+const ROW_SYSTEM_KEYS = ['id', 'created_at', 'updated_at'];
+
+/** A table row reduced to the table's declared field keys and the safe system columns. */
+function shapeTableRow(row, table) {
+    if (!row || typeof row !== 'object') return row;
+    const fields = table && Array.isArray(table.fields) ? table.fields : [];
+    const allowed = new Set([...ROW_SYSTEM_KEYS, ...fields.map((f) => f && f.key).filter(Boolean)]);
+    return Object.fromEntries(Object.entries(row).filter(([k]) => allowed.has(k)));
 }
 
 // A saved dataset is an aggregation result: the page cursor is a plain row offset.
@@ -109,15 +124,20 @@ function pageMeta({ more, nextCursor }, { limit, limitClamped }) {
  */
 function queryFailure(e, { appId, linked = false } = {}) {
     if (e instanceof queryCompiler.CompileError) {
-        return bad(`Query failed: ${e.message}`, `filter is [{field, op, value?}] with ops ${FILTER_OPS.join(', ')}; fields must exist on the table (or be system columns: ${SYSTEM_COLUMNS.join(', ')}).`);
+        const hint = `filter is [{field, op, value?}] with ops ${FILTER_OPS.join(', ')}; `
+            + `fields must exist on the table (or be system columns: ${SYSTEM_COLUMNS.join(', ')}).`;
+        return bad(`Query failed: ${e.message}`, hint);
     }
     if (e instanceof rlsGateway.AccessError || (e && e.safe === true)) {
         return linked
-            ? bad(`The linked Studio table could not be read: ${e.message}`, 'This is an access or availability problem with the Studio table, not your arguments — bind the table anyway; the app reads it live.')
+            ? bad(
+                `The linked Studio table could not be read: ${e.message}`,
+                'This is an access or availability problem with the Studio table, not your arguments; bind the table anyway, the app reads it live.',
+            )
             : { error: `Query failed: ${e.message}` };
     }
     log.warn('app_query_data failed', { appId: appId || null, linked, error: e && e.message ? e.message : String(e) });
     return { error: 'The query could not be run (details are in the server log).' };
 }
 
-module.exports = { parseQueryArgs, shapeRow, pageDatasetRows, pageMeta, queryFailure, MAX_QUERY_LIMIT };
+module.exports = { parseQueryArgs, shapeRow, shapeTableRow, pageDatasetRows, pageMeta, queryFailure, MAX_QUERY_LIMIT };
