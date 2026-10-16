@@ -98,7 +98,7 @@ export interface EditorHeaderProps {
     onUndo?: () => void;
     onRedo?: () => void;
     saveStatus?: string;
-    saveError?: unknown;
+    saveError?: string | null;
     saveNotices?: SavePayload | null;
     onFlush?: () => Promise<FlushResult> | FlushResult;
     conflict?: unknown;
@@ -170,7 +170,7 @@ export default function EditorHeader({
     // path that no longer resolves (the user deleted it since) just loses the
     // affordance.
     const notices = useMemo(
-        () => (toSaveNotices(saveNotices) as Array<{ path?: string }>).map((n) => ({ ...n, target: resolvePathTarget(definition, n.path) })),
+        () => toSaveNotices(saveNotices).map((n) => ({ ...n, target: resolvePathTarget(definition, n.path) })),
         [saveNotices, definition],
     );
     const showNotice = (target: RevealTarget) => {

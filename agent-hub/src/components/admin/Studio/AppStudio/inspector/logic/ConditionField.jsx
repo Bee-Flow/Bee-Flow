@@ -24,6 +24,17 @@ const studioPlaceholders = (t) => ({
     raw: 'form.quantity > 0',
 });
 
+/**
+ * @param {{
+ *   value?: string | null,
+ *   onChange?: (next: string) => void,
+ *   definition?: import('../appDefinition').AppDefinition | null,
+ *   node?: import('../appDefinition').AppNode | null,
+ *   previewSample?: Record<string, unknown> | null,
+ *   disabled?: boolean,
+ * }} props `value` is the raw expression string; every prop may be left out.
+ * @returns {import('react').ReactElement}
+ */
 export default function ConditionField({
     value = '', onChange, definition = null, node = null, previewSample = null, disabled = false,
 }) {

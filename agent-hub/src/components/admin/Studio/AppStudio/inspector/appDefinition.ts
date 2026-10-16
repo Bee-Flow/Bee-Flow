@@ -27,7 +27,8 @@ export interface NodeStyle {
 export interface CommonNodeProps {
     name?: string;
     multiple?: boolean;
-    title?: string;
+    /** Callout, Card, Chart and Modal clear it to null. */
+    title?: string | null;
     label?: string;
     [key: string]: unknown;
 }

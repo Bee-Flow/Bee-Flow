@@ -13,6 +13,7 @@ import useModelTierSelection from '../../../../../hooks/useModelTierSelection';
 import useStickToBottom from '../../../../../hooks/useStickToBottom';
 import useTranslation from '../../../../../hooks/useTranslation';
 import toast from '../../../../shared/Toast';
+import type { BuildPhaseInfo } from '../editor/BuildCueContext';
 import { useEditorChrome } from '../editor/EditorChromeContext';
 import { useAppEditorState } from '../state/appEditorState';
 import { findNode, findScreen } from '../state/definitionOps';
@@ -157,7 +158,7 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
     useEffect(() => { if (running) forceStick(); }, [running, forceStick]);
 
     const showEmptyState = messages.length === 0 && !running && !pendingPlan;
-    const currentPhase = phases.length ? phases[phases.length - 1] as { index?: number; total?: number | null; label?: string | null } : null;
+    const currentPhase = phases.length ? phases[phases.length - 1] as BuildPhaseInfo : null;
     const { waitingForFirstToken } = useBuildCue({ running, messages, turn, engine, toolDraft, todos, currentPhase, reveal, doneInfoRef, definitionRef, chromeRef });
 
     return (
