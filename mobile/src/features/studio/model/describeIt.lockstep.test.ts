@@ -28,7 +28,7 @@ const MOBILE = path.join(REPO, 'mobile');
 const read = (...parts: string[]) => fs.readFileSync(path.join(REPO, ...parts), 'utf8');
 
 const ROUTE = read('server/routes/studio/aiRoute.js');
-const WEB_API = read('agent-hub/src/components/admin/Studio/studioAi/routeApi.js');
+const WEB_API = read('agent-hub/src/components/admin/Studio/studioAi/routeApi.ts');
 const WEB_PANEL = read('agent-hub/src/components/admin/Studio/studioAi/DescribeItPanel.jsx');
 
 /** The text between `start` and the first `end` after it. */
