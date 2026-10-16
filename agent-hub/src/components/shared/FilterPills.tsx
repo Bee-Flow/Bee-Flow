@@ -37,7 +37,8 @@ import { TONES } from './statusTone';
  * not say 0 (an explicit 0 from a count that was made does render).
  */
 
-export const PILL_TONES = Object.freeze(['neutral', 'success', 'warning', 'error', 'muted']);
+export const PILL_TONES = Object.freeze(['neutral', 'success', 'warning', 'error', 'muted'] as const);
+export type PillTone = (typeof PILL_TONES)[number];
 const TONED = new Set(['success', 'warning', 'error']);
 
 const PILL_BASE = 'inline-flex items-center gap-1 rounded-full text-[11px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]';
@@ -46,12 +47,12 @@ const PILL_BASE = 'inline-flex items-center gap-1 rounded-full text-[11px] font-
  * The pill's box: a pressed toned pill has a 1.5px border, and its padding
  * loses the half pixel so the pill keeps its size.
  */
-function pillBox(tone, active) {
+function pillBox(tone: PillTone, active: boolean): string {
     return active && TONED.has(tone) ? 'border-[1.5px] px-[7.5px] py-[1.5px]' : 'border px-2 py-0.5';
 }
 
 /** The four colours of a pill in a given tone/state. Exported for tests and for hosts that draw their own. */
-export function pillStyle(tone = 'neutral', active = false) {
+export function pillStyle(tone: PillTone = 'neutral', active = false) {
     if (tone === 'success' || tone === 'warning' || tone === 'error') {
         const { raw, ink } = TONES[tone];
         return {
@@ -78,6 +79,19 @@ export function pillStyle(tone = 'neutral', active = false) {
     };
 }
 
+export interface FilterPillProps {
+    label?: React.ReactNode;
+    /** undefined/null renders no count; an explicit 0 does render */
+    count?: number | string | null;
+    active?: boolean;
+    onClick?: () => void;
+    tone?: PillTone;
+    checked?: boolean;
+    disabled?: boolean;
+    title?: string;
+    testId?: string;
+}
+
 export function FilterPill({
     label,
     count = undefined,
@@ -88,7 +102,7 @@ export function FilterPill({
     disabled = false,
     title = undefined,
     testId = undefined,
-}) {
+}: FilterPillProps) {
     const t = PILL_TONES.includes(tone) ? tone : 'neutral';
     const s = pillStyle(t, active);
     return (
@@ -118,14 +132,32 @@ export function FilterPill({
  * active option, `onChange(value)` fires on a pill. `role="group"` with the
  * caller's label; each pill carries `aria-pressed`.
  */
-export default function FilterPills({
+export interface FilterPillOption<V> {
+    value: V;
+    label?: React.ReactNode;
+    count?: number | string | null;
+    tone?: PillTone;
+    disabled?: boolean;
+    title?: string;
+}
+
+export interface FilterPillsProps<V> {
+    value?: V;
+    onChange?: (value: V) => void;
+    options?: FilterPillOption<V>[];
+    ariaLabel?: string;
+    className?: string;
+    testId?: string;
+}
+
+export default function FilterPills<V extends string | number>({
     value,
     onChange,
     options = [],
     ariaLabel = undefined,
     className = '',
     testId = undefined,
-}) {
+}: FilterPillsProps<V>) {
     return (
         <div role="group" aria-label={ariaLabel} data-testid={testId} className={`flex flex-wrap items-center gap-1 ${className}`.trim()}>
             {options.map((o) => (

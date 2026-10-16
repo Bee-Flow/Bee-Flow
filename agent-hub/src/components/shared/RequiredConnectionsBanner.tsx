@@ -16,9 +16,20 @@ import useTranslation from '../../hooks/useTranslation';
 
 const BASE = `${API_BASE}/api/integrations/connections`;
 
-const RequiredConnectionsBanner = ({ resourceType, resourceId, providers, purpose = "to use all of this agent's tools" }) => {
+interface RequiredConnectionsBannerProps {
+    resourceType: string;
+    resourceId?: string | null;
+    providers?: (string | null | undefined)[] | null;
+    purpose?: string;
+}
+
+interface RequiredConnection {
+    provider: string;
+}
+
+const RequiredConnectionsBanner = ({ resourceType, resourceId, providers, purpose = "to use all of this agent's tools" }: RequiredConnectionsBannerProps) => {
     const { t } = useTranslation();
-    const [required, setRequired] = useState([]);
+    const [required, setRequired] = useState<RequiredConnection[]>([]);
     const list = (providers || []).filter(Boolean);
 
     useEffect(() => {

@@ -22,7 +22,11 @@ import { ORG_ROLES } from '../../config/orgRoles';
  *
  * Fixing this properly means separating the two columns at the call site first.
  */
-export default function RoleBadge({ role }) {
+interface RoleBadgeProps {
+    role?: string | null;
+}
+
+export default function RoleBadge({ role }: RoleBadgeProps) {
     const orgRole = ORG_ROLES.find((r) => r.id === role);
 
     if (orgRole) {

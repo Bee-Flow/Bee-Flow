@@ -18,7 +18,7 @@ const BASE = `${API_BASE}/api/integrations/connections`;
 
 // Providers that support lending today (API-key / basic named connections).
 const LENDABLE = new Set(['fireflies', 'youtrack', 'gamma', 'signrequest', 'linkedin', 'github']);
-const PROVIDER_NAME = {
+const PROVIDER_NAME: Record<string, string> = {
     fireflies: 'Fireflies.ai', youtrack: 'YouTrack', gamma: 'Gamma',
     signrequest: 'SignRequest', linkedin: 'LinkedIn', github: 'GitHub',
 };
@@ -27,14 +27,39 @@ const selStyle = {
     background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)',
 };
 
-const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }) => {
-    const { t } = useTranslation();
-    const [connsByProvider, setConnsByProvider] = useState({});
-    const [grantByProvider, setGrantByProvider] = useState({}); // provider -> { grantId, connectionId }
-    const [loading, setLoading] = useState(true);
-    const [busy, setBusy] = useState(null);
+interface ConnectionPolicyPickerProps {
+    resourceType: string;
+    resourceId?: string | null;
+    providers?: string[] | null;
+}
 
-    const lendable = (providers || []).filter(p => LENDABLE.has(p));
+interface NamedConnection {
+    id: string;
+    provider: string;
+    label?: string;
+}
+
+interface ConnectionGrant {
+    id: string;
+    provider: string;
+    connection_id: string;
+    revoked_at?: string | null;
+}
+
+/** provider -> the grant that lends one of the owner's connections for this resource */
+interface GrantRef {
+    grantId: string;
+    connectionId: string;
+}
+
+const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }: ConnectionPolicyPickerProps) => {
+    const { t } = useTranslation();
+    const [connsByProvider, setConnsByProvider] = useState<Record<string, NamedConnection[]>>({});
+    const [grantByProvider, setGrantByProvider] = useState<Record<string, GrantRef>>({});
+    const [loading, setLoading] = useState(true);
+    const [busy, setBusy] = useState<string | null>(null);
+
+    const lendable = (providers || []).filter((p) => LENDABLE.has(p));
 
     const load = useCallback(async () => {
         if (!resourceId || lendable.length === 0) { setLoading(false); return; }
@@ -43,12 +68,12 @@ const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }) => {
                 authFetch(BASE),
                 authFetch(`${BASE}/grants?resourceType=${resourceType}&resourceId=${encodeURIComponent(resourceId)}`),
             ]);
-            const c = cRes.ok ? await cRes.json() : { connections: [] };
-            const g = gRes.ok ? await gRes.json() : { grants: [] };
-            const byProv = {};
+            const c: { connections?: NamedConnection[] } = cRes.ok ? await cRes.json() : { connections: [] };
+            const g: { grants?: ConnectionGrant[] } = gRes.ok ? await gRes.json() : { grants: [] };
+            const byProv: Record<string, NamedConnection[]> = {};
             for (const conn of (c.connections || [])) (byProv[conn.provider] ||= []).push(conn);
             setConnsByProvider(byProv);
-            const grantMap = {};
+            const grantMap: Record<string, GrantRef> = {};
             for (const grant of (g.grants || [])) {
                 if (grant.revoked_at) continue;
                 grantMap[grant.provider] = { grantId: grant.id, connectionId: grant.connection_id };
@@ -60,7 +85,7 @@ const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }) => {
 
     useEffect(() => { load(); }, [load]);
 
-    const onChange = async (provider, value) => {
+    const onChange = async (provider: string, value: string) => {
         setBusy(provider);
         try {
             const existing = grantByProvider[provider];
@@ -79,7 +104,7 @@ const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }) => {
     };
 
     // Nothing to lend → render nothing (no clutter).
-    const rows = lendable.filter(p => (connsByProvider[p] || []).length > 0);
+    const rows = lendable.filter((p) => (connsByProvider[p] || []).length > 0);
     if (loading || !resourceId || rows.length === 0) {
         if (!resourceId && lendable.length > 0) {
             return <p className="text-[11px] text-muted mt-2">{t('connections.lending_save_first', 'Save the agent to configure connection lending.')}</p>;
@@ -94,7 +119,7 @@ const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }) => {
                 {t('connections.lending_hint', 'Recipients use their own credentials by default. Lend one of your connections to let them run as you (full delegation).')}
             </p>
             <div className="space-y-2">
-                {rows.map(provider => {
+                {rows.map((provider) => {
                     const conns = connsByProvider[provider] || [];
                     const current = grantByProvider[provider]?.connectionId || '';
                     return (
@@ -103,12 +128,12 @@ const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }) => {
                             <select
                                 value={current}
                                 disabled={busy === provider}
-                                onChange={e => onChange(provider, e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onChange(provider, e.target.value)}
                                 className="px-2.5 py-1.5 rounded-lg border outline-none text-[12px]"
                                 style={selStyle}
                             >
                                 <option value="">{t('connections.lending_byo', 'Bring-your-own (default)')}</option>
-                                {conns.map(c => (
+                                {conns.map((c) => (
                                     <option key={c.id} value={c.id}>Lend: {c.label}</option>
                                 ))}
                             </select>

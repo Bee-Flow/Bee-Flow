@@ -10,7 +10,7 @@ import WebpageUsedByTab from './WebpageUsedByTab';
 
 interface SaveView {
     saveState: string;
-    lastSavedAt: unknown;
+    lastSavedAt: Date | null;
     dirtyFiles: Record<string, boolean>;
     persist: () => unknown;
 }

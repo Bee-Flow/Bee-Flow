@@ -1,17 +1,23 @@
 import React from 'react';
 
+interface ConfigToggleProps {
+    /** Unique id for the checkbox */
+    id?: string;
+    label?: React.ReactNode;
+    /** Optional description text below the label */
+    description?: React.ReactNode;
+    /** Optional emoji icon shown before label */
+    icon?: React.ReactNode;
+    checked?: boolean;
+    /** Called with the new boolean value */
+    onChange: (checked: boolean) => void;
+}
+
 /**
  * Reusable config toggle (checkbox + label + description).
  * Replaces 20+ identical inline checkbox patterns across manager pages and admin panels.
- *
- * @param {string}   id          - Unique id for the checkbox
- * @param {string}   label       - Display label
- * @param {string}   [description] - Optional description text below the label
- * @param {string}   [icon]      - Optional emoji icon shown before label
- * @param {boolean}  checked     - Whether the toggle is checked
- * @param {function} onChange    - Called with the new boolean value
  */
-export default function ConfigToggle({ id, label, description, icon, checked, onChange }) {
+export default function ConfigToggle({ id, label, description, icon, checked, onChange }: ConfigToggleProps) {
     return (
         <label
             htmlFor={id}
@@ -21,7 +27,7 @@ export default function ConfigToggle({ id, label, description, icon, checked, on
                 id={id}
                 type="checkbox"
                 checked={checked}
-                onChange={(e) => onChange(e.target.checked)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.checked)}
                 className="accent-[var(--accent-primary)] mt-1 flex-shrink-0"
             />
             <div className="flex-1">
