@@ -4,6 +4,7 @@ import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavIcon from '../components/NavIcon';
+import GithubStarButton from '../components/GithubStarButton';
 import MobileNav from './MobileNav';
 import { readDropdown, navHandler } from './navShared';
 import { inlineTextStyle } from './textStyle';
@@ -355,6 +356,16 @@ export default function HeaderView({ data, showLanguageSwitcher = true }: Header
                                 fontSize:   cta.labelSize,
                                 color:      cta.labelColor,
                             });
+                            if (cta.kind === 'github') {
+                                return (
+                                    <GithubStarButton
+                                        key={cta.id || i}
+                                        repoUrl={cta.repoUrl}
+                                        label={cta.label}
+                                        starsFallback={cta.starsFallback}
+                                    />
+                                );
+                            }
                             return (
                             <Button
                                 key={cta.id || i}
