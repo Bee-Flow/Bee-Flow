@@ -1,9 +1,10 @@
 import React from 'react';
 import { BLOCK_VARIANTS } from './blockData.generated.mjs';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 // Human labels for variant slugs; unknown slugs fall back to the slug.
-function variantLabels(t) {
+function variantLabels(t: TranslateFn): Record<string, string> {
     return {
         classic: t('cms_site.blocks.variant_picker.classic', 'Classic'),
         panel: t('cms_site.blocks.variant_picker.panel', 'Panel'),
@@ -30,11 +31,17 @@ function variantLabels(t) {
  * unknown value renders as the type's first (legacy) variant, so this
  * control is always safe to show.
  */
-export default function VariantPicker({ type, value, onChange }) {
+interface VariantPickerProps {
+    type: string;
+    value?: string;
+    onChange: (variant: string) => void;
+}
+
+export default function VariantPicker({ type, value, onChange }: VariantPickerProps) {
     const { t } = useTranslation();
-    const variants = BLOCK_VARIANTS[type];
+    const variants = (BLOCK_VARIANTS as Record<string, string[] | undefined>)[type];
     if (!Array.isArray(variants) || variants.length < 2) return null;
-    const active = variants.includes(value) ? value : variants[0];
+    const active = (variants as (string | undefined)[]).includes(value) ? value : variants[0];
     return (
         <div className="mb-3">
             <div className="text-[11px] font-medium text-[var(--text-muted)] mb-1.5">{t('cms_site.blocks.variant_picker.layout', 'Layout')}</div>
