@@ -19,25 +19,18 @@ import MediaText    from './sections/MediaText';
 import Features     from './sections/Features';
 import Steps        from './sections/Steps';
 import Security     from './sections/Security';
-import Integrations from './sections/Integrations';
 import Architecture from './sections/Architecture';
 import TechStats    from './sections/TechStats';
 import CTA          from './sections/CTA';
 import CtaBanner    from './sections/CtaBanner';
 import LiveComponent from './sections/LiveComponent';
 import Pricing      from './sections/PricingSection';
-import CustomerSupport from './sections/CustomerSupport';
 import FormBlock from './sections/FormBlock';
 import Testimonials from './sections/Testimonials';
 import Faq          from './sections/Faq';
 import TrustBand    from './sections/TrustBand';
 import Showcase     from './sections/Showcase';
-import FeatureDemo  from './sections/FeatureDemo';
-import Roadmap      from './sections/Roadmap';
-import CompareTable from './sections/CompareTable';
 import { EXTRA_SECTIONS } from './sections/extraSections';
-import GitHubStats  from './sections/GitHubStats';
-import ReleaseNotes from './sections/ReleaseNotes';
 import Footer       from './sections/Footer';
 // "Skip to content": first focusable element, targets <main id="main"> below.
 import SkipLink     from './components/SkipLink';
@@ -106,24 +99,17 @@ export const SECTION_REGISTRY = {
     features: Features,
     steps: Steps,
     security: Security,
-    integrations: Integrations,
     architecture: Architecture,
     techStats: TechStats,
     cta: CTA,
     'cta-banner': CtaBanner,
     'live-component': LiveComponent,
     pricing: Pricing,
-    'customer-support': CustomerSupport,
     form: FormBlock,
     testimonials: Testimonials,
     faq: Faq,
     'trust-band': TrustBand,
     showcase: Showcase,
-    'feature-demo': FeatureDemo,
-    roadmap: Roadmap,
-    'compare-table': CompareTable,
-    'github-stats': GitHubStats,
-    'release-notes': ReleaseNotes,
     'blog-latest': LatestPosts,
     ...EXTRA_SECTIONS,
 } as Record<string, SectionComponent>;
@@ -984,7 +970,7 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
                     <Features     data={content.features} />
                     <Steps        data={content.steps} />
                     <Security     data={content.security} />
-                    <Integrations data={content.integrations} />
+                    <SECTION_REGISTRY.integrations data={content.integrations} />
                     <Architecture data={content.architecture} />
                     <TechStats    data={content.techStats} />
                     <CTA          data={content.cta} />
