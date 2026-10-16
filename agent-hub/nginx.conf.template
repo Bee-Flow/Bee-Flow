@@ -59,6 +59,9 @@ server {
     # image/svg+xml was missing from the type list, so the CMS artwork (the hive
     # graphic and the logo, both text) shipped uncompressed.
     gzip on;
+    # Files in the image are pre-compressed at level 9 (scripts/precompress.mjs);
+    # serve those instead of compressing per request.
+    gzip_static on;
     gzip_comp_level 6;
     gzip_vary on;
     gzip_min_length 1024;

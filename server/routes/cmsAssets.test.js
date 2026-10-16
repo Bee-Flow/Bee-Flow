@@ -78,7 +78,7 @@ const mockStorageStore = {
     async headFile(key) {
         const o = objects.get(key);
         if (!o) { const e = new Error('nope'); e.name = 'NoSuchKey'; throw e; }
-        return { contentLength: o.buf.length, contentType: o.contentType };
+        return { contentLength: o.buf.length, contentType: o.contentType, etag: require('node:crypto').createHash('md5').update(o.buf).digest('hex') };
     },
     async streamFile(key, { range = null } = {}) {
         const o = objects.get(key);
@@ -462,4 +462,68 @@ test('local-fs mode (listKeys throws) → { assets: [], unavailable: true }', as
     const { status, body } = await getAssets();
     assert.strictEqual(status, 200);
     assert.deepStrictEqual(body, { assets: [], unavailable: true });
+});
+
+const MINTED = 'cms/1700000000000-ab12cd-';
+
+test('a minted upload key is immutable-cacheable with an opaque ETag, and a revalidation is a 304', async () => {
+    seed(`${MINTED}c.mp4`, Buffer.from('0123456789'), 'video/mp4');
+    const res = await fetch(`${baseUrl}/asset/${MINTED}c.mp4`);
+    assert.strictEqual(res.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+    const etag = res.headers.get('etag') || '';
+    assert.match(etag, /^"[0-9a-f]+"$/);
+    await res.arrayBuffer();
+    for (const inm of [etag, `W/${etag}`, `"zzz", ${etag}`]) {
+        const again = await fetch(`${baseUrl}/asset/${MINTED}c.mp4`, { headers: { 'if-none-match': inm } });
+        assert.strictEqual(again.status, 304);
+    }
+});
+
+test('a stable (re-seedable) key is cached briefly and an overwrite changes the ETag', async () => {
+    seed('cms/beeflow-logo.svg', Buffer.from('<svg>1</svg>'), 'image/svg+xml', { sanitized: '1' });
+    const first = await fetch(`${baseUrl}/asset/cms/beeflow-logo.svg`);
+    assert.strictEqual(first.headers.get('cache-control'), 'public, max-age=300');
+    const etag1 = first.headers.get('etag') || '';
+    await first.arrayBuffer();
+    seed('cms/beeflow-logo.svg', Buffer.from('<svg>2</svg>'), 'image/svg+xml', { sanitized: '1' });
+    const stale = await fetch(`${baseUrl}/asset/cms/beeflow-logo.svg`, { headers: { 'if-none-match': etag1 } });
+    assert.strictEqual(stale.status, 200);
+    assert.strictEqual(await stale.text(), '<svg>2</svg>');
+});
+
+test('a missing asset is not cached', async () => {
+    const res = await fetch(`${baseUrl}/asset/${MINTED}missing.png`);
+    assert.strictEqual(res.status, 404);
+    assert.ok(!res.headers.get('cache-control'));
+});
+
+test('asset GET ?w= serves a smaller WebP, ignores Range, and leaves other widths and non-images as stored', async () => {
+    const sharp = require('sharp');
+    const png = await sharp({ create: { width: 1600, height: 900, channels: 3, background: '#336699' } })
+        .png().toBuffer();
+    seed(`${MINTED}wide.png`, png, 'image/png');
+    const small = await fetch(`${baseUrl}/asset/${MINTED}wide.png?w=640`, { headers: { range: 'bytes=0-9' } });
+    assert.strictEqual(small.status, 200);
+    assert.strictEqual(small.headers.get('content-type'), 'image/webp');
+    const meta = await sharp(Buffer.from(await small.arrayBuffer())).metadata();
+    assert.strictEqual(meta.width, 640);
+    const plain = await fetch(`${baseUrl}/asset/${MINTED}wide.png`);
+    assert.notStrictEqual(small.headers.get('etag'), plain.headers.get('etag'));
+    const odd = await fetch(`${baseUrl}/asset/${MINTED}wide.png?w=641`);
+    assert.strictEqual(odd.headers.get('content-type'), 'image/png');
+    seed(`${MINTED}v.mp4`, Buffer.from('0123456789'), 'video/mp4');
+    const vid = await fetch(`${baseUrl}/asset/${MINTED}v.mp4?w=640`, { headers: { range: 'bytes=0-1' } });
+    assert.strictEqual(vid.status, 206);
+});
+
+test('?w= on an image already narrower than the width, or an undecodable one, serves the original', async () => {
+    const sharp = require('sharp');
+    const tiny = await sharp({ create: { width: 100, height: 50, channels: 3, background: '#000' } }).png().toBuffer();
+    seed(`${MINTED}tiny.png`, tiny, 'image/png');
+    const a = await fetch(`${baseUrl}/asset/${MINTED}tiny.png?w=320`);
+    assert.strictEqual(a.headers.get('content-type'), 'image/png');
+    seed(`${MINTED}bad.png`, Buffer.from('not an image'), 'image/png');
+    const b = await fetch(`${baseUrl}/asset/${MINTED}bad.png?w=320`);
+    assert.strictEqual(b.status, 200);
+    assert.strictEqual(await b.text(), 'not an image');
 });

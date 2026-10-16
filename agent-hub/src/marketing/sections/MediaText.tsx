@@ -3,9 +3,13 @@ import Button from '../components/Button';
 import EditableText from '../components/EditableText';
 import FramedMedia from '../components/FramedMedia';
 import ClipVideo from '../components/ClipVideo';
+import { assetSrcSet } from '../assetUrl';
 import SectionFrame from '../components/SectionFrame';
 import { inlineTextStyle } from './textStyle';
 import type { MediaSlot, SectionDataBase, TextStyleBlob } from './sectionData.types';
+
+// The image sits in one of two columns on desktop, full width on a phone.
+const MEDIA_TEXT_SIZES = '(min-width: 1024px) 600px, 100vw';
 
 interface MediaTextCta {
     label?: string;
@@ -246,7 +250,7 @@ function renderMedia(media: MediaSlot, heading: string) {
     // byte-identically.
     const frame = media?.frame;
     if (frame === 'hairline' || frame === 'browser') {
-        return <FramedMedia media={{ ...media, kind: 'image' }} />;
+        return <FramedMedia media={{ ...media, kind: 'image' }} sizes={MEDIA_TEXT_SIZES} />;
     }
     if (!src) {
         return (
@@ -261,7 +265,8 @@ function renderMedia(media: MediaSlot, heading: string) {
     const dims = (media?.width as number) > 0 && (media?.height as number) > 0
         ? { width: Math.round(media.width as number), height: Math.round(media.height as number) }
         : {};
-    return <img src={src} alt={alt} {...dims} loading="lazy" />;
+    const srcSet = assetSrcSet(src);
+    return <img src={src} srcSet={srcSet} sizes={srcSet ? MEDIA_TEXT_SIZES : undefined} alt={alt} {...dims} loading="lazy" />;
 }
 
 /**

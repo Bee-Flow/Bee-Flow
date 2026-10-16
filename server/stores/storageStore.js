@@ -723,13 +723,14 @@ async function headFile(key) {
             const ext = path.extname(filePath).toLowerCase();
             if (MIME_BY_EXT[ext]) contentType = MIME_BY_EXT[ext];
         }
-        return { contentLength: stat.size, contentType };
+        return { contentLength: stat.size, contentType, etag: `${stat.size}-${Math.round(stat.mtimeMs)}` };
     }
     if (!s3) throw new Error('StorageStore not initialized');
     const response = await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }));
     return {
         contentLength: response.ContentLength,
         contentType: response.ContentType || 'application/octet-stream',
+        etag: response.ETag || (response.LastModified ? String(response.LastModified.getTime()) : undefined),
     };
 }
 
