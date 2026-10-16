@@ -2,7 +2,7 @@
  * The two generated editor bundles in server/core/markdown/ and the hash that
  * says whether they are still the build of their sources.
  *
- *   editorSerialization.cjs   built from agent-hub/src/editor/serialization/index.js
+ *   editorSerialization.cjs   built from agent-hub/src/editor/serialization/index.ts
  *   editorCollab.cjs          built from agent-hub/src/editor/collab/serverEntry.ts
  *
  * Both are esbuild bundles of agent-hub source the server cannot import
@@ -42,7 +42,7 @@ const COLLAB_EXTERNALS = ['yjs', 'y-protocols', 'lib0'];
 export const BUNDLES = {
     md: {
         script: 'build:editor-md',
-        entry: '../agent-hub/src/editor/serialization/index.js',
+        entry: '../agent-hub/src/editor/serialization/index.ts',
         out: 'core/markdown/editorSerialization.cjs',
         options: {},
         banner: [],
