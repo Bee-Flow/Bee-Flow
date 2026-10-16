@@ -45,6 +45,59 @@ import { API_BASE, authFetch } from '../../../../../utils/helpers';
 /** Handed back when a read must be made the old way. Never confusable with data. */
 export const NOT_BATCHED = Symbol('app-data:not-batched');
 
+/** One read of a batch: the server's per-read request. `id` is the binding's cache key. */
+export interface BatchRead {
+    id: string;
+    [key: string]: unknown;
+}
+
+/** The server's answer for one read: `{ ok, data }` or `{ ok: false, status, error }`. */
+export interface ReadResult {
+    ok?: boolean;
+    data?: unknown;
+    status?: number;
+    error?: string;
+    code?: string;
+    provider?: string;
+}
+
+/** What a queued read resolves with when the batch answered it. */
+export interface BatchAnswer {
+    result: ReadResult;
+    appVersion: unknown;
+}
+
+/** The body of a 200 from /data/batch (and of an error answer, which carries `error`). */
+interface BatchBody {
+    results?: unknown;
+    appVersion?: unknown;
+    error?: string;
+    code?: string;
+    provider?: string;
+}
+
+type Outcome = BatchAnswer | typeof NOT_BATCHED;
+
+interface Waiter {
+    resolve: (outcome: Outcome) => void;
+    reject: (reason?: unknown) => void;
+}
+
+interface QueueEntry {
+    read: BatchRead;
+    bytes: number;
+    waiters: Waiter[];
+}
+
+/** The app a read belongs to. Callers may still hold none; such a read is never batched. */
+type AppKey = string | null | undefined;
+
+interface AppBatchState {
+    supported: boolean;
+    queue: Map<string, QueueEntry>;
+    timer: ReturnType<typeof setTimeout> | null;
+}
+
 /**
  * How many reads may travel together.
  *
@@ -67,10 +120,10 @@ const MAX_BATCH_BYTES = 48 * 1024;
 const WINDOW_MS = 8;
 
 /** appId → { supported, queue: Map<id, entry>, timer } */
-const apps = new Map();
-const supportListeners = new Set();
+const apps = new Map<AppKey, AppBatchState>();
+const supportListeners = new Set<() => void>();
 
-function stateFor(appId) {
+function stateFor(appId: AppKey): AppBatchState {
     let st = apps.get(appId);
     if (!st) {
         st = { supported: true, queue: new Map(), timer: null };
@@ -87,18 +140,18 @@ function stateFor(appId) {
  * this to size its polling interval — a downgraded app is back to one request
  * per binding and must be spaced out accordingly.
  */
-export function isBatchingAvailable(appId) {
+export function isBatchingAvailable(appId: AppKey): boolean {
     const st = apps.get(appId);
     return st ? st.supported : true;
 }
 
 /** Subscribe to the flag above (useSyncExternalStore-shaped). */
-export function subscribeBatchAvailability(listener) {
+export function subscribeBatchAvailability(listener: () => void): () => boolean {
     supportListeners.add(listener);
     return () => supportListeners.delete(listener);
 }
 
-function disableBatching(appId, why) {
+function disableBatching(appId: string, why: string): void {
     const st = stateFor(appId);
     if (!st.supported) return;
     st.supported = false;
@@ -111,7 +164,7 @@ function disableBatching(appId, why) {
 }
 
 /** How many requests a round of N bindings costs — the polling interval needs it. */
-export function requestsForBindings(appId, count) {
+export function requestsForBindings(appId: AppKey, count: number): number {
     if (!count) return 0;
     return isBatchingAvailable(appId) ? Math.ceil(count / MAX_BATCH_READS) : count;
 }
@@ -123,9 +176,9 @@ export function requestsForBindings(appId, count) {
  * dropped; if it is too large even for that, the server's own 413 answers it,
  * and that is a real error worth seeing.
  */
-function chunk(entries) {
-    const out = [];
-    let current = [];
+function chunk(entries: Iterable<QueueEntry>): QueueEntry[][] {
+    const out: QueueEntry[][] = [];
+    let current: QueueEntry[] = [];
     let bytes = 2;
     for (const entry of entries) {
         const size = entry.bytes;
@@ -141,15 +194,15 @@ function chunk(entries) {
     return out;
 }
 
-function settleAll(entries, settle) {
+function settleAll(entries: QueueEntry[], settle: (waiter: Waiter) => void): void {
     for (const entry of entries) {
         for (const waiter of entry.waiters) settle(waiter);
     }
 }
 
-async function send(appId, entries) {
+async function send(appId: string, entries: QueueEntry[]): Promise<void> {
     const url = `${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/data/batch`;
-    let res;
+    let res: Response;
     try {
         res = await authFetch(url, {
             method: 'POST',
@@ -171,7 +224,7 @@ async function send(appId, entries) {
         return;
     }
 
-    let body = null;
+    let body: BatchBody | null = null;
     try { body = await res.json(); } catch { body = null; }
 
     if (!res.ok) {
@@ -190,7 +243,7 @@ async function send(appId, entries) {
         return;
     }
 
-    const byId = new Map();
+    const byId = new Map<string, ReadResult>();
     for (const r of body.results) {
         if (r && typeof r.id === 'string') byId.set(r.id, r);
     }
@@ -206,7 +259,7 @@ async function send(appId, entries) {
     }
 }
 
-function flush(appId) {
+function flush(appId: string): void {
     const st = stateFor(appId);
     st.timer = null;
     const entries = [...st.queue.values()];
@@ -226,12 +279,12 @@ function flush(appId) {
  * Two bindings with the same id inside one window share a single read: the id
  * IS the binding's cache key, so they are by definition the same query.
  */
-export function queueRead(appId, read) {
+export function queueRead(appId: AppKey, read: BatchRead | null | undefined): Promise<Outcome> {
     const st = stateFor(appId);
     if (!st.supported || !appId || !read || typeof read.id !== 'string') {
         return Promise.resolve(NOT_BATCHED);
     }
-    return new Promise((resolve, reject) => {
+    return new Promise<Outcome>((resolve, reject) => {
         let entry = st.queue.get(read.id);
         if (!entry) {
             let bytes = 0;
@@ -255,14 +308,14 @@ export function queueRead(appId, read) {
  * Every other refusal throws, carrying the status the server assigned it, so
  * the retry rule and the connector banner behave exactly as before.
  */
-export function unwrapReadResult(result, notFoundValue) {
+export function unwrapReadResult(result: ReadResult, notFoundValue: unknown): unknown {
     if (result.ok) return result.data;
     if (result.status === 404) return notFoundValue;
     throw makeDataError({ status: result.status, message: result.error, code: result.code, provider: result.provider });
 }
 
 /** Tests only — the module state is process-wide by design. */
-export function __resetBatchClient() {
+export function __resetBatchClient(): void {
     for (const st of apps.values()) {
         if (st.timer !== null) clearTimeout(st.timer);
     }
