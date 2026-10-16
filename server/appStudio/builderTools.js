@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — the function-calling surface the conversational
  * app builder agent uses to mutate a draft app definition.

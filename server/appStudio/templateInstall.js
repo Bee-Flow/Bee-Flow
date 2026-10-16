@@ -181,6 +181,9 @@ function orderMembersForSeed(members, ownerId) {
     return list;
 }
 
+/**
+ * @param {{ appId?: string, ownerId?: string, template?: any, seedMode?: string }} [opts]
+ */
 async function installTemplate({ appId, ownerId, template, seedMode = 'all' } = {}) {
     if (!appId || !ownerId) return { ok: false, error: 'appId and ownerId are required' };
     const missingOnly = seedMode === 'missing-tables-only';

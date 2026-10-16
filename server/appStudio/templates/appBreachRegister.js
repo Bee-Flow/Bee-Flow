@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio template — Data breach register (GDPR Articles 33 and 34).
  *

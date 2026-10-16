@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — templates: the gallery (app_list_templates),
  * installing one as the app foundation (app_apply_template) and capturing
@@ -120,6 +121,7 @@ async function applyApplyTemplate(draftWrap, args) {
     // one this organisation captured from its own app. Same install path.
     const registry = loadTemplateRegistry();
     const templates = loadTemplatesModule();
+    /** @type {{ id?: string, version?: any, definition?: any } | null} */
     let template = null;
     try {
         template = registry
@@ -210,8 +212,8 @@ async function applyApplyTemplate(draftWrap, args) {
 
     // Reload the draft's two sides so the route emits the real post-install state.
     try {
-        const studioAppStore = require('../../stores/studioAppStore');
-        const app = await studioAppStore.getStudioApp(draftWrap.appId);
+        const reloadStore = require('../../stores/studioAppStore');
+        const app = await reloadStore.getStudioApp(draftWrap.appId);
         if (app && app.definition && Object.keys(app.definition).length) {
             const { def } = canonicalizeAppDefinition(app.definition);
             draftWrap.def = def;
@@ -265,6 +267,7 @@ async function applySaveAsTemplate(draftWrap, args) {
         ? args.seedTables.filter((t) => typeof t === 'string' && t)
         : [];
 
+    /** @type {{ ok?: boolean, errors?: string[], _fixHint?: string, template?: any, report?: any }} */
     let capture;
     try {
         const { captureFromApp } = require('../templateCapture');

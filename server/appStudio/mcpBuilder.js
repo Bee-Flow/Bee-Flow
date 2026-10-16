@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio over MCP — tool surface, draft loading and dispatch.
  *

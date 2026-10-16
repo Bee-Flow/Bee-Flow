@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * app_query_data — argument checking, row shaping and error mapping.
  *
@@ -22,8 +23,27 @@ const SORT_DIRS = ['asc', 'desc'];
 const bad = (error, _fixHint) => ({ error, _fixHint });
 
 /**
+ * Either the error pair (`error`, `_fixHint`) or the parsed fields; one object
+ * type because the checker's null checks are off and cannot narrow a union.
+ *
+ * @typedef {object} QueryArgs
+ * @property {string} [error]
+ * @property {string} [_fixHint]
+ * @property {string|null} [tableId]
+ * @property {string|null} [datasetId]
+ * @property {number} [limit]
+ * @property {boolean} [limitClamped]
+ * @property {{ field: string, dir: string }} [sort]
+ * @property {any[]} [filter]
+ * @property {string|null} [cursor]
+ */
+
+/**
  * Validate app_query_data arguments. Returns { error, _fixHint } or the parsed
  * { tableId, datasetId, limit, limitClamped, sort, filter, cursor }.
+ *
+ * @param {any} args
+ * @returns {QueryArgs}
  */
 function parseQueryArgs(args) {
     const a = args && typeof args === 'object' ? args : {};
@@ -108,7 +128,12 @@ function pageDatasetRows(rows, cursor, limit) {
     return { rows: page, rowCount: page.length, totalRows: rows.length, ...(more ? { more: true, nextCursor: encodeOffset(start + limit) } : {}) };
 }
 
-/** The paging/limit fields every successful answer carries. */
+/**
+ * The paging/limit fields every successful answer carries.
+ *
+ * @param {{ more?: boolean, nextCursor?: string|null }} page
+ * @param {{ limit?: number, limitClamped?: boolean }} parsed
+ */
 function pageMeta({ more, nextCursor }, { limit, limitClamped }) {
     return {
         ...(more ? { more: true, nextCursor } : {}),
@@ -121,6 +146,9 @@ function pageMeta({ more, nextCursor }, { limit, limitClamped }) {
  * are quoted (compiler complaints about the caller's own fields, access
  * refusals, `safe` read refusals); a database error names internal relations,
  * so it goes to the log and the model gets a generic sentence.
+ *
+ * @param {any} e
+ * @param {{ appId?: string, linked?: boolean }} [opts]
  */
 function queryFailure(e, { appId, linked = false } = {}) {
     if (e instanceof queryCompiler.CompileError) {

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — server-side screen render + screenshot.
  *
@@ -278,6 +279,7 @@ async function buildDataState({ definition, model, app, screen, roleArg, viewer,
     if (!app || !app.id) return dataState; // nothing to read against — bindings render as loading
     const scope = buildRenderScope(currentUser, definition.variables, screen);
     for (const { binding } of collectDataBindings(definition, screen.id)) {
+        /** @type {{ binding?: any, skipped?: boolean }} */
         let resolved = { binding };
         if (binding.kind !== 'dataset') {
             resolved = resolveShape(binding, scope);
@@ -469,17 +471,33 @@ function unavailable(reason, code) {
 }
 
 /**
+ * @typedef {object} ScreenshotResult
+ * @property {boolean} ok
+ * @property {boolean} [unavailable]
+ * @property {string} [reason]
+ * @property {string} [code]
+ * @property {Buffer} [png]
+ * @property {string} [dataUrl]
+ * @property {number} [width]
+ * @property {number} [height]
+ * @property {string|null} [mountError]
+ * @property {string[]} [pageErrors]
+ * @property {string[]} [consoleErrors]
+ */
+
+/**
  * Render one App Studio screen headless and screenshot it.
  *
- * @param {object} input
- * @param {object}  input.app        — the studio_apps row ({ id, userId }); data pass skipped without it
- * @param {object}  input.definition — canonical app definition
- * @param {object}  [input.model]    — the app's data model (or null)
- * @param {string}  [input.screenId] — screen to render (default: home screen)
- * @param {string}  [input.asRole]   — render + read data as this role (must exist in model.roles)
- * @param {string|object} [input.viewport] — 'desktop' | 'tablet' | 'mobile' | { width, height }
- * @param {object}  [input.deps]     — injectable edges (tests): readBundle, capture,
+ * @param {object} [input]
+ * @param {object}  [input.app]      - the studio_apps row ({ id, userId }); data pass skipped without it
+ * @param {object}  [input.definition] - canonical app definition
+ * @param {object}  [input.model]    - the app's data model (or null)
+ * @param {string}  [input.screenId] - screen to render (default: home screen)
+ * @param {string}  [input.asRole]   - render + read data as this role (must exist in model.roles)
+ * @param {string|object} [input.viewport] - 'desktop' | 'tablet' | 'mobile' | { width, height }
+ * @param {object}  [input.deps]     - injectable edges (tests): readBundle, capture,
  *                                     dbQuery, runDataset, getDataset, hardTimeoutMs
+ * @returns {Promise<ScreenshotResult>}
  */
 async function renderAppScreenshot({ app = null, definition = null, model = null, screenId = null, asRole = null, viewport = 'desktop', deps = null } = {}) {
     try {

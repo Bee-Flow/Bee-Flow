@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — read-only inspection: app_dry_run, the
  * app_screenshot visual check, draft reads (app_get_draft, app_find_nodes),
@@ -327,6 +328,7 @@ async function applyInspectAutomation(draftWrap, args) {
     }
     const row = automationSummaryRow(a);
     const trigger = a?.definition?.trigger || {};
+    /** @type {Record<string, any>} */
     const detail = { ...row };
     if (trigger.kind === 'agent_call' && trigger.parametersSchema && typeof trigger.parametersSchema === 'object') {
         detail.parametersSchema = trigger.parametersSchema;

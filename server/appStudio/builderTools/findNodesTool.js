@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tool — app_find_nodes (read-only draft search), split out
  * of inspectionTools.js to keep that file under its size ceiling.

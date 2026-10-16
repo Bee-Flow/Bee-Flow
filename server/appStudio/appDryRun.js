@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — dry-run self-repair (Wave 4).
  *
@@ -64,6 +65,8 @@ function findModelTable(dataModel, ref) {
 /**
  * Run the DATA pass over the collected bindings for one identity (owner or a
  * role). Returns the per-binding finding array.
+ *
+ * @returns {Promise<Array<any>>}
  */
 async function runDataPass(collected, { dataModel, app, roleArg, viewer, ownerScope, appId, ownerId, deps, variables }) {
     const scope = syntheticScope(viewer, variables);
@@ -149,16 +152,18 @@ function defaultDeps() {
 /**
  * Run a full dry-run.
  *
- * @param {object} input
- * @param {object}  input.def       — canonical app definition
- * @param {object}  [input.dataModel]— the app's data model (or null)
- * @param {Array}   [input.datasets]— dataset ids ([{id}] or [id]) for the STATIC pass
- * @param {object}  [input.app]     — the studio_apps row (needed for the DATA pass; null → data pass skipped)
- * @param {string}  [input.ownerId] — the app owner's user id
- * @param {object}  [input.deps]    — { dbQuery, runDataset, getDataset } overrides
+ * @param {object} [input]
+ * @param {any}     [input.def]     - canonical app definition
+ * @param {any}     [input.datatables] - the app's datatables (optional)
+ * @param {string}  [input.appId]   - app id when no `app` row is given
+ * @param {object}  [input.dataModel]- the app's data model (or null)
+ * @param {Array}   [input.datasets]- dataset ids ([{id}] or [id]) for the STATIC pass
+ * @param {object}  [input.app]     - the studio_apps row (needed for the DATA pass; null → data pass skipped)
+ * @param {string}  [input.ownerId] - the app owner's user id
+ * @param {object}  [input.deps]    - { dbQuery, runDataset, getDataset } overrides
  * @param {object} [opts]
- * @param {string}  [opts.screenId] — narrow the DATA pass to one screen
- * @param {string}  [opts.asRole]   — re-run the DATA pass as this role (when it exists)
+ * @param {string}  [opts.screenId] - narrow the DATA pass to one screen
+ * @param {string}  [opts.asRole]   - re-run the DATA pass as this role (when it exists)
  */
 async function appDryRun(input = {}, opts = {}) {
     const { def, dataModel = null, datasets = [], datatables = null, app = null, ownerId = null } = input;

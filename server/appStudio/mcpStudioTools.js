@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /** The three MCP-only tools, in the same OpenAI shape as TOOL_SCHEMAS. */

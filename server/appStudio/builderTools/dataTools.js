@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — the DATA side: tables, roles, seed rows,
  * datasets, and the read/query tools over them. See the section comment

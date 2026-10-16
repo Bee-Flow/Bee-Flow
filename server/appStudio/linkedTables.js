@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — the LINKED table, seen from the builder.
  *

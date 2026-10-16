@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio dry-run: the DATA reads of one binding (record / aggregate /
  * dataset) and the synthetic scope their filters resolve against. Split out of

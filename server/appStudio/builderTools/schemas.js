@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder — function-calling tool schemas (OpenAI format).
  *
@@ -201,6 +202,7 @@ const ACTION_OBJECT_SCHEMA = { type: 'object', description: ACTION_OBJECT_DESC, 
 /** How each batch-capable tool tells the model about its array form. */
 const batchHint = (key, single) => `BATCH FORM: pass \`${key}\` — an array of up to ${MAX_BATCH_PATCHES_PER_CALL} ${single} objects applied in order — instead of the single form, and do a whole screen's worth of work in ONE call. Each entry that fails is reported at its index in \`failed\` and the others still land.`;
 
+/** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
 const TOOL_SCHEMAS = [
     {
         type: 'function',

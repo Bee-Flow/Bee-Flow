@@ -84,6 +84,12 @@ const log = require('../../telemetry/log');
  * erop zijn niet die van de app. De weigering die dan valt is een `readError`
  * (status + `safe:true`) en wordt door de routers letterlijk doorgegeven; hij
  * is nooit een terugval op `studioAppDbStore`.
+ *
+ * @param {any} app
+ * @param {any} model
+ * @param {any} table
+ * @param {Record<string, any>} values
+ * @param {{ viewer?: any, recordId?: string, expectedUpdatedAt?: any }} [opts]
  */
 async function writeRecord(app, model, table, values, { viewer, recordId, expectedUpdatedAt = null } = {}) {
     if (datatableSource.isDatatableBacked(table)) {
