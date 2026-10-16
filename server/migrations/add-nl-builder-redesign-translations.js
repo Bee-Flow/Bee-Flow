@@ -170,17 +170,7 @@ const NL_TRANSLATIONS = {
     'automations.canvas.summary_loops': '{n} lussen',
 
     // ── De zuidbalk: run, selectie, hint (artboard 1a/1d) ───────────────────
-    'automations.canvas.run_step_failed': 'Stap mislukt',
-    'automations.canvas.run_steps_done_one': '{done} van {total} stap voltooid',
-    'automations.canvas.run_steps_done_other': '{done} van {total} stappen voltooid',
-    'automations.canvas.run_kind_test': 'Testrun',
-    'automations.canvas.run_kind_run': 'Uitvoering',
-    'automations.canvas.run_view': 'Run bekijken',
-    'automations.canvas.run_dismiss': 'Melding over de mislukte run sluiten',
-    'automations.canvas.run_show': 'Ga naar stap',
-    'automations.canvas.run_waiting_form': 'wacht op formulier',
-    'automations.canvas.open_form': 'Formulier openen',
-    'automations.canvas.open_form_new_tab': 'Openen in een nieuw tabblad',
+    ...require('./data/builder-redesign-zuidbalk-nl.json'),
     // De bouwbanner en het lege canvas tijdens een bouw (het bouwen als
     // film, 2026-09): wat de assistent zojuist DEED, hoe lang het al duurt,
     // en het einde. Het geestkaartje op het canvas draagt de gedachten; de
