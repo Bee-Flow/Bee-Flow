@@ -144,3 +144,64 @@ Paths are relative to `agent-hub/src/components/` unless they say otherwise. "lf
   - (c) Move the `<BuilderShellLayout …>` element (405-502) into a `BuilderShellView.tsx` that takes bundles, the way BuilderSplit's `BuilderView` does. BuilderShellLayout is already TSX, so `ComponentProps` types it.
   - (b) and (c) together remove about 120 lines with no change in hook order.
 - **DiagramPane (DiagramPaneInner body ≈ 200).** The safe next cut is the wrapper subtree, from `<PresenterContext.Provider>` to the end, as `flow/DiagramCanvasFrame.tsx`. It would receive `view`, `film`, `edit` and the overlay bundle, all hook-free. DiagramOverlays, RibbonFlightLayer and DiagramEmptyState are TSX, so the props can be typed from `ComponentProps`. That leaves about 110 lines. Optionally also fold `onAddAfterForLayout`, the `buildLayout` memo and `useLiveNodeMirror` into `useCanvasLayout`, called at the same position.
+
+## Re-review 9591e4aa + 14456c8d — CHANGES REQUIRED
+
+One required fix, a single line in a new file. Everything else is verified. Once it lands, both commits are APPROVE with no further review round.
+
+### 9591e4aa (review fixes): APPROVE
+- **Fix 1.** `useDesignerShell.ts` now matches the required text exactly: `errorMessage(err)` in both the warn and the toast, and the import was added.
+- **Fix 2a.** `PickRemedies` gained `shape?: ListShape | null` and `count?: number | null`, with their JSDoc, above the index signature, plus `import type { ListShape }`. `ListShape.rows` is `number | null` (listShape.ts:46). The base line `pick.remedies?.shape?.rows ?? pick.remedies?.count ?? null` is restored. Its two-line brace layout is cosmetic.
+- **Fix 2b.** The `DeepenHandle.apply` return type is exactly the required text, and `useValuePick` has no cast. The mobile mirror `mobile/src/features/flow-editor/bindings/mirror/mapping/deepPick.ts` was regenerated with the identical hunk. `npm run lint:shared-mirror` exits 0, every entry matches. No mobile code outside `mirror/` uses `DeepenHandle`.
+- **Fix 2c.** `useValueParts(value: Parameters<typeof parseValue>[0], ...)` is as specified, with no cast at the call.
+- **Fix 2d.** The `routeAdvanced.tsx` guard `typeof v === 'string' ? v : ''` is as specified.
+- **Fix 2e.** `isTemplateReply` and `const r: unknown` / `isTemplateReply(r) ? r.template : undefined` are as specified.
+- **Nit 7.** The agentStudio docstring was restored. It is a comment only.
+- **No other change.** The commit touches no other runtime code, no test, budget or ratchet JSON, and no JS file.
+
+### 14456c8d (BuilderShell / DiagramPane split): APPROVE after fix 1 below
+
+**DiagramPane**
+- `DiagramCanvasFrame.tsx` is hook-free.
+- The DOM structure is identical: PresenterContext, then NodeRuntimeContext, then the wrapper div, with the same ref, className, drop handlers, `data-building` and `data-presenter`.
+- `DiagramReactFlow` has identical props. `nodeTypes` and `edgeTypes` still get the same module constants, and `onNodeClick` and `handlers` are still `edit`.
+- Next come Background, DiagramOverlays, RibbonFlightLayer (same ghosts, rf and nodes) and the ctxMenu/DropHint children, in the same order.
+- The `overlays` object has all 39 old DiagramOverlays props with the same values.
+- The hooks in DiagramPaneInner are untouched. Only the destructure lost `onDragOver`, `onDragLeave` and `onDrop`, which now arrive through `edit`.
+- The added component layer has a stable type, so nothing remounts.
+
+**BuilderShell: hooks, header and view**
+- **Hook order and deps are unchanged.** `onSend` was a plain arrow, rebuilt on every render and not a useCallback. It is now `makeBuilderSend({...})`, called once per render.
+- **No stale-closure risk.** Every captured name is a per-render `const` declared before line 253: state, serverAutomation, effectiveDef, workMode, alwaysPlanLarge, tierForSend, assistantContext, ndvStepId, scopeKey, send, forceSaveNow, ensureAutomationCreated and setError. The two refs (`readOnlyRef.current`, `turnBaseRef.current`) are still read and written at call time. So capturing the values at factory time equals the old closure.
+- **No temporal-dead-zone risk.** `fireAutoSend` (useEffectEvent) references `onSend` declared later in the same render, and it only runs from the mount effect. The old arrow already closed over `forceSaveNow` and `ensureAutomationCreated`, which are declared later, so the timing is unchanged.
+- **`buildHeaderProps`** returns the same 45 keys with the same expressions: title, triggerKind, status, canActivate, onAssistant, assistantOpen, primaryTriggerLabel, step, automation/managed, the undo/redo tab jump and breadcrumbSlot. It is pure.
+- **BuildTab gets the same props.** I compared the prop-name set mechanically: the 66 base props equal `build` plus the 9 derived ones. Each renamed mapping has the same value (closeFormTest, openFormOverlay, serverAutomation, effectiveDef, tierForSend, setTierForPicker, applyProposal, stopBuild, setNdvMode, handleExecuteStep, retryFromStep, stopRun, handleDismissFatal, layerAgent.state).
+- **The derived props are the same expressions:** noop, the `assistantOpen && !readOnly` checks, the `clearReview` arrows, the onApprovePlan text with the same i18n key and default, and `fatalError={error || state.error}`.
+- **The rest of the view is unchanged.** VersionsTab and the history slot, the `layout` keys and the `tab ===` gates all match the base.
+- **Type widening.** The `buildTabTypes.ts` onSend widening (`approvedPlanId`, `pauseAfterStep`) is honest: onApprovePlan passes exactly those.
+
+**Repo hygiene**
+- No `any`, cast, `!`, `eslint-disable` or `ts-ignore` on added lines.
+- The JS files stayed `.jsx`. No test, budget or ratchet JSON changed.
+
+**BuilderShell at about 285 lines: accepted.** A `useBuilderSend` that holds the auto-send and turn-end effects would need `draftHistory` and `forceSaveNow` from `useAutomationPersistence`. So it could only be called after that hook. That would move both effects behind the persistence effects, and the turn-end checkpoint and the `state.running` edge are order-sensitive. That reordering is not worth 40 lines. Leave the shell on the long-function list; the ratchet only has to not grow.
+
+### Required fixes
+1. **`agent-hub/src/components/automation/Builder/builderSend.ts`, the catch block (catch recipe, the same class as the earlier fix 1).**
+   - The block hand-rolls the helper. Base was `setError(error.message || String(error))`, and the recipe token for `V.message || V` is `errorMessage(V) || String(V)`. This is behaviour-identical to the current guard.
+   - Replace the whole catch body (the comment, `const message = ...` and `c.setError(...)`) with:
+     ```ts
+             } catch (error) {
+                 c.setError(errorMessage(error) || String(error));
+             }
+     ```
+   - Add `import { errorMessage } from '../../../utils/caughtError';`.
+   - Then run, in lfint:
+     - `npx eslint src/components/automation/Builder/builderSend.ts`
+     - `heavy.sh npm run typecheck`
+     - `npx vitest related --run src/components/automation/Builder/builderSend.ts`
+
+### Nits (optional)
+1. **`flow/DiagramCanvasFrame.tsx:6`.** `type ReactFlowHandlers = ...` sits between import lines. Move it below the last import.
+2. **Needless diff lines.** The `useTranslation` import moved in `DiagramPane.jsx`, and the `RunsTab` import moved again in `BuilderShell.jsx`.
+3. **`BuilderShell.jsx`.** The hosting-hooks comment moved from inside the parameter list to above the function. That is fine, but it is now separated from the parameters it documents. Consider a JSDoc `@param` list later.

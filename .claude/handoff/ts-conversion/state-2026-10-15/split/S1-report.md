@@ -4,13 +4,16 @@
 - BASE: `81d6bedfc` (= `origin/ccr-28820270-xkvwp8` a3afd896 + `--no-ff` merge of `origin/ts-local/prep2`)
 - Final commit: (updated on every push)
 
-## Status
+## Status (final, 2026-10-16)
 | Step | Package | Status |
 |---|---|---|
-| 1 | Shared Builder modules (7 files) | integrated (0343f810): 2/7 TS (formDensity, formPrimitives) + review fixes; 5 kept JS (below) |
-| 2 | Batch 22 + Builder sweep (batches 21-26) | b22 integrated (0343f810, 20 + retries edgeColoring, ScheduleBuilder); sweeps A+B (12 files) in Opus review |
-| 3 | Batches 19, 20 | integrated (058f7881): 26+5 (b19), 19+2 (b20), retries 3 cards + BuilderConfigPanel; deleteBlock reverted to JS per review |
-| 4 | Long functions LF-A4, LF-A5, agents | characterisation tests merged (99 tests, now 4 files); refactors pending |
+| 1 | Shared Builder modules (7 files) | done: 2/7 TS (formDensity, formPrimitives); 5 kept JS (labels below) |
+| 2 | Batch 22 + Builder sweep (batches 21-26) | done: b22 20 + retries 2, sweeps A+B 12 (+HttpAuthPicker); rest kept JS (labels below) |
+| 3 | Batches 19, 20 | done: 51 + retries 4 (+ AgentConfigHub from batch 18, agreed with the integrator) |
+| 4 | Long functions LF-A4, LF-A5, agents | done: 8/9 targets under 200 lines; BuilderShell left at ~285 by review decision |
+| - | SWEEP-C | not started (moved to a laptop session by the user) |
+
+Final commit: see the last push of `ccr-c9112ca0-yggf5c` (this report is in it). Contains the convert branch up to `0ae29a17`.
 
 ## Scope notes
 - `agents/AgentWizard/builderSplit/useKnowledgeBases.js` is 80 lines and has no function over 200 lines; the
@@ -94,3 +97,60 @@ Builder (shared + b22 + retries):
 - Mirror candidate: `flow/datetimeTarget.ts` → mobile `bindings/flowDeps/datetimeTarget.ts` (manifest entry in reviews/S1-builder-shared-b22.md).
 - Unrelated flake seen under load: `pages/webpages/WebpageIDE.i18n.test.jsx` → 3 unhandled rejections from
   `useBfMarks.ts:57` (setState after jsdom teardown); vitest exits 1 although all tests pass; passes 3/3 alone.
+
+## Builder sweeps A + B (merged cbfa56f1, review reviews/S1-builder-sweeps.md)
+Converted: presenterMode.ts, nodes/{Guard,Loop,Tokenize,Trigger,Untokenize}Node.tsx, mapping/fieldChrome.tsx,
+mapping/FieldKeyCombobox.tsx (+ focusField.types.ts), stepIcons.tsx, settings/{SetOperationsEditor,triggerEditors,
+triggerFilters}.tsx (+ .types.ts), HttpAuthPicker.tsx (caughtError, + hooks/useAutomationApi.types.ts).
+Review decision: `(humanizeExpression as HumanizeExpression)(…)` is an accepted honest widening (JS default `= null`
+infers a null-only parameter; the body handles a Map); the TriggerNode hidden `any` was removed. Follow-up for the
+integrator: a JSDoc `@param {Map<string, string>|null} [stepLabelById]` on displayHelpers.js:73 (comment-only) removes
+all five casts.
+Kept JS (sweeps): ribbonOrigin, nodeSummaries, DatatableNode, KnowledgeWriteNode, NoteNode, LoopBodyEditor
+(runtime: `MAP[optionalKey]`, TS2538), layout.js + dagreLayout (`s.position.x` after a non-predicate guard),
+CallFlowletNode (nullable callback called unguarded), FieldPicker (`Map.get().push`), ToolInputForm
+(`includes(string | null)`), ValueBuilder (`= null` callbacks called unguarded), RefTokenInput (`placeholder` on a
+contenteditable div), ConditionBuilder (TS ConditionRow vs RuleRow, would loosen an existing TS file), AiStepNode
+(blocked by aiToolNodes.js), routeModel (blocked by branchEdges.js), DryRunPanel (`layers[step.layerKey]`), RouteAssist
+(runtime guards only); react-hooks disable: BindingField, PathField, VariablePicker, TemplateField, useFormModePreference,
+FormRunOverlay. Settings editors blocked by those mapping fields: FormBuilderFields, approvalEditors, returnToAppEditor,
+knowledgeWriteEditors, actionEditors/{document,httpRequest,notification,presentation,slide,stopError,dataExtraction,
+integrationAction,loop,flowletCall}Fields, ParseJsonFields, setEditors, collectionEditors, privacyEditors, routeEditors,
+TablesRowValuesEditor, datatableEditors, approvalStages, aiStepEditors; then SettingsForm → SettingsHost → NodeDetailView,
+DiagramPane → RunExecutionView, FloatingValidationPill (shared/FindingRow.jsx), ApprovalActionBar
+(Studio/Approvals/ApprovalDecisionControls.jsx), BuilderShell (Studio ExecutionsPanel.jsx).
+The b2 retry round (after helpers.ts/useConfirm/canUseFacts.ts) unblocked nothing more in S1 scope.
+
+## Long functions (merged d4763739; reviews/S1-long-functions.md incl. re-review)
+File lines before → after (base cbfa56f1); 58 new .ts/.tsx files, JS targets stayed JS:
+| Target | Lines | >200 list |
+|---|---|---|
+| flow/settings/approvalEditors.jsx `ApprovalFields` | 708 → 108 | off |
+| flow/settings/routeEditors.jsx `RouteFields` | 725 → 238 | off |
+| flow/nodes/StepNodeBase.tsx | 728 → 316 | off |
+| mapping/ValueBuilder.jsx | 861 → 281 | off |
+| automation/index.jsx `AITasksDesigner` | 640 → 321 | off |
+| Builder/DiagramPane.jsx | 812 → 306 | off |
+| Builder/BuilderShell.jsx | 566 → 423 | still on (~285-line function) |
+| agents/AgentWizard/BuilderSplit.jsx | 753 → 208 | off |
+| agents/AgentStudio/index.jsx | 494 → 224 | off |
+agent-hub long-function count: 269 at BASE → 249 at the final head (includes other sessions' work; S1's share is 8).
+Behaviour differences (Opus-verified as unobservable): BuilderSplit drops six never-read useStates and the unused
+handleDone; its chat-scroll effect now runs after the bootstrap effects (bootstrap only starts fetches); AgentStudio's
+unsaved-changes Escape listener mounts with the modal (it was a no-op while closed). Save/autosave/publish/embed/delete
+paths unchanged. New `src/api/agentStudio.ts` (list + DELETE moved verbatim; keeps the authFetch ratchets).
+BuilderShell stays above 200 by review decision: a useBuilderSend hook would need values from useAutomationPersistence
+and would move the auto-send/turn-end effects behind the persistence effects (order-dependent).
+Mirror: `deepPick.ts` source changed (DeepenHandle.apply return type), mobile copy regenerated via gen:shared.
+
+## Gate at the final head
+`node scripts/ts-equivalence.mjs 81d6bedfc HEAD` covers every session's conversions since BASE; S1's own DIFFERENT files
+are exactly the 10 caughtError files (useAgentApi, AgentEditorBootstrapContext, BuilderConfigPanel, builderSplitActions,
+refineActions, useKnowledgeBases, FilesUploadModal, useAgentAutosave, ScheduleBuilder, HttpAuthPicker).
+
+## Ratchets measured at the final head (no --update run)
+long-function agent-hub 249 (budget 257), ts-ratchet 1942 .js/.jsx (budget 1955), duplication production 15070
+(budget 15290) / test 26228 (at budget), check:fast 39/39.
+
+## Reviews
+reviews/S1-agents-b19-b20.md, S1-builder-shared-b22.md, S1-builder-sweeps.md, S1-long-functions.md (+ re-review section).
