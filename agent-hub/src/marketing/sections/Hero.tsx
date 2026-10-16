@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { type CSSProperties } from 'react';
 import Button from '../components/Button';
 import AppIcon from '../../components/icons/AppIcon';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import FramedMedia from '../components/FramedMedia';
 import { inlineTextStyle } from './textStyle';
+import type { HeroData } from './Hero.types';
 
-const HERO_VARIANTS = ['classic', 'panel', 'split', 'video'];
+const HERO_VARIANTS: readonly (string | undefined)[] = ['classic', 'panel', 'split', 'video'];
 
-export default function Hero({ data }) {
+export default function Hero({ data }: { data?: HeroData }) {
     if (!data?.enabled) return null;
 
     // Sub-objects normalised once so the JSX below stays compact and we
@@ -58,7 +59,7 @@ export default function Hero({ data }) {
     // for forward-compat with blocks that put the flag on the CTA itself.
     const primaryNewTab   = !!(primary.link?.newTab || primary.openInNewTab);
     const secondaryNewTab = !!(second.link?.newTab  || second.openInNewTab);
-    const newTabProps = (on) => (on ? { target: '_blank', rel: 'noopener noreferrer' } : null);
+    const newTabProps = (on: boolean) => (on ? { target: '_blank', rel: 'noopener noreferrer' } : null);
 
     // Background variant — same scale as Media + Text and Content blocks.
     // 'default' produces no extra class (page bg shows through); the
@@ -88,7 +89,7 @@ export default function Hero({ data }) {
     const copy = (
         <div className="hero-content">
             {showBadge ? (
-                <div style={badgeAlign ? { textAlign: badgeAlign } : undefined}>
+                <div style={badgeAlign ? { textAlign: badgeAlign as CSSProperties['textAlign'] } : undefined}>
                     <div className="hero-badge reveal" style={badgeTextStyle}>
                         {badge.icon ? <AppIcon name={badge.icon} className="w-4 h-4" /> : null}
                         <EditableText path="hero.badge.text" placeholder="Badge text">
