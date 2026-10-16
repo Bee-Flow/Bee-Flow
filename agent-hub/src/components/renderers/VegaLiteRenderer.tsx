@@ -1,24 +1,26 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import vegaEmbed from 'vega-embed';
+import type { EmbedOptions, Result } from 'vega-embed';
+import { errorMessage } from '../../utils/caughtError';
 
 /**
  * VegaLiteRenderer — renders a Vega-Lite JSON spec as an interactive chart.
  * Uses resolved CSS variable values for theming (SVG can't use CSS vars directly).
  * Features: responsive width via ResizeObserver, themed action menu, fade-in animation.
  */
-const VegaLiteRenderer = ({ spec: specString }) => {
+const VegaLiteRenderer = ({ spec: specString }: { spec: string | Record<string, unknown> }) => {
     const { t } = useTranslation();
-    const containerRef = useRef(null);
-    const wrapperRef = useRef(null);
-    const viewRef = useRef(null);
-    const [error, setError] = useState(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const viewRef = useRef<Result['view'] | null>(null);
+    const [error, setError] = useState<string | null | undefined>(null);
     const [ready, setReady] = useState(false);
 
     // Resolve CSS vars once into real color values for SVG
     const resolveTheme = useCallback(() => {
         const cs = getComputedStyle(document.documentElement);
-        const r = (v, fb) => cs.getPropertyValue(v).trim() || fb;
+        const r = (v: string, fb: string) => cs.getPropertyValue(v).trim() || fb;
 
         return {
             textPrimary: r('--text-primary', '#e2e8f0'),
@@ -36,7 +38,7 @@ const VegaLiteRenderer = ({ spec: specString }) => {
         try {
             parsedSpec = typeof specString === 'string' ? JSON.parse(specString) : specString;
         } catch (e) {
-            setError(`Invalid Vega-Lite JSON: ${e.message}`);
+            setError(`Invalid Vega-Lite JSON: ${errorMessage(e)}`);
             return;
         }
 
@@ -132,7 +134,7 @@ const VegaLiteRenderer = ({ spec: specString }) => {
             ),
         };
 
-        const embedOptions = {
+        const embedOptions: EmbedOptions = {
             actions: {
                 export: true,
                 source: false,
@@ -157,7 +159,7 @@ const VegaLiteRenderer = ({ spec: specString }) => {
             });
 
         // ResizeObserver for responsive width
-        let resizeObserver;
+        let resizeObserver: ResizeObserver | undefined;
         if (wrapperRef.current) {
             resizeObserver = new ResizeObserver(() => {
                 if (viewRef.current) {
@@ -227,7 +229,7 @@ const VegaLiteRenderer = ({ spec: specString }) => {
  * Deep-merge two plain objects (source wins on conflicts).
  * Used to merge user config on top of our defaults.
  */
-function deepMerge(target, source) {
+function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
     const out = { ...target };
     for (const key of Object.keys(source)) {
         if (
@@ -238,7 +240,7 @@ function deepMerge(target, source) {
             typeof target[key] === 'object' &&
             !Array.isArray(target[key])
         ) {
-            out[key] = deepMerge(target[key], source[key]);
+            out[key] = deepMerge(target[key] as Record<string, unknown>, source[key] as Record<string, unknown>);
         } else {
             out[key] = source[key];
         }

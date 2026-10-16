@@ -157,7 +157,7 @@
     "src/components/chat/InputArea/index.jsx": 603,
     "src/components/chat/Voice/useVoiceSession.ts": 544,
     "src/components/chat/WorkspaceNotebook.jsx": 480,
-    "src/components/cowork/CoworkPage.jsx": 475,
+    "src/components/cowork/CoworkPage.tsx": 475,
     "src/components/forms/PublicFormRenderer.tsx": 996,
     "src/components/InitSetupWizard/index.tsx": 425,
     "src/components/integrations/azure/SSOSection.jsx": 419,
