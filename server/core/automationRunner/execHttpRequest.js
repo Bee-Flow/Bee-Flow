@@ -206,10 +206,20 @@ async function dispatchHttp(step, ctx, runState, mode, call) {
             throw new Error('http_request: refused — target resolves to a private/internal address. Turn off "Block requests to private/internal addresses" in this step\'s settings if you specifically need to reach it.');
         }
         if (e.name === 'AbortError') throw new Error(`http_request: timed out after ${timeoutMs}ms.`);
-        throw new Error(`http_request: ${e.message || String(e)}`);
+        const failed = new Error(`http_request: ${e.message || String(e)}`);
+        // The request never got an answer (DNS, refused, reset): not a missing
+        // "room token / board id", which is what the generic class suggests.
+        if (isNetworkFailure(e)) failed.errorClass = 'http_unreachable';
+        throw failed;
     } finally {
         clearTimeout(timer);
     }
+}
+
+const NETWORK_CODES = new Set(['ECONNREFUSED', 'ECONNRESET', 'ENOTFOUND', 'EAI_AGAIN', 'ETIMEDOUT', 'EHOSTUNREACH', 'ENETUNREACH', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_SOCKET']);
+function isNetworkFailure(e) {
+    const code = e && (e.code || (e.cause && e.cause.code));
+    return NETWORK_CODES.has(code) || (e && e.message === 'fetch failed');
 }
 
 async function execHttpRequest(step, ctx, runState, mode) {

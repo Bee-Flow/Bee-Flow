@@ -50,7 +50,7 @@
  *   4. empty `in`/`notIn` — sqlite emits literal 0/1 (falsy/truthy integers);
  *                        pg emits FALSE/TRUE (AND demands a boolean operand
  *                        there).
- *   5. dateBucketExpr()  — sqlite strftime family; pg to_char family
+ *   5. dateBucketSql() (dateBuckets.js) — sqlite strftime family; pg to_char family
  *                        (week is ISO IYYY-"W"IW under pg vs %Y-W%W —
  *                        documented drift, both label a week bucket).
  *   6. percentiles p50/p90 — sqlite has no percentile aggregate → ranked
@@ -70,6 +70,7 @@
 const { FILTER_OPS, AGG_FNS, PERCENTILE_FNS, DATE_BUCKETS, SYSTEM_COLUMNS, KEY_RE } = require('./dataModel/vocabulary');
 const { newRecordId } = require('./dataModel/ids');
 const { resolveDialect } = require('./engineFlag');
+const { dateBucketSql } = require('./dateBuckets');
 
 // Hard ceiling on rows a single list/aggregate may return. The store applies
 // its own MAX_RESULT_ROWS too; this keeps the SQL LIMIT sane and predictable.
@@ -240,7 +241,14 @@ function compileFilter(tableMeta, fm, filter, out, dialect) {
     const op = filter.op;
     if (!FILTER_OPS.includes(op)) throw new CompileError(`unknown filter op: ${op}`);
     switch (op) {
-        case 'eq': out.sql.push(`${col} = ?`); out.params.push(scalar(filter.value, dialect)); break;
+        case 'eq': {
+            // `ci: true` on a text match: equality without regard to case
+            // (ILIKE/LIKE with no wildcard). Only for a string value.
+            const ci = filter.ci === true && typeof filter.value === 'string';
+            out.sql.push(ci ? `${col} ${dialect === 'pg' ? 'ILIKE' : 'LIKE'} ? ESCAPE '\\'` : `${col} = ?`);
+            out.params.push(ci ? likeEscape(filter.value) : scalar(filter.value, dialect));
+            break;
+        }
         case 'neq': out.sql.push(`${col} != ?`); out.params.push(scalar(filter.value, dialect)); break;
         case 'gt': out.sql.push(`${col} > ?`); out.params.push(scalar(filter.value, dialect)); break;
         case 'gte': out.sql.push(`${col} >= ?`); out.params.push(scalar(filter.value, dialect)); break;
@@ -460,35 +468,6 @@ function compileGetById(tableMeta, id, accessFilter, opts = {}) {
     };
 }
 
-function dateBucketExpr(col, bucket, dialect) {
-    if (dialect === 'pg') {
-        // ::timestamptz because the column may be DATE or TIMESTAMPTZ; both
-        // cast cleanly and to_char then formats one type, not two.
-        switch (bucket) {
-            // Hour-of-day (00–23), not a timestamp — see the sqlite note below.
-            case 'hour': return `to_char(${col}::timestamptz, 'HH24')`;
-            case 'day': return `to_char(${col}::timestamptz, 'YYYY-MM-DD')`;
-            case 'week': return `to_char(${col}::timestamptz, 'IYYY-"W"IW')`;
-            case 'month': return `to_char(${col}::timestamptz, 'YYYY-MM')`;
-            case 'quarter': return `to_char(${col}::timestamptz, 'YYYY-"Q"Q')`;
-            case 'year': return `to_char(${col}::timestamptz, 'YYYY')`;
-            default: throw new CompileError(`unknown date bucket: ${bucket}`);
-        }
-    }
-    switch (bucket) {
-        // Hour-of-day (00–23), not a timestamp: what a "busiest hours"
-        // histogram folds every day of the range onto.
-        case 'hour': return `strftime('%H', ${col})`;
-        case 'day': return `strftime('%Y-%m-%d', ${col})`;
-        case 'week': return `strftime('%Y-W%W', ${col})`;
-        case 'month': return `strftime('%Y-%m', ${col})`;
-        case 'quarter':
-            return `(strftime('%Y', ${col}) || '-Q' || ((CAST(strftime('%m', ${col}) AS INTEGER) + 2) / 3))`;
-        case 'year': return `strftime('%Y', ${col})`;
-        default: throw new CompileError(`unknown date bucket: ${bucket}`);
-    }
-}
-
 function safeAlias(alias) {
     if (typeof alias !== 'string' || !ALIAS_RE.test(alias)) throw new CompileError(`invalid alias: ${alias}`);
     return alias;
@@ -533,7 +512,8 @@ function compileAggregate(tableMeta, opts = {}, accessFilter) {
         if (!g || typeof g !== 'object') throw new CompileError('groupBy entry must be an object');
         const col = resolveColumn(tableMeta, g.field, fm);
         if (g.bucket && !DATE_BUCKETS.includes(g.bucket)) throw new CompileError(`unknown date bucket: ${g.bucket}`);
-        const expr = g.bucket ? dateBucketExpr(col, g.bucket, dialect) : col;
+        const expr = g.bucket ? dateBucketSql(col, g.bucket, dialect) : col;
+        if (expr === null) throw new CompileError(`unknown date bucket: ${g.bucket}`);
         const alias = safeAlias(g.as || (g.bucket ? `${g.field}_${g.bucket}` : g.field));
         selectParts.push(`${expr} AS ${qi(alias)}`);
         groupExprs.push(expr);
@@ -640,7 +620,8 @@ function compileAggregate(tableMeta, opts = {}, accessFilter) {
  * INSERT a record. System columns are stamped from the server-supplied args
  * (createdBy/orgId) plus a fresh record id and timestamps — a client can NEVER
  * set id/created_at/updated_at/created_by/org_id (those keys are dropped).
- * Returns { sql, params, id }.
+ * Returns { sql, params, id, createdAt } (createdAt: the stamp written to
+ * created_at and updated_at).
  */
 function compileInsert(tableMeta, values, {
     createdBy = null, orgId = null, dialect: dialectOpt, id: idOpt, allowLockedRows = false,
@@ -670,7 +651,7 @@ function compileInsert(tableMeta, values, {
     }
     const sql = `INSERT INTO ${qi(tableMeta.key)} (${cols.map(qi).join(', ')}) `
         + `VALUES (${cols.map(() => '?').join(', ')})`;
-    return { sql, params, id };
+    return { sql, params, id, createdAt: now };
 }
 
 /**
@@ -726,7 +707,7 @@ function compileUpdate(tableMeta, id, values, accessFilter, {
 
     const sql = `UPDATE ${qi(tableMeta.key)} SET ${sets.join(', ')} `
         + `WHERE ${qi('id')} = ? AND (${accessFilter.where})${guard.join('')}`;
-    return { sql, params: [...params, id, ...accessFilter.params, ...guardParams] };
+    return { sql, params: [...params, id, ...accessFilter.params, ...guardParams], updatedAt: params[0] };
 }
 
 /**

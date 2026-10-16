@@ -166,6 +166,10 @@ const COMPLETENESS_CODES = new Set([
     // automation while reordering or rebuilding part of a flow.
     'ref.unknown_step',
     'ref.forward',
+    // Two steps reading each other (a data cycle with no edge cycle): usually
+    // one binding is repointed while a flow is rebuilt, so building through it is
+    // fine; it blocks at activate.
+    'ref.cycle',
     // A loop.<var> read by a step that does not (yet) iterate as <var> — the
     // forEach is usually the next thing the author adds.
     'ref.loop_unbound',

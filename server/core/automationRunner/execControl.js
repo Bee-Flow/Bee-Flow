@@ -100,12 +100,12 @@ async function execWait(step, ctx, runState, mode) {
 /**
  * Halt the run with an error message. The message is interpolated as a
  * template so it can include upstream fields (e.g. "budget exceeded by
- * {{steps.calc.output.delta}}"). The thrown error is recorded by the
- * normal error path and surfaces in run history.
+ * {{steps.calc.output.delta}}"). Recorded by the normal error path (class
+ * stop_error: the message is the whole cause, no generic remediation).
  */
 async function execStopError(step, ctx, runState) {
     const msg = require('../automationModel/bind').interpolateTemplate(step.message || 'Stopped by stop_error step', runState);
-    throw new Error(msg);
+    throw Object.assign(new Error(msg), { errorClass: 'stop_error' });
 }
 
 /**

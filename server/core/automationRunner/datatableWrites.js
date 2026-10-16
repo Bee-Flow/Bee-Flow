@@ -14,6 +14,7 @@
 'use strict';
 
 const { resolveInputs } = require('../automationModel/bind');
+const { normaliseCells } = require('./datatableCells');
 const { DATATABLE_MAX_LIMIT } = require('../automationModel/constants');
 // The storage envelope, shared with routes/datatables.js so the HTTP surface
 // and the runner cannot disagree about whether a tenant is full.
@@ -30,6 +31,7 @@ const stores = () => ({
     datatableDbStore: require('../../stores/datatableDbStore'),
     queryCompiler: require('../dataEngine/queryCompiler'),
     accessFilter: require('../dataEngine/accessFilter'),
+    assertQuota: assertDatatableQuota,
 });
 
 /** A credential must never become a permanent row (refusal #4). */
@@ -72,7 +74,10 @@ function prepareWriteValues(t) {
                 emptyOutput(op)),
         };
     }
-    if (op !== 'update_rows') return { values: resolvedValues };
+    // A live write carries the types of its columns (and fails naming the
+    // column when a value cannot be one); a preview keeps its synthetic cells.
+    const typed = t.mode === 'dry_run' ? resolvedValues : normaliseCells(t.tableMeta, resolvedValues);
+    if (op !== 'update_rows') return { values: typed };
     // An unresolved value may never overwrite a real column (refusal #5): a
     // ref that found nothing resolves to `undefined` → coerceValue → NULL, a
     // template that found nothing resolves to '', and an update writes that
@@ -87,6 +92,7 @@ function prepareWriteValues(t) {
         if (v === undefined || v === '') { dropped.push(k); continue; }
         values[k] = v;
     }
+    if (t.mode !== 'dry_run') Object.assign(values, normaliseCells(t.tableMeta, values));
     if (!Object.keys(values).length) {
         return {
             skip: skipped('datatable_values_unresolved',
@@ -126,8 +132,12 @@ function assertWritable(t, { accessFilter, queryCompiler }) {
 async function saveExistingRow(t, values, s) {
     const matchValue = values[t.step.matchColumn];
     if (matchValue === undefined || matchValue === null) return null;
+    // A text match ignores capitalisation ("A@X.COM" is the row "a@x.com"),
+    // like the Set step's groupId; a number, date or yes/no compares exactly.
+    const matchField = (t.tableMeta.fields || []).find(f => f.key === t.step.matchColumn);
+    const ci = !matchField || matchField.type === 'text' || matchField.type === 'select' || matchField.type === 'richtext';
     const probe = s.queryCompiler.compileRecordList(t.tableMeta, {
-        filters: [{ field: t.step.matchColumn, op: 'eq', value: matchValue }],
+        filters: [{ field: t.step.matchColumn, op: 'eq', value: matchValue, ...(ci ? { ci: true } : {}) }],
         limit: 1, dialect: 'pg',
     }, t.readFilter);
     const found = await s.datatableDbStore.query(t.scopeKey, t.scopeKey, probe.sql, probe.params);
@@ -144,7 +154,7 @@ async function saveExistingRow(t, values, s) {
     // still out of the UPDATE's scope, and reporting 1 for a statement that
     // changed nothing is how a automation claims to have saved something it
     // did not.
-    return { output: { row: { ...existing, ...values }, id: existing.id, created: false, updated: Number(res?.changes ?? 0) } };
+    return { output: { row: { ...existing, ...values, updated_at: upd.updatedAt }, id: existing.id, created: false, updated: Number(res?.changes ?? 0) } };
 }
 
 async function addRow(t, values, s) {
@@ -154,7 +164,7 @@ async function addRow(t, values, s) {
     // on … a quota" so an on_error branch catches something; only the HTTP
     // route ever enforced it, and only the per-table row cap, so in a
     // automation it caught nothing and the shared volume had no ceiling at all.
-    await assertDatatableQuota(t.scope, { table: t.table, addRows: 1 });
+    await s.assertQuota(t.scope, { table: t.table, addRows: 1 });
     // A mirror: the source first, the copy from its answer. A refusal
     // carries `errorClass`, so an on_error branch matches it like any
     // other datatable failure.
@@ -169,7 +179,13 @@ async function addRow(t, values, s) {
     // variable picker (Builder/mapping/upstream.js) has always advertised
     // steps.<id>.output.row.id. Both save_row branches and add_row now
     // return ONE shape.
-    return { output: { row: { ...values, id: ins.id }, id: ins.id, created: true, updated: 0 } };
+    // The system columns compileInsert stamped, so the row has the same keys
+    // the updating branch returns (it spreads the stored row).
+    const row = {
+        ...values, id: ins.id, created_at: ins.createdAt, updated_at: ins.createdAt,
+        created_by: t.ctx.userId || null, org_id: t.orgId || null,
+    };
+    return { output: { row, id: ins.id, created: true, updated: 0 } };
 }
 
 /**
@@ -272,9 +288,12 @@ async function updateOrDeleteRows(t, values, s) {
     return localUpdateOrDelete(t, values, ids, truncated, s);
 }
 
-/** Every write op, from the values to the result. */
-async function runDatatableWrite(t) {
-    const s = stores();
+/**
+ * Every write op, from the values to the result. `s` is the store set
+ * (datatableStore, datatableDbStore, queryCompiler, accessFilter); tests hand
+ * in their own, a run takes the real ones.
+ */
+async function runDatatableWrite(t, s = stores()) {
     const prepared = prepareWriteValues(t);
     if (prepared.skip) return prepared.skip;
     const { values } = prepared;

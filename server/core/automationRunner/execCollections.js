@@ -230,7 +230,7 @@ async function execSummarize(step, ctx, runState) {
     switch (step.op) {
         case 'count': result = arr.length; break;
         case 'sum':   result = values.reduce((a, b) => a + b, 0); break;
-        case 'avg':   result = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0; break;
+        case 'avg':   result = values.length ? values.reduce((a, b) => a + b, 0) / values.length : null; break;
         case 'min':   result = values.length ? Math.min(...values) : null; break;
         case 'max':   result = values.length ? Math.max(...values) : null; break;
         // Validator-blocked (validate.js summarize.op_invalid), but hand-written

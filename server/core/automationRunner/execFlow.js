@@ -17,6 +17,7 @@ const { runDag } = require('./runDag');
 const { resolveForEachItems } = require('./forEachScope');
 const { noteTruncation } = require('./truncations');
 const { buildLinearEdges } = require('./linearEdges');
+const { coerceLayerInputs } = require('./layerParams');
 
 // ── Parallel branches ───────────────────────────────────
 //
@@ -420,7 +421,7 @@ async function execCallLayer(step, ctx, runState, mode, dispatchSubStep) {
     if (!layer.trigger?.id) throw new Error(`Layer "${layer.title || step.layerKey}" has no input contract`);
 
     // Mapped inputs resolve against the PARENT runState → synthetic trigger.
-    const mappedInputs = resolveInputs(step.inputs || {}, runState, { allowSecrets: false });
+    const mappedInputs = coerceLayerInputs(layer, resolveInputs(step.inputs || {}, runState, { allowSecrets: false }), step.id);
 
     const subState = {
         trigger: { output: cloneRunValue(mappedInputs) },
