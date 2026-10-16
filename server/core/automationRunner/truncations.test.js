@@ -31,3 +31,11 @@ test('the run summary of a green run names the cut', () => {
     });
     assert.match(summary, /lp processed 100 of 250 items/);
 });
+
+test('a step capped on every iteration is one entry', () => {
+    const ctx = { _truncations: [] };
+    noteTruncation({ step: { id: 's1' }, ctx, processed: 100, total: 250 });
+    noteTruncation({ step: { id: 's1' }, ctx, processed: 100, total: 300 });
+    assert.strictEqual(ctx._truncations.length, 1);
+    assert.match(truncationSummary(ctx._truncations), /1 step stopped/);
+});

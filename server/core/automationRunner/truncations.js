@@ -38,7 +38,11 @@ function noteTruncation({ step, ctx, runState, processed, total, unit = 'items',
     const implicit = implicitCap !== undefined ? implicitCap : !step.maxIterations;
     const entry = { stepId: step && step.id ? String(step.id) : '?', processed, total, unit, implicit };
     const run = ctx && Array.isArray(ctx._truncations) ? ctx._truncations : null;
-    if (run && run.length < MAX_RUN_TRUNCATIONS) run.push(entry);
+    // One entry per step (as bindingMisses.js): a capped step inside a Loop
+    // reports on every iteration and is still one line in the summary.
+    const same = run && run.find(r => r.stepId === entry.stepId);
+    if (same) Object.assign(same, entry);
+    else if (run && run.length < MAX_RUN_TRUNCATIONS) run.push(entry);
     const warnings = runState && Array.isArray(runState._templateWarnings) ? runState._templateWarnings : null;
     if (warnings) {
         const line = describeTruncation(entry);
