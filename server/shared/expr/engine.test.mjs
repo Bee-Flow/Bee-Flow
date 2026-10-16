@@ -188,3 +188,9 @@ test('the binding resolver agrees with the engine on string members', async () =
         assert.deepEqual(evaluate(path, state), walkPath(path, state), `path: ${path}`);
     }
 });
+
+test('len and count measure text in code points, not UTF-16 units', () => {
+    assert.equal(evaluate('len("😀日本")', {}), 3);
+    assert.equal(evaluate('count("😀日本")', {}), 3);
+    assert.equal(evaluate('len(xs)', { xs: ['😀', 'a'] }), 2);
+});

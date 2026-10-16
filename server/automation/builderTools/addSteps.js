@@ -237,7 +237,7 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
     // A step field at the ROOT of the call (`{steps:[…], type:"integration_action"}`,
     // measured 2026-09-16) belongs to an entry. It is ignored either way; said
     // once, the next batch does not carry it.
-    const strayRoot = Object.keys(args || {}).filter(k => k !== 'steps');
+    const strayRoot = Object.keys(args || {}).filter(k => k !== 'steps' && k !== 'scope'); // scope names the flowlet and was used
     if (strayRoot.length) {
         notes.push(`${strayRoot.map(k => `"${k}"`).join(', ')} sat at the root of the call and ${strayRoot.length > 1 ? 'were' : 'was'} ignored — the call takes only \`steps\`, and every step field belongs inside that entry's spec.`);
     }

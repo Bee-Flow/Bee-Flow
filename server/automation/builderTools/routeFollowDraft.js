@@ -77,8 +77,15 @@ function followAddedSteps(graph, ids) {
         const { definition, rebound } = followRouteAround(graph, id);
         applyInPlace(graph, definition);
         for (const [stepId, r] of byStep(rebound)) {
-            const path = rewrittenPath(stepIn(graph, stepId), r.to);
-            notes.push(`Re-pointed ${stepId} to read ${outputPhrase(r.to)}: ${path} (it read ${r.from.join(', ')}).`);
+            const at = stepIn(graph, stepId);
+            const path = rewrittenPath(at, r.to);
+            // A second Condition chained after a list Condition narrows what
+            // the first one kept (filters in series). Say how to get the
+            // other shape, so the re-pointing is not a surprise.
+            const series = at && isListRoute(at) && stepId === id
+                ? ' Conditions in series narrow each other; to run this one on the original list instead, add it with afterStepId set to the step that produced the list (a parallel branch).'
+                : '';
+            notes.push(`Re-pointed ${stepId} to read ${outputPhrase(r.to)}: ${path} (it read ${r.from.join(', ')}).${series}`);
         }
     }
     return notes;

@@ -178,7 +178,7 @@ const AUTOMATION_TOOLS = [
 function buildToolList() {
     const builder = TOOL_SCHEMAS
         .map((t) => t.function)
-        .filter((fn) => fn && !ROUTE_ONLY_TOOLS.has(fn.name));
+        .filter((fn) => fn && !ROUTE_ONLY_TOOLS.has(fn.name) && (fn.name !== 'builder_add_code_step' || require('./codeSandbox').isAvailable()));
     return [...AUTOMATION_TOOLS, ...builder].map(toMcpTool);
 }
 
@@ -343,7 +343,7 @@ async function runGetGuide(userId) {
     // gets on its first turn.
     const guide = buildFullSystemPrompt({
         catalog,
-        codeStepEnabled: false,
+        codeStepEnabled: require('./codeSandbox').isAvailable(),
     });
     // The guide says the timezone and the other per-turn preferences arrive
     // in a "This turn" note right before the user's message. The chat route

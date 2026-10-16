@@ -261,6 +261,13 @@ function walkJsonPath(value, path) {
     return tokens ? walkTokens(tokens, value) : undefined;
 }
 
+/** Items of a list, code points of a text (not UTF-16 units), keys of an object. */
+function sizeOf(a) {
+    if (Array.isArray(a)) return a.length;
+    if (typeof a === 'string') return [...a].length;
+    return a != null && typeof a === 'object' ? Object.keys(a).length : 0;
+}
+
 export const FUNCTIONS = {
     // ── Original 7 (kept byte-identical to server/automation/expr.js) ──────
     contains: (a, b) => {
@@ -271,12 +278,7 @@ export const FUNCTIONS = {
     endsWith: (a, b) => textEndsWith(a, b),
     lower: (a) => (a == null ? '' : String(a).toLowerCase()),
     upper: (a) => (a == null ? '' : String(a).toUpperCase()),
-    len: (a) => {
-        if (a == null) return 0;
-        if (Array.isArray(a) || typeof a === 'string') return a.length;
-        if (typeof a === 'object') return Object.keys(a).length;
-        return 0;
-    },
+    len: (a) => sizeOf(a),
     isEmpty: (a) => isEmptyValue(a),
 
     // ── Rules (logic in rules.mjs, shared with the rule rows) ──────────────
@@ -464,12 +466,7 @@ export const FUNCTIONS = {
     includes: (arr, x) => (Array.isArray(arr)
         ? arr.some((el) => el === x || (typeof el === 'string' && typeof x === 'string' && ciEq(el, x)))
         : false),
-    count: (a) => {
-        if (a == null) return 0;
-        if (Array.isArray(a) || typeof a === 'string') return a.length;
-        if (typeof a === 'object') return Object.keys(a).length;
-        return 0;
-    },
+    count: (a) => sizeOf(a),
     // Positional navigation — at/index_of are the prev/next primitives: find
     // the index of the current selection in a source list, then read the
     // neighbour at index ± 1. Both are list-only (a string is not a list here,

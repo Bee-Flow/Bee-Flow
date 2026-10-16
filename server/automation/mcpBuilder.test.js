@@ -277,3 +277,8 @@ test('over MCP builder_update_step performs a type change (Nextcloud Tables row 
     assert.deepEqual(r.replacedType, { from: 'integration_action', to: 'datatable' });
     assert.deepEqual([wrap.def.steps[0].type, wrap.def.steps[0].op, Object.keys(wrap.def.steps[0].values)], ['datatable', 'add_row', ['datum']]);
 });
+
+test('builder_add_code_step is advertised exactly when the code sandbox can run it', () => {
+    const names = mcpBuilder.buildToolList().map((t) => t.name);
+    assert.equal(names.includes('builder_add_code_step'), require('./codeSandbox').isAvailable());
+});
