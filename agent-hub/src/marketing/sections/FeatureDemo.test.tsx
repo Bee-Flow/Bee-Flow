@@ -74,7 +74,7 @@ describe('on desktop', () => {
 
         const iframe = container.querySelector('iframe.feature-demo-iframe') as HTMLElement;
         expect(iframe).not.toBeNull();
-        expect(iframe.getAttribute('src')).toBe('/__demo__/automations?theme=light');
+        expect(iframe.getAttribute('src')).toBe('/__demo__/automations?theme=light&lang=en');
         expectContainment(iframe);
     });
 
@@ -108,7 +108,7 @@ describe('on a phone', () => {
         // sits outside the tab order (it is inside an aria-hidden subtree),
         // and does NOT carry vw — viewport meta is inert inside an iframe.
         const iframe = canvas.querySelector('iframe.feature-demo-iframe') as HTMLElement;
-        expect(iframe.getAttribute('src')).toBe('/__demo__/automations?theme=light');
+        expect(iframe.getAttribute('src')).toBe('/__demo__/automations?theme=light&lang=en');
         expectContainment(iframe);
         expect(iframe.getAttribute('tabindex')).toBe('-1');
 
@@ -124,7 +124,7 @@ describe('on a phone', () => {
         const button = container.querySelector('a.feature-demo-open-btn') as HTMLElement;
         for (const link of [overlay, button]) {
             expect(link).not.toBeNull();
-            expect(link.getAttribute('href')).toBe('/__demo__/automations?theme=light&vw=1280');
+            expect(link.getAttribute('href')).toBe('/__demo__/automations?theme=light&lang=en&vw=1280');
             // Same tab on purpose: the demo host's close button relies on
             // history.back() landing on this exact page.
             expect(link.getAttribute('target')).toBeNull();
@@ -140,7 +140,7 @@ describe('on a phone', () => {
     it('carries a dark theme into the full-screen URL', () => {
         const { container } = render(<FeatureDemo data={{ ...base, theme: 'dark' }} />);
         expect((container.querySelector('a.feature-demo-open-overlay') as HTMLElement).getAttribute('href'))
-            .toBe('/__demo__/automations?theme=dark&vw=1280');
+            .toBe('/__demo__/automations?theme=dark&lang=en&vw=1280');
     });
 
     it('still renders the placeholder for an unknown feature — no iframe, no links', () => {

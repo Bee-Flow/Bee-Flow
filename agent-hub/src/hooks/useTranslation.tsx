@@ -11,6 +11,7 @@
 import { createContext, useContext, useState, useEffect, useEffectEvent, useCallback, useRef, type ReactNode } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { isPublicMarketingPath } from '../utils/cmsPublicRouting';
+import { demoLangOverride } from './demoLang';
 import {
     buildStampedCacheKey,
     I18N_CACHE_PREFIX,
@@ -126,9 +127,10 @@ async function fetchAvailableLocaleCodes(apiBase: string): Promise<string[] | nu
  * TranslationProvider — wrap your app with this to enable translations
  */
 export function TranslationProvider({ children }: { children: ReactNode }) {
-    const hasStoredLocale = useRef(!!localStorage.getItem(STORAGE_KEY));
+    const [demoLang] = useState(() => demoLangOverride(window.location.pathname, window.location.search));
+    const hasStoredLocale = useRef(!demoLang && !!localStorage.getItem(STORAGE_KEY));
     const [locale, setLocaleState] = useState(() => {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        const stored = demoLang ?? localStorage.getItem(STORAGE_KEY); // a framed demo follows its page
         if (stored) return stored;
         // Auto-detect browser language (nl, nl-NL → nl)
         const nav: Navigator & { userLanguage?: string } = navigator;
@@ -248,7 +250,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
 
     // Post-auth: check for org default locale
     useEffect(() => {
-        if (!hasStoredLocale.current) {
+        if (!hasStoredLocale.current && !demoLang) {
             authFetch(`${API_BASE}/api/languages/user/locales`)
                 .then(r => r.json())
                 .then(data => {
@@ -271,9 +273,9 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     }, [locale, loadStrings]);
 
     const setLocale = useCallback((newLocale: string) => {
-        localStorage.setItem(STORAGE_KEY, newLocale);
+        if (!demoLang) localStorage.setItem(STORAGE_KEY, newLocale);
         setLocaleState(newLocale);
-    }, []);
+    }, [demoLang]);
 
     /**
      * t(key, fallbackOrParams?, params?) — translate a key.

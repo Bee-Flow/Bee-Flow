@@ -4,6 +4,7 @@ import SectionFrame from '../components/SectionFrame';
 import SectionHeader from '../components/SectionHeader';
 import { sectionBgClass } from './sectionBg';
 import { DEMO_FEATURE_IDS } from '../../demo/registry';
+import { LOCALE_PREFIXES } from '../../utils/cmsPublicRouting';
 import type { SectionDataBase } from './sectionData.types';
 
 interface FeatureDemoData extends SectionDataBase {
@@ -106,7 +107,10 @@ export default function FeatureDemo({ data }: { data?: FeatureDemoData }) {
     const scale = clipW > 0 ? Math.min(1, clipW / DEMO_LOGICAL_WIDTH) : 320 / DEMO_LOGICAL_WIDTH;
     const logicalHeight = Math.max(height, Math.min(1200, Math.round(MIN_PREVIEW_HEIGHT / scale)));
     const displayHeight = Math.round(logicalHeight * scale);
-    const demoUrl = `/__demo__/${encodeURIComponent(feature)}?theme=${theme}&vw=${DEMO_LOGICAL_WIDTH}`;
+    // The demo is a separate document: tell it which language the page around
+    // it is in, so a Dutch page does not frame an English product.
+    const frameSrc = `/__demo__/${encodeURIComponent(feature)}?theme=${theme}&lang=${pageLocale()}`;
+    const demoUrl = `${frameSrc}&vw=${DEMO_LOGICAL_WIDTH}`;
 
     return (
         <SectionFrame id="feature-demo" name="Live feature demo" enabled={data.enabled}>
@@ -159,7 +163,7 @@ export default function FeatureDemo({ data }: { data?: FeatureDemoData }) {
                                     }}
                                 >
                                     <iframe
-                                        src={`/__demo__/${encodeURIComponent(feature)}?theme=${theme}`}
+                                        src={frameSrc}
                                         title={data.title || `${feature} demo`}
                                         className="feature-demo-iframe"
                                         loading="lazy"
@@ -182,7 +186,7 @@ export default function FeatureDemo({ data }: { data?: FeatureDemoData }) {
                             </div>
                         ) : (
                             <iframe
-                                src={`/__demo__/${encodeURIComponent(feature)}?theme=${theme}`}
+                                src={frameSrc}
                                 title={data.title || `${feature} demo`}
                                 className="feature-demo-iframe"
                                 loading="lazy"
@@ -211,6 +215,17 @@ export default function FeatureDemo({ data }: { data?: FeatureDemoData }) {
             </section>
         </SectionFrame>
     );
+}
+
+// The language of the page the block sits on, by the rule the cookie banner
+// follows (resolveCookieLang): the path prefix (/nl/...) first, then ?locale=.
+// Anything else is English. Only members of LOCALE_PREFIXES come out.
+function pageLocale(): string {
+    if (typeof window === 'undefined') return 'en';
+    const seg = (window.location.pathname.split('/')[1] || '').toLowerCase();
+    if (LOCALE_PREFIXES.has(seg)) return seg;
+    const param = (new URLSearchParams(window.location.search).get('locale') || '').toLowerCase().split('-')[0];
+    return LOCALE_PREFIXES.has(param) ? param : 'en';
 }
 
 function isPreviewMode() {
