@@ -1,6 +1,6 @@
 /**
  * A schedule — the web's visual schedule builder (agent-hub
- * `Builder/flow/ScheduleBuilder.jsx`) over model/schedule.ts, its port: pick a
+ * `Builder/flow/ScheduleBuilder.tsx`) over model/schedule.ts, its port: pick a
  * shape (every N minutes, hourly, daily, weekly, monthly), fill in the time,
  * and the cron is written for you. Anything that is not one of those shapes
  * is held in Custom and round-trips untouched; only strings the server's cron

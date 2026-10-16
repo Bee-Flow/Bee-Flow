@@ -26,7 +26,7 @@ const WEB: Record<string, string[]> = {
         'flow/settings/triggerEditors.jsx',
         'flow/settings/triggerFilters.jsx',
         'flow/settings/FormTriggerFields.tsx',
-        'flow/ScheduleBuilder.jsx',
+        'flow/ScheduleBuilder.tsx',
         'webhooks/TriggerWebhookPanel.tsx',
         'webhooks/useWebhooks.ts',
         'WebhookPanel.tsx',

@@ -6,7 +6,9 @@ import type { SignupEnvironment, SignupSettings } from './useSignupSettings';
 import WaitlistQueue from './WaitlistQueue';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { Button } from '../../../shared/Button';
-import { Banner, SectionHeader, Spinner } from '../ui/typedUi';
+import { Banner } from '../ui/Banner';
+import { SectionHeader } from '../ui/SectionHeader';
+import { Spinner } from '../ui/Spinner';
 
 /** Why the switches are overridden, or that they take effect at once. */
 function OverrideBanners({ settings, env }: { settings: SignupSettings; env: SignupEnvironment }) {

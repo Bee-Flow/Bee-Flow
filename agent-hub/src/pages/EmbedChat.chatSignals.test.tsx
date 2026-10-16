@@ -4,6 +4,7 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { queryWrapper } from '../test/queryWrapper';
 import EmbedChatJs from './EmbedChat';
+import { reply, streamResponseOf } from './EmbedChat.testkit';
 
 /**
  * The embed for website visitors: the AI line before the first message, the
@@ -20,22 +21,6 @@ const NOTICE_ON = { state: 'on', from: '2026-10-14', version: VERSION, signals: 
 let complianceNotice: Record<string, unknown> | undefined;
 let fetchSpy: MockInstance<typeof fetch>;
 
-function streamResponse() {
-    const chunks = ['event: content\ndata: {"text":"Hi."}\n\n'].map((c) => new TextEncoder().encode(c));
-    let i = 0;
-    return {
-        ok: true,
-        status: 200,
-        body: {
-            getReader: () => ({
-                read: () => Promise.resolve(i < chunks.length ? { done: false, value: chunks[i++] } : { done: true, value: undefined }),
-            }),
-        },
-    } as unknown as Response;
-}
-
-const reply = (body: unknown) => ({ ok: true, status: 200, json: async () => body, text: async () => '' }) as unknown as Response;
-
 beforeEach(() => {
     complianceNotice = NOTICE_ON;
     fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
@@ -43,7 +28,7 @@ beforeEach(() => {
         if (url.endsWith('/agents/a1/embed')) {
             return reply({ id: 'a1', name: 'Helper', description: '', avatar: '', starterPrompts: [], copyEnabled: false, complianceNotice });
         }
-        if (url.endsWith('/agents/a1/chat/stream')) return streamResponse();
+        if (url.endsWith('/agents/a1/chat/stream')) return streamResponseOf('event: content\ndata: {"text":"Hi."}\n\n');
         return reply({});
     });
 });

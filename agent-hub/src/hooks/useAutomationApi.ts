@@ -214,7 +214,7 @@ export default function useAutomationApi() {
                 signal,
             );
         },
-        previewSchedule: (cron: string, tz: string, count = 3) => send('POST', '/_schedule/preview', { cron, tz, count }),
+        previewSchedule: <T = unknown>(cron: string, tz: string, count = 3) => send<T>('POST', '/_schedule/preview', { cron, tz, count }),
         // Cross-route helpers: reusable HTTP credentials (org vault) for the
         // http_request step's Authentication picker. Live under
         // /api/integrations/connections; includeShared adds credentials lent
