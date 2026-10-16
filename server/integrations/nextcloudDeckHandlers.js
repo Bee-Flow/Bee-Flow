@@ -4,6 +4,8 @@
  * what the tool returns to the model; HANDLERS maps tool names to them.
  */
 
+const { nextcloudHttpError } = require('./nextcloudHttpError');
+
 // ─── Helpers ──────────────────────────────────────────────────────
 
 function deckRoot(baseUrl) {
@@ -307,6 +309,9 @@ async function assignLabel(args, { api, ncFetch, authError, toolName }) {
         body: { labelId: args.labelId },
     });
     if (res.status === 401) return { error: authError };
+    if (res.status === 403 || res.status === 404 || res.status >= 500) {
+        return nextcloudHttpError(res, { authError, what: `${op} (check the board, stack, card and label ids)` });
+    }
     if (!res.ok) {
         const body = await readJsonSafe(res);
         return { error: `${op} failed (${res.status})`, detail: body };

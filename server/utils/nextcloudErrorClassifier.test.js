@@ -62,3 +62,11 @@ test('extractHttpStatus reads the client\'s two shapes', () => {
     assert.strictEqual(extractHttpStatus('request failed: 503'), 503);
     assert.strictEqual(extractHttpStatus('no status here'), null);
 });
+
+test('the Nextcloud tools\' own 403 and 404 wording is not taken for a connector outage', () => {
+    const denied = classifyNextcloudError('Permission denied for Teams update: Only the owner may do this.');
+    assert.notStrictEqual(denied.code, 'CONNECTOR_UNREACHABLE');
+    assert.strictEqual(denied.category, 'permission');
+    const missing = classifyNextcloudError('Not found for Forms form fetch: the id may be wrong, or the "Forms" app is not installed or enabled.');
+    assert.strictEqual(missing.code, 'NOT_FOUND');
+});

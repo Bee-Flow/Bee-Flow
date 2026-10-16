@@ -8,6 +8,7 @@
  */
 
 const ncClient = require('./nextcloudClient');
+const { nextcloudHttpError } = require('./nextcloudHttpError');
 
 const NEXTCLOUD_ACTIVITY_TOOLS = [
     {
@@ -90,9 +91,7 @@ async function executeNextcloudActivityTool(toolName, args, userId, session) {
             if (args.type) params.set('type', args.type);
             const url = `${activityApi(baseUrl)}/${encodeURIComponent(filter)}?${params.toString()}`;
             const res = await ncFetch(url, { headers });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: 'Activity app is not installed/enabled on this Nextcloud server.' };
-            if (!res.ok) return { error: `Activity fetch failed (${res.status})` };
+            if (!res.ok) return nextcloudHttpError(res, { authError, what: `activity fetch for filter "${filter}"`, app: 'Activity' });
             const data = await readJsonSafe(res);
             const items = Array.isArray(data?.ocs?.data) ? data.ocs.data : [];
             return { count: items.length, activities: items.map(mapActivity) };
@@ -103,9 +102,7 @@ async function executeNextcloudActivityTool(toolName, args, userId, session) {
             const limit = Math.min(Math.max(args.limit || 50, 1), 200);
             const url = `${activityApi(baseUrl)}/filter?format=json&limit=${limit}&object_type=files&object_id=${encodeURIComponent(args.fileId)}`;
             const res = await ncFetch(url, { headers });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: 'Activity app is not installed/enabled on this Nextcloud server.' };
-            if (!res.ok) return { error: `Activity fetch failed (${res.status})` };
+            if (!res.ok) return nextcloudHttpError(res, { authError, what: 'activity fetch for this file', app: 'Activity' });
             const data = await readJsonSafe(res);
             const items = Array.isArray(data?.ocs?.data) ? data.ocs.data : [];
             return { fileId: args.fileId, count: items.length, activities: items.map(mapActivity) };

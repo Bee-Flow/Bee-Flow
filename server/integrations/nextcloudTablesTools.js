@@ -21,6 +21,7 @@
  */
 
 const ncClient = require('./nextcloudClient');
+const { nextcloudHttpError } = require('./nextcloudHttpError');
 
 const TABLES_API = '/index.php/apps/tables/api/1';
 // A table with tens of thousands of rows would blow the model's context and
@@ -230,11 +231,9 @@ async function handle(res, authError, what) {
     if (res.status === 404) {
         return { error: `Nextcloud Tables is not installed or the ${what} does not exist. Install the "Tables" app in Nextcloud to use these tools.` };
     }
-    if (!res.ok) {
-        const body = await readJsonSafe(res);
-        const detail = typeof body === 'string' ? body.slice(0, 200) : (body?.message || body?.ocs?.meta?.message || '');
-        return { error: `Nextcloud Tables ${what} failed (${res.status})${detail ? `: ${detail}` : ''}` };
-    }
+    // Other failures go through the shared mapper: a 5xx body (raw SQL, the
+    // table prefix) is never echoed, a 4xx shows only Nextcloud's own reason.
+    if (!res.ok) return nextcloudHttpError(res, { authError, what: `Tables ${what}`, app: 'Tables' });
     const body = await readJsonSafe(res);
     return { ok: true, data: body?.ocs?.data ?? body };
 }

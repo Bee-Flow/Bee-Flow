@@ -20,6 +20,8 @@
  */
 
 const ncClient = require('./nextcloudClient');
+const { nextcloudHttpError } = require('./nextcloudHttpError');
+const { toShareId } = require('./nextcloudFiles/sharing');
 
 const CIRCLES_API = '/ocs/v2.php/apps/circles/circles';
 
@@ -182,15 +184,7 @@ async function readJsonSafe(res) {
 }
 
 async function handle(res, authError, what) {
-    if (res.status === 401 || res.status === 403) return { error: authError };
-    if (res.status === 404) {
-        return { error: `Nextcloud Teams did not answer the ${what} call — enable the "Circles"/"Teams" app in Nextcloud, or check the team id.` };
-    }
-    if (!res.ok) {
-        const body = await readJsonSafe(res);
-        const detail = typeof body === 'string' ? body.slice(0, 200) : (body?.ocs?.meta?.message || '');
-        return { error: `Nextcloud Teams ${what} failed (${res.status})${detail ? `: ${detail}` : ''}` };
-    }
+    if (!res.ok) return nextcloudHttpError(res, { authError, what: `Teams ${what}`, app: 'Teams' });
     const body = await readJsonSafe(res);
     return { ok: true, data: body?.ocs?.data ?? body };
 }
@@ -383,7 +377,8 @@ async function executeNextcloudTeamsTool(toolName, args, userId, session) {
             const share = out.data || {};
             return {
                 success: true,
-                shareId: share.id ?? null,
+                id: toShareId(share.id),
+                shareId: toShareId(share.id),
                 path: args.path,
                 teamId: args.teamId,
                 permissions: share.permissions ?? Number(args.permissions || 1),

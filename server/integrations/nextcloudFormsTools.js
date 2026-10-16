@@ -19,6 +19,7 @@
  */
 
 const ncClient = require('./nextcloudClient');
+const { nextcloudHttpError } = require('./nextcloudHttpError');
 
 const FORMS_API = '/ocs/v2.php/apps/forms/api/v3';
 const MAX_SUBMISSIONS = 200;
@@ -151,18 +152,7 @@ async function readJsonSafe(res) {
 }
 
 async function handle(res, authError, what) {
-    if (res.status === 401 || res.status === 403) return { error: authError };
-    if (res.status === 404) {
-        return {
-            error: `Nextcloud Forms did not answer the ${what} call. Install/enable the "Forms" app `
-                + '(these tools need Forms with its v3 API — Nextcloud 29+).',
-        };
-    }
-    if (!res.ok) {
-        const body = await readJsonSafe(res);
-        const detail = typeof body === 'string' ? body.slice(0, 200) : (body?.ocs?.meta?.message || body?.message || '');
-        return { error: `Nextcloud Forms ${what} failed (${res.status})${detail ? `: ${detail}` : ''}` };
-    }
+    if (!res.ok) return nextcloudHttpError(res, { authError, what: `Forms ${what}`, app: 'Forms' });
     const body = await readJsonSafe(res);
     return { ok: true, data: body?.ocs?.data ?? body };
 }

@@ -283,3 +283,12 @@ test('comments use the OCS family with the OCS header', async () => {
     assert.deepEqual((await run('nextcloud_deck_list_comments', { cardId: 10 }, { [get]: res(401, '') })).out, { error: 'AUTH-ERR' });
     assert.deepEqual((await run('nextcloud_deck_list_comments', { cardId: 10 }, { [get]: res(500, '') })).out, { error: 'Comment list failed (500)' });
 });
+
+test('remove_label: a 403 or 404 names its cause instead of a bare status', async () => {
+    const a = { boardId: 3, stackId: 1, cardId: 10, labelId: 5 };
+    const key = `PUT ${API}/boards/3/stacks/1/cards/10/removeLabel`;
+    const denied = (await run('nextcloud_deck_remove_label', a, { [key]: res(403, '{"message":"Not allowed"}') })).out;
+    assert.match(denied.error, /Permission denied/);
+    const missing = (await run('nextcloud_deck_remove_label', a, { [key]: res(404, '{"message":"Label not found"}') })).out;
+    assert.match(missing.error, /Not found.*Label not found/);
+});
