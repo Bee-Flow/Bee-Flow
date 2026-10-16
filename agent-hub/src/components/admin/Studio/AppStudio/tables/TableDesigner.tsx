@@ -4,6 +4,8 @@ import useTranslation from '../../../../../hooks/useTranslation';
 import { RepeatableList } from '../../../product-website/fields';
 import FormulaField from '../inspector/logic/FormulaField';
 import { NumberField, TextField } from '../inspector/panels/kit';
+import type { ModelField, ModelTable } from './tablesManagerModel';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 
 /**
  * App Studio — the field editor for ONE data-model table.
@@ -24,7 +26,7 @@ import { NumberField, TextField } from '../inspector/panels/kit';
  * behind an explicit, warned opt-in.
  */
 
-const fieldTypes = (t) => [
+const fieldTypes = (t: TranslateFn) => [
     { value: 'text', label: t('studio_apps_tables.designer.type_text', 'Text') },
     { value: 'richtext', label: t('studio_apps_tables.designer.type_richtext', 'Rich text') },
     { value: 'number', label: t('studio_apps_tables.designer.type_number', 'Number') },
@@ -40,15 +42,15 @@ const fieldTypes = (t) => [
 
 const SYSTEM_COLUMNS = new Set(['id', 'created_at', 'updated_at', 'created_by', 'org_id']);
 
-function randHex(n) {
+function randHex(n: number): string {
     let s = '';
     while (s.length < n) s += Math.floor(Math.random() * 16).toString(16);
     return s.slice(0, n);
 }
-export function newFieldId() { return `fld_${randHex(6)}`; }
+export function newFieldId(): string { return `fld_${randHex(6)}`; }
 
 /** Slugify free text into a valid, non-system field key (letters/digits/_). */
-export function slugifyKey(input) {
+export function slugifyKey(input: unknown): string {
     let k = String(input || '').toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^[^a-z]+/, '').replace(/_+/g, '_').replace(/^_|_$/g, '');
     if (!k) k = `field_${randHex(4)}`;
     if (SYSTEM_COLUMNS.has(k)) k = `${k}_field`;
@@ -61,25 +63,40 @@ const FIELD_CLS =
     'border-[var(--border-default)] text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] ' +
     'focus:border-[var(--accent-primary)] transition-colors disabled:opacity-50';
 
+/** A choice stored as an object. */
+interface ChoiceObject {
+    value?: unknown;
+    label?: unknown;
+}
+
 /** A choice as the user reads it — the server stores strings or { value, label }. */
-function optionLabel(option) {
-    if (option && typeof option === 'object') return String(option.label ?? option.value ?? '');
+function optionLabel(option: unknown): string {
+    if (option && typeof option === 'object') return String((option as ChoiceObject).label ?? (option as ChoiceObject).value ?? '');
     return String(option ?? '');
 }
-function nextOption(option, text) {
+function nextOption(option: unknown, text: string) {
     return (option && typeof option === 'object') ? { ...option, value: text, label: text } : text;
 }
 
 /** Switching to a choice type seeds a few blank choices to fill in. */
-function typePatch(field, type) {
-    const patch = { type };
+function typePatch(field: ModelField, type: string): Partial<ModelField> {
+    const patch: Partial<ModelField> = { type };
     if ((type === 'select' || type === 'multiselect') && !Array.isArray(field.options)) patch.options = ['', '', ''];
     return patch;
 }
 
-function FieldEditor({ field, update, tables, currentTableId, saved, disabled }) {
+interface FieldEditorProps {
+    field: ModelField;
+    update: (next: ModelField) => void;
+    tables?: ModelTable[] | null;
+    currentTableId?: string;
+    saved: boolean;
+    disabled: boolean;
+}
+
+function FieldEditor({ field, update, tables, currentTableId, saved, disabled }: FieldEditorProps) {
     const { t } = useTranslation();
-    const set = (patch) => update({ ...field, ...patch });
+    const set = (patch: Partial<ModelField>) => update({ ...field, ...patch });
     // While a key is still auto-derived (blank or matches the name's slug), keep
     // deriving it from the name; once the user edits the key explicitly, leave it.
     // A saved field's key is frozen — its name is then just a label.
@@ -205,7 +222,7 @@ function FieldEditor({ field, update, tables, currentTableId, saved, disabled })
                     <span className="text-xs font-medium text-[var(--text-secondary)]">{t('studio_apps_tables.designer.computed_expr', 'Computed expression')}</span>
                     <FormulaField
                         value={field.computed?.expr || ''}
-                        onChange={(expr) => set({ computed: { ...(field.computed || {}), expr } })}
+                        onChange={(expr: string) => set({ computed: { ...(field.computed || {}), expr } })}
                         placeholder={t('studio_apps_tables.designer.computed_placeholder', 'e.g. price * quantity')}
                         disabled={disabled}
                     />
@@ -231,10 +248,18 @@ function FieldEditor({ field, update, tables, currentTableId, saved, disabled })
     );
 }
 
-export default function TableDesigner({ table, tables, savedTable = null, onChange, disabled = false }) {
+interface TableDesignerProps {
+    table: ModelTable | null;
+    tables?: ModelTable[] | null;
+    savedTable?: ModelTable | null;
+    onChange: (table: ModelTable) => void;
+    disabled?: boolean;
+}
+
+export default function TableDesigner({ table, tables, savedTable = null, onChange, disabled = false }: TableDesignerProps) {
     const { t } = useTranslation();
     if (!table) return null;
-    const set = (patch) => onChange({ ...table, ...patch });
+    const set = (patch: Partial<ModelTable>) => onChange({ ...table, ...patch });
     const fields = Array.isArray(table.fields) ? table.fields : [];
     const savedFieldIds = new Set((Array.isArray(savedTable?.fields) ? savedTable.fields : []).map((f) => f.id));
 

@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import type { TableColumn } from '../inspector/aiFieldMatching';
 
 /**
  * App Studio BI — the table/field catalogue hook.
@@ -16,22 +18,36 @@ import { API_BASE, authFetch } from '../../../../../utils/helpers';
  *   const fields = fieldsFor(selectedTableId);   // [] when unknown
  */
 
-async function fetchTables(appId, t) {
-    const res = await authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/data/tables`);
+/** One viewer-readable table of the app's data model: fields only, never its access rules. */
+export interface AppTable {
+    id: string;
+    key: string;
+    name?: string;
+    fields?: TableColumn[];
+    [key: string]: unknown;
+}
+
+interface TablesBody {
+    error?: string;
+    tables?: unknown;
+}
+
+async function fetchTables(appId: string | null | undefined, t: TranslateFn): Promise<AppTable[]> {
+    const res = await authFetch(`${API_BASE}/api/studio-apps/${(encodeURIComponent as (value: string | null | undefined) => string)(appId)}/data/tables`);
     if (res.status === 404) return [];
-    let body = null;
+    let body: TablesBody | null = null;
     try { body = await res.json(); } catch { body = null; }
     if (!res.ok) throw new Error(body?.error || t('studio_apps_bi.hooks.tables_load_failed', 'Could not load tables ({status})', { status: res.status }));
     return Array.isArray(body?.tables) ? body.tables : [];
 }
 
 /** Fields for a table resolved by id OR key (empty array when unknown). */
-export function fieldsForTable(tables, tableRef) {
+export function fieldsForTable(tables: AppTable[] | null | undefined, tableRef: string | null | undefined): TableColumn[] {
     const t = (Array.isArray(tables) ? tables : []).find((x) => x && (x.id === tableRef || x.key === tableRef));
     return t && Array.isArray(t.fields) ? t.fields : [];
 }
 
-export default function useAppTables(appId) {
+export default function useAppTables(appId: string | null | undefined) {
     const { t } = useTranslation();
     const query = useQuery({
         queryKey: ['studio-app-tables', appId],
@@ -42,7 +58,7 @@ export default function useAppTables(appId) {
     });
 
     const tables = Array.isArray(query.data) ? query.data : [];
-    const fieldsFor = useCallback((tableRef) => fieldsForTable(tables, tableRef), [tables]);
+    const fieldsFor = useCallback((tableRef: string | null | undefined) => fieldsForTable(tables, tableRef), [tables]);
 
     return {
         tables,

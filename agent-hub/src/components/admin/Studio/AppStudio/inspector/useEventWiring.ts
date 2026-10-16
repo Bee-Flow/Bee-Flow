@@ -65,11 +65,6 @@ const defaultAction = defaultActionForKind as (
     definition: AppDefinition | null | undefined,
     formFields?: FormFieldRef[],
 ) => AppAction;
-const builderHref = automationHref as (
-    automationId: string,
-    appRef?: AppRef | null,
-    query?: { view?: string | null; runId?: string | null },
-) => string | null;
 const structuralSkipsOf = alwaysSkipped as (args: {
     inputMapping?: Record<string, InputMapping> | null;
     formFields?: FormFieldRef[];
@@ -489,7 +484,7 @@ export default function useEventWiring({
             const runId = typeof body?.run?.id === 'string' ? body.run.id : null;
             setTest({ status: 'done', body, skipped, runId });
             onTestActionResult?.(actionId, body);
-            openRunInBuilder(builderHref(action.automationId, appRef, { view: 'runs', runId }));
+            openRunInBuilder(automationHref(action.automationId, appRef, { view: 'runs', runId }));
         } catch (e) {
             setTest({ status: 'error', error: e instanceof Error ? e.message : String(e), skipped, runId: null });
         }

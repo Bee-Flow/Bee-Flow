@@ -2,10 +2,19 @@ import { Loader2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AppList from './AppList';
 import BuilderChatPane from './chat/BuilderChatPane';
+import type { AppMetaUpdate } from './chat/useBuilderTurn';
 import AppEditorShell from './editor/AppEditorShell';
+import type { HeaderApp } from './editor/header/headerModel';
 import { studioAppsApi } from './studioAppsApi';
 import useTranslation from '../../../../hooks/useTranslation';
+import { errorStatus, messageOf } from '../../../../utils/caughtError';
 import toast from '../../../shared/Toast';
+
+export interface AppStudioSectionProps {
+    initialAppId?: string | null;
+    onNavigate?: (path: string) => void;
+    onEditingChange?: (editing: boolean) => void;
+}
 
 /**
  * App Studio — Studio section entry ("Apps" tab).
@@ -24,9 +33,9 @@ export default function AppStudioSection({
     initialAppId = null,
     onNavigate = () => {},
     onEditingChange = () => {},
-}) {
+}: AppStudioSectionProps) {
     const { t } = useTranslation();
-    const [openApp, setOpenApp] = useState(null);
+    const [openApp, setOpenApp] = useState<HeaderApp | null>(null);
     const [opening, setOpening] = useState(false);
     // A "Remix with AI" open carries a prompt to prefill the builder composer.
     const [initialPrompt, setInitialPrompt] = useState('');
@@ -48,7 +57,7 @@ export default function AppStudioSection({
         return () => { if (editing) onEditingChangeRef.current?.(false); };
     }, [editing]);
 
-    const openById = useCallback(async (id, { prompt = '' } = {}) => {
+    const openById = useCallback(async (id: string, { prompt = '' }: { prompt?: string } = {}) => {
         setOpening(true);
         try {
             const res = await studioAppsApi.getApp(id);
@@ -58,9 +67,9 @@ export default function AppStudioSection({
             setOpenApp(app);
             onNavigateRef.current?.(`studio/apps/${app.id}`);
         } catch (err) {
-            toast.error(err?.status === 404
+            toast.error(errorStatus(err) === 404
                 ? t('studio_apps_edit.index.not_available', 'This app is not available to you.')
-                : (err?.message || t('studio_apps_edit.index.open_failed', 'Could not open the app.')));
+                : messageOf(err, t('studio_apps_edit.index.open_failed', 'Could not open the app.')));
         } finally {
             setOpening(false);
         }
@@ -74,7 +83,7 @@ export default function AppStudioSection({
         openById(initialAppId);
     }, [initialAppId, openById]);
 
-    const handleOpenFromList = useCallback((app, openOptions = {}) => {
+    const handleOpenFromList = useCallback((app: { id?: string } | null | undefined, openOptions: { remix?: boolean; prompt?: string } = {}) => {
         if (app?.id) openById(app.id, { prompt: openOptions?.remix ? openOptions.prompt : '' });
     }, [openById]);
 
@@ -85,7 +94,7 @@ export default function AppStudioSection({
 
     // The editor reports metadata/publish changes (rename, publish state…);
     // keep the open row in sync so the shell chrome stays fresh.
-    const handleAppUpdated = useCallback((app) => {
+    const handleAppUpdated = useCallback((app: HeaderApp | AppMetaUpdate | null | undefined) => {
         if (!app?.id) return;
         setOpenApp((prev) => (prev && prev.id === app.id ? { ...prev, ...app } : prev));
     }, []);

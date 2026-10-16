@@ -1,5 +1,6 @@
 import { parseExpr, tryEvaluate } from '@shared/expr/engine.mjs';
 import { useCallback, useMemo, useRef, useState } from 'react';
+import type { ChangeEvent, DragEvent } from 'react';
 import {
     getAutocompleteToken, insertAtCursor, previewValue, replaceRange,
 } from '../../../../../../utils/bindingHelpers';
@@ -7,6 +8,29 @@ import { onBindingDragOver, getBindingDropPath } from '../../../../../automation
 import useVariablePicker from '../../../../../automation/Builder/mapping/useVariablePicker';
 import { useVariablePickerContext } from '../../../../../automation/Builder/mapping/VariablePickerContext';
 import { parseExprToRows } from '../../../../../automation/Builder/utils/conditionModel';
+import type { TextControl } from '../../../../../../utils/bindingHelpers.types';
+import { messageOf } from '../../../../../../utils/caughtError';
+
+export interface ExpressionEditingOptions {
+    /** The raw expression string. */
+    value?: string | null;
+    onChange?: (next: string) => void;
+    previewSample?: Record<string, unknown> | null;
+    roots?: string[] | null;
+    disabled?: boolean;
+}
+
+/** The typed characters (and their range in the field) an accepted suggestion swallows. */
+interface PendingToken {
+    start: number;
+    end: number;
+    query: string;
+}
+
+interface EvalInfo {
+    error: string | null;
+    preview: string | null;
+}
 
 /**
  * The behaviour behind every App Studio expression field, with no JSX.
@@ -35,8 +59,8 @@ export default function useExpressionEditing({
     previewSample = null,
     roots = null,
     disabled = false,
-} = {}) {
-    const fieldRef = useRef(null);
+}: ExpressionEditingOptions = {}) {
+    const fieldRef = useRef<TextControl>(null);
     const picker = useVariablePicker();
     const pickerCtx = useVariablePickerContext();
     const sample = previewSample ?? pickerCtx.previewSample;
@@ -44,14 +68,14 @@ export default function useExpressionEditing({
     // The typed characters an accepted suggestion should swallow. Set when
     // autocomplete opened the picker; null when the {} button did, in which
     // case a pick INSERTS at the caret instead of replacing.
-    const pendingToken = useRef(null);
+    const pendingToken = useRef<PendingToken | null>(null);
 
-    const emit = useCallback((next) => {
+    const emit = useCallback((next: string | null | undefined) => {
         if (next != null) onChange?.(next);
     }, [onChange]);
 
     /** Put `path` where the caret was, or over the partial token being typed. */
-    const insertPath = useCallback((path) => {
+    const insertPath = useCallback((path: string) => {
         const el = fieldRef.current;
         if (!el) return;
         const token = pendingToken.current;
@@ -62,7 +86,7 @@ export default function useExpressionEditing({
         emit(next);
     }, [emit]);
 
-    const openPicker = useCallback((anchor) => {
+    const openPicker = useCallback((anchor: HTMLElement | null | undefined) => {
         pendingToken.current = null;
         picker.openPicker(anchor);
     }, [picker]);
@@ -72,7 +96,7 @@ export default function useExpressionEditing({
      * rooted path. `roots` comes from the server catalog, so what completes is
      * what the engine actually accepts.
      */
-    const handleInput = useCallback((e) => {
+    const handleInput = useCallback((e: ChangeEvent<TextControl>) => {
         emit(e.target.value);
         if (disabled) return;
         const hit = getAutocompleteToken(e.target, 'expression', roots || undefined);
@@ -87,7 +111,7 @@ export default function useExpressionEditing({
 
     const handleDragOver = onBindingDragOver;
 
-    const handleDrop = useCallback((e) => {
+    const handleDrop = useCallback((e: DragEvent) => {
         const path = getBindingDropPath(e);
         if (!path) return;
         pendingToken.current = null;
@@ -104,11 +128,11 @@ export default function useExpressionEditing({
      * names itself; an eval error is usually just "the sample has no value
      * there yet", which is not worth shouting about but is worth showing.
      */
-    const evalInfo = useMemo(() => {
+    const evalInfo = useMemo((): EvalInfo => {
         const src = String(value ?? '').trim();
         if (!src) return { error: null, preview: null };
         try { parseExpr(src); } catch (e) {
-            return { error: e?.message || 'Invalid expression', preview: null };
+            return { error: messageOf(e, 'Invalid expression'), preview: null };
         }
         const r = tryEvaluate(src, sample || {});
         if (r.error) return { error: r.error, preview: null };
@@ -142,7 +166,7 @@ export default function useExpressionEditing({
  * that must not run on every keystroke, nor flip the mode out from under
  * somebody mid-edit.
  */
-export function useConditionToggle(initial = false) {
+export function useConditionToggle(initial: boolean | (() => boolean) = false) {
     const [asCondition, setAsCondition] = useState(initial);
     return { asCondition, setAsCondition };
 }
@@ -160,7 +184,7 @@ export function useConditionToggle(initial = false) {
  * `true`/`false` counts as yes too, for the same reason ConditionBuilder
  * treats it as trivial: it is "not configured yet", not a real condition.
  */
-export function conditionCanHold(expr) {
+export function conditionCanHold(expr: unknown): boolean {
     const src = String(expr ?? '').trim();
     if (!src) return true;
     if (/^(true|false)$/.test(src)) return true;

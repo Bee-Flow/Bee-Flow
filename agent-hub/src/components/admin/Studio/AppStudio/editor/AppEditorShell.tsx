@@ -25,7 +25,7 @@ import useTranslation from '../../../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import scopedStorage from '../../../../../utils/scopedStorage';
 import type { AppDefinition } from '../inspector/appDefinition';
-import { AppEditorProvider as AppEditorProviderJs } from '../state/AppEditorContext';
+import { AppEditorProvider } from '../state/AppEditorContext';
 import { useAppEditorState } from '../state/appEditorState';
 import './editor.css';
 
@@ -76,9 +76,7 @@ const useEditorHotkeys = useEditorHotkeysJs as unknown as (options: {
     onTogglePresenter: () => void;
 }) => void;
 
-// The contexts are created in .js modules with a `null` default, and the
-// provider's JSDoc types `app` narrower than the row the editor opens.
-const AppEditorProvider = AppEditorProviderJs as unknown as ComponentType<{ app: HeaderApp; children: ReactNode }>;
+// The contexts are created in .js modules with a `null` default.
 const ScreenValuesContext = ScreenValuesContextJs as unknown as Context<ReturnType<typeof useScreenValuesStore> | null>;
 const EditorChromeContext = EditorChromeContextJs as unknown as Context<object | null>;
 const BuildCueContext = BuildCueContextJs as unknown as Context<BuildCue | null>;

@@ -1,3 +1,6 @@
+import type { AppDesign } from '../runtime/appDesign';
+import type { BindingInput } from '../runtime/resolveBinding.types';
+
 /**
  * The shape of an app definition, as the inspector reads it.
  *
@@ -54,6 +57,9 @@ export interface AppNode<P = CommonNodeProps> {
     /** Role keys gating the node (absent or empty = everyone). */
     visibleToRoles?: string[];
     readOnly?: BoolOrFormula;
+    /** A binding to an array: the renderer repeats the node's children once per item. */
+    repeat?: BindingInput;
+    forEach?: BindingInput;
     [key: string]: unknown;
 }
 
@@ -109,7 +115,17 @@ export interface DefinitionVariable {
     [key: string]: unknown;
 }
 
+/** The app's identity, as the shell shows it. */
+export interface AppMeta {
+    name?: string;
+    description?: string;
+    icon?: string;
+    [key: string]: unknown;
+}
+
 export interface AppDefinition {
+    meta?: AppMeta;
+    design?: AppDesign;
     screens?: AppScreen[];
     actions?: Record<string, AppAction>;
     homeScreenId?: string;

@@ -5,6 +5,8 @@ import useTranslation from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import { cardRadius, kindColorVar, kindTileStyle } from '../../../../shared/kindColors';
 import { appRefParam, buildStudioSearch, segmentForSection } from '../../studioRoutes';
+import type { AutomationRow } from '../editor/automationTitles';
+import type { AppRef } from './appDefinition';
 
 /**
  * "Which automation" — the run_automation target, as a tile instead of a button.
@@ -34,6 +36,37 @@ import { appRefParam, buildStudioSearch, segmentForSection } from '../../studioR
  * tile has the half-round leading edge, here and on the canvas both.
  */
 
+/** An automation row as the tile reads it: the list endpoint's row, with the parts the tile names. */
+export interface AutomationTileRow extends AutomationRow {
+    projectId?: string | null;
+    definition?: { steps?: unknown } | null;
+}
+
+/** The rolling-window run counts the facets endpoint answers with, by automation id. */
+interface RunFacets {
+    automationId?: Record<string, number> | null;
+}
+
+/** One project of the list the tile names the automation's Solution from. */
+interface ProjectRow {
+    id?: string;
+    name?: unknown;
+}
+
+export interface AutomationHrefQuery {
+    view?: string | null;
+    runId?: string | null;
+}
+
+export interface AutomationTileProps {
+    automationId?: string | null;
+    row?: AutomationTileRow | null;
+    onChoose?: () => void;
+    onCreate?: (() => void) | null;
+    disabled?: boolean;
+    appRef?: AppRef | null;
+}
+
 /**
  * Steps in an automation definition, or NULL when the definition is not there.
  *
@@ -47,13 +80,13 @@ import { appRefParam, buildStudioSearch, segmentForSection } from '../../studioR
  * tile that renders "0 steps" for a definition it never loaded is a claim the
  * screen cannot back up.
  */
-export function stepCountOf(row) {
+export function stepCountOf(row: AutomationTileRow | null | undefined): number | null {
     const steps = row?.definition?.steps;
     return Array.isArray(steps) ? steps.length : null;
 }
 
 /** Run count for one automation over the window, or null when it is not known. */
-function runCountOf(facets, automationId) {
+function runCountOf(facets: RunFacets | null | undefined, automationId: string): number | null {
     const byId = facets?.automationId;
     if (!byId || typeof byId !== 'object') return null;
     const n = byId[automationId];
@@ -62,15 +95,15 @@ function runCountOf(facets, automationId) {
 
 const RANGE_HOURS = 24;
 
-async function fetchFacets(automationId) {
+async function fetchFacets(automationId: string | null | undefined): Promise<RunFacets | null> {
     const res = await authFetch(
-        `${API_BASE}/api/automation/_runs/facets?automationId=${encodeURIComponent(automationId)}&range=${RANGE_HOURS}`,
+        `${API_BASE}/api/automation/_runs/facets?automationId=${(encodeURIComponent as (value: string | null | undefined) => string)(automationId)}&range=${RANGE_HOURS}`,
     );
     if (!res.ok) return null;
     try { return (await res.json())?.facets ?? null; } catch { return null; }
 }
 
-async function fetchProjects() {
+async function fetchProjects(): Promise<ProjectRow[]> {
     // Only Solutions bundle automations; collaborative workspaces never hold one.
     const res = await authFetch(`${API_BASE}/api/projects?kind=solution`);
     if (!res.ok) return [];
@@ -100,7 +133,7 @@ async function fetchProjects() {
  * working the day the query vocabulary changes, and the router parses exactly
  * four keys (studioRoutes.parseStudioQuery).
  */
-export function automationHref(automationId, appRef = null, { view = null, runId = null } = {}) {
+export function automationHref(automationId: string | null | undefined, appRef: AppRef | null | undefined = null, { view = null, runId = null }: AutomationHrefQuery = {}): string | null {
     if (!automationId) return null;
     const search = buildStudioSearch({ view, runId, from: appRefParam(appRef) });
     return `/app/studio/${segmentForSection('aiTasks')}/${encodeURIComponent(automationId)}${search}`;
@@ -108,7 +141,7 @@ export function automationHref(automationId, appRef = null, { view = null, runId
 
 export default function AutomationTile({
     automationId, row, onChoose, onCreate, disabled = false, appRef = null,
-}) {
+}: AutomationTileProps) {
     const { t } = useTranslation();
 
     const runsQuery = useQuery({
@@ -142,6 +175,7 @@ export default function AutomationTile({
         );
     }
 
+    // Past the `!automationId` return above, automationHref cannot answer null.
     const steps = stepCountOf(row);
     const runs = runCountOf(runsQuery.data, automationId);
     const project = row?.projectId
@@ -185,7 +219,7 @@ export default function AutomationTile({
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
                 <a
-                    href={automationHref(automationId, appRef)}
+                    href={automationHref(automationId, appRef) as string}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] focus:outline-none focus-visible:ring-2"
