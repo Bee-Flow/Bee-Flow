@@ -180,7 +180,7 @@
     "src/components/shared/statusTokens.ts": 523,
     "src/components/shared/StudioSectionHeader.jsx": 417,
     "src/components/shared/UsedByTab.tsx": 428,
-    "src/components/shared/VisibilityCapsule.jsx": 478,
+    "src/components/shared/VisibilityCapsule.tsx": 478,
     "src/components/shell/SearchOverlay.jsx": 507,
     "src/components/shell/Sidebar.jsx": 424,
     "src/components/skills/SkillFormModal.jsx": 462,

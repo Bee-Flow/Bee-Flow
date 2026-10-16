@@ -10,7 +10,12 @@ import React from 'react';
  * five plain bars for a progress table and has no avatar column. They look alike
  * only in the import list.
  */
-export default function UserListSkeleton({ rows = 3, showHeader = true }) {
+interface UserListSkeletonProps {
+    rows?: number;
+    showHeader?: boolean;
+}
+
+export default function UserListSkeleton({ rows = 3, showHeader = true }: UserListSkeletonProps) {
     return (
         <div className="animate-pulse" data-testid="user-list-skeleton">
             {showHeader && (

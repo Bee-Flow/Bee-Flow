@@ -6,6 +6,7 @@ import {
     audienceModeOf, makeGroupNamer, useAudienceActions, GroupChecklist,
 } from './VisibilityCapsule';
 import { useTranslation } from '../../hooks/useTranslation';
+import type { AudienceRowsProps } from './VisibilityCapsule.types';
 
 /**
  * AudienceRows — the INLINE presentation of the visibility state, for
@@ -45,7 +46,7 @@ export default function AudienceRows({
     title = null,
     hint = null,
     className = '',
-}) {
+}: AudienceRowsProps) {
     const { t: tHook } = useTranslation();
     const t = tProp || tHook;
     const groups = Array.isArray(sharedGroups) ? sharedGroups : [];
@@ -57,9 +58,9 @@ export default function AudienceRows({
     });
 
     const [pickerOpen, setPickerOpen] = useState(false);
-    const addRef = useRef(null);
+    const addRef = useRef<HTMLButtonElement>(null);
 
-    const rowStyle = (active) => ({
+    const rowStyle = (active: boolean): React.CSSProperties => ({
         display: 'flex',
         alignItems: 'center',
         gap: 8,
@@ -78,7 +79,7 @@ export default function AudienceRows({
         width: '100%',
     });
 
-    const onRowKey = (fn) => (e) => {
+    const onRowKey = (fn: () => void) => (e: React.KeyboardEvent) => {
         if (disabled) return;
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); }
     };
@@ -130,7 +131,7 @@ export default function AudienceRows({
                     <Users size={13} aria-hidden="true" />
                     {t('visibility.groups', 'Groups')}
                     <span className="ml-2 flex flex-wrap gap-1 font-medium" data-testid="audience-group-chips">
-                        {groups.map(gid => {
+                        {groups.map((gid) => {
                             const name = nameOf(gid);
                             const removeLabel = t('visibility.remove_group', 'Remove {name}', { name }).replace(/\{name\}/g, name);
                             return (
@@ -140,7 +141,7 @@ export default function AudienceRows({
                                     disabled={disabled}
                                     aria-label={removeLabel}
                                     title={removeLabel}
-                                    onClick={(e) => { e.stopPropagation(); toggleGroup(gid); }}
+                                    onClick={(e: React.MouseEvent) => { e.stopPropagation(); toggleGroup(gid); }}
                                     className="inline-flex items-center gap-1 leading-5 hover:opacity-80 disabled:opacity-50"
                                     style={{ padding: '0 7px', borderRadius: 999, background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
                                 >
@@ -157,7 +158,7 @@ export default function AudienceRows({
                             title={t('visibility.add_group', 'Add group')}
                             aria-haspopup="dialog"
                             aria-expanded={pickerOpen}
-                            onClick={(e) => { e.stopPropagation(); openPicker(); }}
+                            onClick={(e: React.MouseEvent) => { e.stopPropagation(); openPicker(); }}
                             className="inline-flex items-center leading-5 hover:opacity-80 disabled:opacity-50"
                             style={{ padding: '0 7px', borderRadius: 999, border: '1px dashed var(--border-default)', color: 'var(--text-tertiary)', background: 'transparent' }}
                         >

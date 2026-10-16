@@ -37,7 +37,7 @@ export interface StatusBarProps {
     cursor?: { line: number; col: number };
     fileSize?: number;
     saveState?: string;
-    lastSavedAt?: unknown;
+    lastSavedAt?: Date | null;
     onDownload?: () => unknown;
     onVersions?: () => void;
     onRetrySave?: () => unknown;
