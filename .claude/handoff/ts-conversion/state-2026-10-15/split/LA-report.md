@@ -1,6 +1,6 @@
-Status: rounds 1+2 merged and pushed; round 3 (JSDoc on 8 blocking JS components → InspectorPanel, PivotInspector, EditorViews) under Opus review LA-r3
-Done: 58/153 files converted on this branch (59 converted, AppInputMultiselect returned to JS by review), 2 packages merged (round 1, round 2)
-Next: integrate round 3 after review + full checks, push (ETA ~1.5 h); then a final retry pass over every remaining App Studio JS file on the final base (ETA ~2 h)
+Status: rounds 1+2 pushed; editor/logicRows reverted to JS for duplication (99598546, integrator request); round 3 (InspectorPanel, PivotInspector, EditorViews + JSDoc on 8 JS components) reviewed and fixed, full checks next
+Done: 57/153 files converted on this branch (logicRows and AppInputMultiselect back to JS), 2 packages merged; round 3 adds 3
+Next: push round 3 after full checks (ETA ~45 min); then a final retry pass over every remaining App Studio JS file (ETA ~2 h)
 
 # L-A report: App Studio sweep (agent-hub/src/components/admin/Studio/AppStudio/**)
 
@@ -23,7 +23,7 @@ Method: packages by dependency layer. Where a JS module must stay JS (react-hook
 | formContext.jsx JSDoc d4aab1c0 | comments only, stays JS | merged | n/a | LA-r1-B (fix 3 applied) |
 | r2-jsdoc | JSDoc on BindingField, ExpressionInput, ConditionField, FormulaField, dataErrors, gridColumnFilters, cellValue (stay JS; comments + BindingField.types.ts, cellValue.types.ts) + dataBatchClient.ts | merged 1e68b067 | 1 identical, 0 different | reviews/LA-r2-A.md (CHANGES REQUIRED → fixed 4e679e35) |
 | r2-forms | 4/16: AppButton, AppForm, AppInputCheckbox, useInputChange (AppInputMultiselect returned to JS by review: toValueList returns any[]) | merged | 5 identical, 0 different (before the revert) | LA-r2-A |
-| r2-editor | 5/12: BuildBanner, SaveStatusPill, logicRows, NavGroupsDialog (types); PublishModal (recipe) | merged | 4 identical, 0 different (+1 recipe) | reviews/LA-r2-B.md (CHANGES REQUIRED → fixed bab46934) |
+| r2-editor | 4/12: BuildBanner, SaveStatusPill, NavGroupsDialog (types); PublishModal (recipe); logicRows reverted to JS in 99598546 (duplication, below) | merged | 4 identical, 0 different (+1 recipe) | reviews/LA-r2-B.md (CHANGES REQUIRED → fixed bab46934) |
 | r2-panels1 / r2-panels2 | 28/30 inspector panels | merged | 14 + 14 identical, 0 different | LA-r2-B |
 | r2-flowbi, r2-insprest | 0/10, 0/5 | all need runtime rewrites (below) | — | — |
 
@@ -60,9 +60,8 @@ Review-fix commits: 6e4e81e6 and fdb5ec64 are types/comments only (emitted JS of
 - (history) agent-hub full vitest on 8b6dfa68: 1858 files, 21872 tests pass, but vitest exits 1 on ONE unhandled rejection outside L-A scope: `src/pages/webpages/useBfMarks.ts:57` setState after jsdom teardown ("window is not defined"), attributed to `WebpageIDE.i18n.test.jsx`. This branch does not touch src/pages/webpages (diff empty vs BASE); the file passes 3/3 alone. Load-dependent teardown race (the hook's fetch resolves after the test ends). Pre-existing; fix belongs to whoever owns webpages (await the load or abort on unmount in the test). Not fixed here.
 
 ## Merge watch-points
-- Duplication: round 2 editor adds +111 production lines (web editor/logicRows.ts ↔ mobile app-studio/core/logicRows port; jscpd pairs them only now that both are .ts). Measured 15172 ≤ 15290 after round 2. Mirror candidate (shared-mirror manifest), integrator step.
-- .file-budget.json: key renames only (logicRows, PublishModal, AppForm etc. .jsx→.tsx).
-- mobile/src/features/app-studio/core/logicRows.lockstep.test.ts reads editor/logicRows.ts (was .js).
+- **editor/logicRows reverted to JS (99598546, separate commit, integrator request).** As TS it paired in jscpd with mobile app-studio/core/logic/rows.ts and automations.ts (~124 lines; merged with sweep-c: 15297 > 15290). A generated mirror (7b61db88 / typeEventLists pattern) is not clean: the mobile port is a restructured rewrite (other signatures, split modules) and the web file imports state/definitionOps.js, styleKnobMeta, actionLabels and plural, so mirroring would need code moved out of the web file (not types-only). logicRows.js is byte-identical to 0ae29a17; logicRows.types.ts removed; .file-budget.json key and mobile logicRows.lockstep.test.ts path back to .js. Measured after merging origin/ccr-28820270-xkvwp8 + origin/ts-laptop/sweep-c: production 15173 ≤ 15290, test 26228 = 26228 (sweep-a alone 15048). Follow-up: mirror only after a (non-types-only) extraction of the shared pure helpers.
+- .file-budget.json: key renames only (PublishModal, AppForm etc. .jsx→.tsx).
 - inspector/appDefinition.ts: `meta?: AppMeta` (completed with description + index signature; replaces useBuilderTurn's DefMeta), `design?: AppDesign`, `repeat?`/`forEach?: BindingInput`.
 - runtime/formContext.jsx gains JSDoc typedefs `FormFieldMeta`, `FormContextValue` (TS consumers import them as types).
 - tables/tablesManagerModel.ts `ModelField` gained optional fields; recordsApi.ts exports `RowRecord`; spreadsheetPaste.ts exports `ImportTable`.
@@ -75,3 +74,4 @@ Review-fix commits: 6e4e81e6 and fdb5ec64 are types/comments only (emitted JS of
 | first push (setup) | BASE + report only | n/a | | | | | | | |
 | aeb4803f | round 1 merged (8b6dfa68) | 39/39 | 0 errors (1076 files) | 15088 ≤ 15290 / 26228 = 26228 | clean | 0 errors | 1858 files, 21872 pass; 1 unhandled rejection outside scope (above) | 0 errors / 762 suites, 13428 pass | 2587 files, 0 fail, 0 cancelled |
 | this commit | round 2 merged (1e68b067) | 39/39 | 0 errors (1076 files) | 15172 ≤ 15290 / 26228 = 26228 | clean | 0 errors | `npm run test:run -- --maxWorkers=8`: 1858 files, 21872 pass, 0 errors (green) | 0 errors / 762 suites, 13428 pass | 2587 files, 29058 pass, 0 fail |
+| this commit | logicRows revert (99598546) | 39/39 | 0 errors | 15048 ≤ 15290 / 26228 = 26228 (with sweep-c merged: 15173) | clean | 0 errors | 1858 files, 21872 pass, 0 errors | 0 errors / 762 suites, 13428 pass | 2587 files, 29058 pass, 0 fail |
