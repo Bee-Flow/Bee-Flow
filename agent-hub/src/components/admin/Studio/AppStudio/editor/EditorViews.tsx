@@ -7,6 +7,11 @@ import { listVariables } from '../state/definitionOps';
 import TablesManager from '../tables/TablesManager';
 import VariablesManager from '../variables/VariablesManager';
 import useTranslation from '../../../../../hooks/useTranslation';
+import type { Dispatch } from 'react';
+import type { AppDefinition } from '../inspector/appDefinition';
+import type { AppEditorAction } from '../state/appEditorState';
+import type { HeaderApp } from './header/headerModel';
+import type { RolesDirty } from './header/useHeaderView';
 
 /**
  * App Studio editor — the VIEWS the header's segments open in place of the
@@ -35,7 +40,19 @@ import useTranslation from '../../../../../hooks/useTranslation';
  *              modal had).
  */
 
-export function DataView({ app, definition, screenId, onCommit, dispatch, disabled = false, onLeave, initialTab = 'tables' }) {
+interface DataViewProps {
+    app: HeaderApp;
+    definition: AppDefinition | null;
+    screenId: string | null;
+    onCommit: (definition: AppDefinition) => void;
+    dispatch: Dispatch<AppEditorAction>;
+    disabled?: boolean;
+    onLeave?: () => void;
+    /** 'tables' or 'variables'. */
+    initialTab?: string;
+}
+
+export function DataView({ app, definition, screenId, onCommit, dispatch, disabled = false, onLeave, initialTab = 'tables' }: DataViewProps) {
     const { t } = useTranslation();
     const [tab, setTab] = useState(initialTab);
     // The table designer opens with the view (it IS the Tables subtab), but
@@ -109,7 +126,14 @@ export function DataView({ app, definition, screenId, onCommit, dispatch, disabl
     );
 }
 
-export function RolesView({ app, definition, onCommit, onDirtyChange }) {
+interface RolesViewProps {
+    app: HeaderApp;
+    definition: AppDefinition | null;
+    onCommit?: (definition: AppDefinition) => void;
+    onDirtyChange?: (key: keyof RolesDirty, dirty: boolean) => void;
+}
+
+export function RolesView({ app, definition, onCommit, onDirtyChange }: RolesViewProps) {
     const { t } = useTranslation();
     const [tab, setTab] = useState('roles');
     return (

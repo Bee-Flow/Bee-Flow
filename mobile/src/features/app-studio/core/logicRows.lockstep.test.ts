@@ -12,7 +12,7 @@ import { loadWeb } from './testing/loadWeb';
 import type { AppDefinition } from './types';
 
 type AnyFn = (...args: unknown[]) => unknown;
-const web = loadWeb<Record<string, AnyFn>>('editor/logicRows.ts');
+const web = loadWeb<Record<string, AnyFn>>('editor/logicRows.js');
 const webLabels = loadWeb<Record<string, AnyFn>>('inspector/actionLabels.ts');
 const webSummary = loadWeb<Record<string, AnyFn>>('editor/nodeLogicSummary.ts');
 

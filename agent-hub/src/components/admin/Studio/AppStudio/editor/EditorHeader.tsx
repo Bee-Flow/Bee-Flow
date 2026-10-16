@@ -92,7 +92,7 @@ export interface EditorHeaderProps {
     app: HeaderApp;
     onAppUpdated?: (app: HeaderApp) => void;
     onClose?: () => void;
-    onCommit?: (def: AppDefinition) => void;
+    onCommit: (def: AppDefinition) => void;
     canUndo?: boolean;
     canRedo?: boolean;
     onUndo?: () => void;

@@ -73,6 +73,12 @@ function draftToRule(draft) {
     return draft.mode === 'raw' ? draft.raw : buildRowRule(draft);
 }
 
+/**
+ * @param {{
+ *   appId?: string | null,
+ *   onDirtyChange?: ((dirty: boolean) => void) | null,
+ * }} props Every prop may be left out; without an appId nothing is loaded.
+ */
 export default function RowRuleEditor({ appId, onDirtyChange = null }) {
     const { t } = useTranslation();
     const { roles, tables, saveTableAccess, savingAccess } = useAppRoles(appId);
