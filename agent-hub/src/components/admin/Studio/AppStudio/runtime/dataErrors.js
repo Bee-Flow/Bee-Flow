@@ -13,7 +13,16 @@
  * it without importing each other.
  */
 
+/**
+ * @typedef {Error & { status?: number, retryAfter?: number, code?: string, provider?: string }} DataError
+ */
+
 /** An error the rest of the runtime can reason about. */
+/**
+ * @param {{ status?: number, message?: string | null, retryAfter?: number, code?: string | null, provider?: string | null }} fields
+ *   Each member may be left out; `status` and `retryAfter` only count when finite numbers (`retryAfter` also > 0).
+ * @returns {DataError}
+ */
 export function makeDataError({ status, message, retryAfter, code, provider }) {
     const err = new Error(message || 'Data request failed');
     if (Number.isFinite(status)) err.status = status;
@@ -30,6 +39,12 @@ export function makeDataError({ status, message, retryAfter, code, provider }) {
  * a wait never has to be guessed — but only if someone reads the header, which
  * for a long time nobody did.
  */
+/**
+ * @param {{ status?: number, headers?: { get?: (name: string) => string | null } } | null | undefined} res
+ * @param {{ error?: string, code?: string, provider?: string } | null | undefined} body The parsed JSON body, if any.
+ * @param {string} fallback Message prefix when the body has no `error`: "<fallback> (<status>)".
+ * @returns {DataError}
+ */
 export function dataErrorFromResponse(res, body, fallback) {
     const after = Number(res?.headers?.get?.('Retry-After'));
     return makeDataError({
@@ -42,4 +57,8 @@ export function dataErrorFromResponse(res, body, fallback) {
 }
 
 /** The viewer is over the read budget — worth waiting out rather than showing. */
+/**
+ * @param {{ status?: unknown } | null | undefined} err
+ * @returns {boolean}
+ */
 export const isRateLimited = (err) => err?.status === 429;
