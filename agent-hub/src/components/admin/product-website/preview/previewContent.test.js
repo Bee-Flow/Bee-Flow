@@ -93,6 +93,18 @@ describe('buildPreviewContent', () => {
         expect(out.hideFooter).toBe(false);
     });
 
+    it('keeps a github header button a github button', () => {
+        const withGithub = {
+            ...site,
+            header: {
+                ...site.header,
+                ctas: [{ id: 'g', kind: 'github', label: 'GitHub', repoUrl: 'https://github.com/example/repo', starsFallback: 7, starsText: 'stars', newTabText: 'opens in a new tab' }],
+            },
+        };
+        const [cta] = buildPreviewContent(withGithub, page).header.ctas;
+        expect(cta).toMatchObject({ kind: 'github', repoUrl: 'https://github.com/example/repo', starsFallback: 7, starsText: 'stars', newTabText: 'opens in a new tab' });
+    });
+
     it('shapes chrome: nav hrefs, cta newTab target/rel, footer brand, cookie banner verbatim', () => {
         const out = buildPreviewContent(site, page);
         expect(out.header.navLinks[0].href).toBe('/?slug=pricing%20plans');

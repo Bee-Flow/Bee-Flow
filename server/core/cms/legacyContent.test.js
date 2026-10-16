@@ -28,3 +28,23 @@ test('valid lists still flatten', () => {
     });
     assert.deepStrictEqual(out.footer.columns, [{ heading: 'H', links: [{ label: 'L', href: '/a' }] }]);
 });
+
+test('a github header button reaches the renderer with its own fields', () => {
+    const out = synthesizeLegacyContent({
+        page: { blocks: [] },
+        header: {
+            ctas: [
+                { id: 'g', kind: 'github', label: 'GitHub', repoUrl: 'https://github.com/example/repo', starsFallback: 12, starsText: 'sterren', newTabText: 'opent in nieuw tabblad', style: 'ghost' },
+                { id: 'l', label: 'Book', link: { href: '/demo' } },
+            ],
+        },
+    });
+    const [github, plain] = out.header.ctas;
+    assert.strictEqual(github.kind, 'github');
+    assert.strictEqual(github.repoUrl, 'https://github.com/example/repo');
+    assert.strictEqual(github.starsFallback, 12);
+    assert.strictEqual(github.starsText, 'sterren');
+    assert.strictEqual(github.newTabText, 'opent in nieuw tabblad');
+    assert.strictEqual(plain.kind, undefined);
+    assert.strictEqual(plain.repoUrl, undefined);
+});

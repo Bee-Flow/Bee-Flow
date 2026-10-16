@@ -24,6 +24,22 @@ function objs(v) {
 }
 
 /**
+ * The extra fields of a header button of kind "github" (allow-list: nothing
+ * else rides along). Other buttons get none, so they stay a plain link.
+ * @param {any} cta
+ */
+function githubCtaFields(cta) {
+    if (cta.kind !== 'github') return {};
+    return {
+        kind: 'github',
+        ...(typeof cta.repoUrl === 'string' ? { repoUrl: cta.repoUrl } : {}),
+        ...(Number.isFinite(cta.starsFallback) ? { starsFallback: cta.starsFallback } : {}),
+        ...(typeof cta.starsText === 'string' ? { starsText: cta.starsText } : {}),
+        ...(typeof cta.newTabText === 'string' ? { newTabText: cta.newTabText } : {}),
+    };
+}
+
+/**
  * Convert the v2 effective payload into the legacy keyed `content` object
  * the older marketing renderer (and RootPathGate at "/") expect. Each
  * enabled block is added under its type key, and a `blocks[]` array is
@@ -111,6 +127,7 @@ function synthesizeLegacyContent(eff) {
                 labelColor: cta.labelColor || '',
                 ...(cta.link?.target ? { target: cta.link.target } : {}),
                 ...(cta.link?.rel    ? { rel:    cta.link.rel    } : {}),
+                ...githubCtaFields(cta),
             })),
             // A blog URL marks a nav item pointing at /blog as active, post or index.
             activeSlug: eff.blog ? 'blog' : (eff.page?.isHomepage ? '' : (eff.page?.slug || '')),

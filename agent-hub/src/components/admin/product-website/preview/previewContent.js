@@ -12,6 +12,7 @@
 //   chromeStoragePath    display-shape chrome path → storage-shape path array
 //   applyChromeEdit      apply an iframe chrome edit to a SiteDoc (immutable)
 //   setIn                immutable nested setter (arrays for numeric segments)
+import { githubCtaFields } from './githubCtaFields';
 
 export function buildPreviewContent(site, activePage) {
     const out = {};
@@ -49,6 +50,7 @@ export function buildPreviewContent(site, activePage) {
                 labelFont:  cta.labelFont  || '',
                 labelSize:  Number.isFinite(cta.labelSize) ? cta.labelSize : 0,
                 labelColor: cta.labelColor || '',
+                ...githubCtaFields(cta),
             })),
             // Master nav-link style (font / size / color) — applied to
             // every nav link + dropdown child by Header.jsx. Sits as a
