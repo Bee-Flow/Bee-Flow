@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The SQL expression a date bucket folds a timestamp column onto (query
  * compiler, aggregate group-by). Pure: returns null for a bucket outside the

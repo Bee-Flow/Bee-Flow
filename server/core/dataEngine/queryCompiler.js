@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * QUERY COMPILER (the ONLY place SQL is generated) — for App Studio apps
  * AND automation datatables.
@@ -622,6 +623,9 @@ function compileAggregate(tableMeta, opts = {}, accessFilter) {
  * set id/created_at/updated_at/created_by/org_id (those keys are dropped).
  * Returns { sql, params, id, createdAt } (createdAt: the stamp written to
  * created_at and updated_at).
+ * @param {*} tableMeta
+ * @param {*} values
+ * @param {import('./queryCompiler.types').WriteOpts} [opts]
  */
 function compileInsert(tableMeta, values, {
     createdBy = null, orgId = null, dialect: dialectOpt, id: idOpt, allowLockedRows = false,
@@ -672,6 +676,11 @@ function compileInsert(tableMeta, values, {
  * Deliberately opt-in: action sequences (update_record steps) stay
  * last-write-wins because they are server-authoritative flows with no user
  * holding a stale copy; the record API + inline grid edits pass the token.
+ * @param {*} tableMeta
+ * @param {*} id
+ * @param {*} values
+ * @param {*} accessFilter
+ * @param {import('./queryCompiler.types').WriteOpts} [opts]
  */
 function compileUpdate(tableMeta, id, values, accessFilter, {
     expectedUpdatedAt = null, dialect: dialectOpt, allowLockedRows = false,
@@ -783,6 +792,11 @@ function compileKeyIndex(tableMeta, keyFieldName, keys, accessFilter, opts = {})
  * Postgres only. SQLite spells the upsert differently enough that a
  * one-dialect-tested statement would be a guess, and the only storage this is
  * reachable from is a datatable, which is always Postgres.
+ * @param {*} tableMeta
+ * @param {*} keyFieldName
+ * @param {*} values
+ * @param {*} accessFilter
+ * @param {import('./queryCompiler.types').WriteOpts} [opts]
  */
 function compileUpsertByKey(tableMeta, keyFieldName, values, accessFilter, {
     createdBy = null, orgId = null, dialect: dialectOpt, allowLockedRows = false,
@@ -846,6 +860,11 @@ function compileUpsertByKey(tableMeta, keyFieldName, values, accessFilter, {
  *
  * The access filter guards the update half exactly as in compileUpsertByKey.
  * Postgres only, for the same reason.
+ * @param {*} tableMeta
+ * @param {*} id
+ * @param {*} values
+ * @param {*} accessFilter
+ * @param {import('./queryCompiler.types').WriteOpts} [opts]
  */
 function compileUpsertById(tableMeta, id, values, accessFilter, {
     createdBy = null, orgId = null, dialect: dialectOpt, allowLockedRows = false,
@@ -957,7 +976,7 @@ function olderThanWhere(tableMeta, accessFilter, { field, cutoffIso }) {
     assertAccessFilter(accessFilter);
     const column = resolveColumn(tableMeta, field);
     if (typeof cutoffIso !== 'string' || !cutoffIso) {
-        throw new CompileError('retention cutoff must be an ISO timestamp', 'bad_cutoff');
+        throw new CompileError('retention cutoff must be an ISO timestamp');
     }
     // NOT NULL guard: a row with no timestamp has no age, and deleting it
     // would silently eat data the connector never dated.
