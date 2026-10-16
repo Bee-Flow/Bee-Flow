@@ -31,6 +31,8 @@ export interface ProviderConfig {
     googleVertexLocation?: string;
     /** Always a string: the server answers `|| ''` (routes/ai/config/instanceConfig.js). */
     azureModels?: string;
+    /** Always a string: the server falls back to the Cohere default (routes/ai/config/instanceConfig.js). */
+    azureRerankerModel?: string;
     [key: string]: unknown;
 }
 

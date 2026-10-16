@@ -56,3 +56,30 @@ export interface PullProgress {
     status: string;
     pct: number | null;
 }
+
+/** How a download or a connect attempt ended: a failure always says why. */
+export type RuntimeOutcome = { ok: true } | { ok: false; error: string };
+
+/** One runtime found by the autodetect scan. */
+export interface DetectedRuntime {
+    type?: string;
+    label?: string;
+    url: string;
+    modelCount?: number;
+    alreadyConfigured?: boolean;
+}
+
+/** What the autodetect scan answers. */
+export interface DetectResult {
+    found: DetectedRuntime[];
+    probed: number;
+    error?: string;
+}
+
+/** The runtime catalogue, plus whether this backend serves one at all. */
+export interface RuntimeCatalog {
+    supported: boolean;
+    error: string | null;
+    runtimes: RuntimeInfo[];
+    starterModels: StarterModel[];
+}

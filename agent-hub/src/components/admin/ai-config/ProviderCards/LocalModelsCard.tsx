@@ -15,6 +15,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import { messageOf } from '../../../../utils/caughtError';
+import type { ProviderCardProps } from './ProviderApiKeyCard';
 import AddRuntimeForm from './local/AddRuntimeForm';
 import {
     BTN_PRIMARY,
@@ -26,22 +28,27 @@ import {
     disconnectRuntime,
 } from './local/localRuntimeApi';
 import RuntimeRow from './local/RuntimeRow';
+import type { ConnectRequest, DetectResult, RuntimeInfo, RuntimeProvider, StarterModel } from './local/runtimeTypes';
 import ProviderCardShell, { ProviderStatusPill } from './shared/ProviderCardShell';
 
-const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
+interface LocalModelsCardProps extends ProviderCardProps {
+    onProvidersChanged?: () => void;
+}
+
+const LocalModelsCard = ({ onMessage, onProvidersChanged }: LocalModelsCardProps) => {
     const { t } = useTranslation();
-    const [runtimes, setRuntimes] = useState([]);
-    const [starterModels, setStarterModels] = useState([]);
-    const [providers, setProviders] = useState([]);
+    const [runtimes, setRuntimes] = useState<RuntimeInfo[]>([]);
+    const [starterModels, setStarterModels] = useState<StarterModel[]>([]);
+    const [providers, setProviders] = useState<RuntimeProvider[]>([]);
     const [loading, setLoading] = useState(true);
     // null while loading; a message once we know this backend cannot serve
     // local runtimes at all (the endpoints 404).
-    const [unsupported, setUnsupported] = useState(null);
+    const [unsupported, setUnsupported] = useState<string | null>(null);
 
     const [showAdd, setShowAdd] = useState(false);
     const [saving, setSaving] = useState(false);
     const [detecting, setDetecting] = useState(false);
-    const [detected, setDetected] = useState(null);
+    const [detected, setDetected] = useState<DetectResult | null>(null);
 
     const localTypes = new Set(runtimes.map(r => r.type));
     const localProviders = providers.filter(p => localTypes.has(p.type));
@@ -66,7 +73,7 @@ const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
         })();
     }, []);
 
-    const handleConnect = async ({ type, name, url, apiKey }) => {
+    const handleConnect = async ({ type, name, url, apiKey }: ConnectRequest) => {
         setSaving(true);
         const result = await connectRuntime({ type, name, url, apiKey });
         if (result.ok) {
@@ -82,7 +89,7 @@ const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
         setSaving(false);
     };
 
-    const handleRemove = async (id) => {
+    const handleRemove = async (id: string) => {
         const { ok } = await disconnectRuntime(id);
         onMessage?.(ok
             ? { type: 'success', text: t('admin_ai_config.local_disconnected', 'Runtime disconnected') }
@@ -96,7 +103,7 @@ const LocalModelsCard = ({ onMessage, onProvidersChanged }) => {
         try {
             setDetected(await detectRuntimes());
         } catch (e) {
-            onMessage?.({ type: 'error', text: e.message });
+            onMessage?.({ type: 'error', text: messageOf(e, '') });
             setDetected({ found: [], probed: 0 });
         }
         setDetecting(false);

@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
+import type { ProviderCardProps } from './ProviderCards/ProviderApiKeyCard';
 import DeleteConfirmButtons from './ProviderCards/shared/DeleteConfirmButtons';
 import SecretInput from './ProviderCards/shared/SecretInput';
 import ProviderCardShell, { ProviderStatusPill, PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from './ProviderCards/shared/ProviderCardShell';
 import useProviderConfig from '../../../hooks/useProviderConfig';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { errorMessage } from '../../../utils/caughtError';
 
-const RerankerConfig = ({ onMessage }) => {
+const RerankerConfig = ({ onMessage }: ProviderCardProps) => {
     const { t } = useTranslation();
     const [endpoint, setEndpoint] = useState('');
     const [apiKey, setApiKey] = useState('');
@@ -28,7 +30,7 @@ const RerankerConfig = ({ onMessage }) => {
 
     const handleSave = async () => {
         if (!endpoint.trim() && !apiKey.trim() && model === savedModel) return;
-        const body = {};
+        const body: Record<string, string> = {};
         if (endpoint.trim()) body.azureRerankerEndpoint = endpoint;
         if (apiKey.trim()) body.azureRerankerKey = apiKey;
         body.azureRerankerModel = model.trim() || 'Cohere-rerank-v4.0-fast';
@@ -59,7 +61,7 @@ const RerankerConfig = ({ onMessage }) => {
                 onMessage?.({ type: 'error', text: data.error || t('admin_ai_config.rerank_test_failed', 'Reranker test failed') });
             }
         } catch (e) {
-            onMessage?.({ type: 'error', text: t('admin_ai_config.rerank_test_failed_detail', 'Reranker test failed: {message}', { message: e.message }) });
+            onMessage?.({ type: 'error', text: t('admin_ai_config.rerank_test_failed_detail', 'Reranker test failed: {message}', { message: errorMessage(e) }) });
         } finally {
             setTesting(false);
         }
