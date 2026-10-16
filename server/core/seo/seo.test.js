@@ -45,7 +45,7 @@ test('a two-letter segment that is NOT a configured locale stays a slug', () => 
 });
 
 test('app routes and multi-segment paths are refused', () => {
-    for (const p of ['/app', '/api', '/admin', '/auth', '/privacy', '/a/b/c', '/nl/a/b']) {
+    for (const p of ['/app', '/api', '/admin', '/auth', '/privacy/requests', '/a/b/c', '/nl/a/b']) {
         assert.strictEqual(parsePublicPath(p, LOCALES), null, p);
     }
     // 'legal' and 'terms' were released to the CMS when the static legal-docs

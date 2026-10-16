@@ -39,8 +39,8 @@ test('normalizeSlug turns underscores into dashes and trims dashes', () => {
 });
 
 test('the reserved list covers locale prefixes and the blog, and not the released legal slugs', () => {
-    for (const s of ['nl', 'blog', 'privacy', 'app', 'f']) assert.ok(RESERVED_PAGE_SLUGS.has(s), s);
-    for (const s of ['terms', 'legal', 'pricing']) assert.ok(!RESERVED_PAGE_SLUGS.has(s), s);
+    for (const s of ['nl', 'blog', 'app', 'f']) assert.ok(RESERVED_PAGE_SLUGS.has(s), s);
+    for (const s of ['terms', 'legal', 'privacy', 'pricing']) assert.ok(!RESERVED_PAGE_SLUGS.has(s), s);
 });
 
 test('slugProblem names why a stored slug cannot be served', () => {
@@ -55,6 +55,8 @@ test('createPage and updatePageMeta refuse a locale prefix and accept terms', as
     await assert.rejects(cmsStore.createPage(siteId, { slug: 'nl', title: 'Dutch' }), /reserved/);
     const { slug } = await cmsStore.createPage(siteId, { slug: 'terms', title: 'Terms' });
     assert.strictEqual(slug, 'terms');
+    const privacy = await cmsStore.createPage(siteId, { slug: 'privacy', title: 'Privacy' });
+    assert.strictEqual(privacy.slug, 'privacy');
     const made = await cmsStore.createPage(siteId, { slug: 'about_us', title: 'About' });
     assert.strictEqual(made.slug, 'about-us');
     await assert.rejects(cmsStore.updatePageMeta(siteId, made.id, { slug: 'nl' }), /reserved/);

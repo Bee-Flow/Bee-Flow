@@ -28,10 +28,9 @@ const RESERVED_TOP_LEVEL = new Set([
     // intake screens of an app whose back-office stays behind requireAuth.
     'p',
     'org-settings',
-    // 'terms' and 'legal' were released to the CMS when the static legal-docs
-    // feature was retired; only 'privacy' stays reserved (the /privacy/requests
-    // DSR form owns that namespace). Must match the client set exactly.
-    'privacy',
+    // 'terms', 'legal' and 'privacy' belong to the CMS (the legal pages). The
+    // DSR form is /privacy/requests (two segments, matched by App.jsx before
+    // the CMS gate), so a /privacy page does not shadow it.
     '__cms_preview__',
 ]);
 

@@ -120,3 +120,21 @@ test('the consolidation still drops locale itself and keeps every other key', as
     assert.strictEqual(res.statusCode, 301);
     assert.strictEqual(res.location, '/nl/pricing?utm_campaign=q4');
 });
+
+test('/legal/<doc> redirects to the CMS page of that name, locale kept', async () => {
+    const res = await get('/legal/imprint');
+    assert.strictEqual(res.statusCode, 301);
+    assert.strictEqual(res.location, '/imprint');
+    const nl = await get('/nl/legal/dpa');
+    assert.strictEqual(nl.location, '/nl/dpa');
+    const kept = await get('/legal/dpa?utm_source=news');
+    assert.strictEqual(kept.location, '/dpa?utm_source=news');
+});
+
+test('/privacy and /terms are served from the CMS like any other page', async () => {
+    for (const p of ['/privacy', '/terms']) {
+        const res = await get(p);
+        assert.strictEqual(res.statusCode, 200, p);
+        assert.match(res.body, /<main>Pricing<\/main>/);
+    }
+});

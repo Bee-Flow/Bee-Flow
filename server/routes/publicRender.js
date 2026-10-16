@@ -42,6 +42,7 @@ const cmsStore = require('../stores/cmsStore');
 const configStore = require('../stores/configStore');
 const languageStore = require('../stores/languageStore');
 const { parsePublicPath, buildPublicPath, LOCALE_PREFIXES } = require('../core/seo/publicPath');
+const { legalRedirectTarget } = require('../core/seo/legalPaths');
 const { buildHead } = require('../core/seo/head');
 const { renderBlocks, PREHYDRATE_CSS } = require('../core/seo/renderBlocks');
 const { getShell } = require('../core/seo/shell');
@@ -354,6 +355,11 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res
 
         const { defaultLocale, locales } = await siteLocales();
         // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect, ajinabraham.njsscan.xss.xss_node.express_xss -- parsePublicPath only yields [a-z0-9-] slugs; every redirect target below is buildPublicPath(...), a same-site path starting with one "/", and pages are rendered through the escaping head/body builders
+        const legalTarget = legalRedirectTarget(req.path, locales, defaultLocale);
+        if (legalTarget) {
+            const qs = rawQuery(req).toString();
+            return res.redirect(301, qs ? `${legalTarget}?${qs}` : legalTarget);
+        }
         let parsed = parsePublicPath(req.path, locales);
         if (!parsed) return next();
 
