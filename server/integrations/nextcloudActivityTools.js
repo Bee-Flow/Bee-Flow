@@ -22,7 +22,7 @@ const NEXTCLOUD_ACTIVITY_TOOLS = [
                     filter: { type: 'string', description: 'Filter type: "all" (default), "self" (only your actions), "by" (others\' actions on your data).' },
                     since: { type: 'integer', description: 'Optional unix timestamp — only return activity newer than this.' },
                     limit: { type: 'integer', description: 'Max events (default 50, max 200).' },
-                    type: { type: 'string', description: 'Optional activity type filter (e.g. "files", "shares", "comments").' }
+                    type: { type: 'string', description: 'Optional activity type filter (e.g. "files", "shared", "comments"); matches the activity type or the object type. It is applied after the limit, so it can return fewer than limit items.' }
                 }
             }
         }
@@ -43,6 +43,8 @@ const NEXTCLOUD_ACTIVITY_TOOLS = [
         }
     }
 ];
+
+const ACTIVITY_FILTERS = ['all', 'self', 'by'];
 
 function activityApi(baseUrl) {
     // Activity app's OCS API v2. The `cloud/activity` namespace does not exist
@@ -83,17 +85,27 @@ async function executeNextcloudActivityTool(toolName, args, userId, session) {
     switch (toolName) {
         case 'nextcloud_activity_list': {
             const filter = args.filter || 'all';
+            if (!ACTIVITY_FILTERS.includes(filter)) {
+                return { error: `filter must be one of: ${ACTIVITY_FILTERS.join(', ')} (got "${String(filter).slice(0, 40)}").` };
+            }
             const limit = Math.min(Math.max(args.limit || 50, 1), 200);
             const params = new URLSearchParams();
             params.set('format', 'json');
             params.set('limit', String(limit));
             if (args.since) params.set('since', String(args.since));
-            if (args.type) params.set('type', args.type);
             const url = `${activityApi(baseUrl)}/${encodeURIComponent(filter)}?${params.toString()}`;
             const res = await ncFetch(url, { headers });
             if (!res.ok) return nextcloudHttpError(res, { authError, what: `activity fetch for filter "${filter}"`, app: 'Activity' });
             const data = await readJsonSafe(res);
-            const items = Array.isArray(data?.ocs?.data) ? data.ocs.data : [];
+            let items = Array.isArray(data?.ocs?.data) ? data.ocs.data : [];
+            // The v2 API has no `type` parameter and "by" also lists the user's own
+            // actions, so both are applied here.
+            if (filter === 'by' && ctx.uid) items = items.filter(a => a.user !== ctx.uid);
+            if (args.type) {
+                const wanted = String(args.type).toLowerCase();
+                items = items.filter(a => String(a.type || '').toLowerCase().includes(wanted)
+                    || String(a.object_type || '').toLowerCase() === wanted);
+            }
             return { count: items.length, activities: items.map(mapActivity) };
         }
 

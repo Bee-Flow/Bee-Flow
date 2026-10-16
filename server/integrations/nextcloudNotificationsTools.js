@@ -10,6 +10,7 @@
  */
 
 const ncClient = require('./nextcloudClient');
+const { nextcloudHttpError } = require('./nextcloudHttpError');
 
 const NEXTCLOUD_NOTIFICATIONS_TOOLS = [
     {
@@ -73,6 +74,12 @@ async function readJsonSafe(res) {
     try { return JSON.parse(text); } catch { return text; }
 }
 
+/** 1..200; a missing or non-numeric limit is the default 50. */
+function clampLimit(raw) {
+    const n = raw == null || raw === '' ? NaN : Math.floor(Number(raw));
+    return Math.min(Math.max(Number.isFinite(n) ? n : 50, 1), 200);
+}
+
 function notificationsApi(baseUrl) {
     return `${baseUrl}/ocs/v2.php/apps/notifications/api/v2/notifications`;
 }
@@ -84,13 +91,12 @@ async function executeNextcloudNotificationsTool(toolName, args, userId, session
 
     switch (toolName) {
         case 'nextcloud_notifications_list': {
-            const limit = Math.min(Math.max(args.limit || 50, 1), 200);
+            // limit 0 (or a non-number) is not "everything": 0 clamps to 1, a non-number is the default.
+            const limit = clampLimit(args.limit);
             const res = await ncFetch(`${api}?format=json`, {
                 headers: { 'Accept': 'application/json', 'OCS-APIRequest': 'true' },
             });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: 'Notifications app is not installed/enabled on this Nextcloud server.' };
-            if (!res.ok) return { error: `Notifications list failed (${res.status})` };
+            if (!res.ok) return nextcloudHttpError(res, { authError, what: 'notification list', app: 'Notifications' });
             const data = await readJsonSafe(res);
             const items = Array.isArray(data?.ocs?.data) ? data.ocs.data : [];
             const mapped = items.slice(0, limit).map(n => ({
@@ -111,13 +117,18 @@ async function executeNextcloudNotificationsTool(toolName, args, userId, session
 
         case 'nextcloud_notifications_dismiss': {
             if (!args.id) return { error: 'id is required' };
+            // Nextcloud answers a DELETE of an unknown id with success, so look it up first.
+            const probe = await ncFetch(`${api}/${encodeURIComponent(args.id)}?format=json`, {
+                headers: { 'Accept': 'application/json', 'OCS-APIRequest': 'true' },
+            });
+            if (probe.status === 404) return { error: `Notification not found or already dismissed: ${args.id}` };
+            if (!probe.ok) return nextcloudHttpError(probe, { authError, what: 'notification lookup', app: 'Notifications' });
             const res = await ncFetch(`${api}/${encodeURIComponent(args.id)}?format=json`, {
                 method: 'DELETE',
                 headers: { 'Accept': 'application/json', 'OCS-APIRequest': 'true' },
             });
-            if (res.status === 401) return { error: authError };
             if (res.status === 404) return { error: `Notification not found or already dismissed: ${args.id}` };
-            if (!res.ok) return { error: `Dismiss failed (${res.status})` };
+            if (!res.ok) return nextcloudHttpError(res, { authError, what: 'notification dismiss', app: 'Notifications' });
             return { success: true, id: args.id };
         }
 
