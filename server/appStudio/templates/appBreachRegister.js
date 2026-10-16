@@ -485,9 +485,13 @@ const STAGE_FILTER_OPTIONS = STAGE_OPTIONS.map((s) => ({ value: s.value, label: 
  * cache key disagree. It reads only fields that are fixed for the life of the
  * record — awareness and the stamped deadline — so the snapshot in `vars.breach`
  * cannot go stale underneath it.
+ *
+ * The branch reads SECONDS: dateDiff truncates toward zero, so on whole hours a
+ * deadline missed by 20 minutes would read as "0 hours left". The number shown
+ * stays in hours.
  */
 const CLOCK_EXPR = [
-    "dateDiff(vars.breach.notify_due_at, now, 'hour') >= 0",
+    "dateDiff(vars.breach.notify_due_at, now, 'second') >= 0",
     " ? concat('**', toStr(dateDiff(vars.breach.notify_due_at, now, 'hour')),",
     "   ' hours left.** The Article 33 notification is due ',",
     "   formatDate(vars.breach.notify_due_at, 'DD-MM-YYYY HH:mm'), ' UTC — 72 hours after ',",

@@ -65,7 +65,7 @@ export function checkDateUnit(tk, args, ErrorType) {
 
 const MAX_EPOCH = 8.64e15;
 
-/** ISO string of `epoch + n units`, or null when the result is outside what a Date holds. */
+/** ISO string of `epoch + n units`; a fractional month/year amount is truncated toward zero (1.9 months adds 1), other units take fractions. Null when the result is outside what a Date holds. */
 export function addToEpoch(epoch, n, unit) {
     const out = (unit === 'month' || unit === 'year')
         ? addCalendarMonths(epoch, Math.trunc(n) * (unit === 'year' ? 12 : 1))
