@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS builder tools — the function-calling surface the conversational CMS
  * page-building agent uses to mutate a site draft.
@@ -834,11 +835,13 @@ function sanitizeDesignPatch(args) {
         return { out };
     };
 
-    for (const [arg, enums, field] of [
+    /** @type {Array<[string, Record<string, Array<string|number>>, string]>} */
+    const enumGroups = [
         ['typographyPatch', TYPOGRAPHY_ENUMS, 'typography'],
         ['componentsPatch', DESIGN_COMPONENT_ENUMS, 'components'],
         ['layoutPatch', DESIGN_LAYOUT_ENUMS, 'layout'],
-    ]) {
+    ];
+    for (const [arg, enums, field] of enumGroups) {
         if (args[arg] === undefined) continue;
         const r = enumGroup(args[arg], enums, arg);
         if (r.error) return r;

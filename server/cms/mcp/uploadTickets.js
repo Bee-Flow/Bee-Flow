@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * One-time upload tickets for the CMS MCP server.
  *
@@ -135,8 +136,9 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
 
     /**
      * Look a presented ticket up WITHOUT consuming it.
-     * @returns {Promise<{ ok: true, record: object, id: string }
-     *   | { ok: false, reason: 'malformed'|'unknown'|'expired'|'used' }>}
+     * ok:true carries `record` and `id`; ok:false carries `reason`
+     * ('malformed' | 'unknown' | 'expired' | 'used').
+     * @returns {Promise<{ ok: boolean, record?: any, id?: string, reason?: string }>}
      */
     async function peek(ticket) {
         const parsed = parse(ticket);
@@ -156,11 +158,12 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
     /**
      * Burn a ticket: flip `used` atomically. Exactly one caller wins when two
      * PUTs race; the loser gets `used`. Done BEFORE any byte is stored.
-     * @returns {Promise<{ ok: true, record: object } | { ok: false, reason: string }>}
+     * @returns {Promise<{ ok: boolean, record?: any, id?: string, reason?: string }>}
      */
     async function burn(ticket) {
         const seen = await peek(ticket);
         if (!seen.ok) return seen;
+        /** @type {{ ok: boolean, record?: any, id?: string, reason?: string }} */
         let outcome = { ok: false, reason: 'unknown' };
         await kv.mutate(keyOf(seen.id), (current) => {
             // The mutator may be retried; it only decides and never has side effects.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `PUT /mcp/cms/upload/<ticketId>` (secret in the `X-Upload-Ticket` header) — receive a file for a CMS asset.
  *
@@ -268,6 +269,7 @@ function createUploadReceiver(deps) {
             } else {
                 // Images are capped at 25 MB and captions at 1 MB, so a buffer is
                 // fine here; the cap was enforced while receiving.
+                /** @type {Buffer} */
                 let body = await fs.promises.readFile(filePath);
                 let metadata = null;
                 if (type === 'image/svg+xml') {
