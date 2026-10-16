@@ -130,3 +130,33 @@ test('dispatchToSubscription: only dispatches to the ONE subscription given, not
     assert.strictEqual(runs[0].subId, 'sub-1');
     assert.deepStrictEqual(dispatchedRuns, ['auto-1'], 'sibling sub-2 (same user, same provider+event) must NOT also fire');
 });
+
+// A connector install pushes file.new / file.changed AND the activity poller
+// owns them (subscriptionSync forces mode='polling'), so a push must not also
+// fire a polling-mode subscription. Other events and webhook-mode subs keep
+// the push path.
+test('dispatchEvent: push file.new / file.changed skips polling-mode subs (the poller is authoritative)', async () => {
+    const saved = SUBS.splice(0, SUBS.length,
+        { id: 'sub-poll', automationId: 'auto-poll', userId: 'user-orgA', mode: 'polling', lastCursor: 'c1', filter: null },
+        { id: 'sub-hook', automationId: 'auto-hook', userId: 'user-orgA', mode: 'webhook', filter: null });
+    try {
+        for (const event of ['file.new', 'file.changed']) {
+            dispatchedRuns.length = 0;
+            await dispatchEvent({ provider: 'nextcloud', event, payload: {}, userId: 'user-orgA', orgId: 'org-A' });
+            await tick();
+            assert.deepStrictEqual(dispatchedRuns, ['auto-hook'], `${event}: only the webhook-mode sub fires from a push`);
+        }
+        dispatchedRuns.length = 0;
+        await dispatchEvent({ provider: 'nextcloud', event: 'file.deleted', payload: {}, userId: 'user-orgA', orgId: 'org-A' });
+        await tick();
+        assert.deepStrictEqual(dispatchedRuns.sort(), ['auto-hook', 'auto-poll'], 'push-only events are unchanged');
+        // A polling sub the poller has not bootstrapped yet (no cursor) still gets the push.
+        SUBS[0].lastCursor = null;
+        dispatchedRuns.length = 0;
+        await dispatchEvent({ provider: 'nextcloud', event: 'file.new', payload: {}, userId: 'user-orgA', orgId: 'org-A' });
+        await tick();
+        assert.deepStrictEqual(dispatchedRuns.sort(), ['auto-hook', 'auto-poll']);
+    } finally {
+        SUBS.splice(0, SUBS.length, ...saved);
+    }
+});
