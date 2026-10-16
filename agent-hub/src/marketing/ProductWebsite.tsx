@@ -5,10 +5,9 @@ import './marketing.css';
 // Cabinet Grotesk, General Sans, Clash Display, Clash Grotesk. No CDN
 // dependency; files live under agent-hub/public/fonts/.
 import './self-hosted-fonts.css';
-// Editor-only block chrome (outlines, name tag, toolbar, insert zones).
-// Every rule is scoped under `.marketing-root.cms-preview`, so importing
-// it here is inert on the published site.
-import './preview-chrome.css';
+// Editor-only block chrome (outlines, name tag, toolbar, insert zones) is
+// loaded on demand in preview mode only (see the preview listener below), so
+// the published site does not block on it (#245).
 
 // The blog index / post body — rendered in place of the block list when the
 // content carries `blog` (a /blog URL or the admin preview of a post).
@@ -755,6 +754,7 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
     // Preview-mode listener — admin panel posts structural + design updates.
     useEffect(() => {
         if (!isPreviewMode()) return;
+        void import('./preview-chrome.css');
         // Same-origin-only: the admin panel that posts cms-preview lives on
         // the same origin as this page. Without this check a malicious
         // parent frame could inject arbitrary content + design (CSS vars
