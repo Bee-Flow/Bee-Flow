@@ -15,10 +15,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { useIntegrationStatus } from './useIntegrationStatus';
-import {
-    APP_DEFS, buildAppCatalog, filterAvailableApps,
-    type AppDef, type ExposedStepSource, type McpServerSource, type N8nWorkflowSource,
-} from '../components/apps/appCatalog';
+import { APP_DEFS, buildAppCatalog, filterAvailableApps } from '../components/apps/appCatalog';
+import type { AppDef, ExposedStepSource, McpServerSource, N8nWorkflowSource } from '../components/apps/appCatalog';
 
 /** One entry of the picker (the gate flags filterAvailableApps reads included). */
 export type CatalogApp = AppDef;
@@ -29,6 +27,10 @@ interface N8nWorkflow extends N8nWorkflowSource {
 }
 
 type McpServer = McpServerSource;
+
+// Local names kept from when appCatalog was JavaScript (they held typed views).
+const buildCatalog = buildAppCatalog;
+const filterApps = filterAvailableApps;
 
 export interface UseAppsCatalogOptions {
     /** The agent's own integration allow-list, when a chat runs as an agent. */
@@ -112,8 +114,8 @@ export default function useAppsCatalog(
         [enabledApps],
     );
 
-    const availableApps = filterAvailableApps(
-        buildAppCatalog({ n8nWorkflows, mcpServers, exposedSteps }),
+    const availableApps = filterApps(
+        buildCatalog({ n8nWorkflows, mcpServers, exposedSteps }),
         {
             integrationStatus: integrationStatus || {},
             orgEnabledIntegrations: (integrationStatus?.orgEnabledIntegrations as string[] | null) ?? null,
