@@ -777,7 +777,7 @@ async function applyUpsertDataset(draftWrap, args) {
 function applyGetDataModel(draftWrap) {
     const { renderDataBlock } = require('../builderPrompt');
     return {
-        data: renderDataBlock(draftWrap.dataModel ?? null, draftWrap.datasetIds, draftWrap.rowCounts, draftWrap.linkedTables || null),
+        data: renderDataBlock(draftWrap.dataModel ?? null, draftWrap.datasetIds, draftWrap.rowCounts, draftWrap.linkedTables || null, { fieldIds: true }),
         modelVersion: draftWrap.dataModelVersion ?? 0,
     };
 }

@@ -98,7 +98,14 @@ function mapRow(row, { includePayload = true } = {}) {
         createdAt: row.created_at,
         updatedAt: row.updated_at,
     };
-    if (!includePayload) return meta;
+    if (!includePayload) {
+        // The list query computes the counts in SQL (the payload is not
+        // selected), so a captured row can say how much is in it.
+        const counts = {};
+        if (Number.isInteger(row.screen_count)) counts.screenCount = row.screen_count;
+        if (Number.isInteger(row.table_count)) counts.tableCount = row.table_count;
+        return { ...meta, ...counts };
+    }
     return {
         ...meta,
         definition: payload.definition || {},
@@ -177,7 +184,11 @@ async function listTemplatesFor({ userId, orgIds = [] } = {}) {
     const rows = await getAll(
         `SELECT id, organization_id, created_by, source_app_id, title, description,
                 category, icon, tags, version, created_at, updated_at,
-                '{}'::jsonb AS payload
+                '{}'::jsonb AS payload,
+                CASE WHEN jsonb_typeof(payload->'definition'->'screens') = 'array'
+                     THEN jsonb_array_length(payload->'definition'->'screens') ELSE 0 END AS screen_count,
+                CASE WHEN jsonb_typeof(payload->'dataModel'->'tables') = 'array'
+                     THEN jsonb_array_length(payload->'dataModel'->'tables') ELSE 0 END AS table_count
            FROM studio_app_templates
           WHERE (created_by = $1 AND organization_id IS NULL)
              OR (organization_id = ANY($2::text[]))

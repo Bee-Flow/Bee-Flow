@@ -240,6 +240,9 @@ async function loadDraft(appId, userId) {
         draftWrap.rowCounts = normalizeRowCounts(draftWrap.dataModel, dataMeta?.rowCounts);
         const datasets = await studioAppDataStore.listDatasets(appId, userId);
         draftWrap.datasetIds = (datasets || []).map((d) => ({ id: d.id, name: d.name }));
+        // Linked tables keep their rows outside the app: without their live
+        // counts the data model printed rows=0 for them.
+        await require('./linkedTables').attachLinkedTables(draftWrap, userId);
     } catch (e) {
         log.warn(`[studio-mcp] data-model load failed for ${appId} (checks skipped): ${e.message}`);
     }

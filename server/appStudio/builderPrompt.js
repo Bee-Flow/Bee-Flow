@@ -544,8 +544,9 @@ function summariseSteps(steps) {
 // ── Data block — the app's data model rendered compact & ID-bearing ──
 
 /** One line per field: `name text required unique options=[a,b] →tbl_x`. */
-function renderDataField(f) {
+function renderDataField(f, withId = false) {
     const bits = [`    ${f.key} ${f.type}`];
+    if (withId && typeof f.id === 'string') bits.push(`id=${f.id}`);
     if (f.required) bits.push('required');
     if (f.unique) bits.push('unique');
     if ((f.type === 'select' || f.type === 'multiselect') && Array.isArray(f.options)) {
@@ -563,7 +564,8 @@ function renderDataField(f) {
  * field keys the model must use in bindings/steps; rowCounts ground seeding
  * decisions; dataset/roles lines mirror the rest of the model.
  */
-function renderDataBlock(dataModel, datasets, rowCounts, linkedTables = null) {
+function renderDataBlock(dataModel, datasets, rowCounts, linkedTables = null, opts = {}) {
+    const withFieldIds = !!(opts && opts.fieldIds);
     const lines = ['data:'];
     const tables = (dataModel && Array.isArray(dataModel.tables)) ? dataModel.tables : [];
     if (!tables.length) {
@@ -595,7 +597,7 @@ function renderDataBlock(dataModel, datasets, rowCounts, linkedTables = null) {
             linked = ` linked=${t.source.mode || 'read'} (live rows; never seed)`;
         }
         lines.push(`  table ${t.id} ${q(t.name || t.key)} key=${t.key}${rows} access=${t.access?.default || 'app'}${linked}`);
-        for (const f of t.fields || []) lines.push(renderDataField(f));
+        for (const f of t.fields || []) lines.push(renderDataField(f, withFieldIds));
     }
     const dsList = Array.isArray(datasets) ? datasets : [];
     if (dsList.length) {

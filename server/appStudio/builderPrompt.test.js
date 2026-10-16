@@ -876,3 +876,10 @@ test('the data block\'s linked line carries the facts only; the doctrine lives i
     const missing = renderDataBlock(model, [], {}, new Map([['tbl_l1', { missing: true }]]));
     assert.match(missing, /linked=MISSING \(the Studio table is gone — re-link with app_link_datatable or remove this table\)/);
 });
+
+test('the data block shows field ids only when asked, so the in-product prompt is unchanged', () => {
+    const { renderDataBlock } = require('./builderPrompt');
+    const model = { tables: [{ id: 'tbl_a', key: 'a', name: 'A', fields: [{ id: 'fld_x', key: 'x', type: 'text' }], access: { default: 'app' } }] };
+    assert.ok(!renderDataBlock(model, [], {}).includes('fld_x'));
+    assert.match(renderDataBlock(model, [], {}, null, { fieldIds: true }), /^ {4}x text id=fld_x$/m);
+});

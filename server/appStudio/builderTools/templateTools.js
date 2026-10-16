@@ -44,6 +44,28 @@ function viewerScope(draftWrap) {
     };
 }
 
+/** Cut at a word boundary with an ellipsis; text that already fits is untouched. */
+function shortenAtWord(text, max) {
+    if (typeof text !== 'string') return '';
+    if (text.length <= max) return text;
+    const cut = text.slice(0, max);
+    const lastSpace = cut.lastIndexOf(' ');
+    return `${(lastSpace > max * 0.5 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:.\-]+$/, '')}…`;
+}
+
+/** One gallery row; counts come from the row itself (captured) or the full built-in constant. */
+function compactTemplateRow(t, byId) {
+    const src = byId.get(t.id) || t;
+    return {
+        id: t.id,
+        name: t.title || t.name || t.id,
+        description: shortenAtWord(t.description, 240),
+        screens: Number.isInteger(t.screenCount) ? t.screenCount : (Array.isArray(src.definition?.screens) ? src.definition.screens.length : 0),
+        tables: Number.isInteger(t.tableCount) ? t.tableCount : (Array.isArray(src.dataModel?.tables) ? src.dataModel.tables.length : 0),
+        ...(t.source === 'captured' ? { source: 'captured', version: t.version } : {}),
+    };
+}
+
 /**
  * app_list_templates — compact gallery rows for the model to choose from.
  * Lists BOTH the built-in starters and the templates this user's organisation
@@ -66,20 +88,10 @@ async function applyListTemplates(draftWrap) {
     }
     // Built-in rows carry no definition (listTemplates strips the heavy fields),
     // so the screen/table counts come from the full constant. A captured row
-    // does not need them — it reports its own counts from the store.
+    // reports its own counts (screenCount / tableCount, computed in SQL).
     const full = Array.isArray(templates?.TEMPLATES) ? templates.TEMPLATES : [];
     const byId = new Map(full.map((t) => [t.id, t]));
-    const compact = (Array.isArray(rows) ? rows : []).slice(0, 60).map((t) => {
-        const src = byId.get(t.id) || t;
-        return {
-            id: t.id,
-            name: t.title || t.name || t.id,
-            description: typeof t.description === 'string' ? t.description.slice(0, 200) : '',
-            screens: Array.isArray(src.definition?.screens) ? src.definition.screens.length : 0,
-            tables: Array.isArray(src.dataModel?.tables) ? src.dataModel.tables.length : 0,
-            ...(t.source === 'captured' ? { source: 'captured', version: t.version } : {}),
-        };
-    });
+    const compact = (Array.isArray(rows) ? rows : []).slice(0, 60).map((t) => compactTemplateRow(t, byId));
     return {
         templates: compact,
         note: compact.length
@@ -337,4 +349,6 @@ module.exports = {
     applySaveAsTemplate,
     // internal, re-exported through ../builderTools.js _test
     isFreshDraft,
+    shortenAtWord,
+    compactTemplateRow,
 };
