@@ -4,9 +4,23 @@ import { RepeatableList, inputCls } from '../../../../product-website/fields';
 import { registerInspector } from '../registry';
 import BindingField from './BindingField';
 import { TextField, SelectField, NumberField, usePatch } from './kit';
+import type { PanelProps } from '../appDefinition';
+
+interface KeyValueField {
+    key?: string;
+    label?: string;
+}
+
+interface KeyValueProps {
+    source?: unknown;
+    layout?: string;
+    columns?: number;
+    fields?: KeyValueField[];
+    emptyText?: string;
+}
 
 // Mirror of keyValue.layout (componentSpecs.js).
-export default function KeyValueInspector({ node, definition, onCommit, disabled = false }) {
+export default function KeyValueInspector({ node, definition, onCommit, disabled = false }: PanelProps<KeyValueProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const LAYOUTS = [

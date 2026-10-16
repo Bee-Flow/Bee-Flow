@@ -4,9 +4,16 @@ import FormField from '../../../../../shared/FormField';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
 import { registerInspector } from '../registry';
 import { TextField , usePatch } from './kit';
+import type { PanelProps } from '../appDefinition';
+
+interface ModalProps {
+    title?: string;
+    size?: string;
+    triggerLabel?: string | null;
+}
 
 /** Content panel for modal. Props mirror componentSpecs.js (authoritative). */
-export default function ModalInspector({ node, definition, onCommit, disabled = false }) {
+export default function ModalInspector({ node, definition, onCommit, disabled = false }: PanelProps<ModalProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const SIZES = [

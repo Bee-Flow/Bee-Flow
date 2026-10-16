@@ -6,6 +6,24 @@ import FormField from '../../../../../shared/FormField';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
 import { registerInspector } from '../registry';
+import type { PanelProps } from '../appDefinition';
+import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { FieldKeyFieldProps } from './kit';
+
+interface RecordDetailField {
+    key?: string;
+    label?: string;
+    format?: string;
+    group?: string;
+}
+
+interface RecordDetailProps {
+    source?: FieldKeyFieldProps['source'];
+    fields?: RecordDetailField[];
+    layout?: string;
+    columns?: number;
+    emptyText?: string;
+}
 
 /**
  * Content panel for record_detail. Props mirror componentSpecs.js
@@ -14,14 +32,14 @@ import { registerInspector } from '../registry';
  */
 
 const FORMATS = ['text', 'number', 'date', 'datetime', 'badge', 'link', 'markdown', 'document', 'cad'];
-function getLayoutOptionsOptions(t) {
+function getLayoutOptionsOptions(t: TranslateFn) {
     return [
         { value: 'stacked', label: t('studio_apps_panels.record_detail.layout_stacked', 'Stacked') },
         { value: 'rows', label: t('studio_apps_panels.record_detail.layout_rows', 'Rows') },
     ];
 }
 
-function getColumnOptionsOptions(t) {
+function getColumnOptionsOptions(t: TranslateFn) {
     return [
         { value: 1, label: t('studio_apps_panels.record_detail.columns_1', '1 column') },
         { value: 2, label: t('studio_apps_panels.record_detail.columns_2', '2 columns') },
@@ -29,7 +47,7 @@ function getColumnOptionsOptions(t) {
     ];
 }
 
-function getFormatLabels(t) {
+function getFormatLabels(t: TranslateFn): Record<string, string> {
     return {
         text: t('studio_apps_panels.data_grid.format_text', 'Text'),
         number: t('studio_apps_panels.data_grid.format_number', 'Number'),
@@ -46,7 +64,7 @@ function getFormatLabels(t) {
 // Mirror of record_detail.layout (componentSpecs.js) — first value is the
 // default and renders what every record_detail always rendered.
 
-export default function RecordDetailInspector({ node, definition, onCommit, disabled = false }) {
+export default function RecordDetailInspector({ node, definition, onCommit, disabled = false }: PanelProps<RecordDetailProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const LAYOUT_OPTIONS = getLayoutOptionsOptions(t);
@@ -132,7 +150,7 @@ export default function RecordDetailInspector({ node, definition, onCommit, disa
             </FormField>
             <FormField label={t('studio_apps_panels.record_detail.columns', 'Columns')}>
                 <SegmentedControl
-                    value={Number.isInteger(props.columns) ? props.columns : 2}
+                    value={Number.isInteger(props.columns) ? props.columns as number : 2}
                     onChange={(v) => patch({ columns: v })}
                     options={COLUMN_OPTIONS}
                     size="sm"

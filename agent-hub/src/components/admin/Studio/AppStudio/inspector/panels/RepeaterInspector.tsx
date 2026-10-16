@@ -6,6 +6,19 @@ import { actionOptions } from '../actionLabels';
 import { registerInspector } from '../registry';
 import BindingField from './BindingField';
 import { TextField , usePatch } from './kit';
+import type { AppDefinition, AppNode, PanelProps } from '../appDefinition';
+import type { BindingInput } from '../../runtime/resolveBinding.types';
+
+interface RepeaterItemAction {
+    label?: string;
+    actionId?: string;
+}
+
+interface RepeaterProps {
+    source?: unknown;
+    itemActions?: RepeaterItemAction[];
+    emptyText?: string;
+}
 
 /**
  * Content panel for repeater. Props mirror componentSpecs.js (authoritative).
@@ -17,9 +30,9 @@ import { TextField , usePatch } from './kit';
  */
 
 /** Immutable rewrite that mirrors the source binding into node.forEach. */
-function mirrorForEach(def, nodeId, binding) {
+function mirrorForEach(def: AppDefinition, nodeId: string, binding: BindingInput): AppDefinition {
     let changed = false;
-    const mapNodes = (nodes) => (nodes || []).map((n) => {
+    const mapNodes = (nodes: AppNode[] | undefined): AppNode[] => (nodes || []).map((n) => {
         if (n.id === nodeId) {
             if (JSON.stringify(n.forEach) === JSON.stringify(binding)) return n;
             changed = true;
@@ -41,7 +54,7 @@ function mirrorForEach(def, nodeId, binding) {
     return changed ? { ...def, screens } : def;
 }
 
-export default function RepeaterInspector({ node, definition, onCommit, disabled = false }) {
+export default function RepeaterInspector({ node, definition, onCommit, disabled = false }: PanelProps<RepeaterProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     // A raw 'act_a1b2c3' told the author nothing — naming each action the way
@@ -49,7 +62,7 @@ export default function RepeaterInspector({ node, definition, onCommit, disabled
     const actions = actionOptions(definition);
     const actionIds = actions.map((a) => a.id);
 
-    const setSource = (v) => {
+    const setSource = (v: BindingInput) => {
         let next = updateNodeProps(definition, node.id, { source: v });
         next = mirrorForEach(next, node.id, v);
         if (next !== definition) onCommit(next);

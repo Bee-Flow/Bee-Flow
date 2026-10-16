@@ -4,9 +4,17 @@ import Toggle from '../../../../../shared/Toggle';
 import { PrefillField } from './inputPanels';
 import { registerInspector } from '../registry';
 import { TextField, TextAreaField , usePatch } from './kit';
+import type { PanelProps } from '../appDefinition';
+
+interface InputRichtextProps {
+    name?: string;
+    label?: string;
+    defaultValue?: string | null;
+    required?: boolean;
+}
 
 /** Content panel for input_richtext. Props mirror componentSpecs.js (authoritative). */
-export default function InputRichtextInspector({ node, definition, onCommit, disabled = false }) {
+export default function InputRichtextInspector({ node, definition, onCommit, disabled = false }: PanelProps<InputRichtextProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);

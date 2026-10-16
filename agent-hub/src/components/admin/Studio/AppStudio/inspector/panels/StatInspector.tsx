@@ -3,10 +3,19 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import { registerInspector } from '../registry';
 import BindingField from './BindingField';
 import { TextField, IconField, SelectField, usePatch } from './kit';
+import type { PanelProps } from '../appDefinition';
+
+interface StatProps {
+    label?: string;
+    value?: unknown;
+    caption?: string | null;
+    icon?: string | null;
+    look?: string;
+}
 
 // Mirror of the stat `look` enum (componentSpecs.js, authoritative — first
 // value is the default and renders exactly what stat always rendered).
-export default function StatInspector({ node, definition, onCommit, disabled = false }) {
+export default function StatInspector({ node, definition, onCommit, disabled = false }: PanelProps<StatProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const LOOKS = [

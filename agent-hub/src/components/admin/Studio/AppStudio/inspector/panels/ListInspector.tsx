@@ -8,8 +8,41 @@ import { registerInspector } from '../registry';
 import FormField from '../../../../../shared/FormField';
 import Toggle from '../../../../../shared/Toggle';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
+import type { PanelProps } from '../appDefinition';
+import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { FieldKeyFieldProps } from './kit';
 
-function getLooksOptions(t) {
+/** The props that name one field of a source row, each picked with a FieldKeyField. */
+type ListKeyProp = 'subtitleKey' | 'metaKey' | 'timestampKey' | 'badgeKey' | 'unreadKey' | 'selectedDetailKey' | 'groupKey'
+    | 'peekMatchKey' | 'peekRowKey' | 'peekTitleKey' | 'peekTextKey' | 'peekGroupKey' | 'peekCountKey';
+
+/** One row of a value-to-label (and optionally tone) table. */
+interface ListLabelRow {
+    value?: string;
+    label?: string;
+    tone?: string;
+}
+
+interface ListProps extends Partial<Record<ListKeyProp, string | null>> {
+    source?: FieldKeyFieldProps['source'];
+    look?: string;
+    titleKey?: string;
+    badgeToneMap?: ListLabelRow[];
+    badgePlacement?: string;
+    selectedWhen?: string | null;
+    groupOrder?: string[];
+    groupLabelMap?: ListLabelRow[];
+    peekSource?: unknown;
+    peekGroupLabelMap?: ListLabelRow[];
+    peekLimit?: number;
+    peekTitle?: string | null;
+    peekMoreText?: string | null;
+    peekBadge?: boolean;
+    icon?: string | null;
+    emptyText?: string;
+}
+
+function getLooksOptions(t: TranslateFn) {
     return [
         { value: 'rows', label: t('studio_apps_panels.record_detail.layout_rows', 'Rows') },
         { value: 'cards', label: t('studio_apps_panels.list.look_cards', 'Cards') },
@@ -17,7 +50,7 @@ function getLooksOptions(t) {
     ];
 }
 
-function getBadgePlacementsOptions(t) {
+function getBadgePlacementsOptions(t: TranslateFn) {
     return [
         { value: 'meta', label: t('studio_apps_panels.list.placement_meta', 'On the meta line') },
         { value: 'subtitle', label: t('studio_apps_panels.list.placement_subtitle', 'On the subtitle line') },
@@ -35,14 +68,14 @@ function getBadgePlacementsOptions(t) {
  * AI-builder-only knobs: an author could see the AI produce a list with unread
  * dots and coloured badges and had no way to make, change or even find them.
  */
-export default function ListInspector({ node, definition, onCommit, disabled = false }) {
+export default function ListInspector({ node, definition, onCommit, disabled = false }: PanelProps<ListProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const LOOKS = getLooksOptions(t);
     const BADGE_PLACEMENTS = getBadgePlacementsOptions(t);
     const patch = usePatch(node, definition, onCommit);
 
-    const fieldKey = (key, label, placeholder, hint) => (
+    const fieldKey = (key: ListKeyProp, label: string, placeholder: string, hint?: string) => (
         <FieldKeyField
             label={label}
             value={props[key]}
@@ -99,7 +132,7 @@ export default function ListInspector({ node, definition, onCommit, disabled = f
                         tone: { type: 'enum', values: ['primary', 'neutral', 'success', 'warning', 'danger', 'info'], default: 'neutral' },
                     }}
                     items={props.badgeToneMap}
-                    onChange={(items) => patch({ badgeToneMap: items })}
+                    onChange={(items: ListLabelRow[]) => patch({ badgeToneMap: items })}
                     disabled={disabled}
                 />
             </FormField>
@@ -162,7 +195,7 @@ export default function ListInspector({ node, definition, onCommit, disabled = f
                         label: { type: 'string' },
                     }}
                     items={props.groupLabelMap}
-                    onChange={(items) => patch({ groupLabelMap: items })}
+                    onChange={(items: ListLabelRow[]) => patch({ groupLabelMap: items })}
                     disabled={disabled}
                 />
             </FormField>
@@ -194,7 +227,7 @@ export default function ListInspector({ node, definition, onCommit, disabled = f
                         tone: { type: 'enum', values: ['primary', 'neutral', 'success', 'warning', 'danger', 'info'] },
                     }}
                     items={props.peekGroupLabelMap}
-                    onChange={(items) => patch({ peekGroupLabelMap: items })}
+                    onChange={(items: ListLabelRow[]) => patch({ peekGroupLabelMap: items })}
                     disabled={disabled}
                 />
             </FormField>
