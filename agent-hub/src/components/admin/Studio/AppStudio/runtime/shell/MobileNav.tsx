@@ -1,7 +1,10 @@
 import { Menu } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import AppIcon from '../../../../../icons/AppIcon';
 import Modal from '../../../../../shared/Modal';
+import type { NavModel, NavScreen } from './navModel';
+import type { NavigateFn } from './shell.types';
 
 /**
  * MobileNav — below 640px both shell styles collapse into the same pattern:
@@ -22,19 +25,27 @@ import Modal from '../../../../../shared/Modal';
  * prefers-reduced-motion both zero it.
  */
 
-export default function MobileNav({ model, activeScreen, onNavigate, variant = 'inline', brand = null }) {
+interface MobileNavProps {
+    model: NavModel;
+    activeScreen: NavScreen | null;
+    onNavigate?: NavigateFn | null;
+    variant?: 'inline' | 'bar';
+    brand?: ReactNode;
+}
+
+export default function MobileNav({ model, activeScreen, onNavigate, variant = 'inline', brand = null }: MobileNavProps) {
     const [open, setOpen] = useState(false);
 
     useEffect(() => {
         if (!open) return undefined;
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setOpen(false);
         };
         document.addEventListener('keydown', onKey);
         return () => document.removeEventListener('keydown', onKey);
     }, [open]);
 
-    const pick = (id) => {
+    const pick = (id: string) => {
         setOpen(false);
         if (onNavigate) onNavigate(id);
     };
@@ -47,7 +58,7 @@ export default function MobileNav({ model, activeScreen, onNavigate, variant = '
     // The drawer is the mobile face of whatever the desktop shows, so it
     // carries screen.description too — on a phone that one line is the only
     // thing standing between "Board" and knowing what Board is.
-    const renderRow = (screen) => {
+    const renderRow = (screen: NavScreen) => {
         const isActive = screen.id === (activeScreen?.id || null);
         return (
             <button

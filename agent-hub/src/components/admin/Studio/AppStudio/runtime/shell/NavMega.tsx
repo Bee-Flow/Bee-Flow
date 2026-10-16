@@ -1,7 +1,10 @@
 import { ChevronDown } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
+import type { NavGroup, NavModel, NavScreen } from './navModel';
+import type { NavigateFn } from './shell.types';
 
 /**
  * NavMega — the top bar whose GROUPS open a panel (nav.style 'mega').
@@ -38,22 +41,29 @@ const MAX_COLUMNS = 3;
 
 const LINK_CLS = 'inline-flex items-center gap-1.5 px-3 text-sm font-medium self-stretch';
 
-function linkStyle(isActive) {
+function linkStyle(isActive: boolean) {
     return isActive
         ? { color: 'var(--app-primary)', boxShadow: 'inset 0 -2px 0 var(--app-primary)' }
         : { color: 'var(--text-secondary)' };
 }
 
 /** Split a group's screens into balanced columns. */
-export function megaColumns(screens) {
+export function megaColumns(screens: NavScreen[]): NavScreen[][] {
     const count = Math.min(MAX_COLUMNS, Math.max(1, Math.ceil(screens.length / COLUMN_ROWS)));
     const perColumn = Math.ceil(screens.length / count);
-    const columns = [];
+    const columns: NavScreen[][] = [];
     for (let i = 0; i < screens.length; i += perColumn) columns.push(screens.slice(i, i + perColumn));
     return columns;
 }
 
-function MegaPanel({ group, screenId, onPick, panelRef }) {
+interface MegaPanelProps {
+    group: NavGroup;
+    screenId: string | null | undefined;
+    onPick: NavigateFn;
+    panelRef: RefObject<HTMLDivElement | null>;
+}
+
+function MegaPanel({ group, screenId, onPick, panelRef }: MegaPanelProps) {
     const columns = megaColumns(group.screens);
     return (
         <div
@@ -110,12 +120,18 @@ function MegaPanel({ group, screenId, onPick, panelRef }) {
     );
 }
 
-export default function NavMega({ model, screenId, onNavigate }) {
+interface NavMegaProps {
+    model: NavModel;
+    screenId: string | null | undefined;
+    onNavigate?: NavigateFn | null;
+}
+
+export default function NavMega({ model, screenId, onNavigate }: NavMegaProps) {
     const { t } = useTranslation();
-    const [openId, setOpenId] = useState(null);
-    const timers = useRef({ open: null, close: null });
-    const triggerRefs = useRef({});
-    const panelRef = useRef(null);
+    const [openId, setOpenId] = useState<string | null>(null);
+    const timers = useRef<{ open: ReturnType<typeof setTimeout> | null; close: ReturnType<typeof setTimeout> | null }>({ open: null, close: null });
+    const triggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+    const panelRef = useRef<HTMLDivElement | null>(null);
 
     const clearTimers = useCallback(() => {
         if (timers.current.open) { clearTimeout(timers.current.open); timers.current.open = null; }
@@ -124,7 +140,7 @@ export default function NavMega({ model, screenId, onNavigate }) {
 
     useEffect(() => clearTimers, [clearTimers]);
 
-    const scheduleOpen = (id) => {
+    const scheduleOpen = (id: string) => {
         clearTimers();
         timers.current.open = setTimeout(() => setOpenId(id), OPEN_DELAY_MS);
     };
@@ -137,14 +153,14 @@ export default function NavMega({ model, screenId, onNavigate }) {
     // otherwise focus is stranded inside a panel that is no longer there.
     useEffect(() => {
         if (!openId) return undefined;
-        const onKey = (e) => {
+        const onKey = (e: KeyboardEvent) => {
             if (e.key !== 'Escape') return;
             setOpenId(null);
             triggerRefs.current[openId]?.focus();
         };
-        const onDown = (e) => {
+        const onDown = (e: PointerEvent) => {
             const trigger = triggerRefs.current[openId];
-            if (panelRef.current?.contains(e.target) || trigger?.contains(e.target)) return;
+            if (panelRef.current?.contains(e.target as Node | null) || trigger?.contains(e.target as Node | null)) return;
             setOpenId(null);
         };
         document.addEventListener('keydown', onKey);
@@ -155,20 +171,20 @@ export default function NavMega({ model, screenId, onNavigate }) {
         };
     }, [openId]);
 
-    const pick = (id) => {
+    const pick = (id: string) => {
         clearTimers();
         setOpenId(null);
         if (onNavigate) onNavigate(id);
     };
 
-    const onTriggerKeyDown = (e, groupId) => {
+    const onTriggerKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>, groupId: string) => {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             clearTimers();
             setOpenId(groupId);
             // The panel mounts on the next commit, so reach for its first item
             // after that rather than in this handler.
-            setTimeout(() => panelRef.current?.querySelector('[role="menuitem"]')?.focus(), 0);
+            setTimeout(() => panelRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus(), 0);
         }
     };
 
@@ -209,7 +225,7 @@ export default function NavMega({ model, screenId, onNavigate }) {
                         // went somewhere inside, which must NOT close.
                         onFocusCapture={clearTimers}
                         onBlurCapture={(e) => {
-                            if (!e.currentTarget.contains(e.relatedTarget)) setOpenId(null);
+                            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpenId(null);
                         }}
                     >
                         <button
