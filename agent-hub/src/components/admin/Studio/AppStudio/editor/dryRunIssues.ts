@@ -22,10 +22,10 @@ import type { AppDefinition } from '../inspector/appDefinition';
 import { resolveTarget } from '../../../../shared/resolveTarget';
 
 /** resolveTarget handles a missing definition (it answers null), whatever its JSDoc says. */
-type ResolveTargetFn = (
+export type ResolveTargetFn = (
     definition: AppDefinition | null | undefined,
     ref?: { path?: string; nodeId?: string; kind?: 'app' | 'automation' },
-) => { label?: string; labelIsText?: boolean } | null;
+) => { label?: string; labelIsText?: boolean; screenId?: string; screenName?: string; nodeId?: string | null } | null;
 
 /** An issue the panel can draw, or a static-validator entry on its way to one. */
 export interface DryRunIssue {

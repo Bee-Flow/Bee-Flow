@@ -17,6 +17,9 @@ export interface HeaderApp {
     published_version?: number | string | null;
     isPublished?: boolean | null;
     is_published?: boolean | null;
+    publishedAt?: string | null;
+    published_at?: string | null;
+    nextcloudMenu?: boolean | null;
     managed?: unknown;
     [key: string]: unknown;
 }

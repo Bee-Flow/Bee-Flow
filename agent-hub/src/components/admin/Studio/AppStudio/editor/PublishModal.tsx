@@ -1,14 +1,15 @@
 import { AlertTriangle, CheckCircle2, ExternalLink, Info, LayoutGrid, Loader2, Stethoscope } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import AudiencePicker from './AudiencePicker';
-import dryRunIssues from './dryRunIssues';
+import dryRunIssues, { type DryRunIssue, type ResolveTargetFn } from './dryRunIssues';
+import type { BlockerListProps, Findings, IssuePanelProps, IssueRowProps, IssueTarget, PublishModalProps, PublishPayload, TranslateFn } from './PublishModal.types';
 import { GROUPS, ORG, PRIVATE } from './publishAccessSummary';
 import useTranslation from '../../../../../hooks/useTranslation';
+import { errorBodyRecord, errorStatus, messageOf } from '../../../../../utils/caughtError';
 import Modal from '../../../../shared/Modal';
 import { resolveTarget } from '../../../../shared/resolveTarget';
 import toast from '../../../../shared/Toast';
 import { studioAppsApi } from '../studioAppsApi';
-
 /**
  * Publish modal — the three-way audience picker for an App Studio app.
  *
@@ -33,19 +34,19 @@ import { studioAppsApi } from '../studioAppsApi';
  */
 
 /** Which audience the app is CURRENTLY published to. */
-function audienceOf(app) {
+function audienceOf(app: PublishModalProps['app'] | null | undefined): string {
     const published = !!(app?.isPublished ?? app?.is_published);
     if (!published) return PRIVATE;
     const groups = sharedGroupsOf(app);
     return groups.length > 0 ? GROUPS : ORG;
 }
 
-function sharedGroupsOf(app) {
+function sharedGroupsOf(app: PublishModalProps['app'] | null | undefined): string[] {
     const g = app?.sharedGroups ?? app?.shared_groups;
     return Array.isArray(g) ? g.map((x) => String(x)).filter(Boolean) : [];
 }
 
-function formatWhen(iso) {
+function formatWhen(iso: string | null | undefined): string | null {
     if (!iso) return null;
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return null;
@@ -57,7 +58,7 @@ function formatWhen(iso) {
  * lookup table: a table of English is a sentence the Languages panel cannot
  * reach. The three cases are exhaustive — audienceOf() returns nothing else.
  */
-function audienceLabel(t, audience) {
+function audienceLabel(t: TranslateFn, audience: string): string {
     switch (audience) {
         case PRIVATE: return t('app_studio.publish.audience_private', 'Private draft');
         case ORG: return t('app_studio.publish.audience_org', 'Everyone in your organization');
@@ -77,25 +78,24 @@ function audienceLabel(t, audience) {
  * The walk itself lives in shared/resolveTarget.js — the one deep-link
  * resolver every "Show me" goes through; this keeps the modal's shape.
  */
-export function resolveIssueTarget(definition, path) {
+export function resolveIssueTarget(definition: PublishModalProps['definition'], path: unknown): IssueTarget | null {
     if (typeof path !== 'string') return null;
-    const hit = resolveTarget(definition, { path, kind: 'app' });
+    const hit = (resolveTarget as ResolveTargetFn)(definition, { path, kind: 'app' });
     return hit ? { screenId: hit.screenId, screenName: hit.screenName, nodeId: hit.nodeId } : null;
 }
 
-function asIssueList(value) {
+function asIssueList(value: unknown): DryRunIssue[] {
     return Array.isArray(value) ? value.filter((e) => e && typeof e === 'object') : [];
 }
-
 /**
  * The screen a node id sits on, in the { nodeId, screenId, screenName } shape
  * "Show me" wants. resolveIssueTarget walks a validator PATH; the dry run
  * reports the component it actually executed, which only has an id. Same
  * resolver, other direction.
  */
-function resolveNodeScreen(definition, nodeId) {
+function resolveNodeScreen(definition: PublishModalProps['definition'], nodeId: string | null | undefined): IssueTarget | null {
     if (!definition || !nodeId) return null;
-    const hit = resolveTarget(definition, { nodeId, kind: 'app' });
+    const hit = (resolveTarget as ResolveTargetFn)(definition, { nodeId, kind: 'app' });
     return hit ? { nodeId, screenId: hit.screenId, screenName: hit.screenName } : null;
 }
 
@@ -105,7 +105,7 @@ function resolveNodeScreen(definition, nodeId) {
  * the icon is really there (or really gone); otherwise the connector's own
  * periodic check picks it up — "within a few minutes".
  */
-function ncMenuToast(t, ncRes, enabled) {
+function ncMenuToast(t: TranslateFn, ncRes: { ncConnected?: boolean; ncSync?: string } | null | undefined, enabled: boolean) {
     if (ncRes?.ncConnected === false) {
         toast.info(t('app_studio.publish.nc_menu_not_connected', 'Saved — the app icon appears once your organization’s Nextcloud is connected to Bee Flow.'));
     } else if (ncRes?.ncSync === 'synced') {
@@ -117,7 +117,7 @@ function ncMenuToast(t, ncRes, enabled) {
     }
 }
 
-export default function PublishModal({ open, onClose, app, onPublished, definition, onRevealNode, managed = false }) {
+export default function PublishModal({ open, onClose, app, onPublished, definition, onRevealNode, managed = false }: PublishModalProps) {
     const { t } = useTranslation();
     // `managed`: a Solution stage manages the app, so its deploys publish it
     // and the stage's operator decides only WHO opens it. Audience only: no
@@ -128,16 +128,16 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
     const isPublished = !!(app?.isPublished ?? app?.is_published);
 
     const [audience, setAudience] = useState(currentAudience);
-    const [selectedGroups, setSelectedGroups] = useState(() => new Set(currentGroups));
+    const [selectedGroups, setSelectedGroups] = useState<Set<string>>(() => new Set(currentGroups));
     // Nextcloud app-menu opt-in (stored per app; applied after the publish).
     const [ncMenu, setNcMenu] = useState(!!app?.nextcloudMenu);
     const [busy, setBusy] = useState(false);
     // What the server said stands in the way of publishing, straight from the
     // 422 body: { errors, warnings }. null until a publish is refused.
-    const [blockers, setBlockers] = useState(null);
+    const [blockers, setBlockers] = useState<Findings | null>(null);
     // The pre-flight check: null = never run, then { errors, warnings }.
     const [checking, setChecking] = useState(false);
-    const [checkResult, setCheckResult] = useState(null);
+    const [checkResult, setCheckResult] = useState<Findings | null>(null);
 
     // Reset the draft each time the modal opens so a re-open starts from the
     // app's real, current audience.
@@ -170,7 +170,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
             const result = await studioAppsApi.checkApp(app.id);
             setCheckResult(dryRunIssues(result, resolveAgainst, t));
         } catch (err) {
-            toast.error(err?.message || t('app_studio.publish.check_failed', 'Could not check this app.'));
+            toast.error(messageOf(err, t('app_studio.publish.check_failed', 'Could not check this app.')));
         } finally {
             setChecking(false);
         }
@@ -178,12 +178,12 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
 
     // A different audience is a different attempt — the previous refusal no
     // longer describes what the Apply button would do.
-    const chooseAudience = (next) => {
+    const chooseAudience = (next: string) => {
         setAudience(next);
         setBlockers(null);
     };
 
-    const toggleGroup = (id) => {
+    const toggleGroup = (id: string) => {
         setSelectedGroups((prev) => {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id); else next.add(id);
@@ -197,7 +197,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
     const groupsIncomplete = audience === GROUPS && selectedGroups.size === 0;
     const canApply = !busy && !groupsIncomplete;
 
-    const buildPayload = () => {
+    const buildPayload = (): PublishPayload => {
         if (audience === PRIVATE) return { isPublished: false };
         if (audience === ORG) return { isPublished: true, sharedGroups: [] };
         return { isPublished: true, sharedGroups: [...selectedGroups] };
@@ -227,7 +227,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                     nextNcMenu = !!ncRes?.nextcloudMenu;
                     ncMenuToast(t, ncRes, ncMenu);
                 } catch (err) {
-                    toast.error(err?.message || t('app_studio.publish.nc_menu_failed', 'The Nextcloud menu setting could not be saved.'));
+                    toast.error(messageOf(err, t('app_studio.publish.nc_menu_failed', 'The Nextcloud menu setting could not be saved.')));
                 }
             }
 
@@ -258,11 +258,11 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
             // 422 = the server already listed exactly what's wrong. Keep the
             // modal open and show that list instead of a toast the user can't
             // act on. Everything else really is an unexpected failure.
-            const errors = err?.status === 422 ? asIssueList(err?.body?.errors) : [];
+            const errors = errorStatus(err) === 422 ? asIssueList(errorBodyRecord(err)?.errors) : [];
             if (errors.length > 0) {
-                setBlockers({ errors, warnings: asIssueList(err?.body?.warnings) });
+                setBlockers({ errors, warnings: asIssueList(errorBodyRecord(err)?.warnings) });
             } else {
-                toast.error(err?.message || t('app_studio.publish.failed', 'Publishing failed.'));
+                toast.error(messageOf(err, t('app_studio.publish.failed', 'Publishing failed.')));
             }
         } finally {
             setBusy(false);
@@ -274,7 +274,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
     // Prefer the live editor definition when the chrome hands one down; the
     // stored app row is the fallback for callers that only have the row.
     const resolveAgainst = definition ?? app?.definition ?? null;
-    const revealTarget = (issue) => {
+    const revealTarget = (issue: DryRunIssue): IssueTarget | null => {
         if (!onRevealNode) return null;
         // The dry run names the COMPONENT it executed, not a validator path —
         // so "Show me" has to work from an id as well as from a path.
@@ -286,7 +286,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
         return (target && (target.nodeId || target.screenId)) ? target : null;
     };
 
-    const doReveal = (target) => {
+    const doReveal = (target: IssueTarget) => {
         onRevealNode?.({ nodeId: target.nodeId, screenId: target.screenId });
         onClose?.();
     };
@@ -464,7 +464,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
  * not changed anything, so saying so would be noise — and it may have no
  * errors at all, only things worth a look.
  */
-function BlockerList({ errors, warnings, revealTarget, onReveal, context = 'publish' }) {
+function BlockerList({ errors, warnings, revealTarget, onReveal, context = 'publish' }: BlockerListProps) {
     const { t } = useTranslation();
     const isCheck = context === 'check';
     // Four headings, not two halves of one: "{n} things ${isCheck ? 'are
@@ -510,7 +510,7 @@ function BlockerList({ errors, warnings, revealTarget, onReveal, context = 'publ
     );
 }
 
-function IssuePanel({ issues, icon, title, note, panelStyle, revealTarget, onReveal }) {
+function IssuePanel({ issues, icon, title, note, panelStyle, revealTarget, onReveal }: IssuePanelProps) {
     return (
         <div className="rounded-lg border p-3" style={panelStyle}>
             <div className="flex items-center gap-2">
@@ -532,7 +532,7 @@ function IssuePanel({ issues, icon, title, note, panelStyle, revealTarget, onRev
     );
 }
 
-function IssueRow({ issue, target, onReveal }) {
+function IssueRow({ issue, target, onReveal }: IssueRowProps) {
     const { t } = useTranslation();
     // The save-notices panel's own button, same words and the same job
     // (SaveStatusPill) — one key, not two.

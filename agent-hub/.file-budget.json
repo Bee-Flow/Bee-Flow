@@ -55,7 +55,7 @@
     "src/components/admin/Studio/AppStudio/editor/ComponentRibbon.jsx": 651,
     "src/components/admin/Studio/AppStudio/editor/LogicaTab.jsx": 466,
     "src/components/admin/Studio/AppStudio/editor/logicRows.ts": 590,
-    "src/components/admin/Studio/AppStudio/editor/PublishModal.jsx": 565,
+    "src/components/admin/Studio/AppStudio/editor/PublishModal.tsx": 565,
     "src/components/admin/Studio/AppStudio/flow/ActionFlowEditor.jsx": 632,
     "src/components/admin/Studio/AppStudio/flow/StepSettings.jsx": 749,
     "src/components/admin/Studio/AppStudio/inspector/ActionsSection.jsx": 653,
