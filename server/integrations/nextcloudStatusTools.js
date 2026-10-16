@@ -12,6 +12,7 @@
  */
 
 const ncClient = require('./nextcloudClient');
+const { nextcloudHttpError } = require('./nextcloudHttpError');
 
 const NEXTCLOUD_STATUS_TOOLS = [
     {
@@ -33,7 +34,7 @@ const NEXTCLOUD_STATUS_TOOLS = [
                     availability: { type: 'string', enum: ['online', 'away', 'dnd', 'invisible', 'offline', 'busy'], description: 'Presence state.' },
                     message: { type: 'string', description: 'Free-text status message.' },
                     emoji: { type: 'string', description: 'Single emoji to display next to the status.' },
-                    clearAt: { type: 'string', description: 'ISO 8601 datetime when the status should auto-clear (e.g. "2026-04-30T15:00:00Z"). Omit to keep until manually cleared.' }
+                    clearAt: { type: ['string', 'null'], description: 'ISO 8601 datetime when the status should auto-clear (e.g. "2026-04-30T15:00:00Z"). Omit to leave the current auto-clear time as it is; pass null to make the status permanent.' }
                 }
             }
         }
@@ -89,6 +90,21 @@ function mapStatus(s) {
     };
 }
 
+/**
+ * `clearAt` as epoch seconds. Unparsable and past values are refused here:
+ * Nextcloud answers a past time with a 400 that used to be reported as an
+ * unknown status, and an unparsable one used to be dropped silently.
+ */
+function parseClearAt(raw, now = Date.now()) {
+    if (raw === undefined || raw === '') return { given: false, seconds: null };
+    // An explicit null means "no auto-clear".
+    if (raw === null) return { given: true, seconds: null };
+    const ms = typeof raw === 'number' ? raw * 1000 : Date.parse(String(raw));
+    if (!Number.isFinite(ms)) return { error: `Could not parse clearAt "${String(raw)}" as a date-time (use ISO 8601, e.g. 2026-12-01T17:00:00Z).` };
+    if (ms <= now) return { error: `clearAt ${String(raw)} is in the past; pick a time in the future.` };
+    return { given: true, seconds: Math.floor(ms / 1000) };
+}
+
 async function executeNextcloudStatusTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
     const { baseUrl, fetch: ncFetch, authError } = ctx;
@@ -106,30 +122,46 @@ async function executeNextcloudStatusTool(toolName, args, userId, session) {
         }
 
         case 'nextcloud_status_set': {
-            const calls = [];
-            if (args.availability) {
-                calls.push(['/status', 'PUT', { statusType: args.availability }]);
+            // Everything is checked before the first write, so a bad input can
+            // never leave the status half-changed.
+            const clear = parseClearAt(args.clearAt);
+            if (clear.error) return clear;
+            const touchesMessage = args.message !== undefined || args.emoji !== undefined || clear.given;
+            if (!args.availability && !touchesMessage) {
+                return { error: 'no fields provided (availability, message, emoji, or clearAt required)' };
             }
-            const clearAtSec = args.clearAt ? Math.floor(new Date(args.clearAt).getTime() / 1000) : null;
-            if (args.message !== undefined || args.emoji !== undefined) {
+            const calls = [];
+            if (args.availability) calls.push(['/status', 'PUT', { statusType: args.availability }]);
+            if (touchesMessage) {
+                // The message call replaces all of message, icon and clearAt,
+                // so what the caller did not pass is carried over from now.
+                const curRes = await ncFetch(`${api}?format=json`, { headers: commonHeaders() });
+                // Only 404 means "no status yet"; any other failure must not turn into a wipe.
+                if (!curRes.ok && curRes.status !== 404) {
+                    return nextcloudHttpError(curRes, { authError, what: 'status read', app: 'User status' });
+                }
+                const cur = curRes.ok ? ((await readJsonSafe(curRes))?.ocs?.data || {}) : {};
+                const message = args.message !== undefined ? args.message : cur.message;
+                const icon = args.emoji !== undefined ? args.emoji : cur.icon;
                 calls.push(['/message/custom', 'PUT', {
-                    statusIcon: args.emoji || '',
-                    message: args.message || '',
-                    clearAt: clearAtSec,
+                    statusIcon: icon || null,
+                    message: message || null,
+                    clearAt: clear.given ? clear.seconds : (cur.clearAt ?? null),
                 }]);
             }
-            if (calls.length === 0) return { error: 'no fields provided (availability, message, emoji, or clearAt required)' };
+            const applied = [];
             for (const [path, method, body] of calls) {
                 const res = await ncFetch(`${api}${path}?format=json`, {
                     method,
                     headers: jsonHeaders,
                     body: JSON.stringify(body),
                 });
-                if (res.status === 401) return { error: authError };
                 if (!res.ok) {
-                    const err = await readJsonSafe(res);
-                    return { error: `Status set failed (${res.status})`, detail: err };
+                    const failed = await nextcloudHttpError(res, { authError, what: 'status set', app: 'User status' });
+                    const note = applied.length ? ` Already applied: ${applied.join(', ')}.` : '';
+                    return { error: `${failed.error}${note}`, applied };
                 }
+                applied.push(path === '/status' ? 'availability' : 'message');
             }
             // Return the merged result.
             const finalRes = await ncFetch(`${api}?format=json`, { headers: commonHeaders() });
@@ -149,18 +181,16 @@ async function executeNextcloudStatusTool(toolName, args, userId, session) {
 
         case 'nextcloud_status_set_predefined': {
             if (!args.messageId) return { error: 'messageId is required' };
-            const clearAtSec = args.clearAt ? Math.floor(new Date(args.clearAt).getTime() / 1000) : null;
+            const clear = parseClearAt(args.clearAt);
+            if (clear.error) return clear;
+            const clearAtSec = clear.given ? clear.seconds : null;
             const res = await ncFetch(`${api}/message/predefined?format=json`, {
                 method: 'PUT',
                 headers: jsonHeaders,
                 body: JSON.stringify({ messageId: args.messageId, clearAt: clearAtSec }),
             });
-            if (res.status === 401) return { error: authError };
             if (res.status === 400) return { error: `Unknown predefined status: ${args.messageId}` };
-            if (!res.ok) {
-                const err = await readJsonSafe(res);
-                return { error: `Predefined status set failed (${res.status})`, detail: err };
-            }
+            if (!res.ok) return nextcloudHttpError(res, { authError, what: 'predefined status set', app: 'User status' });
             const data = await readJsonSafe(res);
             return { success: true, status: data?.ocs?.data ? mapStatus(data.ocs.data) : null };
         }
