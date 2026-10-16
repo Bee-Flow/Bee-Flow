@@ -636,7 +636,7 @@ module.exports = {
     'cms_site.blocks.experiment.alternative': 'Alternative',
     'cms_site.blocks.experiment.enable': 'Test an alternative for this block',
     'cms_site.blocks.experiment.goal': 'Goal event name',
-    'cms_site.blocks.experiment.goal_hint': 'Counted when a visitor clicks a button or link in this block, or submits a form in it.',
+    'cms_site.blocks.experiment.goal_hint': 'Counted when a visitor clicks a link or submit button in this block, or submits a form in it.',
     'cms_site.blocks.experiment.hint': 'Show a share of the page views an alternative version of this block and compare how often visitors click through. Nothing is stored in the visitor\'s browser, no cookies and no identifier; results count page views, not people.',
     'cms_site.blocks.experiment.name': 'Test name',
     'cms_site.blocks.experiment.name_hint': 'Shown in the analytics report. Letters, digits, - and _.',

@@ -55,7 +55,7 @@ function ExperimentCard({ Inner, props }: { Inner: ComponentType<EditorProps>; p
                         value={typeof data.abGoal === 'string' ? data.abGoal : ''}
                         onChange={v => patch({ abGoal: v.toLowerCase().replace(/[^a-z0-9_-]/g, '-').slice(0, 40) })}
                         placeholder={DEFAULT_GOAL}
-                        hint={t('cms_site.blocks.experiment.goal_hint', 'Counted when a visitor clicks a button or link in this block, or submits a form in it.')}
+                        hint={t('cms_site.blocks.experiment.goal_hint', 'Counted when a visitor clicks a link or submit button in this block, or submits a form in it.')}
                     />
                     <SegmentedControl<Side>
                         value={side}
