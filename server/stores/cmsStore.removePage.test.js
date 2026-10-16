@@ -71,3 +71,25 @@ test('removePage on an unknown page id changes nothing and returns null', async 
     assert.strictEqual(await cmsStore.removePage(siteId, 'pg_unknown'), null);
     assert.strictEqual((await cmsStore.getProject(siteId)).pages.length, 3);
 });
+
+test('removePage also neutralises links inside translations (page and site overrides)', async () => {
+    const { siteId, homeId, aboutId } = await buildSite();
+    const link = { kind: 'page', pageId: aboutId };
+    await cmsStore.setSiteLocaleOverride(siteId, 'nl', {
+        header: { nav: [{ label: 'Over', link }] },
+        pageTitles: { [aboutId]: 'Over ons' },
+    });
+    const home = await cmsStore.getPage(siteId, homeId);
+    await cmsStore.setPageLocaleOverride(siteId, homeId, 'nl', {
+        blocks: { [home.blocks[0].id]: { content: { cta: { link } } } },
+    });
+
+    const outcome = await cmsStore.removePage(siteId, aboutId);
+    assert.strictEqual(outcome.neutralisedLinks, 4);
+
+    const siteOv = await cmsStore.getSiteLocaleOverride(siteId, 'nl');
+    assert.deepStrictEqual(siteOv.header.nav[0].link, { kind: 'anchor', anchor: '' });
+    assert.ok(!(aboutId in (siteOv.pageTitles || {})));
+    const pageOv = await cmsStore.getPageLocaleOverride(siteId, homeId, 'nl');
+    assert.deepStrictEqual(Object.values(pageOv.blocks)[0].content.cta.link, { kind: 'anchor', anchor: '' });
+});

@@ -4,7 +4,7 @@
 
 const { isPlainObject } = require('./shared');
 const { getPage, setPage, deletePage } = require('./pages');
-const { collectLocaleOverrides, setSiteLocaleOverride } = require('./localeOverrides');
+const { collectLocaleOverrides, setSiteLocaleOverride, setPageLocaleOverride } = require('./localeOverrides');
 const { neutralisePageLinks } = require('./pageLinks');
 const { mutateProject } = require('./projects');
 
@@ -84,18 +84,35 @@ async function removePage(siteId, pageId) {
 
     const stats = { count: 0 };
     for (const id of remainingIds) {
-        const doc = await getPage(siteId, id);
+        const doc = await getPage(siteId, id, { fresh: true });
         if (!doc) continue;
         const before = stats.count;
         const blocks = neutralisePageLinks(doc.blocks, pageId, stats);
         if (stats.count !== before) await setPage(siteId, { ...doc, blocks });
     }
 
-    const { siteByLocale } = await collectLocaleOverrides(siteId, { fresh: true });
+    const { siteByLocale, pagesByLocale } = await collectLocaleOverrides(siteId, { fresh: true });
     for (const [locale, override] of Object.entries(siteByLocale)) {
-        if (!isPlainObject(override) || !isPlainObject(override.pageTitles) || !(pageId in override.pageTitles)) continue;
-        const { [pageId]: _gone, ...pageTitles } = override.pageTitles;
-        await setSiteLocaleOverride(siteId, locale, { ...override, pageTitles });
+        if (!isPlainObject(override)) continue;
+        const before = stats.count;
+        const next = { ...override };
+        if (isPlainObject(override.header)) next.header = neutralisePageLinks(override.header, pageId, stats);
+        if (isPlainObject(override.footer)) next.footer = neutralisePageLinks(override.footer, pageId, stats);
+        const hadTitle = isPlainObject(override.pageTitles) && pageId in override.pageTitles;
+        if (hadTitle) {
+            const { [pageId]: _gone, ...pageTitles } = override.pageTitles;
+            next.pageTitles = pageTitles;
+        }
+        if (hadTitle || stats.count !== before) await setSiteLocaleOverride(siteId, locale, next);
+    }
+    for (const [otherId, byLocale] of Object.entries(pagesByLocale)) {
+        if (otherId === pageId) continue;
+        for (const [locale, override] of Object.entries(byLocale)) {
+            if (!isPlainObject(override) || !isPlainObject(override.blocks)) continue;
+            const before = stats.count;
+            const blocks = neutralisePageLinks(override.blocks, pageId, stats);
+            if (stats.count !== before) await setPageLocaleOverride(siteId, otherId, locale, { ...override, blocks });
+        }
     }
     return { removed, newHomepage, neutralisedLinks: stats.count };
 }
