@@ -457,7 +457,7 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res
             origin, slug: parsed.slug, locale, defaultLocale, locales: pageLocales,
             page: eff.page, design: eff.design || {}, siteName,
         });
-        const body = renderBlocks(eff.page.blocks, { fallbackTitle: eff.page.title });
+        const body = renderBlocks(eff.page.blocks, { fallbackTitle: eff.page.title, chrome: { header: eff.header, footer: eff.footer } });
 
         /* The same payload GET /api/cms/site would return, inlined.
          *

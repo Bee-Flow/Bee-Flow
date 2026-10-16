@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS blocks → semantic HTML, for the server-rendered response.
  *
@@ -40,11 +41,43 @@ const SKIP_KEYS = new Set([
     'id', 'kind', 'type', 'slug', 'src', 'srcDark', 'href', 'url', 'link',
     'anchor', 'path', 'pageId', 'page', 'target', 'rel', 'icon', 'platform',
     'code', 'codeRight', 'popupEmbed', 'embed', 'iframe', 'style', 'variant',
-    'layout', 'background', 'backgroundVariant', 'theme', 'media', 'frame',
+    'layout', 'background', 'backgroundVariant', 'theme', 'frame',
     'seo', 'enabled', 'status', 'span', 'height', 'feature', 'logoSrc',
 ]);
 
 const isProse = (v) => typeof v === 'string' && v.trim() !== '';
+
+/** cms/<key> → /api/cms/asset/<key>; http(s) URLs and absolute paths pass through; anything else is refused. */
+function imageSrc(src) {
+    if (typeof src !== 'string') return '';
+    const s = src.trim();
+    if (s.startsWith('cms/')) return `/api/cms/asset/${s.split('/').map(encodeURIComponent).join('/')}`;
+    if (/^https?:\/\//i.test(s) || (s.startsWith('/') && !s.startsWith('//'))) return s;
+    return '';
+}
+
+/**
+ * `{ kind: 'image', src, alt }` (block media, logos) as an <img>. An empty alt
+ * stays `alt=""` — a decorative image — instead of being dropped, so the
+ * crawler still gets the file.
+ * @param {Record<string, any>} node
+ * @returns {string} the tag, or '' when this is not a renderable image
+ */
+function imageTag(node) {
+    if (node.kind !== undefined && node.kind !== 'image') return '';
+    const src = imageSrc(node.src);
+    if (!src) return '';
+    if (node.kind === undefined && typeof node.alt !== 'string') return '';
+    return `<img src="${esc(src)}" alt="${esc(node.alt || '')}" loading="lazy">`;
+}
+
+/** An own-origin href on a link-carrying node (`link: { href }` after link resolution, or a bare `href`), else ''. */
+function internalHref(node) {
+    const link = (node.link && typeof node.link === 'object') ? node.link : null;
+    const href = (link && typeof link.href === 'string') ? link.href
+        : (typeof node.href === 'string' ? node.href : '');
+    return (href.startsWith('/') && !href.startsWith('//')) ? href : '';
+}
 
 /** hero.titleParts is `[{ text, gradient }]` — the headline in fragments. */
 function titleFromParts(parts) {
@@ -115,6 +148,9 @@ function walk(node, out, depth, state) {
         return; // a button carries no other content worth walking
     }
 
+    const img = imageTag(node);
+    if (img) out.push(img);
+
     // Headline fragments first so the h1 is the real headline, not a later key.
     const parts = titleFromParts(node.titleParts);
     if (parts) emitHeading(parts, out, depth, state);
@@ -147,6 +183,31 @@ function walk(node, out, depth, state) {
     }
 
     if (compareTable) emitCompareTable(node, out);
+
+    // A card that is also a link ({ title, body, link }) keeps its text above
+    // and gets the anchor a crawler follows. Reached only by mixed nodes: a
+    // pure CTA returned early, so nothing is emitted twice.
+    const href = internalHref(node);
+    const text = isProse(node.title) ? node.title : (isProse(node.label) ? node.label : '');
+    if (href && text && node.enabled !== false) out.push(`<a href="${esc(href)}">${esc(text)}</a>`);
+}
+
+/**
+ * Every own-origin link in the site chrome (header nav with its dropdown
+ * groups, footer columns), once per address, as `[href, label]`. Walks by
+ * shape, like the rest of this file: anything with a label and an internal
+ * link counts.
+ * @param {unknown} tree
+ * @param {Map<string, string>} found
+ */
+function collectLinks(tree, found) {
+    if (Array.isArray(tree)) { for (const t of tree) collectLinks(t, found); return; }
+    if (!tree || typeof tree !== 'object') return;
+    const node = /** @type {Record<string, any>} */ (tree);
+    if (node.enabled === false) return; // a disabled header, footer, group or item
+    const href = internalHref(node);
+    if (href && isProse(node.label) && !found.has(href)) found.set(href, node.label);
+    for (const v of Object.values(node)) if (v && typeof v === 'object') collectLinks(v, found);
 }
 
 function emitHeading(text, out, depth, state) {
@@ -165,10 +226,11 @@ function emitHeading(text, out, depth, state) {
 /**
  * @param {object[]} blocks   page.blocks, already locale-resolved
  * @param {object} opts
- * @param {string} opts.fallbackTitle used as the h1 when no block supplies one
+ * @param {string} [opts.fallbackTitle] used as the h1 when no block supplies one
+ * @param {{ header?: unknown, footer?: unknown } | null} [opts.chrome] site header/footer, for the navigation links
  * @returns {string} HTML for the inside of #root
  */
-function renderBlocks(blocks, { fallbackTitle = '' } = {}) {
+function renderBlocks(blocks, { fallbackTitle = '', chrome = null } = {}) {
     const out = [];
     const state = { h1Used: false };
 
@@ -180,6 +242,13 @@ function renderBlocks(blocks, { fallbackTitle = '' } = {}) {
             out.splice(before, 0, `<section data-block="${esc(block.type || '')}">`);
             out.push('</section>');
         }
+    }
+
+    const links = new Map();
+    if (chrome) { collectLinks(chrome.header, links); collectLinks(chrome.footer, links); }
+    if (links.size) {
+        const items = [...links].map(([href, label]) => `<a href="${esc(href)}">${esc(label)}</a>`);
+        out.push(`<nav aria-label="Site">\n${items.join('\n')}\n</nav>`);
     }
 
     if (!state.h1Used && fallbackTitle) out.unshift(`<h1>${esc(fallbackTitle)}</h1>`);

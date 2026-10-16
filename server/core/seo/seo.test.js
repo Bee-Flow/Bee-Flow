@@ -527,7 +527,7 @@ test('external, protocol-relative and anchor CTAs stay client-side', () => {
     assert.match(html, /<p>GitHub<\/p>/, 'the label itself still renders, as before');
 });
 
-test('a card with prose of its own is not swallowed by the CTA rule', () => {
+test('a card with prose of its own is not swallowed by the CTA rule, and its link is kept', () => {
     const html = renderBlocks([{
         type: 'features',
         content: {
@@ -536,7 +536,7 @@ test('a card with prose of its own is not swallowed by the CTA rule', () => {
     }]);
     assert.match(html, /Sharing/);
     assert.match(html, /Org or group\./);
-    assert.ok(!html.includes('<a '), 'mixed objects keep their normal rendering');
+    assert.match(html, /<a href="\/identity-access">Sharing<\/a>/, 'the card text stays and the link is a real anchor');
 });
 
 test('a CTA href is escaped like everything else', () => {
