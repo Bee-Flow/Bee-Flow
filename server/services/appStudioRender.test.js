@@ -87,7 +87,7 @@ test('missing bundle → unavailable with the contract reason', async () => {
         app: APP, definition: appWith({ kind: 'records', tableId: 'tbl_task01' }), model: tasksModel(),
         deps: baseDeps({ readBundle: async () => null }),
     });
-    assert.deepStrictEqual(r, { ok: false, unavailable: true, reason: 'the app runtime bundle is not in this build' });
+    assert.deepStrictEqual(r, { ok: false, unavailable: true, code: 'no_renderer', reason: 'the app runtime bundle is not in this build' });
 });
 
 test('browser edge throwing → unavailable with a readable reason, never a throw', async () => {
