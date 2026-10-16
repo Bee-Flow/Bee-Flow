@@ -8,7 +8,6 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import AnchoredMenuJs from '../../shared/AnchoredMenu';
 import { MEMBER_COLORS } from './memberColors';
 
-// The menu is untyped JavaScript: props are passed by name, as the other users of it do.
 const AnchoredMenu = AnchoredMenuJs;
 
 export interface MemberColorPickerProps {

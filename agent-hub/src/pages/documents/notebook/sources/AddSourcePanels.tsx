@@ -3,7 +3,7 @@
  * a meeting note. Each is a small card with its own title and a close button;
  * Enter submits the URL, Escape closes it.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Mic, X } from 'lucide-react';
 import MeetingPickerJs from '../../../../components/meeting-picker/MeetingPicker';
 import useTranslation from '../../../../hooks/useTranslation';

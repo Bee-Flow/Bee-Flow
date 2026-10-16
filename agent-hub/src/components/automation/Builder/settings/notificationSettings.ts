@@ -45,7 +45,7 @@ export const EVENTS: readonly NotificationEvent[] = ['onError', 'onApproval', 'o
 export const CHANNELS: readonly Channel[] = ['bell', 'email', 'talk'];
 export const URGENCIES: readonly Urgency[] = ['silent', 'normal', 'urgent'];
 
-export const NOTIFICATION_SETTINGS_DEFAULTS = NOTIFICATION_DEFAULTS;
+export const NOTIFICATION_SETTINGS_DEFAULTS: NotificationSettings = NOTIFICATION_DEFAULTS;
 
 const LEGACY_CHANNEL: Record<string, Channel> = { inapp: 'bell', nc_notification: 'bell', notification: 'bell', nc_talk: 'talk' };
 const LEGACY_LEVEL: Record<string, Urgency> = { urgent: 'urgent', heads_up: 'normal', ai_task: 'normal', info: 'silent' };

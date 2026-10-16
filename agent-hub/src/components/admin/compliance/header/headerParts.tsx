@@ -25,7 +25,6 @@ import AnchoredMenuJs from '../../../shared/AnchoredMenu';
 import { OBJHEAD_FOLD, PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import Tooltip from '../../../shared/Tooltip';
 
-// A .jsx module whose `= null` defaults would type the props as null-only.
 const AnchoredMenu = AnchoredMenuJs;
 
 export const HEADER_BUTTON = 'inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] whitespace-nowrap';

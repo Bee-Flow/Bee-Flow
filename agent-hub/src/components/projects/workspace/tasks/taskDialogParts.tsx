@@ -6,7 +6,6 @@ import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import AnchoredMenuJs from '../../../shared/AnchoredMenu';
 import { MENU_ITEM_CLASS, MENU_PANEL_CLASS } from './tasksMenu';
 
-// The menu is untyped JavaScript: props are passed by name, as its other users do.
 const AnchoredMenu = AnchoredMenuJs;
 
 export const MENU_ITEM = MENU_ITEM_CLASS;

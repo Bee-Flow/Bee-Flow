@@ -8,7 +8,7 @@
 // comments (in a project), the version history, print and PDF. Viewers read;
 // nothing here interrupts typing.
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import RichTextEditorJs from '../../editor/react/RichTextEditor';
 import { useDocumentSuggestions } from '../../api/queries/suggestions';
 import useTranslation from '../../hooks/useTranslation';

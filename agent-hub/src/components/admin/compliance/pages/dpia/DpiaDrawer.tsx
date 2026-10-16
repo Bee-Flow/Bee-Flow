@@ -38,7 +38,6 @@ import {
  * the form as it was. Only the admin's own answers and the stamps go out.
  */
 
-// .jsx/.js exports: their `= null` defaults would type the props as null-only.
 const SideDrawer = SideDrawerJs;
 const DrawerSection = DrawerSectionJs;
 const StatusPill = StatusPillJs;
@@ -49,6 +48,7 @@ const TextInput = TextInputJs;
 const TextArea = TextAreaJs;
 const Select = SelectJs;
 const Toggle = ToggleJs;
+// useResource.js is still JavaScript: its `= null` defaults would type the options as null-only.
 const useResource = useResourceJs as unknown as <T>(url: string | null, options?: {
     enabled?: boolean; parse?: (body: unknown) => T | null; onError?: (e: unknown) => T | null;
 }) => { data: T | null; failed: boolean };

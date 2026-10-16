@@ -14,7 +14,6 @@ import AnchoredMenuJs from '../../../shared/AnchoredMenu';
 import { CHIP_CLASS, StatusGlyph } from './TaskFields';
 import { ICON_BUTTON_CLASS, MENU_ITEM_CLASS, MENU_PANEL_CLASS, TOOLBAR_BUTTON_CLASS } from './tasksMenu';
 
-// A .jsx module whose `= null` defaults would type the props as null-only.
 export const AnchoredMenu = AnchoredMenuJs;
 
 export type ChipTone = 'neutral' | 'info' | 'success' | 'warning' | 'error';

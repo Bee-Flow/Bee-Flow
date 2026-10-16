@@ -20,7 +20,6 @@ import { ActionButton as ActionButtonJs } from '../audits/auditForms';
  * focus returns to the overflow button.
  */
 
-// .jsx/.js exports: their `= null` defaults would type the props as null-only.
 const AnchoredMenu = AnchoredMenuJs;
 const ActionButton = ActionButtonJs;
 

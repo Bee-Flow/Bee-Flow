@@ -23,7 +23,6 @@ interface Props {
     onRestored?: (automation: Record<string, unknown> | null) => void;
 }
 
-type Confirm = (opts: { title: string; description?: string; confirmLabel?: string; destructive?: boolean }) => Promise<boolean>;
 
 function versionContext(a: AutomationLike | null | undefined) {
     return { liveVersion: a?.liveVersion ?? null, liveAt: a?.liveAt ?? null, currentVersion: a?.version ?? null };

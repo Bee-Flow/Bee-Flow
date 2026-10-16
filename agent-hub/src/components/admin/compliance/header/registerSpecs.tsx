@@ -38,7 +38,6 @@ import type { ExportItem } from './headerParts';
 export type Translate = (key: string, fallback: string, vars?: Record<string, unknown>) => string;
 type Tone = 'success' | 'warning' | 'error' | 'neutral';
 
-// StatusPill is .jsx: its props without defaults would type as required.
 const StatusPill = StatusPillJs;
 
 export interface HeaderSpec {

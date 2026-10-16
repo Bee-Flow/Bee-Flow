@@ -19,7 +19,6 @@ import type { DrawerMode } from '../../shared/useDrawerMode';
  * dropped, a closed one can be reactivated. `onStatus` writes the new status.
  */
 
-// .jsx/.js exports: their `= null` defaults would type the props as null-only.
 const SideDrawer = SideDrawerJs;
 const DrawerFooter = DrawerFooterJs;
 const DeadlineClock = DeadlineClockJs;

@@ -21,7 +21,6 @@ import ItemViewers from '../ItemViewers';
 import { SelectField } from '../workspaceUi';
 import AiModeSelector, { aiModeBadge, aiModeHint, effectiveMode } from './AiModeSelector';
 
-// A .jsx module whose `= null` defaults would type the props as null-only.
 const AnchoredMenu = AnchoredMenuJs;
 
 const MENU_ITEM = 'w-full text-left px-3 py-1.5 text-[13px] rounded-md text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)] focus:bg-[var(--item-hover-bg)] outline-none';

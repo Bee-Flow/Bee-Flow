@@ -1,10 +1,11 @@
-// Typed doors into the Studio primitives that are still plain JavaScript.
+// Typed doors into the Studio primitives the project pages use.
 //
-// TypeScript reads a .jsx component's destructured props as REQUIRED, so a
-// .tsx caller could not leave out a single optional slot. These declarations
-// state the props the components actually document (see each file's
-// docblock) and re-export the same component objects: no wrapper, no second
-// implementation.
+// StudioSectionHeader and DangerZone are still plain JavaScript: TypeScript
+// reads a .jsx component's destructured props as REQUIRED, so a .tsx caller
+// could not leave out a single optional slot. Their declarations below state
+// the props the components document (see each file's docblock) and re-export
+// the same component objects: no wrapper, no second implementation.
+// FilterPills and RequireTier are TypeScript and pass through as they are.
 
 import type React from 'react';
 import DangerZoneJsx from '../../shared/DangerZone';
@@ -43,24 +44,6 @@ export interface StudioSectionHeaderProps {
 }
 
 export const StudioSectionHeader = StudioSectionHeaderJsx as unknown as React.ComponentType<StudioSectionHeaderProps>;
-
-export interface FilterPillOption<V extends string> {
-    value: V;
-    label: React.ReactNode;
-    count?: number | null;
-    tone?: 'neutral' | 'success' | 'warning' | 'error' | 'muted';
-    disabled?: boolean;
-    title?: string;
-}
-
-export interface FilterPillsProps<V extends string> {
-    value: V;
-    onChange: (value: V) => void;
-    options: FilterPillOption<V>[];
-    ariaLabel?: string;
-    className?: string;
-    testId?: string;
-}
 
 export const FilterPills = FilterPillsJsx;
 

@@ -7,10 +7,9 @@ import type { StepNodeData } from './nodeProps';
 
 const StepNodeBase = StepNodeBaseJs;
 
-/** flattenSummary (nodeSummaries.js) types its label map without `null`. */
 interface FlattenNodeProps {
     id: string;
-    data: StepNodeData & { stepLabelById?: Map<string, string> };
+    data: StepNodeData;
 }
 
 /** The canvas card: "One row per attachment", "Flatten a list", "From Read many ▸ Messages". */

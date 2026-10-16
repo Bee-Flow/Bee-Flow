@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react';
-import React, { useId, useState } from 'react';
+import { useId, useState } from 'react';
 
 import useDebouncedCallback from '../../../hooks/useDebouncedCallback';
 import { useTranslation } from '../../../hooks/useTranslation';

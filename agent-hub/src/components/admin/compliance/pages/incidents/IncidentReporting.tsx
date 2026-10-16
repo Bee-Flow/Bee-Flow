@@ -5,7 +5,6 @@ import { DrawerSection as DrawerSectionJs } from '../../../../shared/SideDrawer'
 import { useDateFormat } from '../../shared/formatDates';
 import { reportingRowsOf } from './incidentClocks';
 
-// A .jsx export whose `= null` defaults would type its props as null-only.
 const DrawerSection = DrawerSectionJs;
 
 /**
