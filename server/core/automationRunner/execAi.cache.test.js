@@ -106,6 +106,8 @@ const restore = installResolveStub({
 });
 after(() => restore());
 
+const { registerRunnerPorts } = require('./featurePorts');
+registerRunnerPorts({ outputSchemas: { synthesizeDryRunOutput: () => ({ sample: true }) } });
 const { execIntegrationAction } = require('./execAi');
 const { createToolMemo } = require('./toolMemo');
 const policy = require('./integrationCachePolicy');
@@ -483,4 +485,36 @@ test('a window shortened mid-call is the one the row is written with', async () 
     await run(makeStep(), makeCtx());
     await flush();
     assert.strictEqual(durablePuts[0].ttlSeconds, 60);
+});
+
+// ── a failed live read in a dry run is never a green step ───────────────────
+
+test('dry run: a live read that fails for the step\'s own reasons fails the step', async () => {
+    dispatchResult = () => { throw new Error('Request timed out after 30000ms'); };
+    await assert.rejects(() => run(makeStep({ askOnce: undefined }), makeCtx(), 'dry_run'), /timed out/);
+});
+
+test('dry run: a failed read on an environment error falls back to a flagged sample', async () => {
+    dispatchResult = () => { throw new Error('Nextcloud is not connected'); };
+    const out = await run(makeStep({ askOnce: undefined }), makeCtx(), 'dry_run');
+    assert.strictEqual(out.dryRunSynthesised, true);
+    assert.strictEqual(out.dryRunFallback, 'not_connected');
+});
+
+test('dry run: a not-found on a simulated path still falls back to a sample', async () => {
+    dispatchResult = () => { throw new Error('File not found: /X/a'); };
+    const ctx = makeCtx({ allowedToolNames: new Set(['nextcloud_read_file']), _simulatedPaths: new Set(['/X/a']) });
+    const out = await run(makeStep({ tool: 'nextcloud_read_file', inputs: { path: '/X/a' }, askOnce: undefined }), ctx, 'dry_run');
+    assert.strictEqual(out.dryRunFallback, 'simulated_upstream');
+});
+
+test('dry run: a not-found on a path no simulated step wrote still throws', async () => {
+    dispatchResult = () => { throw new Error('File not found: /Y/typo'); };
+    const ctx = makeCtx({ allowedToolNames: new Set(['nextcloud_read_file']), _simulatedPaths: new Set(['/X/a']) });
+    await assert.rejects(() => run(makeStep({ tool: 'nextcloud_read_file', inputs: { path: '/Y/typo' }, askOnce: undefined }), ctx, 'dry_run'), /not found/i);
+});
+
+test('live run: a failed dispatch still throws', async () => {
+    dispatchResult = () => { throw new Error('boom'); };
+    await assert.rejects(() => run(makeStep({ askOnce: undefined }), makeCtx()), /boom/);
 });

@@ -148,7 +148,7 @@ describe('the result sheet', () => {
     });
 
     it('reads the dry-run flags DryRunPanel reads', () => {
-        for (const needle of ['out.wouldNotify', 'out._dryRun', 'out._dryRunSynthesised', "'live_failed'", "'live_empty'", 'out.wouldHaveCalled', 'out.withArgs', '!s.parentStepId']) {
+        for (const needle of ['out.wouldNotify', 'out._dryRun', 'out._dryRunSynthesised', 'live_failed:', 'live_empty:', 'not_connected:', 'simulated_upstream:', 'out.wouldHaveCalled', 'out.withArgs', '!s.parentStepId']) {
             expect(PANEL).toContain(needle);
         }
     });

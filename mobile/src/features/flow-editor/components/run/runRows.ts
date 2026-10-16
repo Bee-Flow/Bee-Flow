@@ -38,7 +38,7 @@ export function stripDryRunMeta(value: unknown): unknown {
 }
 
 /** Why an output is a sample: the live read failed, came back empty, or there was none. */
-export type SampleReason = 'live_failed' | 'live_empty' | 'sample';
+export type SampleReason = 'live_failed' | 'live_empty' | 'not_connected' | 'simulated_upstream' | 'sample';
 
 export interface RunRowModel {
     key: string;
@@ -64,7 +64,8 @@ function durationOf(row: AutomationRunStep): number | null {
 
 function sampleOf(out: Obj | null): SampleReason | null {
     if (!out?._dryRunSynthesised) return null;
-    if (out._dryRunFallback === 'live_failed' || out._dryRunFallback === 'live_empty') return out._dryRunFallback;
+    const fb = out._dryRunFallback;
+    if (fb === 'live_failed' || fb === 'live_empty' || fb === 'not_connected' || fb === 'simulated_upstream') return fb;
     return 'sample';
 }
 

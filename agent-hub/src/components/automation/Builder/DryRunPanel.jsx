@@ -18,6 +18,17 @@ import { useTranslation } from '../../../hooks/useTranslation';
  * Uses theme tokens (`--bg-secondary`, accent text) instead of hardcoded
  * yellows so the panel works under both light and dark themes.
  */
+
+// Why a step shows sample data. 'live_failed' is no longer produced (a failed
+// live read now fails the step) but stays so older stored runs still read well.
+const SAMPLE_HINTS = {
+    live_failed: 'The live read failed, so a sample shape was used for this preview.',
+    live_empty: 'The live read returned nothing, so a sample shape was used for this preview.',
+    not_connected: 'The app is not connected here, so a sample shape was used for this preview.',
+    simulated_upstream: 'This reads something an earlier step only simulates, so a sample shape was used for this preview.',
+    sample: 'Synthesized preview — sample data, not a live result.',
+};
+
 export default function DryRunPanel({ run, steps, definition = null, collapsed = false, onToggleCollapse, onClose }) {
     const { t } = useTranslation();
     // Map every step id → a friendly name (label / tool / flowlet title) so the
@@ -86,11 +97,7 @@ export default function DryRunPanel({ run, steps, definition = null, collapsed =
                                         <span className="text-[var(--text-tertiary)] font-normal shrink-0">({s.stepType})</span>
                                         {isSynthesised && (
                                             <span
-                                                title={out._dryRunFallback === 'live_failed'
-                                                    ? 'The live read failed, so a sample shape was used for this preview.'
-                                                    : out._dryRunFallback === 'live_empty'
-                                                        ? 'The live read returned nothing, so a sample shape was used for this preview.'
-                                                        : 'Synthesized preview — sample data, not a live result.'}
+                                                title={SAMPLE_HINTS[out._dryRunFallback] || SAMPLE_HINTS.sample}
                                                 className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-500 border border-amber-500/30"
                                             >
                                                 {t('automations.dry_run_panel.sample_data', 'Sample data')}

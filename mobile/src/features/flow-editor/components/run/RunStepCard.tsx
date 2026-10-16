@@ -37,6 +37,8 @@ const makeStyles = (theme: Theme) => ({
 function sampleHint(reason: SampleReason, t: TranslateFn): string {
     if (reason === 'live_failed') return t('mobile.flow.run.sample_failed', 'The live read failed, so a sample shape was used for this preview.');
     if (reason === 'live_empty') return t('mobile.flow.run.sample_empty', 'The live read returned nothing, so a sample shape was used for this preview.');
+    if (reason === 'not_connected') return t('mobile.flow.run.sample_not_connected', 'The app is not connected here, so a sample shape was used for this preview.');
+    if (reason === 'simulated_upstream') return t('mobile.flow.run.sample_simulated', 'This reads something an earlier step only simulates, so a sample shape was used for this preview.');
     return t('mobile.flow.run.sample_synth', 'Synthesized preview — sample data, not a live result.');
 }
 
