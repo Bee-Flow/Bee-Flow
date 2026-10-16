@@ -1,4 +1,21 @@
 import { API_BASE, authFetch } from '../../utils/helpers';
+import type { Folder, LibraryRow, People, StudioDocument } from './documentQueries';
+import type { DeckTheme } from './DeckPreview';
+
+/** The error every call here throws: the status and the server's `code`, plus what a refused save carries. */
+export interface DocumentsApiError extends Error {
+    status?: number;
+    code?: string | null;
+    conflict?: unknown;
+    conflictVersionId?: string;
+}
+
+/** What the server puts in a non-2xx body. */
+interface ErrorBody { error?: string; code?: string; conflict?: unknown; conflictVersionId?: string }
+
+/** Filters for the library lists; sent as the query string. */
+type QueryFilters = Record<string, string>;
+
 
 /**
  * Client for /api/studio-documents.
@@ -17,11 +34,30 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 // writes `${API_BASE}/api/...` for exactly this reason.
 const BASE = `${API_BASE}/api/studio-documents`;
 
-async function asJson(res, fallback) {
-    let body = null;
+type RenderFormat = 'pdf' | 'pptx';
+
+interface DocumentsPageBody {
+    documents?: LibraryRow[];
+    total?: unknown;
+    people?: People;
+    notebooks?: unknown;
+    spreadsheets?: unknown;
+}
+
+/** A document with the placeholders it carries (what the pickers list). */
+export type DocumentTemplate = LibraryRow & { placeholders?: unknown[]; folder?: Folder };
+
+/** The answer to a presence heartbeat: who else is here. */
+type PresenceAnswer = { peers?: unknown; people?: People; ttlMs?: unknown };
+
+/** The letterhead and whether this user may save it. */
+type HouseStyleAnswer = { style?: Record<string, unknown> | null; editable?: boolean } & Record<string, unknown>;
+
+async function asJson<T>(res: Response, fallback: string): Promise<T> {
+    let body: (T & ErrorBody) | null = null;
     try { body = await res.json(); } catch { /* empty or non-JSON body */ }
     if (!res.ok) {
-        const err = new Error((body && body.error) || fallback);
+        const err: DocumentsApiError = new Error((body && body.error) || fallback);
         err.status = res.status;
         err.code = body && body.code;
         // A stale save the server could not merge: the parts to compare.
@@ -35,7 +71,7 @@ async function asJson(res, fallback) {
     // `body.document` with "Cannot read properties of null", which says
     // nothing about the URL being wrong. Say what actually happened.
     if (body === null) {
-        const err = new Error(`${fallback} — the server answered ${res.status} with a body that is not JSON.`);
+        const err: DocumentsApiError = new Error(`${fallback} — the server answered ${res.status} with a body that is not JSON.`);
         err.status = res.status;
         err.code = 'not_json';
         throw err;
@@ -47,10 +83,10 @@ async function asJson(res, fallback) {
  * One page of the library with the total and the names of the people on it
  * (owner, last editor). `archived: '1'` lists the caller's archive.
  */
-export async function listDocumentsPage(filters = {}) {
-    const query = new URLSearchParams(Object.entries(filters).filter(([,v]) => v !== undefined && v !== null && v !== ''));
+export async function listDocumentsPage(filters: Record<string, string | number | undefined | null> = {}) {
+    const query = new URLSearchParams(Object.entries(filters).filter(([,v]) => v !== undefined && v !== null && v !== '') as [string, string][]);
     const res = await authFetch(query.size ? `${BASE}?${query}` : BASE);
-    const body = await asJson(res, 'Failed to load documents');
+    const body = await asJson<DocumentsPageBody>(res, 'Failed to load documents');
     // `notebooks` / `spreadsheets`: whether this reader may have (and start) them.
     return {
         documents: body.documents || [], total: Number(body.total) || 0, people: body.people || {},
@@ -59,19 +95,19 @@ export async function listDocumentsPage(filters = {}) {
 }
 
 /** Start a spreadsheet: the server makes the table for its cells, then the document. */
-export async function createSpreadsheet({ name, folderId } = {}) {
+export async function createSpreadsheet({ name, folderId }: { name?: string; folderId?: string | null } = {}) {
     const res = await authFetch(`${BASE}/sheets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, ...(folderId ? { folderId } : {}) }),
     });
-    return (await asJson(res, 'The spreadsheet could not be started')).document;
+    return (await asJson<{ document: StudioDocument }>(res, 'The spreadsheet could not be started')).document;
 }
 
-export async function listDocuments(filters = {}) {
-    const query = new URLSearchParams(Object.entries(filters).filter(([,v]) => v !== undefined && v !== null));
+export async function listDocuments(filters: Record<string, string | undefined | null> = {}) {
+    const query = new URLSearchParams(Object.entries(filters).filter(([,v]) => v !== undefined && v !== null) as [string, string][]);
     const res = await authFetch(query.size ? `${BASE}?${query}` : BASE);
-    const body = await asJson(res, 'Failed to load documents');
+    const body = await asJson<{ documents?: LibraryRow[] }>(res, 'Failed to load documents');
     return body.documents || [];
 }
 
@@ -83,56 +119,56 @@ export async function listDocuments(filters = {}) {
  * to open the document in another tab to find out is how a value ends up bound
  * to a placeholder that does not exist.
  */
-export async function listTemplates(filters = {}) {
+export async function listTemplates(filters: QueryFilters = {}) {
     const query = new URLSearchParams(filters);
     const res = await authFetch(`${BASE}/templates${query.size ? `?${query}` : ''}`);
-    const body = await asJson(res, 'Failed to load document templates');
+    const body = await asJson<{ templates?: DocumentTemplate[] }>(res, 'Failed to load document templates');
     return body.templates || [];
 }
 
-export async function getDocument(id) {
+export async function getDocument(id: string) {
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}`);
-    const body = await asJson(res, 'Failed to load document');
+    const body = await asJson<{ document: StudioDocument }>(res, 'Failed to load document');
     return body.document;
 }
 
 /** A document with the names of its owner and last editor. */
-export async function getDocumentView(id) {
+export async function getDocumentView(id: string) {
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}`);
-    const body = await asJson(res, 'Failed to load document');
+    const body = await asJson<{ document: StudioDocument; people?: People }>(res, 'Failed to load document');
     return { document: body.document, people: body.people || {} };
 }
 
-export async function createDocument(input = {}) {
+export async function createDocument(input: object = {}) {
     const res = await authFetch(BASE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
     });
-    const body = await asJson(res, 'Failed to create document');
+    const body = await asJson<{ document: StudioDocument }>(res, 'Failed to create document');
     return body.document;
 }
 
-export async function updateDocument(id, patch) {
+export async function updateDocument(id: string, patch: Record<string, unknown>) {
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(patch),
     });
-    const body = await asJson(res, 'Failed to save document');
+    const body = await asJson<{ document: StudioDocument }>(res, 'Failed to save document');
     return body.document;
 }
 
-export async function deleteDocument(id) {
+export async function deleteDocument(id: string) {
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}`, { method: 'DELETE' });
-    await asJson(res, 'Failed to delete document');
+    await asJson<unknown>(res, 'Failed to delete document');
     return true;
 }
 
 /** Back from the archive (the owner). */
-export async function unarchiveDocument(id) {
+export async function unarchiveDocument(id: string) {
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}/unarchive`, { method: 'POST' });
-    const body = await asJson(res, 'Failed to restore the document');
+    const body = await asJson<{ document: StudioDocument }>(res, 'Failed to restore the document');
     return body.document;
 }
 
@@ -140,20 +176,20 @@ export async function unarchiveDocument(id) {
  * The editor's heartbeat: where this editor is, answered with who else is
  * here. `state: 'left'` ends it.
  */
-export async function postPresence(id, beat) {
+export async function postPresence(id: string, beat: Record<string, unknown>) {
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}/presence`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(beat),
     });
-    return asJson(res, 'Presence failed');
+    return asJson<PresenceAnswer>(res, 'Presence failed');
 }
 
 /** The composed preview (sanitised by the server) as text, for the canvas. */
-export async function fetchPreviewHtml(id, { signal } = {}) {
+export async function fetchPreviewHtml(id: string, { signal }: { signal?: AbortSignal } = {}) {
     const res = await authFetch(previewUrl(id, { edit: true }), { signal });
     if (!res.ok) {
-        const err = new Error(`HTTP ${res.status}`);
+        const err: DocumentsApiError = new Error(`HTTP ${res.status}`);
         err.status = res.status;
         throw err;
     }
@@ -161,7 +197,7 @@ export async function fetchPreviewHtml(id, { signal } = {}) {
 }
 
 /** The URL the editor's iframe loads. `edit` asks for the hand-editing bridge. */
-export function previewUrl(id, { edit = false } = {}) {
+export function previewUrl(id: string, { edit = false }: { edit?: boolean } = {}) {
     return `${BASE}/${encodeURIComponent(id)}/preview${edit ? '?edit=1' : ''}`;
 }
 
@@ -171,7 +207,7 @@ export function previewUrl(id, { edit = false } = {}) {
  * preview uses) and stores nothing, so the editor can show every change live
  * without minting a version per keystroke.
  */
-export async function previewDeckDraft(id, draft, { signal } = {}) {
+export async function previewDeckDraft(id: string, draft: Record<string, unknown> | null | undefined, { signal }: { signal?: AbortSignal } = {}) {
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}/preview`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -179,9 +215,9 @@ export async function previewDeckDraft(id, draft, { signal } = {}) {
         signal,
     });
     if (!res.ok) {
-        let body = null;
+        let body: ErrorBody | null = null;
         try { body = await res.json(); } catch { /* not JSON */ }
-        const err = new Error((body && body.error) || 'Could not render the presentation');
+        const err: DocumentsApiError = new Error((body && body.error) || 'Could not render the presentation');
         err.status = res.status;
         err.code = body && body.code;
         throw err;
@@ -201,23 +237,23 @@ export async function previewDeckDraft(id, draft, { signal } = {}) {
  * the screen when the pwt-runner container is absent and the server fell back
  * to pdfkit.
  */
-export async function downloadPdf(id, name, versionId) {
+export async function downloadPdf(id: string, name: string | undefined, versionId?: string | null) {
     return downloadRendered(id, name, versionId, 'pdf');
 }
 
 /** A presentation as a real PowerPoint file — the same fetch-then-anchor path as the PDF. */
-export async function downloadPptx(id, name, versionId) {
+export async function downloadPptx(id: string, name: string | undefined, versionId?: string | null) {
     return downloadRendered(id, name, versionId, 'pptx');
 }
 
 /** The rendered file as a Blob (PDF, or a presentation's .pptx). */
-export async function fetchRendered(id, versionId, format = 'pdf') {
+export async function fetchRendered(id: string, versionId?: string | null, format: RenderFormat = 'pdf') {
     const revision = versionId ? `?versionId=${encodeURIComponent(versionId)}` : '';
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}/${format}${revision}`);
     if (!res.ok) {
-        let body = null;
+        let body: ErrorBody | null = null;
         try { body = await res.json(); } catch { /* the error body may be bytes */ }
-        const err = new Error((body && body.error) || (format === 'pptx' ? 'Failed to build the presentation' : 'Failed to render the PDF'));
+        const err: DocumentsApiError = new Error((body && body.error) || (format === 'pptx' ? 'Failed to build the presentation' : 'Failed to render the PDF'));
         err.status = res.status;
         err.code = body && body.code;
         throw err;
@@ -225,7 +261,7 @@ export async function fetchRendered(id, versionId, format = 'pdf') {
     return { blob: await res.blob(), degraded: res.headers.get('X-Document-Degraded') === '1' };
 }
 
-async function downloadRendered(id, name, versionId, format) {
+async function downloadRendered(id: string, name: string | undefined, versionId: string | null | undefined, format: RenderFormat) {
     const { blob, degraded } = await fetchRendered(id, versionId, format);
     const url = URL.createObjectURL(blob);
     try {
@@ -252,27 +288,27 @@ async function downloadRendered(id, name, versionId, format) {
  */
 export async function getHouseStyle() {
     const res = await authFetch(`${BASE}/house-style`);
-    return asJson(res, 'Failed to load the house style');
+    return asJson<HouseStyleAnswer>(res, 'Failed to load the house style');
 }
 
 /** The resolved deck theme for an (unsaved) style — what the presentation preview draws. */
-export async function previewDeckTheme(style, overrides = null) {
+export async function previewDeckTheme(style: Record<string, unknown>, overrides: Record<string, unknown> | null = null) {
     const res = await authFetch(`${BASE}/house-style/preview-theme`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ style, overrides }),
     });
-    const body = await asJson(res, 'Failed to preview the presentation style');
+    const body = await asJson<{ theme: DeckTheme }>(res, 'Failed to preview the presentation style');
     return body.theme;
 }
 
-export async function saveHouseStyle(style) {
+export async function saveHouseStyle(style: Record<string, unknown>) {
     const res = await authFetch(`${BASE}/house-style`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(style),
     });
-    const body = await asJson(res, 'Failed to save the house style');
+    const body = await asJson<{ style: Record<string, unknown> }>(res, 'Failed to save the house style');
     return body.style;
 }
 
@@ -283,8 +319,8 @@ export async function saveHouseStyle(style) {
  * remote url() because the PDF renders in a real Chromium on the server, where
  * a fetch is an SSRF primitive and a privacy leak.
  */
-export function fileToDataUrl(file) {
-    return new Promise((resolve, reject) => {
+export function fileToDataUrl(file: Blob) {
+    return new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result || ''));
         reader.onerror = () => reject(new Error('Could not read that file.'));
@@ -292,21 +328,21 @@ export function fileToDataUrl(file) {
     });
 }
 
-export async function documentRequest(path, data, method) {
+export async function documentRequest(path: string, data?: unknown, method?: string) {
     const res = await authFetch(`${BASE}${path}`, {
         method: method || (data === undefined ? 'GET' : 'POST'),
         ...(data === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
     });
-    return asJson(res, 'Document request failed');
+    return asJson<unknown>(res, 'Document request failed');
 }
 
 /** A .pptx → the template look the deck engine can reuse (stored under deck.template on save). */
-export async function uploadDeckTemplate(dataUrl, name = '') {
+export async function uploadDeckTemplate(dataUrl: string, name = '') {
     const res = await authFetch(`${BASE}/house-style/deck-template`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dataUrl, name }),
     });
-    const body = await asJson(res, 'Failed to read the template deck');
+    const body = await asJson<{ template: Record<string, unknown> }>(res, 'Failed to read the template deck');
     return body.template;
 }

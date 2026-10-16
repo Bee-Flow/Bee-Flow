@@ -3,7 +3,43 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AnchoredMenu from '../../components/shared/AnchoredMenu';
 import { kindColorVar, kindIcon } from '../../components/shared/kindColors';
 import useTranslation from '../../hooks/useTranslation';
+import type { TranslateFn } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
+
+/** One picked source: what the create endpoint takes in `sources`. */
+export interface BuildSource {
+    kind: 'datatable' | 'automation';
+    id: string;
+    name?: string;
+}
+
+interface SourcePickerProps {
+    value?: BuildSource[];
+    onChange?: (sources: BuildSource[]) => void;
+    disabled?: boolean;
+}
+
+interface PickerTable { id: string; name?: string; key?: string }
+interface PickerAutomation { id: string; title?: string }
+interface PickerItem { id: string; name: string }
+
+interface PickerBodyProps {
+    t: TranslateFn;
+    loading: boolean;
+    error: boolean;
+    tables: PickerTable[] | null;
+    automations: PickerAutomation[] | null;
+    isPicked: (kind: BuildSource['kind'], id: string) => boolean;
+    onToggle: (kind: BuildSource['kind'], id: string, name: string) => void;
+}
+
+interface GroupProps {
+    label: string;
+    kind: BuildSource['kind'];
+    items: PickerItem[];
+    isPicked: PickerBodyProps['isPicked'];
+    onToggle: PickerBodyProps['onToggle'];
+}
 
 /**
  * "Pick a source ▾" — the table / automation chooser in the overview's build
@@ -22,14 +58,14 @@ import { API_BASE, authFetch } from '../../utils/helpers';
  * `value` / `onChange` are `[{ kind: 'datatable' | 'automation', id, name }]`
  * — exactly the `sources` array the create endpoint takes.
  */
-export default function SourcePicker({ value = [], onChange, disabled = false }) {
+export default function SourcePicker({ value = [], onChange, disabled = false }: SourcePickerProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
-    const [tables, setTables] = useState(null);
-    const [automations, setAutomations] = useState(null);
-    const anchorRef = useRef(null);
+    const [tables, setTables] = useState<PickerTable[] | null>(null);
+    const [automations, setAutomations] = useState<PickerAutomation[] | null>(null);
+    const anchorRef = useRef<HTMLButtonElement>(null);
     const alive = useRef(true);
     useEffect(() => () => { alive.current = false; }, []);
 
@@ -62,8 +98,8 @@ export default function SourcePicker({ value = [], onChange, disabled = false })
         if (next && tables === null && automations === null && !loading) load();
     };
 
-    const isPicked = (kind, id) => value.some(s => s.kind === kind && s.id === id);
-    const toggle = (kind, id, name) => {
+    const isPicked = (kind: BuildSource['kind'], id: string) => value.some(s => s.kind === kind && s.id === id);
+    const toggle = (kind: BuildSource['kind'], id: string, name: string) => {
         if (isPicked(kind, id)) onChange?.(value.filter(s => !(s.kind === kind && s.id === id)));
         else onChange?.([...value, { kind, id, name }]);
     };
@@ -120,7 +156,7 @@ export default function SourcePicker({ value = [], onChange, disabled = false })
 }
 
 /** Loading / failed / the two groups — kept out of the trigger's own render. */
-function PickerBody({ t, loading, error, tables, automations, isPicked, onToggle }) {
+function PickerBody({ t, loading, error, tables, automations, isPicked, onToggle }: PickerBodyProps) {
     if (loading) {
         return (
             <div className="px-3 py-2 text-xs flex items-center gap-2 text-[var(--text-tertiary)]">
@@ -166,7 +202,7 @@ function PickerBody({ t, loading, error, tables, automations, isPicked, onToggle
 }
 
 /** One kind's rows. The glyph is the kind's own — kindColors, never a choice. */
-function Group({ label, kind, items, isPicked, onToggle }) {
+function Group({ label, kind, items, isPicked, onToggle }: GroupProps) {
     if (!items.length) return null;
     const Icon = kindIcon(kind);
     return (

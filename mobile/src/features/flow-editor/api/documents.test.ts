@@ -133,6 +133,6 @@ describe('the server that answers (TEXTUAL)', () => {
     it('is the list the web’s picker asks for, 200 at a time', () => {
         const web = read('agent-hub/src/components/automation/Builder/flow/settings/actionEditors/documentFields.jsx');
         expect(web).toContain('listTemplates({query,limit:200})');
-        expect(read('agent-hub/src/pages/documents/documentsApi.js')).toContain('`${BASE}/templates${');
+        expect(read('agent-hub/src/pages/documents/documentsApi.ts')).toContain('`${BASE}/templates${');
     });
 });
