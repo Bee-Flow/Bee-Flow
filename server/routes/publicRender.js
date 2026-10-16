@@ -55,6 +55,7 @@ const { jsonForScript } = require('../core/seo/html');
 const { sendNotFound } = require('../core/seo/notFound');
 const { synthesizeLegacyContent } = require('../core/cms/legacyContent');
 const { buildBlogHead, renderBlogBody, buildFeed, blogSitemapEntries } = require('../core/seo/blog');
+const { buildAtomFeed } = require('../core/seo/blogAtom');
 const { listGalleryItems, integrationSitemapEntries } = require('../core/seo/integrationsDirectory');
 const log = require('../telemetry/log');
 
@@ -214,10 +215,10 @@ async function blogSitemap(siteId, { snapshot, defaultLocale, locales, lastmod }
     return blogSitemapEntries({ posts: full, overridesLocales: { index, byPost }, lastmod });
 }
 
-// ── blog feed (RSS 2.0) ──────────────────────────────────────────────
+// ── blog feeds (RSS 2.0 at feed.xml, Atom 1.0 at atom.xml) ──────────────────────────────────────────────
 // /blog/feed.xml and /<locale>/blog/feed.xml. Like the sitemap, never falls
 // through to the SPA: a feed reader that got HTML would report a broken feed.
-router.get(/^\/(?:([a-z]{2,3})\/)?blog\/feed\.xml$/, async (req, res) => {
+router.get(/^\/(?:([a-z]{2,3})\/)?blog\/(feed|atom)\.xml$/, async (req, res) => {
     const origin = resolveOrigin(req);
     try {
         const siteId = await getLiveSiteId();
@@ -234,10 +235,11 @@ router.get(/^\/(?:([a-z]{2,3})\/)?blog\/feed\.xml$/, async (req, res) => {
         const { blogLabels } = require('../stores/cms/blogEffective');
         const labels = await blogLabels(locale);
         const siteName = latest.site?.header?.logoText || latest.site?.name || 'Bee Flow';
-        res.type('application/rss+xml; charset=utf-8')
+        const atom = req.params[1] === 'atom';
+        res.type(atom ? 'application/atom+xml; charset=utf-8' : 'application/rss+xml; charset=utf-8')
             .set('Cache-Control', 'public, max-age=300, s-maxage=600');
-        // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write, ajinabraham.njsscan.xss.xss_node.express_xss -- buildFeed escapes every string into XML; the response type is application/rss+xml
-        return res.send(buildFeed(latest.posts, {
+        // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write, ajinabraham.njsscan.xss.xss_node.express_xss -- buildFeed and buildAtomFeed escape every string into XML; the response type is application/rss+xml or application/atom+xml
+        return res.send((atom ? buildAtomFeed : buildFeed)(latest.posts, {
             origin, siteName, locale, defaultLocale,
             title: pick(blogSettings.title) || labels.title || 'Blog',
             description: pick(blogSettings.description),

@@ -60,6 +60,7 @@ function buildBlogHead({ origin, eff, locale, defaultLocale, locales, siteName }
     const blog = eff.blog;
     const rss = `<link rel="alternate" type="application/rss+xml" title="${esc(`${siteName} — ${blog.title}`)}" href="${esc(`${origin}${feedPath(locale, defaultLocale)}`)}">`;
     const blogPath = buildPublicPath(locale, BLOG_BASE, defaultLocale);
+    const atom = `<link rel="alternate" type="application/atom+xml" title="${esc(`${siteName} — ${blog.title}`)}" href="${esc(`${origin}${blogPath}/atom.xml`)}">`;
     const homePath = buildPublicPath(locale, '', defaultLocale);
     const home = blog.labels?.home || 'Home';
 
@@ -102,7 +103,7 @@ function buildBlogHead({ origin, eff, locale, defaultLocale, locales, siteName }
                 { name: blog.title, path: blogPath },
                 { name: clamp(p.title, 80), path: postPath(locale, p.slug, defaultLocale) },
             ],
-            extraLinks: [rss],
+            extraLinks: [rss, atom],
         });
     }
 
@@ -126,7 +127,7 @@ function buildBlogHead({ origin, eff, locale, defaultLocale, locales, siteName }
         page: eff.page, design: eff.design || {}, siteName,
         extraJsonLd: [blogNode],
         breadcrumbTrail: [{ name: home, path: homePath }, { name: blog.title, path: blogPath }],
-        extraLinks: [rss],
+        extraLinks: [rss, atom],
     });
 }
 
@@ -267,5 +268,5 @@ function blogSitemapEntries({ posts, overridesLocales, lastmod }) {
 }
 
 module.exports = {
-    FEED_FILE, buildBlogHead, renderBlogBody, buildFeed, blogSitemapEntries, feedPath, postPath, indexQuery, dateLabel,
+    FEED_FILE, FEED_MAX_ITEMS, xmlText, buildBlogHead, renderBlogBody, buildFeed, blogSitemapEntries, feedPath, postPath, indexQuery, dateLabel,
 };
