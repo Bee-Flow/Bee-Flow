@@ -21,16 +21,16 @@ import {
 
 // Built-in copy. Caller-supplied `text` is overlaid per language, so a
 // partial override (e.g. just the message) keeps the default button labels.
-const DEFAULT_TEXT = {
+export const DEFAULT_TEXT = {
     en: {
-        message: 'We use cookies to improve your experience.',
+        message: 'Cookie settings: choose what you allow.',
         accept: 'Accept',
         decline: 'Decline',
         privacyLabel: 'Privacy Policy',
         privacyUrl: '/privacy',
     },
     nl: {
-        message: 'Wij gebruiken cookies om je ervaring te verbeteren.',
+        message: 'Cookie-instellingen: kies wat je toestaat.',
         accept: 'Accepteren',
         decline: 'Weigeren',
         privacyLabel: 'Privacybeleid',

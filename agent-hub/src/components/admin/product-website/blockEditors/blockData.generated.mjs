@@ -83,14 +83,14 @@ const SITE_DEFAULTS = {
         enabled: true,
         text: {
             en: {
-                message: 'We use cookies to improve your experience.',
+                message: 'Cookie settings: choose what you allow.',
                 accept: 'Accept',
                 decline: 'Decline',
                 privacyLabel: 'Privacy Policy',
                 privacyUrl: '/privacy',
             },
             nl: {
-                message: 'Wij gebruiken cookies om je ervaring te verbeteren.',
+                message: 'Cookie-instellingen: kies wat je toestaat.',
                 accept: 'Accepteren',
                 decline: 'Weigeren',
                 privacyLabel: 'Privacybeleid',

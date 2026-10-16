@@ -402,13 +402,34 @@ async function applyAddBlocks(draftWrap, args) {
         const type = probe.blocks[0].type;
         if (type !== entry.type) warnings.push(`blocks[${i}]: type "${entry.type}" was normalized to "${type}".`);
         const content = deepMerge(BLOCK_DEFAULTS[type] || {}, isPlainObject(entry.content) ? entry.content : {});
-        minted.push({ id: newBlockId(), type, enabled: true, content, style: {} });
+        let style = {};
+        if (entry.style !== undefined) {
+            const validated = validateStylePatch(entry.style);
+            if ('error' in validated) {
+                dropped.push({ index: i, type: entry.type, reason: 'invalid-style', message: validated.error, _fixHint: validated._fixHint });
+                return;
+            }
+            style = validated.style;
+            for (const h of validated.hints) warnings.push(`blocks[${i}]: ${h}`);
+        }
+        minted.push({ id: newBlockId(), type, enabled: true, content, style });
     });
 
     if (!minted.length) {
+        const typeDrops = dropped.filter((d) => d.reason !== 'invalid-style');
+        const styleDrops = dropped.filter((d) => d.reason === 'invalid-style');
+        const noun = `entr${list.length === 1 ? 'y' : 'ies'}`;
+        const causes = [];
+        if (typeDrops.length) causes.push(`unknown or missing types (${typeDrops.map((d) => JSON.stringify(d.type)).join(', ')})`);
+        if (styleDrops.length) causes.push(`an invalid style (${styleDrops.map((d) => d.message).join('; ')})`);
+        // A style rejection carries its own hint; the type list only helps
+        // when a type was the cause.
+        const hints = [];
+        if (typeDrops.length) hints.push(typesHint());
+        for (const d of styleDrops) if (d._fixHint) hints.push(d._fixHint);
         return {
-            error: `No blocks added — all ${list.length} entr${list.length === 1 ? 'y' : 'ies'} had unknown or missing types (${dropped.map((d) => JSON.stringify(d.type)).join(', ')}).`,
-            _fixHint: typesHint(),
+            error: `No blocks added — all ${list.length} ${noun} had ${causes.join(' and ')}.`,
+            _fixHint: hints.join(' '),
             dropped,
         };
     }

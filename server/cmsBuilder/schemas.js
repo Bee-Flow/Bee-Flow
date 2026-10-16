@@ -126,7 +126,7 @@ const TOOL_SCHEMAS = [
         type: 'function',
         function: {
             name: 'cms_add_blocks',
-            description: `Add 1-10 blocks to a page. Each entry is { type, content? }: the block is seeded from that type's defaults, then your content is DEEP-MERGED over it — objects merge key-by-key, but ARRAYS REPLACE WHOLESALE (send the complete items/columns/stats array, never a partial one). Unknown types are dropped and reported. ${LINK_HINT}`,
+            description: `Add 1-10 blocks to a page. Each entry is { type, content?, style? }: the block is seeded from that type's defaults, then your content is DEEP-MERGED over it — objects merge key-by-key, but ARRAYS REPLACE WHOLESALE (send the complete items/columns/stats array, never a partial one). Unknown types are dropped and reported. ${LINK_HINT}`,
             parameters: {
                 type: 'object',
                 properties: {
@@ -139,6 +139,7 @@ const TOOL_SCHEMAS = [
                             properties: {
                                 type: { type: 'string', description: 'A block type from the catalogue (e.g. hero, features, media-text, cta-banner).' },
                                 content: { type: 'object', description: 'Partial content merged over the type\'s defaults. Arrays replace wholesale.' },
+                                style: { type: 'object', description: 'Optional block style wrapper (band, rhythm, colorOverrides, cssClass, … — the same closed key set as cms_update_block\'s stylePatch). An invalid value drops that entry and says why.' },
                             },
                             required: ['type'],
                         },

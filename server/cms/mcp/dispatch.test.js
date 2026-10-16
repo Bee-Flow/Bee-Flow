@@ -119,7 +119,7 @@ function makeHarness(over = {}) {
         rpc: { classifyRpc, parseToolCall, PROTOCOL_VERSION, INVALID_REQUEST },
         ...over,
     };
-    return { mcp: createCmsMcp(deps), calls, projects, kv, setLive: (id) => { liveSiteId = id; } };
+    return { mcp: createCmsMcp(deps), calls, projects, kv, cmsStore, setLive: (id) => { liveSiteId = id; } };
 }
 
 const ctxOf = (scopes, over = {}) => ({
@@ -261,6 +261,27 @@ test('cms_set_live_site goes live, snapshots, and audits as cms.live.mcp', async
     assert.equal(JSON.parse(textOf(res)).liveSiteId, OTHER);
     assert.ok(calls.live.some((c) => c[0] === 'snapshot' && c[1] === OTHER));
     assert.deepEqual(calls.audit[0].slice(0, 6), ['cms.live.mcp', 'cms_site', OTHER, 'u1', null, { tokenName: 'laptop', live: true }]);
+});
+
+test('cms_set_live_site names the (empty) homepage so an agent fills it instead of creating a second one', async () => {
+    const { mcp } = makeHarness();
+    const body = JSON.parse(textOf(await rpcCall(mcp, ctxOf(FULL), 'cms_set_live_site', { siteId: SITE })));
+    assert.equal(body.homepage.pageId, 'pg_1');
+    assert.equal(body.homepage.slug, 'home');
+    assert.equal(body.homepage.empty, true);
+    assert.match(body.note, /pg_1/);
+    const none = JSON.parse(textOf(await rpcCall(mcp, ctxOf(FULL), 'cms_set_live_site', { siteId: OTHER })));
+    assert.equal(none.homepage, null);
+});
+
+test('cms_set_live_site still reports success when the homepage report cannot be built', async () => {
+    const { mcp, cmsStore, calls } = makeHarness();
+    cmsStore.getAdminPayload = async () => { throw new Error('draft unavailable'); };
+    const res = await rpcCall(mcp, ctxOf(FULL), 'cms_set_live_site', { siteId: OTHER });
+    const body = JSON.parse(textOf(res));
+    assert.equal(body.live, true);
+    assert.equal(body.homepage, null);
+    assert.ok(calls.audit.some((a) => a[0] === 'cms.live.mcp'));
 });
 
 test('cms_set_live_site refuses when the publish fails and the live site stays', async () => {

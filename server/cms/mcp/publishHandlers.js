@@ -34,6 +34,24 @@ function createPublishHandlers({ deps, cmsStore, live, resolveSite, loadDraft, v
         };
     }
 
+    /**
+     * Name the homepage in the go-live answer. Every new site starts with an
+     * empty "Home" page; an agent that does not know that creates a second one
+     * (slug home-2). Say which page it is so the agent fills it instead.
+     */
+    async function homepageReport(siteId, ctx) {
+        const draftWrap = await loadDraft(siteId, ctx);
+        const entry = (draftWrap.site.pages || []).find((p) => p.id === draftWrap.site.homepageId)
+            || (draftWrap.site.pages || [])[0];
+        if (!entry) return { homepage: null, note: 'This site has no pages yet, so visitors see nothing. Create a page with cms_create_page.' };
+        const doc = draftWrap.pages.get(entry.id);
+        const empty = !doc || !Array.isArray(doc.blocks) || doc.blocks.length === 0;
+        return {
+            homepage: { pageId: entry.id, slug: entry.slug, title: entry.title, empty },
+            ...(empty ? { note: `The homepage is the page "${entry.title || entry.slug}" (pageId ${entry.id}) and it has no blocks yet. New sites start with it: fill it with cms_add_blocks instead of creating another one.` } : {}),
+        };
+    }
+
     async function setLiveSite(args, ctx) {
         const site = await resolveSite({ siteId: args.siteId });
         if (site.error) return err(site.error);
@@ -53,7 +71,18 @@ function createPublishHandlers({ deps, cmsStore, live, resolveSite, loadDraft, v
         }
         await deps.audit('cms.live.mcp', 'cms_site', site.siteId, ctx.userId, null, { tokenName: ctx.token.name, live: goLive }, ctx.orgId || null);
         const liveSiteId = await live.getLiveSiteId();
-        return { result: { siteId: site.siteId, live: liveSiteId === site.siteId, liveSiteId } };
+        const result = { siteId: site.siteId, live: liveSiteId === site.siteId, liveSiteId };
+        if (goLive) {
+            // The switch already happened: a failure to describe the homepage
+            // must not turn a successful call into an error the agent retries.
+            try {
+                Object.assign(result, await homepageReport(site.siteId, ctx));
+            } catch (e) {
+                log.warn('[CMS] go-live homepage report failed:', e.message);
+                result.homepage = null;
+            }
+        }
+        return { result };
     }
 
     return { publish, setLiveSite };
