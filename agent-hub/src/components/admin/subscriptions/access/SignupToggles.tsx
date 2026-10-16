@@ -1,7 +1,9 @@
 import { AlertTriangle, Building2, Clock, Info, MailCheck, Network, ShieldCheck, Users } from 'lucide-react';
 import type { SignupEnvironment, SignupSettings, UpdateSetting } from './useSignupSettings';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { Banner, Card, Checkbox, Toggle } from '../ui/typedUi';
+import { Banner } from '../ui/Banner';
+import { Card } from '../ui/Card';
+import { Checkbox, Toggle } from '../ui/Toggle';
 
 interface SignupTogglesProps {
     settings: SignupSettings;

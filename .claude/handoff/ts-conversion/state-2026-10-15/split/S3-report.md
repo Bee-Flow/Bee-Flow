@@ -9,7 +9,7 @@ Final commit: see `git log -1` of the branch (this file is updated with every pu
 |---|---|---|---|
 | LF-S7 auth: `auth/connectorJwt.js` `connectorJwtMiddleware` | merged | long-function server −1 | reviews/S3-connectorJwt.md (Opus, CHANGES REQUIRED minor → fixed e71035f6) |
 | LF-S7 server: transcriptions upload `POST /`, reprocess `POST /:id/reprocess`, `createFormQueue`, `GET /catalog` | merged | long-function server −4 | reviews/S3-lf-s7-server.md (Opus, CHANGES REQUIRED → fixed db73bf27) |
-| Batch 18 (admin/subscriptions, admin/security, admin/shared) | in progress | | |
+| Batch 18 (admin/subscriptions, admin/security, admin/shared) | merged | 39 identical (commit 1) + 7 catch-recipe files (commit 2) | reviews/S3-batch-18.md (Opus security, CHANGES REQUIRED: orgShieldClamps listOf → fixed, types only) |
 | LF-A1 LoginPage | in progress | | |
 | LF-A2 TemplatesPage, AdvancedSettings, EmbedChat | in progress | | |
 | LF-A6 PageRenderer, BeeEditor | in progress | | |
@@ -31,3 +31,12 @@ Final commit: see `git log -1` of the branch (this file is updated with every pu
 | Pushed commit | Verified at | check:fast | server typecheck | duplication (prod / test) | gitleaks | agent-hub tsc | agent-hub vitest | mobile jest | mobile tsc | server npm test |
 |---|---|---|---|---|---|---|---|---|---|---|
 | this commit (docs-only on top) | 83c6f167 | 39/39 | 0 errors | 15358 ≤ 15383 / 26228 ≤ 26228 | clean | 0 errors | 1836 files, 21619 pass | 762 suites, 13430 pass | 0 errors | 29058 pass, 0 fail, 0 HUNG |
+| after batch 18 + c0c47225 (b2) | e9cb7b18 (+ a types-only useApi.ts fix whose emitted JS is byte-identical; typecheck 0, check:fast 39/39 re-run on it) | 39/39 | 0 errors | 15321 ≤ 15383 / 26228 = 26228 | clean | 0 errors (after the fix) | 1848 files, 21690 pass | 762 suites, 13428 pass | 0 errors | 29058 pass, 0 fail, 0 HUNG |
+
+## Batch 18 details
+- Converted 46 of 57: 39 types-only (gate: 39 identical, 0 different; no D/A pairs except ui/typedUi.ts deleted — 7 `as unknown as ComponentType` shims whose 4 importers (access/*.tsx) now use the real typed components) and 7 in the caughtError commit (useShieldActivity, AuditView, GrantWizard, OrgsView, PlansView, PromosView, StripeView: 9× messageOf, 1× errorMessage, 1× errorBodyRecord; no // behaviour: notes).
+- Kept JS (byte-identical to base): GrantsView (runtime: `copyBlob(g.blob)` in a closure after a guard), OrgEditor / QuickAssignDialog / TrialOffersPanel / PlanCard (runtime: nullable numeric comparison/arithmetic), PromoEditor (runtime: parseInt(number)), FeatureCardGrid (runtime: Map.get(k).push), FeaturesSection (blocked by FeatureCardGrid), OrgShieldEditor (blocked by orgShieldPosture), orgShieldPosture (runtime: nullable egress deref), orgShieldDirty (runtime: unknown payload read as tool policy), shieldFilters / shieldRows (runtime: new Date(unknown)), access/countries (mirror candidate, see below). The reviewer thinks GrantsView, OrgEditor, QuickAssignDialog, TrialOffersPanel are convertible with the catch recipe in a follow-up.
+- Entitlement typing checked against the server (Opus): plan limits `number | null` (null = unlimited), allow-lists `string[] | null` (null = unrestricted), UsageBar/StatRow treat `== null` as unlimited: no fail-open. useResource got overloads (data non-null when `initial` given).
+- Mirror candidate: web admin/subscriptions/access/countries.js ↔ mobile/src/features/org/model/countries.ts (converting the web file made a 105-line clone; mobile has phone-only types, another countryName signature, no EU_EEA/countryFlag).
+- Pre-existing (not fixed here): a LimitField override of '' is coerced by the server to a cap of 0 (fails closed); useResource yields data = null on a 2xx with an unparsable body.
+- After b2 (c0c47225): subscriptions hooks/useApi.ts `api`/`apiJson` opts typed `AuthFetchOptions` (was RequestInit).

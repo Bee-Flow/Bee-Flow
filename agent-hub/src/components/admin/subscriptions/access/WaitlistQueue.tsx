@@ -3,7 +3,8 @@ import type { WaitlistUser } from './useSignupSettings';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { Button } from '../../../shared/Button';
 import EmptyState from '../../../shared/EmptyState';
-import { Badge, Card } from '../ui/typedUi';
+import { Badge } from '../ui/Badge';
+import { Card } from '../ui/Card';
 
 interface WaitlistQueueProps {
     users: WaitlistUser[];

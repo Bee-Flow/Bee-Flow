@@ -4,7 +4,9 @@ import { COUNTRIES, EU_EEA, countryName, countryFlag } from './countries';
 import type { GeoMode, SignupSettings, UpdateSetting } from './useSignupSettings';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { Button } from '../../../shared/Button';
-import { Banner, Card, Checkbox, Toggle } from '../ui/typedUi';
+import { Banner } from '../ui/Banner';
+import { Card } from '../ui/Card';
+import { Checkbox, Toggle } from '../ui/Toggle';
 
 interface GeoRestrictionsProps {
     settings: SignupSettings;
