@@ -124,7 +124,7 @@ function defaultConsequence(defaultKey, roles, tables, t) {
     const label = roles.find((r) => r.key === defaultKey)?.label || defaultKey;
     return t('studio_apps_edit.roles.now_role', 'Right now: everyone without a role of their own counts as “{label}” and {access}.', { label, access: describeRoleAccess(defaultKey, tables, t) });
 }
-
+/** @param {import('./RolesManager.types').RolesManagerProps} props */
 export default function RolesManager({ appId, definition = null, onCommit = null, onDirtyChange = null }) {
     const { t } = useTranslation();
     const {

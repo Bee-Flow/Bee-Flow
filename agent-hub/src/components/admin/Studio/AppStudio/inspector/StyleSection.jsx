@@ -38,6 +38,12 @@ import { updateNodeStyle } from '../state/definitionOps';
 // Section helpers — findNode/updateNodeStyle don't resolve section ids.
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {import('./appDefinition').AppDefinition | null | undefined} def
+ * @param {string | null | undefined} sectionId
+ * @returns {{ section: import('./appDefinition').AppSection, screen: import('./appDefinition').AppScreen } | null}
+ *   The section and the screen holding it; null when no section has that id.
+ */
 export function findSectionById(def, sectionId) {
     for (const screen of def?.screens || []) {
         for (const section of screen.sections || []) {
@@ -48,6 +54,12 @@ export function findSectionById(def, sectionId) {
 }
 
 /** Shallow-merge a style patch into a section (structural sharing; same def when a no-op). */
+/**
+ * @param {import('./appDefinition').AppDefinition} def
+ * @param {string} sectionId
+ * @param {Record<string, unknown> | null | undefined} patch
+ * @returns {import('./appDefinition').AppDefinition} `def` itself when nothing changes.
+ */
 export function updateSectionStyle(def, sectionId, patch) {
     if (!patch || typeof patch !== 'object') return def;
     const screens = def.screens || [];
@@ -231,6 +243,16 @@ function ResponsiveVisibility({ knobs, style, patch, disabled }) {
     );
 }
 
+/**
+ * @typedef {object} StyleSectionProps
+ * @property {import('./appDefinition').AppDefinition | null} [definition] Read through `?.`.
+ * @property {import('./appDefinition').AppNode | null} [node] Node variant: knobs come from its type.
+ * @property {string | null} [sectionId] Section variant (wins over `node`): the section trio of knobs.
+ * @property {(next: import('./appDefinition').AppDefinition) => void} onCommit Called without a guard.
+ * @property {boolean} [disabled]
+ */
+
+/** @param {StyleSectionProps} props */
 export default function StyleSection({
     definition,
     node = null,
