@@ -66,7 +66,7 @@ const CanvasPlanPanel = CanvasPlanPanelJs;
 const InspectorPanel = InspectorPanelJs;
 const useEditorHotkeys = useEditorHotkeysJs;
 
-// The contexts are created in .js modules with a `null` default.
+// The context modules are TypeScript now; the aliases keep the compiled text.
 const ScreenValuesContext = ScreenValuesContextJs;
 const EditorChromeContext = EditorChromeContextJs;
 const BuildCueContext = BuildCueContextJs;

@@ -14,7 +14,7 @@ interface MessageBubbleProps {
     msg: BuilderMessage;
     activity?: ReactNode;
     liveRun?: LiveRunFocus | null;
-    onFocusStep?: ((id: string | number) => void) | null;
+    onFocusStep?: ((id: string) => void) | null;
 }
 
 /**

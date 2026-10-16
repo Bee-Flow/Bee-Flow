@@ -15,8 +15,7 @@ import { studioAppsApi } from '../studioAppsApi';
 /** 'tables' | 'rows' | 'connectors' | 'relations' | 'people' */
 export type ManagerTab = 'tables' | 'rows' | 'connectors' | 'relations' | 'people';
 
-// The model's connector rows are read looser than the editor's own Connector
-// type (their kind is optional on a row the server sent).
+// ConnectorsManager.tsx is TypeScript now; the alias keeps the compiled text.
 const connectorProblem = connectorProblemJs;
 
 /**

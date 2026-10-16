@@ -32,8 +32,7 @@ export interface SlugIssue {
     message: string;
 }
 
-// cmsPublicRouting and ModalShell are plain JS: TypeScript reads their `= null`
-// defaults as "always null" and their destructured props as required.
+// cmsPublicRouting and ModalShell are TypeScript now; the aliases keep the compiled text.
 export const slugIssues = slugIssuesJs;
 
 export const ModalShell = ModalShellJs;

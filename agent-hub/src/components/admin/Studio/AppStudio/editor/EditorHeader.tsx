@@ -33,9 +33,10 @@ import useTranslation from '../../../../../hooks/useTranslation';
 
 export { PANEL_VIEWS };
 
-// Typed views of three .jsx siblings, whose `= null` / `= []` defaults would
-// otherwise type those props as null-only (or never[]).
+// SaveStatusPill is TypeScript now; the alias keeps the compiled text.
 const SaveStatusChip = SaveStatusChipJs;
+// Typed views of .jsx siblings, whose `= null` / `= []` defaults would
+// otherwise type those props as null-only (or never[]).
 const LogicaTab = LogicaTabJs as unknown as ComponentType<{
     app: unknown;
     definition: unknown;

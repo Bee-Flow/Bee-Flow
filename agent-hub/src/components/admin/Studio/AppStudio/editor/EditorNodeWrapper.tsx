@@ -57,7 +57,9 @@ export interface EditorNodeWrapperProps {
     onCommit?: (def: AppDefinition) => void;
 }
 
-// Typed views of .js siblings whose `= null` defaults would type those parameters as null-only.
+// nodeLogicSummary calls titleFor with an action's optional automationId, and
+// useLogicMarks' titleFor indexes automationTitles with it. Typing that honestly
+// needs a runtime guard (follow-up), so this view still narrows it to string.
 const nodeLogicSummary = nodeLogicSummaryJs as unknown as (
     node: AppNode, definition: AppDefinition | null, titleFor: ((id: string) => string | null) | null, t: TranslateFn,
 ) => LogicMark[];

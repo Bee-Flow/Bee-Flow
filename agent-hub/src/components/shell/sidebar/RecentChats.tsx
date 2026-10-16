@@ -9,7 +9,7 @@ import { SECTION_LBL } from './sidebarTokens';
 
 type Translate = (key: string, fallback?: string) => string;
 
-// ConvRow is JavaScript; these are the props this list hands it.
+// ConvRow is TypeScript now; the alias keeps the compiled text.
 const ConvRow = ConvRowJs;
 
 /** What ConvRow's menu does with a conversation (rename, pin, label, file). */

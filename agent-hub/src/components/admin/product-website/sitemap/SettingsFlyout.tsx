@@ -10,7 +10,7 @@ import useConfirm from '../../../shared/useConfirm';
 import { AppIcon } from '../blog/jsComponents';
 import { cmsApi } from '../cmsApi';
 
-// cmsPublicRouting is plain JS; its `= null` option defaults read as "always null".
+// cmsPublicRouting is TypeScript now; the alias keeps the compiled text.
 const slugIssues = slugIssuesJs;
 
 const FLYOUT_W = 280;

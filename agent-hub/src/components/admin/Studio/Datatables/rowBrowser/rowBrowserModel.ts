@@ -76,11 +76,7 @@ export interface ApiError {
     body?: { limit?: number } | null;
 }
 
-/**
- * The datatables API calls the browser makes, typed. datatablesApi.js
- * destructures its options with `= null` defaults, which TypeScript would
- * read as null-only.
- */
+/** The datatables API calls the browser makes (datatablesApi.ts types them). */
 export const rowsApi = datatablesApi;
 
 export const PAGE = 50;

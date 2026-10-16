@@ -4,7 +4,7 @@
  * BuilderShell owns the full shape.
  */
 import type { RefObject, UIEvent } from 'react';
-import type { DryRun } from '../../../../hooks/builderStream';
+import type { BuilderMessage as StreamMessage, DryRun } from '../../../../hooks/builderStream';
 import type { FlowletAgentState } from '../../../../hooks/useFlowletAgentStream';
 import type { BuilderWebSearchStatus } from '../../../../hooks/useAutomationBuilderStream';
 import type { PlanTodo } from '../BuilderPlanChecklist';
@@ -14,14 +14,8 @@ import type { PendingTable } from '../chat/pendingTables';
 import type { BuilderQuestion } from '../chat/QuestionsCard';
 import type { FlowDefinition, FlowStep, RunStepRow } from '../flow/types';
 
-/** One message of the builder chat. */
-export interface BuilderMessage {
-    role?: string;
-    content?: string | unknown[] | null;
-    thinkingParts?: unknown[] | null;
-    toolCalls?: unknown[] | null;
-    [key: string]: unknown;
-}
+/** One message of the builder chat: the stream hook's shape, plus the tool calls this builder adds to it. */
+export type BuilderMessage = StreamMessage & { toolCalls?: unknown[] | null };
 
 /** The plan the agent wrote, as the review overlay and the inline card read it. */
 export interface BuilderPlan extends ReviewPlan {

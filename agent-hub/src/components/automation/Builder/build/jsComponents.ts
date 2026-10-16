@@ -142,11 +142,7 @@ export const NodeDetailView = NodeDetailViewJs as unknown as ComponentType<{
 
 export const AssistantWelcome = AssistantWelcomeJs;
 
-export const MessageBubble = MessageBubbleJs as unknown as ComponentType<{
-    msg: BuilderMessage;
-    liveRun?: unknown;
-    onFocusStep?: ((id: string) => void) | null;
-}>;
+export const MessageBubble = MessageBubbleJs;
 
 export const ProposalCard = ProposalCardJs;
 

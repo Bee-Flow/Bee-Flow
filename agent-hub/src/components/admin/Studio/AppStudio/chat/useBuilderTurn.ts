@@ -70,7 +70,7 @@ interface BuilderTurnInputs {
     onAppUpdated: ((update: AppMetaUpdate) => void) | null;
 }
 
-// revealQueue.js defaults hintIds to [], which would type it as never[].
+// revealQueue.ts is TypeScript now; the alias keeps the compiled text.
 const planReveal = planRevealJs;
 
 interface DraftMeta {
