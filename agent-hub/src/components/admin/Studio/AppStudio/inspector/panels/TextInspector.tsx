@@ -3,8 +3,14 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import Toggle from '../../../../../shared/Toggle';
 import { registerInspector } from '../registry';
 import { TextAreaField , usePatch } from './kit';
+import type { PanelProps } from '../appDefinition';
 
-export default function TextInspector({ node, definition, onCommit, disabled = false }) {
+interface TextProps {
+    text?: string;
+    muted?: boolean;
+}
+
+export default function TextInspector({ node, definition, onCommit, disabled = false }: PanelProps<TextProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);

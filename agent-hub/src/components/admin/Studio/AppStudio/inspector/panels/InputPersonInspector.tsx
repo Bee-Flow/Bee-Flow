@@ -3,6 +3,15 @@ import { TextField, usePatch } from './kit';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import { registerInspector } from '../registry';
 import Toggle from '../../../../../shared/Toggle';
+import type { PanelProps } from '../appDefinition';
+
+interface InputPersonProps {
+    name?: string;
+    label?: string;
+    allowMe?: boolean;
+    multiple?: boolean;
+    required?: boolean;
+}
 
 /**
  * Content panel for input_person. Props mirror componentSpecs.js (authoritative).
@@ -16,7 +25,7 @@ import Toggle from '../../../../../shared/Toggle';
  * "the dropdown is empty" is a much worse thing to debug than "you have not
  * turned this on yet".
  */
-export default function InputPersonInspector({ node, definition, onCommit, disabled = false }) {
+export default function InputPersonInspector({ node, definition, onCommit, disabled = false }: PanelProps<InputPersonProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);

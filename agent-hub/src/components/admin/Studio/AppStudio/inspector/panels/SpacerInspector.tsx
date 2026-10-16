@@ -3,8 +3,13 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import Slider from '../../../../../shared/Slider';
 import { registerInspector } from '../registry';
 import { usePatch } from './kit';
+import type { PanelProps } from '../appDefinition';
 
-export default function SpacerInspector({ node, definition, onCommit, disabled = false }) {
+interface SpacerProps {
+    steps?: number;
+}
+
+export default function SpacerInspector({ node, definition, onCommit, disabled = false }: PanelProps<SpacerProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);
@@ -12,7 +17,7 @@ export default function SpacerInspector({ node, definition, onCommit, disabled =
     return (
         <Slider
             label={t('studio_apps_panels.spacer.height', 'Height')}
-            value={Number.isFinite(props.steps) ? props.steps : 2}
+            value={Number.isFinite(props.steps) ? props.steps as number : 2}
             onChange={(v) => patch({ steps: Math.max(1, Math.min(8, Math.round(v))) })}
             min={1}
             max={8}
