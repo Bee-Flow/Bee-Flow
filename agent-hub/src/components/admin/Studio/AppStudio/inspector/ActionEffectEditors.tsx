@@ -33,17 +33,8 @@ interface ParamDraft {
     row: ParamRow;
 }
 
-// logic/ExpressionInput.jsx is still JavaScript, and its `= null` defaults are
-// all TypeScript can see of half its props. This states the ones this editor
-// passes; it goes away when that component becomes TypeScript.
-const Expression = ExpressionInput as React.ComponentType<{
-    variant?: 'block' | 'inline';
-    value?: string;
-    onChange?: (expr: string) => void;
-    placeholder?: string;
-    ariaLabel?: string;
-    disabled?: boolean;
-}>;
+// logic/ExpressionInput.jsx is still JavaScript; its JSDoc types the props.
+const Expression = ExpressionInput;
 
 // Mirror of LIMITS.MAX_NAVIGATE_PARAMS (server/appStudio/componentSpecs.js).
 const MAX_NAVIGATE_PARAMS = 20;

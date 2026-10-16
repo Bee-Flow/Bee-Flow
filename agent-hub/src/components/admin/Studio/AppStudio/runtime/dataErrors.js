@@ -58,7 +58,7 @@ export function dataErrorFromResponse(res, body, fallback) {
 
 /** The viewer is over the read budget — worth waiting out rather than showing. */
 /**
- * @param {{ status?: unknown } | null | undefined} err
+ * @param {unknown} err Any thrown value; only an object's `status` is read.
  * @returns {boolean}
  */
 export const isRateLimited = (err) => err?.status === 429;

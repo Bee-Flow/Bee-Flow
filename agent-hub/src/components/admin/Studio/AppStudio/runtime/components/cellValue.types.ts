@@ -1,7 +1,7 @@
 /** The column settings a cell reads (cellValue.jsx); every member is optional. */
 export interface CellColumn {
     format?: string;
-    align?: 'left' | 'right' | 'center';
+    align?: 'auto' | 'left' | 'right' | 'center';
     truncate?: boolean;
     /** Value to tone / label. */
     toneMap?: Array<{ value?: unknown; tone?: string; label?: unknown } | null | undefined>;
@@ -10,7 +10,7 @@ export interface CellColumn {
     /** Fixed tone (progress bar). */
     tone?: string;
     /** Tone of the dash shown for an empty cell. */
-    emptyTone?: string;
+    emptyTone?: string | null;
     /** Sibling column holding a short flag text. */
     flagFrom?: string;
     flagTone?: string;
@@ -32,6 +32,7 @@ export interface CellValueProps {
     value?: unknown;
     format?: string;
     col?: CellColumn | null;
-    row?: Record<string, unknown> | null;
+    /** Read only after a `typeof row === 'object'` check. */
+    row?: unknown;
     now?: number | null;
 }

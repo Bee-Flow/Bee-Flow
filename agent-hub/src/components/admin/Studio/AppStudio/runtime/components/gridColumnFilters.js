@@ -22,7 +22,6 @@
  * @typedef {{ min?: unknown, max?: unknown }} NumberRange A number filter value; either end may be empty.
  * @typedef {{ from?: unknown, to?: unknown }} DateRange A date filter value; either end may be empty.
  * @typedef {{ value: string, label: string }} FacetOption
- * @typedef {(key: string, fallback: string, params?: Record<string, unknown>) => string} FilterTranslate
  * @typedef {((row: { getValue: (columnId: string) => unknown }, columnId: string, filterValue: unknown) => boolean) & { autoRemove: (value: unknown) => boolean }} GridFilterFn
  */
 
@@ -204,10 +203,11 @@ export function makeFilterFn(kind) {
  * reader's words — "Amount 500 – 2,000", "Date from 1 Sep", "Paid: yes".
  */
 /**
- * @param {string} kind A FilterKind. Decides the shape `value` must have.
+ * @param {string | null | undefined} kind A FilterKind. Decides the shape `value` must have; anything else is quoted as text.
  * @param {string | NumberRange | DateRange | null | undefined} value 'number' takes a NumberRange, 'date' a DateRange,
  *   'boolean' the string 'true' or 'false', 'select' and 'text' a string.
- * @param {{ options?: ReadonlyArray<{ value: unknown, label?: unknown }> | null, locale?: string, t?: FilterTranslate | null }} [opts]
+ * @param {{ options?: ReadonlyArray<{ value: unknown, label?: string | null }> | null, locale?: string, t?: import('../../../../../../hooks/useTranslation').TranslateFn | null }} [opts]
+ *   A 'select' chip shows the matching option's `label` as is, so it must be text.
  * @returns {string} Empty when the filter is not active.
  */
 export function describeFilter(kind, value, { options = null, locale = undefined, t = null } = {}) {

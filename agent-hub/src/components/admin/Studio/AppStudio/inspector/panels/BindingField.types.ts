@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
+import type { ChartMapping } from '../../bi/ChartDataPanel';
 import type { BindingInput } from '../../runtime/resolveBinding.types';
 import type { AppDefinition, AppNode } from '../appDefinition';
 
 /** What the query builder hands back after saving a view. */
 export interface BuiltView {
     datasetId: string;
-    chart?: { chartType?: string; xKey?: string; series?: Array<{ key: string; label?: string; color?: string }> } | null;
+    chart?: ChartMapping | null;
 }
 
 /**

@@ -33,7 +33,7 @@ export interface FormulaBinding {
 export interface DataBinding {
     kind: 'record' | 'records' | 'aggregate' | 'dataset';
     tableId?: string;
-    datasetId?: string;
+    datasetId?: string | null;
     filter?: unknown;
     sort?: FilterValue;
     limit?: FilterValue;
@@ -45,7 +45,7 @@ export interface DataBinding {
 
 export interface ConnectorBinding {
     kind: 'connector';
-    connectorId?: string;
+    connectorId?: string | null;
     params?: unknown;
 }
 
