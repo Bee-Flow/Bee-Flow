@@ -29,7 +29,7 @@ const SITE_ID_PROP = Object.freeze({
 
 const LOCALE_PROP = Object.freeze({
     type: 'string',
-    description: 'A language code such as "en", "nl" or "pt-br".',
+    description: 'A language code such as "en", "nl" or "pt-br". Only the default language and the languages the public site routes ("nl") are reachable by visitors; others are stored with a warning.',
 });
 
 const RANGE_PROPS = Object.freeze({

@@ -413,6 +413,23 @@ test('cms_set_locale_override writes site and page overrides, validates locale a
     assert.equal((await rpcCall(mcp, ctx, 'cms_set_locale_override', { locale: 'nl', override: 'x' })).result.isError, true);
 });
 
+test('cms_set_locale_override warns when the language is not publicly routable (#229)', async () => {
+    const { mcp } = makeHarness();
+    const ctx = ctxOf(FULL);
+    const de = JSON.parse(textOf(await rpcCall(mcp, ctx, 'cms_set_locale_override', { locale: 'de', override: { pageTitles: {} } })));
+    assert.equal(de.saved, true);
+    assert.match(de.warning, /"de" is saved but not publicly routable/);
+    const nl = JSON.parse(textOf(await rpcCall(mcp, ctx, 'cms_set_locale_override', { locale: 'nl', override: { pageTitles: {} } })));
+    assert.equal(nl.warning, undefined);
+});
+
+test('cms_set_locale_override warns when the override targets the default language', async () => {
+    const { mcp } = makeHarness();
+    const out = JSON.parse(textOf(await rpcCall(mcp, ctxOf(FULL), 'cms_set_locale_override', { locale: 'en', override: { pageTitles: {} } })));
+    assert.equal(out.saved, true);
+    assert.match(out.warning, /default language/);
+});
+
 test('cms_set_locale_override rejects page block translations that are not under content', async () => {
     const { mcp, calls } = makeHarness();
     const ctx = ctxOf(FULL);

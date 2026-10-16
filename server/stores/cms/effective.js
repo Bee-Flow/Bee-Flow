@@ -107,7 +107,12 @@ async function resolveEffective(siteId, slug, locale, ctx) {
     if (!site) return { found: false, page: null, header: null, footer: null, cookieBanner: null, announcement: null, pages: [], design: clone(DESIGN_DEFAULTS), analytics: null };
 
     const defaultLocale = await getDefaultLocale();
-    const reqLocale = (locale || defaultLocale || 'en').toLowerCase().split('-')[0];
+    // The full tag ("pt-br") is the key overrides are stored under; a regional
+    // request falls back to its base language ("pt") when no exact override exists.
+    const reqLocale = (locale || defaultLocale || 'en').toLowerCase();
+    const baseOf = (/** @type {string} */ loc) => loc.split('-')[0];
+    const withBaseFallback = async (/** @type {(loc: string) => Promise<any>} */ read) =>
+        (await read(reqLocale)) || (baseOf(reqLocale) !== reqLocale ? read(baseOf(reqLocale)) : null);
 
     // Design is global per site (no locale layer per call F).
     // sanitizeDesign also fills missing fields for sites that pre-date the
@@ -141,7 +146,7 @@ async function resolveEffective(siteId, slug, locale, ctx) {
     }
 
     const siteOverride = reqLocale && reqLocale !== defaultLocale
-        ? await ctx.getSiteLocaleOverride(reqLocale)
+        ? await withBaseFallback((loc) => ctx.getSiteLocaleOverride(loc))
         : null;
     let header = deepMerge(clone(SITE_DEFAULTS.header), site.header);
     let footer = deepMerge(clone(SITE_DEFAULTS.footer), site.footer);
@@ -170,7 +175,7 @@ async function resolveEffective(siteId, slug, locale, ctx) {
     let blocks = pageDoc.blocks.map(b => clone(b));
     // Fetched once and reused for block content + SEO translation below.
     const pageOverride = reqLocale !== defaultLocale
-        ? await ctx.getPageLocaleOverride(entry.id, reqLocale)
+        ? await withBaseFallback((loc) => ctx.getPageLocaleOverride(entry.id, loc))
         : null;
     if (pageOverride?.blocks) {
         blocks = blocks.map(b => {

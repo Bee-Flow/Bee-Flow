@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The site-level CMS-over-MCP tools (./dispatch.js maps tool names to them):
@@ -6,6 +7,7 @@
  */
 
 const { err, isPlainObject } = require('./handlerKit');
+const { LOCALE_PREFIXES } = require('../../core/seo/publicPath');
 
 const SETTING_SECTIONS = ['header', 'footer', 'cookieBanner', 'announcement'];
 const SETTINGS_PATCH_MAX_CHARS = 100_000;
@@ -183,7 +185,16 @@ function createLocaleHandlers({ deps, cmsStore, resolveSite }) {
         }
         if (pageId) await cmsStore.setPageLocaleOverride(site.siteId, pageId, locale, args.override);
         else await cmsStore.setSiteLocaleOverride(site.siteId, locale, args.override);
-        return { result: { siteId: site.siteId, locale, pageId, saved: true } };
+        /** @type {Record<string, unknown>} */
+        const result = { siteId: site.siteId, locale, pageId, saved: true };
+        // The public router serves a fixed set of language prefixes; a translation outside
+        // it is stored but no visitor can reach it, so say so instead of reporting plain success.
+        if (locale === (await cmsStore.getDefaultLocale())) {
+            result.warning = `"${locale}" is this site's default language: the content itself is the default, so this override is never shown.`;
+        } else if (!LOCALE_PREFIXES.has(locale)) {
+            result.warning = `"${locale}" is saved but not publicly routable: the public site serves only ${[...LOCALE_PREFIXES].map((l) => `"${l}"`).join(', ')} next to the default language, so visitors cannot reach this translation yet.`;
+        }
+        return { result };
     }
 
     return { getLocaleOverrides, setLocaleOverride };

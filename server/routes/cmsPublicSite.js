@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The PUBLIC read of the live CMS site: GET /api/cms/site (page, blog index or
  * post, legacy or v2 shape) with the analytics envelope (Umami + Google
@@ -75,7 +76,8 @@ async function getPublicSite(req, res) {
     }
 
     const defaultLocale = await cmsStore.getDefaultLocale();
-    const locale = (req.query.locale || defaultLocale).toString().toLowerCase().split('-')[0];
+    const requested = String(req.query.locale || defaultLocale).toLowerCase();
+    const locale = cmsStore.isValidLocale(requested) ? requested : defaultLocale;
     const v2 = req.query.v === '2';
     const slug = (req.query.slug || '').toString();
 
@@ -132,6 +134,7 @@ async function getPublicSite(req, res) {
     // The client injects a tiny async <script> (cookieless by default)
     // so page load stays fast. Best-effort: never let an analytics
     // hiccup break the public render.
+    /** @type {Record<string, any> | null} */
     let analytics = null;
     try {
         const aSettings = await getAnalyticsSettings();
