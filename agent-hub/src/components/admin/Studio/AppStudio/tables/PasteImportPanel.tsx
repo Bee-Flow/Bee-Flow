@@ -1,7 +1,11 @@
 import { AlertTriangle, ArrowRight, ClipboardPaste, Loader2 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import type { ReactNode } from 'react';
+import type { RowRecord } from './recordsApi';
 import { buildImportRows, importableFields, parsePasted, suggestMapping } from './spreadsheetPaste';
+import type { ImportRow, ImportTable } from './spreadsheetPaste';
+import useTranslation from '../../../../../hooks/useTranslation';
+import { errorStatus, messageOf } from '../../../../../utils/caughtError';
 
 /**
  * App Studio — "paste from a spreadsheet": a block copied out of Excel or
@@ -26,7 +30,15 @@ const SELECT_CLS = 'rounded-md px-2 py-1 text-xs border bg-[var(--bg-tertiary)] 
 
 const PLACEHOLDER = 'Name\tEmail\tStarts on\nAnna de Vries\tanna@example.com\t2026-03-14';
 
-function Button({ children, onClick, disabled, primary = false, className = '' }) {
+interface ButtonProps {
+    children: ReactNode;
+    onClick?: () => void;
+    disabled?: boolean;
+    primary?: boolean;
+    className?: string;
+}
+
+function Button({ children, onClick, disabled, primary = false, className = '' }: ButtonProps) {
     return (
         <button
             type="button"
@@ -42,7 +54,38 @@ function Button({ children, onClick, disabled, primary = false, className = '' }
     );
 }
 
-export default function PasteImportPanel({ table, onCreate, onImported, onClose }) {
+/** A row the import left out, with the sentence that says why. */
+interface SkippedRow {
+    line: number;
+    message: string;
+}
+
+/** What the import has done so far. */
+interface ImportTally {
+    added: number;
+    skipped: SkippedRow[];
+}
+
+/** An import waiting out the rate limit: the rows still to send, and the seconds left. */
+interface PausedImport {
+    queue: ImportRow[];
+    seconds: number;
+}
+
+interface PasteImportPanelProps {
+    table?: ImportTable | null;
+    onCreate: (values: Record<string, unknown>) => Promise<{ record?: RowRecord } | null | undefined>;
+    onImported?: (created: RowRecord[]) => void;
+    onClose: () => void;
+}
+
+/** The Retry-After seconds recordsApi puts on a 429 error, or undefined. */
+function retryAfterOf(err: unknown): number | undefined {
+    if (typeof err !== 'object' || err === null || !('retryAfter' in err)) return undefined;
+    return typeof err.retryAfter === 'number' ? err.retryAfter : undefined;
+}
+
+export default function PasteImportPanel({ table, onCreate, onImported, onClose }: PasteImportPanelProps) {
     const { t } = useTranslation();
     const fields = useMemo(() => importableFields(table?.fields), [table]);
     const [text, setText] = useState('');
@@ -51,8 +94,8 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
     const [mapping, setMapping] = useState(() => suggestMapping(parsed.header, fields));
     const [importing, setImporting] = useState(false);
     const [done, setDone] = useState(0);
-    const [result, setResult] = useState(null);
-    const [paused, setPaused] = useState(null); // { queue, seconds }
+    const [result, setResult] = useState<ImportTally | null>(null);
+    const [paused, setPaused] = useState<PausedImport | null>(null); // { queue, seconds }
 
     // A fresh paste re-matches from scratch; editing the mapping afterwards is
     // the user's business.
@@ -82,17 +125,17 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
 
     // One field per column: picking a field that is already used elsewhere moves
     // it, rather than quietly writing two columns into the same one.
-    const setColumn = (index, fieldKey) => {
+    const setColumn = (index: number, fieldKey: string) => {
         setMapping((cur) => cur.map((k, i) => {
             if (i === index) return fieldKey;
             return fieldKey !== NO_IMPORT && k === fieldKey ? NO_IMPORT : k;
         }));
     };
 
-    const send = async (queue, startTally) => {
+    const send = async (queue: ImportRow[], startTally: ImportTally) => {
         setImporting(true);
         setDone(0);
-        const created = [];
+        const created: RowRecord[] = [];
         const skipped = [...startTally.skipped];
         let added = startTally.added;
         for (let i = 0; i < queue.length; i += 1) {
@@ -102,14 +145,14 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
                 added += 1;
                 if (res?.record) created.push(res.record);
             } catch (err) {
-                if (err?.status === 429) {
+                if (errorStatus(err) === 429) {
                     onImported?.(created);
                     setResult({ added, skipped });
-                    setPaused({ queue: queue.slice(i), seconds: err.retryAfter || 60 });
+                    setPaused({ queue: queue.slice(i), seconds: retryAfterOf(err) || 60 });
                     setImporting(false);
                     return;
                 }
-                skipped.push({ line: row.line, message: err?.message || t('studio_apps_tables.paste.row_rejected', 'The app would not take this row.') });
+                skipped.push({ line: row.line, message: messageOf(err, t('studio_apps_tables.paste.row_rejected', 'The app would not take this row.')) });
             }
             setDone(i + 1);
         }
