@@ -53,7 +53,7 @@ export default function FormBlock({ data }: { data?: FormBlockData }) {
 
     return (
         <SectionFrame id="form" name="Form" enabled={data.enabled}>
-            <section className={['cms-form-block', sectionBgClass(data)].filter(Boolean).join(' ')}>
+            <section className={['cms-form-block', sectionBgClass(data, 'alt-bg')].filter(Boolean).join(' ')}>
                 <div className="container">
                     <SectionHeader
                         pathPrefix="form"

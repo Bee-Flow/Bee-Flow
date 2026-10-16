@@ -56,6 +56,14 @@ describe('FormBlock', () => {
         vi.unstubAllGlobals();
     });
 
+    it('keeps the grey surface without a stored variant and goes flat on an explicit default', () => {
+        const { container, unmount } = renderForm();
+        expect(container.querySelector('section.cms-form-block')?.classList.contains('alt-bg')).toBe(true);
+        unmount();
+        const flat = renderForm({ ...DATA, backgroundVariant: 'default' } as typeof DATA);
+        expect(flat.container.querySelector('section.cms-form-block')?.classList.contains('alt-bg')).toBe(false);
+    });
+
     it('does not post while required answers or consent are missing', async () => {
         const user = userEvent.setup();
         renderForm();

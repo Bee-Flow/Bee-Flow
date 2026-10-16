@@ -409,7 +409,7 @@ const BLOCK_DEFAULTS = {
         submitLabel: 'Send to Bee Flow',
         successTitle: "Thanks — we've got your message",
         successBody: "Our AI assistant is looking through our knowledge base right now and you'll receive an email reply within a few minutes. If it can't fully resolve your question, a Bee Flow teammate will take over.",
-        backgroundVariant: 'surface',
+        // No backgroundVariant: the block paints the grey surface itself until an author picks one (style.band 'default' flattens it).
     },
 
     // Form — a lead-capture form (demo request, newsletter, gated download)
@@ -434,7 +434,7 @@ const BLOCK_DEFAULTS = {
         successBody: 'We have received your request and will be in touch.',
         errorText: 'Something went wrong. Please try again.',
         automationId: '',
-        backgroundVariant: 'surface',
+        // No backgroundVariant: the block paints the grey surface itself until an author picks one (style.band 'default' flattens it).
     },
 
     // Testimonials — quantified social proof (name + role + company always;

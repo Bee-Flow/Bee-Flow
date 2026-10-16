@@ -92,3 +92,8 @@ test('default keys, common design keys and style-in-content keys are not unknown
     assert.ok(!has(ws, 'unknown_content_key'));
     assert.ok(has(ws, 'style_key_in_content'));
 });
+
+test('customer-support and form defaults store no backgroundVariant, so band default can flatten them', () => {
+    assert.ok(!('backgroundVariant' in BLOCK_DEFAULTS['customer-support']));
+    assert.ok(!('backgroundVariant' in BLOCK_DEFAULTS.form));
+});
