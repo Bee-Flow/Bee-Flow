@@ -1,7 +1,7 @@
 import React from 'react';
 import { DEMO_FEATURES, DEMO_FEATURE_IDS } from '../../../../demo/registry';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { TextField, TextArea, FieldRow } from '../fields';
+import { TextField, TextArea, FieldRow, ImageField } from '../fields';
 import { CollapsibleCard, InlineHint, FieldSelect, SegmentedControl } from '../primitives';
 import type { BlockEditorProps } from './editorProps';
 
@@ -15,6 +15,8 @@ type FeatureDemoData = {
     height?: number;
     theme?: string;
     note?: string;
+    caption?: string;
+    poster?: string;
 };
 
 /**
@@ -53,6 +55,23 @@ export function FeatureDemoEditor({ data, onChange }: { data: FeatureDemoData; o
                 <TextField label={t('cms_site.blocks.feature_demo.eyebrow', 'Eyebrow')} value={data.eyebrow || ''} onChange={v => set('eyebrow', v)} placeholder={t('cms_site.blocks.feature_demo.live_demo', 'Live demo')} />
                 <TextField label={t('cms_site.blocks.feature_demo.title', 'Title')} value={data.title || ''} onChange={v => set('title', v)} placeholder={t('cms_site.blocks.feature_demo.try_it_right_here', 'Try it right here')} />
                 <TextArea label={t('cms_site.blocks.feature_demo.lead', 'Lead')} value={data.lead || ''} onChange={v => set('lead', v)} rows={2} />
+            </CollapsibleCard>
+
+            <CollapsibleCard title={t('cms_site.blocks.feature_demo.poster_card', 'Poster and caption')} persistKey="blk.featureDemo.poster" defaultOpen>
+                <InlineHint>
+                    {t('cms_site.blocks.feature_demo.poster_hint', 'The demo only loads when a visitor presses Try it. Until then the frame shows this still image, so nothing heavy downloads for people who scroll past.')}
+                </InlineHint>
+                <ImageField
+                    label={t('cms_site.blocks.feature_demo.poster', 'Poster image')}
+                    value={data.poster || ''}
+                    onChange={v => set('poster', v)}
+                />
+                <TextField
+                    label={t('cms_site.blocks.feature_demo.caption', 'Caption')}
+                    value={data.caption || ''}
+                    onChange={v => set('caption', v)}
+                    placeholder={t('cms_site.blocks.feature_demo.caption_placeholder', 'One short line: what you can do here')}
+                />
             </CollapsibleCard>
 
             <CollapsibleCard title={t('cms_site.blocks.feature_demo.frame', 'Frame')} persistKey="blk.featureDemo.frame">

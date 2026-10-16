@@ -1,12 +1,10 @@
 /**
- * The feature-demo block renders two different things now: the live iframe on
- * desktop, and on a phone a scaled non-interactive preview plus two "Open
- * full screen" links into /__demo__/<id>?vw=1280. Nothing pinned the iframe's
- * containment attributes before this file existed — and those attributes are
- * the sandbox half of the demo security story, so both branches pin them
- * exactly. The other invariant worth a test: the CMS editor's poster outranks
- * the phone branch, so the builder's mobile preview preset never boots a
- * second copy of the app.
+ * The feature-demo block starts as a poster (a button) and creates the live
+ * iframe only after a click or keypress, so a visitor who scrolls past never
+ * downloads the demo. On a phone there is no iframe at all: the poster is a
+ * link into /__demo__/<id>?vw=1280. The iframe's containment attributes are
+ * the sandbox half of the demo security story and stay pinned exactly. The
+ * CMS editor's poster is inert, so the builder never boots a second app.
  *
  * jsdom reports clientWidth 0, so these tests assert structure and
  * attributes, never measured pixels (the stance src/test/setup.js documents).
@@ -15,6 +13,7 @@
  */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import FeatureDemo from './FeatureDemo';
 
@@ -68,61 +67,75 @@ function expectContainment(iframe: Element) {
 }
 
 describe('on desktop', () => {
-    it('renders the live iframe with the exact containment attributes', () => {
-        setPhone(false);
+    beforeEach(() => setPhone(false));
+
+    it('renders a poster button and no iframe before any interaction', () => {
         const { container } = render(<FeatureDemo data={base} />);
+
+        expect(container.querySelector('iframe')).toBeNull();
+        expect(screen.getByRole('button', { name: /try it/i })).toBeInTheDocument();
+    });
+
+    it('creates the iframe with the exact containment attributes on click', async () => {
+        const { container } = render(<FeatureDemo data={base} />);
+        await userEvent.click(screen.getByRole('button', { name: /try it/i }));
 
         const iframe = container.querySelector('iframe.feature-demo-iframe') as HTMLElement;
         expect(iframe).not.toBeNull();
         expect(iframe.getAttribute('src')).toBe('/__demo__/automations?theme=light&lang=en');
         expectContainment(iframe);
+        expect(container.querySelector('.feature-demo-poster')).toBeNull();
     });
 
-    it('shows no mobile chrome and keeps the block height inline', () => {
-        setPhone(false);
+    it('creates the iframe on a keypress too', async () => {
         const { container } = render(<FeatureDemo data={base} />);
+        screen.getByRole('button', { name: /try it/i }).focus();
+        await userEvent.keyboard('{Enter}');
+        expect(container.querySelector('iframe')).not.toBeNull();
+    });
 
-        expect(container.querySelector('.feature-demo-open-overlay')).toBeNull();
+    it('fixes the aspect ratio from the block height, so activation shifts nothing', () => {
+        const { container } = render(<FeatureDemo data={base} />);
+        const frame = container.querySelector('.feature-demo-frame') as HTMLElement;
+        expect(frame.style.aspectRatio).toBe('1280 / 760');
+        expect(frame.style.height).toBe('');
+    });
+
+    it('shows the authored poster image and caption', () => {
+        const { container } = render(
+            <FeatureDemo data={{ ...base, poster: '/api/cms/asset/cms/shot.png', caption: 'Drag a step onto the canvas.' }} />,
+        );
+        expect(container.querySelector('img.feature-demo-poster-img')?.getAttribute('src')).toBe('/api/cms/asset/cms/shot.png');
+        expect(screen.getByText('Drag a step onto the canvas.')).toBeInTheDocument();
+    });
+
+    it('renders no image and no caption when none is authored', () => {
+        const { container } = render(<FeatureDemo data={base} />);
+        expect(container.querySelector('img')).toBeNull();
+        expect(container.querySelector('.feature-demo-caption')).toBeNull();
+    });
+
+    it('shows no mobile chrome', () => {
+        const { container } = render(<FeatureDemo data={base} />);
         expect(container.querySelector('.feature-demo-open-btn')).toBeNull();
-        expect(container.querySelector('.feature-demo-scale-clip')).toBeNull();
-        expect((container.querySelector('.feature-demo-frame') as HTMLElement).style.height).toBe('760px');
     });
 });
 
 describe('on a phone', () => {
     beforeEach(() => setPhone(true));
 
-    it('renders the scaled sandwich instead of a phone-width iframe', () => {
+    it('never creates an iframe, not even a scaled thumbnail', () => {
         const { container } = render(<FeatureDemo data={base} />);
-
-        const clip = container.querySelector('.feature-demo-scale-clip') as HTMLElement;
-        expect(clip).not.toBeNull();
-
-        const canvas = container.querySelector('.feature-demo-scale-canvas') as HTMLElement;
-        expect(canvas.getAttribute('aria-hidden')).toBe('true');
-        expect(canvas.style.width).toBe('1280px');
-        expect(canvas.style.transformOrigin).toBe('top left');
-        expect(canvas.style.transform).toMatch(/^scale\(/);
-
-        // The framed document keeps the exact same containment as on desktop,
-        // sits outside the tab order (it is inside an aria-hidden subtree),
-        // and does NOT carry vw — viewport meta is inert inside an iframe.
-        const iframe = canvas.querySelector('iframe.feature-demo-iframe') as HTMLElement;
-        expect(iframe.getAttribute('src')).toBe('/__demo__/automations?theme=light&lang=en');
-        expectContainment(iframe);
-        expect(iframe.getAttribute('tabindex')).toBe('-1');
-
-        // The frame's height comes from the clip, not from the block field.
-        expect((container.querySelector('.feature-demo-frame') as HTMLElement).style.height).toBe('');
-        expect(clip.style.height).toMatch(/px$/);
+        expect(container.querySelector('iframe')).toBeNull();
+        expect(container.querySelector('.feature-demo-scale-clip')).toBeNull();
     });
 
-    it('offers the full-screen demo through both the overlay and the footer button, same tab', () => {
+    it('links the poster and the footer button to the full-screen demo, same tab', () => {
         const { container } = render(<FeatureDemo data={base} />);
 
-        const overlay = container.querySelector('a.feature-demo-open-overlay') as HTMLElement;
+        const poster = container.querySelector('a.feature-demo-poster') as HTMLElement;
         const button = container.querySelector('a.feature-demo-open-btn') as HTMLElement;
-        for (const link of [overlay, button]) {
+        for (const link of [poster, button]) {
             expect(link).not.toBeNull();
             expect(link.getAttribute('href')).toBe('/__demo__/automations?theme=light&lang=en&vw=1280');
             // Same tab on purpose: the demo host's close button relies on
@@ -130,41 +143,41 @@ describe('on a phone', () => {
             expect(link.getAttribute('target')).toBeNull();
         }
         expect(button.textContent).toMatch(/Open full screen/);
-        // The note and an AUTHORED cta survive next to the new button. (No
-        // cta ships by default any more — the owner removed the "Open the
-        // real thing" button — but the renderer capability stays.)
         expect(screen.getByText('Sample data only.')).toBeInTheDocument();
         expect(screen.getByText('Start in the app')).toBeInTheDocument();
     });
 
     it('carries a dark theme into the full-screen URL', () => {
         const { container } = render(<FeatureDemo data={{ ...base, theme: 'dark' }} />);
-        expect((container.querySelector('a.feature-demo-open-overlay') as HTMLElement).getAttribute('href'))
+        expect((container.querySelector('a.feature-demo-poster') as HTMLElement).getAttribute('href'))
             .toBe('/__demo__/automations?theme=dark&lang=en&vw=1280');
     });
 
-    it('still renders the placeholder for an unknown feature — no iframe, no links', () => {
+    it('still renders the placeholder for an unknown feature, no iframe, no links', () => {
         const { container } = render(<FeatureDemo data={{ ...base, feature: 'not-a-feature' }} />);
 
         expect(container.querySelector('.feature-demo-placeholder')).not.toBeNull();
         expect(container.querySelector('iframe')).toBeNull();
-        expect(container.querySelector('.feature-demo-open-overlay')).toBeNull();
+        expect(container.querySelector('a.feature-demo-poster')).toBeNull();
         expect(container.querySelector('.feature-demo-open-btn')).toBeNull();
-    });
-
-    it('shows the poster in the CMS editor preview, never the scaled preview', () => {
-        setPreview(true);
-        const { container } = render(<FeatureDemo data={base} />);
-
-        expect(container.querySelector('.feature-demo-poster')).not.toBeNull();
-        expect(container.querySelector('.feature-demo-scale-clip')).toBeNull();
-        expect(container.querySelector('iframe')).toBeNull();
     });
 });
 
-// Guards the hooks-above-early-return refactor: hooks now run before the
-// enabled check, and a disabled block must still render nothing on either
-// branch.
+describe('in the CMS editor preview', () => {
+    it('shows an inert poster, no button, link or iframe, on desktop and phone', () => {
+        setPreview(true);
+        for (const phone of [false, true]) {
+            setPhone(phone);
+            const { container, unmount } = render(<FeatureDemo data={base} />);
+            expect(container.querySelector('.feature-demo-poster')).not.toBeNull();
+            expect(container.querySelector('button')).toBeNull();
+            expect(container.querySelector('a.feature-demo-poster')).toBeNull();
+            expect(container.querySelector('iframe')).toBeNull();
+            unmount();
+        }
+    });
+});
+
 describe('a disabled block', () => {
     it.each([['desktop', false], ['phone', true]])('renders nothing on %s', (_label, phone) => {
         setPhone(phone);

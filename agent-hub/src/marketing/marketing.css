@@ -3842,70 +3842,37 @@ section.customer-support-block {
     text-align: center;
 }
 
-@media (max-width: 768px) {
-    /* A phone cannot usefully show a desktop app in a 720px frame. The
-       poster and the unknown-id placeholder still get this capped frame
-       (!important because the renderer puts the block height inline); the
-       scaled live preview below sizes itself from the demo's own aspect. */
-    .feature-demo-frame:not(.feature-demo-frame--scaled) { height: 520px !important; }
+.feature-demo-caption {
+    margin: 24px auto 0;
+    max-width: 640px;
+    text-align: center;
+    color: var(--text-secondary);
 }
 
-/* ── Mobile scaled preview ────────────────────────────────────────────
-   ≤768px only, and only via the --scaled modifier the renderer adds there.
-   The frame shows the demo at a desktop logical width (1280px — past the
-   app's isCompact boundary, so it lays out exactly as on a laptop) scaled
-   down to fit: the same transform sandwich as the CMS editor's
-   PreviewStage. Non-interactive by design — at ~0.26 scale a tap on a 14px
-   button is a lottery — so the whole frame is one tap target that opens
-   the demo full screen in the same tab (DemoHost shows the way back).
-   Ordering is load-bearing: the iframe override below ties the
-   `.feature-demo-frame .feature-demo-iframe` rules above on specificity
-   and must sit later in the file to undo their calc() height. */
-.feature-demo-scale-clip {
-    position: relative;
-    overflow: hidden;
-    border-radius: calc(var(--card-radius, var(--radius-lg)) - 6px);
-    background: var(--surface-0);
-}
-.feature-demo-scale-canvas {
-    /* Thumbnail, not a widget — the overlay link owns all input. */
-    pointer-events: none;
-}
-.feature-demo-scale-canvas .feature-demo-iframe {
-    height: 100%;
-    border-radius: 0; /* the clip carries the radius */
-}
-.feature-demo-open-overlay {
+/* The poster fills the frame, so the frame's aspect-ratio (set inline from
+   the block height) is the only thing that sizes it, before and after the
+   live demo replaces it. */
+.feature-demo-poster { position: relative; overflow: hidden; text-decoration: none; }
+.feature-demo-poster-img {
     position: absolute;
     inset: 0;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding: 14px;
-    text-decoration: none;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
-.feature-demo-open-overlay:focus-visible {
-    outline: 2px solid var(--brand-primary);
-    outline-offset: -4px;
-    border-radius: calc(var(--card-radius, var(--radius-lg)) - 6px);
-}
-.feature-demo-open-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
+.feature-demo-poster-play,
+.feature-demo-poster-label,
+.feature-demo-hint { position: relative; }
+.feature-demo-poster-img ~ .feature-demo-poster-label {
+    padding: 4px 12px;
     border-radius: var(--pill-radius, 999px);
-    background: var(--brand-primary);
-    color: var(--btn-primary-fg, #fff);
-    font-size: 13px;
-    font-weight: 600;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    background: var(--surface-1);
 }
-.feature-demo-open-pill svg { width: 14px; height: 14px; }
 
 @media (max-width: 768px) {
+    .feature-demo-frame { min-height: 200px; }
     /* Mobile-only footer stack for the full-screen button, note and CTA.
-       The footer has no desktop rules today — keep it that way, so the
+       The footer has no desktop rules today, keep it that way, so the
        desktop layout stays byte-identical. */
     .feature-demo-footer {
         display: flex;

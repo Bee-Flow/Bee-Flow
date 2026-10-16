@@ -503,6 +503,8 @@ const BLOCK_DEFAULTS = {
         feature: 'automations',
         height: 720,
         theme: 'light',                 // 'light' | 'dark' — passed to the demo
+        caption: '',                    // one short line above the frame: what you can do here
+        poster: '',                     // still image shown until the visitor clicks "Try it"
         note: 'This is the real interface running on sample data. Nothing you do here is saved, and nothing leaves your browser.',
         // No default CTA under the frame — the demo itself is the pitch. An
         // authored cta { label, link } still renders if a block carries one.

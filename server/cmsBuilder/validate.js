@@ -23,6 +23,7 @@
  *             unknown_font        — a design font outside the loadable library
  *             low_contrast        — a design colour pair below WCAG AA (4.5:1)
  *             heavy_hero_image, autoplay_video, many_media — page speed (validateMedia.js)
+ *             demo_poster_not_text, demo_caption_not_text — feature-demo poster/caption (validateBlocks.js)
  *
  * The three design checks are WARNINGS, never errors, per this file's
  * doctrine: cmsStore.sanitizeDesign() coerces instead of rejecting, so these
@@ -37,7 +38,7 @@
 
 const { sanitizeBlockDesignStyle, BLOCK_DESIGN_STYLE_KEYS, MEDIA_HEIGHTS, MEDIA_FITS } = require('../i18n/defaults/blockStyleEnums');
 const { BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS } = require('../i18n/defaults/cmsDefaults');
-const { checkTabs, checkStoryHeader, checkScrollStory } = require('./validateBlocks');
+const { checkTabs, checkStoryHeader, checkScrollStory, checkFeatureDemo } = require('./validateBlocks');
 const { slugProblem } = require('../stores/cms/slugRules');
 const { checkPageMedia } = require('./validateMedia');
 const { experimentWarnings } = require('./experiments');
@@ -312,6 +313,7 @@ function validateSiteDraft(draftWrap) {
                         hint: `Available demos: ${DEMO_FEATURE_IDS.join(', ')}. Anything else renders an explanatory placeholder instead of the demo.`,
                     });
                 }
+                checkFeatureDemo(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             }
             if (b?.type === 'tabs') checkTabs(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             if (b?.type === 'scrollStory') checkScrollStory(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);

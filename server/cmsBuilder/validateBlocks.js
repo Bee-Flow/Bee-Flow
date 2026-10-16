@@ -110,4 +110,27 @@ function checkScrollStory(content, path, warnings) {
     });
 }
 
-module.exports = { checkTabs, checkStoryHeader, checkScrollStory };
+/**
+ * feature-demo: the poster (an uploaded image URL) and the caption are plain
+ * text. The renderer ignores anything else, so the block would silently show
+ * no still image.
+ * @param {unknown} content
+ * @param {string} path
+ * @param {Array<Record<string, unknown>>} warnings
+ */
+function checkFeatureDemo(content, path, warnings) {
+    const c = isPlainObject(content) ? content : {};
+    for (const key of ['poster', 'caption']) {
+        if (c[key] === undefined || typeof c[key] === 'string') continue;
+        warnings.push({
+            code: `demo_${key}_not_text`,
+            path: `${path}.${key}`,
+            message: `content.${key} must be a string; the renderer ignores anything else.`,
+            hint: key === 'poster'
+                ? 'Upload the still with cms_request_upload and pass its asset url as content.poster.'
+                : 'Send one short line, e.g. "Drag a step onto the canvas".',
+        });
+    }
+}
+
+module.exports = { checkTabs, checkStoryHeader, checkScrollStory, checkFeatureDemo };
