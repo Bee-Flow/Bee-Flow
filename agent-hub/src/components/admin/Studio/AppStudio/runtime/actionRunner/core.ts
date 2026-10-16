@@ -105,7 +105,9 @@ export const quotaToast = (tr: Translate): string => tr('studio_apps_runtime.act
 export function defaultConfirm(step: RunStep | null | undefined, tr: Translate): Promise<boolean> {
     const message = (step && step.message) || tr('studio_apps_runtime.actions.are_you_sure', 'Are you sure?');
     if (typeof window === 'undefined') return Promise.resolve(true);
-    // window.confirm is the default only when no host mounts a dialog.
+    // window.confirm is the default only when no host mounts a dialog: the
+    // runtime bundle (published apps) has no shared useConfirm to fall back on.
+    // eslint-disable-next-line no-restricted-properties -- the runtime's last resort, see above
     try { return Promise.resolve(window.confirm(message)); } catch { return Promise.resolve(true); }
 }
 

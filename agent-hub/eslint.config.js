@@ -194,13 +194,42 @@ export default [
         },
     },
     {
-        // rules-of-hooks on TS source (real bugs; 0 hits when added). Test
-        // harnesses call hooks from helper functions, so tests stay out;
-        // exhaustive-deps on TS waits for its own budget.
+        // The JS block's policy rules, for TS source too: files converted from
+        // .jsx kept their alert/confirm errors, raw-fetch and react-hooks
+        // warnings only while they were .jsx. Syntax rules that tsc already
+        // covers (no-undef, react/jsx-no-undef, no-unused-vars) stay JS-only.
+        // Test harnesses call hooks from helper functions and reference
+        // window.confirm to assert it is never called, so tests stay out.
         files: ['**/*.{ts,tsx}'],
-        ignores: ['**/*.test.{ts,tsx}'],
+        ignores: ['**/*.test.{ts,tsx}', 'src/test/**'],
         plugins: { 'react-hooks': reactHooks },
-        rules: { 'react-hooks/rules-of-hooks': 'error' },
+        rules: {
+            ...reactHooks.configs.recommended.rules,
+            'react-hooks/rules-of-hooks': 'error',
+            'react-hooks/exhaustive-deps': 'warn',
+            'react-hooks/set-state-in-effect': 'warn',
+            'react-hooks/immutability': 'warn',
+            'react-hooks/preserve-manual-memoization': 'warn',
+            'react-hooks/static-components': 'warn',
+            'react-hooks/purity': 'warn',
+            'react-hooks/refs': 'warn',
+            'react-hooks/error-boundaries': 'warn',
+            'react-hooks/component-hook-factories': 'warn',
+            'react-hooks/incompatible-library': 'warn',
+            'react-hooks/unsupported-syntax': 'warn',
+            'no-restricted-globals': ['error',
+                { name: 'alert', message: 'Use the shared toast (components/shared/Toast) instead of alert().' },
+                { name: 'confirm', message: 'Use the shared confirm dialog (components/shared/useConfirm) instead of confirm().' },
+            ],
+            'no-restricted-properties': ['error',
+                { object: 'window', property: 'alert', message: 'Use the shared toast (components/shared/Toast) instead of window.alert().' },
+                { object: 'window', property: 'confirm', message: 'Use the shared confirm dialog (components/shared/useConfirm) instead of window.confirm().' },
+            ],
+            'no-restricted-syntax': ['warn', {
+                selector: "CallExpression[callee.type='Identifier'][callee.name='fetch']",
+                message: 'Use apiClient (api/client) or a React Query hook instead of raw fetch().',
+            }],
+        },
     },
     // NOTE: scoping 'react-hooks/exhaustive-deps' to error inside src/hooks/
     // was attempted, but useChatEngine has intentional dep omissions
