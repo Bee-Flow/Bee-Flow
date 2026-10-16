@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS builder — draft-wide validation for the AI feedback loop.
  *
@@ -21,6 +22,7 @@
  *             bad_color           — a design colour that is not #rrggbb
  *             unknown_font        — a design font outside the loadable library
  *             low_contrast        — a design colour pair below WCAG AA (4.5:1)
+ *             heavy_hero_image, autoplay_video, many_media — page speed (validateMedia.js)
  *
  * The three design checks are WARNINGS, never errors, per this file's
  * doctrine: cmsStore.sanitizeDesign() coerces instead of rejecting, so these
@@ -35,6 +37,7 @@
 
 const { BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, DARK_COLOR_KEYS, DESIGN_FONTS } = require('../i18n/defaults/cmsDefaults');
 const { slugProblem } = require('../stores/cms/slugRules');
+const { checkPageMedia } = require('./validateMedia');
 
 // Lucide component names are PascalCase ASCII (Star, ShieldCheck, BarChart3).
 const LUCIDE_NAME_RE = /^[A-Z][A-Za-z0-9]*$/;
@@ -247,6 +250,7 @@ function validateSiteDraft(draftWrap) {
                 hint: 'Add content with cms_add_blocks, or leave it if the user wants it empty.',
             });
         }
+        checkPageMedia(entry.id, entry.title || entry.slug, blocks, warnings);
         blocks.forEach((b, i) => {
             checkTree(b?.content, `pages.${entry.id}.blocks[${i}].content`);
             // Layout variant sanity — an unknown variant renders as the
