@@ -18,6 +18,7 @@
 
 import { extractJsonText, getRelativePath, parseJsonText, parsePath, walkTokens } from './path.mjs';
 import { addToEpoch, epochDiff, requireDateUnit } from './dates.mjs';
+import { padStartCp, splitCp, substringCp } from './codePoints.mjs';
 export { checkDateUnit } from './dates.mjs';
 import { equalsValue, fileTypeOf, isEmptyValue, quantify, textContains, textEndsWith, textStartsWith } from './rules.mjs';
 
@@ -430,14 +431,13 @@ export const FUNCTIONS = {
     trim: (s) => (s == null ? '' : String(s).trim()),
     concat: (...xs) => xs.map((x) => (x == null ? '' : String(x))).join(''),
     replace: (s, find, repl) => (s == null ? '' : String(s).split(find == null ? '' : String(find)).join(repl == null ? '' : String(repl))),
-    split: (s, sep) => (s == null ? [] : String(s).split(sep == null ? '' : String(sep))),
+    split: (s, sep) => (s == null ? [] : splitCp(String(s), sep == null ? '' : String(sep))),
     join: (arr, sep) => (Array.isArray(arr) ? arr.map((x) => (x == null ? '' : String(x))).join(sep == null ? '' : String(sep)) : ''),
     substring: (s, a, b) => {
         if (s == null) return '';
-        const str = String(s); const start = toNum(a) || 0;
-        return b == null ? str.substring(start) : str.substring(start, toNum(b) || 0);
+        return substringCp(String(s), toNum(a) || 0, b == null ? null : toNum(b) || 0);
     },
-    padStart: (s, n, ch) => (s == null ? '' : String(s).padStart(toNum(n) || 0, ch == null ? ' ' : String(ch))),
+    padStart: (s, n, ch) => (s == null ? '' : padStartCp(String(s), toNum(n) || 0, ch == null ? ' ' : String(ch))),
     toStr: (x) => (x == null ? '' : String(x)),
     // Sum the leading multipliers in a "2x M5 + 4x M8" style list — the shape
     // every parts/BOM app writes its per-item breakdowns in. Exists because a
@@ -673,7 +673,7 @@ export const EXPR_FUNCTIONS = [
     { name: 'endsWith', signature: 'endsWith(text, part)', description: 'True when text ends with part. Ignores upper/lower case.' },
     { name: 'lower', signature: 'lower(text)', description: 'Lowercase the text.' },
     { name: 'upper', signature: 'upper(text)', description: 'Uppercase the text.' },
-    { name: 'len', signature: 'len(value)', description: 'Length of text, a list, or an object.' },
+    { name: 'len', signature: 'len(value)', description: 'Length of text in characters (code points), a list, or an object.' },
     { name: 'isEmpty', signature: 'isEmpty(value)', description: 'True for missing values, empty text, lists or objects.' },
     { name: 'equals', signature: 'equals(a, b)', description: 'True when a and b are the same: text ignores upper/lower case and surrounding spaces, "5" equals 5.' },
     { name: 'fileType', signature: 'fileType(file)', description: 'The kind of a file (or of each file in a list): pdf, word, excel, powerpoint, image, text, archive, audio, video or other — from its MIME type, else its extension.' },
@@ -722,16 +722,16 @@ export const EXPR_FUNCTIONS = [
     { name: 'trim', signature: 'trim(text)', description: 'Remove surrounding whitespace.' },
     { name: 'concat', signature: 'concat(a, b, …)', description: 'Join values into one string.' },
     { name: 'replace', signature: 'replace(text, find, with)', description: 'Replace every occurrence of find.' },
-    { name: 'split', signature: 'split(text, sep)', description: 'Split text into a list on sep.' },
+    { name: 'split', signature: 'split(text, sep)', description: 'Split text into a list on sep (an empty sep gives characters, code points).' },
     { name: 'join', signature: 'join(list, sep)', description: 'Join a list into text with sep.' },
-    { name: 'substring', signature: 'substring(text, start, end?)', description: 'Slice of text between start and end.' },
-    { name: 'padStart', signature: 'padStart(text, length, char?)', description: 'Pad the start of text to a length.' },
+    { name: 'substring', signature: 'substring(text, start, end?)', description: 'Slice of text between start and end, counted in characters (code points).' },
+    { name: 'padStart', signature: 'padStart(text, length, char?)', description: 'Pad the start of text to a length in characters (code points).' },
     { name: 'toStr', signature: 'toStr(value)', description: 'Convert any value to text.' },
     { name: 'sumCounts', signature: 'sumCounts(text)', description: 'Add up the quantities in a breakdown like "2x M5 + 4x M8" (gives 6). Dimensions such as "100 x 80" are ignored. Nothing to count gives nothing.' },
     { name: 'first', signature: 'first(list)', description: 'First item of a list.' },
     { name: 'last', signature: 'last(list)', description: 'Last item of a list.' },
     { name: 'includes', signature: 'includes(list, value)', description: 'True when the list contains value (text ignores case).' },
-    { name: 'count', signature: 'count(value)', description: 'Number of items in a list/text/object.' },
+    { name: 'count', signature: 'count(value)', description: 'Number of items in a list, characters (code points) in text, keys in an object.' },
     { name: 'at', signature: 'at(list, index)', description: 'Item at a 0-based index (negative counts from the end). Outside the list gives nothing.' },
     { name: 'index_of', signature: 'index_of(list, value)', description: 'First 0-based index of value in the list (text ignores case), or -1.' },
     { name: 'pluck', signature: 'pluck(list, key)', description: 'One value per item: the value under key — pluck(rows, "id") gives the ids.' },
