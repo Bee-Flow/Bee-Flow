@@ -87,9 +87,9 @@ function localesForPost(overrides, postId, defaultLocale, siteLocales) {
  * @param {string} siteId
  * @param {{ state?: 'published'|'draft', view?: 'index'|'post', postSlug?: string, tag?: string,
  *           page?: number | string, locale?: string, siteLocales?: string[], now?: number,
- *           draftPost?: object }} opts
+ *           draftPost?: any }} opts
  *   draftPost — an unsaved post to preview instead of the stored one (admin preview)
- * @returns {Promise<object|null>} null when there is no published snapshot (state published)
+ * @returns {Promise<any|null>} null when there is no published snapshot (state published)
  */
 async function getEffectiveBlog(siteId, opts = {}) {
     const state = opts.state === 'draft' ? 'draft' : 'published';

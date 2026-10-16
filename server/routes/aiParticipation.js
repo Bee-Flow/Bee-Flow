@@ -47,7 +47,7 @@ const MyPreferenceBody = bodyOf({
  * @param {Function} [deps.requireAuth]        Express middleware: 401 without a session
  * @param {Function} [deps.resolveUserOrgIds]  (req) => Set<orgId> | null (null = every org, a super admin)
  * @param {Function} [deps.isOrgAdmin]         (req, orgId) => boolean
- * @param {object}   [deps.policy]             policy.makePolicy() surface
+ * @param {any}   [deps.policy]             policy.makePolicy() surface
  */
 function makeAiParticipationRouter(deps = {}) {
     const router = express.Router();
@@ -98,5 +98,6 @@ function makeAiParticipationRouter(deps = {}) {
 
 const router = makeAiParticipationRouter();
 
-module.exports = router;
-module.exports.makeAiParticipationRouter = makeAiParticipationRouter;
+module.exports = Object.assign(router, {
+    makeAiParticipationRouter,
+});

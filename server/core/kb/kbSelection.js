@@ -54,7 +54,7 @@ const log = require('../../telemetry/log');
  * @param {string[]} [p.userGroups]
  * @param {string} [p.surface]        'direct_chat' | 'agent' | 'ai_step' | 'webpage'
  * @param {string} [p.context]        for the drop log; defaults to the surface
- * @param {object} [p.deps]           { kbStore, filterKbIdsForUser } — tests only
+ * @param {any} [p.deps]           { kbStore, filterKbIdsForUser } — tests only
  * @param {string} [p.agentId]
  * @returns {Promise<string[]>}
  */

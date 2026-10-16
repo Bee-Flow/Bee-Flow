@@ -499,7 +499,6 @@ module.exports = {
     snapshotExtraKey,
     snapshotPrefix,
     hashToken,
+    // Awaitbare init-ingang voor migrateDb.
+    initDB,
 };
-
-// Awaitbare init-ingang voor migrateDb.
-module.exports.initDB = initDB;

@@ -24,11 +24,11 @@ const CONTEXT_MESSAGES = 30;
 
 /**
  * @param {object} [deps]
- * @param {object}   [deps.store]         stores/projectChatStore surface
+ * @param {any}   [deps.store]         stores/projectChatStore surface
  * @param {Function} [deps.getProject]    (id) => project row
  * @param {Function} [deps.getProjectShares] (projectId) => share rows
- * @param {object}   [deps.chatCrypto]    { forProject(project) }
- * @param {object}   [deps.assistant]     { requestReply } (makeChatAssistant())
+ * @param {any}   [deps.chatCrypto]    { forProject(project) }
+ * @param {any}   [deps.assistant]     { requestReply } (makeChatAssistant())
  */
 function makeChatSurface(deps = {}) {
     const store = () => deps.store || require('../../stores/projectChatStore');

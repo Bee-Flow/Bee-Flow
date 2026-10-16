@@ -108,6 +108,7 @@ updates:
       # @eslint/js 10 has peer eslint ^10, so it can only move with eslint.
       - dependency-name: "@eslint/js"
         update-types: ["version-update:semver-major"]
+      # `npm run typecheck` runs TypeScript 7 through the typescript-7 alias.
       # TypeScript 7.0 ships no JavaScript API (require('typescript') is only
       # { version }); typescript-eslint 8.x needs it (peer <6.1.0) and crashes
       # while eslint.config.js loads. Lift when `npm view typescript-eslint@latest
@@ -223,6 +224,11 @@ updates:
         update-types: [minor, patch]
     ignore:
       - dependency-name: electron
+        update-types: ["version-update:semver-major"]
+      # typecheck and build already run on TypeScript 7 (the typescript-7
+      # alias); `typescript` itself stays on 6 for typescript-eslint 8.x (peer
+      # <6.1.0, no TS 7 JS API before 7.1). Lift with agent-hub's entry.
+      - dependency-name: typescript
         update-types: ["version-update:semver-major"]
     labels: [dependencies]
 

@@ -86,7 +86,7 @@ function parseSharedGroups(v) {
 /**
  * The grade a principal holds on a table.
  *
- * @param {object} table    a `datatables` row
+ * @param {any} table    a `datatables` row
  * @param {Array}  grants   the `datatable_grants` rows for THAT table
  * @param {object} principal
  *   @param {string}   principal.userId

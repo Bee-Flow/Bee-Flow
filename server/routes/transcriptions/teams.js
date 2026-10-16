@@ -298,5 +298,6 @@ router.post('/from-teams', requireAuth, validate({ body: FromTeamsBody, query: N
     res.json(out.transcription);
 });
 
-module.exports = router;
-module.exports.init = init;
+module.exports = Object.assign(router, {
+    init,
+});

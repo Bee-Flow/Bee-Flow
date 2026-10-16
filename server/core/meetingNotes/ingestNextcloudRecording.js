@@ -43,9 +43,9 @@ const MAX_RECORDING_BYTES = 500 * 1024 * 1024;
 
 /**
  * @param {object} opts
- * @param {object} [opts.accessCtx]        the caller's access context, for a dedup hit it must be able to read
+ * @param {any} [opts.accessCtx]        the caller's access context, for a dedup hit it must be able to read
  * @param {string} opts.userId          Bee Flow user who owns the note
- * @param {object} opts.session         req.session OR triggerBus pseudo-session
+ * @param {any} opts.session         req.session OR triggerBus pseudo-session
  * @param {string} [opts.orgId]         org id (model-tier + EU resolution)
  * @param {string} opts.ncPath          Nextcloud Files path to the recording
  * @param {string} [opts.language]      BCP-47-ish lang code (default 'nl')
@@ -57,7 +57,7 @@ const MAX_RECORDING_BYTES = 500 * 1024 * 1024;
  * @param {string} [opts.sourceUri]     canonical dedup key (derived if absent)
  * @param {string} [opts.talkRoomToken] originating Talk room (for write-back)
  * @param {boolean}[opts.postSummaryBack] post summary back into the Talk room
- * @returns {Promise<object>} the saved-note payload (+ `dedup`, `writeBack`)
+ * @returns {Promise<any>} the saved-note payload (+ `dedup`, `writeBack`)
  */
 async function ingestNextcloudRecording(opts) {
     const {

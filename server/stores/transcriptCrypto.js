@@ -107,7 +107,7 @@ function columnAad(transcriptionId, column) {
  * never silent when the org asked for encryption.
  *
  * @param {string|null} orgId
- * @param {object} [deps] injection seam for tests
+ * @param {any} [deps] injection seam for tests
  */
 async function resolveTranscriptCrypto(orgId, deps = {}) {
     try {
@@ -346,7 +346,7 @@ function readSummarySnippet(row, ctx, deps = {}) {
  * and rows carry their own answer.
  *
  * @param {Array<{organization_id?: string|null}>} rows
- * @returns {Promise<Map<string, object>>} keyed by the org id as stored ('' for none)
+ * @returns {Promise<Map<string, any>>} keyed by the org id as stored ('' for none)
  */
 async function resolveForRows(rows, deps = {}) {
     const byOrg = new Map();

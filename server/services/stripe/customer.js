@@ -46,7 +46,7 @@ function resolveStripeTaxId(rawVat) {
  * + customer_update:{address:'auto'} instead of attaching an invalid address.
  * Empty sub-fields are omitted (Stripe rejects empty strings on some keys).
  *
- * @param {object} org - parsed organisation row (camelCase + raw columns)
+ * @param {any} org - parsed organisation row (camelCase + raw columns)
  * @returns {{line1?, line2?, postal_code?, city?, country}|null}
  */
 function buildStripeAddress(org) {

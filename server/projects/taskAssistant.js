@@ -113,7 +113,7 @@ function cleanSuggestion(raw, memberIds, fallbackTitle = '') {
 /**
  * @param {object} [deps]
  * @param {Function} [deps.resolveModel]  ({ userId, orgId, modelTier }) => { modelId, options, providerConfig, tier } | null
- * @param {object}   [deps.shield]        projects/chatShield surface (resolve, protect, restore, release)
+ * @param {any}   [deps.shield]        projects/chatShield surface (resolve, protect, restore, release)
  * @param {Function} [deps.llmChat]       (modelId, messages, options) => { content, usage }
  * @param {Function} [deps.checkLimits]   (limitOrgId, userId) => error text | null
  * @param {Function} [deps.logUsage]      (entry) => usage row
@@ -180,7 +180,7 @@ function makeTaskAssistant(deps = {}) {
     }
 
     /**
-     * @param {{ project: object, userId: string, orgId: string|null, limitOrgId: string|null, note: any,
+     * @param {{ project: any, userId: string, orgId: string|null, limitOrgId: string|null, note: any,
      *           items: {id: string, text: string, assignee?: string, due?: string, timestamp?: number}[],
      *           people: {id: string, name: string}[] }} p
      * @returns {Promise<{ itemId: string, title: string, description: string, priority: string, labels: string[], checklist: {id: string, text: string, done: boolean}[], assigneeId: string|null }[]>}

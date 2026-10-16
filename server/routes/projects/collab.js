@@ -49,7 +49,7 @@ const S = require('./collabSchemas');
 /**
  * @param {object} [deps]
  * @param {Function} [deps.requireProjectRole]  (minRole) => middleware named requireProjectRoleMw
- * @param {object}   [deps.collab]              core/collab instance (openDoc, sync, applyClientUpdates, awareness)
+ * @param {any}   [deps.collab]              core/collab instance (openDoc, sync, applyClientUpdates, awareness)
  * @param {Function} [deps.openLimiter]
  * @param {Function} [deps.syncLimiter]
  * @param {Function} [deps.updatesLimiter]
@@ -168,5 +168,6 @@ function makeCollabRouter(deps = {}) {
     return router;
 }
 
-module.exports = makeCollabRouter();
-module.exports.makeCollabRouter = makeCollabRouter;
+module.exports = Object.assign(makeCollabRouter(), {
+    makeCollabRouter,
+});

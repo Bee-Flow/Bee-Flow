@@ -101,7 +101,7 @@ function _collapse(cluster, source, better = _better, collectAlso = false) {
 /**
  * Collapse overlapping spans into a disjoint set.
  *
- * @param {Array<object>} spans  Findings with `offset` + `length` (extra fields preserved).
+ * @param {Array<any>} spans  Findings with `offset` + `length` (extra fields preserved).
  * @param {string|null}   source The text the offsets refer to. When given, each
  *                               returned span's `text` is re-derived from it.
  * @param {{ better?: (a: any, b: any) => boolean, collectAlso?: boolean }|null} [options]
@@ -110,7 +110,7 @@ function _collapse(cluster, source, better = _better, collectAlso = false) {
  *   collectAlso: record the other members' categories on the merged span as
  *                `alsoCategories`. Off by default, so every existing caller
  *                gets exactly what it got before.
- * @returns {Array<object>} Disjoint spans sorted by ascending offset. Spans with
+ * @returns {Array<any>} Disjoint spans sorted by ascending offset. Spans with
  *                          no usable offset are passed through untouched at the
  *                          end (callers fall back to string replacement for them).
  */

@@ -13,7 +13,7 @@ const userStore = require('../../stores/userStore');
 const configStore = require('../../stores/configStore');
 const { requireSuperAdmin } = require('../permissions');
 const { getSignupAccessConfig } = require('../signupGuards');
-const { isOrgDirectoryPublic } = require('./signupIntakeRoutes');
+const isOrgDirectoryPublic = require('./signupIntakeRoutes').isOrgDirectoryPublic;
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 

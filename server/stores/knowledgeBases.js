@@ -124,7 +124,7 @@ Object.assign(KnowledgeBasesStore, {
     listDeletedDocuments: versions.listDeletedDocuments,
 });
 
-module.exports = KnowledgeBasesStore;
-
-// Awaitbare init-ingang voor migrateDb.
-module.exports.initDB = initDB;
+module.exports = Object.assign(KnowledgeBasesStore, {
+    // Awaitbare init-ingang voor migrateDb.
+    initDB,
+});

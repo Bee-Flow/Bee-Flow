@@ -55,7 +55,7 @@ function consentEnabled() {
 
 /**
  * Validate the consumer right-of-withdrawal waiver submitted at paid checkout.
- * @param {object} waiver - { accepted: boolean }
+ * @param {any} waiver - { accepted: boolean }
  */
 function validateWaiver(waiver) {
     if (!waiver || waiver.accepted !== true) {
@@ -71,7 +71,7 @@ function validateWaiver(waiver) {
 
 /**
  * Record a consumer withdrawal-waiver acceptance at checkout.
- * @param {object} args - { userId, email, req, organizationId? }
+ * @param {any} args - { userId, email, req, organizationId? }
  */
 async function recordWaiver({ userId, email, req, organizationId = null }) {
     const w = documentRegistry.getWithdrawalWaiver();

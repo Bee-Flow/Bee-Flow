@@ -181,7 +181,7 @@ class ClaudeProvider extends BaseProvider {
      * unsigned thinking block — and `redacted_thinking` needs its opaque
      * `data` payload echoed back verbatim (it carries no readable text).
      *
-     * @param {object} m Stored assistant message; `m.thinking` is the
+     * @param {any} m Stored assistant message; `m.thinking` is the
      *   structured part array persisted by the chat runtimes.
      * @returns {Array} Claude content blocks, in the original order.
      */

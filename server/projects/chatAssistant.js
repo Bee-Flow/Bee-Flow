@@ -149,7 +149,7 @@ function decideAiTrigger({ aiMode, content, askAi = false, agentName = null }) {
  * automation's owner, reused rather than restated.
  *
  * @param {{ agentId: string, userId: string }} p
- * @param {{ getUser?: Function, resolveUserGroups?: Function, agentStore?: object }} [deps]
+ * @param {{ getUser?: Function, resolveUserGroups?: Function, agentStore?: any }} [deps]
  * @returns {Promise<{ agentId: string, name: string, systemPrompt: string }|null>}
  */
 async function resolveUsableAgent({ agentId, userId }, deps = {}) {
@@ -200,9 +200,9 @@ async function resolveUsableAgent({ agentId, userId }, deps = {}) {
  * A project with files but no linked base still has something to search, so
  * an empty `knowledgeBaseIds` is not a reason to stop here.
  *
- * @param {{ project: object, userId: string, query: string, session?: object|null, shield?: object|null,
+ * @param {{ project: any, userId: string, query: string, session?: any|null, shield?: any|null,
  *           audienceIds?: string[]|null }} p
- * @param {{ visibleKbIdsFor?: Function, quickKBSearch?: Function, injectedPassagesPrompt?: Function, kbStore?: object }} [deps]
+ * @param {{ visibleKbIdsFor?: Function, quickKBSearch?: Function, injectedPassagesPrompt?: Function, kbStore?: any }} [deps]
  */
 async function searchProjectKnowledge({ project, userId, query, session = null, shield = null, audienceIds = undefined }, deps = {}) {
     if (!project || !query) return '';
@@ -237,13 +237,13 @@ async function searchProjectKnowledge({ project, userId, query, session = null, 
 
 /**
  * @param {object} [deps]
- * @param {object}   [deps.store]            stores/projectChatStore surface
- * @param {object}   [deps.chatCrypto]       { forProject(project) }
- * @param {object}   [deps.locks]            { acquireTurn, releaseTurn }
- * @param {object}   [deps.shield]           makeChatShield() surface
+ * @param {any}   [deps.store]            stores/projectChatStore surface
+ * @param {any}   [deps.chatCrypto]       { forProject(project) }
+ * @param {any}   [deps.locks]            { acquireTurn, releaseTurn }
+ * @param {any}   [deps.shield]           makeChatShield() surface
  * @param {Function} [deps.llmChat]          (modelId, messages, options) => { content, usage }
  * @param {Function} [deps.runToolLoop]      (modelId, messages, tools, options, executeTool, maxRounds) => { content, usage }, for the project tools
- * @param {object}   [deps.projectTools]     projects/chatTools surface: offered, forAnswer
+ * @param {any}   [deps.projectTools]     projects/chatTools surface: offered, forAnswer
  * @param {Function} [deps.resolveModel]     ({userId, orgId}) => { modelId, options, providerConfig } | null
  * @param {Function} [deps.resolvePersona]   ({agentId, userId}) => { agentId, name, systemPrompt } | null
  * @param {Function} [deps.searchKnowledge]  ({project, userId, query, session, shield, audienceIds?}) => string
@@ -346,14 +346,14 @@ function makeChatAssistant(deps = {}) {
      * (and is `busy` only when it never came); an automatic answer is `busy` at once.
      *
      * @param {object} p
-     * @param {object} p.project       the project row (id, name, organizationId, customInstructions, knowledgeBaseIds)
-     * @param {object} p.chat          the chat row (id, agentId)
-     * @param {object} p.trigger       the stored message that asked (id)
+     * @param {any} p.project       the project row (id, name, organizationId, customInstructions, knowledgeBaseIds)
+     * @param {any} p.chat          the chat row (id, agentId)
+     * @param {any} p.trigger       the stored message that asked (id)
      * @param {string} p.triggerText   its plaintext
      * @param {string} p.userId        the asking member (for an automatic answer: the trigger's author)
      * @param {string|null} [p.orgId]  their org for tiers and the shield
      * @param {string|null} [p.limitOrgId] their org for subscription limits
-     * @param {object|null} [p.session]
+     * @param {any|null} [p.session]
      * @param {'ask'|'mention'|'always'|'auto_quiet'|'auto_unanswered'} [p.aiTrigger]  why the AI answers
      * @param {string|null} [p.reasonCode]   the gate's reason code (automatic answers)
      * @param {number|null} [p.gateLastSeq]  the last seq the gate read (automatic answers)

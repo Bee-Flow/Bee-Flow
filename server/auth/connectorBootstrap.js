@@ -552,8 +552,7 @@ router.post('/connector/status', statusReportLimiter, express.json({ limit: '4kb
     return res.status(204).end();
 });
 
-module.exports = router;
-module.exports.helpers = {
+module.exports = Object.assign(router, { helpers: {
     NC_INTEGRATIONS,
     PENDING_TTL_SECONDS,
     applyNcDefaultPlanIfConfigured,
@@ -568,4 +567,4 @@ module.exports.helpers = {
     stableInstanceIdFallback,
     verifyNcInstance,
     PROVISIONING_MODES,
-};
+} });

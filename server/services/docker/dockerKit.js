@@ -43,14 +43,14 @@ async function imageExists(docker, image) {
  * caller.
  */
 function pullImage(docker, image, onProgress) {
-    return new Promise((resolve, reject) => {
+    return /** @type {Promise<void>} */ (new Promise((resolve, reject) => {
         docker.pull(image, (err, stream) => {
             if (err) return reject(err);
             const onFinished = (progressErr) => progressErr ? reject(progressErr) : resolve();
             if (onProgress) docker.modem.followProgress(stream, onFinished, onProgress);
             else docker.modem.followProgress(stream, onFinished);
         });
-    });
+    }));
 }
 
 /** Create a bridge network unless it already exists. */

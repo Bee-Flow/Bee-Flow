@@ -151,9 +151,9 @@ function sessionPayload(details, activityId, versionId) {
 
 /**
  * @param {object} [deps]
- * @param {object} [deps.store]    projectStore surface (recordContentSession, recordActivityEvent)
- * @param {(projectId: string, event: object) => Promise<void>} [deps.publish]  the doorbell
- * @param {object} [deps.log]
+ * @param {any} [deps.store]    projectStore surface (recordContentSession, recordActivityEvent)
+ * @param {(projectId: string, event: any) => Promise<void>} [deps.publish]  the doorbell
+ * @param {any} [deps.log]
  */
 function makeChangeFeed(deps = {}) {
     const store = () => deps.store || require('../stores/projectStore');
@@ -179,7 +179,7 @@ function makeChangeFeed(deps = {}) {
      * written. See the header; `source` is the version's source.
      *
      * @param {{ projectId?: string|null, itemType: string, itemId: string, contributors?: unknown[],
-     *   stats?: object|null, versionId?: string|null, source?: string }} change
+     *   stats?: any|null, versionId?: string|null, source?: string }} change
      * @returns {Promise<{ recorded: number }>}
      */
     async function recordContentChange(change) {
@@ -355,10 +355,10 @@ function contributorsOfRow(row) {
 /**
  * Change rows (newest first, the reader's own already left out) as groups.
  *
- * @param {Array<object>} rows   stores/projectChanges.listChangeRows
- * @param {{ state?: object|null, reads?: Map<string, {seenAt: string|null, seenVersionId: string|null}>,
+ * @param {Array<any>} rows   stores/projectChanges.listChangeRows
+ * @param {{ state?: any|null, reads?: Map<string, {seenAt: string|null, seenVersionId: string|null}>,
  *   groupBy?: 'item'|'person', onlyUnread?: boolean }} [opts]
- * @returns {Array<object>}  at most MAX_GROUPS groups (`summarizeChangesPage` also says whether more were left out)
+ * @returns {Array<any>}  at most MAX_GROUPS groups (`summarizeChangesPage` also says whether more were left out)
  */
 function summarizeChanges(rows, opts = {}) {
     return summarizeChangesPage(rows, opts).groups;
@@ -366,9 +366,9 @@ function summarizeChanges(rows, opts = {}) {
 
 /**
  * summarizeChanges, with `truncated`: more groups than MAX_GROUPS matched and the oldest were left out.
- * @param {Array<object>} rows
+ * @param {Array<any>} rows
  * @param {Parameters<typeof summarizeChanges>[1]} [opts]
- * @returns {{ groups: Array<object>, truncated: boolean }}
+ * @returns {{ groups: Array<any>, truncated: boolean }}
  */
 function summarizeChangesPage(rows, { state = null, reads = new Map(), groupBy = 'item', onlyUnread = false } = {}) {
     const byItem = new Map();

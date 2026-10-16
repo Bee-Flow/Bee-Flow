@@ -44,12 +44,12 @@ function absolute(origin, urlOrPath) {
  * @param {string} ctx.locale      the locale being served
  * @param {string} ctx.defaultLocale
  * @param {string[]} ctx.locales   every locale the site publishes
- * @param {object} ctx.page        the resolved CMS page
- * @param {object} ctx.design      site design (favicon, logo)
+ * @param {any} ctx.page        the resolved CMS page
+ * @param {any} ctx.design      site design (favicon, logo)
  * @param {string} ctx.siteName
  * @param {string} [ctx.ogType]          'website' (default) or 'article' (blog post)
- * @param {object} [ctx.article]         { publishedTime, modifiedTime, author, tags } → article:* tags
- * @param {object[]} [ctx.extraJsonLd]   extra graph nodes (BlogPosting, Blog)
+ * @param {any} [ctx.article]         { publishedTime, modifiedTime, author, tags } → article:* tags
+ * @param {any[]} [ctx.extraJsonLd]   extra graph nodes (BlogPosting, Blog)
  * @param {Array<{ name: string, path: string }>} [ctx.breadcrumbTrail] replaces the Home › page crumbs
  * @param {string[]} [ctx.extraLinks]    pre-built <link> tags (the blog's RSS alternate)
  * @param {string} [ctx.shareImageVersion] publish-time token: pages without an og:image get the generated card (/api/cms/og/…)

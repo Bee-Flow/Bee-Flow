@@ -14,7 +14,8 @@ const userStore = require('../../stores/userStore');
 const mfa = require('../mfa');
 // The TOTP router owns the admin-row materialisation and builds the proof
 // check; the key routes share both rather than keep copies.
-const { ensureUserRow, secondFactorProof } = require('../mfaRoutes');
+const mfaRoutes = require('../mfaRoutes');
+const { ensureUserRow, secondFactorProof } = mfaRoutes;
 const { requireAuth } = require('../permissions');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { recordAuthEvent } = require('../../telemetry/metrics');

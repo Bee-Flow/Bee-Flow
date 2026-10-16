@@ -294,9 +294,10 @@ function makeSheetCells(deps = {}) {
     return { createSheetTable, readSheet, writeCells, copyCells, dropSheetTable };
 }
 
-module.exports = makeSheetCells();
-module.exports.makeSheetCells = makeSheetCells;
-module.exports.parseCellName = parseCellName;
-module.exports.groupWrite = groupWrite;
-module.exports.cellsOfRows = cellsOfRows;
-module.exports.LIMITS = Object.freeze({ MAX_SHEET_ROWS, MAX_CELL_CHARS, MAX_CELLS_PER_WRITE, COLUMNS: COLUMN_KEYS.length });
+module.exports = Object.assign(makeSheetCells(), {
+    makeSheetCells,
+    parseCellName,
+    groupWrite,
+    cellsOfRows,
+    LIMITS: Object.freeze({ MAX_SHEET_ROWS, MAX_CELL_CHARS, MAX_CELLS_PER_WRITE, COLUMNS: COLUMN_KEYS.length }),
+});

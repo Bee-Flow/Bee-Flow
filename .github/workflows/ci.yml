@@ -759,15 +759,11 @@ jobs:
       - uses: ./.github/actions/npm-install
         with:
           directory: agent-hub
-      # With server/node_modules present, allowJs plus the cross-package test
-      # imports pulled the server's dependency typings into the program
-      # (12,523 files, 3.6 GB; 2048 OOM'd). This job no longer installs it:
-      # 6,143 files, ~2.0 GB peak, which passes at 2048 with no headroom,
-      # hence 3072. An OOM here most likely means those typings are back;
-      # shrink the program rather than raise the number.
+      # TypeScript 7 (the native compiler, `typescript-7` alias): no Node heap,
+      # so no --max-old-space-size. Without server/node_modules the program
+      # stays at ~6,100 files; with it, allowJs plus the cross-package test
+      # imports pull the server's dependency typings in (12,500 files).
       - name: Typecheck
-        env:
-          NODE_OPTIONS: --max-old-space-size=3072
         run: npm run typecheck
 
   frontend-build:

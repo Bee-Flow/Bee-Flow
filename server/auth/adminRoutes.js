@@ -21,8 +21,9 @@ router.use(require('./admin/invitationRoutes'));
 
 const { isOrgAdminForOrg, requireOrgAdmin } = require('./admin/orgAdminGuards');
 
-module.exports = router;
-// Shared org-admin helpers — reused by org-scoped routers mounted outside
-// this file (e.g. routes/orgIntegrations/builder.js).
-module.exports.isOrgAdminForOrg = isOrgAdminForOrg;
-module.exports.requireOrgAdmin = requireOrgAdmin;
+module.exports = Object.assign(router, {
+    // Shared org-admin helpers — reused by org-scoped routers mounted outside
+    // this file (e.g. routes/orgIntegrations/builder.js).
+    isOrgAdminForOrg,
+    requireOrgAdmin,
+});

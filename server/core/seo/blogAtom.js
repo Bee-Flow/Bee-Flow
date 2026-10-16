@@ -28,8 +28,8 @@ function isoOr(iso, fallback) {
 }
 
 /**
- * @param {object[]} posts summaries WITH body (getLatestPublishedPosts withBody)
- * @param {object} opts { origin, siteName, title, description, locale, defaultLocale, lastBuildDate }
+ * @param {any[]} posts summaries WITH body (getLatestPublishedPosts withBody)
+ * @param {any} opts { origin, siteName, title, description, locale, defaultLocale, lastBuildDate }
  */
 function buildAtomFeed(posts, { origin, siteName, title, description, locale, defaultLocale, lastBuildDate }) {
     const self = `${origin}${atomPath(locale, defaultLocale)}`;

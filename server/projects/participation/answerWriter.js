@@ -38,7 +38,7 @@ const LOCK_MARGIN_MS = 30_000;
  * @param {object} [deps]
  * @param {Function} [deps.getProject]      (id) => project row
  * @param {Function} [deps.getUser]         (id) => user row
- * @param {object}   [deps.locks]           { acquireTurn, releaseTurn }
+ * @param {any}   [deps.locks]           { acquireTurn, releaseTurn }
  * @param {Function} [deps.resolveModel]    ({userId, orgId}) => { modelId, options, providerConfig } | null
  * @param {Function} [deps.searchKnowledge] chatAssistant.searchProjectKnowledge
  * @param {Function} [deps.listAudience]    (project) => string[] | null

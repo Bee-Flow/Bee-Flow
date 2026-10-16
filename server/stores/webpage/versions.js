@@ -104,7 +104,7 @@ async function _insertVersionRow(params) {
  * @param {string} userId
  * @param {string} webpageId
  * @param {string} summary
- * @param {object} [hashes] - optional pre-computed { htmlSha, cssSha, jsSha, contentLength }
+ * @param {any} [hashes] - optional pre-computed { htmlSha, cssSha, jsSha, contentLength }
  *                          taken from the webpage row to avoid re-hashing
  * @param {string} [source] - 'manual' (default) | 'ai' | 'published' | 'restore'.
  *                          Last positional argument on purpose: the four pre-W2

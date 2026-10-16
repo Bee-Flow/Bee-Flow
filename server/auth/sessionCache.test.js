@@ -39,7 +39,7 @@ test('set writes to pg and passes the TTL in the ioredis positional EX form', as
     const redis = fakeRedis();
     const rows = {};
     const store = wrapWithRedisCache(fakePgStore(rows), redis);
-    await new Promise((res, rej) => store.set('s1', { user: 1 }, (e) => (e ? rej(e) : res())));
+    await /** @type {Promise<void>} */ (new Promise((res, rej) => store.set('s1', { user: 1 }, (e) => (e ? rej(e) : res()))));
     await tick();
     assert.deepEqual(rows.s1, { user: 1 });
     const set = redis.calls.find((c) => c[0] === 'set');

@@ -36,7 +36,7 @@ const TEST_CHAT_SOURCE = 'agent_test_chat';
  *
  * @param {string[]} agentIds
  * @param {object} [opts]
- * @param {object} [opts.db] injectieplek voor de tests
+ * @param {any} [opts.db] injectieplek voor de tests
  * @returns {Promise<Map<string, number>>} één entry per gevraagde id; nul is
  *   hier een vastgesteld feit, geen ontbrekend antwoord.
  */
@@ -103,7 +103,7 @@ const RUN_COUNT_WINDOWS = {
  * @param {string[]} appIds
  * @param {object} [opts]
  * @param {string} [opts.window='month'] sleutel uit RUN_COUNT_WINDOWS
- * @param {object} [opts.db] injectieplek voor de tests
+ * @param {any} [opts.db] injectieplek voor de tests
  * @returns {Promise<Map<string, number>>} een entry per gevraagde id; nul is
  *   hier een vastgesteld feit, geen ontbrekend antwoord.
  */

@@ -44,9 +44,9 @@ const S = require('./sprintSchemas');
  * @param {Function} [deps.requireProjectRole]  (minRole) => Express middleware
  * @param {Function} [deps.getProjectRole]      (userId, projectId) => role|null
  * @param {Function} [deps.getProject]          (id) => project row
- * @param {object}   [deps.store]               stores/projectSprintStore surface
- * @param {object}   [deps.taskStore]           stores/projectTaskStore surface, for the tasks a sprint holds
- * @param {object}   [deps.chatCrypto]          { forProject(project, { what }) }
+ * @param {any}   [deps.store]               stores/projectSprintStore surface
+ * @param {any}   [deps.taskStore]           stores/projectTaskStore surface, for the tasks a sprint holds
+ * @param {any}   [deps.chatCrypto]          { forProject(project, { what }) }
  * @param {Function} [deps.emit]                (projectId, event) => durable event
  * @param {Function} [deps.logActivity]         (projectId, actorId, action, details)
  * @param {Function} [deps.newId]
@@ -260,5 +260,6 @@ function makeProjectSprintsRouter(deps = {}) {
 
 const router = makeProjectSprintsRouter();
 
-module.exports = router;
-module.exports.makeProjectSprintsRouter = makeProjectSprintsRouter;
+module.exports = Object.assign(router, {
+    makeProjectSprintsRouter,
+});

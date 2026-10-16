@@ -631,10 +631,10 @@ function renderDataBlock(dataModel, datasets, rowCounts, linkedTables = null, op
  * rendering (old callers untouched).
  */
 /**
- * @param {object} def
- * @param {object} [extras] - { dataModel, datasets, rowCounts }; the data block
+ * @param {any} def
+ * @param {any} [extras] - { dataModel, datasets, rowCounts }; the data block
  *                            is emitted only when dataModel is present.
- * @param {object|null} [projection] - { screenId?, section? } to read PART of a
+ * @param {any|null} [projection] - { screenId?, section? } to read PART of a
  *   large draft instead of the whole tree. Omitted (the turn-injected path and
  *   every existing caller) renders exactly as before, byte for byte.
  */

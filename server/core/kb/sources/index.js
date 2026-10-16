@@ -149,9 +149,9 @@ async function indexStoredDocuments(kbId, sourceId, deps) {
 /**
  * Refresh one source.
  *
- * @param {object} source  a kb_sources row, already CLAIMED by the caller
- * @param {object} [opts]  `{ reason, maxItems, timeBudgetMs, deps, log }`
- * @returns {Promise<object>} counters + `nextRefreshAt`; never throws for a
+ * @param {any} source  a kb_sources row, already CLAIMED by the caller
+ * @param {any} [opts]  `{ reason, maxItems, timeBudgetMs, deps, log }`
+ * @returns {Promise<any>} counters + `nextRefreshAt`; never throws for a
  *          per-document failure (those become `status:'error'` rows), only
  *          for a failure of the whole pass.
  */

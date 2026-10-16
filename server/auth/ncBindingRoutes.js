@@ -22,7 +22,7 @@ const userStore = require('../stores/userStore');
 const configStore = require('../stores/configStore');
 const { requireAuth, isOrgAdminRole } = require('./permissions');
 const { invalidateTenantKeyCache } = require('./connectorJwt');
-const { helpers: bootstrapHelpers } = require('./connectorBootstrap');
+const bootstrapHelpers = require('./connectorBootstrap').helpers;
 const orgHealth = require('../services/orgHealth'); // fire-and-forget lifecycle events
 
 const { ensureOrgAdminUser, bindOrgToNcInstance, getOrMintTenantKey } = bootstrapHelpers;
@@ -62,7 +62,7 @@ function isExpired(row) {
  * 'org_admin' check on approve/deny; that predates this branch and is left
  * alone rather than widened on the way past.
  *
- * @returns {Promise<{freshUser: object, orgId: string, isSuperAdmin: boolean}|null>}
+ * @returns {Promise<{freshUser: any, orgId: string, isSuperAdmin: boolean}|null>}
  *   null when a response has already been sent.
  */
 async function loadOrgAdmin(req, res, targetOrgId) {

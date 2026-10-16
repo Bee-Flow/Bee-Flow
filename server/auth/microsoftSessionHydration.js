@@ -37,7 +37,7 @@ async function hydrateMicrosoftSessionFromVault(session) {
         session.oauthTokenSource = 'connector';
         if (cred.scope) session.oauthScope = cred.scope;
         if (typeof session.save === 'function') {
-            await new Promise((resolve) => session.save(() => resolve()));
+            await /** @type {Promise<void>} */ (new Promise((resolve) => session.save(() => resolve())));
         }
         return true;
     } catch (e) {

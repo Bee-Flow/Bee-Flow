@@ -111,7 +111,7 @@ function orgOf(ctx) {
  * itself carries the org name and the footer sentence; neither belongs in a
  * run log.
  *
- * @param {object|null} marking resolved marking (what was asked for)
+ * @param {any|null} marking resolved marking (what was asked for)
  * @param {{visible?: boolean, metadata?: boolean}|null} result documentRenderer's `marking`
  */
 function markingOutcome(marking, result) {
@@ -295,7 +295,7 @@ async function execGenerateDocument(step, ctx, runState, mode) {
  * file (generate_document, fill_document, presentation) so the three agree
  * on what "kept" means — one cap, one key scheme, one TTL clamp.
  *
- * @returns {Promise<object>} the automation_generated_files row
+ * @returns {Promise<any>} the automation_generated_files row
  */
 async function keepGeneratedFile({ ctx, step, buffer, contentType, filename, ttlDays, stepLabel = 'generate_document' }) {
     if (buffer.length > MAX_DOCUMENT_BYTES) {

@@ -129,9 +129,9 @@ async function writeTerminalRow(deps, { run, firstRunNeedsConfirm, runStatus, fi
 }
 
 /**
- * @param {object} deps  execution.js's RUN_DEPS
- * @param {object} outcome  what raceRunDag answered
- * @returns {Promise<object>} the run row, with `lastOutput` attached
+ * @param {any} deps  execution.js's RUN_DEPS
+ * @param {any} outcome  what raceRunDag answered
+ * @returns {Promise<any>} the run row, with `lastOutput` attached
  */
 async function finalizeRun(deps, {
     automation, run, ctx, runState, tokenVault, startedAt, firstRunNeedsConfirm,

@@ -323,9 +323,10 @@ router.get('/:id/sources/:sid/documents/:docId', requireAuth, async (req, res) =
     res.json({ document: doc });
 });
 
-module.exports = router;
-module.exports.CREATABLE_KINDS = CREATABLE_KINDS;
-module.exports.REFRESH_MODES_BY_KIND = REFRESH_MODES_BY_KIND;
-module.exports.REFRESH_LABEL_KEYS = REFRESH_LABEL_KEYS;
-module.exports.publicSourceConfig = publicSourceConfig;
-module.exports.settleUploads = settleUploads;
+module.exports = Object.assign(router, {
+    CREATABLE_KINDS,
+    REFRESH_MODES_BY_KIND,
+    REFRESH_LABEL_KEYS,
+    publicSourceConfig,
+    settleUploads,
+});

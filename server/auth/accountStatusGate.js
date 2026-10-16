@@ -59,7 +59,7 @@ const HARD_BLOCKED_STATUSES = new Set(['suspended']);
  * cheerful `false`. A row without a status predates the column and is active —
  * the same reading `orgAdminGuards.isActiveUserStatus` uses.
  *
- * @param {object|null|undefined} storedUser row from userStore
+ * @param {any|null|undefined} storedUser row from userStore
  * @returns {boolean} true when the account must be refused
  */
 function isLoginBlockedAccount(storedUser) {
@@ -77,7 +77,7 @@ function isLoginBlockedAccount(storedUser) {
  * account that is plainly active. No status (a row from before the column) is
  * active; a missing row is not an account at all.
  *
- * @param {object|null|undefined} storedUser row from userStore
+ * @param {any|null|undefined} storedUser row from userStore
  * @returns {boolean} true when the credential may still be used
  */
 function isActiveAccount(storedUser) {

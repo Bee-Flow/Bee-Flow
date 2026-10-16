@@ -172,15 +172,15 @@ async function answerWithin(call, ms) {
 
 /**
  * @param {object} [deps]
- * @param {object}   [deps.store]            stores/projectCommentStore surface
- * @param {object}   [deps.commentCrypto]    { forProject(project) }
- * @param {object}   [deps.locks]            { acquireTurn, releaseTurn }
- * @param {object}   [deps.shield]           projects/chatShield makeChatShield() surface
+ * @param {any}   [deps.store]            stores/projectCommentStore surface
+ * @param {any}   [deps.commentCrypto]    { forProject(project) }
+ * @param {any}   [deps.locks]            { acquireTurn, releaseTurn }
+ * @param {any}   [deps.shield]           projects/chatShield makeChatShield() surface
  * @param {Function} [deps.llmChat]          (modelId, messages, options) => { content, usage }
  * @param {Function} [deps.resolveModel]     ({userId, orgId}) => { modelId, options, providerConfig } | null
  * @param {Function} [deps.searchKnowledge]  ({project, userId, query, session, shield, audienceIds}) => string
  * @param {Function} [deps.listAudience]     (project) => string[] | null, chatAssistant.listProjectAudience
- * @param {object}   [deps.itemReader]       { read({projectId, targetType, targetId, userId, sectionId}) }
+ * @param {any}   [deps.itemReader]       { read({projectId, targetType, targetId, userId, sectionId}) }
  * @param {Function} [deps.getUser]          (id) => user row
  * @param {Function} [deps.displayName]      (user) => display name
  * @param {Function} [deps.checkLimits]      (limitOrgId, userId) => error text | null
@@ -411,15 +411,15 @@ function makeCommentAssistant(deps = {}) {
      * Ask the assistant to answer `trigger` in `thread`.
      *
      * @param {object} p
-     * @param {object} p.project        the project row (id, name, organizationId, customInstructions, knowledgeBaseIds)
-     * @param {object} p.thread         the thread row (id, targetType, targetId, anchor sealed)
-     * @param {object} p.trigger        the stored comment that asked (id)
+     * @param {any} p.project        the project row (id, name, organizationId, customInstructions, knowledgeBaseIds)
+     * @param {any} p.thread         the thread row (id, targetType, targetId, anchor sealed)
+     * @param {any} p.trigger        the stored comment that asked (id)
      * @param {string} p.triggerText    its plaintext
      * @param {string} p.userId         the asking member
      * @param {'ask'|'mention'} [p.aiTrigger]
      * @param {string|null} [p.orgId]
      * @param {string|null} [p.limitOrgId]
-     * @param {object|null} [p.session]
+     * @param {any|null} [p.session]
      * @returns {Promise<{ status: 'queued'|'busy'|'skipped', reason?: string, done?: Promise<{status: string}> }>}
      */
     async function requestReply({ project, thread, trigger, triggerText, userId, aiTrigger = 'mention', orgId = null, limitOrgId = null, session = null }) {

@@ -74,8 +74,8 @@ async function _signals(orgId, deps) {
 
 /**
  * Pure verdict.
- * @param {{ projectId: string, signal: {categories: object, kinds: string[], sources: string[]}|null,
- *           registration: object|null, reviewDays: number, now: number }} input
+ * @param {{ projectId: string, signal: {categories: any, kinds: string[], sources: string[]}|null,
+ *           registration: any|null, reviewDays: number, now: number }} input
  */
 function verdict({ projectId, signal, registration, reviewDays, now }) {
     if (!signal) {

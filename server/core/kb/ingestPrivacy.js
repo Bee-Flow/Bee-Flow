@@ -137,7 +137,7 @@ function isLegacyWarn(shield) {
  * @param {Array}       [p.pages]     `[{pageNumber,text}]` when the extractor
  *                                    produced them — enables per-page budgets
  *                                    and a truncation boundary on a page edge
- * @param {object}      [p.deps]      injection seam for the tests
+ * @param {any}      [p.deps]      injection seam for the tests
  * @returns {Promise<{outcome, text, piiStatus, piiCategories, reason}>}
  *          Never throws. A privacy check that crashes must not take the
  *          ingest with it — it returns `unscanned`, which is visible.

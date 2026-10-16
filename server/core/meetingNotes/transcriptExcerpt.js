@@ -70,7 +70,7 @@ function renderTranscript(segments, formatTime) {
  * @param {number}   [opts.maxChars]     Character budget (default 60000).
  * @param {number[]} [opts.nameLines]    Segment indices mentioning a person, from speakerEvidence.
  * @param {number}   [opts.windowLines]  Lines per spread window (default 12).
- * @returns {{excerpt: string, stats: object}}
+ * @returns {{excerpt: string, stats: any}}
  */
 function buildSpeakerNamingExcerpt(segments, lines, opts = {}) {
     const maxChars = opts.maxChars || DEFAULT_MAX_CHARS;

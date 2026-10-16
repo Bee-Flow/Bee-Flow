@@ -86,9 +86,9 @@ async function checkTranscriptOriginVisible(transcriptionId, userId) {
  * kennisbank die de aanroeper mag lezen, alleen de claim op andermans
  * vergadering is dat niet. Een probe die omvalt laat de claim óók vallen.
  *
- * @param {object|null|undefined} config  de config van de bron die gekopieerd wordt
+ * @param {any|null|undefined} config  de config van de bron die gekopieerd wordt
  * @param {string} userId                 de SCHRIJVER van de kopie
- * @returns {Promise<object>} een config die veilig geschreven kan worden
+ * @returns {Promise<any>} een config die veilig geschreven kan worden
  */
 async function stripUnauthorizedTranscriptOrigin(config, userId) {
     const cfg = config && typeof config === 'object' && !Array.isArray(config) ? config : {};

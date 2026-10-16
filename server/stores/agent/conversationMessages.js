@@ -276,8 +276,8 @@ function rowToMessage(row, ctx = PLAINTEXT_CONTEXT) {
  * (4000 params) to stay well within the limit and keep individual
  * statements fast.
  *
- * @param {object[]} rows       - Output of messagesToRows()
- * @param {object}   client     - PG client (from getClient()) for transaction, or null to use pool
+ * @param {any[]} rows       - Output of messagesToRows()
+ * @param {any}   client     - PG client (from getClient()) for transaction, or null to use pool
  * @param {string}   onConflict - Optional "ON CONFLICT ..." clause
  */
 const COLS = 10;          // + author_user_id, client_msg_id
@@ -458,8 +458,8 @@ async function replaceMessages(conversationId, type, messagesArray, ctx = PLAINT
  *
  * @param {string} conversationId
  * @param {'agent'|'direct'} type
- * @param {object[]} messagesArray  messages to APPEND, in order
- * @param {object} ctx  crypto context — for a shared thread this MUST be the
+ * @param {any[]} messagesArray  messages to APPEND, in order
+ * @param {any} ctx  crypto context — for a shared thread this MUST be the
  *                      project context, never the posting user's
  * @returns {Promise<{appended: number, firstSeq: number|null, lastSeq: number|null}>}
  */
@@ -527,8 +527,8 @@ async function appendMessages(conversationId, type, messagesArray, ctx = PLAINTE
  *
  * @param {string} conversationId
  * @param {'agent'|'direct'} type
- * @param {object} fromCtx crypto context the rows were written under
- * @param {object} toCtx   crypto context to rewrite them under
+ * @param {any} fromCtx crypto context the rows were written under
+ * @param {any} toCtx   crypto context to rewrite them under
  * @returns {Promise<number>} messages converted
  */
 async function rekeyConversation(conversationId, type, fromCtx, toCtx) {
@@ -673,7 +673,6 @@ module.exports = {
     // the attachment sidecar surviving intact — is unit-testable without a DB.
     messagesToRows,
     rowToMessage,
+    // Awaitbare init-ingang voor migrateDb.
+    initDB: initMessagesTable,
 };
-
-// Awaitbare init-ingang voor migrateDb.
-module.exports.initDB = initMessagesTable;

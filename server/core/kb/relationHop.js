@@ -293,14 +293,14 @@ function applyToAnchor(anchor, fwd, rev, present, limits, stats) {
 /**
  * Expand the table-row hits among `results` by one hop, in place.
  *
- * @param {Array<object>} results  retrieval rows, after `enrichWithDocumentFacts`
+ * @param {Array<any>} results  retrieval rows, after `enrichWithDocumentFacts`
  * @param {object} opts
  * @param {string[]} opts.kbIds
  * @param {string}   [opts.query]      the question, for text ranking
  * @param {string}   [opts.vectorStr]  its embedding as a pgvector literal, for vector ranking
  * @param {Function} [opts.getClient]  test seam
- * @param {object}   [opts.limits]     test seam
- * @param {object}   [opts.log]        test seam
+ * @param {any}   [opts.limits]     test seam
+ * @param {any}   [opts.log]        test seam
  * @returns {Promise<{anchors:number, forward:number, reverse:number}>}
  */
 async function expandRelations(results, opts = /** @type {any} */ ({})) {

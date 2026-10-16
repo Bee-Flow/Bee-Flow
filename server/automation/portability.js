@@ -217,7 +217,7 @@ function stripEnvironmentRefs(def, warnings) {
  * Build the export envelope for one automation row (the camelCase shape
  * automationStore.rowToAutomation returns).
  *
- * @returns {{ envelope: object, warnings: string[] }} — `warnings` lists
+ * @returns {{ envelope: any, warnings: string[] }} — `warnings` lists
  *          non-blocking removals (today: stripped pinned outputs).
  */
 /**
@@ -239,7 +239,7 @@ function stripEnvironmentRefs(def, warnings) {
  * te hard zijn — het is een label, geen recht, en de rest van het bestand is
  * prima te importeren — dus: eraf halen en het zeggen.
  *
- * @param {object} definition  wordt TER PLEKKE aangepast
+ * @param {any} definition  wordt TER PLEKKE aangepast
  * @param {string[]} warnings  krijgt per verwijderde pointer een zin
  * @returns {number} hoeveel er zijn verwijderd
  */
@@ -376,9 +376,9 @@ function sanitizeImport(envelope) {
  *
  * Mutates `definition`.
  *
- * @param {object} definition
+ * @param {any} definition
  * @param {Array<{id: string, key: string, name?: string}>} tables  tables the importer may use
- * @returns {{ relinked: number, entries: Array<object> }}
+ * @returns {{ relinked: number, entries: Array<any> }}
  */
 function rebindDatatables(definition, tables) {
     const entries = [];
@@ -589,7 +589,7 @@ function rekeyGraph(graph) {
  * references same-layer ids, never root ids). Layer keys and
  * call_layer.layerKey references are left untouched.
  *
- * @returns {{ definition: object, renameMap: { root: object, layers: object } }}
+ * @returns {{ definition: any, renameMap: { root: any, layers: any } }}
  */
 function rekeyDefinition(def) {
     const definition = deepClone(isObject(def) ? def : {});

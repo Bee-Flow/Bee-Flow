@@ -346,8 +346,9 @@ router.post('/assist', requireAuth, MFA_ASSIST_LIMITER, validate({ body: AssistB
     res.json({ answer });
 });
 
-module.exports = router;
-// For auth/securityKeys/index.js: the first key can be the account's first
-// factor, so it needs the same admin-row materialisation and the same proof.
-module.exports.ensureUserRow = ensureUserRow;
-module.exports.secondFactorProof = proof;
+module.exports = Object.assign(router, {
+    // For auth/securityKeys/index.js: the first key can be the account's first
+    // factor, so it needs the same admin-row materialisation and the same proof.
+    ensureUserRow,
+    secondFactorProof: proof,
+});

@@ -23,7 +23,7 @@
         "verify:native": "expo prebuild --platform android --no-install --clean && expo export --platform android --output-dir .verify-bundle",
         "lint": "eslint . --max-warnings 0",
         "lint:cached": "eslint . --max-warnings 0 --cache --cache-strategy content --cache-location .eslintcache",
-        "typecheck": "tsc --noEmit",
+        "typecheck": "node ./node_modules/typescript-7/bin/tsc --noEmit",
         "test": "jest --ci",
         "test:watch": "jest --watch",
         "sync:tokens": "node scripts/sync-web-tokens.mjs"
@@ -99,7 +99,8 @@
         "jest-expo": "~57.0.6",
         "react-test-renderer": "19.2.3",
         "semver": "^7.8.5",
-        "typescript": "~5.9.2"
+        "typescript": "~5.9.2",
+        "typescript-7": "npm:typescript@7.0.2"
     },
     "overrides": {
         "shell-quote": "^1.11.0",

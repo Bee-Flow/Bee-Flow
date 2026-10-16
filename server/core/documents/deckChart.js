@@ -265,12 +265,12 @@ function fromAny(value, opts, warnings) {
  * numbers could be found.
  *
  * @param {*} input        rows | matrix | {labels,series} | {columns,rows} | markdown table | ```chart text | {type, data, labels?, values?, …}
- * @param {object} [opts]  { type, labels, values, stacked, unit, title, showValues } — defaults the input may override
+ * @param {any} [opts]  { type, labels, values, stacked, unit, title, showValues } — defaults the input may override
  * @param {string[]} [warnings]
  */
 function chartFromAny(input, opts = {}, warnings = []) {
     let source = input;
-    let o = { ...opts };
+    let o = /** @type {any} */ ({ ...opts });
     // A wrapper that names its own data: { type, data, labels, values, … }
     if (source && typeof source === 'object' && !Array.isArray(source) && source.data !== undefined && !Array.isArray(source.series)) {
         o = { ...o, ...source, data: undefined };

@@ -163,6 +163,7 @@ router.post('/pending-signup', signupIpLimiter, validate({ body: PendingSignupBo
     });
 });
 
-module.exports = router;
-// The directory toggle is also read by the platform signup-settings routes.
-module.exports.isOrgDirectoryPublic = isOrgDirectoryPublic;
+module.exports = Object.assign(router, {
+    // The directory toggle is also read by the platform signup-settings routes.
+    isOrgDirectoryPublic,
+});

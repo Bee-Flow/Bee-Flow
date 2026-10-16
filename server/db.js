@@ -129,7 +129,7 @@ function _redisOptions(url) {
 function _failFastWhenDisconnected(client) {
     client.once('ready', () => { client.options.enableOfflineQueue = false; });
     const duplicate = client.duplicate.bind(client);
-    client.duplicate = (/** @type {object} */ override) => duplicate({ enableOfflineQueue: true, ...(override || {}) });
+    client.duplicate = (/** @type {any} */ override) => duplicate({ enableOfflineQueue: true, ...(override || {}) });
     return client;
 }
 
@@ -209,7 +209,7 @@ async function run(sql, params = []) {
  * Get a single row.
  * @param {string} sql
  * @param {any[]} params
- * @returns {Promise<object|null>}
+ * @returns {Promise<any|null>}
  */
 async function getOne(sql, params = []) {
     const { rows } = await _timedQuery(sql, params);
@@ -220,7 +220,7 @@ async function getOne(sql, params = []) {
  * Get all matching rows.
  * @param {string} sql
  * @param {any[]} params
- * @returns {Promise<object[]>}
+ * @returns {Promise<any[]>}
  */
 async function getAll(sql, params = []) {
     const { rows } = await _timedQuery(sql, params);

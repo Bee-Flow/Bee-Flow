@@ -40,13 +40,13 @@ function deriveLocalUserId(email, azureUserId) {
 /**
  * Resolve the canonical local user for an incoming SSO identity.
  *
- * @param {object} identity
+ * @param {any} identity
  *   - azureUserId: the Azure AD object id (oid) — null for non-Microsoft providers
  *   - email: from the SSO provider (mail or userPrincipalName for Microsoft)
  *   - localId: the provisional local id used by the caller (only used as a
  *              last-resort lookup for non-Azure providers)
- * @param {object} userStore  store with getUserByAzureId, getUserByEmail, getUser, updateUser
- * @returns {Promise<{user: object|null, branch: 'azureId'|'email'|'legacyId'|'none'}>}
+ * @param {any} userStore  store with getUserByAzureId, getUserByEmail, getUser, updateUser
+ * @returns {Promise<{user: any|null, branch: 'azureId'|'email'|'legacyId'|'none'}>}
  *
  */
 async function resolveExistingSSOUser(identity, userStore) {
@@ -86,7 +86,7 @@ async function resolveExistingSSOUser(identity, userStore) {
  * (This omission was the root cause of the free-mail org-binding incident.)
  *
  * @param {string} email
- * @param {Array<object>} orgs
+ * @param {Array<any>} orgs
  * @param {Set<string>} [freeDomains]  effective free-provider blocklist from
  *   getEffectiveFreeEmailDomains() (built-in floor ∪ admin extras). Omit to use
  *   the built-in floor only.

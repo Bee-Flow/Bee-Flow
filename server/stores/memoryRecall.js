@@ -197,9 +197,9 @@ async function findRelevantMemories(userId, agentId, userMessage, tokenLimit = 5
  * this message (`item.relevant`), capped and de-duplicated. See
  * `memoryScoring.selectTiers`. Every row carries `why: 'profile' | 'relevant'`.
  *
- * @param {Array<{memory: object, score: number, relevant?: boolean, vector?: number[]|null}>} scoredMemories
+ * @param {Array<{memory: any, score: number, relevant?: boolean, vector?: number[]|null}>} scoredMemories
  * @param {number} tokenLimit  prompt budget in tokens (≈ 4 chars each)
- * @returns {object[]}
+ * @returns {any[]}
  */
 function selectWithinBudget(scoredMemories, tokenLimit = 500, tierOptions) {
     if (!Array.isArray(scoredMemories) || scoredMemories.length === 0) return [];

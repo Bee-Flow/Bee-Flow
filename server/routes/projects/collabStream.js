@@ -45,7 +45,7 @@ const DEFAULT_RECHECK_MS = 60_000;
  *   getProjectRole?: (userId: string, projectId: string) => Promise<string|null>,
  *   collab?: { attachStream: (p: any) => Promise<any> },
  *   requireNotebooks?: (req: any, res: any, next: (err?: unknown) => void) => unknown,
- *   streamOptions?: object,
+ *   streamOptions?: any,
  *   log?: { warn: Function },
  * }} [deps]
  */
