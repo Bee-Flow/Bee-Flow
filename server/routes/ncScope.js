@@ -19,6 +19,7 @@
 const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = rateLimit;
 
 const { requireAuth } = require('../auth/permissions');
 const ncScope = require('../core/integrations/ncScope');
@@ -181,7 +182,10 @@ const resourceLimiter = rateLimit({
     max: 30,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => `ncscope:${req.session?.user?.id || req.ip}`,
+    // requireAuth runs first, so the user id is always there; the IP fallback
+    // goes through ipKeyGenerator so an IPv6 client cannot rotate through its
+    // /64 for fresh buckets (ERR_ERL_KEY_GEN_IPV6, #280).
+    keyGenerator: (req) => `ncscope:${req.session?.user?.id || ipKeyGenerator(req.ip || '')}`,
 });
 
 // 60s per-user cache — opening the flyout re-lists; Nextcloud need not be
