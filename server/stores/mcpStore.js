@@ -8,7 +8,7 @@
  */
 
 const db = require('../db');
-const { runDdl, CODES } = require('./lib/_ddl');
+const { runDdl } = require('./lib/_ddl');
 const { makeStoreInit } = require('./lib/storeInit');
 const log = require('../telemetry/log');
 
@@ -59,10 +59,9 @@ async function initTable() {
         )
     `);
 
-    // Migrate: add new columns if they don't exist yet. ADD COLUMN zonder
-    // IF NOT EXISTS: de verwachte duplicate_column is hier het
-    // idempotentie-mechanisme en blijft stil (tolerate); elke ándere fout —
-    // die de oude catch (_) net zo hard inslikte — wordt nu luid verzameld.
+    // Migrate: add new columns if they don't exist yet. IF NOT EXISTS, so a
+    // re-run is a no-op instead of a tolerated duplicate_column error that
+    // Postgres still logs on every boot; any other failure stays loud.
     const newCols = [
         { name: 'transport', def: "TEXT DEFAULT 'stdio'" },
         { name: 'url', def: 'TEXT' },
@@ -72,11 +71,7 @@ async function initTable() {
         { name: 'source', def: "TEXT DEFAULT 'manual'" },
     ];
     await runDdl('mcpStore', [
-        ...newCols.map((col) => ({
-            sql: `ALTER TABLE ${TABLE} ADD COLUMN ${col.name} ${col.def}`,
-            tolerate: CODES.DUPLICATE_COLUMN,
-            reden: 'kolom bestaat al — verwachte idempotentie',
-        })),
+        ...newCols.map((col) => `ALTER TABLE ${TABLE} ADD COLUMN IF NOT EXISTS ${col.name} ${col.def}`),
         // Make command nullable (HTTP servers don't need a command);
         // DROP NOT NULL is zelf al idempotent, dus fouten zijn hier echt.
         `ALTER TABLE ${TABLE} ALTER COLUMN command DROP NOT NULL`,

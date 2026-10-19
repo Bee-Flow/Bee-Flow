@@ -99,21 +99,33 @@ function appApiHeaders() {
     };
 }
 
+function postRegistration() {
+    return withWarmupRetry(() => fetch(`${config.nextcloudUrl}${TALK_BOT_API}`, {
+        method: 'POST',
+        headers: appApiHeaders(),
+        body: JSON.stringify({ name: BOT_NAME, route: BOT_ROUTE, description: BOT_DESCRIPTION }),
+        signal: AbortSignal.timeout(5_000),
+    }), { label: 'talk-bot', budgetMs: 30_000 });
+}
+
 /**
  * Register the bot with Talk (via AppAPI) and keep the secret it returns.
- * Idempotent: re-registering the same (appId, route) reuses the existing
- * secret upstream rather than minting a new one.
+ *
+ * NOT idempotent upstream: AppAPI mints a new secret on every registration,
+ * and Talk refuses a bot whose URL is already registered with another secret
+ * (an OCS 500, "Bot with the same URL and a different secret is already
+ * registered"; the cause is only in Nextcloud's log). So on every start after
+ * the first, the POST fails (#281):
+ *   - with a stored secret, that is the bot Talk already has: keep it. Deleting
+ *     it to re-register would also drop the bot from every conversation it was
+ *     added to.
+ *   - without one (fresh volume), the registered bot is unusable to us (no
+ *     secret to sign replies with): remove it and register again.
  */
 async function registerTalkBot() {
-    const url = `${config.nextcloudUrl}${TALK_BOT_API}`;
     let res;
     try {
-        res = await withWarmupRetry(() => fetch(url, {
-            method: 'POST',
-            headers: appApiHeaders(),
-            body: JSON.stringify({ name: BOT_NAME, route: BOT_ROUTE, description: BOT_DESCRIPTION }),
-            signal: AbortSignal.timeout(5_000),
-        }), { label: 'talk-bot', budgetMs: 30_000 });
+        res = await postRegistration();
     } catch (err) {
         console.warn(`[TalkBot] registration request failed: ${err.message}`);
         return { ok: false, reason: 'request-failed' };
@@ -125,10 +137,24 @@ async function registerTalkBot() {
         console.log('[TalkBot] Talk is not installed on this Nextcloud — chat triggers unavailable.');
         return { ok: false, reason: 'talk-missing' };
     }
+    if (!res.ok && loadSecret()) {
+        console.log(`[TalkBot] already registered (Nextcloud answered HTTP ${res.status} to a re-registration); keeping the stored secret.`);
+        return { ok: true, reason: 'kept-existing' };
+    }
     if (!res.ok) {
-        const body = await res.text().catch(() => '');
-        console.warn(`[TalkBot] registration failed (HTTP ${res.status}): ${body.slice(0, 160)}`);
-        return { ok: false, reason: `http-${res.status}` };
+        console.log(`[TalkBot] registration refused (HTTP ${res.status}) and no stored secret: removing the existing bot and registering again. Conversations that had the bot must add it again.`);
+        await unregisterTalkBot();
+        try {
+            res = await postRegistration();
+        } catch (err) {
+            console.warn(`[TalkBot] registration request failed: ${err.message}`);
+            return { ok: false, reason: 'request-failed' };
+        }
+        if (!res.ok) {
+            const body = await res.text().catch(() => '');
+            console.warn(`[TalkBot] registration failed (HTTP ${res.status}): ${body.slice(0, 160)}`);
+            return { ok: false, reason: `http-${res.status}` };
+        }
     }
 
     const body = await res.json().catch(() => null);

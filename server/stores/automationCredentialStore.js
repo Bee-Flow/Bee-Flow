@@ -32,14 +32,18 @@ const initDB = makeStoreInit('AutomationCredentialStore', _initDB);
 async function _initDB() {
     // This table was `routine_credentials` (with idx_routine_credentials_*)
     // until the feature took its product name, Automations (2026-10). Renamed
-    // in place, once, so the stored (encrypted) rows stay where they are.
+    // in place, once, so the stored (encrypted) rows stay where they are. The
+    // index renames belong to that table rename: when both tables exist (an
+    // image from before the rename ran after one from after it, on the same
+    // volume) the old indexes stay on the old table, and renaming them would
+    // collide with automation_credentials' own and fail this init forever (#279).
     await exec(`
         DO $$ BEGIN
             IF to_regclass('routine_credentials') IS NOT NULL AND to_regclass('automation_credentials') IS NULL THEN
                 ALTER TABLE routine_credentials RENAME TO automation_credentials;
+                ALTER INDEX IF EXISTS idx_routine_credentials_user RENAME TO idx_automation_credentials_user;
+                ALTER INDEX IF EXISTS idx_routine_credentials_status RENAME TO idx_automation_credentials_status;
             END IF;
-            ALTER INDEX IF EXISTS idx_routine_credentials_user RENAME TO idx_automation_credentials_user;
-            ALTER INDEX IF EXISTS idx_routine_credentials_status RENAME TO idx_automation_credentials_status;
         END $$;
     `);
     await exec(`
