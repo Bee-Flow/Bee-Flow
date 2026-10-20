@@ -97,12 +97,17 @@ export const extractFormPage: Extractor = (step, base) => ({
     // `null` inside the declaration is meaningful (theme: null = inherit).
     form: objOr(step.form, null),
     waitSeconds: num(step.waitSeconds, 3600),
+    // "Only show this page when…": an expression, '' = always shown.
+    when: typeof step.when === 'string' ? step.when : '',
 });
 
 /** Clamps match validate.js FORM_PAGE_MIN/MAX_WAIT_S; an ending page never waits. */
-export const patchFormPage: Patcher = (patch, _step, draft) => {
+export const patchFormPage: Patcher = (patch, step, draft) => {
     const ending = draft.mode === 'ending';
     patch.mode = ending ? 'ending' : 'input';
     patch.form = draft.form || null;
     patch.waitSeconds = ending ? null : clamp(Number(draft.waitSeconds) || 3600, 60, 7 * 24 * 3600);
+    // Trimmed, at most 2000 characters, and empty means "always shown": `null`, as the server turns it.
+    const when = typeof draft.when === 'string' ? draft.when.trim().slice(0, 2000) : '';
+    if (when || step.when != null) patch.when = when || null;
 };
