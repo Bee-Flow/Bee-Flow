@@ -23,6 +23,7 @@ interface RunDetailProps {
     onOpenEditor?: (stepId?: string | null) => void;
     onViewCanvas: () => void;
     onClose: () => void;
+    onCompare?: (otherRunId: string) => void;
 }
 
 /** The step the right side shows: the picked one, else the last that produced something. */
@@ -34,7 +35,7 @@ export function focusStep(rows: RunStepRecord[], selectedStepId: string | null):
 
 /** One run: the sentence, how it came about, and every step's in and out. */
 export default function RunDetail({
-    automationId, runId, seed, active, selectedStepId, onSelectStep, onOpenRun, onOpenEditor, onViewCanvas, onClose,
+    automationId, runId, seed, active, selectedStepId, onSelectStep, onOpenRun, onOpenEditor, onViewCanvas, onClose, onCompare,
 }: RunDetailProps) {
     const runQuery = useRun(runId, active);
     const stepsQuery = useRunSteps(runId, active);
@@ -80,7 +81,15 @@ export default function RunDetail({
 
     return (
         <div className="h-full min-h-0 flex flex-col text-xs @container/rundetail">
-            <RunDetailHeader automationId={automationId} run={run} onOpenRun={onOpenRun} onOpenEditor={onOpenEditor} onClose={onClose} />
+            <RunDetailHeader
+                automationId={automationId}
+                run={run}
+                onOpenRun={onOpenRun}
+                onOpenEditor={onOpenEditor}
+                onClose={onClose}
+                onCompare={onCompare}
+                dataHidden={stepsQuery.isError}
+            />
             <div className="flex-1 min-h-0 grid grid-cols-1 @[720px]/rundetail:grid-cols-[320px_minmax(0,1fr)] overflow-y-auto @[720px]/rundetail:overflow-visible">
                 <RunTimeline
                     run={run}
@@ -94,6 +103,7 @@ export default function RunDetail({
                     rerunError={rerunError}
                 />
                 <RunIo
+                    automationId={automationId}
                     step={step}
                     label={step ? String(runStepLabel(labelById, step.stepId)) : ''}
                     stepDef={step ? stepById.get(step.stepId) ?? null : null}

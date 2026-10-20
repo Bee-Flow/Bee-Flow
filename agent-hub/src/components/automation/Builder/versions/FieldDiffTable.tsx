@@ -1,5 +1,7 @@
+import { useState, type ReactNode } from 'react';
 import useTranslation from '../../../../hooks/useTranslation';
 import type { FieldChange } from '../../../../api/queries/automation/versions';
+import LineDiff from './LineDiff';
 import { formatValue, settingName } from './versionText';
 
 interface Props {
@@ -23,6 +25,56 @@ const DOT: Record<FieldChange['change'], string> = {
 const COLS = 'grid grid-cols-2 gap-x-2.5 gap-y-1.5 px-3.5 @[640px]/fielddiff:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.4fr)_minmax(0,1.4fr)] @[640px]/fielddiff:gap-y-0';
 const VALUE = 'w-fit max-w-full px-2 py-0.5 rounded-md line-clamp-4 wrap-anywhere whitespace-pre-line';
 
+function ChangeRow({ c, nothing }: { c: FieldChange; nothing: ReactNode }) {
+    const { t } = useTranslation();
+    const [linesOpen, setLinesOpen] = useState(false);
+    // Automation-level rows (runPolicy, description, ...) have no step.
+    const stepText = c.stepId ? c.stepLabel : t('automations.versions.automationRow', 'Automation');
+    const before = formatValue(c.before);
+    const after = formatValue(c.after);
+    const setting = c.change === 'added' ? t('automations.versions.diff.newStep', 'New step')
+        : c.change === 'removed' ? t('automations.versions.diff.removedStep', 'Step removed')
+            : c.change === 'moved' ? t('automations.versions.diff.moved', 'Position in the flow')
+                : settingName(t, c.setting, c.settingLabel);
+    const hasLines = c.beforeText != null || c.afterText != null;
+    return (
+        <>
+            <div role="row" className={`${COLS} py-2.5 border-t border-[var(--border-default)] items-start`}>
+                <span role="cell" className="flex items-center gap-1.5 min-w-0 py-0.5">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${DOT[c.change]}`} />
+                    <span className="min-w-0 line-clamp-2 wrap-anywhere">{c.stepNumber != null ? `${c.stepNumber} · ${stepText}` : stepText}</span>
+                </span>
+                <span role="cell" className="min-w-0 py-0.5 text-[var(--text-secondary)] line-clamp-2 wrap-anywhere">{setting}</span>
+                <span role="cell" className="min-w-0">
+                    {before
+                        ? <span title={before} className={`${VALUE} bg-[color-mix(in_srgb,var(--error)_8%,transparent)] line-through text-[var(--text-secondary)]`}>{before}</span>
+                        : nothing}
+                </span>
+                <span role="cell" className="min-w-0">
+                    {after
+                        ? <span title={after} className={`${VALUE} bg-[color-mix(in_srgb,var(--success)_10%,transparent)] text-[var(--text-primary)]`}>{after}</span>
+                        : nothing}
+                </span>
+            </div>
+            {hasLines && (
+                <div role="row" className="px-3.5 pb-2.5 -mt-1">
+                    <div role="cell" className="space-y-2">
+                        <button
+                            type="button"
+                            aria-expanded={linesOpen}
+                            onClick={() => setLinesOpen((o) => !o)}
+                            className="text-[var(--accent-primary)] hover:underline"
+                        >
+                            {linesOpen ? t('automation_testing.diff.hide', 'Hide line changes') : t('automation_testing.diff.show', 'Show line changes')}
+                        </button>
+                        {linesOpen && <LineDiff before={c.beforeText ?? null} after={c.afterText ?? null} truncated={c.textTruncated === true} />}
+                    </div>
+                </div>
+            )}
+        </>
+    );
+}
+
 /** Step · Setting · Was (vX) · Becomes (vY), one row per changed setting. */
 export default function FieldDiffTable({ changes, from, to }: Props) {
     const { t } = useTranslation();
@@ -35,35 +87,7 @@ export default function FieldDiffTable({ changes, from, to }: Props) {
                 <span role="columnheader">{t('automations.versions.diff.was', 'Was (v{version})', { version: from })}</span>
                 <span role="columnheader">{t('automations.versions.diff.becomes', 'Becomes (v{version})', { version: to })}</span>
             </div>
-            {changes.map((c, i) => {
-                // Automation-level rows (runPolicy, description, ...) have no step.
-                const stepText = c.stepId ? c.stepLabel : t('automations.versions.automationRow', 'Automation');
-                const before = formatValue(c.before);
-                const after = formatValue(c.after);
-                const setting = c.change === 'added' ? t('automations.versions.diff.newStep', 'New step')
-                    : c.change === 'removed' ? t('automations.versions.diff.removedStep', 'Step removed')
-                        : c.change === 'moved' ? t('automations.versions.diff.moved', 'Position in the flow')
-                            : settingName(t, c.setting, c.settingLabel);
-                return (
-                    <div role="row" key={`${c.stepId}:${c.setting ?? c.change}:${i}`} className={`${COLS} py-2.5 border-t border-[var(--border-default)] items-start`}>
-                        <span role="cell" className="flex items-center gap-1.5 min-w-0 py-0.5">
-                            <span className={`w-2 h-2 rounded-full shrink-0 ${DOT[c.change]}`} />
-                            <span className="min-w-0 line-clamp-2 wrap-anywhere">{c.stepNumber != null ? `${c.stepNumber} · ${stepText}` : stepText}</span>
-                        </span>
-                        <span role="cell" className="min-w-0 py-0.5 text-[var(--text-secondary)] line-clamp-2 wrap-anywhere">{setting}</span>
-                        <span role="cell" className="min-w-0">
-                            {before
-                                ? <span title={before} className={`${VALUE} bg-[color-mix(in_srgb,var(--error)_8%,transparent)] line-through text-[var(--text-secondary)]`}>{before}</span>
-                                : nothing}
-                        </span>
-                        <span role="cell" className="min-w-0">
-                            {after
-                                ? <span title={after} className={`${VALUE} bg-[color-mix(in_srgb,var(--success)_10%,transparent)] text-[var(--text-primary)]`}>{after}</span>
-                                : nothing}
-                        </span>
-                    </div>
-                );
-            })}
+            {changes.map((c, i) => <ChangeRow key={`${c.stepId}:${c.setting ?? c.change}:${i}`} c={c} nothing={nothing} />)}
         </div>
     );
 }

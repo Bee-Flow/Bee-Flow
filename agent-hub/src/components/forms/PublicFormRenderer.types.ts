@@ -104,6 +104,8 @@ export interface PublicFormRendererProps {
     showSuccess?: boolean;
     downloadHref?: DownloadHrefHandler | null;
     onOpenInNotebooks?: OpenInNotebooksHandler | null;
+    /** Saved answers by question name, laid over the empty form; a new object fills the form again. */
+    prefill?: Record<string, unknown> | null;
 }
 
 export interface FormEndingViewProps {

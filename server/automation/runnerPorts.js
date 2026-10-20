@@ -74,6 +74,8 @@ registerRunnerPorts({
         renderFormConfig: (...args) => formTriggerContract().renderFormConfig(...args),
         maxRenderedDescriptionLen: () => formTriggerContract().MAX_RENDERED_DESCRIPTION_LEN,
         emptyFormValues: (...args) => formTriggerContract().emptyFormValues(...args),
+        // A dry run that answers a page from saved answers (form scenario, golden replay).
+        scenarioPageValues: (...args) => require('./testing/formScenarioValues').scenarioPageValues(...args),
     },
     automationGraph: {
         walkSteps: (...args) => automationGraph().walkSteps(...args),

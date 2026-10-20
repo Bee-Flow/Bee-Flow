@@ -103,6 +103,8 @@ const NAMESPACES = {
     "automationAgentBindings": require('./automationAgentBindings.js'),
     "automation_editor":  require('./automation_editor.js'),
     "automation_tables":  require('./automation_tables.js'),
+    "automation_run_checks": require('./automation_run_checks.js'),
+    "automation_testing": require('./automation_testing.js'),
     "automations":        require('./automations.js'),
     "run_status":      require('./run_status.js'),
     "runs":            require('./runs.js'),

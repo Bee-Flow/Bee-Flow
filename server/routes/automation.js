@@ -32,6 +32,23 @@
  *   GET    /runs/:runId/files              files the run produced
  *   GET    /runs/:runId/files/:fileId      download one (?inline=1 for a PDF or image)
  *   GET    /runs/:runId/files/:fileId/preview?page=N   PNG of one PDF page
+ *   GET    /runs/:runId/compare/:otherRunId?stepId=    two runs of one automation, step by step
+ *   POST   /runs/:runId/golden             mark a successful run as a golden run
+ *   DELETE /runs/:runId/golden             unmark it
+ *
+ *   GET    /:id/test-cases[?stepId=]       test cases of a code step or custom node
+ *   GET    /:id/test-cases/:caseId         one case with its input
+ *   POST   /:id/test-cases                 create (typed values or a recorded run)
+ *   PUT    /:id/test-cases/:caseId         update
+ *   DELETE /:id/test-cases/:caseId         delete
+ *   POST   /:id/test-cases/run             run the cases (optionally with unsaved code)
+ *   GET    /:id/goldens                    golden runs and their last replay
+ *   POST   /:id/goldens/replay             replay golden runs in the background
+ *   GET    /:id/form-scenarios[/:sid]      saved form answers
+ *   POST   /:id/form-scenarios             save from a run
+ *   PUT    /:id/form-scenarios/:sid        rename
+ *   DELETE /:id/form-scenarios/:sid        delete
+ *   POST   /:id/form-scenarios/:sid/dry-run  replay the form journey as a dry run
  *
  *   POST   /webhook/:slug                  PUBLIC inbound webhook (HMAC + nonce)
  *   GET    /form/:token                    PUBLIC hosted-form render config + CSRF
@@ -112,5 +129,16 @@ router.use(require('./automation/usage').makeUsageRouter());
 // Handoff 5: duplicate, save as template, the description suggestion and the
 // header's tab counts (routes/automation/actions.js). Literal second segments.
 router.use(require('./automation/actions').makeActionsRouter());
+// Phase 9, testing as a product feature. Literal second segments (`test-cases`,
+// `goldens`, `form-scenarios`) and `/runs/:runId/compare|golden`, so the
+// position is free; they sit last so no earlier first-match route can shadow them.
+// Test cases for a code step or a custom node (routes/automation/testCases.js).
+router.use(require('./automation/testCases').makeTestCasesRouter());
+// Compare two runs of one automation, step by step (routes/automation/runCompare.js).
+router.use(require('./automation/runCompare').makeRunCompareRouter());
+// Golden runs: mark a good run, replay it later (routes/automation/goldens.js).
+router.use(require('./automation/goldens').makeGoldensRouter());
+// Saved form answers that replay a form journey as a dry run (routes/automation/formScenarios.js).
+router.use(require('./automation/formScenarios').makeFormScenariosRouter());
 
 module.exports = router;

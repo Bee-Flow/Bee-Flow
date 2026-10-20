@@ -32,6 +32,7 @@ const noopMw = () => (req, res, next) => next();
 // bare require never hits the DB / network / background timers.
 mock(path.join(SERVER, 'stores/automationStore'), {});
 mock(path.join(SERVER, 'stores/configStore'), {});
+mock(path.join(SERVER, 'stores/automationTestingStore'), {});
 mock(path.join(SERVER, 'core/scheduling/cron'), {});
 mock(path.join(SERVER, 'automation/validate'), { validateDefinition: () => ({ valid: true }) });
 mock(path.join(SERVER, 'automation/summarise'), {});
@@ -272,6 +273,28 @@ const EXPECTED = [
     'POST /:id/save-as-template',
     'POST /:id/suggest-description',
     'GET /:id/counts',
+    // Phase 9, testing as a product feature. Test cases for a code step or a
+    // custom node (routes/automation/testCases.js).
+    'GET /:id/test-cases',
+    'GET /:id/test-cases/:caseId',
+    'POST /:id/test-cases',
+    'PUT /:id/test-cases/:caseId',
+    'DELETE /:id/test-cases/:caseId',
+    'POST /:id/test-cases/run',
+    // Two runs of one automation, step by step (routes/automation/runCompare.js).
+    'GET /runs/:runId/compare/:otherRunId',
+    // Golden runs (routes/automation/goldens.js).
+    'POST /runs/:runId/golden',
+    'DELETE /runs/:runId/golden',
+    'GET /:id/goldens',
+    'POST /:id/goldens/replay',
+    // Saved form answers (routes/automation/formScenarios.js).
+    'GET /:id/form-scenarios',
+    'GET /:id/form-scenarios/:scenarioId',
+    'POST /:id/form-scenarios',
+    'PUT /:id/form-scenarios/:scenarioId',
+    'DELETE /:id/form-scenarios/:scenarioId',
+    'POST /:id/form-scenarios/:scenarioId/dry-run',
 ];
 
 test('automation router loads and exposes the exact baseline route table in order', () => {
@@ -316,6 +339,12 @@ test('every relative require() across the facade + sub-routers resolves (catches
         'routes/automation/usage.js',
         'routes/automation/versionHistory.js',
         'routes/automation/actions.js',
+        'routes/automation/testCases.js',
+        'routes/automation/testCaseSchemas.js',
+        'routes/automation/runCompare.js',
+        'routes/automation/goldens.js',
+        'routes/automation/formScenarios.js',
+        'routes/automation/runEntry.js',
     ];
     const re = /require\((["'])(\.[^"']+)\1\)/g;
     const unresolved = [];

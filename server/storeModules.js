@@ -121,6 +121,11 @@ const STORE_MODULES = [
     // these, a standalone `npm run db:migrate` (CI / pre-deploy) did NOT bring the
     // automation schema current — it only worked because the app self-inits on boot.
     { name: 'automationStore', file: './stores/automationStore' },
+    // Test data of Automations (test cases and their captured run inputs, golden
+    // runs, form scenarios). Foreign keys to `automations` and `automation_runs`,
+    // so it comes right after automationStore; its init also awaits that
+    // store's, because boot starts every init at once.
+    { name: 'automationTestingStore', file: './stores/automationTestingStore' },
     // Org-scoped datatables: the metadata, sharing grants and dependents
     // index. Owns its own DDL, so a standalone db:migrate must create the
     // tables too — otherwise they only appear on first datatable use.

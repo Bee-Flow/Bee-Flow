@@ -185,4 +185,4 @@ async function extractPptxText(buffer, opts = {}) {
     return { text: sections.join('\n\n').trim(), slideCount: total, notesCount };
 }
 
-module.exports = { extractPptxText, isPptxBuffer, PPTX_MIME, DEFAULTS, _test: { readSlidePart, paragraphText, decodeXml } };
+module.exports = { extractPptxText, isPptxBuffer, readSlidePart, PPTX_MIME, DEFAULTS, _test: { readSlidePart, paragraphText, decodeXml } };

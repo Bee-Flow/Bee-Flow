@@ -10,8 +10,7 @@ require('../../automation/triggerBus');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
-const { isManagedAutomation } = require('../../core/automationRunner/stageVars');
-const { automationForRun } = require('../../core/automationRunner/definitionForRun');
+const { entryDefinitionOf, resolveTriggerStepId } = require('./runEntry');
 const { resolveRunPolicy } = require('../../core/automationRunner/runPolicy');
 const { describeNoticeFor } = require('../../core/automationRunner/callerNotice');
 // Handoff 5 sharing: who may start, test and read the runs of an automation.
@@ -24,37 +23,6 @@ const { SeenBody, RunBody, PartialRunBody, RerunPlanQuery, RunsQuery, FacetsQuer
 // full automation execution / LLM + tool calls). Keyed by session user id via
 // the limiter's default. Generous enough for normal manual testing, low enough
 // that a stuck client or a script can't flood the runner. Tunable via env.
-/**
- * Resolve an optional `triggerStepId` (the entry point a test run should use)
- * against the automation's triggers — the primary `definition.trigger` and every
- * `definition.triggers[]` entry. Returns the trigger node and the `rootStepId`
- * to hand the runner (null for the primary, so an automation without additional
- * triggers behaves exactly as before). A wrong id is a 400, never a silent
- * fall-back to the primary: the caller asked to test a specific root.
- */
-/**
- * The definition a run of this automation enters: for an automation a Solution stage
- * manages that is the LIVE copy (test runs included), so a trigger that exists
- * only in the working copy is not offered. Throws managed_part_not_deployed
- * (409) when it has no live copy.
- */
-async function entryDefinitionOf(a) {
-    if (!await isManagedAutomation(a)) return a.definition;
-    return automationForRun(a, { mode: 'live', managed: true }).definition;
-}
-
-function resolveTriggerStepId(def, triggerStepId) {
-    const known = [def?.trigger, ...(Array.isArray(def?.triggers) ? def.triggers : [])].filter(t => t && t.id);
-    if (!triggerStepId) {
-        return { trigger: def?.trigger || null, rootStepId: null };
-    }
-    const hit = known.find(t => t.id === triggerStepId);
-    if (!hit) {
-        return { error: `Unknown triggerStepId "${triggerStepId}". This automation's triggers: ${known.map(t => `${t.id} (${t.kind})`).join(', ') || '(none)'}.` };
-    }
-    return { trigger: hit, rootStepId: hit.id === def?.trigger?.id ? null : hit.id };
-}
-
 const RUN_TRIGGER_RPM = parseInt(process.env.AUTOMATION_RUN_TRIGGER_RPM, 10) || 30;
 const runTriggerLimiter = perUserRateLimit({ windowMs: 60_000, max: RUN_TRIGGER_RPM });
 

@@ -32,6 +32,7 @@
 const { replaceTemplate } = require('./expr');
 const { sortedKeysJson } = require('../utils/stableJson');
 const { refHead, splitPathHead } = require('./validate/refPaths');
+const { fullTextFields } = require('./fieldDiffText');
 
 // ── Layout ───────────────────────────────────────────────────────────────
 
@@ -379,7 +380,9 @@ function incomingText(list, labels) {
  *
  * @param {object} prevDef
  * @param {object} nextDef
- * @param {{ names?: { agent?: Record<string,string>, datatable?: Record<string,string>, knowledgeBase?: Record<string,string> } }} [opts]
+ * @param {{ names?: { agent?: Record<string,string>, datatable?: Record<string,string>, knowledgeBase?: Record<string,string> }, fullText?: boolean }} [opts]
+ *   `fullText`: a changed long-text setting (code, prompt, message, ...) also carries
+ *   beforeText / afterText (fieldDiffText.js), for the line diff.
  */
 function fieldDiff(prevDef, nextDef, opts = {}) {
     const prev = stripLayout(prevDef);
@@ -389,6 +392,13 @@ function fieldDiff(prevDef, nextDef, opts = {}) {
     const before = makeRenderer({ labels: P.labels, names: opts.names });
     const after = makeRenderer({ labels: N.labels, names: opts.names });
     const changes = [];
+    const changedEntry = (head, d) => {
+        const last = d.parts[d.parts.length - 1];
+        return {
+            ...head, change: 'changed', ...settingOf(d.parts),
+            before: before.render(d.before, last), after: after.render(d.after, last), ...fullTextFields(d, opts),
+        };
+    };
     const base = (n) => ({
         stepId: n.id, stepNumber: n.number, stepLabel: stepText(n),
         ...(n.layer ? { layer: n.layer } : {}),
@@ -407,13 +417,7 @@ function fieldDiff(prevDef, nextDef, opts = {}) {
             if (k === 'id' || (CHILD_KEYS.has(k) && (n.node.type === 'loop' || n.node.type === 'parallel'))) continue;
             diffSettings(p.node[k], n.node[k], [k], diffs, 0);
         }
-        for (const d of diffs) {
-            const last = d.parts[d.parts.length - 1];
-            changes.push({
-                ...base(n), change: 'changed', ...settingOf(d.parts),
-                before: before.render(d.before, last), after: after.render(d.after, last),
-            });
-        }
+        for (const d of diffs) changes.push(changedEntry(base(n), d));
         if (!n.isTrigger && stable(p.incoming) !== stable(n.incoming)) {
             changes.push({
                 ...base(n), change: 'moved', setting: 'flowPosition', settingLabel: 'Position in the flow', path: null,
@@ -432,13 +436,7 @@ function fieldDiff(prevDef, nextDef, opts = {}) {
         if (GRAPH_KEYS.has(k)) continue;
         diffSettings(prev[k], next[k], [k], automationDiffs, 0);
     }
-    for (const d of automationDiffs) {
-        const last = d.parts[d.parts.length - 1];
-        changes.push({
-            stepId: null, stepNumber: null, stepLabel: 'Automation', change: 'changed', ...settingOf(d.parts),
-            before: before.render(d.before, last), after: after.render(d.after, last),
-        });
-    }
+    for (const d of automationDiffs) changes.push(changedEntry({ stepId: null, stepNumber: null, stepLabel: 'Automation' }, d));
     const layerKeys = new Set([...Object.keys(isObject(prev.layers) ? prev.layers : {}), ...Object.keys(isObject(next.layers) ? next.layers : {})]);
     for (const lk of layerKeys) {
         const pl = isObject(prev.layers?.[lk]) ? prev.layers[lk] : {};
@@ -446,13 +444,7 @@ function fieldDiff(prevDef, nextDef, opts = {}) {
         const ld = [];
         for (const k of new Set([...Object.keys(pl), ...Object.keys(nl)])) if (!GRAPH_KEYS.has(k)) diffSettings(pl[k], nl[k], [k], ld, 0);
         const title = (typeof nl.title === 'string' && nl.title.trim()) || (typeof pl.title === 'string' && pl.title.trim()) || lk;
-        for (const d of ld) {
-            const last = d.parts[d.parts.length - 1];
-            changes.push({
-                stepId: `layer:${lk}`, stepNumber: null, stepLabel: `Flowlet ${title}`, layer: lk, change: 'changed', ...settingOf(d.parts),
-                before: before.render(d.before, last), after: after.render(d.after, last),
-            });
-        }
+        for (const d of ld) changes.push(changedEntry({ stepId: `layer:${lk}`, stepNumber: null, stepLabel: `Flowlet ${title}`, layer: lk }, d));
     }
 
     const ORDER = { added: 0, removed: 1, changed: 2, moved: 3 };
