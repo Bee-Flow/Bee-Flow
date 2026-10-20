@@ -39,6 +39,7 @@ stub('../stores/storageStore', {
     ensureAvailable: async () => fx.storageUp,
     getStatus: () => ({ mode: fx.storageUp ? 's3' : null, configured: true, lastError: null, nextRetryAt: 0 }),
     uploadFile: async (key, buffer) => { fx.uploads.push(key); fx.objects.set(key, buffer); return { key }; },
+    uploadFileFromPath: async (key, filePath) => { fx.uploads.push(key); fx.objects.set(key, fs.readFileSync(filePath)); return { key }; },
     headFile: async (key) => {
         if (!fx.objects.has(key)) { const e = new Error('gone'); e.name = 'NoSuchKey'; throw e; }
         // Deliberately vague, like a real object written before content types

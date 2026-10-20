@@ -92,6 +92,10 @@ services:
       - "${SERVER_BIND_HOST:-127.0.0.1}:${SERVER_PORT:-3001}:${SERVER_PORT:-3001}"
     environment:
       - NODE_ENV=production
+      # Optional memory tuning, empty = default behaviour (see docs: Memory sizing).
+      # e.g. SERVER_NODE_OPTIONS=--max-old-space-size=2560, MALLOC_ARENA_MAX=2
+      - NODE_OPTIONS=${SERVER_NODE_OPTIONS:-}
+      - MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-}
       - PORT=${SERVER_PORT:-3001}
       - SESSION_SECRET=${SESSION_SECRET:?Set SESSION_SECRET in .env (openssl rand -hex 32)}
       - CORS_ORIGIN=${CLIENT_PROTOCOL:-https}://${CLIENT_PUBLIC_HOST:-beeflow.nl},${SERVER_PROTOCOL:-https}://${SERVER_PUBLIC_HOST:-server.beeflow.nl}
@@ -266,6 +270,7 @@ services:
       - GUARD_PII_ENABLED=${GUARD_PII_ENABLED:-true}
       - GUARD_PII_MODEL=${GUARD_PII_MODEL:-E3-JSI/gliner-multi-pii-domains-v1}
       - GUARD_LOG_LEVEL=${GUARD_LOG_LEVEL:-INFO}
+      - MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-}
       - SERVICES_API_KEY=${SERVICES_API_KEY:-}
     depends_on:
       guard-redis:
@@ -346,6 +351,7 @@ services:
       - CLASSIFY_LABEL_MODE=${CLASSIFY_LABEL_MODE:-joint}
       - CLASSIFY_LOG_LEVEL=${CLASSIFY_LOG_LEVEL:-INFO}
       - CLASSIFY_API_KEY=${CLASSIFY_API_KEY:-}
+      - MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-}
       - SERVICES_API_KEY=${SERVICES_API_KEY:-}
     cpus: ${CLASSIFY_CPUS:-3}
     mem_limit: ${CLASSIFY_MEM:-3g}

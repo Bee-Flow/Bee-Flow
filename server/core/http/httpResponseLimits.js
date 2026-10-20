@@ -27,7 +27,14 @@
  */
 'use strict';
 
+const log = require('../../telemetry/log');
+
 const HTTP_RESPONSE_CAP = 1024 * 1024;
+
+/** Cancel a body or reader we are done with; a failure to cancel changes nothing for the caller. */
+async function cancelQuietly(target) {
+    try { await target?.cancel?.(); } catch (e) { log.debug(`[httpResponseLimits] cancel failed: ${e.message}`); }
+}
 
 // Longest UTF-8 encoding of one character. A body of at most cap*4 bytes can be
 // decoded and measured exactly in characters; anything past that budget is
@@ -87,4 +94,116 @@ async function readBodyBounded(resp, { charCap = HTTP_RESPONSE_CAP, stopOnOversi
     return { text, truncated: false };
 }
 
-module.exports = { HTTP_RESPONSE_CAP, MAX_BYTES_PER_CHAR, readBodyBounded };
+/**
+ * Read a size limit from an env var: unset or invalid -> `fallback`, 0 (or a
+ * negative number) -> Infinity ("no cap"). Read at call time so an admin change
+ * after a restart and tests that set the variable both work.
+ *
+ * @param {string} name
+ * @param {number} fallback
+ * @returns {number}
+ */
+function envByteLimit(name, fallback) {
+    const raw = process.env[name];
+    if (raw === undefined || raw === '') return fallback;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return fallback;
+    return n <= 0 ? Infinity : Math.floor(n);
+}
+
+const DEFAULT_TOOL_FILE_MAX_BYTES = 100 * 1024 * 1024;
+const DEFAULT_KB_WEB_PAGE_MAX_BYTES = 10 * 1024 * 1024;
+const DEFAULT_KB_SITEMAP_MAX_BYTES = 50 * 1024 * 1024;
+
+/** Largest file a tool (Nextcloud, mail, Gmail) downloads into memory. TOOL_FILE_MAX_BYTES, 0 = no cap. */
+const toolFileMaxBytes = () => envByteLimit('TOOL_FILE_MAX_BYTES', DEFAULT_TOOL_FILE_MAX_BYTES);
+/** Largest web page a knowledge-base crawl reads. KB_WEB_PAGE_MAX_BYTES, 0 = no cap. */
+const kbWebPageMaxBytes = () => envByteLimit('KB_WEB_PAGE_MAX_BYTES', DEFAULT_KB_WEB_PAGE_MAX_BYTES);
+/** Largest sitemap a knowledge-base crawl reads. KB_SITEMAP_MAX_BYTES, 0 = no cap. */
+const kbSitemapMaxBytes = () => envByteLimit('KB_SITEMAP_MAX_BYTES', DEFAULT_KB_SITEMAP_MAX_BYTES);
+
+/**
+ * Read a fetch Response body as a Buffer without holding more than `byteCap`
+ * bytes. Content-Length over the cap cancels the body unread; otherwise the
+ * stream is cancelled as soon as the running total passes the cap. A cap of 0
+ * or Infinity reads everything.
+ *
+ * @param {Response} resp
+ * @param {{byteCap?: number}} [opts]
+ * @returns {Promise<{buffer: Buffer|null, truncated: boolean, declaredBytes: number|null}>}
+ *   `buffer` is null when `truncated`; `declaredBytes` is Content-Length when sent.
+ */
+async function readBytesBounded(resp, { byteCap = Infinity } = {}) {
+    const cap = !byteCap || byteCap <= 0 ? Infinity : byteCap;
+    const rawLen = resp.headers?.get?.('content-length');
+    const declared = rawLen === null || rawLen === undefined || rawLen === '' ? NaN : Number(rawLen);
+    const declaredBytes = Number.isFinite(declared) ? declared : null;
+
+    if (resp.body === null) return { buffer: Buffer.alloc(0), truncated: false, declaredBytes };
+    if (cap === Infinity) return { buffer: Buffer.from(await resp.arrayBuffer()), truncated: false, declaredBytes };
+    if (declaredBytes !== null && declaredBytes > cap) {
+        await cancelQuietly(resp.body);
+        return { buffer: null, truncated: true, declaredBytes };
+    }
+
+    const reader = resp.body && typeof resp.body.getReader === 'function' ? resp.body.getReader() : null;
+    if (!reader) {
+        const buffer = Buffer.from(await resp.arrayBuffer());
+        return buffer.length > cap ? { buffer: null, truncated: true, declaredBytes } : { buffer, truncated: false, declaredBytes };
+    }
+    const chunks = [];
+    let received = 0;
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        received += value.length;
+        if (received > cap) {
+            await cancelQuietly(reader);
+            return { buffer: null, truncated: true, declaredBytes };
+        }
+        chunks.push(Buffer.from(value.buffer, value.byteOffset, value.byteLength));
+    }
+    return { buffer: Buffer.concat(chunks), truncated: false, declaredBytes };
+}
+
+/**
+ * Read a response as text for the knowledge base: never more than `byteCap`
+ * bytes declared and, for a stream, about that many characters. Over the cap it
+ * THROWS with a message naming the limit and `envName` (a partial page or
+ * sitemap must not be indexed). A cap of Infinity (env value 0) reads everything.
+ *
+ * @param {Response} resp
+ * @param {{byteCap: number, what: string, envName: string}} opts
+ * @returns {Promise<string>}
+ */
+async function readTextOrThrowOversize(resp, { byteCap, what, envName }) {
+    const tooBig = (size) => {
+        const e = new Error(`${what} is too large to index (${size}; limit ${(byteCap / 1048576).toFixed(0)} MB). An admin can raise the limit with the ${envName} environment variable (0 = no limit).`);
+        /** @type {any} */ (e).oversize = true;
+        return e;
+    };
+    if (byteCap === Infinity) return resp.text();
+    const declared = Number(resp.headers?.get?.('content-length'));
+    if (resp.body !== null && Number.isFinite(declared) && declared > byteCap) {
+        await cancelQuietly(resp.body);
+        throw tooBig(`${(declared / 1048576).toFixed(1)} MB`);
+    }
+    const { text, truncated } = await readBodyBounded(resp, { charCap: byteCap, stopOnOversizeHeader: true });
+    if (truncated) throw tooBig('larger than the limit');
+    return text;
+}
+
+/** A web page for the knowledge base, capped by KB_WEB_PAGE_MAX_BYTES (throws when over). */
+const readKbPage = (resp, url) => readTextOrThrowOversize(resp, { byteCap: kbWebPageMaxBytes(), what: `Page ${url}`, envName: 'KB_WEB_PAGE_MAX_BYTES' });
+
+/** The message a tool answers with when a file is over the cap. */
+function fileTooLargeMessage(name, sizeBytes, capBytes) {
+    const size = sizeBytes == null ? 'larger than the limit' : `${(sizeBytes / 1048576).toFixed(1)} MB`;
+    return `${name} is too large to read (${size}; limit ${(capBytes / 1048576).toFixed(0)} MB). An admin can raise the limit with the TOOL_FILE_MAX_BYTES environment variable (0 = no limit).`;
+}
+
+module.exports = {
+    HTTP_RESPONSE_CAP, MAX_BYTES_PER_CHAR, readBodyBounded,
+    envByteLimit, toolFileMaxBytes, kbWebPageMaxBytes, kbSitemapMaxBytes,
+    readBytesBounded, fileTooLargeMessage, readTextOrThrowOversize, readKbPage,
+};

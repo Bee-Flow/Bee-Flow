@@ -44,6 +44,13 @@ stub('../../stores/storageStore', {
         fx.objects.set(key, buffer);
         return { key };
     },
+    uploadFileFromPath: async (key, filePath, contentType) => {
+        const buffer = fs.readFileSync(filePath);
+        fx.uploadCalls.push({ key, contentType, size: buffer.length, fromPath: filePath });
+        if (fx.uploadCalls.length < fx.failUploadsUntilAttempt) throw new Error('rustfs transient');
+        fx.objects.set(key, buffer);
+        return { key };
+    },
     streamFile: async (key) => {
         if (fx.streamError) throw fx.streamError;
         if (!fx.objects.has(key)) { const e = new Error('gone'); e.name = 'NoSuchKey'; throw e; }
@@ -108,6 +115,17 @@ test('exhausted retries report "failed", never a phantom key', async () => {
 test('a recording is uploaded with its real content type', async () => {
     await store.persistSavedAudioToStorage('saved-recordings/a.webm', Buffer.from('x'), '.webm');
     assert.strictEqual(fx.uploadCalls[0].contentType, 'audio/webm');
+});
+
+test('a file path is uploaded from disk (not as a Buffer), with retries and the same content type', async () => {
+    const p = localFile('stream-src.webm', 'streamed-bytes');
+    fx.failUploadsUntilAttempt = 2;
+    const res = await store.persistSavedAudioToStorage('saved-recordings/s.webm', p, '.webm');
+    assert.strictEqual(res.ok, true);
+    assert.strictEqual(fx.uploadCalls.length, 2);
+    assert.strictEqual(fx.uploadCalls[1].fromPath, p);
+    assert.strictEqual(fx.uploadCalls[1].contentType, 'audio/webm');
+    assert.strictEqual(fx.objects.get('saved-recordings/s.webm').toString(), 'streamed-bytes');
 });
 
 // ── contentTypeForAudio ──────────────────────────────────────────────────────

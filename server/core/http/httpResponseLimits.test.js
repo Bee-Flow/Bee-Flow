@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { HTTP_RESPONSE_CAP, MAX_BYTES_PER_CHAR, readBodyBounded } = require('./httpResponseLimits');
+const { HTTP_RESPONSE_CAP, MAX_BYTES_PER_CHAR, readBodyBounded, readBytesBounded, envByteLimit } = require('./httpResponseLimits');
 
 // A streamed Response whose chunks we can count, to prove the read stops early.
 function streamed(chunkCount, chunkSize, headers = {}) {
@@ -70,4 +70,58 @@ test('a leading UTF-8 BOM is stripped, like Response#text()', async () => {
     const r = await readBodyBounded(new Response(new Uint8Array([0xEF, 0xBB, 0xBF, 0x7B, 0x7D])));
     assert.deepEqual(r, { text: '{}', truncated: false });
     assert.deepEqual(JSON.parse(r.text), {});
+});
+
+test('readBytesBounded: Content-Length over the cap cancels without reading', async () => {
+    const { resp, pulled, cancelled } = streamed(10, 100, { 'content-length': '1000' });
+    const r = await readBytesBounded(resp, { byteCap: 500 });
+    assert.deepEqual({ t: r.truncated, b: r.buffer, d: r.declaredBytes }, { t: true, b: null, d: 1000 });
+    assert.equal(pulled(), 0);
+    assert.equal(cancelled(), true);
+});
+
+test('readBytesBounded: a streamed body without a header is cut once past the cap', async () => {
+    const { resp, pulled, cancelled } = streamed(1000, 100);
+    const r = await readBytesBounded(resp, { byteCap: 450 });
+    assert.equal(r.truncated, true);
+    assert.equal(r.declaredBytes, null);
+    assert.ok(pulled() < 20, `pulled ${pulled()}`);
+    assert.equal(cancelled(), true);
+});
+
+test('readBytesBounded: exactly at the cap is returned whole', async () => {
+    const r = await readBytesBounded(new Response(Buffer.alloc(100, 97)), { byteCap: 100 });
+    assert.equal(r.truncated, false);
+    assert.equal(r.buffer.length, 100);
+    assert.equal((await readBytesBounded(new Response(Buffer.alloc(101, 97)), { byteCap: 100 })).truncated, true);
+});
+
+test('readBytesBounded: cap 0 or Infinity means no cap', async () => {
+    for (const byteCap of [0, Infinity]) {
+        const r = await readBytesBounded(new Response(Buffer.alloc(5000, 97), { headers: { 'content-length': '5000' } }), { byteCap });
+        assert.equal(r.truncated, false);
+        assert.equal(r.buffer.length, 5000);
+    }
+});
+
+test('envByteLimit: unset -> default, 0 -> Infinity, junk -> default', () => {
+    const k = 'TEST_LIMIT_XYZ';
+    delete process.env[k];
+    assert.equal(envByteLimit(k, 7), 7);
+    process.env[k] = '0';
+    assert.equal(envByteLimit(k, 7), Infinity);
+    process.env[k] = 'abc';
+    assert.equal(envByteLimit(k, 7), 7);
+    process.env[k] = '123';
+    assert.equal(envByteLimit(k, 7), 123);
+    delete process.env[k];
+});
+
+test('readTextOrThrowOversize: throws naming the env var; 0/Infinity reads all', async () => {
+    const { readTextOrThrowOversize } = require('./httpResponseLimits');
+    const opts = { byteCap: 100, what: 'Page x', envName: 'KB_X' };
+    await assert.rejects(() => readTextOrThrowOversize(new Response('a'.repeat(500)), opts), /KB_X/);
+    await assert.rejects(() => readTextOrThrowOversize(new Response('hi', { headers: { 'content-length': '5000' } }), opts), /KB_X/);
+    assert.equal(await readTextOrThrowOversize(new Response('a'.repeat(100)), opts), 'a'.repeat(100));
+    assert.equal((await readTextOrThrowOversize(new Response('a'.repeat(500)), { ...opts, byteCap: Infinity })).length, 500);
 });

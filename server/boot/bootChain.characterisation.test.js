@@ -88,7 +88,7 @@ test('the CORS dispatcher is ONE layer; the Stripe raw parser precedes the JSON 
     assert.equal(typeof parsers.calls[1][1], 'function', 'then the global JSON parser, pathless');
 });
 
-test('the JSON parser keeps the exact raw bytes on req.rawBody (connector HMAC) and parses the body', async () => {
+test('the JSON parser keeps the exact raw bytes on req.rawBody for a signed (connector HMAC) request and parses the body', async () => {
     const express = require('express');
     const app = express();
     httpMiddleware.applyBodyParsers(app);
@@ -99,8 +99,10 @@ test('the JSON parser keeps the exact raw bytes on req.rawBody (connector HMAC) 
     const base = `http://127.0.0.1:${server.address().port}`;
     try {
         const sent = '{"a":  1}';
-        const echo = await (await fetch(`${base}/echo`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: sent })).json();
+        const echo = await (await fetch(`${base}/echo`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-beeflow-sig': '1.abc' }, body: sent })).json();
         assert.deepEqual(echo, { raw: sent, body: { a: 1 } });
+        const unsigned = await (await fetch(`${base}/echo`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: sent })).json();
+        assert.deepEqual(unsigned, { body: { a: 1 } }, 'an unsigned request gets no rawBody copy');
         const hook = await (await fetch(`${base}/api/stripe/webhook`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: sent })).json();
         assert.deepEqual(hook, { isBuffer: true, raw: null }, 'the webhook path gets a Buffer from express.raw, the JSON parser leaves it alone');
     } finally {

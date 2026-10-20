@@ -314,7 +314,7 @@ async function fetchUrlContent(url) {
         if (resolvedUrl !== url) {
             await assertUrlIsPublic(resolvedUrl);
         }
-        const html = await response.text();
+        const html = await require('../http/httpResponseLimits').readKbPage(response, url);
         const contentType = response.headers.get('content-type') || '';
 
         if (contentType.includes('text/html')) {
@@ -332,7 +332,7 @@ async function fetchUrlContent(url) {
             throw new Error(`Unsupported content type: ${contentType}`);
         }
     } catch (fetchErr) {
-        // If even the basic fetch fails, try headless browser directly
+        if (fetchErr?.oversize) throw fetchErr; // a refusal, not a failure: the headless fallback would load the same page
         log.info(`[KBHelpers] Simple fetch failed for ${url}: ${fetchErr.message}, trying headless browser...`);
         content = '';
     }

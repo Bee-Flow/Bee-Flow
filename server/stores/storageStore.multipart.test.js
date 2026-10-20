@@ -118,3 +118,15 @@ test('buildStudioAppDatasetKey: artifact vocabulary is closed', () => {
     assert.throws(() => store.buildStudioAppDatasetKey('u1', 'a1', 'd1', 'rsid/99.bin'), /unknown artifact/);
     assert.throws(() => store.buildStudioAppDatasetKey('u1', 'a1', 'd1', ''), /requires/);
 });
+
+test('uploadFileFromPath copies a file from disk and records its content type', async () => {
+    const src = path.join(LOCAL_ROOT, 'tests', `src-${process.pid}.bin`);
+    fs.mkdirSync(path.dirname(src), { recursive: true });
+    const bytes = Buffer.alloc(300_000, 7);
+    fs.writeFileSync(src, bytes);
+    const key = `${RUN_PREFIX}/from-path.webm`;
+    assert.deepStrictEqual(await store.uploadFileFromPath(key, src, 'audio/webm'), { key });
+    const { stream, contentType } = await store.streamFile(key);
+    assert.deepStrictEqual(await readAll(stream), bytes);
+    assert.strictEqual(contentType, 'audio/webm');
+});

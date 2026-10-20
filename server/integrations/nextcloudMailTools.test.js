@@ -87,3 +87,29 @@ test('the classifier does not give Mail errors the Files advice', async () => {
     assert.match(c.message, /mail/i);
 });
 
+
+// ── Attachment size cap (TOOL_FILE_MAX_BYTES) ───────────────────────────
+function binaryReply(buf, headers = {}) {
+    return { ok: true, status: 200, headers: new Headers(headers), text: async () => buf.toString(), arrayBuffer: async () => Uint8Array.from(buf).buffer };
+}
+
+test('mail_read_attachment refuses an attachment over TOOL_FILE_MAX_BYTES and names the variable', async () => {
+    const prev = process.env.TOOL_FILE_MAX_BYTES;
+    process.env.TOOL_FILE_MAX_BYTES = String(1024 * 1024);
+    try {
+        const { out } = await run(executeNextcloudMailTool, 'nextcloud_mail_read_attachment', { messageId: 5, attachmentId: 'a1', filename: 'big.txt' },
+            async () => binaryReply(Buffer.alloc(2 * 1024 * 1024, 97), { 'content-type': 'text/plain', 'content-length': String(2 * 1024 * 1024) }));
+        assert.match(out.error, /TOOL_FILE_MAX_BYTES/);
+        assert.match(out.error, /2\.0 MB/);
+        assert.strictEqual(out.content, undefined);
+    } finally {
+        if (prev === undefined) delete process.env.TOOL_FILE_MAX_BYTES; else process.env.TOOL_FILE_MAX_BYTES = prev;
+    }
+});
+
+test('mail_read_attachment still reads a 1 MB text attachment under the default cap', async () => {
+    const { out } = await run(executeNextcloudMailTool, 'nextcloud_mail_read_attachment', { messageId: 5, attachmentId: 'a1', filename: 'ok.txt' },
+        async () => binaryReply(Buffer.alloc(1024 * 1024, 97), { 'content-type': 'text/plain' }));
+    assert.strictEqual(out.error, undefined);
+    assert.strictEqual(out.size, 1024 * 1024);
+});

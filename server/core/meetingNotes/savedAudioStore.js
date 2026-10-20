@@ -77,10 +77,16 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
  * indistinguishable from "this install has no object storage", so a transient
  * RustFS blip silently produced a note whose audio could never be recovered.
  *
+ * `source` is a Buffer or a file path; a path is streamed up in bounded parts
+ * (a 500 MB recording is never read into memory whole).
+ *
+ * @param {string} key
+ * @param {Buffer|string} source
+ * @param {string} ext
  * @returns {Promise<{ok: boolean, key: string|null, reason: string, error?: string}>}
  *   reason ∈ 'stored' | 'not_configured' | 'unavailable' | 'failed'
  */
-async function persistSavedAudioToStorage(key, buffer, ext) {
+async function persistSavedAudioToStorage(key, source, ext) {
     const storageStore = require('../../stores/storageStore');
     // ensureAvailable, not isAvailable: after a RustFS outage this makes the
     // FIRST upload succeed rather than the one after it.
@@ -101,7 +107,8 @@ async function persistSavedAudioToStorage(key, buffer, ext) {
     let lastErr = null;
     for (let attempt = 1; attempt <= PERSIST_ATTEMPTS; attempt++) {
         try {
-            await storageStore.uploadFile(key, buffer, contentType);
+            if (typeof source === 'string') await storageStore.uploadFileFromPath(key, source, contentType);
+            else await storageStore.uploadFile(key, source, contentType);
             return { ok: true, key, reason: 'stored' };
         } catch (e) {
             lastErr = e;
@@ -215,9 +222,9 @@ async function repairSavedAudio({ id, ownerId, audioPath, audioStorageKey } = {}
     if (repairsInFlight.has(basename)) return null;
     repairsInFlight.add(basename);
     try {
-        const buf = await fs.promises.readFile(audioPath);
+        await fs.promises.access(audioPath);
         const key = savedAudioKey(basename);
-        const res = await persistSavedAudioToStorage(key, buf, path.extname(basename));
+        const res = await persistSavedAudioToStorage(key, audioPath, path.extname(basename));
         if (!res.ok) return null;
         const transcriptionStore = require('../../stores/transcriptionStore');
         // IfMissing: two replicas can spot the same unstored file; the loser

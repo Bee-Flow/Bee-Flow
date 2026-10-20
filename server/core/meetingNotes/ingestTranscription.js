@@ -35,11 +35,16 @@ async function transcribeWithVoxtral({ filePath, fileName, language, contextTerm
         throw new IngestError('Mistral API key not configured.', { code: 'missing_mistral_key', status: 400 });
     }
     const client = require('./voxtralClient').createVoxtralClient(apiKey);
-    const fileContent = fs.readFileSync(filePath);
+    // A File backed by the file on disk: the SDK appends it to the multipart
+    // form as-is, so the recording is read from disk while it is sent instead
+    // of being copied into memory first (it buffers a stream or Buffer whole).
+    const { contentTypeForAudio } = require('./savedAudioStore');
+    const blob = await fs.openAsBlob(filePath, { type: contentTypeForAudio(fileName) });
+    const file = new File([blob], fileName, { type: blob.type });
     const contextBias = toContextBias(contextTerms);
     return client.audio.transcriptions.complete({
         model: 'voxtral-mini-2602',
-        file: { fileName, content: fileContent },
+        file,
         diarize: true, language,
         timestampGranularities: ['segment'],
         ...(contextBias.length ? { contextBias } : {}),

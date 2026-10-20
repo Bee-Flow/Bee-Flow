@@ -260,6 +260,59 @@ To move to a new release, don't pull a single service — the stack is released 
 unit (set `TAG`, pull, `up -d`, verify). The full procedure, including backups and rollback:
 [Upgrades](upgrades.md).
 
+## Memory sizing {#memory-sizing}
+
+Bee Flow sets no memory limit on the server or on PostgreSQL, so a bigger machine simply uses what it has. If you run on a small host, or share it with other workloads, these are the typical figures per service:
+
+| Service | Typical | Peak |
+|---|---|---|
+| Server | 1 to 2 GB | grows with large uploads and long documents |
+| PostgreSQL | 0.3 to 1 GB | grows with cache and concurrent queries |
+| Browser sidecar | up to 1 GB | 1 GB (its limit, `BROWSER_MEMORY_LIMIT`) |
+| PII guard (`guard` profile) | about 2.5 GB | up to 4 GB on very large documents |
+| Classifier (`classify` profile) | 1.7 to 2.2 GB | 3 GB (its limit, `CLASSIFY_MEM`) |
+
+### Recommended setup for a 16 GB host
+
+Put the limits in a `docker-compose.override.yml` next to the compose file:
+
+```yaml
+services:
+  server:
+    mem_limit: 4g
+    environment:
+      NODE_OPTIONS: --max-old-space-size=2560
+  postgres:
+    mem_limit: 1536m
+  guard-service:
+    environment:
+      GUARD_PII_HARD_MAX_CHARS: "300000"
+```
+
+and in `.env`:
+
+```bash
+GUARD_MEM=5g          # memory limit of the PII guard
+MALLOC_ARENA_MAX=2    # fewer glibc memory arenas: less fragmentation in the server, guard and classifier
+```
+
+`SERVER_NODE_OPTIONS` in `.env` is an alternative to the `NODE_OPTIONS` line above. Leaving `SERVER_NODE_OPTIONS` or `MALLOC_ARENA_MAX` empty keeps the default behaviour. **On a bigger server you can leave all of this out.**
+
+### Settings for memory use
+
+Each of these has a generous default, and `0` means unlimited (or off).
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DLP_TOKENMAP_IDLE_MS` | `7200000` (2 h) | A conversation's Privacy Shield token map is dropped from memory after this long idle. It is reloaded from the database on next use, nothing is lost. `0` = never drop. |
+| `DLP_TOKENMAP_MAX_CONVERSATIONS` | `2000` | Most conversations whose token map is held in memory; the least recently used go first. `0` = unlimited. |
+| `MEMORY_TELEMETRY_INTERVAL_MS` | `300000` (5 min) | How often the server logs its memory use (rss, heap, external, array buffers, in MB). `0` = off. |
+| `TOOL_FILE_MAX_BYTES` | `104857600` (100 MB) | Largest file a tool reads into memory. `0` = unlimited. |
+| `KB_WEB_PAGE_MAX_BYTES` | `10485760` (10 MB) | Largest web page a knowledge-base source reads. `0` = unlimited. |
+| `KB_SITEMAP_MAX_BYTES` | `52428800` (50 MB) | Largest sitemap a crawl reads. `0` = unlimited. |
+
+The download limits are also listed under [Environment variables](./env.md#download-size-limits).
+
 ## Production hardening checklist
 
 - [ ] `SESSION_SECRET` and `MASTER_ENCRYPTION_KEY` set to fresh random values (`selfhost.sh` does this)

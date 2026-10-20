@@ -209,3 +209,41 @@ test('every URL goes through the guard, sitemaps included', async () => {
 test('only manual and schedule are offered — a page has no change event', () => {
     assert.deepStrictEqual(webpage.supportsModes, ['manual', 'schedule']);
 });
+
+function withEnv(name, value, fn) {
+    const prev = process.env[name];
+    if (value === undefined) delete process.env[name]; else process.env[name] = value;
+    return Promise.resolve(fn()).finally(() => { if (prev === undefined) delete process.env[name]; else process.env[name] = prev; });
+}
+
+test('a page over KB_WEB_PAGE_MAX_BYTES is refused, not indexed in part', async () => {
+    reset();
+    respond = () => ({ status: 200, headers: { ...HTML }, body: '<html><body>' + 'x'.repeat(5000) + '</body></html>' });
+    await withEnv('KB_WEB_PAGE_MAX_BYTES', '1000', async () => {
+        await assert.rejects(() => webpage.fetch(ITEM, null, CTX, {}), /KB_WEB_PAGE_MAX_BYTES/);
+    });
+    respond = () => ({ status: 200, headers: { ...HTML, 'content-length': '999999999' }, body: '<html><body>hi</body></html>' });
+    await assert.rejects(() => webpage.fetch(ITEM, null, CTX, {}), /KB_WEB_PAGE_MAX_BYTES/);
+});
+
+test('KB_WEB_PAGE_MAX_BYTES=0 lifts the page cap', async () => {
+    reset();
+    respond = () => ({ status: 200, headers: { ...HTML, 'content-length': '999999999' }, body: '<html><body><p>fine</p></body></html>' });
+    await withEnv('KB_WEB_PAGE_MAX_BYTES', '0', async () => {
+        const out = await webpage.fetch(ITEM, null, CTX, {});
+        assert.ok(out.content.includes('fine'));
+    });
+});
+
+test('a sitemap over KB_SITEMAP_MAX_BYTES is skipped; the entry page still belongs', async () => {
+    reset();
+    respond = (url) => {
+        if (url.endsWith('/robots.txt')) return { status: 200, headers: {}, body: 'Sitemap: https://example.com/sitemap.xml' };
+        if (url.endsWith('/sitemap.xml')) return { status: 200, headers: {}, body: '<url><loc>https://example.com/a</loc></url>'.repeat(50) };
+        return { status: 404, ok: false, headers: {} };
+    };
+    await withEnv('KB_SITEMAP_MAX_BYTES', '100', async () => {
+        const items = await webpage.enumerate({ ...SOURCE, config: { url: 'https://example.com/terms', crawl: { maxPages: 10 } } }, CTX);
+        assert.strictEqual(items.length, 1);
+    });
+});

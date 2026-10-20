@@ -6,6 +6,7 @@
  */
 
 const { MAX_TEXT_BYTES, PROPFIND_BODY, joinDavPath, parsePropfind, ensureParentFolders } = require('./webdav');
+const { toolFileMaxBytes, readBytesBounded, fileTooLargeMessage } = require('../../core/http/httpResponseLimits');
 
 /** Compose each node's absolute path from its parent's and write it onto the node. */
 function withFullPaths(nodes, parentPath) {
@@ -154,7 +155,9 @@ async function executeFileOperationTool(toolName, args, ctx) {
             if (res.status === 401) return { error: authError };
             if (!res.ok) return { error: `Nextcloud read failed (${res.status})` };
             const contentType = res.headers.get('content-type') || '';
-            const buf = Buffer.from(await res.arrayBuffer());
+            const cap = toolFileMaxBytes();
+            const { buffer: buf, truncated: tooBig, declaredBytes } = await readBytesBounded(res, { byteCap: cap });
+            if (tooBig || !buf) return { error: fileTooLargeMessage(args.path, declaredBytes, cap) };
             // A GET on a collection answers 200 with Sabre's HTML banner, which
             // would otherwise come back as the "content" of the file.
             const isWebdavBanner = /html/i.test(contentType)

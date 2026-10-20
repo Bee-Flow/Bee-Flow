@@ -27,6 +27,7 @@
  */
 
 const { guardedFetch } = require('../fetchGuard');
+const { readTextOrThrowOversize, kbWebPageMaxBytes, kbSitemapMaxBytes } = require('../../http/httpResponseLimits');
 
 /** A crawl source will not walk more than this, whatever its config says. */
 const MAX_CRAWL_PAGES = 500;
@@ -108,7 +109,7 @@ async function fetch(item, stored, _ctx, _deps) {
 
     const resolvedUrl = res.url || item.url;
     const contentType = res.headers.get('content-type') || '';
-    const body = await res.text();
+    const body = await readTextOrThrowOversize(res, { byteCap: kbWebPageMaxBytes(), what: `Page ${item.url}`, envName: 'KB_WEB_PAGE_MAX_BYTES' });
 
     let content = '';
     let title = '';
@@ -174,7 +175,7 @@ async function sitemapPages(entryUrl, maxPages, ctx) {
             // they need not share the origin we started from.
             const res = await guardedFetch(candidate, { signal: AbortSignal.timeout(15_000) });
             if (!res.ok) continue;
-            const xml = await res.text();
+            const xml = await readTextOrThrowOversize(res, { byteCap: kbSitemapMaxBytes(), what: `Sitemap ${candidate}`, envName: 'KB_SITEMAP_MAX_BYTES' });
             for (const m of xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)) {
                 const loc = m[1];
                 if (/\.xml(\.gz)?$/i.test(loc)) {

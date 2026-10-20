@@ -100,3 +100,29 @@ test('a signature that failed verification is not remembered', async () => {
     assert.strictEqual(await verifyConnectorSig(forged, { rejectReplay: true }), null);
     assert.deepStrictEqual(await verifyConnectorSig(good, { rejectReplay: true }), ORG, 'the genuine delivery still verifies');
 });
+
+test('end to end: a signed request through the global JSON parser verifies; an unsigned one gets no rawBody', async () => {
+    const express = require('express');
+    const { applyBodyParsers } = require('../boot/httpMiddleware');
+    const app = express();
+    applyBodyParsers(app);
+    app.post('/auth/webhook/nc-user-sync', async (r, res) => {
+        const org = await verifyConnectorSig(r);
+        res.json({ org, hasRaw: r.rawBody !== undefined });
+    });
+    const server = app.listen(0, '127.0.0.1');
+    await new Promise((r) => server.once('listening', r));
+    const url = '/auth/webhook/nc-user-sync';
+    const body = '{"a":  1}';
+    const ts = Math.floor(Date.now() / 1000);
+    const digest = crypto.createHmac('sha256', TENANT_KEY).update(`${ts}\nPOST\n${url}\n${body}`).digest('hex');
+    try {
+        const base = `http://127.0.0.1:${server.address().port}${url}`;
+        const signed = await (await fetch(base, { method: 'POST', body, headers: { 'content-type': 'application/json', 'x-beeflow-nc-instance-id': 'nc-1', 'x-beeflow-sig': `${ts}.${digest}` } })).json();
+        assert.deepStrictEqual(signed, { org: ORG, hasRaw: true });
+        const unsigned = await (await fetch(base, { method: 'POST', body, headers: { 'content-type': 'application/json' } })).json();
+        assert.deepStrictEqual(unsigned, { org: null, hasRaw: false });
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+});

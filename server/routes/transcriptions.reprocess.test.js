@@ -80,6 +80,7 @@ stub('../stores/storageStore', {
         return { stream: Readable.from(storageObjects.get(key)), contentType: 'audio/webm', contentLength: storageObjects.get(key).length };
     },
     uploadFile: async (key, buffer) => { storageObjects.set(key, buffer); return { key }; },
+    uploadFileFromPath: async (key, filePath) => { storageObjects.set(key, fs.readFileSync(filePath)); return { key }; },
     deleteFile: async () => ({}),
 });
 stub('../core/llm/llmClient', {});

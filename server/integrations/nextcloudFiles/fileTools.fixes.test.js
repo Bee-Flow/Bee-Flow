@@ -70,6 +70,24 @@ test('a truncated text read never ends in half a character', async () => {
     assert.ok(!res.content.includes('�'), 'no replacement character');
 });
 
+test('read_file refuses a file over TOOL_FILE_MAX_BYTES; a 1 MB file still reads', async () => {
+    const prev = process.env.TOOL_FILE_MAX_BYTES;
+    process.env.TOOL_FILE_MAX_BYTES = String(1024 * 1024);
+    try {
+        const big = ctxFor(() => reply(200, Buffer.alloc(2 * 1024 * 1024, 97), { 'content-type': 'text/plain', 'content-length': String(2 * 1024 * 1024) }));
+        const res = await executeFileOperationTool('nextcloud_read_file', { path: '/big.txt' }, big.ctx);
+        assert.match(res.error, /TOOL_FILE_MAX_BYTES/);
+        assert.match(res.error, /2\.0 MB/);
+        assert.strictEqual(res.content, undefined);
+        const ok = ctxFor(() => reply(200, Buffer.alloc(1024 * 1024, 97), { 'content-type': 'text/plain' }));
+        const res2 = await executeFileOperationTool('nextcloud_read_file', { path: '/ok.txt' }, ok.ctx);
+        assert.strictEqual(res2.error, undefined);
+        assert.ok(res2.content);
+    } finally {
+        if (prev === undefined) delete process.env.TOOL_FILE_MAX_BYTES; else process.env.TOOL_FILE_MAX_BYTES = prev;
+    }
+});
+
 const SHARE = { ocs: { meta: { statuscode: 200 }, data: { id: '12', token: 't', url: 'u', permissions: 1 } } };
 
 test('share ids come back as numbers from create, share_with and list', async () => {

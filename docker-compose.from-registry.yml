@@ -113,6 +113,10 @@ services:
       - "${SERVER_BIND_HOST:-127.0.0.1}:${SERVER_PORT:-3001}:${SERVER_PORT:-3001}"
     environment:
       - NODE_ENV=production
+      # Optional memory tuning, empty = default behaviour (see docs: Memory sizing).
+      # e.g. SERVER_NODE_OPTIONS=--max-old-space-size=2560, MALLOC_ARENA_MAX=2
+      - NODE_OPTIONS=${SERVER_NODE_OPTIONS:-}
+      - MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-}
       - PORT=${SERVER_PORT:-3001}
       - SESSION_SECRET=${SESSION_SECRET:?Set SESSION_SECRET in .env (openssl rand -hex 32)}
       - CORS_ORIGIN=${CLIENT_PROTOCOL:-http}://${CLIENT_PUBLIC_HOST:-localhost:5176},${SERVER_PROTOCOL:-http}://${SERVER_PUBLIC_HOST:-localhost:3001}
@@ -469,6 +473,7 @@ services:
       # on p50 AND p95, never p50 alone.
       - GUARD_PII_ORT_INTRA_OP_THREADS=${GUARD_PII_ORT_INTRA_OP_THREADS:-0}
       - GUARD_LOG_LEVEL=${GUARD_LOG_LEVEL:-INFO}
+      - MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-}
       - SERVICES_API_KEY=${SERVICES_API_KEY:-}
     # Defaults mirror the prod k8s cgroup limits so a big-document scan can't peg
     # the whole dev box (which has NO limit by default), and so a self-host on
@@ -593,6 +598,7 @@ services:
       # CLASSIFY_API_KEY wins; otherwise the stack-wide SERVICES_API_KEY.
       # The server sends CLASSIFY_SERVICE_API_KEY, so keep them equal.
       - CLASSIFY_API_KEY=${CLASSIFY_API_KEY:-}
+      - MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-}
       - SERVICES_API_KEY=${SERVICES_API_KEY:-}
     # Threads are sized from this quota (app/cpu.py).
     cpus: ${CLASSIFY_CPUS:-3}

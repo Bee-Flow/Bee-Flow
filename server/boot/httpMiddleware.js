@@ -187,6 +187,20 @@ function applyCors(app, { log = defaultLog } = {}) {
     return { ALLOWED_ORIGINS, isAllowedOrigin, safeForLog, warnRejectedOrigin };
 }
 
+/**
+ * Whether a request can need `req.rawBody`. Keeping a string copy of every JSON
+ * body doubles the memory of large payloads; only two readers exist:
+ *   - auth/connectorSig.js verifies the HMAC of a request carrying X-Beeflow-Sig
+ *   - routes/cmsForms.js sizeGuard measures the public website-form body
+ * (the GitHub / Nextcloud webhook routes capture their own, route-level.)
+ * @param {import('express').Request} req
+ */
+function needsRawBody(req) {
+    if (req.headers && req.headers['x-beeflow-sig']) return true;
+    const url = String(req.originalUrl || req.url || '');
+    return url.includes('/forms/');
+}
+
 /** The raw Stripe-webhook body, then the global JSON parser. */
 function applyBodyParsers(app) {
     // Stripe webhook needs raw body for signature verification — must be BEFORE express.json
@@ -198,7 +212,7 @@ function applyBodyParsers(app) {
     // stream first, so the signature was checked against an empty body and every
     // connector→SaaS call 401'd. Storing the raw string here (a no-op for parsing)
     // makes `req.rawBody` available to those verifiers.
-    app.use(express.json({ limit: '20mb', verify: (req, _res, buf) => { req.rawBody = buf.toString('utf8'); } }));
+    app.use(express.json({ limit: '20mb', verify: (req, _res, buf) => { if (needsRawBody(req)) req.rawBody = buf.toString('utf8'); } }));
 }
 
-module.exports = { applyRequestIdAndSecurityHeaders, applyCors, applyBodyParsers };
+module.exports = { applyRequestIdAndSecurityHeaders, applyCors, applyBodyParsers, needsRawBody };
