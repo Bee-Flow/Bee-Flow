@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2, ChevronUp, ChevronDown, ChevronRight, Eye, Maximize2, Play } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FormRow, inputClass, textareaClass, denseInputClass, cardClass, subLabelClass } from './formPrimitives';
 import PublicFormRenderer, { FormEndingView } from '../../../../forms/PublicFormRenderer';
 import TemplateField from '../../mapping/TemplateField';
@@ -9,9 +9,15 @@ import { loadPickSources, pickSourcesSync } from '../pickSourceCatalog';
 // chances to ship an edit that moves a binding without moving what points at
 // it (see fieldDesigner.jsx).
 import { BindingNameField } from './fieldDesigner';
-import { normaliseOptions } from '../../../../forms/formOptions';
+import ChoiceOptionsEditor from './formFields/ChoiceOptionsEditor';
+import { CHOICE_TYPES, typeChangePatch } from './formFields/fieldKinds';
+import FieldRulesEditor from './formFields/FieldRulesEditor';
+import InfoFieldEditor from './formFields/InfoFieldEditor';
+import PerItemEditor from './formFields/PerItemEditor';
+import ShowIfEditor from './formFields/ShowIfEditor';
 import { buildPreviewConfig, fillTemplate, isDisplayField, DISPLAY_FIELD_TYPES } from './formPreview';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import { normaliseOptions } from '../../../../forms/formOptions';
 
 export { normaliseOptions, fillTemplate };
 
@@ -55,11 +61,14 @@ const FIELD_TYPES = [
     { value: 'number', label: 'Number' },
     { value: 'date', label: 'Date' },
     { value: 'select', label: 'Dropdown' },
+    { value: 'radio', label: 'Choice buttons' },
+    { value: 'multiselect', label: 'Several choices' },
     { value: 'checkbox', label: 'Checkbox' },
     { value: 'file', label: 'File upload' },
     { value: 'app_pick', label: 'Pick from an app' },
     { value: 'download', label: 'Download button' },
     { value: 'notebook', label: 'Open in Notebooks' },
+    { value: 'info', label: 'Text block' },
 ];
 
 /**
@@ -170,21 +179,6 @@ export function slugifyFieldName(label, taken = new Set()) {
     return `${base}_${Date.now().toString(36)}`;
 }
 
-/**
- * The stored options array as the "one per line" text the author edits.
- *
- * The blank filter is deliberate: an AI-authored `{ label: 'B' }` with no
- * `value` yields '' here, and showing it would put an empty line in the middle
- * of the list. It stays invisible, exactly as it is today.
- */
-const joinOptions = (options) => (options || [])
-    .map(o => (typeof o === 'string' ? o : o?.value || ''))
-    .filter(Boolean)
-    .join('\n');
-
-/** The reverse: the text the author typed as the array we persist. */
-const splitOptions = (text) => text.split('\n').map(s => s.trim()).filter(Boolean);
-
 export default function FormBuilderFields({
     form,
     onChange,
@@ -254,8 +248,8 @@ export default function FormBuilderFields({
     // same way here, against the sample tree, and leave unresolvable paths
     // standing so a typo stays visible rather than silently vanishing.
     const previewConfig = useMemo(
-        () => buildPreviewConfig({ form, theme, isEnding, allowVariables, previewSample }),
-        [form, theme, isEnding, allowVariables, previewSample],
+        () => buildPreviewConfig({ form, theme, isEnding, allowVariables, previewSample, t }),
+        [form, theme, isEnding, allowVariables, previewSample, t],
     );
 
     const patch = (changes) => onChange({ ...form, ...changes });
@@ -271,6 +265,12 @@ export default function FormBuilderFields({
         const taken = new Set(fields.map(f => f.name));
         const label = type === 'notebook' ? 'Open in Notebooks' : 'Download';
         setFields([...fields, { name: slugifyFieldName(label, taken), type, label, fileId: '' }]);
+    };
+    const addInfoField = () => {
+        const taken = new Set(fields.map(f => f.name));
+        const label = t('automations.form_wizard.new_text_block', 'Note');
+        setFields([...fields, { name: slugifyFieldName(label, taken), type: 'info', label, content: '' }]);
+        setOpenAt(fields.length, true);
     };
     const updateField = (i, changes) => setFields(fields.map((f, j) => (j === i ? { ...f, ...changes } : f)));
     const removeField = (i) => {
@@ -471,6 +471,13 @@ export default function FormBuilderFields({
                         >
                             <Plus size={12} /> {t('automations.form_builder_fields.add_a_question', 'Add a question')}
                         </button>
+                        <button
+                            type="button"
+                            onClick={addInfoField}
+                            className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
+                        >
+                            <Plus size={12} /> {t('automations.form_wizard.add_a_text_block', 'Add a text block')}
+                        </button>
                     </div>
 
                     <FormRow label={t('automations.form_builder_fields.button_text', 'Button text')}>
@@ -531,6 +538,13 @@ export default function FormBuilderFields({
                         >
                             <Plus size={12} /> {t('automations.form_builder_fields.add_an_open_in_notebooks', 'Add an Open in Notebooks')}
                         </button>
+                        <button
+                            type="button"
+                            onClick={addInfoField}
+                            className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
+                        >
+                            <Plus size={12} /> {t('automations.form_wizard.add_a_text_block', 'Add a text block')}
+                        </button>
                     </div>
                 </div>
             )}
@@ -553,21 +567,13 @@ export default function FormBuilderFields({
 function FieldCard({ field, index, count, bindingBase, expanded = true, collapsible = true, onToggle = null, onChange, onRemove, onMove, allowVariables = false, onFocusField = null, previewSample = null, siblings = [], onRenameField = null }) {
     const { t } = useTranslation();
     const [showAdvanced, setShowAdvanced] = useState(false);
-    // The choices textarea keeps its OWN text. The stored array is trimmed and
-    // blank-free, so deriving the value from it would eat the trailing space or
-    // newline the moment one is typed: the write-back is synchronous, the join
-    // recomputes without that character, and React re-asserts node.value — the
-    // keystroke is reverted on its own event and the caret jumps to the end of
-    // the box. Same mechanism, same cure as App Studio's AiChatInspector.
-    const joinedOptions = joinOptions(field.options);
-    const [optionsText, setOptionsText] = useState(joinedOptions);
-    // Our own echo round-trips to the same list, so this stays equal while
-    // typing. Only an edit from OUTSIDE (an undo, the AI builder, a reordered
-    // card reusing this index) disagrees, and that is what we adopt.
-    if (splitOptions(optionsText).join('\n') !== splitOptions(joinedOptions).join('\n')) setOptionsText(joinedOptions);
     // Both point at a generated file by id, and neither collects anything —
     // only the button on the visitor's page differs.
-    const isDownload = DISPLAY_FIELD_TYPES.includes(field.type);
+    // Display fields give instead of ask: no "required", no placeholder, no binding name.
+    const isDisplay = DISPLAY_FIELD_TYPES.includes(field.type);
+    const isInfo = field.type === 'info';
+    const isDownload = isDisplay && !isInfo;
+    const editorProps = { field, index, onChange, allowVariables, onFocusField, previewSample };
     const typeMeta = FIELD_TYPES.find(ft => ft.value === (field.type || 'text'));
     const typeLabel = typeMeta ? t(`automations.form_builder_fields.type_${typeMeta.value}`, typeMeta.label) : field.type;
 
@@ -618,7 +624,7 @@ function FieldCard({ field, index, count, bindingBase, expanded = true, collapsi
                         {!expanded && (
                             <>
                                 <span className="shrink-0 text-[10px] text-[var(--text-tertiary)]">{typeLabel}</span>
-                                {!isDownload && field.required && (
+                                {!isDisplay && field.required && (
                                     <span className="shrink-0 text-[9px] uppercase tracking-wide px-1 rounded bg-[var(--accent)]/15 text-[var(--accent)]" data-testid="required-badge">
                                         {t('automations.form_builder_fields.required_badge', 'required')}
                                     </span>
@@ -651,12 +657,12 @@ function FieldCard({ field, index, count, bindingBase, expanded = true, collapsi
                     here would break every downstream <base>.<name> binding
                     silently. */}
                 <div className="flex-1 min-w-0">
-                    {slot('label', t('automations.form_builder_fields.question_label', 'Question {n} label', { n: index + 1 }), t('automations.form_builder_fields.what_to_ask', 'What do you want to ask?'))}
+                    {slot('label', t('automations.form_builder_fields.question_label', 'Question {n} label', { n: index + 1 }), isInfo ? t('automations.form_wizard.info_heading', 'Heading (optional)') : t('automations.form_builder_fields.what_to_ask', 'What do you want to ask?'))}
                 </div>
                 <select
                     aria-label={t('automations.form_builder_fields.question_type', 'Question {n} type', { n: index + 1 })}
                     value={field.type || 'text'}
-                    onChange={(e) => onChange({ type: e.target.value })}
+                    onChange={(e) => onChange(typeChangePatch(field, e.target.value))}
                     className={denseInputClass('!w-auto shrink-0')}
                 >
                     {FIELD_TYPES.map(ft => <option key={ft.value} value={ft.value}>{t(`automations.form_builder_fields.type_${ft.value}`, ft.label)}</option>)}
@@ -666,7 +672,7 @@ function FieldCard({ field, index, count, bindingBase, expanded = true, collapsi
             {/* A download collects nothing, so "Required" would be a promise
                 the form can never check. The server skips it for the same
                 reason (DISPLAY_FIELD_TYPES). */}
-            {!isDownload && (
+            {!isDisplay && (
                 <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] cursor-pointer select-none">
                     <input type="checkbox" checked={!!field.required} onChange={(e) => onChange({ required: e.target.checked })} />
                     {t('automations.form_builder_fields.required', 'Required')}
@@ -684,22 +690,8 @@ function FieldCard({ field, index, count, bindingBase, expanded = true, collapsi
                 </div>
             )}
 
-            {field.type === 'select' && (
-                <div className="space-y-0.5">
-                    <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.form_builder_fields.choices_one_per_line', 'Choices (one per line)')}</div>
-                    <textarea
-                        rows={4}
-                        aria-label={`Question ${index + 1} choices`}
-                        value={optionsText}
-                        onChange={(e) => {
-                            setOptionsText(e.target.value);
-                            onChange({ options: splitOptions(e.target.value) });
-                        }}
-                        className={textareaClass()}
-                        placeholder={'Red\nGreen\nBlue'}
-                    />
-                </div>
-            )}
+            {CHOICE_TYPES.includes(field.type) && <ChoiceOptionsEditor {...editorProps} />}
+            {isInfo && <InfoFieldEditor {...editorProps} />}
 
             {field.type === 'app_pick' && <AppPickEditor field={field} index={index} onChange={onChange} />}
 
@@ -716,9 +708,13 @@ function FieldCard({ field, index, count, bindingBase, expanded = true, collapsi
                 </div>
             )}
 
+            <FieldRulesEditor field={field} index={index} onChange={onChange} />
+            <PerItemEditor {...editorProps} bindingBase={bindingBase} />
+            {!isDownload && <ShowIfEditor field={field} index={index} siblings={siblings} onChange={onChange} />}
+
             {/* Advanced holds a placeholder and a binding name — both meaningless
                 for a field that is never filled in and never submitted. */}
-            {!isDownload && (
+            {!isDisplay && (
                 <button
                     type="button"
                     onClick={() => setShowAdvanced(v => !v)}
@@ -727,7 +723,7 @@ function FieldCard({ field, index, count, bindingBase, expanded = true, collapsi
                     {showAdvanced ? 'Hide advanced' : 'Advanced'}
                 </button>
             )}
-            {!isDownload && showAdvanced && (
+            {!isDisplay && showAdvanced && (
                 <div className="space-y-1.5">
                     <div className="space-y-0.5">
                         <div className="text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('automations.form_builder_fields.placeholder', 'Placeholder')}</div>

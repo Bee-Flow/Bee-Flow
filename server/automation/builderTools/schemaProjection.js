@@ -363,12 +363,11 @@ function projectTriggerForm(properties) {
     const fields = form.properties.fields;
     const item = fields && fields.items && fields.items.properties;
     if (!item) return;
-    // The app_pick extras (multiple / maxItems / withText) are for a form
-    // that picks several records — off the small band's beaten path, and
-    // `maxItems` as a NAME here would read like the keyword the walk strips.
-    delete item.multiple;
-    delete item.maxItems;
-    delete item.withText;
+    // The app_pick extras and the form-wizard rules (showIf, bounds, pattern, ...)
+    // are off the small band's beaten path, and names like `maxItems` / `pattern`
+    // would read like the keywords the walk strips. radio, multiselect and info go too.
+    for (const gone of ['multiple', 'maxItems', 'withText', 'content', 'showIf', 'min', 'max', 'minLength', 'maxLength', 'pattern', 'patternMessage', 'minSelected', 'maxSelected']) delete item[gone];
+    if (item.type && item.type.enum) item.type.enum = item.type.enum.filter((t) => !['radio', 'multiselect', 'info'].includes(t));
     if (item.options) item.options.description = 'select only.';
     if (item.accept) item.accept.description = 'file only: MIME allowlist, e.g. "application/pdf".';
     if (item.maxSizeMb) item.maxSizeMb.description = 'file only: 1–25.';

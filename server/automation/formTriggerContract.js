@@ -27,62 +27,26 @@
 
 'use strict';
 
-const { PARAM_NAME_RE, MAX_STRING_VALUE } = require('./appTriggerContract');
+const { PARAM_NAME_RE } = require('./appTriggerContract');
 const { canonicalizeTheme, validateTheme } = require('../core/cms/themeSpec');
 const pickSources = require('./formPickSources');
+const types = require('./formFieldTypes');
+const rules = require('./formFieldRules');
+const dynamic = require('./formDynamicFields');
+const coerce = require('./formCoerce');
 
-const FIELD_TYPES = Object.freeze(['text', 'textarea', 'email', 'number', 'date', 'select', 'checkbox', 'file', 'app_pick', 'download', 'notebook']);
-
-/**
- * Field types that DISPLAY something instead of collecting it.
- *
- * Both of today's two hand the visitor a file a `generate_document` or
- * `fill_document` step produced: `download` saves it, `notebook` opens it in Notebooks. They live in
- * `fields` because that is where a form's page furniture already is, but every
- * input-shaped code path has to step over them — they are never submitted,
- * never required, never coerced, and have no initial value. Treating one as an
- * input would make a form with a download button on it permanently
- * un-submittable.
- */
-const DISPLAY_FIELD_TYPES = Object.freeze(['download', 'notebook']);
-const isDisplayField = (f) => DISPLAY_FIELD_TYPES.includes(f?.type);
-
-/**
- * Display fields that point at a generated file by id. Same shape, same
- * authoring slot, same "the route resolves it" rule — only the button differs.
- */
-const FILE_FIELD_TYPES = Object.freeze(['download', 'notebook']);
-const isFileField = (f) => FILE_FIELD_TYPES.includes(f?.type);
-
-/** A question answered by picking a record in an app the FILLER has access to. */
-const isPickField = (f) => f?.type === 'app_pick';
-
-const MAX_FIELDS = 40;
-const MAX_LABEL_LEN = 120;
-const MAX_TEXT_LEN = 2000;          // title / description / successMessage, as AUTHORED
-// A description is the one text on a form page that routinely carries
-// INTERPOLATED run output — a closing page whose whole job is to show what the
-// automation produced ("here is your document, and here is the text"). The
-// authored template stays bounded by MAX_TEXT_LEN above (it is only a few
-// {{refs}}); what it renders TO is bounded separately and far higher, or the
-// page silently truncates the result mid-sentence at 2000 characters.
-const MAX_RENDERED_DESCRIPTION_LEN = 20000;
-const MAX_PLACEHOLDER_LEN = 120;
-const MAX_OPTIONS = 50;
-const MAX_OPTION_LEN = 120;
-// Server-side ceiling on a per-field `maxSizeMb`. uploadGuard's own default is
-// 25MB; a form author may lower it but never raise it past this.
-const MAX_UPLOAD_MB = 25;
-const DEFAULT_UPLOAD_MB = 10;
-// A textarea is the one field where a long answer is the point.
-const MAX_TEXTAREA_LEN = 20000;
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function isPlainObject(v) {
-    return v !== null && typeof v === 'object' && !Array.isArray(v);
-}
+// The module layout: formFieldTypes (vocabulary, limits, caps), formFieldRules
+// (rules + showIf), formDynamicFields (optionsFrom / fieldsFrom) and formCoerce
+// (submission coercion). This file is the facade: it normalizes, validates and
+// renders a declaration, and re-exports every name those modules own.
+const {
+    FIELD_TYPES, DISPLAY_FIELD_TYPES, FILE_FIELD_TYPES, CHOICE_FIELD_TYPES,
+    isDisplayField, isFileField, isPickField, isChoiceField, isDynamicField, isPlainObject,
+    MAX_FIELDS, MAX_LABEL_LEN, MAX_TEXT_LEN, MAX_RENDERED_DESCRIPTION_LEN, MAX_PLACEHOLDER_LEN,
+    MAX_OPTION_LEN, MAX_OPTION_HINT_LEN, MAX_INFO_LEN, MAX_UPLOAD_MB, DEFAULT_UPLOAD_MB,
+    RESERVED_NAME_RE, formOptionsCap, formFieldsFromCap,
+} = types;
+const { coerceFieldValue, coerceSubmission } = coerce;
 
 /** True when a definition's PRIMARY trigger is a form trigger. */
 function isFormTriggerDefinition(definition) {
@@ -91,15 +55,22 @@ function isFormTriggerDefinition(definition) {
 
 function normalizeOptions(raw) {
     if (!Array.isArray(raw)) return [];
+    const cap = formOptionsCap();
     const out = [];
     for (const o of raw) {
-        // Both `["Sales","Support"]` and `[{value,label}]` are accepted; the
+        // Both `["Sales","Support"]` and `[{value,label,hint}]` are accepted; the
         // builder writes plain strings, the AI builder sometimes writes objects.
         const value = typeof o === 'string' ? o : (isPlainObject(o) ? o.value : null);
         if (typeof value !== 'string' || !value.trim()) continue;
-        const label = isPlainObject(o) && typeof o.label === 'string' && o.label.trim() ? o.label : value;
-        out.push({ value: value.slice(0, MAX_OPTION_LEN), label: label.slice(0, MAX_OPTION_LEN) });
-        if (out.length >= MAX_OPTIONS) break;
+        const text = (v) => (typeof v === 'string' && v.trim() ? v : null);
+        const label = (isPlainObject(o) && text(o.label)) || value;
+        const hint = isPlainObject(o) ? text(o.hint) : null;
+        out.push({
+            value: value.slice(0, MAX_OPTION_LEN),
+            label: label.slice(0, MAX_OPTION_LEN),
+            ...(hint ? { hint: hint.slice(0, MAX_OPTION_HINT_LEN) } : {}),
+        });
+        if (cap > 0 && out.length >= cap) break;
     }
     return out;
 }
@@ -140,22 +111,52 @@ function normalizeFields(form, { interpolate = null } = {}) {
     const t = makeInterpolator(interpolate);
     const seen = new Set();
     const out = [];
+    // MAX_FIELDS bounds what an author declares; the questions a fieldsFrom
+    // template expands into are bounded per group (formFieldsFromCap) instead.
+    let declared = 0;
+    const perGroup = new Map();
+    const groupCap = formFieldsFromCap();
     for (const f of raw) {
         if (!isPlainObject(f)) continue;
         if (typeof f.name !== 'string' || !PARAM_NAME_RE.test(f.name) || seen.has(f.name)) continue;
+        const group = typeof f.group === 'string' && f.group ? f.group.slice(0, 60) : '';
+        if (!group && declared >= MAX_FIELDS) break;
+        if (group && f.groupHeader !== true && groupCap > 0 && (perGroup.get(group) || 0) >= groupCap) continue;
         seen.add(f.name);
         const type = FIELD_TYPES.includes(f.type) ? f.type : 'text';
         const label = typeof f.label === 'string' ? t(f.label).trim() : '';
         const field = {
             name: f.name,
             type,
-            label: label ? label.slice(0, MAX_LABEL_LEN) : f.name,
+            // An info block's heading is optional: blank stays blank, never its internal name.
+            label: label ? label.slice(0, MAX_LABEL_LEN) : (type === 'info' ? '' : f.name),
             required: !!f.required,
             placeholder: typeof f.placeholder === 'string' ? t(f.placeholder).slice(0, MAX_PLACEHOLDER_LEN) : '',
             help: typeof f.help === 'string' ? t(f.help).slice(0, MAX_PLACEHOLDER_LEN) : '',
         };
-        if (type === 'select') {
-            field.options = normalizeOptions(f.options).map(o => ({ value: o.value, label: t(o.label).slice(0, MAX_OPTION_LEN) || o.value }));
+        if (isChoiceField(field)) {
+            field.options = normalizeOptions(f.options).map(o => ({ ...o, label: t(o.label).slice(0, MAX_OPTION_LEN) || o.value }));
+            // The run found nothing to choose from: not required, or nobody could submit.
+            if (f.noOptions === true) { field.noOptions = true; field.required = false; }
+        }
+        if (type === 'info') {
+            field.required = false;
+            field.content = typeof f.content === 'string' ? t(f.content).slice(0, MAX_RENDERED_DESCRIPTION_LEN) : '';
+        }
+        Object.assign(field, rules.normalizeRules(f, type));
+        const showIf = rules.normalizeShowIf(f.showIf);
+        if (showIf) field.showIf = showIf;
+        // The source specs of dynamic fields stay on an AUTHORED field (the
+        // builder, the answers table and validation read them); the rendered
+        // config replaces them with their result.
+        const optionsFrom = isChoiceField(field) ? dynamic.normalizeSourceSpec(f.optionsFrom) : null;
+        if (optionsFrom) field.optionsFrom = optionsFrom;
+        const fieldsFrom = dynamic.FIELDS_FROM_TYPES.includes(type) ? dynamic.normalizeSourceSpec(f.fieldsFrom) : null;
+        if (fieldsFrom && !field.optionsFrom) field.fieldsFrom = fieldsFrom;
+        if (typeof f.group === 'string' && f.group) {
+            field.group = f.group.slice(0, 60);
+            if (typeof f.groupKey === 'string') field.groupKey = f.groupKey.slice(0, MAX_OPTION_LEN);
+            if (f.groupHeader === true) field.groupHeader = true;
         }
         if (type === 'file') {
             field.accept = typeof f.accept === 'string' ? f.accept.slice(0, 300) : '';
@@ -193,7 +194,8 @@ function normalizeFields(form, { interpolate = null } = {}) {
             field.fileId = typeof f.fileId === 'string' ? t(f.fileId).trim().slice(0, 200) : '';
         }
         out.push(field);
-        if (out.length >= MAX_FIELDS) break;
+        if (!group) declared += 1;
+        else if (f.groupHeader !== true) perGroup.set(group, (perGroup.get(group) || 0) + 1);
     }
     return out;
 }
@@ -211,9 +213,15 @@ function formTriggerFields(definition) {
  * nothing to submit, so zero fields is the normal case rather than an
  * unfinished one.
  *
+ * `allowDisplayFields: false` rejects download/notebook buttons (no file exists
+ * yet on the first page) and, unless `allowInfo` says otherwise, info blocks.
+ * `allowRunData: true` (a form_page step only) lets choices and questions come
+ * from earlier steps (optionsFrom / fieldsFrom).
+ *
  * Returns issue records `[{ code, path, message, hint }]`; empty = valid.
  */
-function validateFormDeclaration(form, { requireFields = true, allowDisplayFields = true } = {}) {
+function validateFormDeclaration(form, { requireFields = true, allowDisplayFields = true, allowRunData = false, allowInfo } = {}) {
+    const infoOk = allowInfo ?? allowDisplayFields;
     const issues = [];
     const push = (code, path, message, hint) => issues.push({ code, path, message, hint });
 
@@ -264,6 +272,7 @@ function validateFormDeclaration(form, { requireFields = true, allowDisplayField
     }
 
     const seen = new Set();
+    const earlier = new Set();   // input fields declared above, for showIf
     fields.forEach((f, i) => {
         const at = `form.fields[${i}]`;
         if (!isPlainObject(f)) { push('field_shape', at, 'Each field must be an object.', 'Remove the malformed entry.'); return; }
@@ -273,6 +282,9 @@ function validateFormDeclaration(form, { requireFields = true, allowDisplayField
             push('field_name_duplicate', `${at}.name`, `Field name "${f.name}" is duplicated.`, 'Every field needs a unique name — it is how you bind trigger.output.<name>.');
         } else {
             seen.add(f.name);
+            if (RESERVED_NAME_RE.test(f.name)) {
+                push('field_name_reserved', `${at}.name`, `Field name "${f.name}" ends in two underscores and a number, which Bee Flow uses for questions it creates itself.`, 'Rename the field, e.g. without the trailing "__<number>".');
+            }
         }
         if (f.type !== undefined && !FIELD_TYPES.includes(f.type)) {
             push('field_type', `${at}.type`, `Field type "${f.type}" is not supported.`, `Use one of: ${FIELD_TYPES.join(', ')}.`);
@@ -283,47 +295,86 @@ function validateFormDeclaration(form, { requireFields = true, allowDisplayField
         if (f.required !== undefined && typeof f.required !== 'boolean') {
             push('field_required', `${at}.required`, 'required must be a boolean.', 'Remove the field or set true/false.');
         }
-        if (f.type === 'select' && normalizeOptions(f.options).length === 0) {
-            push('field_options', `${at}.options`, `The dropdown "${f.name}" has no choices.`, 'Add at least one option, or use a text field instead.');
+        validateChoices(f, at, allowRunData, push);
+        validateInfo(f, at, infoOk, push);
+        validateFileKinds(f, at, allowDisplayFields, push);
+        rules.validateRules(f, at, push);
+        if (f.showIf !== undefined && f.showIf !== null && f.showIf !== '') rules.validateShowIf(f.showIf, earlier, `${at}.showIf`, push);
+        if (f.fieldsFrom !== undefined && f.fieldsFrom !== null) {
+            dynamic.validateSourceSpec(f.fieldsFrom, `${at}.fieldsFrom`, push, { allowRunData, kind: 'fieldsFrom', field: f });
         }
-        if (FILE_FIELD_TYPES.includes(f.type)) {
-            const what = f.type === 'notebook' ? 'An "Open in Notebooks" button' : 'A download button';
-            if (!allowDisplayFields) {
-                // The trigger page is served before any run exists, so there is
-                // no document to point at and never will be on THIS page.
-                push('field_download_on_trigger', `${at}.type`, `${what} cannot go on the first page of a form.`, 'The file has to be made first — put it on a later Form page step, after the step that makes the document.');
-            }
-            if (typeof f.fileId !== 'string' || !f.fileId.trim()) {
-                // One code for both: the authoring gap is identical, and
-                // validate.js already lists it as a completeness warning so a
-                // half-built page still saves.
-                push('field_download_no_file', `${at}.fileId`, `"${f.name}" does not say which file to offer.`, 'Point it at the step that makes the document, e.g. {{steps.<id>.output.fileId}}.');
-            }
-        }
-        if (f.type === 'app_pick') {
-            if (typeof f.source !== 'string' || !f.source.trim()) {
-                push('field_pick_no_source', `${at}.source`, `"${f.name}" does not say which app to pick from.`, `Choose an app for this question, e.g. ${pickSources.SOURCE_IDS[0]}.`);
-            } else if (!pickSources.getSource(f.source)) {
-                // Named, not silently reset to a default: an author who typed
-                // the wrong id (or imported an automation from an install with an
-                // app this one does not have) must see WHICH app is missing.
-                push('field_pick_source', `${at}.source`, `"${f.source}" is not an app this form can pick from.`, `Use one of: ${pickSources.SOURCE_IDS.join(', ')}.`);
-            }
-            if (f.maxItems !== undefined) {
-                const n = Number(f.maxItems);
-                if (!Number.isFinite(n) || n < 1 || n > pickSources.MAX_PICKS) {
-                    push('field_pick_max_items', `${at}.maxItems`, `maxItems must be a number between 1 and ${pickSources.MAX_PICKS}.`, 'Lower it, or ask for one record per question.');
-                }
-            }
-        }
-        if (f.type === 'file' && f.maxSizeMb !== undefined) {
-            const mb = Number(f.maxSizeMb);
-            if (!Number.isFinite(mb) || mb <= 0 || mb > MAX_UPLOAD_MB) {
-                push('field_max_size', `${at}.maxSizeMb`, `maxSizeMb must be a number between 1 and ${MAX_UPLOAD_MB}.`, `The platform ceiling is ${MAX_UPLOAD_MB} MB.`);
-            }
-        }
+        if (typeof f.name === 'string' && !isDisplayField(f)) earlier.add(f.name);
     });
     return issues;
+}
+
+/** Choice questions: static options, the cap, and an optionsFrom source. */
+function validateChoices(f, at, allowRunData, push) {
+    const hasSource = f.optionsFrom !== undefined && f.optionsFrom !== null;
+    if (hasSource) {
+        if (isChoiceField(f)) dynamic.validateSourceSpec(f.optionsFrom, `${at}.optionsFrom`, push, { allowRunData, kind: 'optionsFrom' });
+        else push('field_options_from_invalid', `${at}.optionsFrom`, `Choices from a list only apply to dropdowns, radio buttons and multi-selects, not "${f.name}".`, 'Remove it, or change the question type.');
+    }
+    if (!isChoiceField(f)) return;
+    const cap = formOptionsCap();
+    if (Array.isArray(f.options) && cap > 0 && f.options.length > cap) {
+        push('field_options_too_many', `${at}.options`, `"${f.name}" offers ${f.options.length} choices, more than the ${cap} a question may have.`, 'Remove some, or load the choices from a list on a later Form page step.');
+    }
+    if (!hasSource && normalizeOptions(f.options).length === 0) {
+        const what = f.type === 'select' ? 'The dropdown' : (f.type === 'radio' ? 'The radio buttons' : 'The multi-select');
+        push('field_options', `${at}.options`, `${what} "${f.name}" has no choices.`, 'Add at least one option, or use a text field instead.');
+    }
+}
+
+/** Info blocks: some text, within limits, and only where display fields are allowed. */
+function validateInfo(f, at, infoOk, push) {
+    if (f.type !== 'info') return;
+    if (!infoOk) push('field_type', `${at}.type`, 'A text block cannot be used on this form.', 'Use a question type instead.');
+    if (typeof f.content !== 'string' || !f.content.trim()) {
+        push('field_info_empty', `${at}.content`, `The text block "${f.name}" has no text.`, 'Write the text visitors should read, or remove the block.');
+    } else if (f.content.length > MAX_INFO_LEN) {
+        push('field_info_too_long', `${at}.content`, `The text block "${f.name}" is longer than ${MAX_INFO_LEN} characters.`, 'Shorten it.');
+    }
+}
+
+/** File-backed display fields, app pickers and uploads (unchanged rules). */
+function validateFileKinds(f, at, allowDisplayFields, push) {
+    if (FILE_FIELD_TYPES.includes(f.type)) {
+        const what = f.type === 'notebook' ? 'An "Open in Notebooks" button' : 'A download button';
+        if (!allowDisplayFields) {
+            // The trigger page is served before any run exists, so there is
+            // no document to point at and never will be on THIS page.
+            push('field_download_on_trigger', `${at}.type`, `${what} cannot go on the first page of a form.`, 'The file has to be made first — put it on a later Form page step, after the step that makes the document.');
+        }
+        if (typeof f.fileId !== 'string' || !f.fileId.trim()) {
+            // One code for both: the authoring gap is identical, and
+            // validate.js already lists it as a completeness warning so a
+            // half-built page still saves.
+            push('field_download_no_file', `${at}.fileId`, `"${f.name}" does not say which file to offer.`, 'Point it at the step that makes the document, e.g. {{steps.<id>.output.fileId}}.');
+        }
+    }
+    if (f.type === 'app_pick') {
+        if (typeof f.source !== 'string' || !f.source.trim()) {
+            push('field_pick_no_source', `${at}.source`, `"${f.name}" does not say which app to pick from.`, `Choose an app for this question, e.g. ${pickSources.SOURCE_IDS[0]}.`);
+        } else if (!pickSources.getSource(f.source)) {
+            // Named, not silently reset to a default: an author who typed
+            // the wrong id (or imported an automation from an install with an
+            // app this one does not have) must see WHICH app is missing.
+            push('field_pick_source', `${at}.source`, `"${f.source}" is not an app this form can pick from.`, `Use one of: ${pickSources.SOURCE_IDS.join(', ')}.`);
+        }
+        if (f.maxItems !== undefined) {
+            const n = Number(f.maxItems);
+            if (!Number.isFinite(n) || n < 1 || n > pickSources.MAX_PICKS) {
+                push('field_pick_max_items', `${at}.maxItems`, `maxItems must be a number between 1 and ${pickSources.MAX_PICKS}.`, 'Lower it, or ask for one record per question.');
+            }
+        }
+    }
+    if (f.type === 'file' && f.maxSizeMb !== undefined) {
+        const mb = Number(f.maxSizeMb);
+        if (!Number.isFinite(mb) || mb <= 0 || mb > MAX_UPLOAD_MB) {
+            push('field_max_size', `${at}.maxSizeMb`, `maxSizeMb must be a number between 1 and ${MAX_UPLOAD_MB}.`, `The platform ceiling is ${MAX_UPLOAD_MB} MB.`);
+        }
+    }
 }
 
 /**
@@ -340,8 +391,12 @@ function validateFormDeclaration(form, { requireFields = true, allowDisplayField
  *   • `baseTheme` — the theme to inherit. A form_page step passes the trigger's
  *     theme so page 2 looks identical unless the author deliberately overrides
  *     it; a partial override merges on top.
+ *   • `resolveList` — `(ref) => value`, a read of the run state. With it,
+ *     `optionsFrom` becomes plain options and `fieldsFrom` becomes one
+ *     question per item. The output NEVER contains either spec, and strings
+ *     that come out of run data are not interpolated again.
  */
-function renderFormConfig(form, { interpolate = null, baseTheme = null } = {}) {
+function renderFormConfig(form, { interpolate = null, baseTheme = null, resolveList = null } = {}) {
     const f = isPlainObject(form) ? form : {};
     const t = makeInterpolator(interpolate);
     const title = typeof f.title === 'string' ? t(f.title).trim() : '';
@@ -356,8 +411,24 @@ function renderFormConfig(form, { interpolate = null, baseTheme = null } = {}) {
         submitLabel: submitLabel ? submitLabel.slice(0, MAX_LABEL_LEN) : 'Submit',
         successMessage: successMessage ? successMessage.slice(0, MAX_TEXT_LEN) : 'Thanks — we got your answer.',
         theme: canonicalizeTheme(theme),
-        fields: normalizeFields(f, { interpolate }),
+        fields: renderDynamicFields(normalizeFields(f, { interpolate }), resolveList),
     };
+}
+
+/** Replace optionsFrom / fieldsFrom by what the run data says (or by nothing to choose). */
+function renderDynamicFields(fields, resolveList) {
+    const out = [];
+    for (const field of fields) {
+        if (!isDynamicField(field)) { out.push(field); continue; }
+        const { optionsFrom, fieldsFrom, ...rest } = field;
+        if (fieldsFrom) {
+            out.push(...dynamic.expandFieldsFrom(rest, fieldsFrom, resolveList));
+            continue;
+        }
+        const options = dynamic.resolveOptions(optionsFrom, resolveList);
+        out.push(options.length ? { ...rest, options } : { ...rest, options: [], noOptions: true, required: false });
+    }
+    return out;
 }
 
 /** Render config for a definition's form TRIGGER (the first page). */
@@ -392,194 +463,30 @@ function emptyFormValues(form) {
     return coerceSubmission(normalizeFields(form), {}).values;
 }
 
-/** Type-check/coerce ONE submitted value. `{ ok, value }` or `{ ok:false, error }`. */
-function coerceFieldValue(field, raw) {
-    switch (field.type) {
-        case 'textarea': {
-            if (typeof raw !== 'string') return { ok: false, error: 'expects text' };
-            return { ok: true, value: raw.slice(0, MAX_TEXTAREA_LEN) };
-        }
-        case 'text': {
-            if (typeof raw !== 'string') return { ok: false, error: 'expects text' };
-            return { ok: true, value: raw.slice(0, MAX_STRING_VALUE) };
-        }
-        case 'email': {
-            if (typeof raw !== 'string') return { ok: false, error: 'expects an email address' };
-            const v = raw.trim();
-            if (v && !EMAIL_RE.test(v)) return { ok: false, error: 'is not a valid email address' };
-            return { ok: true, value: v.slice(0, MAX_STRING_VALUE) };
-        }
-        case 'number': {
-            if (typeof raw === 'number' && Number.isFinite(raw)) return { ok: true, value: raw };
-            if (typeof raw === 'string' && raw.trim() !== '' && Number.isFinite(Number(raw))) return { ok: true, value: Number(raw) };
-            return { ok: false, error: 'expects a number' };
-        }
-        case 'date': {
-            if (typeof raw !== 'string') return { ok: false, error: 'expects a date (YYYY-MM-DD)' };
-            const v = raw.trim();
-            if (v && !DATE_RE.test(v)) return { ok: false, error: 'expects a date in YYYY-MM-DD format' };
-            return { ok: true, value: v };
-        }
-        case 'select': {
-            if (typeof raw !== 'string') return { ok: false, error: 'expects one of the offered choices' };
-            const v = raw.trim();
-            if (!v) return { ok: true, value: '' };
-            // Closed vocabulary: an off-list value is a tampered submission.
-            if (!(field.options || []).some(o => o.value === v)) return { ok: false, error: 'is not one of the offered choices' };
-            return { ok: true, value: v };
-        }
-        case 'checkbox': {
-            if (typeof raw === 'boolean') return { ok: true, value: raw };
-            if (raw === 'true' || raw === 'on' || raw === 1 || raw === '1') return { ok: true, value: true };
-            if (raw === 'false' || raw === 'off' || raw === 0 || raw === '0' || raw === '') return { ok: true, value: false };
-            return { ok: false, error: 'expects a yes/no answer' };
-        }
-        case 'file': {
-            let v = raw;
-            if (Array.isArray(v)) {
-                if (v.length === 1) v = v[0];
-                else return { ok: false, error: 'expects one file' };
-            }
-            if (!isPlainObject(v) || v.kind !== 'form_upload' || typeof v.fileId !== 'string' || !v.fileId) {
-                return { ok: false, error: 'expects a file uploaded through this form' };
-            }
-            return { ok: true, isFile: true, value: { kind: 'form_upload', fileId: v.fileId } };
-        }
-        case 'app_pick': {
-            // The DECLARED source decides what may be picked; a body naming a
-            // different one is a tampered submission, not a hint. Without this
-            // check a form asking for a Fireflies transcript would accept —
-            // and then dutifully read — a Gmail message id.
-            const declared = pickSources.getSource(field.source);
-            if (!declared) return { ok: false, error: 'points at an app that is not available' };
-            const list = Array.isArray(raw) ? raw : [raw];
-            if (list.length === 1 && (list[0] === null || list[0] === '')) return { ok: true, value: field.multiple ? [] : null };
-            if (list.length > field.maxItems) return { ok: false, error: `takes at most ${field.maxItems} ${field.maxItems === 1 ? 'record' : 'records'}` };
-            const picks = [];
-            const seen = new Set();
-            for (const v of list) {
-                if (!isPlainObject(v) || v.kind !== 'app_pick') return { ok: false, error: 'expects a record picked through this form' };
-                if (typeof v.source === 'string' && v.source && v.source !== field.source) {
-                    return { ok: false, error: 'expects a record from the app this question asks for' };
-                }
-                const recordId = typeof v.recordId === 'string' ? v.recordId.trim() : '';
-                if (!recordId || recordId.length > pickSources.MAX_RECORD_ID_LEN) {
-                    return { ok: false, error: 'expects a record picked through this form' };
-                }
-                if (seen.has(recordId)) continue;   // the same record twice is one pick
-                seen.add(recordId);
-                picks.push({
-                    kind: 'app_pick',
-                    source: field.source,
-                    app: declared.app,
-                    recordId,
-                    // The title the picker showed. Carried so a run that cannot
-                    // re-read the record still knows WHAT was chosen; replaced
-                    // by the record's own title when the read succeeds.
-                    title: typeof v.title === 'string' ? v.title.slice(0, pickSources.MAX_TITLE_LEN) : '',
-                });
-            }
-            return { ok: true, isPick: true, value: field.multiple ? picks : (picks[0] || null) };
-        }
-        default:
-            return { ok: false, error: `has unknown type "${field.type}"` };
-    }
-}
-
-function isBlank(field, value) {
-    if (field.type === 'checkbox') return value !== true;
-    if (field.type === 'file') return !value;
-    if (field.type === 'app_pick') return Array.isArray(value) ? value.length === 0 : !value;
-    if (field.type === 'number') return value === undefined || value === null || value === '';
-    return typeof value !== 'string' || value.trim() === '';
-}
-
-/**
- * Coerce a whole submission against the declared fields.
- *
- * Returns `{ values, files, errors }`. `values` is a null-prototype object
- * keyed ONLY by declared field names — the body is never iterated, so
- * `{"__proto__": {...}}` in the request cannot reach it. `files` lists the
- * descriptors the caller still has to verify against the upload ledger.
- */
-function coerceSubmission(fields, body) {
-    const src = isPlainObject(body) ? body : {};
-    const values = Object.create(null);
-    const files = [];
-    const picks = [];
-    const errors = [];
-
-    for (const field of fields) {
-        // A display field collects nothing. It gets no entry in `values` at
-        // all, so a browser that posts one back cannot smuggle a value into the
-        // run under its name.
-        if (isDisplayField(field)) continue;
-        // Own-property read: a prototype-polluted global Object.prototype must
-        // not be able to supply a value for a field the visitor left out.
-        const raw = Object.prototype.hasOwnProperty.call(src, field.name) ? src[field.name] : undefined;
-
-        if (raw === undefined || raw === null) {
-            if (field.required) errors.push({ field: field.name, message: `${field.label} is required.` });
-            values[field.name] = emptyValue(field);
-            continue;
-        }
-
-        const checked = coerceFieldValue(field, raw);
-        if (!checked.ok) {
-            errors.push({ field: field.name, message: `${field.label} ${checked.error}.` });
-            values[field.name] = emptyValue(field);
-            continue;
-        }
-        if (field.required && isBlank(field, checked.value)) {
-            errors.push({ field: field.name, message: `${field.label} is required.` });
-        }
-        values[field.name] = checked.value;
-        if (checked.isFile && checked.value) files.push({ field: field.name, fileId: checked.value.fileId });
-        if (checked.isPick) {
-            // One entry per RECORD, not per field: a `multiple` question sends
-            // the route several reads to do, and each one has to be able to
-            // fail on its own without taking the others down with it.
-            const chosen = Array.isArray(checked.value) ? checked.value : (checked.value ? [checked.value] : []);
-            chosen.forEach((pick, index) => picks.push({ field: field.name, index, multiple: !!field.multiple, withText: field.withText !== false, pick }));
-        }
-    }
-
-    return { values, files, picks, errors };
-}
-
-/**
- * What an unanswered field of each type carries into the run.
- *
- * One function rather than the two inline ternaries this replaced: the
- * "nothing was answered" value has to be the SAME on the missing-value path and
- * the failed-coercion path, and a third type made keeping two copies in step a
- * matter of remembering.
- */
-function emptyValue(field) {
-    if (field.type === 'checkbox') return false;
-    if (field.type === 'file') return null;
-    if (field.type === 'app_pick') return field.multiple ? [] : null;
-    return '';
-}
-
 /**
  * Back-compat alias: the trigger's declaration always requires fields, and
- * never allows display-only ones — the first page is served before any run
- * exists, so there is no document for a download button to point at.
+ * never allows file buttons — the first page is served before any run exists,
+ * so there is no document for a download button to point at. A text block is
+ * fine there: it needs nothing from a run.
  */
 function validateFormTrigger(form) {
-    return validateFormDeclaration(form, { requireFields: true, allowDisplayFields: false });
+    return validateFormDeclaration(form, { requireFields: true, allowDisplayFields: false, allowInfo: true });
 }
 
 module.exports = {
     FIELD_TYPES,
     DISPLAY_FIELD_TYPES,
     FILE_FIELD_TYPES,
+    CHOICE_FIELD_TYPES,
+    RESERVED_NAME_RE,
     isFileField,
     isDisplayField,
+    isDynamicField,
     MAX_FIELDS,
     MAX_UPLOAD_MB,
     DEFAULT_UPLOAD_MB,
+    formOptionsCap,
+    formFieldsFromCap,
     isFormTriggerDefinition,
     normalizeFields,
     formTriggerFields,

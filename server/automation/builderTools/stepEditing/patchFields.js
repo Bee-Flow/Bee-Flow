@@ -81,7 +81,8 @@ const PATCHABLE_FIELDS = {
     // model cannot introduce it in the first place.
     approval: ['prompt', 'approval', 'label'],
     stop_error: ['message', 'label'],
-    form_page: ['mode', 'form', 'waitSeconds', 'label'],
+    // `when` is the page condition (an expression); the page is skipped when it is not met.
+    form_page: ['mode', 'form', 'waitSeconds', 'when', 'label'],
     filter: ['arrayRef', 'expr', 'label', 'maxItems'],
     limit: ['arrayRef', 'count', 'mode', 'label'],
     dedupe: ['arrayRef', 'keyField', 'label'],

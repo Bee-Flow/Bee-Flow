@@ -50,33 +50,97 @@ function buildForm(raw) {
     };
 }
 
+// Option text is the VALUE an answer holds; a long label or hint is trimmed,
+// never the structure. validate.js owns the real caps (field_options_too_many).
+const OPTION_VALUE_MAX = 120;
+const OPTION_HINT_MAX = 200;
+const OPTIONS_SANITY_CEILING = 5000;
+
+/** One option: plain text stays text; {value, label?, hint?} keeps its label and hint. */
+function buildOption(o) {
+    if (typeof o === 'string') return o.trim() ? o.slice(0, OPTION_VALUE_MAX) : null;
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+    const value = typeof o.value === 'string' ? o.value.trim() : (Number.isFinite(o.value) ? String(o.value) : '');
+    if (!value) return null;
+    const label = typeof o.label === 'string' ? o.label.trim().slice(0, OPTION_VALUE_MAX) : '';
+    const hint = typeof o.hint === 'string' ? o.hint.trim().slice(0, OPTION_HINT_MAX) : '';
+    if (!label && !hint) return value.slice(0, OPTION_VALUE_MAX);
+    return { value: value.slice(0, OPTION_VALUE_MAX), ...(label ? { label } : {}), ...(hint ? { hint } : {}) };
+}
+
+function buildOptions(options) {
+    return options.map(buildOption).filter((o) => o !== null).slice(0, OPTIONS_SANITY_CEILING);
+}
+
+const isCount = (v) => Number.isFinite(Number(v)) && v !== '' && v !== null && Number(v) >= 0;
+const asCount = (v) => Math.trunc(Number(v));
+
+/**
+ * The form-wizard attributes of one question (phase 2): info text, showIf, the
+ * bounds and text rules, the multiselect limits. Each is kept only on the types
+ * that use it, so a stray key cannot reach the stored form; whether the values
+ * make sense is validate.js's call. optionsFrom / fieldsFrom are deliberately NOT
+ * copied: the trigger's page opens before any step ran, so there is no run data
+ * to draw from (the validator would refuse them as field_options_from_on_trigger).
+ */
+function wizardAttrs(p) {
+    const t = p.type;
+    const out = {};
+    if (t === 'info' && typeof p.content === 'string' && p.content.trim()) out.content = p.content.slice(0, 4000);
+    if (typeof p.showIf === 'string' && p.showIf.trim()) out.showIf = p.showIf.trim().slice(0, 500);
+    if (t === 'number') {
+        for (const k of ['min', 'max']) if (p[k] !== '' && p[k] != null && Number.isFinite(Number(p[k]))) out[k] = Number(p[k]);
+    }
+    if (t === 'date') {
+        for (const k of ['min', 'max']) if (typeof p[k] === 'string' && p[k].trim()) out[k] = p[k].trim().slice(0, 10);
+    }
+    if (t === 'text' || t === 'textarea' || t === 'email') {
+        for (const k of ['minLength', 'maxLength']) if (isCount(p[k])) out[k] = asCount(p[k]);
+    }
+    if ((t === 'text' || t === 'textarea') && typeof p.pattern === 'string' && p.pattern) {
+        // Longer than the validator's 200 on purpose: it reports the overlong pattern instead of a silently cut one.
+        out.pattern = p.pattern.slice(0, 500);
+        if (typeof p.patternMessage === 'string' && p.patternMessage.trim()) out.patternMessage = p.patternMessage.trim().slice(0, 120);
+    }
+    if (t === 'multiselect') {
+        for (const k of ['minSelected', 'maxSelected']) if (isCount(p[k])) out[k] = asCount(p[k]);
+    }
+    return out;
+}
+
 function buildFormFields(fields) {
     const { FIELD_TYPES } = require('../../formTriggerContract');
     if (!Array.isArray(fields)) return [];
     return fields
         .filter((p) => p && typeof p === 'object' && p.name)
-        .map((p) => ({
-            name: String(p.name),
-            type: FIELD_TYPES.includes(p.type) ? p.type : 'text',
-            label: typeof p.label === 'string' && p.label.trim() ? p.label : String(p.name),
-            required: !!p.required,
-            ...(p.placeholder ? { placeholder: String(p.placeholder).slice(0, 120) } : {}),
-            ...(Array.isArray(p.options) ? { options: p.options.filter(o => typeof o === 'string' && o.trim()).slice(0, 50) } : {}),
-            ...(p.accept ? { accept: String(p.accept).slice(0, 300) } : {}),
-            ...(p.maxSizeMb != null && Number.isFinite(Number(p.maxSizeMb)) ? { maxSizeMb: Number(p.maxSizeMb) } : {}),
-            ...(typeof p.help === 'string' && p.help.trim() ? { help: p.help.slice(0, 120) } : {}),
-            // An app_pick question is unbuildable without these: `source` says
-            // which app the person searches (field_pick_no_source otherwise),
-            // the rest shape the answer (one descriptor or a list, with or
-            // without the record's text). Only kept for that type, so a stray
-            // `source` on a text field cannot reach the stored form.
-            ...(p.type === 'app_pick' ? {
-                ...(typeof p.source === 'string' && p.source.trim() ? { source: p.source.trim().slice(0, 60) } : {}),
-                ...(typeof p.multiple === 'boolean' ? { multiple: p.multiple } : {}),
-                ...(p.maxItems != null && Number.isFinite(Number(p.maxItems)) ? { maxItems: Number(p.maxItems) } : {}),
-                ...(typeof p.withText === 'boolean' ? { withText: p.withText } : {}),
-            } : {}),
-        }));
+        .map((p) => {
+            const type = FIELD_TYPES.includes(p.type) ? p.type : 'text';
+            return {
+                name: String(p.name),
+                type,
+                // A text block's heading is optional: blank stays blank (the visitor
+                // would otherwise read the internal name as its title).
+                label: typeof p.label === 'string' && p.label.trim() ? p.label : (type === 'info' ? '' : String(p.name)),
+                required: !!p.required,
+                ...(p.placeholder ? { placeholder: String(p.placeholder).slice(0, 120) } : {}),
+                ...(Array.isArray(p.options) ? { options: buildOptions(p.options) } : {}),
+                ...(p.accept ? { accept: String(p.accept).slice(0, 300) } : {}),
+                ...(p.maxSizeMb != null && Number.isFinite(Number(p.maxSizeMb)) ? { maxSizeMb: Number(p.maxSizeMb) } : {}),
+                ...(typeof p.help === 'string' && p.help.trim() ? { help: p.help.slice(0, 120) } : {}),
+                ...wizardAttrs({ ...p, type }),
+                // An app_pick question is unbuildable without these: `source` says
+                // which app the person searches (field_pick_no_source otherwise),
+                // the rest shape the answer (one descriptor or a list, with or
+                // without the record's text). Only kept for that type, so a stray
+                // `source` on a text field cannot reach the stored form.
+                ...(p.type === 'app_pick' ? {
+                    ...(typeof p.source === 'string' && p.source.trim() ? { source: p.source.trim().slice(0, 60) } : {}),
+                    ...(typeof p.multiple === 'boolean' ? { multiple: p.multiple } : {}),
+                    ...(p.maxItems != null && Number.isFinite(Number(p.maxItems)) ? { maxItems: Number(p.maxItems) } : {}),
+                    ...(typeof p.withText === 'boolean' ? { withText: p.withText } : {}),
+                } : {}),
+            };
+        });
 }
 
 /**

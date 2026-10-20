@@ -11,6 +11,11 @@ export interface FormFieldDecl {
     source?: string;
     app?: string;
     multiple?: boolean;
+    /** Choices: plain strings or `{ value, label?, hint? }`. */
+    options?: unknown;
+    /** Choices / questions that come from a list on an earlier step (form pages only). */
+    optionsFrom?: unknown;
+    fieldsFrom?: unknown;
 }
 
 export interface ForEachParent {

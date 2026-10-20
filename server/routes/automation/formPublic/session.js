@@ -14,6 +14,7 @@ const { isFileField } = require('../../../automation/formTriggerContract');
 const { contentDisposition } = require('../../../core/http/contentDisposition');
 const { endingFrom } = require('../../../automation/formResult');
 const { lostToConcurrency } = require('../../../automation/formQueue');
+const { typicalSeconds } = require('../../../automation/formTypicalDuration');
 const { privateHeaders, loadForm, loadSession, currentRunFor, journeyRunIds, pendingPageFor } = require('./access');
 const { ipLimiter, sessionLimiter } = require('./limits');
 const { friendly } = require('./friendly');
@@ -124,6 +125,16 @@ function progressTrail(definition, steps) {
     return trail.length ? { trail, note } : null;
 }
 
+/**
+ * A `working` response. It carries the one aggregate figure a visitor may see
+ * about the automation's history: how many seconds a stretch usually takes.
+ * Only ever on `working`; a page, an ending or an error never gets it.
+ */
+async function workingResponse(automationId, extra = {}) {
+    const typical = await typicalSeconds(automationId);
+    return { state: 'working', ...extra, ...(typical ? { typicalSeconds: typical } : {}) };
+}
+
 async function pollSession(req, res) {
     privateHeaders(res);
     const found = await loadForm(req, res);
@@ -136,15 +147,16 @@ async function pollSession(req, res) {
     await automationStore.touchFormSession(session.id).catch(() => {});
 
     // Queued behind other submissions, or the run row is not written yet.
-    if (!session.runId) return res.json({ state: 'working' });
+    const automationId = found.automation.id;
+    if (!session.runId) return res.json(await workingResponse(automationId));
     const run = await currentRunFor(session);
-    if (!run) return res.json({ state: 'working' });
+    if (!run) return res.json(await workingResponse(automationId));
 
     if (run.status === 'awaiting_form') {
         const pending = await pendingPageFor(session, run);
         // The run says it is paused but the step row has not landed yet —
         // a sub-second window the poll should simply retry through.
-        if (!pending) return res.json({ state: 'working' });
+        if (!pending) return res.json(await workingResponse(automationId));
         return res.json({
             state: 'form',
             stepId: pending.stepId,
@@ -159,11 +171,10 @@ async function pollSession(req, res) {
         const at = run.status === 'running'
             ? progressTrail(found.automation.definition || {}, await automationStore.getRunSteps(run.id))
             : null;
-        return res.json({
-            state: 'working',
+        return res.json(await workingResponse(automationId, {
             ...(at ? { progress: at.trail } : {}),
             ...(at?.note ? { progressNote: at.note } : {}),
-        });
+        }));
     }
     if (run.status === 'success') {
         const steps = await automationStore.getRunSteps(run.id);
@@ -175,7 +186,7 @@ async function pollSession(req, res) {
     // A run that lost the per-automation race did nothing at all, and
     // runQueued is backing off to try it again. Reporting that as a failure
     // would end the visitor's journey over a collision they never caused.
-    if (lostToConcurrency(run)) return res.json({ state: 'working' });
+    if (lostToConcurrency(run)) return res.json(await workingResponse(automationId));
     // error / cancelled. Never surface run.error — it is written for the
     // owner's diagnostics and can carry upstream API detail.
     return res.json({ state: 'error' });

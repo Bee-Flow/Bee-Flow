@@ -23,6 +23,49 @@ const { providerList: APP_EVENT_PROVIDERS, eventList: APP_EVENT_EVENTS } =
 const PICK_SOURCES = require('../formPickSources').catalog()
     .map(sc => `${sc.id} (${sc.label})`).join(', ');
 
+// The form-wizard attributes of a form question (phase 2). One definition for
+// the trigger's form and for a further page, so the two never drift. The
+// authoritative rules (caps, types, expression scope) live in
+// automation/formTriggerContract.js and the validator; this is the plain-language
+// face of them.
+const FORM_FIELD_TYPES = ['text', 'textarea', 'email', 'number', 'date', 'select', 'radio', 'multiselect', 'checkbox', 'file', 'app_pick', 'info'];
+const FORM_OPTIONS_HINT = 'Required when type=select, radio or multiselect. Each option is plain text and IS the value the answer holds, so a later switch matches on that exact text.';
+const FORM_WIZARD_FIELD_PROPS = {
+    content: { type: 'string', description: 'type=info only: the text shown to the visitor (markdown, up to 4000 characters). Nothing is asked and nothing is stored.' },
+    showIf: { type: 'string', description: 'Show this question only when the expression is true, e.g. form.contact == "email", contains(form.topics, "billing") or !isEmpty(form.company). May only use form.<name> of questions ABOVE it on the same page. Checked again on the server: a hidden question never blocks, and its answer is dropped. Max 500 characters.' },
+    min: { type: ['number', 'string'], description: 'type=number: the smallest allowed value, as a number (e.g. 0). type=date: the earliest date, YYYY-MM-DD. The visitor sees an inline error outside the range.' },
+    max: { type: ['number', 'string'], description: 'type=number: the largest allowed value, as a number. type=date: the latest date, YYYY-MM-DD.' },
+    minLength: { type: 'integer', description: 'type=text, textarea or email: the fewest characters allowed.' },
+    maxLength: { type: 'integer', description: 'type=text, textarea or email: the most characters allowed.' },
+    pattern: { type: 'string', description: 'type=text or textarea: the WHOLE answer must match this regular expression (RE2 syntax, up to 200 characters), e.g. "[A-Z]{2}-[0-9]{4}".' },
+    patternMessage: { type: 'string', description: 'The inline error shown when `pattern` does not match, in the visitor\'s words (up to 120 characters).' },
+    minSelected: { type: 'integer', description: 'type=multiselect: the fewest options that must be ticked.' },
+    maxSelected: { type: 'integer', description: 'type=multiselect: the most options that may be ticked.' },
+};
+const FORM_LIST_SOURCE_PROPS = {
+    ref: { type: 'string', description: 'Where the list lives in the run, e.g. "steps.load.output.rows". A path, never {{ }}.' },
+    value: { type: 'string', description: 'Path inside one list item to its value. Omit when the list holds plain text or numbers.' },
+    label: { type: 'string', description: 'Path inside one item to the text shown to the visitor. Defaults to the value.' },
+    hint: { type: 'string', description: 'Path inside one item to a short extra line shown under the label.' },
+    limit: { type: 'integer', description: 'Use at most this many items (1..10000).' },
+};
+// Only on a further form page: the trigger's page opens before any step ran, so
+// there is no run data for it to draw from.
+const FORM_PAGE_FIELD_PROPS = {
+    optionsFrom: {
+        type: 'object',
+        description: 'type=select, radio or multiselect: build the choices from a list found earlier in the run instead of typing `options`. The ANSWER is each item\'s `value`; `label` is display only, so route on the value.',
+        properties: FORM_LIST_SOURCE_PROPS,
+        required: ['ref'],
+    },
+    fieldsFrom: {
+        type: 'object',
+        description: 'type=text, textarea, number, date, select, radio or checkbox: ask this question ONCE PER ITEM of an earlier list (each item\'s label becomes the question). The answer is steps.<page>.output.<name> = a list of {key, label, answer}, one per item. Keep `name` to 54 characters.',
+        properties: FORM_LIST_SOURCE_PROPS,
+        required: ['ref'],
+    },
+};
+
 // The rule shapes a Condition may hold (filter, switch cases, condition):
 // only shapes the editor reopens as clickable rows. One list, shared with the
 // builder prompt and the Suggest-outputs prompt.
@@ -297,17 +340,18 @@ leading search step just to look up data that's already in the payload.`,
                                     type: 'object',
                                     properties: {
                                         name: { type: 'string' },
-                                        type: { type: 'string', enum: ['text', 'textarea', 'email', 'number', 'date', 'select', 'checkbox', 'file', 'app_pick'] },
+                                        type: { type: 'string', enum: FORM_FIELD_TYPES },
                                         label: { type: 'string' },
                                         required: { type: 'boolean' },
                                         placeholder: { type: 'string' },
-                                        options: { type: 'array', items: { type: 'string' }, description: 'Required when type=select.' },
+                                        options: { type: 'array', items: { type: 'string' }, description: FORM_OPTIONS_HINT },
                                         accept: { type: 'string', description: 'When type=file: a MIME allowlist, e.g. "application/pdf,image/*".' },
                                         maxSizeMb: { type: 'number', description: 'When type=file: 1–25.' },
                                         source: { type: 'string', description: `REQUIRED when type=app_pick: which app the person filling the form searches. One of: ${PICK_SOURCES}. The search runs against THEIR OWN account, so use this instead of asking someone to paste a transcript or forward an email.` },
                                         multiple: { type: 'boolean', description: 'When type=app_pick: let them pick several records. The answer is then a LIST of descriptors instead of one.' },
                                         maxItems: { type: 'number', description: 'When type=app_pick and multiple: 1–10 (default 5).' },
                                         withText: { type: 'boolean', description: 'When type=app_pick: read the record\'s content into the run (default true). Set false when only a reference is wanted.' },
+                                        ...FORM_WIZARD_FIELD_PROPS,
                                         // A file field binds as an OBJECT, never a string:
                                         // trigger.output.<name> is { kind, fileId, filename, mimeType, size,
                                         // text, textTruncated, textError }. `.text` is the extracted content —
@@ -1007,7 +1051,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
         type: 'function',
         function: {
             name: 'builder_add_form_page',
-            description: 'Append a FURTHER page of the automation\'s public form, shown on the same /f/<token> URL the visitor is already on. Requires the trigger to be kind=form. mode="input" PAUSES the run until the visitor answers — bind their answers as steps.<id>.output.<fieldName>. mode="ending" is the closing page: no questions, and its `title`/`description` are template-interpolated against the finished run, so use {{steps.x.output.y}} there to show the visitor what happened. Do NOT put a form page inside a loop, a parallel branch or a flowlet.',
+            description: 'Append a FURTHER page of the automation\'s public form, shown on the same /f/<token> URL the visitor is already on. Requires the trigger to be kind=form. mode="input" PAUSES the run until the visitor answers — bind their answers as steps.<id>.output.<fieldName>. mode="ending" is the closing page: no questions, and its `title`/`description` are template-interpolated against the finished run, so use {{steps.x.output.y}} there to show the visitor what happened. Do NOT put a form page inside a loop, a parallel branch or a flowlet. A page can build choices from run data (optionsFrom), ask one question per list item (fieldsFrom), hide questions (showIf) and be skipped (`when`): see "Form wizards" in the guide.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -1015,6 +1059,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                     splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     mode: { type: 'string', enum: ['input', 'ending'], description: 'Default "input".' },
                     waitSeconds: { type: 'integer', description: 'mode=input only: how long to wait for the visitor, 60..604800 (1 minute … 7 days). Default 3600.' },
+                    when: { type: 'string', description: 'Show this page only when the expression is true (same grammar and scope as a condition: trigger.*, steps.*, vars.*, never {{ }}), e.g. "steps.check.output.verdict == \'retry\'". When false the page is skipped without pausing: its answers are blank and output._skipped is true; a skipped ending page shows nothing. Max 2000 characters.' },
                     form: {
                         type: 'object',
                         description: 'The page. Same shape as the trigger\'s form. Omit `theme` to match the first page (recommended).',
@@ -1030,17 +1075,19 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                                     type: 'object',
                                     properties: {
                                         name: { type: 'string' },
-                                        type: { type: 'string', enum: ['text', 'textarea', 'email', 'number', 'date', 'select', 'checkbox', 'file', 'app_pick'] },
+                                        type: { type: 'string', enum: FORM_FIELD_TYPES },
                                         label: { type: 'string' },
                                         required: { type: 'boolean' },
                                         placeholder: { type: 'string' },
-                                        options: { type: 'array', items: { type: 'string' }, description: 'Required when type=select.' },
+                                        options: { type: 'array', items: { type: 'string' }, description: FORM_OPTIONS_HINT },
                                         accept: { type: 'string', description: 'When type=file: a MIME allowlist, e.g. "application/pdf,image/*".' },
                                         maxSizeMb: { type: 'number', description: 'When type=file: 1–25.' },
                                         source: { type: 'string', description: `REQUIRED when type=app_pick: which app the person filling the form searches. One of: ${PICK_SOURCES}. The search runs against THEIR OWN account, so use this instead of asking someone to paste a transcript or forward an email.` },
                                         multiple: { type: 'boolean', description: 'When type=app_pick: let them pick several records. The answer is then a LIST of descriptors instead of one.' },
                                         maxItems: { type: 'number', description: 'When type=app_pick and multiple: 1–10 (default 5).' },
                                         withText: { type: 'boolean', description: 'When type=app_pick: read the record\'s content into the run (default true). Set false when only a reference is wanted.' },
+                                        ...FORM_WIZARD_FIELD_PROPS,
+                                        ...FORM_PAGE_FIELD_PROPS,
                                         // A file field binds as an OBJECT, never a string:
                                         // trigger.output.<name> is { kind, fileId, filename, mimeType, size,
                                         // text, textTruncated, textError }. `.text` is the extracted content —

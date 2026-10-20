@@ -245,6 +245,136 @@ owner). Refusals: `PUT /:id/schema` → 409
 `schema_from_definition`; a `rowScope: 'own'` on such a table → 400 `answers_row_scope`;
 `POST /api/datatables/managed` with this kind → 400 `kind_needs_form`.
 
+## Wizards: choices, conditions and lists
+
+A form does not have to be one long page. Put a few questions on the first page and
+add **Form page** steps after it for the rest. Each page only asks what is still
+needed, can look at what the automation has learned in the meantime, and can be skipped
+altogether. None of it needs code: everything below is set with pickers in the form
+editor (open a page and use **Open form editor** for the full-screen view with a live
+preview).
+
+### New kinds of question
+
+Besides short and long text, email, number, date, dropdown, checkbox, file upload and
+"pick from an app", a question can now be:
+
+- **Choice buttons** (`radio`): one answer, shown as buttons. It behaves exactly like a
+  dropdown, just easier to scan when there are two to four options.
+- **Several choices** (`multiselect`): the visitor may tick more than one. The answer is
+  a *list* of the options picked. You can set the fewest and the most they may tick.
+- **Text block** (`info`): some words between the questions (instructions, a reminder,
+  what happens next). It asks nothing and stores nothing. Write it in markdown; on a
+  later page it can contain values from earlier steps. Text blocks can go on the first
+  page, on a later page and on a closing page.
+
+A choice does not need a separate label. Type one option per line and the answer stored
+is that text. Where you want people to read something different from what is stored
+(or add a short note under an option), choose **Show a different label or a hint**: the
+*value* stays what the automation sees, the *label* is only what people read, and the
+*hint* is a small line under the option.
+
+### Choices from an earlier step
+
+On a later page, a dropdown, choice buttons or several-choices question can take its
+options from a **list produced by an earlier step**: the rows a lookup found, the
+documents a search returned, the people a table holds. Switch the question from
+**Fixed list** to **From an earlier step**, pick the list, and say which part of each
+item is the **value**, which is the **label** and, optionally, a **hint**. The pickers
+show the fields of the first item of your example data. Without an example you can type
+the field names.
+
+The answer is always the **value**; the label is only what people read. So route on the
+value (an id, a code), never on the label text. Options are de-duplicated by value. An
+empty list shows "no options" and the question is no longer required, so nobody gets
+stuck on a question they cannot answer. The first page cannot do this, because it is
+shown before anything has run.
+
+### One question per list item
+
+**Ask this once per item of a list** repeats a question for every item of a list from an
+earlier step: rate each line of an order, confirm each document that was found, give a
+date for each attendee. The question's label becomes the heading; each item supplies the
+text of its own question. The answers come back as **one list** that later steps can
+loop over:
+
+```
+steps.<page>.output.<name> = [ { key, label, answer }, … ]
+```
+
+`key` is the item's value, `label` the question as it was shown and `answer` what the
+visitor gave. If the list is empty the answer is an empty list.
+
+### Showing a question only when…
+
+Under a question, **Only show this question when…** hides it unless an *earlier*
+question on the same page has a given answer. Pick the question, then *is*, *is not*,
+*contains*, *is empty*, *is not empty*, *is greater than* or *is less than* (the choices
+depend on the type of question), then the value. A hidden question is not asked, is
+never required and is stored as empty. The server checks the condition again when the
+form is submitted, so a hidden answer cannot be smuggled in.
+
+A condition the picker cannot show (one with several parts) appears as text in the same
+place, and stays editable there.
+
+### Answer rules
+
+**Answer rules** on a question narrow what is accepted. A number or a date takes a lowest
+and highest allowed; short text, long text and email take a fewest and most characters;
+short and long text can also require a **pattern** (the whole answer has to fit it; for
+example `[A-Z]{2}[0-9]{4}` accepts `AB1234`) with the sentence the visitor reads when it
+does not. Rules are only checked on an answer that was given: use **Required** for "must
+answer". A broken rule shows an inline message and the page does not submit.
+
+### Skipping a page
+
+On a Form page step, **Only show this page when…** takes a condition on what the
+automation knows when it reaches the page (the form's earlier answers, an earlier step's
+result). When it is not met the page is *skipped*: nobody sees it, the run goes straight
+on without pausing, and its answers stay empty. Use it for the second half of a form that
+only some visitors need.
+
+### Stopping early with a closing page
+
+To end a form early with a clear message (we cannot continue, here is why), put a
+condition before the page and, on the branch that must stop, add a **closing page**. Write
+its message with values from earlier steps, and leave that branch without further steps.
+The visitor sees the message instead of the rest of the form.
+
+### Two ways in with one form
+
+An automation has one form. If two kinds of visitor need different questions (report or
+request, for example), ask that first with choice buttons on the first page and use
+**Only show this page when…** on the later pages, or branch on the choice with a switch
+and give each branch its own pages.
+
+### A second try
+
+For "upload a document, and allow one more try when the check fails": put the check in a
+flowlet and call it after the first upload page. Then add a **Condition** on the check's
+result. Only on its failure branch, add a second Form page that asks for the file again and
+call the same flowlet on the new file, so the second check never runs when the first one
+passed. Let both branches end in the same step. From there on, read the file with
+`coalesce(second file, first file)` and the result with `coalesce(second result, first result)`:
+a step that did not run reads as empty, and `coalesce` skips empty values. Form pages cannot
+sit inside a loop, which is why the retry is written out once.
+
+### Busy forms
+
+A wizard that many people fill in at the same time should have **Run at the same time**
+set to *Allowed at the same time* in the automation's settings (the "run several at
+once" option). Otherwise a second visitor waits for the first run to finish. While a visitor waits, the page can tell them how long a run usually takes.
+
+### Limits you can change
+
+Two environment variables set how large a dynamic list may get. Both have a generous
+default and **0 means unlimited**:
+
+| Variable | Default | What it caps |
+|----------|---------|--------------|
+| `AUTOMATION_FORM_MAX_OPTIONS` | `200` | The options of one choice question (typed or loaded from a list). |
+| `AUTOMATION_FORM_MAX_FIELDS_FROM` | `50` | The questions one "once per item" question expands into. |
+
 ## Where to next
 
 - [Features → Automations](../features/automations.md) — the automation a form starts.

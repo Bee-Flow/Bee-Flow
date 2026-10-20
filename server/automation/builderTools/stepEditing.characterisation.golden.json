@@ -8266,6 +8266,7 @@
    "mode",
    "form",
    "waitSeconds",
+   "when",
    "label"
   ],
   "filter": [

@@ -14,7 +14,7 @@ import ts from 'typescript';
 
 import type { FormField } from '@/features/flow-editor/model';
 
-import { activePreset, addDisplayField, addQuestion, COLOR_PRESETS, FIELD_TYPES, moveField, normaliseOptions, optionLines, slugifyFieldName, THEME_KNOBS } from './formModel';
+import { activePreset, addDisplayField, addQuestion, COLOR_PRESETS, DISPLAY_FIELD_TYPES, FIELD_TYPES, moveField, normaliseOptions, optionLines, slugifyFieldName, THEME_KNOBS } from './formModel';
 
 const src = fs.readFileSync(
     path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings/FormBuilderFields.jsx'),
@@ -71,7 +71,22 @@ describe('the form page against FormBuilderFields.jsx', () => {
         expect(slugifyFieldName(label, new Set(taken))).toBe(web.slugifyFieldName(label, new Set(taken)));
     });
 
-    it.each([[['a', 'b']], [[{ value: 'x' }, { value: 'y', label: 'Y' }, { label: 'no value' }, null]], ['nope'], [undefined]])('normaliseOptions(%j)', (options) => {
+    it('has the web’s display types (the fields that give instead of ask)', () => {
+        const preview = fs.readFileSync(
+            path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings/formPreview.ts'),
+            'utf8',
+        );
+        const list = /export const DISPLAY_FIELD_TYPES = \[([^\]]*)\]/.exec(preview)?.[1] ?? '';
+        expect([...DISPLAY_FIELD_TYPES]).toEqual([...list.matchAll(/'([^']+)'/g)].map((m) => m[1]));
+    });
+
+    it.each([
+        [['a', 'b']],
+        [[{ value: 'x' }, { value: 'y', label: 'Y' }, { label: 'no value' }, null]],
+        [[{ value: 'p', label: 'P', hint: 'a short note' }, { value: 'q', hint: '' }, { value: 'r', hint: 3 }]],
+        ['nope'],
+        [undefined],
+    ])('normaliseOptions(%j)', (options) => {
         expect(normaliseOptions(options)).toEqual(web.normaliseOptions(options));
     });
 });

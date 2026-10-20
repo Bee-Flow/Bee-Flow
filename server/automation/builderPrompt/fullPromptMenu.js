@@ -131,7 +131,9 @@ const FULL_PROMPT_STEP_MENU = `
                      template-interpolated when the page is SHOWN, so {{trigger.output.name}}
                      greets the visitor and an ending page's {{steps.<id>.output.…}} summarises
                      what the run did. Never place one inside a loop, a parallel branch or a
-                     flowlet.
+                     flowlet. Optional \`when\` (a condition expression) skips the page without
+                     pausing; choices from run data (optionsFrom), one question per list item
+                     (fieldsFrom) and showIf are covered under "Form wizards" below.
   stop_error       — halt the run with a custom error message (template-interpolated)
   guard            — PRIVACY SHIELD. Scan one value for personal data with the same detector the
                      organisation's Privacy Shield uses, and BRANCH on the answer (then = found,

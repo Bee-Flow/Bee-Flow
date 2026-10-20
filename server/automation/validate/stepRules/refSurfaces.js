@@ -263,6 +263,21 @@ function collectStepRefs(step) {
             const form = isObject(step.form) ? step.form : {};
             for (const k of FORM_TEXT_KEYS) template(form[k], `form.${k}`);
             formFields(form.fields, 'form.fields');
+            // The page condition reads the run like any expression.
+            expr(step.when, 'when', { parse: true });
+            // Run-data sources of dynamic options / per-item questions, and the
+            // texts a field renders from them. `showIf` is NOT scanned: its
+            // `form` root is page-local and would read as an unknown root.
+            (Array.isArray(form.fields) ? form.fields : []).forEach((f, i) => {
+                if (!isObject(f)) return;
+                const fp = `form.fields[${i}]`;
+                if (isObject(f.optionsFrom)) ref(f.optionsFrom.ref, `${fp}.optionsFrom.ref`);
+                if (isObject(f.fieldsFrom)) ref(f.fieldsFrom.ref, `${fp}.fieldsFrom.ref`);
+                template(f.content, `${fp}.content`);
+                (Array.isArray(f.options) ? f.options : []).forEach((o, j) => {
+                    if (isObject(o)) template(o.hint, `${fp}.options[${j}].hint`);
+                });
+            });
             break;
         }
         default:

@@ -71,6 +71,9 @@ function formFieldType(f) {
     if (f.type === 'checkbox') return 'boolean';
     if (f.type === 'file') return 'file';
     if (f.type === 'app_pick') return f.multiple ? 'array' : 'object';
+    // A choice list holds the picked values; a question asked once per item
+    // holds one { key, label, answer } per item.
+    if (f.type === 'multiselect' || f.fieldsFrom) return 'array';
     return 'string';
 }
 

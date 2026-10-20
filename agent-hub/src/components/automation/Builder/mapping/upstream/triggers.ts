@@ -6,10 +6,10 @@
  */
 import { appendKey, getRelativePath } from '@shared/expr/path.mjs';
 import { fieldFor } from './fieldTree';
-import { pickSample } from './formAnswers';
+import { answerableFields, formFieldSample } from './formAnswers';
 import { samplePlaceholderFor } from './sampleFields';
 import { schemaToParams } from '../../flow/triggerSchemaUtils';
-import type { Catalog, FormFieldDecl, Group, TriggerOutputs, UpstreamDefinition, UpstreamNode } from './upstream.types';
+import type { Catalog, Group, TriggerOutputs, UpstreamDefinition, UpstreamNode } from './upstream.types';
 
 /**
  * The non-payload facts a run knows about its trigger, as a sample object in
@@ -143,25 +143,14 @@ function describeAgentCall(trigger: UpstreamNode): Group {
  * would leave every downstream step un-mappable.
  */
 function describeForm(trigger: UpstreamNode): Group {
-    const fields = Array.isArray(trigger.form?.fields) ? trigger.form.fields.filter(f => f?.name) : [];
-    const sampleFor = (f: FormFieldDecl) => (f.type === 'checkbox' ? true
-        : f.type === 'number' ? 42
-        : f.type === 'date' ? '2026-01-31'
-        : f.type === 'file' ? { kind: 'form_upload', filename: 'attachment.pdf' }
-        // A picked record, as the run receives it: the reference the person
-        // chose, plus the text that was read from it. Shown even when the
-        // question only takes one, because `.text` is what a downstream
-        // step binds and it has to be visible to be draggable.
-        : f.type === 'app_pick' ? pickSample(f)
-        : f.type === 'email' ? 'visitor@example.com'
-        : f.label || 'answer');
+    const fields = answerableFields(trigger.form);
     return {
         id: trigger.id,
         label: 'Form answers',
         kind: 'trigger',
         basePath: 'trigger.output',
-        sample: Object.fromEntries(fields.map(f => [f.name, sampleFor(f)])),
-        fields: fields.map(f => fieldFor(f.name, appendKey('trigger.output', f.name), sampleFor(f))),
+        sample: Object.fromEntries(fields.map(f => [f.name, formFieldSample(f)])),
+        fields: fields.map(f => fieldFor(f.name, appendKey('trigger.output', f.name), formFieldSample(f))),
     };
 }
 

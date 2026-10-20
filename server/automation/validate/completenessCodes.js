@@ -121,6 +121,11 @@ const COMPLETENESS_CODES = new Set([
     // A download button dropped on the canvas before its document step is
     // wired: incomplete, not wrong.
     'form_page.field_download_no_file',
+    // A dynamic-options field or an info block added from the palette before its
+    // run-data source or its text is filled in: unfinished, not wrong.
+    'form_page.field_options_from_no_ref',
+    'form_page.field_info_empty',
+    'form.field_info_empty',
     'generate_document.content_missing',
     // The two presentation nodes land empty from the palette and are wired
     // over the next few autosaves: not finished, not wrong.

@@ -85,6 +85,8 @@ function normalizePatchField(type, key, value) {
         if (key === 'mode') return value === 'ending' ? 'ending' : 'input';
         if (key === 'form') return (value && typeof value === 'object' && !Array.isArray(value)) ? value : null;
         if (key === 'waitSeconds') return Math.max(60, Math.min(7 * 24 * 3600, Math.round(Number(value) || 3600)));
+        // The page condition: a trimmed expression, or null (always show the page).
+        if (key === 'when') return (typeof value === 'string' && value.trim()) ? value.trim().slice(0, 2000) : null;
     }
     if (type === 'http_request') {
         if (key === 'method') return String(value || 'GET').toUpperCase();

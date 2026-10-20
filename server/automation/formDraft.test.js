@@ -20,7 +20,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { buildDraftMessages, parseFormDraft, nameFromLabel, DRAFT_TOOL, INPUT_TYPES, MAX_BRIEF_CHARS } = require('./formDraft');
+const { buildDraftMessages, parseFormDraft, nameFromLabel, describeCurrent, DRAFT_TOOL, INPUT_TYPES, MAX_BRIEF_CHARS } = require('./formDraft');
 const { MAX_FIELDS } = require('./formTriggerContract');
 
 const CURRENT = {
@@ -150,4 +150,116 @@ test('a brief longer than the cap is cut, not refused', () => {
     const long = 'x'.repeat(MAX_BRIEF_CHARS + 500);
     const msgs = buildDraftMessages({ mode: 'create', brief: long });
     assert.ok(msgs[1].content.length < MAX_BRIEF_CHARS + 400);
+});
+
+test('the tool offers radio and multiselect, and never the text block', () => {
+    assert.ok(INPUT_TYPES.includes('radio') && INPUT_TYPES.includes('multiselect'));
+    assert.ok(!INPUT_TYPES.includes('info'));
+});
+
+test('radio and multiselect keep their options; a choice without options becomes text', () => {
+    const out = parseFormDraft({
+        title: 'Intake',
+        fields: [
+            { label: 'Size', type: 'radio', options: ['Small', 'Large', 'Small'] },
+            { label: 'Topics', type: 'multiselect', options: [{ label: 'Billing' }, 'Support'] },
+            { label: 'Colour', type: 'radio', options: [] },
+            { label: 'Extras', type: 'multiselect' },
+            { label: 'About', type: 'info' },
+        ],
+    }, { mode: 'create', current: CURRENT });
+    assert.ok(out);
+    assert.deepStrictEqual(out.form.fields.map(f => f.type), ['radio', 'multiselect', 'text', 'text', 'text']);
+    assert.deepStrictEqual(out.form.fields[0].options, ['Small', 'Large']);
+    assert.deepStrictEqual(out.form.fields[1].options, ['Billing', 'Support']);
+    assert.strictEqual('options' in out.form.fields[2], false);
+});
+
+test('the current choices of a radio or multiselect are quoted to the model on revise', () => {
+    const text = describeCurrent({ fields: [
+        { name: 'size', type: 'radio', label: 'Size', options: ['Small', 'Large'] },
+        { name: 'topics', type: 'multiselect', label: 'Topics', options: ['A', 'B'] },
+    ] });
+    assert.match(text, /choices: Small \| Large/);
+    assert.match(text, /choices: A \| B/);
+});
+
+// ── revise keeps what the model is not taught ──────────────────────────────
+
+const WIZARD = {
+    title: 'Request', submitLabel: 'Send', successMessage: 'Thanks', collect: true,
+    fields: [
+        { name: 'contact', type: 'radio', label: 'How should we reach you?', required: true, options: [{ value: 'email', label: 'By e-mail', hint: 'Fastest' }, 'phone'] },
+        { name: 'intro', type: 'info', label: 'Note', content: 'We answer within two days.' },
+        { name: 'address', type: 'email', label: 'Your e-mail', showIf: 'form.contact == "email"', maxLength: 80 },
+        { name: 'amount', type: 'number', label: 'Amount', min: 1, max: 500 },
+        { name: 'topics', type: 'multiselect', label: 'Topics', options: ['a', 'b', 'c'], minSelected: 1, maxSelected: 2 },
+    ],
+};
+
+const reviseReply = (fields) => ({ fields });
+
+test('revise: showIf, value rules and the stored choice values survive a pass through the model', () => {
+    const out = parseFormDraft(reviseReply([
+        { name: 'contact', label: 'How should we reach you?', type: 'radio', required: true, options: ['By e-mail', 'phone'] },
+        { name: 'address', label: 'E-mail address', type: 'email' },
+        { name: 'amount', label: 'Amount', type: 'number' },
+        { name: 'topics', label: 'Topics', type: 'multiselect', options: ['a', 'b', 'c'] },
+    ]), { mode: 'revise', current: WIZARD });
+    assert.ok(out);
+    const by = (n) => out.form.fields.find(f => f.name === n);
+    assert.strictEqual(by('address').showIf, 'form.contact == "email"');
+    assert.strictEqual(by('address').maxLength, 80);
+    assert.strictEqual(by('address').label, 'E-mail address', 'what the model changed is applied');
+    assert.deepStrictEqual([by('amount').min, by('amount').max], [1, 500]);
+    assert.deepStrictEqual([by('topics').minSelected, by('topics').maxSelected], [1, 2]);
+    assert.deepStrictEqual(by('contact').options, [{ value: 'email', label: 'By e-mail', hint: 'Fastest' }, 'phone'], 'the stored value and hint stay');
+});
+
+test('revise: a text block is not shown to the model and goes back where it was', () => {
+    assert.ok(!describeCurrent(WIZARD).includes('intro'));
+    const out = parseFormDraft(reviseReply([
+        { name: 'contact', label: 'How should we reach you?', type: 'radio', options: ['phone'] },
+        { name: 'address', label: 'Your e-mail', type: 'email' },
+    ]), { mode: 'revise', current: WIZARD });
+    assert.deepStrictEqual(out.form.fields.map(f => f.name), ['contact', 'intro', 'address']);
+    assert.deepStrictEqual(out.form.fields[1], WIZARD.fields[1]);
+});
+
+test('revise: a block whose neighbour was removed lands after the nearest earlier question that is left; a new question never takes its name', () => {
+    const out = parseFormDraft(reviseReply([
+        { label: 'Note', type: 'text' },
+        { name: 'address', label: 'Your e-mail', type: 'email' },
+    ]), { mode: 'revise', current: WIZARD });
+    // `contact` is gone: the block has no earlier question and moves to the front.
+    assert.deepStrictEqual(out.form.fields.map(f => f.name), ['intro', 'note', 'address']);
+    assert.strictEqual(out.form.fields[0].type, 'info');
+    assert.strictEqual(out.form.fields[1].type, 'text');
+});
+
+test('revise: a changed type keeps the condition and only the rules the new type accepts', () => {
+    const out = parseFormDraft(reviseReply([
+        { name: 'contact', label: 'How should we reach you?', type: 'radio', options: ['phone', 'By e-mail'] },
+        { name: 'address', label: 'Your e-mail', type: 'text' },
+        { name: 'amount', label: 'Amount', type: 'date' },
+    ]), { mode: 'revise', current: WIZARD });
+    const by = (n) => out.form.fields.find(f => f.name === n);
+    assert.strictEqual(by('address').showIf, 'form.contact == "email"');
+    assert.strictEqual(by('address').maxLength, 80, 'maxLength is a rule of text too');
+    assert.ok(!('min' in by('amount')) && !('max' in by('amount')), 'number bounds do not travel to a date');
+});
+
+test('revise: a condition on a question the model removed is dropped instead of losing the draft', () => {
+    const out = parseFormDraft(reviseReply([
+        { name: 'address', label: 'Your e-mail', type: 'email' },
+    ]), { mode: 'revise', current: WIZARD });
+    assert.ok(out, 'the draft survives');
+    const address = out.form.fields.find(f => f.name === 'address');
+    assert.ok(!('showIf' in address));
+    assert.ok(out.form.fields.some(f => f.type === 'info'), 'the text block is kept');
+});
+
+test('create mode ignores the current form entirely: no condition, no block', () => {
+    const out = parseFormDraft(reviseReply([{ name: 'address', label: 'Your e-mail', type: 'email' }]), { mode: 'create', current: WIZARD });
+    assert.deepStrictEqual(out.form.fields.map(f => f.name), ['your_e_mail']);
 });

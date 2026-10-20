@@ -3,8 +3,7 @@ import { Loader2 } from 'lucide-react';
 import useFormResultActions from './useFormResultActions';
 import PublicFormRenderer, { FormEndingView, FormWaitingView } from '../components/forms/PublicFormRenderer';
 import useTranslation from '../hooks/useTranslation';
-
-const API = (import.meta.env.VITE_API_URL || '') + '/api/automation/form';
+import { FORM_API as API, applySessionState, fetchSession, randomNonce, readSessionFromUrl, workingPatch, writeSessionToUrl } from './publicFormSession';
 
 // Poll cadence while the automation works. Starts sub-second so a fast automation
 // feels instant, then eases off so a slow one is not hammered.
@@ -126,10 +125,10 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
             if (next && next.state !== 'working') { applySessionState(next, setState, setSession); return; }
             // Still working — but the poll also says WHICH step, so the wait
             // has something to show for itself. Absent progress leaves the
-            // last-known trail up rather than blanking it between steps.
-            if (next?.progress?.length) {
-                setState(s => ({ ...s, progress: next.progress, progressNote: next.progressNote || null }));
-            }
+            // last-known trail up rather than blanking it between steps. The
+            // same poll may say how long this form usually takes.
+            const patch = workingPatch(next);
+            if (patch) setState(s => ({ ...s, ...patch }));
             // A dropped poll is not fatal — the run keeps going either way.
             delay = Math.min(POLL_MAX_MS, delay + POLL_STEP_MS);
             timer = setTimeout(tick, delay);
@@ -274,7 +273,7 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
         if (body.sessionId) setSession(body.sessionId);
         // Hand over to the poll loop: only the server knows whether the automation
         // paused for another page or ran to the end.
-        setState(s => ({ ...s, status: 'working', form: null, progress: null, progressNote: null }));
+        setState(s => ({ ...s, status: 'working', form: null, progress: null, progressNote: null, typicalSeconds: null }));
     }, [token, state.csrf, state.issuedAt, nonce, setSession, multiPage]);
 
     const retry = useCallback(() => setState(s => ({ ...s, status: 'working' })), []);
@@ -296,9 +295,7 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
                     </div>
                 )}
                 {state.status === 'working' && (
-                    <>
-                        <FormWaitingView theme={theme} progress={state.progress} note={state.progressNote} />
-                    </>
+                    <FormWaitingView theme={theme} progress={state.progress} note={state.progressNote} typicalSeconds={state.typicalSeconds} />
                 )}
                 {state.status === 'slow' && (
                     <div className="text-center py-24">
@@ -380,89 +377,4 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
             </div>
         </div>
     );
-}
-
-/** GET the session. `null` means "gone" (404/network); the caller decides. */
-async function fetchSession(token, sid) {
-    try {
-        const r = await fetch(`${API}/${encodeURIComponent(token)}/s/${encodeURIComponent(sid)}`, {
-            headers: { Accept: 'application/json' },
-        });
-        if (!r.ok) return null;
-        return await r.json();
-    } catch {
-        return null;
-    }
-}
-
-/**
- * Map a poll response onto the page's phase.
- *
- * Every branch replaces the whole state, so `theme` is threaded through each
- * one deliberately: it is the one field that belongs to the JOURNEY rather than
- * to the screen, and losing it mid-way makes the next page a different-looking
- * product than the one before it.
- */
-function applySessionState(payload, setState, setSession) {
-    switch (payload.state) {
-        case 'form':
-            setState(s => ({
-                status: 'form', form: payload.form, csrf: payload.csrf,
-                issuedAt: payload.issuedAt || Date.now(), ending: null,
-                theme: payload.form?.theme || s.theme || null,
-            }));
-            break;
-        case 'done':
-            // The journey is over, so nothing polls or posts to it any more,
-            // but `?s=` stays: a reload shows this result again instead of
-            // losing it (BFSF-419). "Start again" is the way to a fresh journey.
-            setSession(null, { keepUrl: true });
-            setState(s => ({
-                status: 'done', form: null, csrf: null, issuedAt: 0,
-                ending: payload.ending || null, theme: payload.ending?.theme || s.theme || null,
-            }));
-            break;
-        case 'expired':
-            setSession(null);
-            setState(s => ({ status: 'expired', form: null, csrf: null, issuedAt: 0, ending: null, theme: s.theme || null }));
-            break;
-        case 'working':
-            // Keep the trail the poll sent. Dropping it meant a page opened (or
-            // reloaded) mid-run showed a bare spinner until the NEXT tick.
-            setState(s => ({
-                ...s,
-                status: 'working',
-                ...(payload.progress?.length ? { progress: payload.progress, progressNote: payload.progressNote || null } : {}),
-            }));
-            break;
-        default:
-            setSession(null);
-            setState(s => ({ status: 'error', form: null, csrf: null, issuedAt: 0, ending: null, theme: s.theme || null }));
-    }
-}
-
-const SESSION_RE = /^[a-f0-9]{24,64}$/;
-
-function readSessionFromUrl() {
-    try {
-        const sid = new URLSearchParams(window.location.search).get('s');
-        return sid && SESSION_RE.test(sid) ? sid : null;
-    } catch {
-        return null;
-    }
-}
-
-/** Mirror the session into the URL so a reload resumes rather than restarts. */
-function writeSessionToUrl(sid) {
-    try {
-        const url = new URL(window.location.href);
-        if (sid) url.searchParams.set('s', sid);
-        else url.searchParams.delete('s');
-        window.history.replaceState(null, '', url.toString());
-    } catch { /* a browser without history API still works, just not on reload */ }
-}
-
-function randomNonce() {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID().replace(/-/g, '');
-    return `n${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
 }

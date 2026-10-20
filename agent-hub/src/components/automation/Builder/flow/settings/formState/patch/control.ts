@@ -49,5 +49,9 @@ export const controlPatchers: Record<string, TypePatcher> = {
         // and builderTools' normalizePatchField), or a UI-built step and an
         // AI-built one would disagree. An ending page never waits.
         patch.waitSeconds = ending ? null : clamp(Number(draft.waitSeconds) || 3600, 60, 7 * 24 * 3600);
+        // Trimmed, at most 2000 characters, and empty means "always shown":
+        // `null`, as the server's normalizePatchField turns it.
+        const when = typeof draft.when === 'string' ? draft.when.trim().slice(0, 2000) : '';
+        if (when || step.when != null) patch.when = when || null;
     },
 };

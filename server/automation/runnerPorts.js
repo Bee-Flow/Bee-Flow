@@ -73,6 +73,7 @@ registerRunnerPorts({
     forms: {
         renderFormConfig: (...args) => formTriggerContract().renderFormConfig(...args),
         maxRenderedDescriptionLen: () => formTriggerContract().MAX_RENDERED_DESCRIPTION_LEN,
+        emptyFormValues: (...args) => formTriggerContract().emptyFormValues(...args),
     },
     automationGraph: {
         walkSteps: (...args) => automationGraph().walkSteps(...args),
