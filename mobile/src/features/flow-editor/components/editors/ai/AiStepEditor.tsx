@@ -19,6 +19,7 @@ import { Band } from '../shared/Band';
 import { SpecFields } from '../shared/SpecFields';
 import type { StepEditorProps } from '../types';
 import { AgentFields } from './AgentFields';
+import { ChecksBand, checksCount } from './ChecksBand';
 import { KnowledgeChooser } from './KnowledgeChooser';
 import { StructuredOutput } from './StructuredOutput';
 import { tierOptions, type TierConfig } from './tiers';
@@ -117,6 +118,9 @@ export function AiStepEditor(editor: StepEditorProps) {
             </Band>
             <Band editor={editor} sectionKey="output" title={t('automations.ai_step_editors.structured_output', 'Structured output')} defaultOpen={outputFields.length > 0} hasContent={outputFields.length > 0}>
                 <StructuredOutput fields={outputFields} onChange={(next) => set('outputFields', next)} disabled={ctx.disabled} />
+            </Band>
+            <Band editor={editor} sectionKey="checks" title={t('ai_step_checks.section_title', 'Answer checks')} hasContent={checksCount(draft) > 0}>
+                <ChecksBand draft={draft} />
             </Band>
         </>
     );

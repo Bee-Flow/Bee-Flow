@@ -465,7 +465,7 @@ function sanitizeArrayRef(raw, graph, { draftWrap, strictRoot = false } = {}) {
 function sanitizeForEach(raw, graph, draftWrap) {
     if (raw === undefined || raw === null) return { forEach: undefined };
     if (typeof raw !== 'object' || Array.isArray(raw)) {
-        return { error: 'forEach must be an object { overRef, itemVar, maxIterations? }, or omitted.' };
+        return { error: 'forEach must be an object { overRef, itemVar, maxIterations?, concurrency? }, or omitted.' };
     }
     if (!raw.overRef || typeof raw.overRef !== 'string') {
         return { error: 'forEach requires `overRef` — a ref to an upstream array, e.g. "steps.<id>.output.results".' };
@@ -488,6 +488,15 @@ function sanitizeForEach(raw, graph, draftWrap) {
             return { error: 'forEach.maxIterations must be an integer between 1 and 1000.' };
         }
         forEach.maxIterations = n;
+    }
+    // How many items run at once: honoured on an AI step without tools and on
+    // data extraction (the validator says so for the others).
+    if (raw.concurrency !== undefined && raw.concurrency !== null) {
+        const c = Number(raw.concurrency);
+        if (!Number.isInteger(c) || c < 1 || c > 1000) {
+            return { error: 'forEach.concurrency must be an integer between 1 and 1000.' };
+        }
+        forEach.concurrency = c;
     }
     return { forEach, ...(notes ? { notes: notes.map(l => l.replace(/^inputs\.overRef/, 'forEach.overRef')) } : {}) };
 }

@@ -32,6 +32,7 @@ const NAMESPACES = {
     "agent_studio":    require('./agent_studio.js'),
     "agent_usage":     require('./agent_usage.js'),
     "agent_wizard":    require('./agent_wizard.js'),
+    "ai_step_checks":  require('./ai_step_checks.js'),
     "app":             require('./app.js'),
     "app_studio":      require('./app_studio.js'),
     "approvals":       require('./approvals.js'),

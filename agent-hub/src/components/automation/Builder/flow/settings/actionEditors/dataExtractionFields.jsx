@@ -5,6 +5,7 @@ import React from 'react';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
 import BindingField from '../../../mapping/BindingField';
 import AccordionSection from '../../AccordionSection';
+import { ConcurrencyField } from '../aiStepReliability/ConcurrencyField';
 import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
 import { AMBER_NOTE, cardClass, hintTextClass, rowInputClass, textareaClass } from '../formPrimitives';
 import {
@@ -206,7 +207,9 @@ function DataExtractionFields({ draft, set, groups = [], onFocusField, previewSa
             </AccordionSection>
 
             <AccordionSection stepType="data_extraction" sectionKey="advanced" title={t('automations.data_extraction_fields.advanced', 'Advanced')} defaultOpen={!!draft.forEach || retryIsSet(draft)} forceOpen={errorSections.has('advanced')} hasContent={!!draft.forEach || retryIsSet(draft)}>
-                <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
+                <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField}>
+                    <ConcurrencyField draft={draft} set={set} />
+                </ForEachSection>
                 <RetrySection draft={draft} set={set} />
             </AccordionSection>
         </>

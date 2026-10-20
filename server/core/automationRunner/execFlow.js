@@ -19,6 +19,7 @@ const { resolveForEachItems } = require('./forEachScope');
 const { noteTruncation } = require('./truncations');
 const { buildLinearEdges } = require('./linearEdges');
 const { coerceLayerInputs } = require('./layerParams');
+const { forEachConcurrencyFor, runIndexedPool } = require('./forEachConcurrency');
 
 // ── Parallel branches ───────────────────────────────────
 //
@@ -183,11 +184,6 @@ async function execLoop(step, ctx, runState, mode, dispatchSubStep) {
  * enclosing executeAutomation scope, so container steps nested in a
  * forEach still recurse correctly.
  */
-// Read-only fetches a per-item step may run a few at a time (see
-// execForEachStep). Attachments get fewer: each one is also parsed / OCR'd in
-// this process, and five large PDFs at once is a memory spike for nothing.
-const PARALLEL_READ_TOOLS = new Map([['gmail_read', 5], ['gmail_read_attachment', 3]]);
-
 async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel = null) {
     const fe = step.forEach || {};
     const list = require('../automationModel/bind').walkList(fe.overRef, runState);
@@ -258,14 +254,12 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
     // nosemgrep: ajinabraham.njsscan.eval.eval_node.eval_nodejs -- the only timer below is setTimeout(fn, ms) with a function and a numeric delay; nothing is evaluated
     const retry = (step.retry && step.retry.max > 0) ? step.retry : null;
     const maxAttempts = retry ? retry.max + 1 : 1;
-    // Only read-only Gmail fetches opt into bounded parallelism (results keep
-    // their item order). Other actions may depend on order or have side
-    // effects. Attachments are the slow case: each one is downloaded AND run
-    // through text extraction / OCR, a mail often carries a dozen (logos), and
-    // one at a time that took minutes. askOnce stays serial so duplicate IDs
-    // can reuse the first result from the run memo.
-    const concurrency = mode === 'live' && step.type === 'integration_action'
-        && PARALLEL_READ_TOOLS.has(step.tool) && !step.askOnce ? PARALLEL_READ_TOOLS.get(step.tool) : 1;
+    // Which steps may run items side by side, and how many, is decided in
+    // forEachConcurrency.js: read-only fetches, data_extraction and an ai_step
+    // that cannot be offered tools. Results keep their item order. Identical
+    // items started at the same moment may both call the model before the
+    // first answer is stored for reuse (askOnce).
+    const concurrency = forEachConcurrencyFor(step, mode);
     const runItem = async (i) => {
         // Honour cancellation between items — a long fan-out (hundreds of
         // API calls) must stop promptly, not only at the next step boundary.
@@ -331,19 +325,10 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
             results[i] = { index: i, item: items[i], output: null, error: lastErr.message, errorClass: lastErr.errorClass || classifyUnknownError(lastErr), attempts: maxAttempts, status: 'error' };
         }
     };
-    for (let start = 0; start < items.length; start += concurrency) {
-        if (concurrency === 1) {
-            await runItem(start);
-            continue;
-        }
-        // Drain in-flight reads before propagating cancellation/a pause, so
-        // no calls keep running after the step has been recorded as stopped.
-        const batch = await Promise.allSettled(
-            items.slice(start, start + concurrency).map((_, offset) => runItem(start + offset)),
-        );
-        const rejected = batch.find(r => r.status === 'rejected');
-        if (rejected) throw rejected.reason;
-    }
+    // A worker pool, not fixed batches: a slow item no longer holds the next
+    // ones back. After a pause or cancellation no new item starts, the ones in
+    // flight settle, and the first rejection is rethrown.
+    await runIndexedPool(items.length, concurrency, runItem);
     // §WS2.5 — a fan-out where EVERY item failed is a real step failure, not a
     // green 'success'. Throw so it routes the on_error edge / is recorded as an
     // error. Continue-on-error still applies for PARTIAL failures (those return

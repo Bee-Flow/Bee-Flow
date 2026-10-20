@@ -24,6 +24,7 @@ const { WEBPAGES_GUIDANCE, DRIVE_GUIDANCE, CODE_STEP_MENU_ENTRY } = require('./b
 const { FULL_PROMPT_INTRO, FULL_PROMPT_STEP_MENU } = require('./builderPrompt/fullPromptMenu');
 const { FULL_PROMPT_WORKFLOW, FULL_PROMPT_RULES, FULL_PROMPT_PITFALLS, FULL_PROMPT_PITFALLS_TAIL } = require('./builderPrompt/fullPromptWorkflow');
 const { FULL_PROMPT_FORMS } = require('./builderPrompt/fullPromptForms');
+const { FULL_PROMPT_AI_CHECKS } = require('./builderPrompt/fullPromptAiChecks');
 
 
 // The name a draft has until somebody names it. The same literal lives in
@@ -67,7 +68,7 @@ function buildFullSystemPrompt({ catalog, codeStepEnabled }) {
         ? CODE_STEP_MENU_ENTRY
         : '(code steps are currently DISABLED — never propose them)';
 
-    return `${FULL_PROMPT_INTRO}${codeStepMenuEntry}${FULL_PROMPT_STEP_MENU}${canvasOnlyMenu()}${FULL_PROMPT_WORKFLOW}${FULL_PROMPT_RULES}${FULL_PROMPT_FORMS}${FULL_PROMPT_PITFALLS}${CONDITION_RULES_HINT}${FULL_PROMPT_PITFALLS_TAIL}${webpagesGuidance}${driveGuidance}
+    return `${FULL_PROMPT_INTRO}${codeStepMenuEntry}${FULL_PROMPT_STEP_MENU}${canvasOnlyMenu()}${FULL_PROMPT_WORKFLOW}${FULL_PROMPT_RULES}${FULL_PROMPT_FORMS}${FULL_PROMPT_AI_CHECKS}${FULL_PROMPT_PITFALLS}${CONDITION_RULES_HINT}${FULL_PROMPT_PITFALLS_TAIL}${webpagesGuidance}${driveGuidance}
 ${datatablesBlock ? `${datatablesBlock}\n\n` : ''}${documentsBlock ? `${documentsBlock}\n\n` : ''}## Catalog (only these are available)
 
 ${apps || emptyCatalogLine(catalog)}

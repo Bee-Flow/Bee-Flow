@@ -16,6 +16,24 @@ const { sanitizeSwitchCases } = require('../stepBuilders/flowSteps');
 const cycleDeps = require('./cycleDeps');
 const { normalizeQuery: normalizeHttpQuery } = require('../../../core/automationRunner/httpQuery');
 const { KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES, DATA_EXTRACTION_MAX_INSTRUCTIONS_CHARS } = require('../../validate/constants');
+const { sanitizeAiStepReliabilityArgs } = require('../../../core/automationModel/aiStepReliability');
+
+const AI_RELIABILITY_KEYS = new Set(['temperature', 'enumFrom', 'checks', 'fallback']);
+
+/**
+ * temperature / enumFrom / checks / fallback of an ai_step, through the same
+ * sanitiser the add path uses, so a patched step equals an added one. null
+ * clears (so does an empty list). There is no error channel here (`undefined`
+ * already means "clear"), so an unusable value is passed through UNCHANGED and
+ * validateDefinition refuses it on save with the field and the allowed values,
+ * the convention the code step's limits follow.
+ */
+function normalizeAiReliabilityPatch(key, value) {
+    if (value === null || value === undefined) return undefined;
+    if (Array.isArray(value) && value.length === 0 && (key === 'enumFrom' || key === 'checks')) return undefined;
+    const r = sanitizeAiStepReliabilityArgs({ [key]: value });
+    return 'error' in r ? value : r.value[key];
+}
 
 /**
  * Normalize a scalar/structured patch field to the exact shape the matching
@@ -47,6 +65,9 @@ function normalizePatchField(type, key, value) {
         // Handoff 5: the agent's skills this step switches off, replaced
         // wholesale (send the full list).
         if (key === 'disabledAgentSkillIds') return cycleDeps.sanitizeDisabledAgentSkillIds(value);
+        // Rebuilt, never merged, like integration_action's: see the askOnce note below.
+        if (key === 'askOnce') return normalizeAskOnce(value);
+        if (AI_RELIABILITY_KEYS.has(key)) return normalizeAiReliabilityPatch(key, value);
     }
     if (type === 'code') {
         if (key === 'outputSchema') return value || null;

@@ -121,6 +121,7 @@ const sidebars: SidebarsConfig = {
             'studio/cms-mcp',
             'studio/datatables',
             'studio/forms',
+            'studio/ai-steps',
             'studio/knowledge-bases',
             'studio/skills',
             'studio/webpages',

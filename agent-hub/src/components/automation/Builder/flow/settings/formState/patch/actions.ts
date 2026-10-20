@@ -2,6 +2,7 @@
  * buildPatch for the steps that act: the AI step, an app action, code, a
  * notification and an HTTP request.
  */
+import { buildReliabilityPatch } from '../../aiStepReliability/reliabilityModel';
 import { MAX_AI_STEP_SKILL_IDS, readAgentPermissions, readSkillIds } from '../aiStepAgent';
 import { sanitizeInputs } from '../bindings';
 import { fieldsToSchema } from '../outputSchema';
@@ -42,6 +43,8 @@ export const actionPatchers: Record<string, TypePatcher> = {
         // to switch off, and a stale list would silently apply to the next agent.
         patch.disabledAgentSkillIds = patch.agentId ? readSkillIds(draft.disabledAgentSkillIds) : [];
         applyForEachPatch(patch, step, draft); // C12 — was dropped both ways
+        Object.assign(patch, buildReliabilityPatch(draft, step));
+        applyAskOncePatch(patch, step, draft);
     },
     integration_action: (patch, step, draft) => {
         patch.inputs = sanitizeInputs(draft.inputs || {});

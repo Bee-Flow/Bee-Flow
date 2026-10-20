@@ -200,7 +200,7 @@ test('shared params are stated once, in the lean wording, on every graph tool th
 
 test('the per-tool diet removed what it says it removed', () => {
     const ai = leanTool('builder_add_ai_step').function.parameters.properties;
-    for (const gone of ['tools', 'useMemory', 'agentPermissions']) assert.ok(!(gone in ai), `ai_step.${gone}`);
+    for (const gone of ['tools', 'useMemory', 'agentPermissions', 'temperature', 'enumFrom', 'checks', 'fallback', 'askOnce']) assert.ok(!(gone in ai), `ai_step.${gone}`);
     const http = leanTool('builder_add_http_request').function.parameters.properties;
     for (const gone of ['askOnce', 'cacheInto']) assert.ok(!(gone in http), `http_request.${gone}`);
     const appr = leanTool('builder_add_approval').function.parameters.properties;

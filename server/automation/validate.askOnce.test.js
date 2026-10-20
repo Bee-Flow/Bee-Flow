@@ -115,18 +115,18 @@ test('acrossRuns on a WRITE still leads with the write error', () => {
     assert.ok(errors.includes('integration_action.ask_once_on_write'));
 });
 
-// ── the setting belongs to TWO step types ────────────────────────────────────
+// ── the setting belongs to THREE step types ────────────────────────────────────
 //
-// execIntegrationAction and execHttpRequest (via httpCache.js) are the only
-// readers of `askOnce`. The rules above are therefore those steps' rules, not
-// the platform's: run them for every type and an askOnce on an ai_step
-// validates clean, earns the friendly "your administrator decides" warning, and
-// does absolutely nothing — the silent no-op the whole warning exists to
-// prevent. http_request used to be in this list and is now a first-class
-// reader; its own rules are the block below.
+// execIntegrationAction, execHttpRequest (via httpCache.js) and the AI step
+// (aiStepCache.js) are the only readers of `askOnce`. The rules above are
+// therefore those steps' rules, not the platform's: run them for every type and
+// an askOnce on a code step validates clean, earns the friendly "your
+// administrator decides" warning, and does absolutely nothing — the silent
+// no-op the whole warning exists to prevent. http_request and ai_step used to
+// be in this list and are now readers; their own rules are the blocks below
+// and in validate.aiStepReliability.test.js.
 
 const OTHER_TYPES = [
-    { type: 'ai_step', prompt: 'Summarise it' },
     { type: 'code', code: 'return {}' },
     { type: 'notification', title: 'Hi', body: 'There' },
 ];
@@ -137,6 +137,11 @@ test('askOnce on a step the runner never reads it on is a warning', () => {
         assert.ok(warnings.includes(`${step.type}.ask_once_unsupported`),
             `${step.type} silently ignores askOnce, so the author has to be told`);
     }
+});
+
+test('an AI step is a reader now: reuse is no longer reported as a no-op', () => {
+    const { warnings } = codesOf(def({ type: 'ai_step', prompt: 'Summarise it', askOnce: true }));
+    assert.ok(!warnings.some(c => c.endsWith('.ask_once_unsupported')), warnings.join(','));
 });
 
 test('the integration_action rules do NOT leak onto other types', () => {

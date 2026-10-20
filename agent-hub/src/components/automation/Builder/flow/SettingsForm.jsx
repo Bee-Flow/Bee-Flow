@@ -333,7 +333,7 @@ export default function SettingsForm({
                         draft={draft} set={set} modelTiers={modelTiers}
                         catalog={catalog} groups={groups}
                         onFocusField={onFocusField} previewSample={previewSample}
-                        errorSections={errorSections} runStep={runStep}
+                        errorSections={errorSections} runStep={runStep} stepIssues={stepIssues}
                     />
                 )}
 

@@ -36,7 +36,7 @@ const BYTES = (n: number) => {
 interface IntegrationCacheSettings {
     enabled?: boolean;
     ttlSeconds?: number;
-    scopes?: { integration?: boolean; http?: boolean };
+    scopes?: { integration?: boolean; http?: boolean; ai?: boolean };
     entries?: number;
     expiredEntries?: number;
     bytes?: number;
@@ -57,6 +57,9 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
     // an automation author writes by hand.
     const [scopeIntegration, setScopeIntegration] = useState(true);
     const [scopeHttp, setScopeHttp] = useState(false);
+    // What an AI step answered. Off until said otherwise: a stored answer is a
+    // copy of what the model wrote about somebody's data.
+    const [scopeAi, setScopeAi] = useState(false);
     const [saving, setSaving] = useState(false);
     const [clearing, setClearing] = useState(false);
 
@@ -76,6 +79,7 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
             setTtlSeconds(data.ttlSeconds ?? 300);
             setScopeIntegration(data.scopes ? data.scopes.integration !== false : true);
             setScopeHttp(!!(data.scopes && data.scopes.http));
+            setScopeAi(!!(data.scopes && data.scopes.ai));
         } catch (err) {
             // Null the loaded state so Save stays disabled — saving on top of a
             // failed load would write a guess about somebody's data policy.
@@ -88,12 +92,13 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
 
     useEffect(() => { load(); }, [load]);
 
-    const serverScopes = server?.scopes || { integration: true, http: false };
+    const serverScopes = server?.scopes || { integration: true, http: false, ai: false };
     const isDirty = !!server && (
         enabled !== !!server.enabled
         || ttlSeconds !== server.ttlSeconds
         || scopeIntegration !== (serverScopes.integration !== false)
         || scopeHttp !== !!serverScopes.http
+        || scopeAi !== !!serverScopes.ai
     );
 
     const handleSave = useCallback(async () => {
@@ -105,7 +110,7 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     enabled, ttlSeconds,
-                    scopes: { integration: scopeIntegration, http: scopeHttp },
+                    scopes: { integration: scopeIntegration, http: scopeHttp, ai: scopeAi },
                 }),
             });
             const body = await res.json().catch(() => ({}));
@@ -122,7 +127,7 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
         } finally {
             setSaving(false);
         }
-    }, [server, isDirty, orgId, enabled, ttlSeconds, scopeIntegration, scopeHttp, t, load]);
+    }, [server, isDirty, orgId, enabled, ttlSeconds, scopeIntegration, scopeHttp, scopeAi, t, load]);
 
     const handleClear = useCallback(async () => {
         setClearing(true);
@@ -239,7 +244,7 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
                     <p className="text-xs opacity-70">
                         {t(
                             'admin.integration_cache.scopes_note',
-                            'These are two different promises. The first is about apps this organisation connected and whose permissions it manages. The second is about any web address an automation author types in, so it is off until you say otherwise.',
+                            'These are different promises. The first is about apps this organisation connected and whose permissions it manages. The second is about any web address an automation author types in, and the third about what an AI model wrote, so those two are off until you say otherwise.',
                         )}
                     </p>
                     <label className="flex items-start gap-2 text-sm">
@@ -269,6 +274,22 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
                             {t('admin.integration_cache.scope_http', 'Answers from web service calls')}
                             <span className="block text-xs opacity-70">
                                 {t('admin.integration_cache.scope_http_desc', 'Replies to a "Call a web service" step, which can point at any address the automation author chooses. Only ever GET and HEAD, and never when that step is allowed to reach private addresses.')}
+                            </span>
+                        </span>
+                    </label>
+
+                    <label className="flex items-start gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            className="mt-0.5"
+                            checked={scopeAi}
+                            disabled={saving}
+                            onChange={(e) => setScopeAi(e.target.checked)}
+                        />
+                        <span>
+                            {t('admin.integration_cache.scope_ai', 'Answers from AI steps')}
+                            <span className="block text-xs opacity-70">
+                                {t('admin.integration_cache.scope_ai_desc', 'When an AI step asks the same question with the same (privacy-protected) input, the stored answer is reused instead of asking the model again. Stored encrypted until the window ends; never used in test runs.')}
                             </span>
                         </span>
                     </label>

@@ -5785,7 +5785,7 @@
  },
  "updates: rollback on error": {
   "result": {
-   "error": "update for \"b\": Field(s) bogus not patchable on a ai_step step. Allowed: prompt, systemPrompt, inputs, outputSchema, modelTier, allowTools, tools, knowledgeBaseIds, useMemory, label, forEach, agentId, skillIds, agentPermissions, disabledAgentSkillIds.",
+   "error": "update for \"b\": Field(s) bogus not patchable on a ai_step step. Allowed: prompt, systemPrompt, inputs, outputSchema, modelTier, allowTools, tools, knowledgeBaseIds, useMemory, label, forEach, agentId, skillIds, agentPermissions, disabledAgentSkillIds, temperature, enumFrom, checks, fallback, askOnce.",
    "_rolledBack": true
   },
   "steps": [
@@ -8104,7 +8104,12 @@
    "agentId",
    "skillIds",
    "agentPermissions",
-   "disabledAgentSkillIds"
+   "disabledAgentSkillIds",
+   "temperature",
+   "enumFrom",
+   "checks",
+   "fallback",
+   "askOnce"
   ],
   "condition": [
    "expr",

@@ -28,7 +28,7 @@ import { controlSurfaceClass, FormRow, inputClass } from './formPrimitives';
  * element with `loop.<itemVar>` bound; auto-map sets this up automatically
  * when you wire an array source into a step whose inputs match the elements.
  */
-function ForEachSection({ draft, set, groups, onFocusField }) {
+function ForEachSection({ draft, set, groups, onFocusField, children = null }) {
     const { t } = useTranslation();
     const fe = draft.forEach || null;
     const enabled = !!fe;
@@ -82,7 +82,7 @@ function ForEachSection({ draft, set, groups, onFocusField }) {
                             onChange={(e) => set('forEach', { ...fe, maxIterations: Number(e.target.value) })}
                             className={inputClass()}
                         />
-                    </FormRow>
+                    </FormRow>{children}
                 </div>
             )}
         </div>

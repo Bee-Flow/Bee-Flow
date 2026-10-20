@@ -15,9 +15,15 @@ const { test, beforeEach, after } = require('node:test');
 const assert = require('node:assert/strict');
 
 const { installResolveStub } = require('../../testUtils/stubRequire');
+const { forcedToolViaChat } = require('../../testUtils/forcedToolViaChat');
 
 const calls = [];
 let reply = '{}';
+
+async function fakeChat(_key, _url, _modelId, messages) {
+    calls.push(messages);
+    return { content: reply, usage: {} };
+}
 
 const restore = installResolveStub({
     '../llm/modelResolver': { async getUserTierMap() { return { fast: { modelId: 'model-fast', maxTokens: 4096 } }; } },
@@ -27,14 +33,8 @@ const restore = installResolveStub({
         async getProviderForModel(modelId) { return { apiKey: 'k', url: 'u', providerType: 'test', modelId }; },
         async getAIConfig() { return { model: 'model-fast' }; },
     },
-    '../providers': {
-        getAdapter: () => ({
-            async chat(_key, _url, _modelId, messages) {
-                calls.push(messages);
-                return { content: reply, usage: {} };
-            },
-        }),
-    },
+    '../providers': { getAdapter: () => ({ chat: fakeChat }) },
+    '../llm/llmClient': { chatForcedTool: forcedToolViaChat(fakeChat) },
     '../automationModel/bind': {
         resolveInputs: (inputs) => JSON.parse(JSON.stringify(inputs || {})),
         interpolateTemplate: (s) => s,

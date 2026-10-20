@@ -186,20 +186,26 @@ function stepShieldGate(step, mode, policy, auditBase) {
     });
 }
 
+// What a step answers at when it names no temperature of its own (the spec
+// default is aiStepReliability.AI_STEP_DEFAULT_TEMPERATURE; same number).
+const DEFAULT_TEMPERATURE = 0.2;
+
 /**
  * Call the model for an ai_step. `call` carries
  * { adapter, cfg, modelId, messages, maxOutputTokens, stepReasoningEffort,
- *   tools, accrueUsage, step, ctx, mode, policy, auditBase, agentBinding };
- * `messages` grows in place with the tool rounds.
- * Returns `{ response, hitIterationCap }`.
+ *   temperature, tools, accrueUsage, step, ctx, mode, policy, auditBase,
+ *   agentBinding }; `messages` grows in place with the tool rounds.
+ * Every request goes through the provider limiter (queue + Retry-After
+ * backoff, cancelled with the run). Returns `{ response, hitIterationCap }`.
  */
 async function runAiStepChat(call) {
-    const { adapter, cfg, modelId, messages, maxOutputTokens, stepReasoningEffort, tools, accrueUsage } = call;
+    const { adapter, cfg, modelId, messages, maxOutputTokens, stepReasoningEffort, tools, accrueUsage, ctx } = call;
+    const { limitedChat } = require('../llm/providerLimiter');
+    const temperature = Number.isFinite(call.temperature) ? call.temperature : DEFAULT_TEMPERATURE;
     const effort = stepReasoningEffort !== undefined ? { reasoningEffort: stepReasoningEffort } : {};
+    const send = (options) => limitedChat({ adapter, cfg, modelId, messages, options, signal: ctx && ctx.cancelSignal });
     if (!tools) {
-        const response = await adapter.chat(cfg.apiKey, cfg.url, modelId, messages, {
-            maxTokens: maxOutputTokens, temperature: 0.2, ...effort,
-        });
+        const response = await send({ maxTokens: maxOutputTokens, temperature, ...effort });
         accrueUsage(response);
         return { response, hitIterationCap: false };
     }
@@ -214,9 +220,7 @@ async function runAiStepChat(call) {
     const env = { ...call, executeTool, shieldGate, allowedToolNames };
     let response;
     for (let iter = 0; iter < MAX_AI_STEP_TOOL_ITERATIONS; iter++) {
-        response = await adapter.chat(cfg.apiKey, cfg.url, modelId, messages, {
-            maxTokens: maxOutputTokens, temperature: 0.2, tools, toolChoice: 'auto', ...effort,
-        });
+        response = await send({ maxTokens: maxOutputTokens, temperature, tools, toolChoice: 'auto', ...effort });
         accrueUsage(response);
         if (!response.toolCalls || response.toolCalls.length === 0) break;
         messages.push(assistantToolCallMessage(response));

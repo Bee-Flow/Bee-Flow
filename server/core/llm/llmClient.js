@@ -12,10 +12,16 @@ const { parseGemmaArgs, recoverLeakedToolCalls, hasLeakedToolCallSyntax } = requ
 const { looksGarbled } = require('./partialJsonScan');
 const log = require('../../telemetry/log');
 const { createUsageAccumulator } = require('../providers/usageNormalizer');
+const { limitedChat } = require('./providerLimiter');
 
 // How much of an unparsable argument string one warning may carry: enough
 // for a whole compose answer to become a parser fixture, never a batch dump.
 const UNPARSABLE_LOG_CHARS = 4096;
+
+/** adapter.chat, through the provider limiter (queue, Retry-After backoff) when the caller passed `rateLimit`. */
+const chatVia = (rateLimit, adapter, apiKey, baseUrl, modelId, messages, options) => (rateLimit
+    ? limitedChat({ adapter, cfg: { apiKey, url: baseUrl }, modelId, messages, options, signal: rateLimit.signal })
+    : adapter.chat(apiKey, baseUrl, modelId, messages, options));
 
 /**
  * Build the provider-correct `toolChoice` that forces the model to call exactly
@@ -276,9 +282,9 @@ class LLMClient {
      * Non-streaming chat completion.
      * @returns {Promise<{content, toolCalls, usage}>}
      */
-    async chat(modelId, messages, options = {}) {
+    async chat(modelId, messages, { rateLimit, ...options } = /** @type {any} */ ({})) {
         const { apiKey, baseUrl, adapter, project, location, serviceAccountKey } = await this._resolve(modelId);
-        return adapter.chat(apiKey, baseUrl, modelId, messages, { ...options, project, location, serviceAccountKey });
+        return chatVia(rateLimit, adapter, apiKey, baseUrl, modelId, messages, { ...options, project, location, serviceAccountKey });
     }
 
     /**
@@ -315,7 +321,7 @@ class LLMClient {
      *   and `rawArguments` (the argument string as it arrived, null for an
      *   object or the native route) are additive — see extractForcedResult.
      */
-    async chatForcedTool(modelId, messages, toolDef, options = {}) {
+    async chatForcedTool(modelId, messages, toolDef, { rateLimit, ...options } = /** @type {any} */ ({})) {
         const resolved = await this._resolve(modelId);
         const { apiKey, baseUrl, adapter, project, location, serviceAccountKey } = resolved;
         const providerOpts = { project, location, serviceAccountKey };
@@ -323,7 +329,7 @@ class LLMClient {
         const schema = toolDef?.function?.parameters;
 
         if (schema && adapter.supportsStructuredOutput?.(modelId, schema)) {
-            const native = await adapter.chat(apiKey, baseUrl, modelId, messages, {
+            const native = await chatVia(rateLimit, adapter, apiKey, baseUrl, modelId, messages, {
                 ...options,
                 ...providerOpts,
                 responseFormat: {
@@ -342,9 +348,8 @@ class LLMClient {
                     rawArguments: null,
                 };
             }
-            // The adapter said it could enforce this schema and we still got
-            // nothing parseable. Rare enough to be worth one retry on the route
-            // that has always worked, rather than handing the caller a null.
+            // The adapter said it could enforce this schema, yet nothing parsed: rare, so one
+            // retry on the route that has always worked beats handing the caller a null.
             log.warn(`[LLMClient] Native structured output gave nothing parseable for ${modelId}; falling back to a forced tool call`);
         }
 
@@ -354,14 +359,12 @@ class LLMClient {
             tools: [toolDef],
             toolChoice: forcedToolChoice(adapter, toolName),
         };
-        // A self-hosted runtime gets the tool itself as well: on llama-server
-        // the adapter answers a forced call as grammar-enforced JSON
-        // (LocalProvider._forcedToolAsJsonSchema) — the native tool-call
-        // route lost whole designs to the PEG parser on 2026-09-18. Other
-        // runtimes ignore the field and take the tool route below.
+        // A self-hosted runtime gets the tool itself too: llama-server answers a forced
+        // call as grammar-enforced JSON (LocalProvider._forcedToolAsJsonSchema), because
+        // the native tool-call route lost whole designs to the PEG parser on 2026-09-18.
         if (adapter instanceof LocalProvider && schema) {
             try {
-                const viaGrammar = await adapter.chat(apiKey, baseUrl, modelId, messages, { ...forcedOpts, forcedTool: toolDef });
+                const viaGrammar = await chatVia(rateLimit, adapter, apiKey, baseUrl, modelId, messages, { ...forcedOpts, forcedTool: toolDef });
                 const read = extractForcedResult(viaGrammar, toolName, { modelId });
                 if (read.structured) return read;
                 log.warn(`[LLMClient] forced tool ${toolName} on ${modelId}: the grammar route gave nothing parseable (stop=${read.stopReason}); trying the tool route once`);
@@ -373,13 +376,11 @@ class LLMClient {
             }
         }
 
-        const result = await adapter.chat(apiKey, baseUrl, modelId, messages, forcedOpts);
-        // A small local model often writes the JSON into the message — or the
-        // whole call into its reasoning — instead of into a tool call (see
-        // providers/local.js on llama-server's tool handling). Every shape it
-        // has been seen to use is read by extractForcedResult; returning
-        // `structured: null` for an answer that was sitting in `content` all
-        // along made every caller report "the model answered nothing".
+        const result = await chatVia(rateLimit, adapter, apiKey, baseUrl, modelId, messages, forcedOpts);
+        // A small local model often writes the JSON into the message, or the whole call
+        // into its reasoning, instead of a tool call (see providers/local.js). Every shape
+        // seen is read by extractForcedResult; `structured: null` for an answer that sat
+        // in `content` made every caller report "the model answered nothing".
         const read = extractForcedResult(result, toolName, { modelId });
         if (read.structured || !shouldRetryUnforced(adapter, modelId, read)) return read;
 
@@ -398,7 +399,7 @@ class LLMClient {
                 ? `Call the \`${toolName}\` tool now with your answer. Do not reply in plain text.`
                 : 'Call one of the provided tools now with your answer. Do not reply in plain text.',
         });
-        const retried = await adapter.chat(apiKey, baseUrl, modelId, retryMessages, forcedOpts);
+        const retried = await chatVia(rateLimit, adapter, apiKey, baseUrl, modelId, retryMessages, forcedOpts);
         const second = extractForcedResult(retried, toolName, { modelId });
         // Both rounds were billed; a caller that books usage must see both.
         return second.structured ? { ...second, usage: sumUsage(result?.usage, retried?.usage) } : read;
