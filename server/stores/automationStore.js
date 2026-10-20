@@ -26,6 +26,9 @@ module.exports = {
     ...require('./automationStore/webhooks'),
     ...require('./automationStore/forms'),
     ...require('./automationStore/generatedFiles'),
+    // Tables a run produced, and the form uploads a table step may read (own ledger, not generated files).
+    ...require('./automationStore/runTables'),
+    ...require('./automationStore/tableSources'),
     ...require('./automationStore/approvals'),
     ...require('./automationStore/approvalDeliveries'),
     ...require('./automationStore/folders'),

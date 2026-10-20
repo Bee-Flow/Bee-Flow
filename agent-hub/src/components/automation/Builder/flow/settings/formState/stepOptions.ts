@@ -27,6 +27,8 @@ export const FOREACH_FORM_TYPES = new Set<string>([
     // Fan-out over a list of documents ("one invoice per file") is the
     // extraction step's most common shape, so it round-trips from day one.
     'data_extraction',
+    // The spreadsheet steps: one table per file, or one edit per table of a list.
+    'read_table', 'table',
 ]);
 
 /** The well-formed `{ itemVar, overRef }` entries of a forEach's `parents`. */
@@ -84,6 +86,8 @@ export function applyForEachPatch(patch: FormRecord, step: FormRecord, draft: Fo
 export const RETRY_FORM_TYPES = new Set<string>([
     'integration_action', 'ai_step', 'code', 'notification', 'http_request',
     'datatable', 'knowledge_write', 'data_extraction', 'slide',
+    // Reading and writing a stored table can fail for a moment (storage), and a second try is safe.
+    'read_table', 'table',
 ]);
 
 /**

@@ -29,6 +29,8 @@ export interface TemplateCard {
     /** The app an app-event trigger listens to (nextcloud, gmail, …). */
     triggerApp: string | null;
     stepCount: number | null;
+    /** A made-up file to try the template with (the table recipes); absent for the rest. */
+    sampleData?: { filename: string; url: string } | null;
 }
 
 export const automationTemplateKeys = {
@@ -36,6 +38,14 @@ export const automationTemplateKeys = {
 };
 
 const text = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
+/** The sample file a built-in template offers, only when it names both a file and a same-origin path. */
+function sampleDataOf(v: unknown): { filename: string; url: string } | null {
+    if (!v || typeof v !== 'object') return null;
+    const { filename, url } = v as Record<string, unknown>;
+    const name = text(filename);
+    const path = text(url);
+    return name && path && path.startsWith('/') && !path.startsWith('//') ? { filename: name, url: path } : null;
+}
 const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!x) : []);
 
 /** Normalise one /templates body. Exported for the test; tolerant of junk. */
@@ -64,6 +74,7 @@ export function parseTemplates(body: unknown): TemplateCard[] {
             triggerKind: text(row.triggerKind),
             triggerApp: text(row.triggerApp),
             stepCount: typeof row.stepCount === 'number' && Number.isFinite(row.stepCount) ? row.stepCount : null,
+            sampleData: sampleDataOf(row.sampleData),
         });
     }
     return out;

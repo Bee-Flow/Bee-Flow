@@ -88,7 +88,9 @@ function checkForEach(ctx, step, at) {
         // 'slide' joined with the presentation step: "one slide per row"
         // is the shape it exists for, and it is pure — a forEach over it
         // costs nothing but the slide objects the deck then collects.
-        const FOREACH_ALLOWED = new Set(['integration_action', 'ai_step', 'code', 'notification', 'set', 'http_request', 'datatable', 'knowledge_write', 'data_extraction', 'slide']);
+        // 'read_table' and 'table' joined as the table steps arrived: one file
+        // (or one table) per item of a list is the ordinary shape.
+        const FOREACH_ALLOWED = new Set(['integration_action', 'ai_step', 'code', 'notification', 'set', 'http_request', 'datatable', 'knowledge_write', 'data_extraction', 'slide', 'read_table', 'table']);
         if (!isObject(step.forEach)) {
             pushE({ code: 'foreach.shape', severity: 'error', path: at + '.forEach', message: `Step ${step.id}: forEach must be an object { overRef, itemVar, maxIterations }.`, hint: 'Remove it, or provide overRef + itemVar.' });
         } else if (!FOREACH_ALLOWED.has(step.type)) {

@@ -89,6 +89,11 @@ router.use(require('./automation/versions'));
 router.use(require('./automation/webhooksAndRunOps'));
 // The files a run produced: list, download, PDF page preview (routes/automation/runFiles.js).
 router.use(require('./automation/runFiles').makeRunFilesRouter());
+// The tables a run produced: a page of rows and a CSV download (routes/automation/runTables.js),
+// and the builder's dry preview of a table step (routes/automation/tablePreview.js).
+// Tables have their own ledger, so none of this serves a generated file.
+router.use(require('./automation/runTables').makeRunTablesRouter());
+router.use(require('./automation/tablePreview').makeTablePreviewRouter());
 // Handoff 5: who an automation is shared with, and handing it to a new owner.
 // Every path has a literal second segment, so position is free.
 router.use(require('./automation/sharing').makeSharingRouter());

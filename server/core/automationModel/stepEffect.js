@@ -26,6 +26,8 @@ const { effectOf, maxEffect } = require('./sideEffectMap');
  *   parallel             the strongest of every step in its branches
  *   generate_document, fill_document, presentation, knowledge_write,
  *   datatable (a write op)   `writes`: they leave something behind
+ *   read_table, table    `reads`: they open and reshape data inside the run (the
+ *                        tables they keep expire with the run's other files)
  *   loop                 the strongest of its body
  *   call_layer           the strongest of the flowlet it calls (`ctx.layers`)
  *
@@ -81,6 +83,10 @@ function stepEffect(step, ctx = {}, _seen = new Set()) {
             const inner = Array.isArray(layer && layer.steps) ? layer.steps : [];
             return maxEffect(inner.map(s => stepEffect(s, ctx, new Set([..._seen, step.layerKey]))));
         }
+        case 'read_table':
+        case 'table':
+            // Opens and reshapes data inside the run; the tables expire with it.
+            return 'reads';
         default:
             return 'reads';
     }

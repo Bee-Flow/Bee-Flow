@@ -207,6 +207,36 @@ async function reapExpiredGeneratedFiles() {
     }
 }
 
+/**
+ * Delete tables a run produced once their retention window is up. Same order as
+ * the generated-file reaper and for the same reason: BLOB first, ROW second. A
+ * table has its own ledger and its own blob per row, so deleting one blob cannot
+ * take another table's data with it.
+ */
+async function reapExpiredRunTables() {
+    try {
+        const automationStore = require('../../../stores/automationStore');
+        const rows = await automationStore.listExpiredRunTables(200);
+        if (!rows.length) return;
+        const storageStore = require('../../../stores/storageStore');
+        const reaped = [];
+        for (const row of rows) {
+            try {
+                await storageStore.deleteFile(row.storageKey);
+                reaped.push(row.id);
+            } catch (e) {
+                log.warn(`[AutomationRunner] run-table blob delete failed (${row.id}): ${e.message}`);
+            }
+        }
+        if (reaped.length) {
+            await automationStore.deleteRunTables(reaped);
+            log.info(`[AutomationRunner] reaped ${reaped.length} expired run table(s)`);
+        }
+    } catch (e) {
+        log.error('[AutomationRunner] run-table reaper error:', e.message);
+    }
+}
+
 // Meeting-notes reaper: flip transcriptions stuck in 'processing' (e.g. a pod
 // restarted mid-pipeline) to 'failed' so the UI stops spinning. The UPDATE is
 // idempotent and multi-pod safe; the list route also fires it opportunistically,
@@ -224,5 +254,6 @@ module.exports = {
     reapStuckAutomations,
     reapOrphanFormUploads,
     reapExpiredGeneratedFiles,
+    reapExpiredRunTables,
     reapStuckTranscriptions,
 };

@@ -123,6 +123,7 @@ const sidebars: SidebarsConfig = {
             'studio/forms',
             'studio/knowledge-bases',
             'studio/skills',
+            'studio/tables',
             'studio/webpages',
             'studio/documents',
           ],

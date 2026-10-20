@@ -17,7 +17,7 @@ const { inferAiStepOutputSchema, collectAiStepOutputReads } = require('../../../
  */
 function createStepContext({
     graph, trigger, ids, seenSoFar, pushE, pushW,
-    availableTools, toolRequiredParams, knownConnectionIds, availableAgents, topicClassifier, isContractScope,
+    availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, availableAgents, topicClassifier, isContractScope,
 }) {
     // Branch labels actually wired OUT of a node, for the pinned-brancher rule.
     // Mirrors the runtime's EFFECTIVE label (`label`, else `case:<caseName>` —
@@ -113,7 +113,7 @@ function createStepContext({
 
     return {
         graph, trigger, ids, seenSoFar, pushE, pushW,
-        availableTools, toolRequiredParams, knownConnectionIds, availableAgents, topicClassifier, isContractScope,
+        availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, availableAgents, topicClassifier, isContractScope,
         stepsById, loopVarsAbove, fieldsReadFromStep, inferredOutputOf, outgoingLabelsFor,
     };
 }

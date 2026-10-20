@@ -29,6 +29,43 @@ const { REF_ROOTS, hasPlaceholder, isBareRefString } = require('../refPaths');
 const FORM_TEXT_KEYS = ['title', 'description', 'submitLabel', 'successMessage'];
 const FIELD_TEXT_KEYS = ['label', 'placeholder', 'help'];
 
+// The roots that exist only while a table step runs one row.
+const ROW_ROOTS = new Set(['row', 'rowIndex']);
+
+/**
+ * The references of a table step's operations: the table joined in, the rules
+ * a filter reads from run data, the values a rule compares with and what a
+ * derived column is made of. A derived value or a filter formula reads the
+ * row being worked on as `row` (and its position as `rowIndex`); those roots
+ * are not run data, so a path that starts with one is not reported. A formula
+ * in a derive value is parse-checked here (binding: true); a filter's own
+ * formula is not a binding, so it is checked with parse: true.
+ */
+function collectTableOpRefs(step, refs) {
+    (Array.isArray(step.ops) ? step.ops : []).forEach((op, i) => {
+        if (!isObject(op)) return;
+        const at = `ops[${i}]`;
+        const from = refs.length;
+        if (op.op === 'join') collectRefPaths(op.with, refs, `${at}.with`);
+        if (op.op === 'filter') {
+            collectRefPaths(op.rulesFrom, refs, `${at}.rulesFrom`);
+            (Array.isArray(op.rules) ? op.rules : []).forEach((r, j) => {
+                if (isObject(r)) collectRefPaths(r.value, refs, `${at}.rules[${j}].value`);
+            });
+            if (typeof op.expr === 'string' && op.expr) refs.push({ kind: 'expr', src: op.expr, where: `${at}.expr`, parse: true });
+        }
+        if (op.op === 'derive') {
+            (Array.isArray(op.columns) ? op.columns : []).forEach((c, j) => {
+                if (isObject(c)) collectRefPaths(c.value, refs, `${at}.columns[${j}].value`);
+            });
+        }
+        // The row roots are not run data: drop the paths that start with one.
+        for (let k = refs.length - 1; k >= from; k--) {
+            if (refs[k].kind === 'ref' && ROW_ROOTS.has(rootOf(refs[k].path))) refs.splice(k, 1);
+        }
+    });
+}
+
 function collectStepRefs(step) {
     const refs = [];
     const template = (value, where) => {
@@ -201,6 +238,14 @@ function collectStepRefs(step) {
             (Array.isArray(step.parents) ? step.parents : []).forEach((p, i) => {
                 if (isObject(p)) ref(p.overRef, `parents[${i}].overRef`);
             });
+            break;
+        case 'read_table':
+            // The file: a form answer, a generated file's handle, or a path to either.
+            collectRefPaths(step.source, refs, 'source');
+            break;
+        case 'table':
+            collectRefPaths(step.source, refs, 'source');
+            collectTableOpRefs(step, refs);
             break;
         case 'knowledge_write':
             // The same three-template shape generate_document has. A binding

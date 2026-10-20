@@ -137,7 +137,7 @@ describe('AddStepRibbon (design 5a)', () => {
             ['AI', ['AI step', 'Extract data', 'Use an agent', 'Apply a skill']],
             ['Logic', ['Condition', 'Repeat for each', 'Call a web service', 'Privacy Shield', 'End the run', 'Note']],
             ['People', ['Ask someone to approve', 'Notification', 'Wait', 'Form pages']],
-            ['Data & documents', ['Edit data', 'Date & time', 'Tables', 'Documents', 'Lists']],
+            ['Data & documents', ['Edit data', 'Date & time', 'Tables', 'Spreadsheets', 'Documents', 'Lists']],
             ['Nextcloud apps', ['Talk', 'Deck']],
             ['Google Workspace', ['Gmail']],
             ['My building blocks', ['Create flowlet', 'Fast websearch']],
@@ -360,7 +360,7 @@ describe('AddStepRibbon (design 5a)', () => {
             await user.click(tab('Logic'));
             expect(pillNames()).toEqual(['Condition', 'Repeat for each', 'Code', 'Call a web service', 'Privacy Shield', 'End the run', 'Note', 'Automation evolution']);
             await user.click(tab('Data & documents'));
-            expect(pillNames()).toEqual(['Edit data', 'Date & time', 'Tables', 'Documents', 'Lists', 'Knowledge Base Ingest']);
+            expect(pillNames()).toEqual(['Edit data', 'Date & time', 'Tables', 'Spreadsheets', 'Documents', 'Lists', 'Knowledge Base Ingest']);
             await user.click(tab('Other apps'));
             expect(pillNames()).toEqual(['Fireflies']);
         });

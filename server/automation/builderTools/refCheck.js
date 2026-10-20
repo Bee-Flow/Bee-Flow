@@ -159,7 +159,7 @@ function ownOutputShape(step, graph, draftWrap, depth) {
         case 'code':
             return codeOutputShape(step);
         default:
-            return ANY;
+            return require('./tableOutputShapes').tableStepOutputShape(step) || ANY;   // the table steps
     }
 }
 

@@ -28,6 +28,7 @@ const log = require('../telemetry/log');
  * @param {object} [deps.formAnswers]       ensureAnswersTable
  * @param {Function} [deps.agentCatalogForOwner]
  * @param {Function} [deps.kbStepFindings]
+ * @param {object} [deps.stageVars]         runVarsFor
  */
 function makeLiveSideEffects(deps = {}) {
     const automationStore = () => deps.automationStore || require('../stores/automationStore');
@@ -48,6 +49,23 @@ function makeLiveSideEffects(deps = {}) {
             return await agentCatalogForOwner()(definition, ownerId);
         } catch (e) {
             log.warn('[automation] agent catalog build failed; continuing without the agent check:', e.message);
+            return null;
+        }
+    }
+
+    /**
+     * The variable names a run of this automation would see (its own `vars` plus the
+     * Solution variables with an applied value), as a Set, for the validator's
+     * "does the salt variable exist" rule. `null` when no step asks for one (no
+     * lookup is made) or when the lookup fails: the rule is then skipped.
+     */
+    async function knownVarNamesFor(definition, automation) {
+        if (!JSON.stringify(definition || {}).includes('"pseudonymise"')) return null;
+        try {
+            const { runVarsFor } = deps.stageVars || require('../core/automationRunner/stageVars');
+            return new Set(Object.keys(await runVarsFor(automation || null, { definition })));
+        } catch (e) {
+            log.warn('[automation] variable names could not be read; continuing without the salt-variable check:', e.message);
             return null;
         }
     }
@@ -169,7 +187,7 @@ function makeLiveSideEffects(deps = {}) {
         }
     }
 
-    return { agentsFor, kbFindingsFor, wakeComplianceReview, ensureFormPages, ensureAnswersTable };
+    return { agentsFor, knownVarNamesFor, kbFindingsFor, wakeComplianceReview, ensureFormPages, ensureAnswersTable };
 }
 
 module.exports = { makeLiveSideEffects, ...makeLiveSideEffects() };

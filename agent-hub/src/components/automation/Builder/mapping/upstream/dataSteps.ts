@@ -116,3 +116,64 @@ export function describeKnowledgeWrite(node: UpstreamNode, catalog: Catalog | nu
         fields: sampleToFields(sample, `steps.${node.id}.output`),
     };
 }
+
+/**
+ * The table a table step hands on, as it looks BEFORE any run. It is a
+ * placeholder (`dry-run`, no run id), so nothing mistakes it for a stored
+ * table; once the step has run, the real handle replaces it.
+ */
+function tableHandleSample(name: string) {
+    return {
+        kind: 'table', tableId: 'dry-run', runId: null, name, columns: [], rowCount: 0,
+        preview: [], expiresAt: null, provenance: null,
+    };
+}
+
+/**
+ * What a Read table step hands downstream: the first sheet as `table`, every
+ * sheet in `tables` and by name in `tablesByName`, plus facts about the file.
+ */
+export function describeReadTable(node: UpstreamNode): Group {
+    const handle = tableHandleSample('Sheet1');
+    const sample = {
+        table: handle,
+        tables: [handle],
+        tablesByName: { Sheet1: handle },
+        sheets: [{ name: 'Sheet1', index: 0, hidden: false, rowCount: 0, columnCount: 0, tableIndex: 0 }],
+        provenance: null,
+        source: { filename: 'file.xlsx', format: 'xlsx', size: 0 },
+        warnings: [],
+    };
+    return {
+        id: node.id,
+        label: node.label || 'Read table',
+        kind: 'read_table',
+        basePath: `steps.${node.id}.output`,
+        sample,
+        fields: sampleToFields(sample, `steps.${node.id}.output`),
+    };
+}
+
+/**
+ * What an Edit table step hands downstream: the table itself, its size and
+ * columns, and the rows and a text version of them when the table is small.
+ */
+export function describeTable(node: UpstreamNode): Group {
+    const sample = {
+        table: tableHandleSample(node.label || 'Edit table'),
+        rowCount: 0,
+        columns: [],
+        rows: [],
+        markdown: '',
+        opStats: [],
+        warnings: [],
+    };
+    return {
+        id: node.id,
+        label: node.label || 'Edit table',
+        kind: 'table',
+        basePath: `steps.${node.id}.output`,
+        sample,
+        fields: sampleToFields(sample, `steps.${node.id}.output`),
+    };
+}

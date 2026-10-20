@@ -81,9 +81,10 @@ describe('stepPalette — buildStepGroups', () => {
         // `fill_document` sits directly behind `generate_document` for the same
         // reason: they are the two steps that produce a document, and an author
         // reaching for one has to see the other to pick the right one.
+        // `read_table` and `table` follow the date step: open a spreadsheet as tables, then work on one.
         // `slide` and `presentation` follow as the third artefact pair — one
         // page, then the deck those pages go into.
-        expect(ids).toEqual(['datatable', 'knowledge_write', 'set', 'datetime', 'generate_document', 'fill_document', 'slide', 'presentation', 'filter_list', 'flatten', 'limit', 'dedupe', 'aggregate', 'summarize']);
+        expect(ids).toEqual(['datatable', 'knowledge_write', 'set', 'datetime', 'read_table', 'table', 'generate_document', 'fill_document', 'slide', 'presentation', 'filter_list', 'flatten', 'limit', 'dedupe', 'aggregate', 'summarize']);
     });
 
     it('omits the Steps group while building a Step (isBlockRoot)', () => {

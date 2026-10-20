@@ -158,6 +158,24 @@ const FULL_PROMPT_STEP_MENU = `
                      row); most automations need none.
   switch           — multi-way branch by case name (preferred over chained conditions)
   array_op         — filter/limit/dedupe/aggregate/summarize/flatten over an upstream array
+  read_table       — open an uploaded spreadsheet or CSV (a form "file" answer, trigger.output.<field>)
+                     as tables, one per sheet. Only in a batch (type "read_table"):
+                     {type:"read_table", spec:{source:{kind:"ref",path:"trigger.output.<field>"}}}
+                     gives output.table (the first sheet) / output.tables / output.tablesByName["<sheet>"]
+                     / output.provenance. Optional sheets ("all" | "first" | names), headerRow,
+                     format, delimiter, skipHiddenSheets. A file over a cap fails loudly; nothing is cut.
+  table            — edit a table without code. Only in a batch (type "table"):
+                     {type:"table", spec:{source:{kind:"ref",path:"steps.$read.output.table"},
+                     ops:[{op:"filter",rules:[{column,test,value}]},{op:"group",by:["<col>"],
+                     aggregates:[{fn:"count",as:"count"}]}]}}. Ops run in order: join {with,on:[{left,right}]} ·
+                     pseudonymise {columns,saltVar} · derive {columns:[{name,value}]} · bucket {column,output,
+                     mode,bands} · group {by,aggregates,weight,minN} · pivot {rows,columns,value,percent} ·
+                     filter {rules,match,rulesFrom,expr} · select {keep|drop,rename} · sample {n|percent,seed} ·
+                     groups {splits,minN} · describe {columns}. Output: output.table to pass on;
+                     output.rows + output.markdown when the result is small; output.segments from a groups op
+                     to loop over (forEach), whose item.rules feed a later filter op's rulesFrom.
+                     PRIVACY: pseudonymise early, with saltVar naming a Solution variable (never a
+                     literal secret); groups keeps groups smaller than minN hidden.
   datatable        — read or write rows of an organisation-scoped DATATABLE: WORKING DATA a
                      automation leaves behind for a later run or for a different automation
                      (knowledge_write below also outlives the run, but stores TEXT an agent

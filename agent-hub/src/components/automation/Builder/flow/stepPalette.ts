@@ -5,6 +5,8 @@ import {
     RectangleHorizontal, Presentation, ListFilter, Rows3, type LucideIcon } from 'lucide-react';
 import { STEP_ICON_MAP } from './stepIcons';
 import { nodeLabel, nodeDesc, nodeDefaultLabel } from './nodeDefs';
+import { stepItem } from './stepItem';
+import { TABLE_ITEMS } from './tablePaletteItems';
 import {
     SET_STEP_NAME, SET_STEP_KEYWORDS,
     ROUTE_STEP_NAME, ROUTE_STEP_KEYWORDS,
@@ -86,22 +88,7 @@ export function additionalTriggerItems() {
 }
 
 // ─── Step types ─────────────────────────────────────────────────────────
-//
-// A step's NAME and DESCRIPTION come from flow/nodeDefs.js, which holds the
-// same facts for every node type and is kept exhaustive by a test. The palette
-// owns only what is genuinely a palette concern: the id, the icon, the search
-// keywords and the drop payload.
-//
-// KEYWORDS ARE NOT DECORATION. The ranker matches on them, so every word a node
-// used to be called has to stay: someone who learned "aggregate" or "HTTP
-// request" elsewhere — or here, last month — must still find the node under its
-// plainer name. A rename that dropped them would make a node unfindable by the
-// only word half its users know.
-const stepItem = (kind: string, id: string, icon: LucideIcon, keywords: string, payloadExtra: Record<string, unknown> | null = null) => ({
-    id, icon, keywords,
-    label: nodeLabel(kind), desc: nodeDesc(kind),
-    payload: { kind, label: nodeDefaultLabel(kind), ...payloadExtra },
-});
+// A step's NAME and DESCRIPTION come from flow/nodeDefs.js (see stepItem.ts for the keyword rule).
 
 /**
  * Swap an item's English label/description for the viewer's language.
@@ -169,6 +156,7 @@ export const DATA_ITEMS = [
     EDIT_DATA_ITEM,
     stepItem('datetime', 'datetime', Clock,
         'date time datetime format parse add days hours minutes diff extract today now'),
+    ...TABLE_ITEMS,
     stepItem('generate_document', 'generate_document', FileText,
         'document pdf word docx file generate make create render export offer quote report letter invoice download attachment print'),
     // The other half of the pair. Its keywords lean on the ARTEFACTS (invoice,

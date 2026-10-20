@@ -62,3 +62,7 @@ The following do not exist anywhere in the product, on this page or elsewhere:
 - Team / org / public visibility, or a public template marketplace
 
 If you want a starting point for a new agent, describe what you want in the agent builder and let it assemble one. If you want to move a whole working setup between installs, package it as a [Solution](solutions.md).
+
+## Looking for ready-made automations?
+
+Word templates are not the automation gallery. Automations have their own gallery of recipes, among them reports that start from an uploaded spreadsheet. They are described in [Tables in Automations](tables.md#templates).

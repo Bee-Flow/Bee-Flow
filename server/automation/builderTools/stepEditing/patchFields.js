@@ -116,6 +116,11 @@ const PATCHABLE_FIELDS = {
     guard: ['sourceRef', 'categories', 'confidence', 'onFound', 'label'],
     tokenize: ['sourceRef', 'categories', 'confidence', 'label'],
     untokenize: ['sourceRef', 'label'],
+    // The table steps. `source` is checked against the draft and `ops` replaced
+    // wholesale and re-normalised (patchGuards/tables.js); the other settings
+    // are normalised field by field (normalizePatchField).
+    read_table: ['source', 'sheets', 'headerRow', 'provenanceSheet', 'format', 'delimiter', 'skipHiddenSheets', 'expiresInDays', 'label', 'forEach'],
+    table: ['source', 'ops', 'name', 'expiresInDays', 'label', 'forEach'],
 };
 
 // The fields of a filter/switch whose change moves its outputs (and so what

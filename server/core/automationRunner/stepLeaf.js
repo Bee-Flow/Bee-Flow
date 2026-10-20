@@ -72,6 +72,10 @@ function makeLeafRunner(deps, dispatchStep) {
             case 'limit':              return e.execLimit(step, ctx_, state_);
             case 'dedupe':             return e.execDedupe(step, ctx_, state_);
             case 'flatten':            return execFlatten(step, ctx_, state_);
+            // Tables as first-class data: a step output carries a table HANDLE,
+            // the rows live in the run's table store.
+            case 'read_table':         return deps.execReadTable(step, ctx_, state_, mode_);
+            case 'table':              return deps.execTable(step, ctx_, state_, mode_);
             case 'aggregate':          return e.execAggregate(step, ctx_, state_);
             case 'summarize':          return e.execSummarize(step, ctx_, state_);
             // One of the two steps whose effect outlives the run: rows in an

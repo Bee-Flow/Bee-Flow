@@ -73,6 +73,10 @@ const STEP_TYPE_TABLE = Object.freeze([
     { type: 'guard', authoring: 'batch' },
     { type: 'tokenize', authoring: 'batch' },
     { type: 'untokenize', authoring: 'batch' },
+    // Tables as first-class data: open an uploaded spreadsheet / CSV as tables,
+    // and edit a table without code (builderTools/stepBuilders/tableSteps.js).
+    { type: 'read_table', authoring: 'batch' },
+    { type: 'table', authoring: 'batch' },
 
     { type: 'note', authoring: 'tool', tool: 'builder_add_note' },
 

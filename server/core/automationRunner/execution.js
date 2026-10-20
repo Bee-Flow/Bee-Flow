@@ -65,6 +65,9 @@ const RUN_DEPS = {
     safety,
     engine,
     execFlatten,
+    // The table steps load on first use: their readers and engine stay out of the run path until needed.
+    execReadTable: (...a) => require('./execReadTable').execReadTable(...a),
+    execTable: (...a) => require('./execTable').execTable(...a),
     createTokenVault,
     defaultPersist,
     notifyRunEvent,

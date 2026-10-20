@@ -1,10 +1,10 @@
 import { branchFromHandle } from './flow/branchEdges';
+import { applyCollectionScaffold } from './flow/collectionScaffolds';
 import { seedPositions } from './flow/layout';
 import { normalizeDefinitionShape, emptyGraph } from './flow/normalizeDefinition';
 import { defaultFormPageDeclaration, defaultFormEndingDeclaration } from './flow/settings/FormBuilderFields';
 import { MAX_AI_STEP_SKILL_IDS } from './flow/settings/formState';
 import { defaultFormDeclaration } from './flow/settings/FormTriggerFields';
-import { ROUTE_STEP_NAME } from './flow/stepDisplayName';
 import { defaultTriggerLabel } from './flow/triggerLabels';
 
 function newStepId(kind: string) {
@@ -295,45 +295,8 @@ export function buildStepFromPayload(payload: import('./applyAddNode.types').Add
         baseStep.cases = [{ name: 'case1', value: '' }];
         baseStep.defaultBranch = null;
         baseStep.label = payload.label || 'Switch';
-    // Collection ops seed an EMPTY arrayRef (C20): auto-map fills it from the
-    // nearest upstream array on connect, and an unfilled one shows a visible
-    // amber `arrayRef_missing` chip (draft warning, blocks activation) instead
-    // of the old 'trigger.output.items' literal that silently resolved to
-    // nothing and ran the op as a green no-op on most triggers.
-    //
-    // Their `field` seeds are empty for the SAME reason (A18): 'id' and
-    // 'amount' were placeholder guesses that looked configured, and a field
-    // that is on no item makes Aggregate emit a list of undefineds and
-    // Summarize total nothing and call it 0. There is no honest default for
-    // "which field" — the panel asks, and offers the real fields of the source
-    // list as one-click picks. `aggregate.field_missing` /
-    // `summarize.field_missing` are both in COMPLETENESS_CODES, so blank
-    // autosaves fine and warns amber until it is answered.
-    } else if (payload.kind === 'filter') {
-        baseStep.arrayRef = '';
-        baseStep.expr = 'true';
-        baseStep.label = payload.label || ROUTE_STEP_NAME;
-    } else if (payload.kind === 'limit') {
-        baseStep.arrayRef = '';
-        baseStep.count = 10;
-        baseStep.mode = 'first';
-        baseStep.label = payload.label || 'Limit';
-    } else if (payload.kind === 'dedupe') {
-        baseStep.arrayRef = '';
-        baseStep.label = payload.label || 'Remove duplicates';
-    } else if (payload.kind === 'flatten') {
-        baseStep.arrayRef = '';
-        baseStep.keepEmpty = false;
-        baseStep.label = payload.label || 'Flatten a list';
-    } else if (payload.kind === 'aggregate') {
-        baseStep.arrayRef = '';
-        baseStep.field = '';
-        baseStep.label = payload.label || 'Aggregate';
-    } else if (payload.kind === 'summarize') {
-        baseStep.arrayRef = '';
-        baseStep.field = '';
-        baseStep.op = 'sum';
-        baseStep.label = payload.label || 'Summarize';
+    } else if (applyCollectionScaffold(baseStep, payload)) {
+        // list and table steps: seeded from flow/collectionScaffolds.ts
     } else if (payload.kind === 'call_layer') {
         // Inline flowlets: the step only carries the flowlet key — input/output
         // contracts derive live from definition.layers[layerKey] via

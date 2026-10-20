@@ -24,7 +24,7 @@ const defaults = require('./liveSideEffects');
 const nextTurn = () => new Promise(r => setImmediate(() => setImmediate(r)));
 
 test('the module exports the default set', () => {
-    for (const fn of ['agentsFor', 'kbFindingsFor', 'wakeComplianceReview', 'ensureFormPages', 'ensureAnswersTable']) {
+    for (const fn of ['agentsFor', 'knownVarNamesFor', 'kbFindingsFor', 'wakeComplianceReview', 'ensureFormPages', 'ensureAnswersTable']) {
         assert.strictEqual(typeof defaults[fn], 'function', fn);
     }
 });
@@ -127,4 +127,17 @@ test('ensureAnswersTable reports the table and its usage entry, a missing table,
     const down = makeLiveSideEffects({ formAnswers: { ensureAnswersTable: async () => { throw new Error('db down'); } } });
     assert.deepStrictEqual(await down.ensureAnswersTable({ id: 'a1' }, {}),
         { answers: { datatableId: null, created: false, changed: false, error: { code: 'provision_failed', message: 'db down' } }, usage: [] });
+});
+
+test('knownVarNamesFor lists the variable names a run would see, only when a step asks, and fails open', async () => {
+    const asked = [];
+    const stageVars = { runVarsFor: async (automation, opts) => { asked.push([automation.id, !!opts.definition]); return { TABLE_SALT: 'x', LABEL: 'y' }; } };
+    const fx = makeLiveSideEffects({ stageVars });
+    const def = { steps: [{ type: 'table', ops: [{ op: 'pseudonymise' }] }] };
+    assert.deepStrictEqual([...await fx.knownVarNamesFor(def, { id: 'a1' })], ['TABLE_SALT', 'LABEL']);
+    assert.deepStrictEqual(asked, [['a1', true]]);
+    assert.strictEqual(await fx.knownVarNamesFor({ steps: [{ type: 'set' }] }, { id: 'a1' }), null);
+    assert.strictEqual(asked.length, 1, 'no step asks, no lookup');
+    const down = makeLiveSideEffects({ stageVars: { runVarsFor: async () => { throw new Error('db down'); } } });
+    assert.strictEqual(await down.knownVarNamesFor(def, { id: 'a1' }), null);
 });

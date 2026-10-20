@@ -210,6 +210,7 @@ describe('ribbonRows (one row of pills per tab)', () => {
             ['set', 'datetime'],
             [
                 'Tables ▾ [datatable, knowledge_write]',
+                'Spreadsheets ▾ [read_table, table]',
                 'Documents ▾ [generate_document, fill_document, slide, presentation]',
                 'Lists ▾ [filter_list, flatten, limit, dedupe, aggregate, summarize]',
             ],

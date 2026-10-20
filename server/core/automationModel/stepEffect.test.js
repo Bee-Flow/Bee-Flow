@@ -48,3 +48,10 @@ test('stepEffect covers parallel branches, approval, call_block and an ai_step w
     // An explicit allow-list still decides on its own.
     assert.strictEqual(stepEffect({ type: 'ai_step', allowTools: true, tools: ['gmail_search'] }), 'reads');
 });
+
+test('the table steps only read: they open and reshape data inside the run', () => {
+    assert.strictEqual(stepEffect({ type: 'read_table' }), 'reads');
+    assert.strictEqual(stepEffect({ type: 'table', ops: [{ op: 'pseudonymise' }, { op: 'group' }] }), 'reads');
+    assert.strictEqual(stepEffect({ type: 'loop', body: [{ type: 'read_table' }, { type: 'table' }] }), 'reads');
+    assert.strictEqual(stepEffect({ type: 'loop', body: [{ type: 'table' }, { type: 'notification' }] }), 'sends');
+});

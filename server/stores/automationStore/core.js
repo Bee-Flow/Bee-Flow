@@ -45,6 +45,7 @@ const MIGRATIONS = [
     'automation-form-sessions-2026-08',         // automation_form_sessions (multi-page forms)
     'automation-run-root-2026-08',              // root_run_id (one history row per paused-and-resumed journey)
     'automation-generated-files-2026-08',       // automation_generated_files (PDF/Word a run produced)
+    'automation-run-tables-2026-10',            // automation_run_tables (tables a run produced; own ledger, never a generated file)
     'automation-folders-2026-08',               // automation_folders + automations.folder_id (sidebar grouping)
     'automation-approvals-2026-08',             // automation_approvals (durable decision records) + audit-log repurpose
     'approvals-v2-2026-09',                     // source-agnostic approvals: app source, on_decided hook, reminder/escalation clocks

@@ -41,7 +41,7 @@ const STEP_TYPES = new Set(REPLACEABLE_STEP_TYPES);
 
 /**
  * Step types whose builder tool is not simply `builder_add_<type>`.
- * `guard`, `tokenize` and `untokenize` have no add tool at all — they are made
+ * `guard`, `tokenize`, `untokenize`, `read_table` and `table` have no add tool at all — they are made
  * in a builder_add_steps batch — so they map to null and the caller falls back to
  * a generic hint.
  */
@@ -51,6 +51,9 @@ const TOOL_NAME_OVERRIDES = {
     guard: null,
     tokenize: null,
     untokenize: null,
+    // The table steps, likewise made in a builder_add_steps batch only.
+    read_table: null,
+    table: null,
     // The five array ops each have a builder_add_<type> tool, but the unified
     // builder_add_array_op is the one small models are given (CORE_TOOL_NAMES),
     // so point every one of them at it.

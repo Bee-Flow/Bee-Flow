@@ -239,6 +239,11 @@ const EXPECTED = [
     'GET /runs/:runId/files',
     'GET /runs/:runId/files/:fileId',
     'GET /runs/:runId/files/:fileId/preview',
+    // The tables a run produced, and the dry preview of a table step
+    // (routes/automation/runTables.js, routes/automation/tablePreview.js).
+    'GET /runs/:runId/tables/:tableId',
+    'GET /runs/:runId/tables/:tableId/csv',
+    'POST /:id/table-preview',
     // Handoff 5, sharing and roles (routes/automation/sharing.js).
     'GET /:id/shares',
     'PUT /:id/shares',
@@ -300,6 +305,9 @@ test('every relative require() across the facade + sub-routers resolves (catches
         'routes/automation/versions.js',
         'routes/automation/webhooksAndRunOps.js',
         'routes/automation/runFiles.js',
+        'routes/automation/runJourney.js',
+        'routes/automation/runTables.js',
+        'routes/automation/tablePreview.js',
         'routes/automation/sharing.js',
         'routes/automation/notifications.js',
         'routes/automation/agentStepRoutes.js',

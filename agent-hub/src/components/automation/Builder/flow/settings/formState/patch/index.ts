@@ -15,6 +15,7 @@ import { approvalPatchers } from './approval';
 import { controlPatchers } from './control';
 import { dataPatchers } from './data';
 import { documentPatchers } from './documents';
+import { tablePatchers } from './tables';
 import { triggerPatchers } from './trigger';
 
 /** Step type -> its writer. A Map, so a type named like an Object key ('constructor') finds nothing. */
@@ -25,6 +26,7 @@ const TYPE_PATCHERS: ReadonlyMap<string, TypePatcher> = new Map(Object.entries({
     ...controlPatchers,
     ...approvalPatchers,
     ...dataPatchers,
+    ...tablePatchers,
 }));
 
 /** The type's own fields: route and privacy models first, then the per-type writer. */

@@ -214,6 +214,15 @@ function normalizePatchField(type, key, value) {
             return KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES.includes(value) && value !== 'skip' ? value : undefined;
         }
     }
+    if (type === 'read_table') {
+        // The shared spec clamps each setting, so a patched step equals an added one.
+        const { normalizeReadTableStep } = require('../../../core/automationModel/tableOps/readTableSpec');
+        return normalizeReadTableStep({ [key]: value })[key];
+    }
+    if (type === 'table') {
+        if (key === 'name') return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+        if (key === 'expiresInDays') return require('../../../core/automationModel/tableOps/spec').normalizeTableStep({ expiresInDays: value }).expiresInDays;
+    }
     if (type === 'guard' || type === 'tokenize' || type === 'untokenize') {
         // A ref PATH string, as the add path stores it ('' = not picked yet).
         if (key === 'sourceRef') return typeof value === 'string' ? value.trim() : '';

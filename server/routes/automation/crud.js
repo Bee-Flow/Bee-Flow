@@ -16,7 +16,7 @@ const { registerTemplateAndImportRoutes, registerExportRoute } = require('./impo
 // The helpers save, activate and publish share live in automation/ so the
 // go-live cores (automation/goLive.js) use the same ones — see
 // automation/liveSideEffects.js for what each does and why it is best-effort.
-const { agentsFor, wakeComplianceReview, ensureFormPages, ensureAnswersTable } = require('../../automation/liveSideEffects');
+const { agentsFor, knownVarNamesFor, wakeComplianceReview, ensureFormPages, ensureAnswersTable } = require('../../automation/liveSideEffects');
 const { deactivateCore, editedPinRefusal, capturedPinWarnings } = require('../../automation/goLive');
 const automationStore = require('../../stores/automationStore');
 const { z, typeError } = require('../../utils/zod');
@@ -514,7 +514,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
         // Same as the create route: a warning at draft stage, an error at
         // activate. Without it, rewriting an ALREADY ACTIVE automation was the
         // one path that could point an ai_step at an agent nobody checked.
-        const v = validateDefinition(updates.definition, { stage: 'draft', availableAgents: await agentsFor(updates.definition, ownerId), topicClassifier: await topicClassifierFor(updates.definition) });
+        const v = validateDefinition(updates.definition, { stage: 'draft', availableAgents: await agentsFor(updates.definition, ownerId), knownVarNames: await knownVarNamesFor(updates.definition, existing), topicClassifier: await topicClassifierFor(updates.definition) });
         if (!v.ok) return res.status(400).json({ error: 'Invalid definition', details: v.errors });
         const assigneeErrors = await require('../../automation/approvalService').validateApprovalAssignees(updates.definition, ownerId);
         if (assigneeErrors.length) return res.status(400).json({ error: 'Invalid definition', details: assigneeErrors });

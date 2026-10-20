@@ -7,6 +7,7 @@ import type { IoField, IoKind } from './runIo';
 import { configFields, humanKey, ioFields, mainList } from './runIo';
 import BindingWarnings from './BindingWarnings';
 import RunFileChips from './RunFileChips';
+import RunTableChips from './RunTableChips';
 import { stepBindingWarnings } from './bindingMisses';
 
 const KIND_ICON: Record<IoKind, typeof Hash> = {
@@ -79,6 +80,8 @@ export default function RunIo({ step, label, stepDef = null, labelById = null, t
                     <BindingWarnings warnings={misses} labelById={labelById} typeById={typeById} />
                     {/* A document the step kept: the file itself, not just its handle. */}
                     <RunFileChips runId={step.runId} output={step.output} />
+                    {/* A table the step kept: its rows, a page at a time. */}
+                    <RunTableChips runId={step.runId} output={step.output} />
                     <div className="flex items-center gap-2">
                         <span className="font-semibold text-[var(--text-primary)] truncate">{tableTitle}</span>
                         {list && (
