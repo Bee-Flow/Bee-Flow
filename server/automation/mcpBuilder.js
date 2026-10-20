@@ -49,7 +49,7 @@ const {
 // Lazy inside: it reaches the stores only when called, so requiring this
 // module still costs no database.
 const { buildDatatableCatalogForUser } = require('./builderDatatableCatalog');
-const runReads = require('./mcpRunReads');
+const runTools = require('./mcpRunTools');
 
 // ── The gate ────────────────────────────────────────────────────────────────
 //
@@ -88,7 +88,7 @@ const ROUTE_ONLY_TOOLS = new Set([
 ]);
 
 /** Tools that need no automation to act on — the entry points, and the run reads that name a run instead. */
-const AUTOMATIONLESS_TOOLS = new Set(['automations_get_guide', 'automations_list', 'automations_create', ...runReads.RUN_ONLY_TOOL_NAMES]);
+const AUTOMATIONLESS_TOOLS = new Set(['automations_get_guide', 'automations_list', 'automations_create', ...runTools.RUN_ONLY_TOOL_NAMES]);
 
 const AUTOMATION_ID_PROP = {
     type: 'string',
@@ -173,7 +173,7 @@ const AUTOMATION_TOOLS = [
             required: ['title'],
         },
     },
-].concat(runReads.RUN_READ_TOOLS);
+].concat(runTools.RUN_TOOLS);
 
 /** The advertised tool list. Pure — no I/O, safe to call per request. */
 function buildToolList() {
@@ -354,7 +354,7 @@ async function runGetGuide(userId) {
     // lost its userTimezone parameter). Ship the note once, appended.
     const turnNote = renderTurnPreferences({ userTimezone: 'Europe/Amsterdam' });
     const pickers = renderPickerContextMessage({ catalog });
-    return { guide: [guide, runReads.guideSection(), pickers, turnNote].filter(Boolean).join('\n\n') };
+    return { guide: [guide, runTools.guideSection(), pickers, turnNote].filter(Boolean).join('\n\n') };
 }
 
 /**
@@ -446,7 +446,7 @@ async function callTool(name, rawArgs, { userId }) {
     }
     if (name === 'automations_list') return { result: await runList(userId, args) };
     if (name === 'automations_create') return { result: await runCreate(userId, args) };
-    if (runReads.RUN_READ_TOOL_NAMES.has(name)) return { result: await runReads.callRunTool(name, args, { userId }) };
+    if (runTools.RUN_TOOL_NAMES.has(name)) return { result: await runTools.callRunTool(name, args, { userId }) };
 
     const automationId = typeof args.automationId === 'string' ? args.automationId.trim() : '';
     delete args.automationId; // never reaches the builder tool — it is our envelope

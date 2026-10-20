@@ -32,7 +32,7 @@ export function inputsFromValues(values: Record<string, string>): Record<string,
     return out;
 }
 
-function Result({ r }: { r: CodeTestResult }) {
+export function Result({ r }: { r: CodeTestResult }) {
     const { t } = useTranslation();
     return (
         <div className="space-y-2 text-xs" data-testid="code-try-result">

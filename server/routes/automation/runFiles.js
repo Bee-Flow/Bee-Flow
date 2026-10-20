@@ -38,7 +38,7 @@ const { HttpError } = require('../../core/http/errors');
 const { sendStream } = require('../../core/http/sendStream');
 const { contentDisposition } = require('../../core/http/contentDisposition');
 const { makeAutomationAccess } = require('../../automation/access');
-const { assertCanReadRunData, canReadRunData } = require('../../core/automationModel/callerRunVisibility');
+const { makeRunDataAccess } = require('../../automation/testing/runDataAccess');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 
 /** Env cap: a positive number, with 0 meaning unlimited and unset/garbage meaning `fallback`. */
@@ -111,31 +111,17 @@ function makeRunFilesRouter(overrides = {}) {
         ...(overrides.hasPermission ? { hasPermission: overrides.hasPermission } : {}),
     });
 
+    const runData = makeRunDataAccess({ store: overrides.store, access });
+
     /**
      * The run, once the caller is allowed to read its data, plus the ids of
      * every leg of its journey that they may read. A form or approval pause
      * continues in a child run, and a file made before the pause belongs to
-     * the same journey.
+     * the same journey. The rules live in automation/testing/runDataAccess.js.
      */
     async function readableJourney(req, res) {
-        const me = req.session.user.id;
-        const run = await store().getRun(req.params.runId);
-        if (!run) throw new HttpError(404, 'run_not_found', 'Not found');
-        // Not on this automation at all (another organisation, nobody shared it
-        // with them): the run does not exist as far as they can tell.
-        if (run.userId !== me) {
-            const automation = await store().getAutomation(run.automationId).catch(() => null);
-            const { role } = await access.roleFor(automation, me, { session: req.session });
-            if (!role) throw new HttpError(404, 'run_not_found', 'Not found');
-        }
-        if (!await access.runGuard(req, res, run, 'read')) return null;
-        assertCanReadRunData(run, me, 'see its files');
-        const legs = await store().getRunsInChain(run.id).catch(() => [run]);
-        const runIds = (legs.length ? legs : [run])
-            .filter(leg => leg.automationId === run.automationId && canReadRunData(leg, me))
-            .map(leg => leg.id);
-        if (!runIds.includes(run.id)) runIds.push(run.id);
-        return { run, runIds };
+        const found = await runData.readableRun(req, res, req.params.runId, 'see its files');
+        return found ? { run: found.run, runIds: found.runIds } : null;
     }
 
     /** The file row and its bytes, or a 404 for every way of not having them. */

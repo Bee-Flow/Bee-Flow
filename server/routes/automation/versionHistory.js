@@ -167,11 +167,12 @@ function makeVersionHistoryHandlers(deps) {
         if (!a) return;
         const target = await resolveRef(a, req.params.versionId);
         const base = await resolveRef(a, req.params.other);
-        let changes = fieldDiff(base.definition, target.definition);
+        // fullText: a changed code step, prompt or message carries its whole text for the line diff.
+        let changes = fieldDiff(base.definition, target.definition, { fullText: true });
         if (changes.some((c) => c.path === 'agentId')) {
             try {
                 const names = await resolveNames({ agent: [...new Set([...agentIdsOf(base.definition), ...agentIdsOf(target.definition)])] });
-                changes = fieldDiff(base.definition, target.definition, { names });
+                changes = fieldDiff(base.definition, target.definition, { names, fullText: true });
             } catch (e) { log.warn(`[automation versions] agent names for ${a.id}: ${e.message}`); }
         }
         const layoutOnly = changes.length === 0 && isLayoutOnlyChange(base.definition, target.definition);

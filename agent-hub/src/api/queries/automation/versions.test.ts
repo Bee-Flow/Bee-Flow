@@ -50,6 +50,20 @@ describe('parseFieldDiff', () => {
         expect(d.stepIds).toEqual({ added: ['s7'], removed: [], changed: ['s2'] });
     });
 
+    it('passes the full text of a long setting through, only when the server sent it', () => {
+        const d = parseFieldDiff({
+            changes: [
+                { stepId: 's1', change: 'changed', setting: 'code', before: 'a', after: 'b', beforeText: 'one\ntwo', afterText: 'one\nthree', textTruncated: true },
+                { stepId: 's2', change: 'changed', setting: 'message', before: 'a', after: 'b', beforeText: 'hi', afterText: { kind: 'ref' } },
+                { stepId: 's3', change: 'changed', setting: 'folder', before: 'a', after: 'b' },
+            ],
+        });
+        expect(d.changes[0]).toMatchObject({ beforeText: 'one\ntwo', afterText: 'one\nthree', textTruncated: true });
+        expect(d.changes[1]).toMatchObject({ beforeText: 'hi', afterText: null });
+        expect('textTruncated' in d.changes[1]).toBe(false);
+        expect('beforeText' in d.changes[2]).toBe(false);
+    });
+
     it('returns an empty diff for junk', () => {
         expect(parseFieldDiff(undefined)).toEqual({ changes: [], stepIds: { added: [], removed: [], changed: [] } });
     });

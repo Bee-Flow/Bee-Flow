@@ -45,6 +45,13 @@ const ROWS = {
     2: { id: 'row-2', automationId: 'a1', version: 2, definition: V2, savedByUserId: 'owner', savedByName: 'Olga', savedAt: '2026-09-28T10:55:00.000Z', name: null, description: 'Folder changed in "Read invoice"', descriptionJson: [{ code: 'setting_changed', params: { setting: 'Folder', settingKey: 'folder', step: 'Read invoice' } }], isLayoutOnly: false },
 };
 
+// Two more versions that only differ in a code step, for the full-text diff.
+const CODE1 = { trigger: { id: 't', kind: 'manual' }, steps: [{ id: 'calc', type: 'code', label: 'Calculate', code: 'return 1;\nreturn 2;\n' }], edges: [{ from: 't', to: 'calc' }] };
+const CODE2 = JSON.parse(JSON.stringify(CODE1));
+CODE2.steps[0].code = 'return 1;\nreturn 3;\n';
+ROWS[3] = { ...ROWS[1], id: 'row-3', version: 3, definition: CODE1 };
+ROWS[4] = { ...ROWS[1], id: 'row-4', version: 4, definition: CODE2 };
+
 let runsFail = false;
 const renamed = [];
 const store = {
@@ -96,6 +103,18 @@ test('the list: savedBy, live and editing flags, runs per version', async () => 
         { isLive: v1.isLive, liveSince: v1.liveSince, isEditing: v1.isEditing, runs: v1.runs, descriptionJson: v1.descriptionJson },
         { isLive: true, liveSince: '2026-09-20T08:00:00.000Z', isEditing: false, runs: { total: 36, failed: 1 }, descriptionJson: [{ code: 'created', params: {} }] },
     );
+});
+
+test('the field diff carries the whole text of a changed code step, for the line diff', async () => {
+    const { status, body } = await call('GET', '/a1/versions/4/fielddiff/3');
+    assert.strictEqual(status, 200);
+    assert.strictEqual(body.changes.length, 1);
+    const c = body.changes[0];
+    assert.strictEqual(c.setting, 'code');
+    assert.strictEqual(c.beforeText, 'return 1;\nreturn 2;\n');
+    assert.strictEqual(c.afterText, 'return 1;\nreturn 3;\n');
+    assert.strictEqual(c.textTruncated, undefined);
+    assert.ok(!c.before.includes('\n'), 'the one-line summary is unchanged');
 });
 
 test('run counts that cannot be read leave runs null, the list still answers', async () => {

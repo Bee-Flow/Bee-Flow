@@ -6,6 +6,7 @@ import themeVars from '../admin/Studio/AppStudio/runtime/themeVars';
 import { messageOf } from '../../utils/caughtError';
 import FormField from './fields/FormField';
 import { FormRichText } from './fields/FormRichText';
+import { valuesWithPrefill } from './prefill';
 import { collectErrors, fieldError, groupBlocks, initialValues, isDisplayField, submissionValues, typicalDurationText, visibleNames } from './formRules';
 import type { FormErrorHandler, FormEndingViewProps, FormExportBarProps, FormFieldDef, FormValue, FormValues, FormWaitingViewProps, PublicFormRendererProps, SubmitError } from './PublicFormRenderer.types';
 
@@ -50,12 +51,19 @@ function fieldErrorsOf(err: unknown): Record<string, string> | null {
  *               the automation may still pause for another page and only the page
  *               that is polling knows what comes next.
  */
-export default function PublicFormRenderer({ form, onSubmit = null, onUpload = null, onSearchApp = null, preview = false, showSuccess = true, downloadHref = null, onOpenInNotebooks = null }: PublicFormRendererProps) {
+export default function PublicFormRenderer({ form, onSubmit = null, onUpload = null, onSearchApp = null, preview = false, showSuccess = true, downloadHref = null, onOpenInNotebooks = null, prefill = null }: PublicFormRendererProps) {
     const { t } = useTranslation();
     const fields = useMemo(() => form?.fields || [], [form?.fields]);
     const theme = form?.theme || {};
-    const [values, setValues] = useState<FormValues>(() => initialValues(fields));
+    const [values, setValues] = useState<FormValues>(() => valuesWithPrefill(fields, prefill));
     const [errors, setErrors] = useState<Record<string, string | null>>({});
+    // A new set of saved answers (picking a scenario) fills the form again.
+    const [appliedPrefill, setAppliedPrefill] = useState(prefill);
+    if (prefill !== appliedPrefill) {
+        setAppliedPrefill(prefill);
+        setValues(valuesWithPrefill(fields, prefill));
+        setErrors({});
+    }
     const [formError, setFormError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [done, setDone] = useState(false);

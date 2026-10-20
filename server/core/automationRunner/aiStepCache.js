@@ -25,7 +25,10 @@
  * vault; no real value is ever stored in clear, and no vault outlives its run.
  *
  * ── WHEN IT IS USED ─────────────────────────────────────────────────
- * Never in a dry run, never when the model was offered tools (a tool call has
+ * Never in a dry run (except a golden replay or form-scenario dry run that asks
+ * to reuse stored answers, ctx.testHarness.aiAnswers === 'cache': it READS both
+ * tiers and writes only the run memo, never the durable tier), never when the
+ * model was offered tools (a tool call has
  * side effects and its answer depends on the world, not on the prompt), never
  * with AUTOMATION_ASK_ONCE_DISABLED on. The durable tier additionally needs
  * the step's `askOnce.acrossRuns`, an organisation that opted in
@@ -104,7 +107,10 @@ async function resolveAiDurableTier({ step, ctx, memo, identity, memoTtlMs }) {
  */
 async function planAiReuse({ step, ctx, mode, policy, modelId, providerKey, toolsOffered, request }) {
     const memo = ctx && ctx._toolMemo;
-    if (mode !== 'live' || !step.askOnce || envFlagOn('AUTOMATION_ASK_ONCE_DISABLED')
+    // A dry run reuses stored answers only when the test harness asks, and then
+    // read-only (plan.readOnly): a test run never fills the durable cache.
+    const readOnly = mode === 'dry_run' && ctx?.testHarness?.aiAnswers === 'cache';
+    if ((mode !== 'live' && !readOnly) || !step.askOnce || envFlagOn('AUTOMATION_ASK_ONCE_DISABLED')
         || !memo || toolsOffered || ctx.stepInputsSynthetic) return null;
     const identity = memoKeyParts({
         toolName: 'ai_step',
@@ -120,7 +126,7 @@ async function planAiReuse({ step, ctx, mode, policy, modelId, providerKey, tool
     });
     const memoTtlMs = stepTtlMs(step);
     const durable = await resolveAiDurableTier({ step, ctx, memo, identity, memoTtlMs });
-    return { memo, memoK: memoKeyFromParts(identity), memoTtlMs, durable, userId: ctx.userId };
+    return { memo, memoK: memoKeyFromParts(identity), memoTtlMs, durable, userId: ctx.userId, readOnly };
 }
 
 /**
@@ -170,7 +176,8 @@ function rememberAiAnswer(plan, { answer, userId }) {
     } catch (e) {
         log.debug(`[AiStepCache] run memo could not store (only a future miss): ${e.message}`);
     }
-    if (!durable) return;
+    // A read-only plan (dry run reusing stored answers) never writes the durable tier.
+    if (!durable || plan.readOnly) return;
     (async () => {
         const fresh = await resolveCachePolicyFresh(durable.organizationId);
         if (!fresh.enabled || !fresh.scopes || fresh.scopes.ai !== true) return;

@@ -83,6 +83,7 @@ const sidebars: SidebarsConfig = {
             'features/chat',
             'features/knowledge',
             'features/automations',
+            'features/automation-testing',
             'features/voice',
             'features/meeting-notes-voiceprints',
           ],

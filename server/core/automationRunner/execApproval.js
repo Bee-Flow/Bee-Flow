@@ -11,6 +11,7 @@ const { desugarApprovalStages } = require('../automationModel/approvalStages');
 // The form-config renderer is automation/'s, reached through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
 const { resolveApprovalTtlMs } = require('./shared');
+const { pageAnswersFor } = require('./testHarness');
 
 /**
  * Evaluate an authored condition against the run state. A condition that
@@ -313,6 +314,24 @@ function renderFormPage(step, runState, { baseTheme = null } = {}) {
     });
 }
 
+/**
+ * A dry run that answers this page from saved answers (a form scenario, a
+ * golden replay): the values a real submission of them would carry, flagged
+ * `_fromScenario`. A question that does not pass fails the step, naming the
+ * question LABELS only (the message reaches run history and MCP, so never an
+ * answer).
+ */
+function scenarioPageOutput(step, rendered, saved) {
+    const { values, invalidLabels } = runnerPort('forms').scenarioPageValues(rendered, saved);
+    if (invalidLabels.length) {
+        throw Object.assign(
+            new Error(`The saved answers no longer fit the form page "${step.title || step.id}": check ${invalidLabels.join(', ')}.`),
+            { errorClass: 'scenario_answers_invalid' },
+        );
+    }
+    return { ...values, _dryRun: true, _fromScenario: true };
+}
+
 async function execFormPage(step, ctx, runState, mode) {
     // Runtime backstop (validate.js rejects this at save time too): resume
     // replays the PARENT graph by step id, so a pause inside a layer's
@@ -343,6 +362,8 @@ async function execFormPage(step, ctx, runState, mode) {
     }
 
     if (mode === 'dry_run') {
+        const saved = pageAnswersFor(ctx, step.id);
+        if (saved) return { output: scenarioPageOutput(step, renderFormPage(step, runState, { baseTheme }), saved) };
         // Blank answers keyed by the AUTHORED field names (a multiselect or a
         // per-item group is an empty list), so downstream bindings resolve in
         // a preview rather than pausing a run nobody is watching.

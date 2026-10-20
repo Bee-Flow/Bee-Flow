@@ -49,6 +49,7 @@ const { notifyRunEvent } = require('./runNotifications');
 const { resolveRunPolicy } = require('./runPolicy');
 const { runOrgFor, resolveEnteredTrigger, selectRunCopy, buildRunState, createRunVault, resolveRunIdentity } = require('./runSetup');
 const { buildRunContext, recordResumeBoundary, guardTriggerPayload } = require('./runContext');
+const { harnessFor } = require('./testHarness');
 const { applyCallerOnly, callerOnlyUserId, refusesMissingStarter } = require('./callerConnections');
 const { blockDefinitionLoader, stepProvidersLoader } = require('./callerLookups');
 const heartbeat = require('./runHeartbeat');
@@ -143,7 +144,7 @@ function acquireRunMarker(automationId, triggerKind, opts) {
     return heartbeat.acquireRunMarker(RUN_DEPS, automationId, triggerKind, opts);
 }
 
-async function executeAutomation(automation, { triggerKind = 'manual', triggerPayload = null, triggerHeaders = null, mode = 'live', confirmFirstRun: _confirmFirstRun = false, parentRunId = null, rootRunId = null, onRunCreated = null, onRunFinished = null, replayState = null, replayGaps = null, skipUntilStepId = null, onlyStepId = null, fromStepId = null, untilStepId = null, rootStepId = null, loopVars = null, stepRecord = null, schedule = null, isTest = false, startedByUserId = null, callerAgentId = null, callerConversationId = null, lockedConnectionsMode = null } = {}) {
+async function executeAutomation(automation, { triggerKind = 'manual', triggerPayload = null, triggerHeaders = null, mode = 'live', confirmFirstRun: _confirmFirstRun = false, parentRunId = null, rootRunId = null, onRunCreated = null, onRunFinished = null, replayState = null, replayGaps = null, skipUntilStepId = null, onlyStepId = null, fromStepId = null, untilStepId = null, rootStepId = null, loopVars = null, stepRecord = null, schedule = null, isTest = false, startedByUserId = null, callerAgentId = null, callerConversationId = null, lockedConnectionsMode = null, harness = null } = {}) {
     const startedAt = Date.now();
     // ── Live or working copy (handoff 5) ── decided once, here, for every
     // caller (runSetup.selectRunCopy). From this line on `automation` is the
@@ -255,6 +256,8 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
         ctx.callerOnly = null;
     }
     ctx.startedByUserId = startedByUserId || null;
+    // Test harness (golden replay, form scenario): dry runs only, null otherwise.
+    ctx.testHarness = harnessFor(effectiveMode, harness);
 
     await recordResumeBoundary(RUN_DEPS, { skipUntilStepId, replayState, effectiveMode, automation, run, runState });
     const shield = await guardTriggerPayload(RUN_DEPS, { triggerPayload, triggerKind, ctx, runState, effectiveMode, run, heartbeatTimer, startedAt, automation, ownsMarker, emitLifecycle });
