@@ -9,6 +9,7 @@ const log = require('../../telemetry/log');
 const { guessMimeTypeFromName, getHeader } = require('./messageShape');
 const { buildRawMessage, sendGmailMessage } = require('./compose');
 const { resolveLabelIds } = require('./labels');
+const { toolFileMaxBytes, fileTooLargeMessage } = require('../../core/http/httpResponseLimits');
 
 /** gmail_read_attachment: the text of one attachment, plus a sourceHandle downstream tools re-fetch the bytes through. */
 async function readAttachment(gmail, args) {
@@ -27,6 +28,12 @@ async function readAttachment(gmail, args) {
 
     const base64Data = attachment.data.data;
     if (!base64Data) throw new Error('Attachment data is empty');
+
+    // The Gmail API gives no size before the download, so the check follows it
+    // and runs before the base64 conversion and extraction copy the bytes again.
+    const cap = toolFileMaxBytes();
+    const approxBytes = attachment.data.size || Math.floor(base64Data.length * 3 / 4);
+    if (approxBytes > cap) return { error: fileTooLargeMessage(name, approxBytes, cap), filename: name, mimeType };
 
     // Convert from URL-safe base64 to standard base64
     const standardBase64 = base64Data.replace(/-/g, '+').replace(/_/g, '/');

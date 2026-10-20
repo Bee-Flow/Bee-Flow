@@ -27,6 +27,7 @@
 
 const ncClient = require('./nextcloudClient');
 const { mailError, normaliseRole, mailBodyText } = require('./nextcloudMailShapes');
+const { toolFileMaxBytes, readBytesBounded, fileTooLargeMessage } = require('../core/http/httpResponseLimits');
 
 const MAIL_API_BASE = '/index.php/apps/mail/api';
 const MAX_BODY_BYTES = 200 * 1024;
@@ -330,8 +331,10 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
             const res = await ncFetch(url, { headers: { ...baseHeaders, 'Accept': '*/*' } });
             if (!res.ok) return mailError(res, authError, 'attachment download');
             const contentType = res.headers.get('content-type') || 'application/octet-stream';
-            const buf = Buffer.from(await res.arrayBuffer());
             const filename = args.filename || `attachment-${args.attachmentId}`;
+            const cap = toolFileMaxBytes();
+            const { buffer: buf, truncated: tooBig, declaredBytes } = await readBytesBounded(res, { byteCap: cap });
+            if (tooBig || !buf) return { error: fileTooLargeMessage(filename, declaredBytes, cap) };
 
             // Same extraction pipeline used by chat-uploads + nextcloud_read_file.
             const { extractAttachment, isPdf, isDocx, isSpreadsheet } = require('../core/documents/attachmentExtractor');

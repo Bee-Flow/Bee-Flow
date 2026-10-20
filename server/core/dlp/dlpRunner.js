@@ -25,6 +25,7 @@ const { isCustomTypeId } = require('../privacy/customTypes/ids');
 const { buildAllowMatcher, filterAllowedEntities } = require('./allowTerms');
 const { classifyProvider } = require('../providers/classification');
 const log = require('../../telemetry/log');
+const { createTokenMapEviction, emitTokenMapEvent } = require('./tokenMapEviction');
 
 // Conversation-scoped "remember my last choice" preference. Cleared on
 // explicit conversation delete (and naturally GC'd in process restart).
@@ -65,6 +66,7 @@ function _capFor(conversationId) {
 
 function _ensureTokenMap(conversationId) {
     if (!conversationId) return new Map();
+    eviction.touch(conversationId);
     let map = conversationTokenMaps.get(conversationId);
     if (!map) { map = new Map(); conversationTokenMaps.set(conversationId, map); }
     return map;
@@ -74,27 +76,15 @@ function _ensureTokenMap(conversationId) {
 // into" warning, so the message fires at most once each (benign for
 // notebook-scoped maps whose id is a notebookId — see _writeMapToDb).
 const _persistWarned = new Set();
-
-// Lazily emit an operator-facing guardrail event for token-map persistence /
-// eviction problems. Lazy-required so the common (no-error) path never pulls in
-// the store — that keeps the persistence unit tests (which mock `../../db`)
-// clean, and never lets telemetry break the chat path.
-function _emitTokenMapEvent(conversationId, action_taken, extra = {}) {
-    try {
-        const store = require('../../stores/guardrailEventStore');
-        store.logGuardrailEvent({
-            conversation_id: conversationId,
-            violation_type: 'pii_tokenmap',
-            action_taken,
-            source: 'pii',
-            violation_categories: extra.reason ? String(extra.reason).slice(0, 200) : null,
-        }).catch(() => {});
-    } catch (_) { /* never let telemetry break the chat path */ }
-}
+const eviction = createTokenMapEviction({
+    conversationTokenMaps, hydrated: _hydratedConversations, notebookBound: _notebookBoundIds,
+    persistWarned: _persistWarned, hydrationInFlight: () => _hydrationInFlight,
+});
 
 function _mergeIntoTokenMap(conversationId, incoming) {
     if (!conversationId || !incoming) return;
     const map = _ensureTokenMap(conversationId);
+    eviction.markDirty(conversationId);
     for (const [token, original] of Object.entries(incoming)) {
         map.set(token, original);
     }
@@ -112,7 +102,7 @@ function _mergeIntoTokenMap(conversationId, incoming) {
         // references it can no longer be detokenised. Surface it instead of
         // silently dropping tokens (this was a silent correctness bug).
         log.warn(`[DlpRunner] token-map cap (${cap}) exceeded for conv ${conversationId}; evicted ${evicted} oldest token(s) — earlier placeholders may no longer restore`);
-        _emitTokenMapEvent(conversationId, 'token_evicted', { reason: `evicted ${evicted} at cap ${MAX_TOKENS_PER_CONV}` });
+        emitTokenMapEvent(conversationId, 'token_evicted', { reason: `evicted ${evicted} at cap ${MAX_TOKENS_PER_CONV}` });
     }
 }
 
@@ -205,10 +195,13 @@ async function _tokenMapCrypto(conversationId) {
 
 async function _writeMapToDb(conversationId) {
     if (!conversationId) return;
+    // Never overwrite the stored map with a partial one (merge after eviction).
+    await _hydrateFromDb(conversationId);
     const map = conversationTokenMaps.get(conversationId);
     if (!map) return;
     const obj = {};
     for (const [k, v] of map) obj[k] = v;
+    const markPersisted = eviction.beginWrite(conversationId); // the row then holds this snapshot
     let payload = JSON.stringify(obj);
     try {
         const crypt = await _tokenMapCrypto(conversationId);
@@ -233,12 +226,12 @@ async function _writeMapToDb(conversationId) {
             'UPDATE agent_conversations SET pii_token_map = $1::jsonb WHERE id = $2',
             [payload, conversationId],
         );
-        if (agentResult?.rowCount > 0) return;
+        if (agentResult?.rowCount > 0) { markPersisted(); return; }
         const directResult = await run(
             'UPDATE direct_conversations SET pii_token_map = $1::jsonb WHERE id = $2',
             [payload, conversationId],
         );
-        if (directResult?.rowCount > 0) return;
+        if (directResult?.rowCount > 0) { markPersisted(); return; }
         // Notebook / legal-matter chat keys the map on the notebook id, which is
         // the `notebooks.id`. Persist there so the
         // doc/source/chat tokens survive a reload + restart (the "Part 2A" the
@@ -247,7 +240,7 @@ async function _writeMapToDb(conversationId) {
             'UPDATE notebooks SET pii_token_map = $1::jsonb WHERE id = $2',
             [payload, conversationId],
         );
-        if (notebookResult?.rowCount > 0) { _notebookBoundIds.add(conversationId); return; }
+        if (notebookResult?.rowCount > 0) { _notebookBoundIds.add(conversationId); markPersisted(); return; }
         // Neither table had a matching row, so the map lives in-process ONLY and
         // a restart would lose it — the user would then see `[email_1]` forever.
         // Warn once per conversation (kept a warn, not a guardrail alert,
@@ -262,12 +255,13 @@ async function _writeMapToDb(conversationId) {
         // guardrail event. Silent failure here is the #1 way a conversation
         // becomes permanently unrestorable.
         log.warn(`[DlpRunner] DB write-through failed for conv ${conversationId}: ${err.message}`);
-        _emitTokenMapEvent(conversationId, 'persist_failed', { reason: err.message });
+        emitTokenMapEvent(conversationId, 'persist_failed', { reason: err.message });
     }
 }
 
 async function _hydrateFromDb(conversationId) {
     if (!conversationId || _hydratedConversations.has(conversationId)) return;
+    eviction.touch(conversationId);
     if (_hydrationInFlight.has(conversationId)) {
         await _hydrationInFlight.get(conversationId);
         return;
@@ -305,7 +299,7 @@ async function _hydrateFromDb(conversationId) {
                     // stays an opaque placeholder to the user. Leaving it silent
                     // would look like the shield simply had nothing to restore.
                     log.error(`[DlpRunner] token map for conv ${conversationId} could not be decrypted: ${err.message}`);
-                    _emitTokenMapEvent(conversationId, 'hydrate_decrypt_failed', { reason: err.message });
+                    emitTokenMapEvent(conversationId, 'hydrate_decrypt_failed', { reason: err.message });
                     stored = null;
                 }
             }
@@ -344,6 +338,7 @@ async function _hydrateFromDb(conversationId) {
 function getConversationTokenMap(conversationId) {
     const map = conversationTokenMaps.get(conversationId);
     if (!map) return {};
+    eviction.touch(conversationId);
     const obj = {};
     for (const [k, v] of map) obj[k] = v;
     return obj;
@@ -356,6 +351,7 @@ function getConversationTokenMap(conversationId) {
  */
 async function getConversationTokenMapAsync(conversationId) {
     if (!conversationId) return {};
+    eviction.touch(conversationId);
     if (!_hydratedConversations.has(conversationId) && (!conversationTokenMaps.get(conversationId) || conversationTokenMaps.get(conversationId).size === 0)) {
         await _hydrateFromDb(conversationId);
     }
@@ -376,6 +372,7 @@ function clearConversationState(conversationId, { ephemeral = false } = {}) {
     _hydratedConversations.delete(conversationId);
     _persistWarned.delete(conversationId);
     _ownerCache.delete(conversationId);
+    eviction.forget(conversationId);
     if (ephemeral) return;
     // Best-effort DB clear so a deleted-then-recreated conversation doesn't
     // inherit stale tokens. Fire-and-forget.
@@ -406,11 +403,10 @@ function getConversationPref(conversationId) {
  * Idle-cleanup. Call periodically (the kbQueryCache GC already runs every 10 min;
  * we piggyback by exposing this and letting that file call us).
  */
-function gc(maxIdleMs = 60 * 60 * 1000) {
-    // In this implementation we don't track per-conversation last-access, so
-    // we rely on explicit clears. This hook is reserved for future use — when
-    // conversations are deleted, callers should call clearConversationState().
-    void maxIdleMs;
+function gc() {
+    // Idle eviction is tracked per conversation (see sweepIdle); explicit
+    // deletes still go through clearConversationState().
+    eviction.sweepIdle();
 }
 
 /**
@@ -447,7 +443,9 @@ async function _tokeniseAll(text, findings, conversationId = null, { ephemeral =
     // Pass the conversation's accumulated token map so counters continue across
     // turns and repeated values reuse their existing tokens. Without this,
     // turn 2's [email_1] would silently overwrite turn 1's mapping in the
-    // merged conv map.
+    // merged conv map. Hydrate first: after a restart or an idle eviction the
+    // in-process map is empty and the counters would restart at 1.
+    if (conversationId && !ephemeral) await _hydrateFromDb(conversationId);
     const existing = conversationId ? getConversationTokenMap(conversationId) : null;
 
     // Union with the user's tokenization vault, so a value keeps the same token
@@ -822,4 +820,5 @@ module.exports = {
     setConversationPref,
     getConversationPref,
     gc,
+    sweepIdle: eviction.sweepIdle,
 };

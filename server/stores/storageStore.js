@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const log = require('../telemetry/log');
 const { s3ClientConfig } = require('./storageClientConfig');
+const { createUploadFileFromPath } = require('./storageUploadFromPath');
 
 const BUCKET = process.env.S3_BUCKET || 'beeflow-media';
 const DEFAULT_EXPIRY = 3600; // 1 hour
@@ -448,6 +449,10 @@ async function uploadFile(key, buffer, contentType, metadata = null) {
     return { key };
 }
 
+// Streams a file from disk to storage; see storageUploadFromPath.js.
+const uploadFileFromPath = createUploadFileFromPath({ getMode: () => mode, hasS3: () => !!s3, localPathFor,
+    uploadFile, beginMultipartUpload, uploadPartBuffer, completeMultipartUpload, abortMultipartUpload });
+
 // ── Multipart upload ─────────────────────────────────────────────────────────
 //
 // For objects too large to hold as one Buffer (multi-GB dataset files). The
@@ -758,6 +763,7 @@ module.exports = {
     buildStudioAppDatasetKey,
     buildAutomationFileKey,
     uploadFile,
+    uploadFileFromPath,
     beginMultipartUpload,
     uploadPartBuffer,
     completeMultipartUpload,

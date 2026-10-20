@@ -363,8 +363,8 @@ async function persistAudioCopy(filePath, userId, ext) {
     let audioStorageKey = null;
     const { savedAudioKey, persistSavedAudioToStorage } = require('./savedAudioStore');
     try {
-        const buf = fs.readFileSync(fs.existsSync(audioPath) ? audioPath : filePath);
-        const persisted = await persistSavedAudioToStorage(savedAudioKey(savedBase), buf, ext);
+        const src = fs.existsSync(audioPath) ? audioPath : filePath;
+        const persisted = await persistSavedAudioToStorage(savedAudioKey(savedBase), src, ext);
         audioStorageKey = persisted.ok ? persisted.key : null;
         // This try/catch used to swallow everything; a `{ok:false}` must not
         // slip through it silently the way the old `null` did.

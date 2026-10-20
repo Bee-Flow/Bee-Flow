@@ -124,11 +124,11 @@ async function persistUploadAudio(file, userId, fileName) {
     // "Re-transcribe" survives pod restarts / lands on any replica. Self-host
     // without object storage keeps only the local copy on its persistent disk.
     const { savedAudioKey, persistSavedAudioToStorage } = require('../../core/meetingNotes/savedAudioStore');
-    // Reads from the copy we just made and lets the buffer go immediately
-    // afterwards, instead of holding the upload for the whole pipeline.
+    // Streams from the copy we just made in bounded parts, instead of holding
+    // the whole upload in memory.
     const persisted = await persistSavedAudioToStorage(
         savedAudioKey(savedBase),
-        await fs.promises.readFile(savedAudioPath || file.path),
+        savedAudioPath || file.path,
         savedExt,
     );
     const audioStorageKey = persisted.ok ? persisted.key : null;

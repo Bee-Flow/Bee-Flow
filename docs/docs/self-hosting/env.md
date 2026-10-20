@@ -69,6 +69,16 @@ Postgres instance.
 |----------|---------|---------|
 | `DEPLOYMENT_MODE` | `cloud` | `cloud` (Bee Flow SaaS — Stripe subscriptions, consumer accounts) or `self-hosted` (customer-run — licence keys, no billing, Community tier by default, organisation domain allow-lists). These are the only two valid values; the retired `private-cloud` is treated as `self-hosted`. |
 
+## Download size limits
+
+Each limit is in bytes, has a generous default, and `0` means no limit. They keep one huge file or page from filling the server's memory; raise or remove them on a large server.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `TOOL_FILE_MAX_BYTES` | `104857600` (100 MB) | Largest file the Nextcloud, Nextcloud Mail and Gmail tools read into memory. A bigger file gets a clear error naming this variable. |
+| `KB_WEB_PAGE_MAX_BYTES` | `10485760` (10 MB) | Largest web page a knowledge-base source reads. A bigger page is refused, never indexed in part. |
+| `KB_SITEMAP_MAX_BYTES` | `52428800` (50 MB) | Largest sitemap a crawl reads (the sitemap specification's own maximum). A bigger one is skipped; the entry page is still indexed. |
+
 ## Redis
 
 | Variable | Default | Purpose |

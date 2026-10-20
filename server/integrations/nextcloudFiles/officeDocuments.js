@@ -16,6 +16,7 @@ const JSZip = require('jszip');
 const officegen = require('../../core/documents/office/officegen');
 const { joinDavPath, uploadBinaryFile } = require('./webdav');
 const log = require('../../telemetry/log');
+const { toolFileMaxBytes, readBytesBounded, fileTooLargeMessage } = require('../../core/http/httpResponseLimits');
 
 const IF_EXISTS_MODES = ['overwrite', 'append'];
 
@@ -111,7 +112,9 @@ async function buildAppendedSpreadsheet({ ncFetch, authError, root }, path, args
     if (res.status === 401) return { error: authError };
     if (!res.ok) return { error: `Could not read the existing spreadsheet (${res.status})` };
 
-    const current = Buffer.from(await res.arrayBuffer());
+    const cap = toolFileMaxBytes();
+    const { buffer: current, truncated: tooBig, declaredBytes } = await readBytesBounded(res, { byteCap: cap });
+    if (tooBig || !current) return { error: fileTooLargeMessage(path, declaredBytes, cap) };
     let workbook;
     try {
         workbook = await readWorkbook(current);
@@ -214,9 +217,12 @@ async function executeOfficeDocumentTool(toolName, args, ctx) {
                 if (res.status === 404) return { error: `Template deck not found: ${tplPath}` };
                 if (res.status === 401) return { error: authError };
                 if (!res.ok) return { error: `Nextcloud read of the template deck failed (${res.status})` };
+                const cap = toolFileMaxBytes();
+                const tpl = await readBytesBounded(res, { byteCap: cap });
+                if (tpl.truncated || !tpl.buffer) return { error: fileTooLargeMessage(tplPath, tpl.declaredBytes, cap) };
                 try {
                     const { extractDeckTemplate } = require('../../core/documents/pptxTemplate');
-                    theme.template = await extractDeckTemplate(Buffer.from(await res.arrayBuffer()), { name: tplPath.split('/').pop() });
+                    theme.template = await extractDeckTemplate(tpl.buffer, { name: tplPath.split('/').pop() });
                 } catch (e) {
                     return { error: `The template deck could not be used: ${e.message}` };
                 }

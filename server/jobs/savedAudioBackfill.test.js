@@ -41,6 +41,11 @@ stub('../stores/storageStore', {
         fx.uploads.push({ key, size: buffer.length });
         return { key };
     },
+    uploadFileFromPath: async (key, filePath) => {
+        if (fx.uploadError) throw fx.uploadError;
+        fx.uploads.push({ key, size: require('fs').statSync(filePath).size });
+        return { key };
+    },
 });
 
 stub('../stores/transcriptionStore', {

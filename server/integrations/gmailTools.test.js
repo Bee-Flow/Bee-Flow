@@ -227,3 +227,26 @@ const {
 
     console.log('integrations/gmailTools.test.js — all checks passed');
 })().catch((err) => { console.error(err); process.exit(1); });
+
+const { describe, it } = require('node:test');
+describe('gmail_read_attachment size cap', () => {
+    const { readAttachment } = require('./gmail/toolHandlers');
+    const fakeGmail = (size, data = 'aGVsbG8') => ({ users: { messages: { attachments: { get: async () => ({ data: { data, size } }) } } } });
+
+    it('returns an error naming TOOL_FILE_MAX_BYTES when the attachment is over the cap', async () => {
+        const prev = process.env.TOOL_FILE_MAX_BYTES;
+        process.env.TOOL_FILE_MAX_BYTES = String(1024 * 1024);
+        try {
+            const r = await readAttachment(fakeGmail(3 * 1024 * 1024), { messageId: 'm', attachmentId: 'a', filename: 'x.pdf' });
+            assert.match(r.error, /TOOL_FILE_MAX_BYTES/);
+            assert.match(r.error, /3\.0 MB/);
+        } finally {
+            if (prev === undefined) delete process.env.TOOL_FILE_MAX_BYTES; else process.env.TOOL_FILE_MAX_BYTES = prev;
+        }
+    });
+
+    it('does not trip the cap for a small attachment', async () => {
+        const r = await readAttachment(fakeGmail(1024 * 1024), { messageId: 'm', attachmentId: 'a', filename: 'x.txt', mimeType: 'text/plain' });
+        assert.ok(!/TOOL_FILE_MAX_BYTES/.test(r.error || ''));
+    });
+});
