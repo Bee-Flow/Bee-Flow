@@ -20,7 +20,7 @@ import {
     describeSet, describeSummarize,
 } from './collectionSteps';
 import { describeApproval, describeCallLayer, describeCondition, describeSwitch, describeWait } from './controlFlowSteps';
-import { describeDatatable, describeKnowledgeWrite } from './dataSteps';
+import { describeDatatable, describeKnowledgeWrite, describeReadTable, describeTable } from './dataSteps';
 import { describeFillDocument, describeGenerateDocument, describePresentation, describeSlide } from './documentSteps';
 import { describeFormPage } from './formAnswers';
 import { describeLoop, describeLoopItem } from './loops';
@@ -69,6 +69,8 @@ const DESCRIBERS: Record<string, Describer> = {
     flatten: (n, c) => describeFlatten(n, c.sampleRoot),
     aggregate: (n, c) => describeAggregate(n, c.sampleRoot),
     summarize: (n) => describeSummarize(n),
+    read_table: (n) => describeReadTable(n),
+    table: (n) => describeTable(n),
     datatable: (n, c) => describeDatatable(n, c.catalog),
     knowledge_write: (n, c) => describeKnowledgeWrite(n, c.catalog),
 };

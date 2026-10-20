@@ -282,6 +282,7 @@ function validateFormDeclaration(form, { requireFields = true, allowDisplayField
             push('field_name_duplicate', `${at}.name`, `Field name "${f.name}" is duplicated.`, 'Every field needs a unique name — it is how you bind trigger.output.<name>.');
         } else {
             seen.add(f.name);
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- RESERVED_NAME_RE is /__\d+$/ on a field name: a literal prefix and one repeat, linear
             if (RESERVED_NAME_RE.test(f.name)) {
                 push('field_name_reserved', `${at}.name`, `Field name "${f.name}" ends in two underscores and a number, which Bee Flow uses for questions it creates itself.`, 'Rename the field, e.g. without the trailing "__<number>".');
             }

@@ -25,6 +25,9 @@
  */
 
 const NL_TRANSLATIONS = {
+    // The validation messages live in their own migration so an instance that already
+    // ran this one still gets them; they are listed here so the catalogue test sees them.
+    ...require('./add-nl-forms-validation-translations').NL_TRANSLATIONS,
     // ── the directory (Studio → Forms) and its sidebar row ─────────────
     'sidebar.forms': 'Formulieren',
     'sidebar.all_forms': 'Alle formulieren',

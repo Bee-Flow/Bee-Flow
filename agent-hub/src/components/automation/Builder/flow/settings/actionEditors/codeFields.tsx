@@ -12,7 +12,8 @@
 // findings, capabilities. When it cannot (offline, an older server), this is
 // the author's view and nothing is lost.
 import { Maximize2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { lazyWithI18n } from '../../../../../../utils/lazyWithReload';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
 import AccordionSection from '../../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
@@ -22,7 +23,9 @@ import { upstreamFieldsFrom, type InputsMap } from '../codeStep/codeParams';
 import CodeSourceBlock, { codeInputsRoundTrip } from '../codeStep/CodeSourceBlock';
 import FindingsBanner from '../codeStep/FindingsBanner';
 import { useLargeEditorRequest } from '../codeStep/largeEditorSignal';
-import CodeLargeEditor, { type LargeEditorTab } from '../codeStep/CodeLargeEditor';
+import type { LargeEditorTab } from '../codeStep/CodeLargeEditor';
+
+const CodeLargeEditor = lazyWithI18n(() => import('../codeStep/CodeLargeEditor'));
 import { useStepCodeAnalysis, type StepCodeAnalysis } from '../codeStep/useStepCodeAnalysis';
 import { hintTextClass } from '../formPrimitives';
 
@@ -153,6 +156,7 @@ export function CodeFields(props: CodeFieldsProps) {
                 <RetrySection draft={draft} set={set} />
             </AccordionSection>
             {large && (
+                <Suspense fallback={null}>
                 <CodeLargeEditor
                     initialTab={large}
                     onClose={() => setLarge(null)}
@@ -166,6 +170,7 @@ export function CodeFields(props: CodeFieldsProps) {
                     upstreamFields={upstreamFields}
                     onFocusField={onFocusField}
                 />
+                </Suspense>
             )}
         </>
     );

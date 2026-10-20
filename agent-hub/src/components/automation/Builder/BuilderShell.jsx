@@ -1,12 +1,12 @@
-import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import AppRefBreadcrumb from './AppRefBreadcrumb';
-import BuildTab from './BuildTab';
 import { buildHeaderProps, secondaryTriggerOptions } from './builderHeaderState';
 import { makeBuilderSend } from './builderSend';
 import BuilderShellView from './BuilderShellView';
+import BuildTab from './BuildTab';
 import { triggerAppRef } from './flow/appRefLabel';
 import { isBlankDefinition } from './flow/normalizeDefinition';
-import RunsTab from './runs/RunsTab';
+import { unwrapRow } from './unwrapRow';
 import useAutoLabelSteps from './useAutoLabelSteps';
 import useAutomationPersistence, { makeBlockSkeleton } from './useAutomationPersistence';
 import useBuilderChatPanel from './useBuilderChatPanel';
@@ -15,9 +15,8 @@ import useBuilderHydration from './useBuilderHydration';
 import useBuilderLifecycle from './useBuilderLifecycle';
 import useBuilderReview from './useBuilderReview';
 import useBuilderRuns from './useBuilderRuns';
-import useBuilderTabUrl from './useBuilderTabUrl';
-import { unwrapRow } from './unwrapRow';
 import { useAssistantAsk, useSettingsSection, useWorkModePrefs } from './useBuilderShellState';
+import useBuilderTabUrl from './useBuilderTabUrl';
 import UsedByButtonsCapsule from './UsedByButtonsCapsule';
 import useFlowletActions from './useFlowletActions';
 import useFlowletScope from './useFlowletScope';
@@ -29,6 +28,7 @@ import { useOrgGroupsQuery } from '../../../api/queries/orgGroups';
 import useAutomationApi from '../../../hooks/useAutomationApi';
 import useAutomationBuilderStream from '../../../hooks/useAutomationBuilderStream';
 import useTranslation from '../../../hooks/useTranslation';
+import { lazyWithI18n } from '../../../utils/lazyWithReload';
 import ExecutionsPanel from '../../admin/Studio/Executions/ExecutionsPanel';
 import ManagedPartBanner from '../../shared/ManagedPartBanner';
 import useConfirm from '../../shared/useConfirm';
@@ -388,19 +388,24 @@ function breadcrumbSlot({ appRef, isStep, persistedAutomationId, readOnly, manag
     );
 }
 
+// The runs tab (compare, goldens, table and file chips) is big and only opens on demand: keep it out of the entry chunks.
+const RunsTab = lazyWithI18n(() => import('./runs/RunsTab'));
+
 /** A Step lists its executions, an automation its runs; neither before it has an id. */
 function historySlot({ automationId, isStep, active, initialRunId, initialRunStepId, onRunStateChange, onOpenEditor }) {
     if (!automationId) return null;
     if (!isStep) {
         return (
-            <RunsTab
-                automationId={automationId}
-                active={active}
-                initialRunId={initialRunId}
-                initialStepId={initialRunStepId}
-                onRunStateChange={onRunStateChange}
-                onOpenEditor={onOpenEditor}
-            />
+            <Suspense fallback={null}>
+                <RunsTab
+                    automationId={automationId}
+                    active={active}
+                    initialRunId={initialRunId}
+                    initialStepId={initialRunStepId}
+                    onRunStateChange={onRunStateChange}
+                    onOpenEditor={onOpenEditor}
+                />
+            </Suspense>
         );
     }
     return (

@@ -1,7 +1,7 @@
 /**
  * The form contract, as far as the phone needs it — a port of
- * server/automation/formTriggerContract.js (and the two limits it borrows
- * from appTriggerContract.js and formPickSources.js), pinned by
+ * server/automation/formTriggerContract.js and formFieldTypes.js (and the two
+ * limits it borrows from appTriggerContract.js and formPickSources.js), pinned by
  * contract.lockstep.test.ts: the constants are read out of the server source,
  * and the validation below is run beside the server's own coerceSubmission on
  * the same answers.
@@ -22,19 +22,20 @@ import { normaliseDecimal } from '@/shared/lib/decimal';
 import type { Answer, Answers, FillField, FileAnswer, PickAnswer } from './fillTypes';
 
 export const FIELD_TYPES = Object.freeze([
-    'text', 'textarea', 'email', 'number', 'date', 'select', 'checkbox', 'file', 'app_pick', 'download', 'notebook',
+    'text', 'textarea', 'email', 'number', 'date', 'select', 'radio', 'multiselect', 'checkbox', 'file', 'app_pick', 'download', 'notebook', 'info',
 ] as const);
 export type FieldType = (typeof FIELD_TYPES)[number];
 
 /** Types that DISPLAY something instead of collecting it: never submitted, never required. */
-export const DISPLAY_FIELD_TYPES: readonly string[] = Object.freeze(['download', 'notebook']);
+export const DISPLAY_FIELD_TYPES: readonly string[] = Object.freeze(['download', 'notebook', 'info']);
 /** Display fields that point at a generated file by id. */
 export const FILE_FIELD_TYPES: readonly string[] = Object.freeze(['download', 'notebook']);
 
 export const MAX_FIELDS = 40;
 export const MAX_LABEL_LEN = 120;
 export const MAX_TEXT_LEN = 2000;
-export const MAX_OPTIONS = 50;
+/** formFieldTypes.js formOptionsCap(): the default of the operator-tunable cap (AUTOMATION_FORM_MAX_OPTIONS). */
+export const MAX_OPTIONS = 200;
 export const MAX_OPTION_LEN = 120;
 export const MAX_UPLOAD_MB = 25;
 export const DEFAULT_UPLOAD_MB = 10;
@@ -94,6 +95,7 @@ const CHECKS: Readonly<Record<string, Check>> = {
     number: (_field, text) => (Number.isFinite(Number(normaliseDecimal(text))) ? null : 'number'),
     date: (_field, text) => (DATE_RE.test(text) ? null : 'date'),
     select: (field, text) => (field.options.some((o) => o.value === text) ? null : 'choice'),
+    radio: (field, text) => (field.options.some((o) => o.value === text) ? null : 'choice'),
     app_pick: (field, _text, value) => (picksOf(value).length > pickCap(field) ? 'too_many' : null),
 };
 

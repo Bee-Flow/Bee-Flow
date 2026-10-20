@@ -1,7 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { Suspense, useMemo, useState } from 'react';
+import { lazyWithI18n } from '../../../../../utils/lazyWithReload';
 import FormBuilderFields from './FormBuilderFields';
-import FormEditorModal from './FormEditorModal';
 import type { FormPageEntry } from './formPages';
+
+// The full-screen editor carries the live form preview; load it when it is opened.
+const FormEditorModal = lazyWithI18n(() => import('./FormEditorModal'));
 
 /**
  * What the node drawer hands down so a form page can open the full-screen
@@ -50,6 +53,7 @@ export default function FormPageEditor({ form, onChange, stepId = null, formEdit
                 {...rest}
             />
             {open && formEditor && (
+                <Suspense fallback={null}>
                 <FormEditorModal
                     pages={pages}
                     currentId={stepId}
@@ -59,6 +63,7 @@ export default function FormPageEditor({ form, onChange, stepId = null, formEdit
                     onFocusField={rest.onFocusField as ((h: unknown) => void) | null | undefined}
                     onRenameField={rest.onRenameField as ((a: string, b: string) => number | undefined) | null | undefined}
                 />
+                </Suspense>
             )}
         </>
     );

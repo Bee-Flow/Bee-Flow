@@ -15,7 +15,6 @@ import DiagramPaneJs from '../DiagramPane';
 import AddStepMenuJs from '../flow/AddStepMenu';
 import type { FlowDefinition, FlowStep, RunStepRow } from '../flow/types';
 import FlowletsPanelJs from '../FlowletsPanel';
-import FormRunOverlayJs from '../FormRunOverlay';
 import NodeDetailViewJs from '../NodeDetailView';
 import type { RunIdentity } from '../flow/useFailedRunBanner';
 
@@ -95,14 +94,6 @@ export const AutomationSummary = AutomationSummaryJs;
 export const AssistantFieldProvider = AssistantFieldProviderJs;
 
 export const FlowletsPanel = FlowletsPanelJs;
-
-export const FormRunOverlay = FormRunOverlayJs as unknown as ComponentType<{
-    automationId?: string | null;
-    form?: unknown;
-    runId?: string | null;
-    onStartRun?: unknown;
-    onClose?: unknown;
-}>;
 
 export const NodeDetailView = NodeDetailViewJs as unknown as ComponentType<{
     density?: string;

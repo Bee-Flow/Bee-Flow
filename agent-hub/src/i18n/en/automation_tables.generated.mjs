@@ -78,6 +78,7 @@ export default {
     "automation_tables.describe.columns": "Which columns",
     "automation_tables.describe.max": "Most different values to list",
     "automation_tables.describe.some": "Choose columns",
+    "automation_tables.field.required": "Required",
     "automation_tables.fields.keep": "Keep the result for (days)",
     "automation_tables.fields.keep_help": "After this many days the stored table is deleted. From 1 to 90.",
     "automation_tables.fields.name": "Name of the result",

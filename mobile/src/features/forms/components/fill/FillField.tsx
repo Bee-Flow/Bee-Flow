@@ -14,12 +14,15 @@ import type { AnswerProps } from './types';
 
 const CONTROLS: Readonly<Record<string, (props: AnswerProps) => React.JSX.Element>> = {
     select: ChoiceAnswer,
+    radio: ChoiceAnswer,
     checkbox: CheckAnswer,
     file: FileAnswer,
     app_pick: PickAnswer,
 };
 
 export function FillField(props: AnswerProps) {
+    // A text block has no phone control yet (the phone does not show it).
+    if (props.field.type === 'info') return <></>;
     if (isFileField(props.field)) return <DisplayFile field={props.field} actions={props.actions} />;
     const Control = CONTROLS[props.field.type] ?? TextAnswer;
     return <Control {...props} />;

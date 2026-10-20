@@ -75,6 +75,7 @@ function readingsOf(raw) {
  */
 function extractNumbers(text, opts = {}) {
     const { ignoreDates = true, ignoreUpTo = 0 } = opts;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the date and placeholder patterns have no nested repeats, the digit-group pattern needs a separator between repeats: linear
     const s = stripNoise(text, ignoreDates);
     const out = [];
     NUMBER_RE.lastIndex = 0;

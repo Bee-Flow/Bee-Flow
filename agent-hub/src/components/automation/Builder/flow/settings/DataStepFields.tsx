@@ -1,6 +1,10 @@
 import { LimitFields, DedupeFields, AggregateFields, SummarizeFields } from './collectionEditors';
-import ReadTableFields from './tableEditor/ReadTableFields';
-import TableFields from './tableEditor/TableFields';
+import { Suspense } from 'react';
+import { lazyWithI18n } from '../../../../../utils/lazyWithReload';
+
+// The table editors are large and only the table steps need them: keep them out of the entry chunks.
+const ReadTableFields = lazyWithI18n(() => import('./tableEditor/ReadTableFields'));
+const TableFields = lazyWithI18n(() => import('./tableEditor/TableFields'));
 
 /** The step types this dispatcher answers for. */
 export const DATA_STEP_TYPES: ReadonlySet<string> = new Set(['limit', 'dedupe', 'aggregate', 'summarize', 'read_table', 'table']);
@@ -31,8 +35,8 @@ export default function DataStepFields({ step, draft, set, groups, onFocusField,
         case 'dedupe': return <DedupeFields {...common} />;
         case 'aggregate': return <AggregateFields {...common} />;
         case 'summarize': return <SummarizeFields {...common} />;
-        case 'read_table': return <ReadTableFields {...common} stepId={step.id} />;
-        case 'table': return <TableFields {...common} automationId={automationId ?? null} />;
+        case 'read_table': return <Suspense fallback={null}><ReadTableFields {...common} stepId={step.id} /></Suspense>;
+        case 'table': return <Suspense fallback={null}><TableFields {...common} automationId={automationId ?? null} /></Suspense>;
         default: return null;
     }
 }

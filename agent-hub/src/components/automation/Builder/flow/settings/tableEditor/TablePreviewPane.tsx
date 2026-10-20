@@ -9,10 +9,11 @@ const CELL_CHARS = 80;
 
 /** The preview's own warnings in plain words. Anything else the server says is shown as it is. */
 export function warningText(message: string, t: Translate): string {
-    if (/preview_salt|fixed secret/i.test(message)) {
+    const lower = message.toLowerCase();
+    if (lower.includes('preview_salt') || lower.includes('fixed secret')) {
         return t('automation_tables.preview.warn_salt', 'The preview uses a fixed secret, so the codes are not the codes a real run makes.');
     }
-    if (/rules_from_runtime|applied when the automation runs/i.test(message)) {
+    if (lower.includes('rules_from_runtime') || lower.includes('applied when the automation runs')) {
         return t('automation_tables.preview.warn_rules_from', 'The rules from an earlier step are applied when the automation runs, not in this preview.');
     }
     return message;

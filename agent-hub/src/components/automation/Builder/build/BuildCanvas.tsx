@@ -1,17 +1,22 @@
 // The build tab's diagram column: the canvas with its furniture, the flowlets
 // drawer, the step drawer and the form-test overlay. Split out of BuildTab
 // without a change in behaviour.
+import { Suspense } from 'react';
+import { lazyWithI18n } from '../../../../utils/lazyWithReload';
 import { runIdentityOf } from './runIdentity';
 import { autoMapToastMessage } from './addStepModel';
 import type { BuildTabProps } from './buildTabTypes';
 import { AssistantLauncher, ContextAddPopover, ExternalDraftBanner, ProposalPreviewOverlay } from './CanvasOverlays';
 import {
-    AssistantFieldProvider, CanvasPlanPanel, DiagramPane, FlowletsPanel, FormRunOverlay, NodeDetailView, PlanReview, RunProgressBanner,
+    AssistantFieldProvider, CanvasPlanPanel, DiagramPane, FlowletsPanel, NodeDetailView, PlanReview, RunProgressBanner,
 } from './jsComponents';
 import type { DiagramPaneProps } from './jsComponents';
 import type { BuildTabModel } from './useBuildTabModel';
 import { toast } from '../../../shared/Toast';
 import type { CatalogTable } from '../chat/pendingTables';
+
+// The form-test overlay (with the scenario picker) opens on demand.
+const FormRunOverlay = lazyWithI18n(() => import('../FormRunOverlay'));
 
 // The plan panel floats over the canvas's left edge: 240 px wide, 12 px clear
 // of the edge, and the build camera frames in what is left of the canvas.
@@ -62,6 +67,7 @@ export default function BuildDiagramColumn({ p, m, reviewOpen, setReviewOpen, pr
                 itself; no portal, no backdrop. */}
             {ndvStep && <StepDrawer p={p} m={m} />}
             {p.formTest && (
+                <Suspense fallback={null}>
                 <FormRunOverlay
                     automationId={state.automationId || p.automation?.id}
                     form={p.formTest.form}
@@ -69,6 +75,7 @@ export default function BuildDiagramColumn({ p, m, reviewOpen, setReviewOpen, pr
                     onStartRun={p.onFormTestRun}
                     onClose={p.onCloseFormTest}
                 />
+                </Suspense>
             )}
         </div>
     );

@@ -565,6 +565,8 @@ module.exports = {
     "automations.node.group.data": "Data",
     "automations.node.group.lists": "Lists",
     "automations.node.group.data_lists": "Data & lists",
+    "automations.node.read_table.typeLabel": "Read table",
+    "automations.node.table.typeLabel": "Edit table",
     "automations.node.trigger.typeLabel": "Trigger",
     "automations.node.trigger.defaultLabel": "Trigger",
     "automations.node.trigger.help": "What starts this automation. Every automation has exactly one.",

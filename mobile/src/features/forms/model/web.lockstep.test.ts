@@ -4,7 +4,7 @@
  *   DIFFERENTIAL  answersRange.js runs beside answersRange.ts; isBlankForm
  *                 (AiDraftPanel.jsx), formLiveness / publicFormPath /
  *                 canOpenAutomation / canOpenForm (FormsStudio.jsx) and
- *                 fileSize / fileKind / initialValues (PublicFormRenderer.tsx)
+ *                 fileSize / fileKind (DownloadFields.tsx) and initialValues (formRules.ts)
  *                 are cut out of their component files and run beside the
  *                 ports on the same inputs, and resultFilename runs from
  *                 resultFile.ts itself;
@@ -94,7 +94,11 @@ describe('FormsStudio.jsx and FormPage.jsx', () => {
 
 describe('PublicFormRenderer.tsx and PublicFormPage.jsx', () => {
     const rendererSrc = readWeb('components/forms/PublicFormRenderer.tsx');
-    const web = cut('components/forms/PublicFormRenderer.tsx', ['fileSize', 'fileKind', 'initialValues'], `const DISPLAY_FIELD_TYPES = ['download', 'notebook']; const isDisplayField = (f) => DISPLAY_FIELD_TYPES.includes(f?.type);`);
+    // fileSize / fileKind live with the download fields, initialValues with the form rules.
+    const web = {
+        ...cut('components/forms/fields/DownloadFields.tsx', ['fileSize', 'fileKind']),
+        ...cut('components/forms/formRules.ts', ['emptyValue', 'initialValues'], `const DISPLAY_FIELD_TYPES = ['download', 'notebook', 'info']; const isDisplayField = (f) => DISPLAY_FIELD_TYPES.includes(f?.type);`),
+    };
 
     it.each([[0], [-1], [512], [1023], [1024], [900 * 1024], [1024 * 1024], [5.55 * 1024 * 1024], ['12'], [null], ['x']])('fileSize(%s)', (bytes) => {
         expect(fileSize(bytes)).toBe(web.fileSize?.(bytes));
@@ -122,7 +126,8 @@ describe('PublicFormRenderer.tsx and PublicFormPage.jsx', () => {
         expect(POLL_MAX_MS).toBe(Number(constText(page, 'POLL_MAX_MS')));
         expect(POLL_STEP_MS).toBe(Number(constText(page, 'POLL_STEP_MS')));
         expect(POLL_CEILING_MS).toBe(new Function(`return ${constText(page, 'POLL_CEILING_MS')};`)());
-        expect(SESSION_RE.toString()).toBe(constText(page, 'SESSION_RE'));
+        // The session id's shape moved to publicFormSession.ts with the resume logic.
+        expect(SESSION_RE.toString()).toBe(constText(readWeb('pages/publicFormSession.ts'), 'SESSION_RE'));
         expect(LONG_ENDING_CHARS).toBe(Number(constText(rendererSrc, 'LONG_ENDING_CHARS')));
     });
 });

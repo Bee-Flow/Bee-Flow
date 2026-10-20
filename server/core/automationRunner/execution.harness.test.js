@@ -23,7 +23,7 @@ storeStub.recordRunStep = async (row) => {
     stepsByRun.set(row.runId, rows);
 };
 storeStub.getRunFullOutput = async () => null;
-stub('../stores/automationStore', storeStub);
+stub(require.resolve('../../stores/automationStore'), storeStub);
 
 const runner = require('../automationRunner');
 const { normalizeHarness, harnessFor, pageAnswersFor } = require('./testHarness');

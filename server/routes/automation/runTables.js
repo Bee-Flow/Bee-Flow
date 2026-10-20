@@ -66,9 +66,9 @@ function pageParams(query, limits) {
 
 /**
  * @param {object} [overrides]
- * @param {object}   [overrides.store]       automationStore surface (getRun, getRunsInChain, getAutomation, getRunTableForRuns, ...)
- * @param {object}   [overrides.tableStore]  { readTablePage, streamTableCsv }
- * @param {object}   [overrides.storage]     unused by the routes themselves; kept so a test can name the seam
+ * @param {any}   [overrides.store]       automationStore surface (getRun, getRunsInChain, getAutomation, getRunTableForRuns, ...)
+ * @param {any}   [overrides.tableStore]  { readTablePage, streamTableCsv }
+ * @param {any}   [overrides.storage]     unused by the routes themselves; kept so a test can name the seam
  * @param {() => ReturnType<typeof tableLimits>} [overrides.limits]
  * @param {(id: string) => Promise<any>} [overrides.getUser]
  * @param {(userId: string, permission: string, session?: any) => Promise<boolean>} [overrides.hasPermission]
@@ -87,6 +87,7 @@ function makeRunTablesRouter(overrides = {}) {
 
     /** The ledger row for this request, or null after a 403 was written; 404 for every other miss. */
     async function openRow(req, res) {
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- TABLE_ID_RE is anchored and fixed length: linear
         if (!TABLE_ID_RE.test(String(req.params.tableId))) throw notFound();
         const found = await journey(req, res, req.params.runId);
         if (!found) return null;

@@ -43,6 +43,9 @@ const KNOWN_WEB_GAPS = new Map<string, string>([
     ['automations.node.http_request.help', 'the dictionaries hold the shorter, older sentence'],
     ['automations.node.wait.help', 'the dictionaries hold the shorter, older sentence'],
     ...['typeLabel', 'defaultLabel', 'label', 'desc', 'help'].map((f): [string, string] => [`automations.node.note.${f}`, 'the note (BFSF-411) was never added to the dictionaries']),
+    ...['read_table', 'table'].flatMap((type) =>
+        ['defaultLabel', 'label', 'desc', 'help'].map((f): [string, string] => [`automations.node.${type}.${f}`, 'only the type label is in the dictionaries yet']),
+    ),
     ...['loop_item', 'ai_tool', 'row_label', 'ghost_step'].flatMap((type) =>
         ['typeLabel', 'help'].map((f): [string, string] => [`automations.node.${type}.${f}`, 'a canvas-only node, never added to the dictionaries'])),
 ]);

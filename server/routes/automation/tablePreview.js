@@ -93,12 +93,12 @@ const isMissingObject = (e) => !!e && (e.name === 'NoSuchKey' || e.code === 'ENO
 
 /**
  * @param {object} [overrides]
- * @param {object} [overrides.store]       automationStore surface
- * @param {object} [overrides.tableStore]  { readTablePage }
- * @param {object} [overrides.storage]     unused; the preview never writes storage
- * @param {object} [overrides.spec]        core/automationModel/tableOps/spec
- * @param {object} [overrides.engine]      core/automationRunner/tables/ops
- * @param {object} [overrides.groupPolicy] core/automationRunner/tables/groupPolicy
+ * @param {any} [overrides.store]       automationStore surface
+ * @param {any} [overrides.tableStore]  { readTablePage }
+ * @param {any} [overrides.storage]     unused; the preview never writes storage
+ * @param {any} [overrides.spec]        core/automationModel/tableOps/spec
+ * @param {any} [overrides.engine]      core/automationRunner/tables/ops
+ * @param {any} [overrides.groupPolicy] core/automationRunner/tables/groupPolicy
  * @param {(automation: any) => Promise<Record<string, unknown>>} [overrides.runVarsFor]
  * @param {() => ReturnType<typeof tableLimits>} [overrides.limits]
  * @param {(id: string) => Promise<any>} [overrides.getUser]

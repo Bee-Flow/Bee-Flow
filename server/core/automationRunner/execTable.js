@@ -19,6 +19,7 @@ const defaultDeps = {
     tableLimits: () => require('./tables/limits').tableLimits(),
     isTableHandle: (v) => require('./tables/handle').isTableHandle(v),
     dryRunHandle: (a) => require('./tables/handle').dryRunHandle(a),
+    listToTable: (v, o) => require('./tables/listSource').listToTable(v, o),
     openTable: (h, scope) => require('./tables/tableStore').openTable(h, scope),
     writeTable: (a) => require('./tables/tableStore').writeTable(a),
     minGroupFloorFor: (orgId) => require('./tables/groupPolicy').minGroupFloorFor(orgId),
@@ -93,19 +94,36 @@ async function execTable(step, ctx, runState, mode, overrides = defaultDeps) {
     const deps = { ...defaultDeps, ...overrides };
     const spec = normalizeTableStep(step);
     const resolved = deps.resolveValue(spec.source, runState);
-    const handle = tableFrom(resolved, deps);
+    let handle = tableFrom(resolved, deps);
+    const limits = deps.tableLimits();
+    let listed = null;
     if (!handle) {
-        return { output: { skipped: unresolvedMessage(spec.source, resolved) }, skippedReason: 'table_source_unresolved' };
+        // Rows from a Code step or another list: a table of their own.
+        listed = deps.listToTable(resolved, mode === 'dry_run' ? { sample: LIST_SAMPLE } : { maxRows: limits.maxRows });
+        if (!listed) {
+            return { output: { skipped: unresolvedMessage(spec.source, resolved) }, skippedReason: 'table_source_unresolved' };
+        }
+        handle = { columns: listed.columns, provenance: null };
     }
     if (mode === 'dry_run') return dryRunResult(step, spec, handle, deps);
 
-    const limits = deps.tableLimits();
     if (limits.maxOps > 0 && spec.ops.length > limits.maxOps) {
         throw stepError('table_op_invalid', `A table step can have at most ${limits.maxOps} operations (this one has ${spec.ops.length}). Split it over two steps, or raise AUTOMATION_TABLE_MAX_OPS.`, 'ops');
     }
     const scope = { runId: ctx.runId, rootRunId: ctx.rootRunId, automationId: ctx.automationId, userId: ctx.userId };
-    const opened = await deps.openTable(handle, scope);
-    if (!opened) throw stepError('table_not_found', NOT_FOUND, 'source');
+    let opened;
+    if (listed) {
+        // Make the rows a real, journey-scoped table first, so later steps get a normal handle.
+        const rows = listed.rows;
+        const made = await deps.writeTable({
+            ctx, stepId: step.id, name: `${spec.name || step.label || 'table'} (source)`, columns: listed.columns,
+            rows, ttlDays: spec.expiresInDays, provenance: null,
+        });
+        opened = { columns: made.columns || listed.columns, rows: () => (async function* gen() { yield* rows; })() };
+    } else {
+        opened = await deps.openTable(handle, scope);
+        if (!opened) throw stepError('table_not_found', NOT_FOUND, 'source');
+    }
 
     const resolveTable = async (binding) => {
         const value = deps.resolveValue(binding, runState);

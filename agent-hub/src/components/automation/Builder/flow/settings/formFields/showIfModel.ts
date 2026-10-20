@@ -57,7 +57,7 @@ export function isConditionable(field: { type?: string; fieldsFrom?: unknown } |
     return !!field && !field.fieldsFrom && opsFor(field.type).length > 0;
 }
 
-const NUMERIC = /^-?\d+(\.\d+)?$/;
+const NUMERIC = /^-?\d{1,30}(\.\d{1,30})?$/;
 
 /** The literal a value is written as, given the type of the question it is compared with. */
 function literal(value: string, type: string | undefined): string {

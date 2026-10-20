@@ -75,3 +75,50 @@ export function describeKnowledgeWrite(node: FlowNode, catalog: Catalog | null |
     const label = node.label || (base ? base.name : nodeDefaultLabel('knowledge_write', t));
     return stepGroup(node, { label: label as string, kind: 'knowledge_write' }, sample);
 }
+
+/**
+ * The table a table step hands on, as it looks BEFORE any run: a placeholder
+ * (`dry-run`, no run id), so nothing mistakes it for a stored table.
+ */
+function tableHandleSample(name: string) {
+    return {
+        kind: 'table', tableId: 'dry-run', runId: null, name, columns: [], rowCount: 0,
+        preview: [], expiresAt: null, provenance: null,
+    };
+}
+
+/**
+ * What a Read table step hands downstream: the first sheet as `table`, every
+ * sheet in `tables` and by name in `tablesByName`, plus facts about the file.
+ */
+export function describeReadTable(node: FlowNode): VariableGroup {
+    const handle = tableHandleSample('Sheet1');
+    const sample = {
+        table: handle,
+        tables: [handle],
+        tablesByName: { Sheet1: handle },
+        sheets: [{ name: 'Sheet1', index: 0, hidden: false, rowCount: 0, columnCount: 0, tableIndex: 0 }],
+        provenance: null,
+        source: { filename: 'file.xlsx', format: 'xlsx', size: 0 },
+        warnings: [],
+    };
+    return stepGroup(node, { label: (node.label as string) || nodeDefaultLabel('read_table', t), kind: 'read_table' }, sample);
+}
+
+/**
+ * What an Edit table step hands downstream: the table itself, its size and
+ * columns, and the rows and a text version of them when the table is small.
+ */
+export function describeTable(node: FlowNode): VariableGroup {
+    const label = (node.label as string) || nodeDefaultLabel('table', t);
+    const sample = {
+        table: tableHandleSample(label),
+        rowCount: 0,
+        columns: [],
+        rows: [],
+        markdown: '',
+        opStats: [],
+        warnings: [],
+    };
+    return stepGroup(node, { label, kind: 'table' }, sample);
+}

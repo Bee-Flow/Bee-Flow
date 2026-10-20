@@ -24,10 +24,16 @@ const web = requireWeb(`${BUILDER}/flow/settings/formState`);
 // other require throws, so a new dependency of theirs fails here, loudly.
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- server CommonJS, loaded as-is
 const deliverableEvents: unknown = require('../../../../../server/automation/deliverableEvents.js');
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- server CommonJS, loaded as-is
+const tableTemplates: unknown = require('../../../../../server/automation/tableTemplates.js');
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- server CommonJS, loaded as-is
+const templateMeta: unknown = require('../../../../../server/automation/templateMeta.js');
 const templates = (() => {
     const mod: { exports: unknown } = { exports: {} };
     const serverRequire = (spec: string): unknown => {
         if (spec === './deliverableEvents') return deliverableEvents;
+        if (spec === './tableTemplates') return tableTemplates;
+        if (spec === './templateMeta') return templateMeta;
         throw new Error(`templates.js now requires ${spec}: load it above and add it to ci.yml's mobile filter`);
     };
     const source = readFileSync(path.join(__dirname, '../../../../../server/automation/templates.js'), 'utf8');

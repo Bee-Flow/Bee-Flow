@@ -61,10 +61,16 @@ export function newAssertion(op: AssertionOp = 'equals', id: string = newAsserti
 }
 
 let counter = 0;
+function randomSuffix(): string {
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        return crypto.getRandomValues(new Uint32Array(1))[0].toString(36).slice(0, 4);
+    }
+    return counter.toString(36);
+}
 /** Unique within a form; 1 to 40 characters as the server wants. */
 export function newAssertionId(): string {
     counter += 1;
-    return `a${Date.now().toString(36)}${counter.toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    return `a${Date.now().toString(36)}${counter.toString(36)}${randomSuffix()}`;
 }
 
 // ── Values as text ────────────────────────────────────────────────────────

@@ -12,6 +12,11 @@ a \`file\` field on the form (accept ".csv,.xlsx"), then \`read_table\` on
 \`trigger.output.<field>\`, then ONE \`table\` step holding every edit as an ordered
 list of ops. Build both steps in one \`builder_add_steps\` batch.
 
+- **A list of rows is a table source too.** The \`table\` step's source can be a \`code\` step that
+  returns rows, or any step whose output is a list of objects: bind \`steps.<code>.output.result\`
+  (a list of objects, \`{rows: [...]}\` or \`{columns: [{key, label?}], rows: [...]}\`). The rows
+  become a normal table for the next steps. Every row must be an object; the list is capped by
+  AUTOMATION_TABLE_MAX_ROWS.
 - **Order the ops**: \`pseudonymise\` first when the file holds identifiers (name,
   e-mail, an id), so nothing after it sees them; then \`filter\` and \`select\` to cut rows
   and columns early; then \`derive\` / \`bucket\` / \`join\`; the shape-changing op

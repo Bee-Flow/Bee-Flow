@@ -56,6 +56,8 @@ export const STEP_TYPE_NAMES: Record<string, string> = {
     code: 'Code',
     limit: 'Shorten list',
     datatable: 'Datatable',
+    read_table: 'Read table',
+    table: 'Edit table',
     knowledge_write: 'To knowledge base',
     dedupe: 'Remove duplicates',
     aggregate: 'Collect one field',

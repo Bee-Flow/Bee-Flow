@@ -133,5 +133,8 @@ export function writeSessionToUrl(sid: string | null): void {
 
 export function randomNonce(): string {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID().replace(/-/g, '');
-    return `n${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        return `n${Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join('')}`;
+    }
+    return `n${Date.now().toString(36)}${(performance.now() * 1000).toString(36).replace('.', '')}`;
 }

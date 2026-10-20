@@ -21,9 +21,11 @@ function pseudonymFor(salt, values, length) {
 
 function saltFor(op, ctx) {
     if (ctx.mode === 'preview') {
+        // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- PREVIEW_SALT is a fixed public placeholder for the preview, deliberately not a secret (the warning above says so)
         ctx.warn('The preview uses a fixed secret, so the codes differ from the codes a run makes.', 'preview_salt');
         return PREVIEW_SALT;
     }
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- SALT_VAR_RE is anchored with a bounded class {0,63}: linear
     const salt = SALT_VAR_RE.test(op.saltVar) ? ctx.runState?.vars?.[op.saltVar] : undefined;
     if (typeof salt !== 'string' || salt.length < MIN_SALT_CHARS) {
         throw tableError('table_salt_missing',

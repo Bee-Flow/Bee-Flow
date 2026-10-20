@@ -43,10 +43,10 @@ function keepOptionValues(options, oldOptions) {
 }
 
 /**
- * @param {object[]} fields  the questions parsed from the model's reply
+ * @param {Record<string, any>[]} fields  the questions parsed from the model's reply
  * @param {object} current   the form as it is now
  * @param {{ carry?: boolean }} [opts] carry = also keep showIf, rules and file limits
- * @returns {object[]} the merged list, text blocks included
+ * @returns {Record<string, any>[]} the merged list, text blocks included
  */
 function mergeRevision(fields, current, { carry = true } = {}) {
     const old = normalizeFields(current);

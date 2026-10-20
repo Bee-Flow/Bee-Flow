@@ -1,9 +1,16 @@
 // AI-step editor (prompt, tier, tool picker, structured output), extracted
 // verbatim from SettingsForm.jsx. Rendered by the SettingsForm dispatch.
 import { Plus, Sparkles, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { AgentStepFields } from './agentStepFields';
+import { AiStepAdvancedRows, ConcurrencyField } from './aiStepReliability/AiStepReliabilitySections';
+import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
+import { FormRow, inputClass, textareaClass } from './formPrimitives';
+import { ProblemRing, runStepProblem } from './runProblem';
+import { StructuredOutputFields } from './structuredOutputFields';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { lazyWithI18n } from '../../../../../utils/lazyWithReload';
 import { tierLabel, configuredTierKeys } from '../../../../licensing/tierMeta';
 import TemplateField from '../../mapping/TemplateField';
 import ToolInputForm from '../../mapping/ToolInputForm';
@@ -11,12 +18,9 @@ import AccordionSection from '../AccordionSection';
 import { humanizeToolName } from '../displayHelpers';
 import FieldHint from '../FieldHint';
 import ToolPicker from '../ToolPicker';
-import { AgentStepFields } from './agentStepFields';
-import { AiStepAdvancedRows, AnswerChecksSection, ConcurrencyField } from './aiStepReliability/AiStepReliabilitySections';
-import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
-import { FormRow, inputClass, textareaClass } from './formPrimitives';
-import { ProblemRing, runStepProblem } from './runProblem';
-import { StructuredOutputFields } from './structuredOutputFields';
+
+// The answer-checks section is the heaviest part of the AI step editor; load it when the editor opens.
+const AnswerChecksSection = lazyWithI18n(() => import('./aiStepReliability/AnswerChecksSection').then((m) => ({ default: m.AnswerChecksSection })));
 
 function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onFocusField, previewSample, errorSections = new Set(), runStep = null, stepIssues = null }) {
     const hasInputs = Object.keys(draft.inputs || {}).length > 0;
@@ -151,7 +155,9 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
                     onChange={(next) => set('outputFields', next)}
                 />
             </AccordionSection>
-            <AnswerChecksSection draft={draft} set={set} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} stepIssues={stepIssues} />
+            <Suspense fallback={null}>
+                <AnswerChecksSection draft={draft} set={set} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} stepIssues={stepIssues} />
+            </Suspense>
         </>
     );
 }

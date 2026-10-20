@@ -7,7 +7,6 @@ import type { FormRecord } from '../formState/types';
 import { TemperatureField } from './TemperatureField';
 import { mayUseTools } from './reliabilityModel';
 
-export { AnswerChecksSection } from './AnswerChecksSection';
 export { ConcurrencyField } from './ConcurrencyField';
 
 interface Props {

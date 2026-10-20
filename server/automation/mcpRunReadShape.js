@@ -147,6 +147,7 @@ function placeholderize(value, depth = 1) {
     if (value === null || value === undefined || typeof value === 'boolean') return value ?? null;
     if (typeof value === 'number') return '«number»';
     if (typeof value === 'string') {
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- both patterns are anchored with a single character class and no nested repeats: linear
         if (SHIELD_TOKEN_RE.test(value) || REDACTED_MARKER_RE.test(value)) return value;
         return `«string:${value.length}»`;
     }

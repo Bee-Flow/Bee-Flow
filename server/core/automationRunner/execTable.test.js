@@ -169,3 +169,66 @@ test('an engine error keeps its class, operation and field', async () => {
     await assert.rejects(execTable(step([{ id: 'pick', op: 'select', keep: ['ghost'] }]), CTX, state(), 'live', deps), (e) => e.errorClass === 'table_op_invalid' && e.opId === 'pick' && e.field === 'keep[0]');
     assert.equal(calls.write.length, 0);
 });
+
+// ── a list of rows (Code step output) as the source ──
+const listState = (output) => ({ vars: {}, steps: { s1: { output } }, _templateWarnings: [] });
+const listStep = (ops = [{ op: 'filter', where: [] }], extra = {}) => ({ id: 's2', type: 'table', label: 'Edit table', source: { kind: 'ref', path: 'steps.s1.output.result' }, ops, ...extra });
+const { listToTable } = require('./tables/listSource');
+const LIST = [{ name: 'Ann', amount: 3, ok: true }, { name: 'Bo', amount: 5, ok: false }];
+const withList = (over = {}) => {
+    const made = makeDeps({ limits: over.limits });
+    made.deps.listToTable = listToTable;
+    return made;
+};
+
+test('an array of objects becomes a source table with inferred column types', async () => {
+    const { deps, calls } = withList();
+    const { output } = await execTable(listStep(), CTX, listState({ result: LIST, logs: [], httpCalls: 0 }), 'live', deps);
+    assert.equal(calls.open.length, 0);
+    assert.equal(calls.write.length, 2); // the source table, then the result
+    assert.deepEqual(calls.write[0].columns.map((c) => [c.key, c.type]), [['name', 'text'], ['amount', 'number'], ['ok', 'boolean']]);
+    assert.equal(output.rowCount, 2);
+});
+
+test('{columns, rows} keeps the column order and accepts rows as arrays', async () => {
+    const { deps, calls } = withList();
+    const out = { columns: [{ key: 'b', label: 'B' }, { key: 'a', type: 'text' }], rows: [[1, 'x'], [2, 'y']] };
+    await execTable(listStep(), CTX, listState({ result: out }), 'live', deps);
+    assert.deepEqual(calls.write[0].columns.map((c) => [c.key, c.label, c.type]), [['b', 'B', 'number'], ['a', 'a', 'text']]);
+    const rows = []; for await (const r of calls.write[0].rows) rows.push(r);
+    assert.deepEqual(rows, [{ b: 1, a: 'x' }, { b: 2, a: 'y' }]);
+});
+
+test('{rows} and a code envelope around it work', () => {
+    assert.equal(listToTable({ rows: LIST }).rows.length, 2);
+    const t = listToTable({ result: { rows: LIST }, logs: [], httpCalls: 1 });
+    assert.deepEqual(t.columns.map((c) => c.key), ['name', 'amount', 'ok']);
+    assert.equal(listToTable('text'), null);
+    assert.equal(listToTable({ other: 1 }), null);
+});
+
+test('rows that are not records are refused in plain words', async () => {
+    const { deps } = withList();
+    await assert.rejects(execTable(listStep(), CTX, listState({ result: [{ a: 1 }, 'oops'], logs: [], httpCalls: 0 }), 'live', deps),
+        (e) => e.errorClass === 'table_source_invalid' && /Row 2 is a string, not a record/.test(e.message));
+});
+
+test('more rows than AUTOMATION_TABLE_MAX_ROWS is refused', async () => {
+    const { deps } = withList({ limits: { maxRows: 1 } });
+    await assert.rejects(execTable(listStep(), CTX, listState({ result: LIST }), 'live', deps),
+        (e) => e.errorClass === 'table_too_large' && /AUTOMATION_TABLE_MAX_ROWS/.test(e.message));
+});
+
+test('a dry run plans the columns from the list without writing', async () => {
+    const { deps, calls } = withList();
+    const { output } = await execTable(listStep(), CTX, listState({ result: LIST, logs: [], httpCalls: 0 }), 'dry_run', deps);
+    assert.equal(calls.write.length, 0);
+    assert.equal(output._dryRun, true);
+    assert.deepEqual(output.columns.map((c) => c.key), ['name', 'amount', 'ok']);
+});
+
+test('a value that is neither a table nor a list is still skipped', async () => {
+    const { deps } = withList();
+    const r = await execTable(listStep(), CTX, listState('nope'), 'live', deps);
+    assert.equal(r.skippedReason, 'table_source_unresolved');
+});

@@ -5,7 +5,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { typeInEditor } from '../../../../../../test/refEditor';
 import { VariablePickerProvider } from '../../../mapping/VariablePickerContext';
 import { buildPatch, extractFormState } from '../formState';
-import { AiStepAdvancedRows, AnswerChecksSection, ConcurrencyField } from './AiStepReliabilitySections';
+import { AiStepAdvancedRows, ConcurrencyField } from './AiStepReliabilitySections';
+import { AnswerChecksSection } from './AnswerChecksSection';
 
 type Draft = Record<string, any>;
 

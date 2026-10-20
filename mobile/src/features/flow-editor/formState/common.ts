@@ -69,6 +69,8 @@ export function stripUndefined(obj: unknown): Record<string, unknown> {
 export const FOREACH_FORM_TYPES: ReadonlySet<string> = new Set([
     'integration_action', 'ai_step', 'code', 'notification', 'set', 'http_request',
     'datatable', 'knowledge_write', 'data_extraction',
+    // The spreadsheet steps: one table per file, or one edit per table of a list.
+    'read_table', 'table',
 ]);
 
 /**
@@ -115,6 +117,8 @@ export function applyForEachPatch(patch: StepPatch, step: Step, draft: FormDraft
 export const RETRY_FORM_TYPES: ReadonlySet<string> = new Set([
     'integration_action', 'ai_step', 'code', 'notification', 'http_request',
     'datatable', 'knowledge_write', 'data_extraction', 'slide',
+    // Reading and writing a stored table can fail for a moment (storage), and a second try is safe.
+    'read_table', 'table',
 ]);
 
 /** `{ max, backoffMs }`, not clamped; `max <= 0` is the one canonical off (undefined). */

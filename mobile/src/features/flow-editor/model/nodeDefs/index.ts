@@ -42,6 +42,7 @@ function served(source: NodeDefSource): NodeDef {
 
 /** The web's declaration order — observable through NODE_TYPE_KEYS. */
 const ORDER = [
+    'read_table', 'table',
     'trigger', 'ai_step', 'data_extraction', 'integration_action', 'condition', 'switch', 'filter', 'loop',
     'wait', 'stop_error', 'return_to_app', 'notification', 'form_page', 'guard', 'tokenize', 'untokenize',
     'set', 'datetime', 'http_request', 'generate_document', 'slide', 'presentation', 'fill_document',

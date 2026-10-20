@@ -104,6 +104,7 @@ import FilePen from 'lucide-react-native/icons/file-pen';
 import FilePenLine from 'lucide-react-native/icons/file-pen-line';
 import FilePlus from 'lucide-react-native/icons/file-plus';
 import FileSearch from 'lucide-react-native/icons/file-search';
+import FileSpreadsheet from 'lucide-react-native/icons/file-spreadsheet';
 import FileText from 'lucide-react-native/icons/file-text';
 import FileUp from 'lucide-react-native/icons/file-up';
 import Files from 'lucide-react-native/icons/files';
@@ -258,6 +259,7 @@ import Store from 'lucide-react-native/icons/store';
 import SwatchBook from 'lucide-react-native/icons/swatch-book';
 import Table from 'lucide-react-native/icons/table';
 import Table2 from 'lucide-react-native/icons/table-2';
+import TableProperties from 'lucide-react-native/icons/table-properties';
 import Tag from 'lucide-react-native/icons/tag';
 import Tags from 'lucide-react-native/icons/tags';
 import Target from 'lucide-react-native/icons/target';
@@ -397,6 +399,7 @@ export const ICON_REGISTRY = {
     FilePlus,
     FileSearch,
     FileSignature: FilePenLine,
+    FileSpreadsheet,
     FileText,
     FileUp,
     FileWarning: FileExclamationPoint,
@@ -560,6 +563,7 @@ export const ICON_REGISTRY = {
     SwatchBook,
     Table,
     Table2,
+    TableProperties,
     Tag,
     Tags,
     Target,
