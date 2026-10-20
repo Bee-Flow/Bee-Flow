@@ -184,6 +184,8 @@ const EXPECTED = [
     'POST /:id/caller-notice/seen',
     'POST /:id/dry-run',
     'POST /:id/steps/:stepId/run',
+    // Re-run from a chosen run, asked before doing it (routes/automation/runs.js).
+    'GET /:id/steps/:stepId/rerun-plan',
     'GET /_runs/active',
     'POST /_schedule/preview',
     'GET /:id/runs',
@@ -233,6 +235,10 @@ const EXPECTED = [
     'POST /runs/:id/approve',
     'POST /:id/agent-invoke',
     'POST /:id/webhook/:slug/test',
+    // The files a run produced (routes/automation/runFiles.js).
+    'GET /runs/:runId/files',
+    'GET /runs/:runId/files/:fileId',
+    'GET /runs/:runId/files/:fileId/preview',
     // Handoff 5, sharing and roles (routes/automation/sharing.js).
     'GET /:id/shares',
     'PUT /:id/shares',
@@ -293,6 +299,7 @@ test('every relative require() across the facade + sub-routers resolves (catches
         'routes/automation/diagnoseTrigger.js',
         'routes/automation/versions.js',
         'routes/automation/webhooksAndRunOps.js',
+        'routes/automation/runFiles.js',
         'routes/automation/sharing.js',
         'routes/automation/notifications.js',
         'routes/automation/agentStepRoutes.js',

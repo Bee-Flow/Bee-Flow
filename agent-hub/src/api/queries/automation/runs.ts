@@ -48,6 +48,8 @@ export interface RunRowData {
 }
 
 export interface RunStepRecord {
+    /** The run this row belongs to: a journey's later leg has its own. */
+    runId?: string;
     stepId: string;
     parentStepId?: string | null;
     stepType?: string | null;

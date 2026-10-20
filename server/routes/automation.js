@@ -29,6 +29,9 @@
  *   POST   /runs/:id/approve               first-run-confirm flow approve
  *   GET    /runs/:id                       run details
  *   GET    /runs/:id/steps                 per-step log
+ *   GET    /runs/:runId/files              files the run produced
+ *   GET    /runs/:runId/files/:fileId      download one (?inline=1 for a PDF or image)
+ *   GET    /runs/:runId/files/:fileId/preview?page=N   PNG of one PDF page
  *
  *   POST   /webhook/:slug                  PUBLIC inbound webhook (HMAC + nonce)
  *   GET    /form/:token                    PUBLIC hosted-form render config + CSRF
@@ -84,6 +87,8 @@ router.use(require('./automation/crud'));
 router.use(require('./automation/runs'));
 router.use(require('./automation/versions'));
 router.use(require('./automation/webhooksAndRunOps'));
+// The files a run produced: list, download, PDF page preview (routes/automation/runFiles.js).
+router.use(require('./automation/runFiles').makeRunFilesRouter());
 // Handoff 5: who an automation is shared with, and handing it to a new owner.
 // Every path has a literal second segment, so position is free.
 router.use(require('./automation/sharing').makeSharingRouter());

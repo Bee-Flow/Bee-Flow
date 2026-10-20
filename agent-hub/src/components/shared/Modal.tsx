@@ -309,7 +309,10 @@ export default function Modal({
                                     <h2 id={titleId} className="text-base font-semibold">{title}</h2>
                                 )}
                                 {description != null && (
-                                    <p className="text-xs text-[var(--text-tertiary)] mt-0.5">{description}</p>
+                                    // A string is a sentence; a node may hold blocks (a list), which a <p> cannot.
+                                    typeof description === 'string'
+                                        ? <p className="text-xs text-[var(--text-tertiary)] mt-0.5">{description}</p>
+                                        : <div className="text-xs text-[var(--text-tertiary)] mt-0.5">{description}</div>
                                 )}
                             </div>
                             {headerActions != null && (

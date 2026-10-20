@@ -239,4 +239,15 @@ describe('Modal initial focus', () => {
         );
         expect(screen.getByRole('textbox', { name: 'Name' })).toHaveFocus();
     });
+
+    it('puts a text description in a paragraph and a node description (with a list) in a block that can hold it', () => {
+        const { rerender } = render(<Modal open onClose={() => {}} title="X" description="A sentence.">body</Modal>);
+        expect(screen.getByText('A sentence.').tagName).toBe('P');
+        rerender(
+            <Modal open onClose={() => {}} title="X" description={<div><p>Intro</p><ul><li>One</li></ul></div>}>body</Modal>,
+        );
+        const list = screen.getByRole('list');
+        expect(list.closest('p')).toBeNull();
+        expect(screen.getByText('Intro').closest('p')?.parentElement?.tagName).toBe('DIV');
+    });
 });

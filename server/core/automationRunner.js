@@ -58,7 +58,7 @@ const {
 const { executeAutomation, runOrgFor, disabledPassThroughBranch } = require('./automationRunner/execution');
 const { resumeFromStep } = require('./automationRunner/resume');
 const { runStepAsTool } = require('./automationRunner/stepAsTool');
-const { runPartial } = require('./automationRunner/partialRuns');
+const { runPartial, planPartialRun } = require('./automationRunner/partialRuns');
 const { reapStuckAutomations } = require('./automationRunner/scheduler/reapers');
 const { start, stop, isStopping, processDueAutomations } = require('./automationRunner/scheduler/ticks');
 
@@ -72,6 +72,7 @@ module.exports = {
     requestCancel,
     resumeFromStep,
     runPartial,
+    planPartialRun,
     ApprovalRequiredError,
     FormInputRequiredError,
     INSTANCE_ID,

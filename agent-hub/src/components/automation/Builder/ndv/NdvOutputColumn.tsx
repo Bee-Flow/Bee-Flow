@@ -3,6 +3,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import RunTabContainer from '../debug/RunTabContainer';
 import type { DataSummary } from '../flow/types';
 import { continuesSummary } from './ndvModel';
+import RunFileChips from '../runs/RunFileChips';
 import NdvColumnHeader from './NdvColumnHeader';
 
 type RunTabProps = ComponentProps<typeof RunTabContainer>;
@@ -46,6 +47,11 @@ export default function NdvOutputColumn({
             >
                 {editButton}
             </NdvColumnHeader>
+            {!editorOpen && typeof runStep?.runId === 'string' && (
+                <div className="px-3 pt-2 shrink-0 empty:hidden">
+                    <RunFileChips runId={runStep.runId} output={runStep.output} />
+                </div>
+            )}
             <div className="flex-1 min-h-0 flex flex-col">
                 {editorOpen ? editor : (
                     <RunTabContainer

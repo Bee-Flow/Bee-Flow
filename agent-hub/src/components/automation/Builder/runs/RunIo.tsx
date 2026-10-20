@@ -6,6 +6,7 @@ import OutputView from '../OutputView';
 import type { IoField, IoKind } from './runIo';
 import { configFields, humanKey, ioFields, mainList } from './runIo';
 import BindingWarnings from './BindingWarnings';
+import RunFileChips from './RunFileChips';
 import { stepBindingWarnings } from './bindingMisses';
 
 const KIND_ICON: Record<IoKind, typeof Hash> = {
@@ -76,6 +77,8 @@ export default function RunIo({ step, label, stepDef = null, labelById = null, t
                 <div className="px-4 py-3 flex flex-col gap-2 flex-1 min-h-[320px] min-w-0 @[1100px]/runio:min-h-0">
                     {/* An input that came up empty is why an output looks wrong. */}
                     <BindingWarnings warnings={misses} labelById={labelById} typeById={typeById} />
+                    {/* A document the step kept: the file itself, not just its handle. */}
+                    <RunFileChips runId={step.runId} output={step.output} />
                     <div className="flex items-center gap-2">
                         <span className="font-semibold text-[var(--text-primary)] truncate">{tableTitle}</span>
                         {list && (

@@ -18,7 +18,7 @@ const { describeNoticeFor } = require('../../core/automationRunner/callerNotice'
 const { makeAutomationAccess, roleSatisfies } = require('../../automation/access');
 const automationAccess = makeAutomationAccess({ store: automationStore });
 
-const { SeenBody, RunBody, PartialRunBody, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody } = require('./runSchemas');
+const { SeenBody, RunBody, PartialRunBody, RerunPlanQuery, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody } = require('./runSchemas');
 
 // Per-user throttle for the expensive run-trigger endpoints (each spins up a
 // full automation execution / LLM + tool calls). Keyed by session user id via
@@ -255,10 +255,51 @@ router.post('/:id/steps/:stepId/run', runTriggerLimiter, validate({ body: Partia
         triggerPayload: req.body.triggerPayload || null,
         rootStepId: entered.rootStepId,
         startedByUserId: userId,
+        // Re-run from a chosen run (see the doc above); all three are inert
+        // without seedRunId.
+        seedRunId: req.body.seedRunId || null,
+        allowLiveUpstream: req.body.allowLiveUpstream === true,
+        confirmSideEffects: req.body.confirmSideEffects === true,
     });
     const steps = await automationStore.getRunSteps(run.id);
     const stepRecord = steps.find(s => s.stepId === req.params.stepId) || null;
-    res.json({ run, steps, stepRecord });
+    // The plan describes this response, not the run: it leaves the run row.
+    const { rerunPlan, ...runRow } = run;
+    res.json(rerunPlan ? { run: runRow, steps, stepRecord, rerunPlan } : { run, steps, stepRecord });
+});
+
+/**
+ * What "run this step with the inputs of run X" would do, without doing it: the
+ * steps that would execute, the ones among them that have no recorded output in
+ * that run (they would run live), and the ones that send or write outside the
+ * run, so the UI can ask before the POST above is sent. Same access as the POST
+ * (an editor's tool); the run is checked exactly as there, so a run of another
+ * automation or one whose data the caller may not read answers 404.
+ *
+ * Query: seedRunId (required), mode ('only' | 'from', default 'only'),
+ * triggerStepId. Answers `{ rerunPlan }`, see core/automationRunner/partialRuns.js.
+ */
+router.get('/:id/steps/:stepId/rerun-plan', validate({ query: RerunPlanQuery }), async (req, res) => {
+    const a = await automationStore.getAutomation(req.params.id);
+    if (!a) return res.status(404).json({ error: 'Not found' });
+    if (!await automationAccess.guard(req, res, a, 'edit')) return;
+    const runner = require('../../core/automationRunner');
+    const entered = resolveTriggerStepId(await entryDefinitionOf(a), req.query.triggerStepId);
+    if (entered.error) return res.status(400).json({ error: entered.error });
+    let rerunPlan;
+    try {
+        rerunPlan = await runner.planPartialRun(a, req.params.stepId, {
+            mode: req.query.mode,
+            rootStepId: entered.rootStepId,
+            startedByUserId: req.session.user.id,
+            seedRunId: req.query.seedRunId,
+        });
+    } catch (e) {
+        // runPartial names a step it cannot find in a plain Error.
+        if (/not found in definition/.test(e?.message || '')) throw new HttpError(404, 'step_not_found', 'Step not found in this automation.');
+        throw e;
+    }
+    res.json({ rerunPlan });
 });
 
 /**

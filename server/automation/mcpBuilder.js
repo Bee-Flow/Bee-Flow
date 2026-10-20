@@ -49,6 +49,7 @@ const {
 // Lazy inside: it reaches the stores only when called, so requiring this
 // module still costs no database.
 const { buildDatatableCatalogForUser } = require('./builderDatatableCatalog');
+const runReads = require('./mcpRunReads');
 
 // ── The gate ────────────────────────────────────────────────────────────────
 //
@@ -86,8 +87,8 @@ const ROUTE_ONLY_TOOLS = new Set([
     'builder_generate_layers',
 ]);
 
-/** Tools that need no automation to act on — the entry points. */
-const AUTOMATIONLESS_TOOLS = new Set(['automations_get_guide', 'automations_list', 'automations_create']);
+/** Tools that need no automation to act on — the entry points, and the run reads that name a run instead. */
+const AUTOMATIONLESS_TOOLS = new Set(['automations_get_guide', 'automations_list', 'automations_create', ...runReads.RUN_ONLY_TOOL_NAMES]);
 
 const AUTOMATION_ID_PROP = {
     type: 'string',
@@ -143,7 +144,7 @@ function toMcpTool(fn) {
     };
 }
 
-/** The three MCP-only tools, in the same OpenAI shape as TOOL_SCHEMAS. */
+/** The MCP-only tools, in the same OpenAI shape as TOOL_SCHEMAS. */
 const AUTOMATION_TOOLS = [
     {
         name: 'automations_get_guide',
@@ -172,7 +173,7 @@ const AUTOMATION_TOOLS = [
             required: ['title'],
         },
     },
-];
+].concat(runReads.RUN_READ_TOOLS);
 
 /** The advertised tool list. Pure — no I/O, safe to call per request. */
 function buildToolList() {
@@ -353,7 +354,7 @@ async function runGetGuide(userId) {
     // lost its userTimezone parameter). Ship the note once, appended.
     const turnNote = renderTurnPreferences({ userTimezone: 'Europe/Amsterdam' });
     const pickers = renderPickerContextMessage({ catalog });
-    return { guide: [guide, pickers, turnNote].filter(Boolean).join('\n\n') };
+    return { guide: [guide, runReads.guideSection(), pickers, turnNote].filter(Boolean).join('\n\n') };
 }
 
 /**
@@ -440,13 +441,12 @@ async function callTool(name, rawArgs, { userId }) {
 
     if (name === 'automations_get_guide') {
         const result = await runGetGuide(userId);
-        // Tens of kb of prose, and JSON.stringify would ship it as one escaped
-        // string with every newline as \n — technically readable, painful to
-        // actually read. It is documentation: send it as text.
+        // Tens of kb of prose: JSON would ship it as one escaped string. Send it as text.
         return { result, text: result.guide };
     }
     if (name === 'automations_list') return { result: await runList(userId, args) };
     if (name === 'automations_create') return { result: await runCreate(userId, args) };
+    if (runReads.RUN_READ_TOOL_NAMES.has(name)) return { result: await runReads.callRunTool(name, args, { userId }) };
 
     const automationId = typeof args.automationId === 'string' ? args.automationId.trim() : '';
     delete args.automationId; // never reaches the builder tool — it is our envelope

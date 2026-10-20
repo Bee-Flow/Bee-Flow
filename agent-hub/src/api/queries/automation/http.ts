@@ -11,28 +11,33 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
 export class AutomationRequestError extends Error {
     status: number;
     code: string | null;
-    constructor(message: string, status: number, code: string | null) {
+    /** The server's `details` (e.g. the step ids of a refused re-run), when it sent any. */
+    details: unknown;
+    constructor(message: string, status: number, code: string | null, details: unknown = null) {
         super(message);
         this.status = status;
         this.code = code;
+        this.details = details;
     }
 }
 
 const nonEmpty = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
 
 /** The error for a failed response: the server's `error` and `code` when it sent them, `fallback` otherwise. */
-async function failure(res: Response, fallback: string): Promise<AutomationRequestError> {
+export async function failure(res: Response, fallback: string): Promise<AutomationRequestError> {
     let message = fallback;
     let code: string | null = null;
+    let details: unknown = null;
     try {
         const body: unknown = await res.json();
         if (body && typeof body === 'object' && !Array.isArray(body)) {
-            const { error, code: sent } = body as Record<string, unknown>;
+            const { error, code: sent, details: sentDetails } = body as Record<string, unknown>;
             message = nonEmpty(error) ?? message;
             code = nonEmpty(sent);
+            details = sentDetails ?? null;
         }
     } catch { /* not JSON */ }
-    return new AutomationRequestError(message, res.status, code);
+    return new AutomationRequestError(message, res.status, code, details);
 }
 
 const automationUrl = (id: string, tail: string) => `${API_BASE}/api/automation/${encodeURIComponent(id)}${tail}`;

@@ -1,7 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import type { RunRowData, RunStepRecord } from '../../../../api/queries/automation/runs';
 import { useRun, useRunSteps } from '../../../../api/queries/automation/runs';
 import { buildRunStepLabelMap, buildRunStepMap, runStepLabel } from '../flow/displayHelpers';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import useRerunFromStep from '../../../../hooks/automationBuilder/useRerunFromStep';
+import type { RerunSideEffect } from '../../../../api/queries/automation/rerun';
+import { useBuilderConfirm } from '../BuilderConfirmContext';
 import { runStepTypeMap } from './bindingMisses';
 import { latestSteps } from './runIo';
 import RunDetailHeader from './RunDetailHeader';
@@ -43,6 +47,37 @@ export default function RunDetail({
     const rows = useMemo(() => latestSteps(steps), [steps]);
     const step = focusStep(rows, selectedStepId);
 
+    const { t } = useTranslation();
+    const confirm = useBuilderConfirm() as (opts: Record<string, unknown>) => Promise<boolean>;
+    const labelOf = useCallback((id: string) => String(runStepLabel(labelById, id)), [labelById]);
+    const confirmSideEffects = useCallback((effects: RerunSideEffect[]) => confirm({
+        title: t('runs.rerun.confirm_title', 'Run these steps again?'),
+        description: (
+            <div className="flex flex-col gap-2">
+                <p>{t('runs.rerun.confirm_body', 'Re-running from here uses the data of this run. These steps would send or write outside Bee Flow again:')}</p>
+                <ul className="list-disc pl-5">
+                    {effects.map(e => (
+                        <li key={e.stepId}>
+                            {e.label || labelOf(e.stepId)}
+                            {' '}
+                            <span className="text-[var(--text-tertiary)]">
+                                ({e.effect === 'sends'
+                                    ? t('runs.rerun.effect_sends', 'sends something')
+                                    : t('runs.rerun.effect_writes', 'writes data')})
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        ),
+        confirmLabel: t('runs.rerun.confirm_label', 'Re-run anyway'),
+        destructive: true,
+    }), [confirm, t, labelOf]);
+    const { rerun, busyStepId, error: rerunError, clearError } = useRerunFromStep({
+        automationId, t, labelOf, confirmSideEffects, onStarted: onOpenRun,
+    });
+    const pickStep = useCallback((sid: string | null) => { clearError(); onSelectStep(sid); }, [clearError, onSelectStep]);
+
     return (
         <div className="h-full min-h-0 flex flex-col text-xs @container/rundetail">
             <RunDetailHeader automationId={automationId} run={run} onOpenRun={onOpenRun} onOpenEditor={onOpenEditor} onClose={onClose} />
@@ -52,8 +87,11 @@ export default function RunDetail({
                     steps={steps}
                     definition={definition}
                     selectedStepId={step?.stepId || null}
-                    onSelectStep={onSelectStep}
+                    onSelectStep={pickStep}
                     onViewCanvas={onViewCanvas}
+                    onRerunFromStep={(sid) => { void rerun(sid, runId); }}
+                    rerunBusyStepId={busyStepId}
+                    rerunError={rerunError}
                 />
                 <RunIo
                     step={step}
