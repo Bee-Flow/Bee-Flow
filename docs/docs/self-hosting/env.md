@@ -79,6 +79,21 @@ Each limit is in bytes, has a generous default, and `0` means no limit. They kee
 | `KB_WEB_PAGE_MAX_BYTES` | `10485760` (10 MB) | Largest web page a knowledge-base source reads. A bigger page is refused, never indexed in part. |
 | `KB_SITEMAP_MAX_BYTES` | `52428800` (50 MB) | Largest sitemap a crawl reads (the sitemap specification's own maximum). A bigger one is skipped; the entry page is still indexed. |
 
+## AI steps and automation concurrency
+
+Limits for automations that call a model. Each is an integer, has a generous default, and `0` means no limit (the exception is `LLM_RATE_LIMIT_RETRIES`, where `0` means no retry). They protect the model provider's account and the server's memory, not the user: raise or remove them on a large installation. See [Reliable AI steps](../studio/ai-steps.md) for what they do from the builder's side.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `LLM_PROVIDER_RPM` | `600` | Requests per minute Bee Flow sends to one model connection (one provider URL with one key). A request over the limit waits until room frees up (the allowance refills steadily) instead of failing. `0` = unlimited. |
+| `LLM_PROVIDER_TPM` | `2000000` | Estimated tokens per minute for one model connection, counted from the request size plus the room for the answer and corrected afterwards from the real usage. `0` = unlimited. |
+| `LLM_RATE_LIMIT_RETRIES` | `4` | How many times a request is repeated after the provider answers "too many requests" or "overloaded", waiting as long as the provider asks. `0` = no retry: the first such answer fails the step. |
+| `LLM_RATE_LIMIT_MAX_WAIT_MS` | `60000` | The longest single wait, in milliseconds, for a slot or a retry. A larger wait asked by the provider is cut to this. `0` = no cap. |
+| `AUTOMATION_FOREACH_MAX_CONCURRENCY` | `4` | The most items an AI step without tools, or a data extraction step, runs at once when its "Run per item" list sets a concurrency. A step asking for more is held to this number. `0` = no cap beyond the number of items. |
+| `AUTOMATION_AI_ENUM_MAX_VALUES` | `500` | The longest list of allowed values that one "Allowed values from a list" setting shows to the model. A longer list is not shown to the model at all (the server log says so); the answer is still checked against the whole list. `0` = unlimited. |
+| `AUTOMATION_AI_CHECK_MAX_ERRORS` | `100` | The most problems collected while checking one AI answer. `0` = unlimited. |
+| `AUTOMATION_AI_REPAIR_MAX_ERRORS` | `25` | The most failing places quoted back to the model in the single repair round. `0` = unlimited. |
+
 ## Redis
 
 | Variable | Default | Purpose |

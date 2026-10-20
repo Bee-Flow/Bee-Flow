@@ -7,6 +7,8 @@
 const { newId, appendAfter } = require('../draftGraph');
 const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError, checkTextPlaceholders, checkLoopBindings } = require('../bindings');
 const { AI_STEP_AGENT_PERMISSION_KEYS, MAX_AI_STEP_SKILL_IDS } = require('../../validate/constants');
+const { sanitizeAiStepReliabilityArgs } = require('../../../core/automationModel/aiStepReliability');
+const { normalizeAskOnce } = require('./outboundSteps');
 // Pure module, no I/O at load: the runner and the builder share one sanitiser.
 const { sanitizeDisabledAgentSkillIds } = require('../../../core/automationRunner/aiStepSkills');
 
@@ -140,6 +142,73 @@ function agentPermissionsBlock(rawPermissions, agentId, { hasSkills = false } = 
     return { permissions: undefined };
 }
 
+// ── Reliability: temperature, allowed values, checks, fallback ───────
+//
+// The shape rules are core/automationModel/aiStepReliability.js (shared with
+// the validator and the runner). What only the builder can do is look at the
+// run data the settings point at: a list that is not there, a step that comes
+// later, a loop variable nothing binds. Keys are written only when given, so a
+// plain AI step is byte-identical to what it was before these settings existed.
+
+const RELIABILITY_KEYS = ['temperature', 'enumFrom', 'checks', 'fallback'];
+
+/** `inputs.ref: …` from validateAndFixBindings, named for the field the model sent. */
+const relabelRef = (line, label) => line.split('inputs.ref').join(label);
+
+/**
+ * Every run path the settings read: where it is, whether it must be a list,
+ * and how to write a repaired path back.
+ * @param {any} value the sanitised settings
+ */
+function reliabilityRefs(value) {
+    const out = [];
+    (value.enumFrom || []).forEach((e, i) => out.push({ label: `enumFrom[${i}].ref`, list: true, holder: e, key: 'ref' }));
+    (value.checks || []).forEach((c, i) => {
+        if (c.kind === 'allowedFrom') out.push({ label: `checks[${i}].ref`, list: true, holder: c, key: 'ref' });
+        if (c.kind === 'numbersFrom') out.push({ label: `checks[${i}].ref`, list: false, holder: c, key: 'ref' });
+        if (c.kind === 'items' && c.sameCountAs) out.push({ label: `checks[${i}].sameCountAs`, list: true, holder: c, key: 'sameCountAs' });
+    });
+    return out;
+}
+
+/**
+ * The reliability settings of an add call, checked against the draft.
+ * @returns {{ value: Record<string, any>, notes: string[] } | { error: string, _fixHint?: string }}
+ */
+function buildReliability(args, draft, draftWrap, forEach) {
+    if (!RELIABILITY_KEYS.some(k => args[k] !== undefined && args[k] !== null)) return { value: {}, notes: [] };
+    const notes = [];
+    let raw = Object.fromEntries(RELIABILITY_KEYS.map(k => [k, args[k]]));
+    // The fallback values are bindings like an input: a bare value is wrapped
+    // as a literal and a ref is checked against the draft.
+    const fb = raw.fallback;
+    if (fb && typeof fb === 'object' && !Array.isArray(fb) && fb.kind === 'value' && fb.fields && typeof fb.fields === 'object' && !Array.isArray(fb.fields)) {
+        const bound = validateAndFixBindings(fb.fields, draft, { draftWrap });
+        if (bound.error) return { error: bound.error.split('inputs.').join('fallback.fields.') };
+        const loopFb = checkLoopBindings(bound.inputs, draft, forEach, draftWrap, { label: 'fallback.fields' });
+        if (loopFb.error) return { error: loopFb.error };
+        notes.push(...(bound.notes || []).map(n => n.split('inputs.').join('fallback.fields.')), ...loopFb.notes);
+        raw = { ...raw, fallback: { ...fb, fields: loopFb.value } };
+    }
+    const r = sanitizeAiStepReliabilityArgs(raw);
+    if ('error' in r) return r;
+    const refs = reliabilityRefs(r.value);
+    const errors = [];
+    for (const ref of refs) {
+        const fixed = validateAndFixBindings({ ref: { kind: 'ref', path: ref.holder[ref.key] } }, draft, { draftWrap, wantList: ref.list });
+        if (fixed.error) { errors.push(relabelRef(fixed.error, ref.label)); continue; }
+        notes.push(...(fixed.notes || []).map(n => relabelRef(n, ref.label)));
+        const loopChecked = checkLoopBindings(fixed.inputs.ref, draft, forEach, draftWrap, { label: ref.label });
+        if (loopChecked.error) { errors.push(loopChecked.error); continue; }
+        notes.push(...loopChecked.notes);
+        ref.holder[ref.key] = loopChecked.value.path;
+    }
+    if (errors.length) return { error: errors.join(' ') };
+    const unbound = unboundLoopVarError(Object.fromEntries(refs.map(x => [x.label, { kind: 'ref', path: x.holder[x.key] }])), forEach, { what: 'enumFrom/checks' });
+    if (unbound) return unbound;
+    return { value: r.value, notes };
+}
+
 function applyAddAi(draft, args, draftWrap) {
     const tierErr = modelTierGateError(args.modelTier, draftWrap);
     if (tierErr) return tierErr;
@@ -159,7 +228,11 @@ function applyAddAi(draft, args, draftWrap) {
     const loopPrompt = checkLoopBindings(prompt.text, draft, forEach, draftWrap, { label: 'prompt' });
     if (loopPrompt.error) return { error: loopPrompt.error };
     const inputs = loopInputs.value;
-    const warnings = [...(bound.notes || []), ...(feNotes || []), ...prompt.notes, ...loopInputs.notes, ...loopPrompt.notes];
+    const reliability = buildReliability(args, draft, draftWrap, forEach);
+    if ('error' in reliability) return reliability;
+    // "Reuse the answer": rebuilt through the same normaliser a patch uses.
+    const askOnce = args.askOnce !== undefined ? normalizeAskOnce(args.askOnce) : undefined;
+    const warnings = [...(bound.notes || []), ...(feNotes || []), ...prompt.notes, ...loopInputs.notes, ...loopPrompt.notes, ...reliability.notes];
     const agentId = sanitizeAgentId(args.agentId);
     const skillIds = sanitizeSkillIds(args.skillIds);
     const permBlock = agentPermissionsBlock(args.agentPermissions, agentId, { hasSkills: skillIds.length > 0 });
@@ -208,6 +281,8 @@ function applyAddAi(draft, args, draftWrap) {
         skillIds,
         ...(disabledAgentSkillIds.length ? { disabledAgentSkillIds } : {}),
         ...(permBlock.permissions !== undefined ? { agentPermissions: permBlock.permissions } : {}),
+        ...reliability.value,
+        ...(askOnce !== undefined ? { askOnce } : {}),
         ...(forEach ? { forEach } : {}),
     };
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });

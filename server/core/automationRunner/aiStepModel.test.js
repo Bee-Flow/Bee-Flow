@@ -21,6 +21,7 @@ require('../../integrations/runnerPorts');
 require('../../services/runnerPorts');
 const assert = require('node:assert/strict');
 const Module = require('module');
+const { forcedToolViaChat } = require('../../testUtils/forcedToolViaChat');
 
 process.env.NODE_ENV = 'test';
 
@@ -51,19 +52,19 @@ require.cache[csPath] = { id: csPath, filename: csPath, loaded: true, exports: c
 
 const { aiStepOverrideFor, AI_STEP_MODEL_KEY, DEFAULT_TIERS } = require('./aiStepModel');
 
+async function fakeChat(apiKey, url, modelId, messages, options) {
+    fx.calls.push({ modelId, options });
+    return { content: '{"a":"b"}' };
+}
+
 const EXEC_AI_MOCKS = {
     '../aiAgent': {
         getProviderForModel: async () => ({ providerType: 'claude', url: 'https://x', apiKey: 'k' }),
         getAIConfig: async () => ({ model: 'global-fallback-model' }),
     },
-    '../providers': {
-        getAdapter: () => ({
-            chat: async (apiKey, url, modelId, messages, options) => {
-                fx.calls.push({ modelId, options });
-                return { content: '{"a":"b"}' };
-            },
-        }),
-    },
+    '../providers': { getAdapter: () => ({ chat: fakeChat }) },
+    // A step with a schema asks llmClient.chatForcedTool; here it lands on the same fake chat.
+    '../llm/llmClient': { chatForcedTool: forcedToolViaChat(fakeChat) },
     '../llm/modelResolver': { getUserTierMap: async () => fx.tiers },
     '../entitlements/userTiers': { getPermittedTierKeys: async () => null },
     '../integrations/integrationTools': { getIntegrationTools: async () => ({ tools: fx.catalogTools }) },
@@ -91,7 +92,7 @@ function install(tag, ownerRe, mocks) {
 // execAiStep's tool resolution and tool loop live in sibling modules, which
 // make some of these requires themselves.
 const INSTALLED = [
-    install('ai-step-exec', /automationRunner[\\/](?:execAi|execIntegrationAction|integrationActionGates|aiStepGrounding|aiStepTools|aiStepToolLoop)\.js$/, EXEC_AI_MOCKS),
+    install('ai-step-exec', /automationRunner[\\/](?:execAi|execIntegrationAction|integrationActionGates|aiStepGrounding|aiStepTools|aiStepToolLoop|aiStepAnswer|aiStepMessages|aiStepRepair)\.js$/, EXEC_AI_MOCKS),
     install('ai-step-route', /config[\\/]modelTiers\.js$/, ROUTE_MOCKS),
 ];
 const originalResolve = Module._resolveFilename;

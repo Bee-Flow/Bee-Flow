@@ -19,6 +19,7 @@ const { checkPinnedOutput } = require('./pinnedOutput');
 const { checkIntegrationAction, checkHttpRequest, checkAskOnce, checkCacheInto } = require('./integrationRules');
 const { checkApproval } = require('./approvalRules');
 const { checkAiStep, checkDataExtraction } = require('./modelStepRules');
+const { checkAiStepReliability } = require('./aiStepReliabilityRules');
 const { checkCondition, checkBranchWiring, checkPrivacyScan, checkSwitch } = require('./branchingRules');
 const { checkLoop, checkParallel, checkForEach, checkCollectionOps } = require('./iterationRules');
 const { checkTopics } = require('./topicRules');
@@ -95,6 +96,7 @@ function createStepChecker({
         checkIntegrationAction(ctx, step, at);
         checkApproval(ctx, step, at);
         checkAiStep(ctx, step, at);
+        checkAiStepReliability(ctx, step, at);
         checkCondition(ctx, step, at);
         checkBranchWiring(ctx, step, at);
         checkPrivacyScan(ctx, step, at);

@@ -5,7 +5,8 @@
  * formState.lockstep.test.ts.
  */
 
-import { applyForEachPatch, sanitizeInputs } from './common';
+import { buildReliabilityPatch, readReliability } from './aiStepReliability';
+import { applyAskOncePatch, applyForEachPatch, sanitizeInputs } from './common';
 import { fieldsToSchema, schemaToFields } from './outputSchema';
 import { arrOr, or, trimmedOr } from './read';
 import type { Extractor, Patcher } from './types';
@@ -52,6 +53,8 @@ export const extractAiStep: Extractor = (step, base) => ({
     disabledAgentSkillIds: readSkillIds(step.disabledAgentSkillIds),
     agentPermissions: readAgentPermissions(step.agentPermissions),
     forEach: or(step.forEach, null),
+    // Answer checks, the fallback, the temperature and "reuse the answer".
+    ...readReliability(step),
 });
 
 function toolsPatch(draft: Record<string, unknown>): Record<string, unknown> {
@@ -77,4 +80,6 @@ export const patchAiStep: Patcher = (patch, step, draft) => {
     // Only meaningful with an agent: a stale list would apply to the next agent.
     patch.disabledAgentSkillIds = patch.agentId ? readSkillIds(draft.disabledAgentSkillIds) : [];
     applyForEachPatch(patch, step, draft); // C12 — was dropped both ways
+    Object.assign(patch, buildReliabilityPatch(draft, step));
+    applyAskOncePatch(patch, step, draft);
 };

@@ -139,14 +139,14 @@ export const NODE_DEFS = {
         // 'agent' (R2) is in simpleSections on purpose: it is where a step is
         // handed to an agent, and a section Simple mode leaves out is a feature
         // half the users cannot reach at all.
-        sectionKeys: ['agent', 'inputs', 'advanced', 'output'],
+        sectionKeys: ['agent', 'inputs', 'advanced', 'output', 'checks'],
         simpleSections: ['agent', 'inputs'],
         issueSections: {
             fallback: 'advanced',
             map: {
                 label: FLAT, prompt: FLAT,
                 systemPrompt: 'advanced', model: 'advanced', modelTier: 'advanced', allowTools: 'advanced', useMemory: 'advanced',
-                inputs: 'inputs', outputFields: 'output', forEach: 'advanced',
+                inputs: 'inputs', outputFields: 'output', forEach: 'advanced', checks: 'checks', enumFrom: 'checks', fallback: 'checks', temperature: 'advanced', askOnce: 'advanced',
                 // An agent error (`ai_step.agent_unavailable`) must open the
                 // section that holds the picker, not Advanced — the fallback
                 // would have sent the author to a section with no agent in it.

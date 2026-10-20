@@ -40,6 +40,18 @@ function forEachParents(parents: unknown): FormRecord[] {
 }
 
 /**
+ * "Items at the same time" (an AI step without tools, data extraction). Kept as
+ * the author wrote it, NOT clamped: the validator's foreach.concurrency_range
+ * is how a wrong number is found out. Empty means the server default, and is
+ * written as no key at all.
+ */
+function forEachConcurrency(value: JsonValue): { concurrency?: number } {
+    if (value === undefined || value === null || value === '') return {};
+    const n = Number(value);
+    return Number.isFinite(n) ? { concurrency: Math.round(n) } : {};
+}
+
+/**
  * One shared forEach persist rule: normalize when enabled, explicit null to
  * clear an existing one when the user toggles it off.
  */
@@ -55,6 +67,7 @@ export function applyForEachPatch(patch: FormRecord, step: FormRecord, draft: Fo
             itemVar: draft.forEach.itemVar || 'item',
             maxIterations: clamp(Number(draft.forEach.maxIterations) || 100, 1, 1000),
             ...(parents.length ? { parents } : {}),
+            ...forEachConcurrency(draft.forEach.concurrency),
         };
     } else if (step.forEach) {
         patch.forEach = null;
@@ -139,7 +152,7 @@ export function applyRetryPatch(patch: FormRecord, step: FormRecord, draft: Form
  * round-trips. Mirrors the runtime's readers — execIntegrationAction today,
  * execOutbound next — so the form never carries a field the engine ignores.
  */
-export const ASK_ONCE_FORM_TYPES = new Set<string>(['integration_action', 'http_request']);
+export const ASK_ONCE_FORM_TYPES = new Set<string>(['integration_action', 'http_request', 'ai_step']);
 
 /**
  * `askOnce` in exactly the shapes the runtime reads, mirroring

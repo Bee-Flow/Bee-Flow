@@ -50,6 +50,6 @@ describe('normalizeAskOnce — off has one spelling', () => {
 
 describe('askOnce round-trips on', () => {
     it('is declared as a round-tripping type', () => {
-        expect([...ASK_ONCE_FORM_TYPES].sort()).toEqual(['http_request', 'integration_action']);
+        expect([...ASK_ONCE_FORM_TYPES].sort()).toEqual(['ai_step', 'http_request', 'integration_action']);
     });
 });

@@ -161,7 +161,7 @@ for (const t of TOOL_SCHEMAS) {
         properties: {
             overRef: { type: 'string', description: 'Ref to the upstream array, e.g. "steps.<id>.output.results". Must start with trigger/steps/vars/secrets/loop.' },
             itemVar: { type: 'string', description: 'Name for the current item (default "item"); reference it as loop.<itemVar> inside this step.' },
-            maxIterations: { type: 'number', description: 'Optional cap, 1..1000 (default 100).' },
+            maxIterations: { type: 'number', description: 'Optional cap, 1..1000 (default 100).' }, ...(['builder_add_ai_step', 'builder_add_data_extraction'].includes(t.function.name) ? { concurrency: { type: 'integer', description: 'Optional, 1..1000: how many items run at the same time. Honoured by an AI step without tools and by data extraction (by default a small platform limit applies); an AI step that may call tools runs one item at a time.' } } : {}),
         },
         required: ['overRef'],
     };

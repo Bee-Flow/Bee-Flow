@@ -12,12 +12,13 @@ import { humanizeToolName } from '../displayHelpers';
 import FieldHint from '../FieldHint';
 import ToolPicker from '../ToolPicker';
 import { AgentStepFields } from './agentStepFields';
+import { AiStepAdvancedRows, AnswerChecksSection, ConcurrencyField } from './aiStepReliability/AiStepReliabilitySections';
 import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
 import { FormRow, inputClass, textareaClass } from './formPrimitives';
 import { ProblemRing, runStepProblem } from './runProblem';
 import { StructuredOutputFields } from './structuredOutputFields';
 
-function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onFocusField, previewSample, errorSections = new Set(), runStep = null }) {
+function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onFocusField, previewSample, errorSections = new Set(), runStep = null, stepIssues = null }) {
     const hasInputs = Object.keys(draft.inputs || {}).length > 0;
     const hasOutput = (draft.outputFields || []).length > 0;
     // Only the agent block is translated here; the rest of this editor is
@@ -70,7 +71,7 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
     hid a configured section in Simple mode with no way to reach it. Same
     reasoning for `knowledgeBaseIds` (BFSF-410): a configured grounding list
     must show as configured in Simple mode too, not just Advanced. */}
-            <AccordionSection stepType="ai_step" sectionKey="advanced" title={t('automations.ai_step_editors.advanced', 'Advanced')} forceOpen={errorSections.has('advanced') || !!tierProblem} hasContent={!!draft.systemPrompt || (!!draft.modelTier && draft.modelTier !== 'auto') || !!draft.model || !!draft.forEach || retryIsSet(draft) || !!draft.allowTools || (draft.tools?.length > 0) || (draft.knowledgeBaseIds?.length > 0) || !!draft.useMemory}>
+            <AccordionSection stepType="ai_step" sectionKey="advanced" title={t('automations.ai_step_editors.advanced', 'Advanced')} forceOpen={errorSections.has('advanced') || !!tierProblem} hasContent={!!draft.systemPrompt || (!!draft.modelTier && draft.modelTier !== 'auto') || !!draft.model || !!draft.forEach || retryIsSet(draft) || !!draft.allowTools || (draft.tools?.length > 0) || (draft.knowledgeBaseIds?.length > 0) || !!draft.useMemory || draft.temperature != null || !!draft.askOnce}>
                 <FormRow label={t('automations.ai_step_editors.system_prompt', 'System prompt')} hint={t('automations.ai_step_editors.optional_overrides_the_default_you_are', 'Optional. Overrides the default \'You are a step inside a no-code automation\' framing — set a tone, role, or domain.')}>
                     <textarea rows={3} value={draft.systemPrompt || ''} onChange={(e) => set('systemPrompt', e.target.value)} placeholder={t('automations.ai_step_editors.default_a_generic_automation_step_system', '(default: a generic automation-step system prompt)')} className={textareaClass()} />
                 </FormRow>
@@ -116,9 +117,12 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
                     <AiStepKbSelect draft={draft} set={set} />
                 </FormRow>
                 <FormRow label={t('automations.ai_step_editors.iteration', 'Iteration')} hint={t('automations.ai_step_editors.off_by_default_the_ai_runs', 'Off by default: the AI runs once and sees all mapped data at once. Turn on to run the prompt once per item of an upstream list (then reference {{loop.item…}}).')}>
-                    <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
+                    <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField}>
+                        <ConcurrencyField draft={draft} set={set} />
+                    </ForEachSection>
                 </FormRow>
                 <RetrySection draft={draft} set={set} />
+                <AiStepAdvancedRows draft={draft} set={set} />
             </AccordionSection>
             {/* The band already names the section, so the field inside it
                 carries only its hint — repeating the name read as two
@@ -147,6 +151,7 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
                     onChange={(next) => set('outputFields', next)}
                 />
             </AccordionSection>
+            <AnswerChecksSection draft={draft} set={set} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} stepIssues={stepIssues} />
         </>
     );
 }

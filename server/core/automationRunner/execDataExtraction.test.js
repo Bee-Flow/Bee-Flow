@@ -376,3 +376,41 @@ test('no declared fields fails before anything is resolved or called', async () 
     await assert.rejects(() => execDataExtraction(step({ fields: [{ name: 'Bad Name', type: 'string' }] }), CTX, state(), 'dry_run'), /no fields to extract/);
     assert.strictEqual(chatCalls.length, 0);
 });
+
+// ── Provider limiter ───────────────────────────────────────────────────────
+
+test('live: a 429 from the provider is waited out and retried once through the limiter', async () => {
+    const limiter = require('../llm/providerLimiter');
+    limiter._resetForTests();
+    // The limiter's sleep is unref'd; the test holds the loop open while it waits.
+    const keepAlive = setInterval(() => {}, 1000);
+    const waitCap = process.env.LLM_RATE_LIMIT_MAX_WAIT_MS;
+    process.env.LLM_RATE_LIMIT_MAX_WAIT_MS = '5';
+    try {
+        reset();
+        let calls = 0;
+        chatReply = () => {
+            calls += 1;
+            if (calls === 1) throw Object.assign(new Error('API error 429: slow down'), { status: 429, headers: { 'retry-after': '0.001' } });
+            return '{"datum":"2026-03-12","totaal":"€ 1.554,25"}';
+        };
+        const r = await execDataExtraction(step(), { ...CTX, cancelSignal: new AbortController().signal }, state(), 'live');
+        assert.strictEqual(calls, 2);
+        assert.strictEqual(r.output.totaal, 1554.25);
+        assert.strictEqual(chatCalls.length, 2);
+        assert.strictEqual(chatCalls[1].options.temperature, 0, 'the retry sends the same fixed options');
+    } finally {
+        clearInterval(keepAlive);
+        if (waitCap === undefined) delete process.env.LLM_RATE_LIMIT_MAX_WAIT_MS;
+        else process.env.LLM_RATE_LIMIT_MAX_WAIT_MS = waitCap;
+        limiter._resetForTests();
+    }
+});
+
+test('live: an error that is not a rate limit is not retried', async () => {
+    require('../llm/providerLimiter')._resetForTests();
+    reset();
+    chatReply = () => { throw new Error('API error 400: bad request'); };
+    await assert.rejects(() => execDataExtraction(step(), CTX, state(), 'live'), /400/);
+    assert.strictEqual(chatCalls.length, 1);
+});

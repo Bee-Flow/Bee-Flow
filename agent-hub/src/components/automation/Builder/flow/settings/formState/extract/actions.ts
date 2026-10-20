@@ -2,6 +2,7 @@
  * extractFormState for the steps that act: the AI step, an app action, code,
  * a notification and an HTTP request.
  */
+import { readReliability } from '../../aiStepReliability/reliabilityModel';
 import { readAgentPermissions, readSkillIds } from '../aiStepAgent';
 import { schemaToFields } from '../outputSchema';
 import { normalizeAskOnce, normalizeCacheInto } from '../stepOptions';
@@ -37,6 +38,8 @@ export const actionExtractors: Record<string, TypeExtractor> = {
             // "Run once per item" — the inspector rendered the tick, but the
             // round-trip dropped it in BOTH directions for ai_step (C12).
             forEach: step.forEach || null,
+            // Answer checks, the fallback, the temperature and "reuse the answer".
+            ...readReliability(step),
         };
     },
     integration_action: (step, base) => {

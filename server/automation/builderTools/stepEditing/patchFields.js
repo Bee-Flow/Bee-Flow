@@ -26,10 +26,10 @@ const WIRE_KEYS = ['thenStepId', 'elseStepId'];
 // Per-type allow-list of fields a builder_update_step patch may change. `inputs`
 // / `fields` / `forEach` get special merge+revalidate handling; everything else
 // is copied through normalizePatchField (which mirrors the apply* clamps).
-// `askOnce` is integration_action and http_request ONLY: execIntegrationAction
-// and execHttpRequest (via httpCache.js) are the only readers of ctx._toolMemo,
-// so accepting it on an ai_step would let the builder agent set a field the
-// runtime never consults.
+// `askOnce` is integration_action, http_request and ai_step ONLY: those are the
+// steps that consult ctx._toolMemo (execIntegrationAction, execHttpRequest via
+// httpCache.js, and the AI step via aiStepCache.js), so accepting it anywhere
+// else would let the builder agent set a field the runtime never reads.
 const PATCHABLE_FIELDS = {
     integration_action: ['tool', 'inputs', 'label', 'forEach', 'askOnce'],
     // `agentId` is FILL-ONLY, for the reason `datatableId` and
@@ -40,7 +40,7 @@ const PATCHABLE_FIELDS = {
     // patches — they narrow or widen what the step hands the agent it is
     // already bound to, and both are rebuilt wholesale below rather than
     // merged.
-    ai_step: ['prompt', 'systemPrompt', 'inputs', 'outputSchema', 'modelTier', 'allowTools', 'tools', 'knowledgeBaseIds', 'useMemory', 'label', 'forEach', 'agentId', 'skillIds', 'agentPermissions', 'disabledAgentSkillIds'],
+    ai_step: ['prompt', 'systemPrompt', 'inputs', 'outputSchema', 'modelTier', 'allowTools', 'tools', 'knowledgeBaseIds', 'useMemory', 'label', 'forEach', 'agentId', 'skillIds', 'agentPermissions', 'disabledAgentSkillIds', 'temperature', 'enumFrom', 'checks', 'fallback', 'askOnce'],
     condition: ['expr', 'label'],
     // A switch that works through a list (A2): its list, whether one item may
     // go down several outputs, and the input cap — all three the add path keeps.

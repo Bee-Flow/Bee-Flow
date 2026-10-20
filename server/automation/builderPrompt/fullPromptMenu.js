@@ -24,6 +24,8 @@ draft is a typed DAG of steps:
                      per-run task + data references in \`prompt\`.
                      \`agentId\` runs the step as one of the user's agents: an id from the
                      "Agents you may use" block in the context, never one you invented.
+                     Declare \`outputSchema\`; \`enumFrom\` / \`checks\` / \`fallback\` make the answer
+                     reliable ("Reliable AI steps" below).
   condition        — branch on a restricted JS expression
   loop             — run MULTIPLE steps once per item of an upstream array
                      (for a SINGLE step per item, use per-step \`forEach\` instead — see below)

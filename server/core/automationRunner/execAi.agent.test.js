@@ -27,6 +27,7 @@ require('../../services/runnerPorts');
 const assert = require('node:assert');
 
 const { installResolveStub } = require('../../testUtils/stubRequire');
+const { forcedToolViaChat } = require('../../testUtils/forcedToolViaChat');
 
 // ── Het tool-registry (de enige laag onder toolPolicy die een stub is) ─────
 //
@@ -118,6 +119,11 @@ const TOOL_REGISTRY_STUB = {
     },
 };
 
+async function fakeChat(_key, _url, modelId, messages, options) {
+    chatCalls.push({ modelId, options, messages });
+    return { content: chatReply, usage: {} };
+}
+
 const restore = installResolveStub({
     '../../automation/toolRegistry': TOOL_REGISTRY_STUB,
     // `installResolveStub` matches the require string as WRITTEN INSIDE the
@@ -133,14 +139,8 @@ const restore = installResolveStub({
         async getProviderForModel(modelId) { return { apiKey: 'k', url: 'u', providerType: 'test', modelId }; },
         async getAIConfig() { return { model: 'model-fast' }; },
     },
-    '../providers': {
-        getAdapter: () => ({
-            async chat(_key, _url, modelId, messages, options) {
-                chatCalls.push({ modelId, options, messages });
-                return { content: chatReply, usage: {} };
-            },
-        }),
-    },
+    '../providers': { getAdapter: () => ({ chat: fakeChat }) },
+    '../llm/llmClient': { chatForcedTool: forcedToolViaChat(fakeChat) },
     '../automationModel/bind': {
         resolveInputs: (inputs) => JSON.parse(JSON.stringify(inputs || {})),
         interpolateTemplate: (s) => s,

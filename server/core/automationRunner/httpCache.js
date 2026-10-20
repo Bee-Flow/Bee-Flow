@@ -79,10 +79,10 @@
  * ── WHAT DOES NOT GET THIS, AND WHY ─────────────────────────────────
  * `integration_action` already has it. Everything else is a position, not an
  * omission:
- *   ai_step / parse_json in AI mode — never. Temperature 0.2 is still
- *     non-deterministic, and "summarise today's data" returning yesterday's
- *     sentence is a silent correctness failure with no error to catch.
- *     Provider-side prompt caching is the right lever there.
+ *   ai_step — its answer cache lives in aiStepCache.js: opt-in per step and
+ *     per org (scopes.ai), keyed after the Privacy Shield, never in a dry run.
+ *     parse_json in AI mode — never: yesterday's sentence for "summarise
+ *     today's data" is a silent failure. Provider-side prompt caching instead.
  *   notification — never. It is a delivery; caching it means not sending.
  *   datatable — never. Local, and a stale row is a data-correctness bug.
  *   guard / tokenize — never. It has its own scan cache, and the org policy

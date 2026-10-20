@@ -152,6 +152,24 @@ function collectStepRefs(step) {
             template(step.toast?.message, 'toast.message');
             template(step.navigateTo?.recordRef, 'navigateTo.recordRef');
             break;
+        case 'ai_step': {
+            // The run data an AI step's allowed-value lists, checks and fallback
+            // read (aiStepReliability.js). Plain run paths, not {{ }} templates:
+            // a path to a deleted, renamed or LATER step reaches run time as a
+            // list that is not there, and every answer then fails its check.
+            // The prompt and inputs keep the behaviour described at the top of
+            // checkReferences (inputs above; the prompt has its own lint).
+            (Array.isArray(step.enumFrom) ? step.enumFrom : []).forEach((e, i) => {
+                if (isObject(e)) ref(e.ref, `enumFrom[${i}].ref`);
+            });
+            (Array.isArray(step.checks) ? step.checks : []).forEach((c, i) => {
+                if (!isObject(c)) return;
+                ref(c.ref, `checks[${i}].ref`);
+                ref(c.sameCountAs, `checks[${i}].sameCountAs`);
+            });
+            if (isObject(step.fallback)) collectRefPaths(step.fallback.fields, refs, 'fallback.fields');
+            break;
+        }
         case 'data_extraction':
             // The text the step reads is a binding like any input, so a source
             // pointing at a renamed, deleted or LATER step is caught here

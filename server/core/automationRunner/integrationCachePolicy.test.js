@@ -191,7 +191,7 @@ test('killSwitchOn is that same parser, so the two switches cannot drift', () =>
     assert.strictEqual(policy.killSwitchOn(), false);
 });
 
-// ── scopes: one decision, one row, two ticks ────────────────────────────────
+// ── scopes: one decision, one row, three ticks ────────────────────────────────
 //
 // The underlying question is the same one — may third-party response payloads
 // be stored at rest for this org — so a second config key would let an org sit
@@ -231,12 +231,23 @@ test('the app-look-up scope is switched off only by a literal false', () => {
 test('a corrupt scopes blob falls back to the safe pair, never to both-on', () => {
     for (const scopes of [null, 'garbage', 42, []]) {
         const s = policy.normalizePolicy({ enabled: true, scopes }).scopes;
-        assert.deepStrictEqual(s, { integration: true, http: false });
+        assert.deepStrictEqual(s, { integration: true, http: false, ai: false });
     }
 });
 
-test('the default policy carries the same pair', () => {
-    assert.deepStrictEqual({ ...policy.DEFAULT_POLICY.scopes }, { integration: true, http: false });
+test('the default policy carries the same set', () => {
+    assert.deepStrictEqual({ ...policy.DEFAULT_POLICY.scopes }, { integration: true, http: false, ai: false });
+});
+
+test('ai is OFF on a row written before it existed, and only a literal true turns it on', async () => {
+    blobs['org_integration_cache_org-a'] = { enabled: true, ttlSeconds: 300, scopes: { integration: true, http: true } };
+    assert.strictEqual((await policy.resolveCachePolicy('org-a')).scopes.ai, false,
+        'neither the app-look-up tick nor the http tick is consent to keep model answers');
+    for (const v of ['true', 1, 'on', 'yes', {}, [], null]) {
+        assert.strictEqual(policy.normalizeScopes({ ai: v }).ai, false, JSON.stringify(v));
+    }
+    assert.strictEqual(policy.normalizeScopes({ ai: true }).ai, true);
+    assert.strictEqual(policy.normalizePolicy({ enabled: true, scopes: { ai: true } }).scopes.ai, true);
 });
 
 test('a personal account gets scopes too, so no caller has to null-check them', async () => {

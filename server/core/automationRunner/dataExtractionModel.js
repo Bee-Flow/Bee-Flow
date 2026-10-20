@@ -25,6 +25,7 @@
  * fallback in the chain answers instead).
  */
 const configStore = require('../../stores/configStore');
+const { limitedChat } = require('../llm/providerLimiter');
 
 const DATA_EXTRACTION_MODEL_KEY = 'data_extraction_model';
 
@@ -112,8 +113,19 @@ async function resolveDataExtractionModel({ userOrgId = null, userId = null } = 
     return dataExtractionModelFor({ configured: null, fastTierModelId: null, globalModelId });
 }
 
+/**
+ * The extraction call itself, through the provider limiter: queued with the
+ * other calls on the same provider connection (a forEach runs several at once)
+ * and, on a 429 / overloaded answer, waited out and retried with Retry-After.
+ * The request options stay the fixed ones; the run's cancel signal ends a wait.
+ * @param {{ adapter: any, cfg: { apiKey: string, url: string }, modelId: string, messages: any[], options: any, signal?: AbortSignal|null }} args
+ */
+function callExtractionModel(args) {
+    return limitedChat(args);
+}
+
 module.exports = {
-    DATA_EXTRACTION_MODEL_KEY,
+    DATA_EXTRACTION_MODEL_KEY, callExtractionModel,
     EXTRACTION_TEMPERATURE, EXTRACTION_REASONING_EFFORT, EXTRACTION_TIMEOUT_MS,
     EXTRACTION_MAX_TOKENS_CAP, EXTRACTION_MAX_TOKENS_BASE, EXTRACTION_MAX_TOKENS_PER_FIELD,
     extractionRequestOptions, dataExtractionModelFor, resolveDataExtractionModel,
