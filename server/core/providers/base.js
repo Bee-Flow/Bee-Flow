@@ -107,8 +107,8 @@ class BaseProvider {
      * @param {string} baseUrl - Provider base URL (e.g. https://api.openai.com/v1)
      * @param {string} model
      * @param {Array} messages
-     * @param {object} options - Same as buildRequestBody options
-     * @returns {Promise<{content: string|null, toolCalls: Array|null, usage: object}>}
+     * @param {any} options - Same as buildRequestBody options
+     * @returns {Promise<{content: string|null, toolCalls: Array|null, usage: any}>}
      */
     async chat(apiKey, baseUrl, model, messages, options = {}) {
         const headers = this.getHeaders(apiKey);
@@ -258,7 +258,7 @@ class BaseProvider {
      * @param {string} baseUrl
      * @param {string} model
      * @param {Array} messages
-     * @param {object} options
+     * @param {any} options
      * @param {function} onEvent - Called with (eventType, data):
      *   - ('text', { text }) — text content delta
      *   - ('thinking', { text }) — reasoning/thinking delta
@@ -333,7 +333,7 @@ class BaseProvider {
      *    `partId`, and withheld entirely when `_wantsThinking` says so.
      *
      * @param {function} onEvent
-     * @param {object} options - the adapter options (reasoningSummary is read)
+     * @param {any} options - the adapter options (reasoningSummary is read)
      * @param {string} thinkingPartId
      */
     _createStreamEmitter(onEvent, options = {}, thinkingPartId) {
@@ -625,7 +625,7 @@ class BaseProvider {
      * Fetch available models from this provider.
      * @param {string} apiKey
      * @param {string} baseUrl
-     * @param {object} [_options] - Adapter-specific (Vertex: project, location, …); unused here
+     * @param {any} [_options] - Adapter-specific (Vertex: project, location, …); unused here
      * @returns {Promise<Array<{id: string, name: string}>>}
      */
     async listModels(apiKey, baseUrl, _options = {}) {

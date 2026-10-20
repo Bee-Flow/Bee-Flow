@@ -45,9 +45,9 @@
 
 /**
  * @param {object} [deps]
- * @param {object} [deps.membership]    projects/membership ({ countableKinds, isAllowedIn })
- * @param {object} [deps.store]         stores/projectStore ({ countChatHoldings })
- * @param {object} [deps.projectFiles]  projects/projectFiles ({ listFiles })
+ * @param {any} [deps.membership]    projects/membership ({ countableKinds, isAllowedIn })
+ * @param {any} [deps.store]         stores/projectStore ({ countChatHoldings })
+ * @param {any} [deps.projectFiles]  projects/projectFiles ({ listFiles })
  */
 function makeKindChange(deps = {}) {
     const membership = () => deps.membership || require('./membership');

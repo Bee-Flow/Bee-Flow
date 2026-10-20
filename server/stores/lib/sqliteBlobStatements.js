@@ -51,7 +51,7 @@ function quoteIdent(name) {
     return '"' + String(name).replace(/"/g, '""') + '"';
 }
 
-/** @param {object} deps  getHandle (from the loader). */
+/** @param {any} deps  getHandle (from the loader). */
 function createReadApi({ getHandle }) {
     /**
      * Return a read handle. Identical to getWriteHandle today — reads and
@@ -112,7 +112,7 @@ function createReadApi({ getHandle }) {
     return { getReadHandle, query, schema };
 }
 
-/** @param {object} deps  getHandle (loader), scheduleFlush (flusher), entityLabel. */
+/** @param {any} deps  getHandle (loader), scheduleFlush (flusher), entityLabel. */
 function createWriteApi({ getHandle, scheduleFlush, entityLabel }) {
     /**
      * Return the writable handle. In single-replica mode this is just

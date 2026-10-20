@@ -56,8 +56,8 @@ const REASONS = Object.freeze({
  * @param {string|null} p.userId    the identity the WRITE happens under
  * @param {Set<string>} p.orgIds    always a Set; empty, never null
  * @param {boolean} [p.canManage]   does this person hold `manage_knowledge`?
- * @param {object} [p.deps]
- * @returns {Promise<{ok: boolean, reason?: string, kb?: object}>}
+ * @param {any} [p.deps]
+ * @returns {Promise<{ok: boolean, reason?: string, kb?: any}>}
  */
 async function canWriteToKb(kbId, { userId, orgIds, canManage = false, deps = {} } = /** @type {any} */ ({})) {
     if (!kbId) return { ok: false, reason: REASONS.UNKNOWN };

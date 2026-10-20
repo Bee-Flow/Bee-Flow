@@ -32,9 +32,9 @@ function defaultDeps() {
 }
 
 /**
- * @param {object} draftWrap
- * @param {object} args   { triggerStepId?, triggerPayload? }
- * @param {object} deps   { persistDraft, annotate } from the facade, plus optional
+ * @param {any} draftWrap
+ * @param {any} args   { triggerStepId?, triggerPayload? }
+ * @param {any} deps   { persistDraft, annotate } from the facade, plus optional
  *                        getAutomation / getRunSteps / executeAutomation overrides
  */
 async function applyRequestDryRun(draftWrap, args, deps) {

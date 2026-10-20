@@ -45,9 +45,9 @@ const UNPARSABLE_LOG_CHARS = 4096;
  *   list every caller passes, 'required' is exactly "call that tool" on all
  *   of them and the object form is never the better choice.
  *
- * @param {object} adapter   - resolved provider adapter instance
+ * @param {any} adapter   - resolved provider adapter instance
  * @param {string} toolName  - the function name to force
- * @returns {object|string}  - object form, or 'required' for the Google family
+ * @returns {any|string}  - object form, or 'required' for the Google family
  *                             and the self-hosted runtimes
  */
 function forcedToolChoice(adapter, toolName) {
@@ -72,7 +72,7 @@ function forcedToolChoice(adapter, toolName) {
  * it accepts is exactly what was on the wire, never a guess (see the grammar
  * note in core/llm/leakedToolCalls); `repaired` says the loose route was taken.
  *
- * @returns {{ structured: object|null, rawArguments: string|null, repaired: boolean }}
+ * @returns {{ structured: any|null, rawArguments: string|null, repaired: boolean }}
  */
 function parseToolCallArgsDetailed(toolCall) {
     const none = { structured: null, rawArguments: null, repaired: false };
@@ -187,10 +187,10 @@ function sumUsage(a, b) {
  * — and an object that parsed but looks garbled is logged as such while the
  * caller still gets it (the tool's own validation decides).
  *
- * @param {object} result   - what adapter.chat returned
+ * @param {any} result   - what adapter.chat returned
  * @param {string} toolName - the forced tool's function name
  * @param {{ modelId?: string }} [ctx] - for the log line only
- * @returns {{ structured: object|null, content: string|null, usage: object|undefined, raw: any,
+ * @returns {{ structured: any|null, content: string|null, usage: any|undefined, raw: any,
  *             stopReason: string|null, rawArguments: string|null }}
  */
 function extractForcedResult(result, toolName, { modelId = '?' } = {}) {
@@ -307,9 +307,9 @@ class LLMClient {
      *
      * @param {string} modelId
      * @param {Array}  messages  - chat messages
-     * @param {object} toolDef   - OpenAI-format tool def: {type:'function',function:{name,description,parameters}}
-     * @param {object} [options] - extra chat options (maxTokens, temperature, …); tools/toolChoice are overridden
-     * @returns {Promise<{structured: object|null, content: string|null, usage: object|undefined, raw: any,
+     * @param {any} toolDef   - OpenAI-format tool def: {type:'function',function:{name,description,parameters}}
+     * @param {any} [options] - extra chat options (maxTokens, temperature, …); tools/toolChoice are overridden
+     * @returns {Promise<{structured: any|null, content: string|null, usage: any|undefined, raw: any,
      *                    stopReason: string|null, rawArguments: string|null}>}
      *   `stopReason` ('stop' | 'length' | …, null when the adapter reports none)
      *   and `rawArguments` (the argument string as it arrived, null for an
@@ -559,7 +559,7 @@ class LLMClient {
      * @param {string} modelId
      * @param {Array} messages - Initial messages
      * @param {Array} tools - Tool definitions (OpenAI format)
-     * @param {object} options - Chat options. Optional `options.finalTool` (an
+     * @param {any} options - Chat options. Optional `options.finalTool` (an
      *   OpenAI-format tool def) FORCES the synthesis/final call to call that tool
      *   instead of dropping tools / emitting prose. Applies on BOTH exit paths:
      *   the model stopping its tool calls, and the max-rounds-hit final chat. When
@@ -688,8 +688,7 @@ class LLMClient {
 }
 
 // Singleton
-module.exports = new LLMClient();
-// The pure helpers, for callers that already hold an adapter and for tests.
-module.exports.forcedToolChoice = forcedToolChoice;
-module.exports.parseToolCallArgs = parseToolCallArgs;
-module.exports.extractForcedResult = extractForcedResult;
+module.exports = Object.assign(new LLMClient(), {
+    // The pure helpers, for callers that already hold an adapter and for tests.
+    forcedToolChoice, parseToolCallArgs, extractForcedResult,
+});

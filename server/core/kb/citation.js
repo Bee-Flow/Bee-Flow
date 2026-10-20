@@ -216,12 +216,12 @@ function occurredAtOf(row) {
  * Azure path wraps things in — because the alternative is each caller
  * normalising first, which is how the four shapes happened.
  *
- * @param {object} row
+ * @param {any} row
  * @param {object} [opts]
  * @param {number} [opts.index]        position, for the "Chunk N" fallback
  * @param {string} [opts.kind]         default kind when the row does not say
- * @param {object} [opts.source]       the kb_sources row, when the caller has it
- * @returns {object} a citation
+ * @param {any} [opts.source]       the kb_sources row, when the caller has it
+ * @returns {any} a citation
  */
 function toCitation(row, { index = 0, kind = 'kb_chunk', source = null } = {}) {
     const meta = row?.metadata || {};

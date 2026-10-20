@@ -314,7 +314,7 @@ function toMs(at) {
  * latest valid_from among those with valid_from <= at < valid_to.
  *
  * @param {{ provider: string, model: string, tier?: string, at?: Date|number|string }} q
- * @returns {object|null}
+ * @returns {any|null}
  */
 function lookup({ provider, model, tier = 'standard', at } = /** @type {any} */ ({})) {
     if (!model) return null;
@@ -343,7 +343,7 @@ function providersFor(model) {
  * pool for modelCosts' estimate of a model nothing prices. Rows are frozen
  * and already validated, so the caller may read them freely.
  * @param {{ at?: Date|number|string }} [q]
- * @returns {object[]}
+ * @returns {any[]}
  */
 function listActive({ at } = {}) {
     _maybeRefresh();

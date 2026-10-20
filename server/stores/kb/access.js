@@ -170,7 +170,7 @@ function makeAccessFns(ctx) {
          * Used both by the list filter and by per-id route guards so the two
          * paths can never drift.
          *
-         * @param {object} kb - Row from knowledge_bases
+         * @param {any} kb - Row from knowledge_bases
          * @param {string} userId - The requesting user's id
          * @param {Set|null|undefined} orgIds - User's org ids; null = super admin.
          *   When undefined, org membership is not considered (list-path callers
@@ -218,7 +218,7 @@ function makeAccessFns(ctx) {
          * KB's org AND hold manage_knowledge (checked by the caller via
          * hasPermission and passed in as a boolean so this stays pure/testable).
          *
-         * @param {object} kb - Row from knowledge_bases
+         * @param {any} kb - Row from knowledge_bases
          * @param {string} userId - Requesting user's id
          * @param {Set|null} orgIds - resolveUserOrgIds(req) result; null = super admin
          * @param {boolean} hasManagePermission - hasPermission(userId,'manage_knowledge')

@@ -180,7 +180,7 @@ function _changedSkillKeys(cur, write) {
  *
  * @param {string} id
  * @param {string} userId  the caller
- * @param {Object} updates camelCase fields; `undefined` = leave as-is. Text
+ * @param {any} updates camelCase fields; `undefined` = leave as-is. Text
  *        facets and structured facets follow the precedence rule.
  * @param {{ managerOrgId?: string|null, managedWrite?: { deploymentId?: string }|null }} [opts]
  *        `managerOrgId`: the CALLER'S organisation, passed only when the
@@ -357,7 +357,6 @@ module.exports = {
     TEST_RUNS_KEEP,
     TEST_STATUSES,
     mapRow,
+    // Awaitable init entry for migrateDb (memoised: the same promise as the load-time init).
+    initDB,
 };
-
-// Awaitable init entry for migrateDb (memoised: the same promise as the load-time init).
-module.exports.initDB = initDB;

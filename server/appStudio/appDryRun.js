@@ -156,11 +156,11 @@ function defaultDeps() {
  * @param {any}     [input.def]     - canonical app definition
  * @param {any}     [input.datatables] - the app's datatables (optional)
  * @param {string}  [input.appId]   - app id when no `app` row is given
- * @param {object}  [input.dataModel]- the app's data model (or null)
+ * @param {any}  [input.dataModel]- the app's data model (or null)
  * @param {Array}   [input.datasets]- dataset ids ([{id}] or [id]) for the STATIC pass
- * @param {object}  [input.app]     - the studio_apps row (needed for the DATA pass; null → data pass skipped)
+ * @param {any}  [input.app]     - the studio_apps row (needed for the DATA pass; null → data pass skipped)
  * @param {string}  [input.ownerId] - the app owner's user id
- * @param {object}  [input.deps]    - { dbQuery, runDataset, getDataset } overrides
+ * @param {any}  [input.deps]    - { dbQuery, runDataset, getDataset } overrides
  * @param {object} [opts]
  * @param {string}  [opts.screenId] - narrow the DATA pass to one screen
  * @param {string}  [opts.asRole]   - re-run the DATA pass as this role (when it exists)

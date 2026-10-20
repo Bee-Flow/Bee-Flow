@@ -33,7 +33,7 @@
  *   sourceText: string, otherUnits?: string[] }} input
  *   `sourceText` is retrieved material (block lists apply); `otherUnits` is
  *   what the person sent (a template to fill), scanned the same way.
- * @param {object} [deps]  test seams: getConfig, resolveShieldFor, stripInjectedText, composeScan, dlp, log
+ * @param {any} [deps]  test seams: getConfig, resolveShieldFor, stripInjectedText, composeScan, dlp, log
  * @returns {Promise<ShieldRefusal|ShieldPass>}  the units in order: sourceText first, then otherUnits
  */
 async function shieldNotebookPrompt({ orgId, userId, notebookId, sourceText, otherUnits = [] }, deps = {}) {

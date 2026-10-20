@@ -461,9 +461,9 @@ function normaliseDeckOverrides(input) {
 /**
  * The COMPLETE theme both renderers read.
  *
- * @param {object} base      the document house style (accent, ink, muted, font, logo…, enabled) or null
- * @param {object} [deck]    the stored deck style (normaliseDeckStyle output) — defaults when absent
- * @param {object} [overrides] per-call overrides (normaliseDeckOverrides output)
+ * @param {any} base      the document house style (accent, ink, muted, font, logo…, enabled) or null
+ * @param {any} [deck]    the stored deck style (normaliseDeckStyle output) — defaults when absent
+ * @param {any} [overrides] per-call overrides (normaliseDeckOverrides output)
  */
 function resolveDeckTheme(base, deck = null, overrides = null) {
     const style = base && typeof base === 'object' ? base : {};

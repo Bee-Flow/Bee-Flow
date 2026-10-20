@@ -46,9 +46,9 @@ const USER_SHIELD_DEFAULTS = Object.freeze({
  * `PUT /api/org-privacy-shield/user/me` writes so a wizard-created shield is
  * byte-compatible with one saved from the settings panel.
  *
- * @param {object} choices  { enabled, piiDetectionCategories, piiDetectionAction, euModeEnabled }
- * @param {object} opts     { updatedBy }
- * @returns {object} the config to store under `user_privacy_shield_${userId}`
+ * @param {any} choices  { enabled, piiDetectionCategories, piiDetectionAction, euModeEnabled }
+ * @param {any} opts     { updatedBy }
+ * @returns {any} the config to store under `user_privacy_shield_${userId}`
  */
 function buildUserShieldConfig(choices = {}, { updatedBy = 'system-signup' } = {}) {
     const { ALL_PII_CATEGORY_IDS } = require('./piiDetection');

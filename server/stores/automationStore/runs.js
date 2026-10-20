@@ -80,7 +80,7 @@ async function getRunsForAutomation(automationId, { limit = 50 } = {}) {
 // executions table: the base run + the automation's title/kind/icon/trigger so
 // the table can show a Name column and badge Steps vs Automations.
 /**
- * @param {object} r  automation_runs row joined to its automation
+ * @param {any} r  automation_runs row joined to its automation
  * @returns {Record<string, any>}  the run shape plus automation fields and, for a journey, journeyRunId
  */
 function rowToRunWithAutomation(r) {
@@ -294,9 +294,9 @@ function buildRunFilterWhere(scope, filters = {}, startIdx = 1) {
  * `project` is the row mapper, and it is a PARAMETER because the two scopes
  * hand back different fields on purpose — see rowToOrgRunRow.
  *
- * @param {object} scope
- * @param {object} [filters]
- * @param {(row: object) => object} [project]
+ * @param {any} scope
+ * @param {any} [filters]
+ * @param {(row: any) => any} [project]
  */
 async function listRunsScoped(scope, filters = {}, project = rowToRunWithAutomation) {
     await initDB();

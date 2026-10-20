@@ -57,7 +57,7 @@ class PrivacyBlocked extends Error {
  * @param {object} [deps]
  * @param {Function} [deps.resolveShieldFor]     ({orgId, userId}) => shield|null
  * @param {Function} [deps.getAIConfig]          () => global AI config
- * @param {object}   [deps.dlp]                  { scan, applyRedactionChoice, clearConversationState }
+ * @param {any}   [deps.dlp]                  { scan, applyRedactionChoice, clearConversationState }
  * @param {Function} [deps.validateInputForPii]  core/privacy/piiDetection.validateInputForPii
  * @param {Function} [deps.detectPii]            core/privacy/piiDetection.detectPii (the Web Search Guard)
  * @param {Function} [deps.logGuardrailEvent]    stores/guardrailEventStore.logGuardrailEvent
@@ -107,13 +107,13 @@ function makeChatShield(deps = {}) {
      * Prepare the text that leaves for the model.
      *
      * @param {object} p
-     * @param {object|null} p.shield           from resolve()
+     * @param {any|null} p.shield           from resolve()
      * @param {string|null} p.orgId
      * @param {string} p.userId
      * @param {string} p.text                  the outbound user message
      * @param {string} p.conversationId        the per-run DLP scope
-     * @param {object} [p.providerConfig]      { providerType, url, displayName }
-     * @param {object} [p.auditBase]           ids for the guardrail event row
+     * @param {any} [p.providerConfig]      { providerType, url, displayName }
+     * @param {any} [p.auditBase]           ids for the guardrail event row
      * @returns {Promise<{ text: string, tokenMap: Record<string,string>|null, categories?: string[] }>}
      */
     async function protect({ shield, orgId, userId, text, conversationId, providerConfig = {}, auditBase = {} }) {

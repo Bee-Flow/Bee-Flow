@@ -36,8 +36,8 @@ const Filing = bodyOf({
 
 /**
  * @param {object} [deps]
- * @param {object} [deps.library]      stores/notebookLibrary surface ({ setNotebookFiling })
- * @param {object} [deps.documents]    stores/documentStore surface ({ assertFolder })
+ * @param {any} [deps.library]      stores/notebookLibrary surface ({ setNotebookFiling })
+ * @param {any} [deps.documents]    stores/documentStore surface ({ assertFolder })
  * @param {Function} [deps.gate]       the notebook gates as one middleware
  * @param {Function} [deps.requireAuth]
  */
@@ -74,5 +74,6 @@ function makeNotebookLibraryRouter(deps = {}) {
     return Object.assign(router, { notebooksVisible });
 }
 
-module.exports = makeNotebookLibraryRouter();
-module.exports.makeNotebookLibraryRouter = makeNotebookLibraryRouter;
+module.exports = Object.assign(makeNotebookLibraryRouter(), {
+    makeNotebookLibraryRouter,
+});

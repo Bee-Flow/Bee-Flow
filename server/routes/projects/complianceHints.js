@@ -121,5 +121,6 @@ function makeComplianceHintsRouter(deps = {}) {
     return router;
 }
 
-module.exports = makeComplianceHintsRouter();
-module.exports.makeComplianceHintsRouter = makeComplianceHintsRouter;
+module.exports = Object.assign(makeComplianceHintsRouter(), {
+    makeComplianceHintsRouter,
+});

@@ -42,7 +42,7 @@ async function hydrateGoogleSessionFromVault(session) {
         session.oauthTokenSource = 'connector';
         // Persist so subsequent requests skip the vault read; non-fatal.
         if (typeof session.save === 'function') {
-            await new Promise((resolve) => session.save(() => resolve()));
+            await /** @type {Promise<void>} */ (new Promise((resolve) => session.save(() => resolve())));
         }
         return true;
     } catch (e) {

@@ -141,14 +141,14 @@ function receiveToFile(readable, filePath, maxBytes, idleMs = IDLE_MS, totalMs =
 
 /**
  * @param {object} deps
- * @param {ReturnType<import('./uploadTickets').createUploadTickets>} deps.tickets
- * @param {{ isAvailable(): boolean, uploadFile(key: string, body: Buffer, type: string, meta?: object|null): Promise<void> }} deps.storage
+ * @param {ReturnType<typeof import('./uploadTickets').createUploadTickets>} deps.tickets
+ * @param {{ isAvailable(): boolean, uploadFile(key: string, body: Buffer, type: string, meta?: any|null): Promise<void> }} deps.storage
  * @param {(filePath: string, size: number, key: string, type: string, signal?: AbortSignal) => Promise<void>} deps.streamIntoStorage
- * @param {(job: { key: string, source: Buffer, contentType: string, storage: object }) => Promise<number>} [deps.scheduleVariants]  renders resized copies of a stored image in the background
+ * @param {(job: { key: string, source: Buffer, contentType: string, storage: any }) => Promise<number>} [deps.scheduleVariants]  renders resized copies of a stored image in the background
  * @param {(buf: Buffer) => Buffer|null} deps.sanitizeSvg
  * @param {(buf: Buffer) => boolean} deps.isValidVtt
  * @param {(head: Buffer, ext: string) => boolean} deps.looksLikeClip
- * @param {(bound: object, ip: string) => Promise<{ ok: boolean, reason?: string }>} deps.checkAccess  see accessCheck.js
+ * @param {(bound: any, ip: string) => Promise<{ ok: boolean, reason?: string }>} deps.checkAccess  see accessCheck.js
  * @param {() => string} [deps.tmpRoot]
  * @param {number} [deps.idleMs]  longest quiet gap in the request body
  * @param {number} [deps.storeMs]  deadline for the storage step (default: scales with the ticket's size)
@@ -161,7 +161,7 @@ function createUploadReceiver(deps) {
     /**
      * @param {{ ticket: string, contentType: string, contentLength: number|null, ip: string,
      *           stream: import('stream').Readable }} req
-     * @returns {Promise<{ status: number, body: object, closeConnection?: boolean }>}
+     * @returns {Promise<{ status: number, body: any, closeConnection?: boolean }>}
      */
     async function handle({ ticket, contentType, contentLength, ip, stream }) {
         // 1. Cheap checks — none of these spends the ticket.

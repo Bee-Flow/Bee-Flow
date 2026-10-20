@@ -135,7 +135,5 @@ async function prune({ keyVersion, maxRows = 500_000 } = {}) {
     return { deleted };
 }
 
+// initDB is also the awaitable init entry point for migrateDb.
 module.exports = { initDB, getMany, putMany, prune, _isHealthy: () => _healthy };
-
-// Awaitbare init-ingang voor migrateDb.
-module.exports.initDB = initDB;

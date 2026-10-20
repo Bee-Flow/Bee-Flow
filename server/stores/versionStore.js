@@ -160,5 +160,6 @@ function createVersionStore(db, { tag = 'VersionStore' } = {}) {
     };
 }
 
-module.exports = createVersionStore(require('../db'));
-module.exports.createVersionStore = createVersionStore;
+module.exports = Object.assign(createVersionStore(require('../db')), {
+    createVersionStore,
+});

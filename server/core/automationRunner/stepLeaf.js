@@ -12,11 +12,11 @@
 const { preflightBlankInputs } = require('./blankInputs');
 
 /**
- * @param {object} deps  execution.js's RUN_DEPS
+ * @param {any} deps  execution.js's RUN_DEPS
  * @param {() => Function} dispatchStep  the run's dispatchStep, for container
  *   steps (loop, parallel, call_layer, call_block) that recurse through it.
  *   A getter: it is only *called* at run time, when the closure exists.
- * @returns {(step, ctx_, state_, mode_) => Promise<object>}
+ * @returns {(step, ctx_, state_, mode_) => Promise<any>}
  */
 function makeLeafRunner(deps, dispatchStep) {
     const e = deps.engine;

@@ -131,7 +131,7 @@ async function getOrganization(id) {
 const MAX_ORG_ID_LENGTH = 48;
 
 /**
- * @param {object} orgData
+ * @param {any} orgData
  * @param {object} [opts]
  * @param {boolean} [opts.autoGrantTrial=true] Grant the configured org trial here.
  *   Web signup passes false and grants it from accountProvisioning.finalizeAccount

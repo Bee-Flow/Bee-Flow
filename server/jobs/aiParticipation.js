@@ -38,8 +38,8 @@ const PRUNE_EVERY_MS = 60 * 60_000;
 
 /**
  * @param {object} [deps]
- * @param {object}   [deps.store]        stores/projectAiParticipationStore surface
- * @param {object}   [deps.engine]       participation engine (processWatch, surfaceNames, breakerOpen)
+ * @param {any}   [deps.store]        stores/projectAiParticipationStore surface
+ * @param {any}   [deps.engine]       participation engine (processWatch, surfaceNames, breakerOpen)
  * @param {number}   [deps.concurrency]
  * @param {() => number} [deps.now]
  * @param {() => string} [deps.newId]

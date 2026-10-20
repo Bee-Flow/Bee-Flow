@@ -35,7 +35,7 @@ function stableStringify(v) {
  * stringify. A capture token holds it instead of the org-wide model_version,
  * so an edit to an unrelated table in the same scope does not race a capture.
  *
- * @param {object|null|undefined} descriptor
+ * @param {any|null|undefined} descriptor
  * @returns {string} hex sha256
  */
 function tableFingerprint(descriptor) {
@@ -122,9 +122,9 @@ function entryOf(m, id) {
  * now equals the table row's own name, which reconcile copies over). Anything
  * else the save touches on a stage table still needs the deploy's capability.
  *
- * @param {object} c  the transaction client
- * @param {object} before  the model read under the lock
- * @param {object} next    the model being saved
+ * @param {any} c  the transaction client
+ * @param {any} before  the model read under the lock
+ * @param {any} next    the model being saved
  * @param {string[]} ids   the changed table ids
  * @returns {Promise<Set<string>>}
  */
@@ -156,9 +156,9 @@ async function mirrorReconcileExemptIds(c, before, next, ids) {
  * the caller already holds FOR UPDATE in the same transaction; a scope without
  * a model row, or a model without the entry, is left as it is.
  *
- * @param {object} c
+ * @param {any} c
  * @param {{kind: string, id: string}} scope
- * @param {{rows: object[]}} locked
+ * @param {{rows: any[]}} locked
  * @param {string} tableId
  * @param {boolean} on
  */

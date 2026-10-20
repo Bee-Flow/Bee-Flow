@@ -27,7 +27,7 @@ const MAX_CHARTS = 40;
  * @param {string} tabId
  * @param {any[]} existing  the charts the sheet holds already
  * @param {unknown} [remove]  document_write's `removeCharts`
- * @returns {{ charts: object[], updated: object[], removed: string[] } | { error: string }}
+ * @returns {{ charts: any[], updated: any[], removed: string[] } | { error: string }}
  */
 function chartsFrom(list, tabId, existing, remove) {
     const have = Array.isArray(existing) ? existing : [];
@@ -80,7 +80,7 @@ function chartSummary(c) {
  * Store new charts on the document, on top of its NEWEST settings (a tab may
  * have been added in the same call).
  * @param {any} doc
- * @param {object[]} charts  new ones
+ * @param {any[]} charts  new ones
  * @param {{ documents?: any, actorUserId?: string }} deps
  * @param {{ updated?: any[], removed?: string[] }} [changes]  from chartsFrom
  * @returns {Promise<{ saved: number, updated: number, removed: number } | { error: string }>}

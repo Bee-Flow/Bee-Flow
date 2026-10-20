@@ -101,9 +101,9 @@ async function pruneVersions(notebookId) {
  * @param {string} notebookId
  * @param {{ html?: string, markdown?: string|null, source?: string, name?: string|null,
  *           contributors?: Array<{userId: string|null, kind: 'user'|'ai', agentId?: string}>,
- *           stats?: object|null, createdBy?: string|null, restoredFrom?: string|null,
+ *           stats?: any|null, createdBy?: string|null, restoredFrom?: string|null,
  *           pinned?: boolean, summary?: string }} v
- * @returns {Promise<object & { deduped: boolean }>} the version's metadata; `deduped` when an
+ * @returns {Promise<any & { deduped: boolean }>} the version's metadata; `deduped` when an
  *   automatic snapshot matched the latest version and that one is returned instead.
  */
 async function recordVersion(notebookId, v = {}) {
@@ -183,7 +183,7 @@ async function createVersion(notebookId, content, summary = 'Auto-save', { creat
  * below). Every version is reachable: the old list stopped at 50 of the 200
  * it kept.
  *
- * @returns {Promise<{ versions: object[], nextCursor: string|null }>}
+ * @returns {Promise<{ versions: any[], nextCursor: string|null }>}
  */
 async function listVersions(notebookId, { cursor = null, limit = 50 } = {}) {
     await initDB();
@@ -235,7 +235,7 @@ async function getNotebookVersion(notebookId, versionId) {
 
 /**
  * Name a version, or clear its name (null). A named version is never pruned.
- * @returns {Promise<object|null>} the updated metadata, null when not this notebook's
+ * @returns {Promise<any|null>} the updated metadata, null when not this notebook's
  */
 async function nameVersion(notebookId, versionId, name) {
     await initDB();

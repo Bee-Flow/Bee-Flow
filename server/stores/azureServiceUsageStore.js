@@ -65,7 +65,7 @@ log.info('[AzureServiceUsageStore] Initialized (PostgreSQL)');
  * @param {number} [entry.tokens]           - tokens consumed (embeddings)
  * @param {number} [entry.estimated_cost]   - pre-calculated cost in USD
  * @param {string} [entry.timestamp]         - ISO time of the event; defaults to now
- * @param {object} [entry.metadata]         - additional info (filename, mime_type, etc.)
+ * @param {any} [entry.metadata]         - additional info (filename, mime_type, etc.)
  */
 async function logAzureServiceUsage(entry) {
     await initDB();
@@ -211,7 +211,6 @@ module.exports = {
     getAzureServiceByUser,
     getAzureServiceTimeline,
     getRecentAzureServiceUsage,
+    // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
+    initDB,
 };
-
-// Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
-module.exports.initDB = initDB;

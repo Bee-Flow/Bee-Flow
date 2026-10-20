@@ -85,7 +85,7 @@ function _toObject(value) {
  * @param {string} plaintext
  * @param {Buffer} key    32-byte key
  * @param {string|Buffer} aad    context string, bound into the tag (a Buffer is read as its String())
- * @returns {object}      the envelope (caller decides object vs JSON string)
+ * @returns {any}      the envelope (caller decides object vs JSON string)
  */
 function buildEnvelope(plaintext, key, aad) {
     const iv = crypto.randomBytes(IV_LEN);
@@ -104,7 +104,7 @@ function buildEnvelope(plaintext, key, aad) {
 /**
  * Open an envelope. Throws FieldDecryptError on any failure.
  *
- * @param {object|string} envelope
+ * @param {any|string} envelope
  * @param {Buffer} key
  * @param {string|Buffer} aad
  * @returns {string} plaintext
@@ -137,7 +137,7 @@ function openEnvelope(envelope, key, aad) {
  *
  * @param {string|null|undefined} plaintext
  * @param {{ key?: Buffer|null, aad?: string|Buffer, encrypt?: boolean, asObject?: boolean }} opts
- * @returns {string|object|null|undefined} storable value
+ * @returns {string|any|null|undefined} storable value
  */
 function encryptField(plaintext, opts = {}) {
     const { key = null, aad = '', encrypt = false, asObject = false } = opts;
@@ -153,9 +153,9 @@ function encryptField(plaintext, opts = {}) {
  * readable after encryption is switched on, and post-switch-off rows readable
  * after it is switched back off.
  *
- * @param {string|object|null|undefined} stored
+ * @param {string|any|null|undefined} stored
  * @param {{ key?: Buffer|null, aad?: string|Buffer }} opts
- * @returns {string|object|null|undefined}
+ * @returns {string|any|null|undefined}
  * @throws {FieldDecryptError} when the value IS an envelope but cannot be opened
  */
 function decryptField(stored, opts = {}) {

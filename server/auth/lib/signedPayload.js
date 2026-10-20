@@ -29,7 +29,7 @@ function b64urlDecode(str) {
 /**
  * Sign a JSON-serializable payload.
  * @param {Buffer|string} secret
- * @param {object} payload
+ * @param {any} payload
  * @returns {string} the token
  */
 function sign(secret, payload) {
@@ -44,7 +44,7 @@ function sign(secret, payload) {
  *
  * @param {Buffer|string} secret
  * @param {string} token
- * @returns {object|null}
+ * @returns {any|null}
  */
 function verify(secret, token) {
     if (typeof token !== 'string') return null;

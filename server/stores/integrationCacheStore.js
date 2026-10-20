@@ -507,7 +507,6 @@ module.exports = {
     cacheKey, get, getStale, touch, put, shrinkTtlForOrg, pruneExpired,
     purgeForUser, purgeForOrg, statsForOrg, invalidateUsage,
     TABLE, MAX_ENTRY_BYTES, MAX_ROWS_PER_ORG, MAX_BYTES_PER_ORG,
+    // Awaitbare init-ingang voor migrateDb (initDB is al een promise-memo).
+    initDB,
 };
-
-// Awaitbare init-ingang voor migrateDb (initDB is al een promise-memo).
-module.exports.initDB = initDB;

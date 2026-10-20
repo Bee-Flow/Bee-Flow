@@ -12,7 +12,7 @@ const { err } = require('./handlerKit');
  * Narrow a site-wide validation to what an edit result needs: everything for
  * the pages this call touched, and ONE summary line for the empty pages it did
  * not touch (a new site lists a dozen of them on every call otherwise).
- * @param {{ errors: object[], warnings: any[] }} v
+ * @param {{ errors: any[], warnings: any[] }} v
  * @param {Set<string>} touched
  */
 function scopeValidation(v, touched) {
@@ -34,7 +34,7 @@ function scopeValidation(v, touched) {
     };
 }
 
-/** @param {{ cmsStore: object, live: object, builder: object, validateDraft: Function }} deps */
+/** @param {{ cmsStore: any, live: any, builder: any, validateDraft: Function }} deps */
 function createSiteContext({ cmsStore, live, builder, validateDraft }) {
     /** The siteId to act on and its project, or an error result. */
     async function resolveSite(args) {
@@ -73,7 +73,7 @@ function createSiteContext({ cmsStore, live, builder, validateDraft }) {
         };
     }
 
-    /** @param {object} draftWrap @param {Set<string>} [touched] scope the empty-page warnings to this edit */
+    /** @param {any} draftWrap @param {Set<string>} [touched] scope the empty-page warnings to this edit */
     const validationOf = (draftWrap, touched) => {
         const raw = validateDraft(draftWrap);
         const v = touched ? scopeValidation(raw, touched) : raw;

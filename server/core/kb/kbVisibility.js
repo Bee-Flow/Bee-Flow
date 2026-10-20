@@ -94,7 +94,7 @@ function reasonFor(kb, userId, orgIds) {
  * @param {string[]} [p.userGroups]
  * @param {string} [p.context]        for the log line ('agent_chat', 'kb_search', …)
  * @param {string} [p.agentId]
- * @param {object} [p.deps]
+ * @param {any} [p.deps]
  * @returns {Promise<string[]>} the ids that survive, in the order given
  */
 async function filterKbIdsForUser(kbIds, {
@@ -163,7 +163,7 @@ async function filterKbIdsForUser(kbIds, {
  * @param {boolean} [p.requireOrgMatch=true]
  * @param {string} [p.agentId]
  * @param {string} [p.context]
- * @param {object} [p.deps]
+ * @param {any} [p.deps]
  */
 async function filterKbIdsForPublicAnswer(kbIds, {
     orgIds, requireOrgMatch = true, agentId = null, context = 'public', deps = {},
@@ -235,7 +235,7 @@ const GROUP_MEMBER = Symbol('kb-visibility:group-member');
  * @param {string} p.groupId
  * @param {string} [p.agentId]
  * @param {string} [p.context]
- * @param {object} [p.deps]
+ * @param {any} [p.deps]
  */
 async function filterKbIdsForGroupMember(kbIds, {
     orgIds, groupId, agentId = null, context = 'test_as', deps = {},
@@ -266,7 +266,7 @@ async function filterKbIdsForGroupMember(kbIds, {
  * The embed case, evaluated as the agent's OWNER — they chose these bases —
  * narrowed to what may face the public internet.
  * @param kbIds
- * @param {{ ownerUserId?: string, ownerOrgIds?: Set<string>, agentId?: string|null, deps?: object }} [opts]
+ * @param {{ ownerUserId?: string, ownerOrgIds?: Set<string>, agentId?: string|null, deps?: any }} [opts]
  */
 async function filterKbIdsForEmbed(kbIds, { ownerUserId: _ownerUserId, ownerOrgIds, agentId = null, deps = {} } = {}) {
     return filterKbIdsForPublicAnswer(kbIds, {

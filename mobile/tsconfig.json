@@ -7,6 +7,8 @@
         "noFallthroughCasesInSwitch": true,
         "forceConsistentCasingInFileNames": true,
         "verbatimModuleSyntax": false,
+        // TypeScript 6+ no longer loads every @types package by default.
+        "types": ["jest", "node"],
         "paths": {
             "@/*": ["./src/*"]
         }

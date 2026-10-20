@@ -30,7 +30,7 @@ const Body = bodyOf({ color: worded(COLOR_TEXT).trim().max(16, COLOR_TEXT).nulla
  * @param {Function} [deps.requireProjectRole]
  * @param {Function} [deps.getProject]   (id) => project row
  * @param {Function} [deps.getShares]    (projectId) => share rows
- * @param {object}   [deps.store]        stores/projectMemberColorStore surface
+ * @param {any}   [deps.store]        stores/projectMemberColorStore surface
  * @param {Function} [deps.emit]         (projectId, event) => durable event
  */
 function makeMemberColorsRouter(deps = {}) {
@@ -65,5 +65,6 @@ function makeMemberColorsRouter(deps = {}) {
 
 const router = makeMemberColorsRouter();
 
-module.exports = router;
-module.exports.makeMemberColorsRouter = makeMemberColorsRouter;
+module.exports = Object.assign(router, {
+    makeMemberColorsRouter,
+});

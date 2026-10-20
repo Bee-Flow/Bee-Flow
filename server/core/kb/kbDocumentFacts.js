@@ -36,9 +36,9 @@ const UUID_RX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * It fails soft in every direction: no document row, no metadata, no query at
  * all, and the citation renders exactly as it did before.
  *
- * @param {Array<object>} rows — retrieval rows, mutated in place
+ * @param {Array<any>} rows — retrieval rows, mutated in place
  * @param {object} [deps]
- * @param {object} [deps.client] - an open connection to borrow; when absent
+ * @param {any} [deps.client] - an open connection to borrow; when absent
  *   one is acquired and released here. Search hands over none: by this point
  *   it has deliberately let its own go, so the reranker's HTTP calls do not
  *   hold a connection open.

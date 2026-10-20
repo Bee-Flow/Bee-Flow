@@ -240,8 +240,8 @@ async function getCounterFloors(userId) {
  *
  * @param {string|null} userId
  * @param {Array<{category?: string, text?: string}>} entities  detected entities
- * @param {object|Map|null} existingTokenMap  the conversation's accumulated map
- * @returns {Promise<{ tokenMap: object, counterFloors: object }>}
+ * @param {any|Map|null} existingTokenMap  the conversation's accumulated map
+ * @returns {Promise<{ tokenMap: any, counterFloors: any }>}
  */
 async function buildSeed(userId, entities, existingTokenMap = null) {
     const merged = _asObject(existingTokenMap);
@@ -499,7 +499,6 @@ module.exports = {
     deleteEntry,
     clearForUser,
     purgeUser,
+    // Awaitbare init-ingang voor migrateDb.
+    initDB: initVaultTables,
 };
-
-// Awaitbare init-ingang voor migrateDb.
-module.exports.initDB = initVaultTables;

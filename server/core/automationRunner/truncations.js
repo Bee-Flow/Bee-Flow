@@ -31,7 +31,7 @@ function describeTruncation(t) {
  * by reference by every ctx copy; both targets are optional so a bare unit
  * test (or an older caller) keeps working.
  *
- * @param {{ step: { id?: string, maxIterations?: unknown }, ctx?: object, runState?: object,
+ * @param {{ step: { id?: string, maxIterations?: unknown }, ctx?: any, runState?: any,
  *           processed: number, total: number, unit?: 'items' | 'batches', implicitCap?: boolean }} args
  * @returns {{ stepId: string, processed: number, total: number, unit: string, implicit: boolean }}
  */

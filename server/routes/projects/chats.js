@@ -87,22 +87,22 @@ const M = require('./chatMessageHandlers');
  * @param {Function} [deps.requireProjectRole]  (minRole) => Express middleware (auth/projectAccess)
  * @param {Function} [deps.getProjectRole]      (userId, projectId) => role|null, for mentions
  * @param {Function} [deps.getProject]          (id) => project row
- * @param {object}   [deps.store]               stores/projectChatStore surface
- * @param {object}   [deps.chatCrypto]          { forProject(project) }
- * @param {object}   [deps.assistant]           { requestReply(...) } (projects/chatAssistant)
+ * @param {any}   [deps.store]               stores/projectChatStore surface
+ * @param {any}   [deps.chatCrypto]          { forProject(project) }
+ * @param {any}   [deps.assistant]           { requestReply(...) } (projects/chatAssistant)
  * @param {Function} [deps.isChatAgentAllowed]  (project, {agentId, userId}) => boolean: an agent every member may use
  * @param {Function} [deps.listChatAgents]      (project, {userId}) => the agents a chat here may answer as
- * @param {object}   [deps.taskStore]          stores/projectTaskStore surface (drops task links to a deleted chat or thread)
+ * @param {any}   [deps.taskStore]          stores/projectTaskStore surface (drops task links to a deleted chat or thread)
  * @param {Function} [deps.filedIds]            (projectId, kind) => Set of ids of documents, notebooks or meeting notes filed in the project
  * @param {Function} [deps.resolveAgent]        ({agentId, userId}) => { agentId, name } | null
  * @param {Function} [deps.resolveOrgs]         (req) => { orgId, limitOrgId }
  * @param {Function} [deps.emit]                (projectId, event) => durable event
  * @param {Function} [deps.logActivity]         (projectId, actorId, action, details) => activity row
  * @param {Function} [deps.postLimiter]         Express middleware on posting
- * @param {object}   [deps.participation]       { onHumanMessage, cancelContainer } (projects/participation)
- * @param {object}   [deps.policy]              { resolveOrgPolicy } (projects/participation/policy)
- * @param {object}   [deps.participationStore]  { recordFeedback, feedbackFor } (stores/projectAiParticipationStore)
- * @param {object}   [deps.collabNotifier]      { chatMentioned } (projects/collabNotify): the bell for a mention
+ * @param {any}   [deps.participation]       { onHumanMessage, cancelContainer } (projects/participation)
+ * @param {any}   [deps.policy]              { resolveOrgPolicy } (projects/participation/policy)
+ * @param {any}   [deps.participationStore]  { recordFeedback, feedbackFor } (stores/projectAiParticipationStore)
+ * @param {any}   [deps.collabNotifier]      { chatMentioned } (projects/collabNotify): the bell for a mention
  * @param {Function} [deps.signalProjectChanged]  (project, reason) => void (routes/projects/complianceSignal)
  * @param {Function} [deps.now]
  * @param {Function} [deps.newId]
@@ -139,6 +139,7 @@ function makeProjectChatsRouter(deps = {}) {
 
 const router = makeProjectChatsRouter();
 
-module.exports = router;
-module.exports.makeProjectChatsRouter = makeProjectChatsRouter;
-module.exports.titleFromMessage = titleFromMessage;
+module.exports = Object.assign(router, {
+    makeProjectChatsRouter,
+    titleFromMessage,
+});

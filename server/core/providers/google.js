@@ -709,7 +709,7 @@ class GoogleProvider extends BaseProvider {
      *
      * @param {string} apiKey
      * @param {string} prompt
-     * @param {object} options - { aspectRatio, thinkingLevel }
+     * @param {any} options - { aspectRatio, thinkingLevel }
      * @returns {Promise<{ text: string|null, imageBase64: string|null, mimeType: string|null }>}
      */
     async generateImage(apiKey, prompt, options = {}) {
@@ -764,7 +764,7 @@ class GoogleProvider extends BaseProvider {
      *
      * @param {string} apiKey
      * @param {string} prompt - Music description (e.g. "lofi hiphop, chill vibes")
-     * @param {object} options - { bpm, durationSeconds, temperature, weightedPrompts }
+     * @param {any} options - { bpm, durationSeconds, temperature, weightedPrompts }
      * @returns {Promise<{ audioBase64: string|null, mimeType: string }>}
      */
     async generateMusic(apiKey, prompt, options = {}) {
@@ -923,7 +923,7 @@ class GoogleProvider extends BaseProvider {
      *
      * @param {string} apiKey
      * @param {string} prompt - Video description
-     * @param {object} options - { aspectRatio, durationSeconds, resolution, model }
+     * @param {any} options - { aspectRatio, durationSeconds, resolution, model }
      * @returns {Promise<{ videoBase64: string|null, mimeType: string }>}
      */
     async generateVideo(apiKey, prompt, options = {}) {

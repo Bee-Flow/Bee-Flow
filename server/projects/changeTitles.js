@@ -38,7 +38,7 @@ const MAX_IDS_PER_TYPE = 200;
 
 /**
  * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }} db
- * @param {{ log?: object }} [deps]
+ * @param {{ log?: any }} [deps]
  */
 function makeChangeTitles(db, deps = {}) {
     const log = deps.log || require('../telemetry/log');

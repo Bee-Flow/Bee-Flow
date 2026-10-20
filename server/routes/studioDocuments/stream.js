@@ -27,7 +27,7 @@ const documentChannel = (id) => `${CHANNEL_PREFIX}${id}`;
  *   documents?: { getDocument: (id: string, userId: string) => Promise<any> },
  *   bus?: { subscribeChannel: (channel: string, fn: (ev: any) => void) => () => void },
  *   requireAuth?: Function,
- *   streamOptions?: object,
+ *   streamOptions?: any,
  *   log?: { warn: Function },
  * }} [deps]
  */
@@ -58,6 +58,7 @@ function makeDocumentStreamRouter(deps = {}) {
     return router;
 }
 
-module.exports = makeDocumentStreamRouter();
-module.exports.makeDocumentStreamRouter = makeDocumentStreamRouter;
-module.exports.documentChannel = documentChannel;
+module.exports = Object.assign(makeDocumentStreamRouter(), {
+    makeDocumentStreamRouter,
+    documentChannel,
+});

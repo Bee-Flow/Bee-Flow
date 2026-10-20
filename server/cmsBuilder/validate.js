@@ -382,6 +382,7 @@ function validateSiteDraft(draftWrap) {
     return { ok: errors.length === 0, errors, warnings };
 }
 
-module.exports = { validateSiteDraft };
-// Internals exposed for unit tests.
-module.exports._test = { contrastRatio, relativeLuminance, resolveButtonLabel };
+module.exports = { validateSiteDraft,
+    // Internals exposed for unit tests.
+    _test: { contrastRatio, relativeLuminance, resolveButtonLabel },
+};

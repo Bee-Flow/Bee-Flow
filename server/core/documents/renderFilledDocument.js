@@ -59,15 +59,15 @@ async function houseStyleCssFor(doc, orgId) {
  * Fill a document and render it.
  *
  * @param {object} args
- * @param {object}  args.document  a documentStore document (both slots)
- * @param {object}  [args.values]  the run's data for the placeholders
+ * @param {any}  args.document  a documentStore document (both slots)
+ * @param {any}  [args.values]  the run's data for the placeholders
  * @param {string}  [args.orgId]   whose letterhead applies
- * @param {object}  [args.marking] resolved AI-content marking, or null
+ * @param {any}  [args.marking] resolved AI-content marking, or null
  * @param {Record<string, any>} [args.sectionOverrides]
  * @param {'pptx'|'pdf'|'html'|null} [args.format]  a presentation's output format
  * @param {Function} [args.resolveImage]
  * @returns {Promise<{buffer: Buffer, contentType: string, degraded: boolean,
- *                    marking: object|null, fill: object, empty?: boolean, extension?: string}>}
+ *                    marking: any|null, fill: any, empty?: boolean, extension?: string}>}
  *
  * `fill` is documentTemplate's report — which placeholders had no value, which
  * asked for a list and got something else. It rides back to the caller rather

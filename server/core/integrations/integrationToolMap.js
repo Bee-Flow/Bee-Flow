@@ -430,9 +430,9 @@ function inferDirection(toolName) {
  *   5. null (not an integration tool — internal tools like set_reminder, notebook_*)
  *
  * @param {string} toolName - The tool_name from the function call
- * @param {object} toolArgs - The arguments passed to the tool
- * @param {object} ctx - Runtime context (n8n URL, MCP config, etc.)
- * @returns {object|null} { integration, label, server, direction, dataCategories } or null
+ * @param {any} toolArgs - The arguments passed to the tool
+ * @param {any} ctx - Runtime context (n8n URL, MCP config, etc.)
+ * @returns {any|null} { integration, label, server, direction, dataCategories } or null
  */
 function resolveIntegration(toolName, toolArgs = {}, ctx = {}) {
     if (!toolName) return null;

@@ -300,7 +300,7 @@ class MistralProvider extends BaseProvider {
      * The SDK request for one call. Every key is an SDK name (see the header).
      * @param {string} model
      * @param {Array} messages
-     * @param {object} options
+     * @param {any} options
      * @param {{ stream?: boolean }} [mode]
      */
     buildParams(model, messages, options = {}, { stream = false } = {}) {
@@ -432,8 +432,8 @@ class MistralProvider extends BaseProvider {
 
     /**
      * Non-streaming chat.
-     * @returns {Promise<{content: string|null, toolCalls: Array|null, usage: object|null,
-     *   thinking?: string, stop_reason?: string, raw: object}>}
+     * @returns {Promise<{content: string|null, toolCalls: Array|null, usage: any|null,
+     *   thinking?: string, stop_reason?: string, raw: any}>}
      */
     async chat(apiKey, baseUrl, model, messages, options = {}) {
         const client = this.createClient(apiKey, baseUrl);

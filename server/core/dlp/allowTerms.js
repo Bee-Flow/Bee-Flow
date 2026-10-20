@@ -47,7 +47,7 @@ const _PUBLIC_ORG_KEYS = new Set(
 /**
  * Build a matcher from an org shield config.
  *
- * @param {object} shieldConfig  `{ piiAllowTerms?: string[], piiAllowPublicOrgs?: boolean }`
+ * @param {any} shieldConfig  `{ piiAllowTerms?: string[], piiAllowPublicOrgs?: boolean }`
  * @returns {{ isAllowed(value: string, category: string): boolean, size: number }}
  */
 function buildAllowMatcher(shieldConfig = {}) {

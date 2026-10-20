@@ -333,6 +333,7 @@ function makeSheetRouter(deps = {}) {
     return Object.assign(router, { sheetsVisible, duplicateSheet });
 }
 
-module.exports = makeSheetRouter();
-module.exports.makeSheetRouter = makeSheetRouter;
-module.exports.sheetCsv = sheetCsv;
+module.exports = Object.assign(makeSheetRouter(), {
+    makeSheetRouter,
+    sheetCsv,
+});

@@ -46,9 +46,9 @@ const CHANGE_ROWS_READ = 500;
 /**
  * @param {object} [deps]
  * @param {Function} [deps.requireProjectRole]  (minRole) => middleware named requireProjectRoleMw
- * @param {object}   [deps.store]              projectStore change-feed surface
- * @param {object}   [deps.titles]             projects/changeTitles surface ({ resolveTitles })
- * @param {object}   [deps.feed]               projects/changeFeed surface ({ summarizeChangesPage, changeWindow, VISIT_GAP_MS })
+ * @param {any}   [deps.store]              projectStore change-feed surface
+ * @param {any}   [deps.titles]             projects/changeTitles surface ({ resolveTitles })
+ * @param {any}   [deps.feed]               projects/changeFeed surface ({ summarizeChangesPage, changeWindow, VISIT_GAP_MS })
  * @param {Function} [deps.markLimiter]        rate limit for the visit and seen writes
  */
 function makeChangesRouter(deps = {}) {
@@ -190,5 +190,6 @@ function makeChangesRouter(deps = {}) {
     return router;
 }
 
-module.exports = makeChangesRouter();
-module.exports.makeChangesRouter = makeChangesRouter;
+module.exports = Object.assign(makeChangesRouter(), {
+    makeChangesRouter,
+});

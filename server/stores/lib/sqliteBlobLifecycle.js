@@ -11,7 +11,7 @@
 const fsp = require('fs/promises');
 const log = require('../../telemetry/log');
 
-/** @param {object} deps  handles, localPathFor, dbKey, storage, runQuery, metaTable, entityLabel. */
+/** @param {any} deps  handles, localPathFor, dbKey, storage, runQuery, metaTable, entityLabel. */
 function createStorageOps({ handles, localPathFor, dbKey, storage, runQuery, metaTable, entityLabel }) {
     /**
      * On-disk size of the entity's database in bytes (0 when no db file exists
@@ -74,7 +74,7 @@ function createStorageOps({ handles, localPathFor, dbKey, storage, runQuery, met
     return { sizeBytes, reset };
 }
 
-/** @param {object} deps  handles, localPathFor, flushNow (flusher), logPrefix, entityLabel. */
+/** @param {any} deps  handles, localPathFor, flushNow (flusher), logPrefix, entityLabel. */
 function createCloseOps({ handles, localPathFor, flushNow, logPrefix, entityLabel }) {
     /**
      * Force any pending writes to RustFS and close out the debounce. Used

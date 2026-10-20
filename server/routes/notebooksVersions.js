@@ -93,7 +93,7 @@ function versionMeta(/** @type {any} */ v) {
  * @param {{
  *   store?: any,
  *   collab?: any,
- *   feed?: { contentChanged: (args: object) => Promise<void> },
+ *   feed?: { contentChanged: (args: any) => Promise<void> },
  *   writeLimiter?: (req: any, res: any, next: Function) => void,
  * }} [deps]
  */
@@ -255,6 +255,7 @@ function makeNotebookVersionsRouter(deps = {}) {
     return router;
 }
 
-module.exports = makeNotebookVersionsRouter();
-module.exports.makeNotebookVersionsRouter = makeNotebookVersionsRouter;
-module.exports.versionMeta = versionMeta;
+module.exports = Object.assign(makeNotebookVersionsRouter(), {
+    makeNotebookVersionsRouter,
+    versionMeta,
+});

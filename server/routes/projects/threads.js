@@ -69,10 +69,10 @@ function asHttpError(err, /** @type {any} */ log) {
 /**
  * @param {object} [deps]
  * @param {Function} [deps.requireProjectRole]   (minRole) => middleware named requireProjectRoleMw
- * @param {object}   [deps.store]                stores/projectStore
- * @param {object}   [deps.shared]               stores/agent/sharedConversations
+ * @param {any}   [deps.store]                stores/projectStore
+ * @param {any}   [deps.shared]               stores/agent/sharedConversations
  * @param {Function} [deps.recordProjectChange]  projects/changeFeed recordProjectChange
- * @param {object}   [deps.log]
+ * @param {any}   [deps.log]
  */
 function makeThreadsRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
@@ -195,6 +195,7 @@ function makeThreadsRouter(deps = {}) {
     return router;
 }
 
-module.exports = makeThreadsRouter();
-module.exports.makeThreadsRouter = makeThreadsRouter;
-module.exports.SOLUTION_HOLDS_NO_CHATS = SOLUTION_HOLDS_NO_CHATS;
+module.exports = Object.assign(makeThreadsRouter(), {
+    makeThreadsRouter,
+    SOLUTION_HOLDS_NO_CHATS,
+});

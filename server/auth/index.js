@@ -70,14 +70,9 @@ module.exports = {
     isOrgAdminRole,
     requireActiveOrg,
     requireActiveOrgForMutations,
+    // Lazy, so requiring this facade never loads the auth route files. Only
+    // this key is an accessor; every other key stays a plain, writable data
+    // property (the route harness openGates, testUtils/routeHarness.js, and
+    // tests patch them).
+    get router() { return require('./router'); },
 };
-
-// Lazy, so requiring this facade never loads the auth route files. Defined
-// after the object literal so every other key stays a plain, writable data
-// property (the route harness openGates, testUtils/routeHarness.js, and tests
-// patch them).
-Object.defineProperty(module.exports, 'router', {
-    enumerable: true,
-    configurable: true,
-    get: () => require('./router'),
-});

@@ -137,7 +137,7 @@ h2.cat { margin: 32px 0 12px; font-size: 1.2rem; }
  * @param {string} p.path       canonical path
  * @param {string} p.body
  * @param {boolean} [p.noindex]
- * @param {object[]} [p.jsonLd]
+ * @param {any[]} [p.jsonLd]
  * @param {string} [p.lang]
  * @param {{ integrations?: boolean, blog?: boolean }} [p.nav] which site sections exist; only those are linked
  */
@@ -180,7 +180,7 @@ function card(i) {
 /**
  * The directory page: search + category filter (GET form) and the matches
  * grouped per category. A filtered view is noindex so only the full list ranks.
- * @param {object} ctx { origin, siteName, items, q, category }
+ * @param {any} ctx { origin, siteName, items, q, category }
  */
 function renderDirectoryPage({ origin, siteName, items, q = '', category = '', nav = {} }) {
     const cats = listCategories(items);
@@ -225,7 +225,7 @@ function renderDirectoryPage({ origin, siteName, items, q = '', category = '', n
 
 /**
  * One integration's page.
- * @param {object} ctx { origin, siteName, item, related }
+ * @param {any} ctx { origin, siteName, item, related }
  */
 function renderDetailPage({ origin, siteName, item, related = [], nav = {} }) {
     const heading = `${siteName} + ${item.title}`;

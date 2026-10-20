@@ -77,7 +77,7 @@ async function getAgentStats(agentId, startDate = null, endDate = null) {
  * @param {object}  [opts]
  * @param {string|null} [opts.excludeUserId] whose conversations do NOT count
  *   towards `othersConversationCount`
- * @param {object}  [opts.db] injection seam for the tests
+ * @param {any}  [opts.db] injection seam for the tests
  * @returns {Promise<Map<string, {conversationCount:number, userCount:number,
  *   othersConversationCount:number, lastUsedAt:string|null}>>} one entry per
  *   requested id — an agent nobody ever chatted with reads as zeros, which is

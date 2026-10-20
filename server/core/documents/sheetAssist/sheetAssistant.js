@@ -142,7 +142,7 @@ function systemPrompt(readOnly, activeTabName) {
  */
 function makeSheetAssistant(deps = {}) {
     const cellsApi = () => deps.cells || require('../sheetCells');
-    const evaluate = (/** @type {Record<string, string>} */ c, /** @type {object} */ options = {}) => (deps.evaluate || require('../../../shared/expr/sheet.mjs').evaluateSheet)(c, options);
+    const evaluate = (/** @type {Record<string, string>} */ c, /** @type {any} */ options = {}) => (deps.evaluate || require('../../../shared/expr/sheet.mjs').evaluateSheet)(c, options);
     const llm = () => deps.llm || require('../../llm/llmClient');
     const resolveModel = deps.resolveModel || ((/** @type {any} */ o) => require('../../../projects/chatModel').resolveChatModel(o));
     const privacy = deps.privacy || realPrivacy;
@@ -450,7 +450,7 @@ async function realPrivacy({ text, orgId, userId, modelId, conversationId }) {
     return { action: scan.action, text: scan.redactedText || text, tokenMap: scan.tokenMap || null };
 }
 
-module.exports = makeSheetAssistant();
-module.exports.makeSheetAssistant = makeSheetAssistant;
-module.exports.TOOLS = TOOLS;
-module.exports.LIMITS = Object.freeze({ MAX_ROUNDS, MAX_CHANGED_CELLS, MAX_READ_CELLS });
+module.exports = Object.assign(makeSheetAssistant(), {
+    makeSheetAssistant, TOOLS,
+    LIMITS: Object.freeze({ MAX_ROUNDS, MAX_CHANGED_CELLS, MAX_READ_CELLS }),
+});

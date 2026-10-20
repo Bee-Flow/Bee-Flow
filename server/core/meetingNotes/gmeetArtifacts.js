@@ -303,7 +303,7 @@ async function extractAudioTrack(videoPath, audioPath) {
     const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
     const { spawn } = require('child_process');
     const args = ['-y', '-i', videoPath, '-vn', '-ac', '1', '-c:a', 'aac', '-b:a', '64k', audioPath];
-    await new Promise((resolve, reject) => {
+    await /** @type {Promise<void>} */ (new Promise((resolve, reject) => {
         const proc = spawn(ffmpegPath, args, { windowsHide: true });
         let stderr = '';
         proc.stderr?.on('data', (chunk) => { stderr = (stderr + chunk).slice(-4096); });
@@ -312,7 +312,7 @@ async function extractAudioTrack(videoPath, audioPath) {
             if (code === 0) resolve();
             else reject(new Error(`ffmpeg exited with code ${code}${stderr ? `: ${stderr.trim().slice(-500)}` : ''}`));
         });
-    });
+    }));
     return audioPath;
 }
 

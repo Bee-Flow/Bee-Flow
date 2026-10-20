@@ -62,7 +62,7 @@ class SignupError extends Error {
     /**
      * @param {string} code    key of SIGNUP_ERRORS
      * @param {string} message user-facing text; becomes the `error` field verbatim
-     * @param {object} [opts]  { status } overrides the table status (validateConsent
+     * @param {any} [opts]  { status } overrides the table status (validateConsent
      *                         picks its own); { body } adds fields to the JSON response
      */
     constructor(code, message, { status, body } = {}) {
@@ -381,7 +381,7 @@ async function joinOrgPlacement(intent) {
     };
 }
 
-/** @type {(intent?: object) => Promise<any>} every placement is handed the intent; this one needs none of it */
+/** @type {(intent?: any) => Promise<any>} every placement is handed the intent; this one needs none of it */
 async function consumerPlacement() {
     const consumerSignupsEnabled = (await configStore.getConfig('signup_consumer_enabled')) ?? false;
     if (!consumerSignupsEnabled) {

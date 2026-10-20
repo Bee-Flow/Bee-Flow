@@ -202,9 +202,9 @@ function parseToolCall(params) {
 }
 
 /**
- * @param {object} [deps]  test seam: `{ toolsForUser }`. The real one needs
+ * @param {any} [deps]  test seam: `{ toolsForUser }`. The real one needs
  *                         Postgres, and this router's tests run without it.
- * @param {{ token?: { scopes?: object } }|null} [access]  what the access gate
+ * @param {{ token?: { scopes?: any } }|null} [access]  what the access gate
  *                         resolved for this request. Its token's scopes narrow
  *                         tools/list and are re-checked on tools/call. Absent
  *                         (unit tests calling this directly) = no narrowing.
@@ -327,15 +327,16 @@ router.get('/', async (req, res) => {
     return res.status(405).json(rpcError(null, -32000, 'This MCP endpoint is POST-only; it does not open an SSE stream.'));
 });
 
-module.exports = router;
-module.exports.authenticateToken = authenticateToken;
-module.exports.parseToken = parseToken;
-module.exports.mintToken = mintToken;
-module.exports.toMcpTool = toMcpTool;
-module.exports.toolListFrom = toolListFrom;
-module.exports.handleRpc = handleRpc;
-module.exports.classifyRpc = classifyRpc;
-module.exports.parseToolCall = parseToolCall;
-module.exports.INVALID_REQUEST = INVALID_REQUEST;
-module.exports.SECRET_KEY = SECRET_KEY;
-module.exports.PROTOCOL_VERSION = PROTOCOL_VERSION;
+module.exports = Object.assign(router, {
+    authenticateToken,
+    parseToken,
+    mintToken,
+    toMcpTool,
+    toolListFrom,
+    handleRpc,
+    classifyRpc,
+    parseToolCall,
+    INVALID_REQUEST,
+    SECRET_KEY,
+    PROTOCOL_VERSION,
+});

@@ -87,16 +87,16 @@ function deckFromDocument(doc, values = null, { sectionOverrides = {} } = {}) {
  * Render a presentation document.
  *
  * @param {object} args
- * @param {object}  args.document   a documentStore document (docType 'presentation')
- * @param {object|null} [args.values]  placeholder values; null = render the outline as written
+ * @param {any}  args.document   a documentStore document (docType 'presentation')
+ * @param {any|null} [args.values]  placeholder values; null = render the outline as written
  * @param {'pptx'|'pdf'|'html'} [args.format]  html = the on-screen slide viewer
  * @param {string|null} [args.orgId]   whose house style
- * @param {object|null} [args.marking] AI-content marking, or null
+ * @param {any|null} [args.marking] AI-content marking, or null
  * @param {Function} [args.resolveImage] how image references become bytes (presentationRenderer.makeUserImageResolver)
- * @param {object} [args.draft]  unsaved settings to preview with (the editor's look tab), merged over the stored ones
+ * @param {any} [args.draft]  unsaved settings to preview with (the editor's look tab), merged over the stored ones
  * @param {Record<string, any>} [args.sectionOverrides]  per-section overrides for this render
  * @param {boolean} [args.assertFilled]  refuse to render with unfilled required placeholders (default true)
- * @returns {Promise<object>} presentationRenderer's result plus `fill` and `deck`
+ * @returns {Promise<any>} presentationRenderer's result plus `fill` and `deck`
  */
 async function renderDeckDocument({
     document: doc, values = null, sectionOverrides = {}, format = 'pptx', orgId = null, marking = null,
@@ -138,8 +138,8 @@ function deckDocumentUrl(id) {
  * @param {string} [args.title]
  * @param {string} [args.description]
  * @param {string} [args.source]
- * @param {object} args.deck      a normalised deck (renderPresentation returns it)
- * @param {object} [args.theme]   the per-deck look overrides it was built with
+ * @param {any} args.deck      a normalised deck (renderPresentation returns it)
+ * @param {any} [args.theme]   the per-deck look overrides it was built with
  * @param {boolean} [args.houseStyle]  false = built without the house style
  * @returns {Promise<{documentId:string, url:string, name:string}|null>}
  */

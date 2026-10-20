@@ -37,7 +37,7 @@ class ElevenLabsProvider {
      *
      * @param {string} apiKey
      * @param {string} prompt - Song description
-     * @param {object} options - { duration_seconds, instrumental }
+     * @param {any} options - { duration_seconds, instrumental }
      * @returns {Promise<{ audioBase64: string|null, mimeType: string }>}
      */
     async generateSong(apiKey, prompt, options = {}) {
@@ -82,7 +82,7 @@ class ElevenLabsProvider {
      *
      * @param {string} apiKey
      * @param {string} text - Text to speak
-     * @param {object} options - { voice_id, model }
+     * @param {any} options - { voice_id, model }
      * @returns {Promise<{ audioBase64: string|null, mimeType: string }>}
      */
     async textToSpeech(apiKey, text, options = {}) {
@@ -127,7 +127,7 @@ class ElevenLabsProvider {
      *
      * @param {string} apiKey
      * @param {string} prompt - SFX description
-     * @param {object} options - { duration_seconds, prompt_influence }
+     * @param {any} options - { duration_seconds, prompt_influence }
      * @returns {Promise<{ audioBase64: string|null, mimeType: string }>}
      */
     async generateSoundEffect(apiKey, prompt, options = {}) {

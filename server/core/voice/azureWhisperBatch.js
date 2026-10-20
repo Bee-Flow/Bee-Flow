@@ -21,7 +21,7 @@ const log = require('../../telemetry/log');
  * reads `pollData.status`, so without this the user just sees the terminal
  * status word. Fall back to the generic hint when no error detail is present.
  *
- * @param {object} pollData - the parsed Azure transcription job poll response
+ * @param {any} pollData - the parsed Azure transcription job poll response
  * @returns {string} a human-readable failure message (secret-free; the caller
  *   still runs it through the existing redaction before surfacing it)
  */

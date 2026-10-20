@@ -342,7 +342,7 @@ function fromGeneric(raw, hint, meta) {
  *   'google', 'google-vertex', 'eugpt', ...). Only a hint: the shape of `raw`
  *   decides, the hint settles the one ambiguous case (Anthropic's bare
  *   `input_tokens`/`output_tokens` vs the OpenAI Responses API's).
- * @param {object|null|undefined} raw  the provider's usage block
+ * @param {any|null|undefined} raw  the provider's usage block
  * @param {{ service_tier?: string, inference_geo?: string, traffic_type?: string,
  *           tool_use?: Record<string, number> }} [meta]  billing facts that live
  *   on the response rather than in the usage block (OpenAI `response.service_tier`,
@@ -380,7 +380,7 @@ function createUsageAccumulator() {
     const total = emptyUsage();
     let seen = false;
     return {
-        /** @param {object|null|undefined} usage raw or normalised */
+        /** @param {any|null|undefined} usage raw or normalised @param {string|null} [providerType] */
         add(usage, providerType) {
             const u = normalizeUsage(providerType, usage);
             if (!u) return;

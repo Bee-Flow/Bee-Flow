@@ -37,8 +37,8 @@ function tryOpen(open, what) {
 }
 
 /**
- * @param {object} box
- * @param {object} c  the comment row
+ * @param {any} box
+ * @param {any} c  the comment row
  * @param {string} [plaintext]  when the caller already has it
  * @param {Map<string, boolean>} [feedback]  the caller's own feedback on automatic answers
  */
@@ -70,9 +70,9 @@ function presentComment(box, c, plaintext, feedback) {
 }
 
 /**
- * @param {object} box  the opened project key
- * @param {object} t    the thread row
- * @param {object[]} comments  its comment rows
+ * @param {any} box  the opened project key
+ * @param {any} t    the thread row
+ * @param {any[]} comments  its comment rows
  * @param {Map<string, string>} [known]  plaintext the caller already has, by comment id
  * @param {Map<string, boolean>} [feedback]  the caller's own feedback, by comment id
  */

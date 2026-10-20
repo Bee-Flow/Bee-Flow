@@ -201,5 +201,6 @@ function createHouseStyleStore(db, { tag = 'houseStyleStore' } = {}) {
     };
 }
 
-module.exports = createHouseStyleStore(require('../db'));
-module.exports.createHouseStyleStore = createHouseStyleStore;
+module.exports = Object.assign(createHouseStyleStore(require('../db')), {
+    createHouseStyleStore,
+});

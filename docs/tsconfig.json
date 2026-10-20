@@ -1,7 +1,13 @@
 {
   "extends": "@docusaurus/tsconfig",
   "compilerOptions": {
-    "baseUrl": "."
+    // TypeScript 7 removed baseUrl (the Docusaurus base still sets it): null
+    // unsets it, and these paths resolve what it did.
+    "baseUrl": null,
+    "paths": {
+      "@site/*": ["./*"],
+      "*": ["./*"]
+    }
   },
   "exclude": [".docusaurus", "build", "site", ".venv", "node_modules"]
 }

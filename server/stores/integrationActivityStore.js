@@ -725,7 +725,7 @@ async function getOperatorSummary(filters = {}) {
  * SERVER-side sovereignty score), timeline, top breakdowns, the map block,
  * category aggregations and a health block. Built in integrationOverview.js.
  *
- * @param {object} [filters]
+ * @param {any} [filters]
  * @param {'day'|'hour'} [interval]
  * @param {{ normalizeCategory?: Function }} [opts]  the PII category normaliser
  *   (core/privacy/piiCategories), passed in by the route: this store is
@@ -759,7 +759,6 @@ module.exports = {
     getSovereigntyByDimension,
     getManualToolEvents: manualActivity.getManualToolEvents,
     getAutomatedToolNames: manualActivity.getAutomatedToolNames,
+    // Awaitable init entry point for migrateDb.
+    initDB,
 };
-
-// Awaitable init entry point for migrateDb.
-module.exports.initDB = initDB;

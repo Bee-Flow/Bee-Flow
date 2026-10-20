@@ -52,8 +52,8 @@ function filesKbIdOf(project) {
  * Org-less on both sides counts as a match (`projects.organization_id` is ''
  * for a personal project, `knowledge_bases.organization_id` is NULL).
  *
- * @param {object|null} kb       a knowledge_bases row
- * @param {object|null} project  a projectStore.getProject() result
+ * @param {any|null} kb       a knowledge_bases row
+ * @param {any|null} project  a projectStore.getProject() result
  */
 function isProjectFilesKb(kb, project) {
     const filesKbId = filesKbIdOf(project);
@@ -66,7 +66,7 @@ function isProjectFilesKb(kb, project) {
 /**
  * The bases a MEMBER may search in one of the project's chats.
  *
- * @param {object} project  getProject() shape: knowledgeBaseIds, filesKbId, organizationId
+ * @param {any} project  getProject() shape: knowledgeBaseIds, filesKbId, organizationId
  * @param {object} p
  * @param {(ids: string[]) => Promise<string[]>} p.filterAttached
  *        the asker's own filter for the attached bases (visibleKbIdsFor,

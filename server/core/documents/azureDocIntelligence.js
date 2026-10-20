@@ -28,7 +28,7 @@ let _clientConfig = null;
 
 /**
  * Create or return cached Azure Document Intelligence client.
- * @returns {Promise<object|null>} The client, or null if not configured.
+ * @returns {Promise<any|null>} The client, or null if not configured.
  */
 async function getClient() {
     const endpoint = await configStore.getConfig('azure_doc_intelligence_endpoint');
@@ -61,7 +61,7 @@ async function getClient() {
  *
  * @param {Buffer} buffer - Raw file bytes
  * @param {string} filename - Original filename (for logging)
- * @returns {Promise<{ text: string, pageCount: number, pages?: Array<object> }>} Extracted Markdown content + page count (+ per-page spans)
+ * @returns {Promise<{ text: string, pageCount: number, pages?: Array<any> }>} Extracted Markdown content + page count (+ per-page spans)
  * @throws {Error} If extraction fails or service is not configured
  */
 async function extractWithAzureWithStats(buffer, filename = 'unknown') {
