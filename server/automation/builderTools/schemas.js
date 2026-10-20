@@ -33,8 +33,8 @@ const FORM_OPTIONS_HINT = 'Required when type=select, radio or multiselect. Each
 const FORM_WIZARD_FIELD_PROPS = {
     content: { type: 'string', description: 'type=info only: the text shown to the visitor (markdown, up to 4000 characters). Nothing is asked and nothing is stored.' },
     showIf: { type: 'string', description: 'Show this question only when the expression is true, e.g. form.contact == "email", contains(form.topics, "billing") or !isEmpty(form.company). May only use form.<name> of questions ABOVE it on the same page. Checked again on the server: a hidden question never blocks, and its answer is dropped. Max 500 characters.' },
-    min: { type: ['number', 'string'], description: 'type=number: the smallest allowed value, as a number (e.g. 0). type=date: the earliest date, YYYY-MM-DD. The visitor sees an inline error outside the range.' },
-    max: { type: ['number', 'string'], description: 'type=number: the largest allowed value, as a number. type=date: the latest date, YYYY-MM-DD.' },
+    min: { description: 'A number for type=number, a date string for type=date. type=number: the smallest allowed value, as a number (e.g. 0). type=date: the earliest date, YYYY-MM-DD. The visitor sees an inline error outside the range.' },
+    max: { description: 'A number for type=number, a date string for type=date. type=number: the largest allowed value, as a number. type=date: the latest date, YYYY-MM-DD.' },
     minLength: { type: 'integer', description: 'type=text, textarea or email: the fewest characters allowed.' },
     maxLength: { type: 'integer', description: 'type=text, textarea or email: the most characters allowed.' },
     pattern: { type: 'string', description: 'type=text or textarea: the WHOLE answer must match this regular expression (RE2 syntax, up to 200 characters), e.g. "[A-Z]{2}-[0-9]{4}".' },
