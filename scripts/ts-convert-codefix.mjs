@@ -25,7 +25,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { applyEdits, inferFile } from './ts-callsite-types.mjs';
+import { applyEdits, inferFile, resetCaches } from './ts-callsite-types.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HUB = path.join(ROOT, 'agent-hub');
@@ -59,7 +59,10 @@ function createService(ts, overrides) {
     const cfg = ts.readConfigFile(configPath, ts.sys.readFile);
     const parsed = ts.parseJsonConfigFileContent(cfg.config, ts.sys, HUB);
     const versions = new Map();
-    const files = new Set(parsed.fileNames.map((f) => path.resolve(f)));
+    // Tests are never a source of types here (their values are mocks), and they
+    // are a third of the program: leaving them out makes the first build and
+    // every reference search cheaper. A converted file is never a test.
+    const files = new Set(parsed.fileNames.map((f) => path.resolve(f)).filter((f) => !/\.(test|spec)\.[jt]sx?$|\/__tests__\//.test(f)));
     for (const f of overrides.keys()) files.add(f);
     const host = {
         getScriptFileNames: () => [...files],
@@ -78,6 +81,15 @@ function createService(ts, overrides) {
         getDirectories: ts.sys.getDirectories,
     };
     const service = ts.createLanguageService(host, ts.createDocumentRegistry());
+    if (process.env.TS_CONVERT_PROFILE) {
+        // Time per language-service call, printed at exit: where a run spends its minutes.
+        const stats = {};
+        for (const k of ['findReferences', 'getSemanticDiagnostics', 'getCodeFixesAtPosition', 'getProgram', 'getSyntacticDiagnostics']) {
+            const f = service[k].bind(service);
+            service[k] = (...a) => { const t = performance.now(); try { return f(...a); } finally { const ms = performance.now() - t; const s = (stats[k] ??= { n: 0, ms: 0, max: 0, slow: 0 }); s.n++; s.ms += ms; s.max = Math.max(s.max, ms); if (ms > 500) s.slow++; } };
+        }
+        process.on('exit', () => console.error(JSON.stringify(Object.fromEntries(Object.entries(stats).map(([k, v]) => [k, { n: v.n, s: Math.round(v.ms / 1000), maxS: Math.round(v.max / 100) / 10, over500ms: v.slow }])))));
+    }
     const update = (f, text) => { overrides.set(f, text); versions.set(f, (versions.get(f) || 0) + 1); };
     return { service, update };
 }
@@ -85,40 +97,71 @@ function createService(ts, overrides) {
 const FORMAT = { indentSize: 4, tabSize: 4, convertTabsToSpaces: true, semicolons: 'insert' };
 const PREFS = { quotePreference: 'single', importModuleSpecifierPreference: 'relative', includeCompletionsForModuleExports: false };
 
-/** One file: per round every non-overlapping allowed quick fix at once, until a round adds nothing. */
-function fixFile(ts, svc, abs, inferred) {
-    const applied = []; const refused = new Set();
-    for (let round = 0; round < 6; round++) {
-        const taken = [];
-        for (const d of svc.service.getSemanticDiagnostics(abs)) {
-            if (d.start === undefined) continue;
-            const key = `${d.code}:${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`;
-            if (refused.has(key)) continue;
-            let fixes;
-            try { fixes = svc.service.getCodeFixesAtPosition(abs, d.start, d.start + d.length, [d.code], FORMAT, PREFS); } catch { refused.add(key); continue; }
-            const fix = fixes.find((f) => FIX_IDS.includes(f.fixId));
-            if (!fix || fix.changes.some((c) => path.resolve(c.fileName) !== abs)) { refused.add(key); continue; }
-            const changes = fix.changes.flatMap((c) => c.textChanges);
-            if (!changes.length || changes.some((c) => forbiddenInsert(c.newText))) { refused.add(key); continue; }
-            const overlaps = changes.some((c) => taken.some((t) => c.span.start <= t.span.start + t.span.length && t.span.start <= c.span.start + c.span.length));
-            if (overlaps) continue; // next round
-            taken.push(...changes); applied.push(fix.fixId);
-        }
-        if (!taken.length) break;
-        svc.update(abs, applyChanges(svc.service.getProgram().getSourceFile(abs).text, taken));
+/** One round for one file: every non-overlapping allowed quick fix against the current program. */
+function fixRound(ts, svc, abs, state) {
+    const taken = [];
+    for (const d of svc.service.getSemanticDiagnostics(abs)) {
+        if (d.start === undefined) continue;
+        const key = `${d.code}:${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`;
+        if (state.refused.has(key)) continue;
+        let fixes;
+        try { fixes = svc.service.getCodeFixesAtPosition(abs, d.start, d.start + d.length, [d.code], FORMAT, PREFS); } catch { state.refused.add(key); continue; }
+        const fix = fixes.find((f) => FIX_IDS.includes(f.fixId));
+        if (!fix || fix.changes.some((c) => path.resolve(c.fileName) !== abs)) { state.refused.add(key); continue; }
+        const changes = fix.changes.flatMap((c) => c.textChanges);
+        if (!changes.length || changes.some((c) => forbiddenInsert(c.newText))) { state.refused.add(key); continue; }
+        const overlaps = changes.some((c) => taken.some((t) => c.span.start <= t.span.start + t.span.length && t.span.start <= c.span.start + c.span.length));
+        if (overlaps) continue; // next round
+        taken.push(...changes); state.applied.push(fix.fixId);
     }
-    const remaining = svc.service.getSemanticDiagnostics(abs).concat(svc.service.getSyntacticDiagnostics(abs));
-    return { applied, callsites: inferred.report, refused: refused.size, remaining: remaining.map((d) => ({ code: d.code, line: d.file ? d.file.getLineAndCharacterOfPosition(d.start).line + 1 : 0, message: ts.flattenDiagnosticMessageText(d.messageText, ' ') })) };
+    return taken.length ? applyChanges(svc.service.getProgram().getSourceFile(abs).text, taken) : null;
+}
+
+/** All files, round by round: one program per round, every file's fixes applied together at its end. */
+function fixAll(ts, svc, plan) {
+    const states = new Map(plan.map((p) => [p.abs, { applied: [], refused: new Set() }]));
+    let active = plan.map((p) => p.abs);
+    for (let round = 0; round < 6 && active.length; round++) {
+        const next = [];
+        for (const abs of active) { const text = fixRound(ts, svc, abs, states.get(abs)); if (text) next.push([abs, text]); }
+        for (const [abs, text] of next) svc.update(abs, text);
+        active = next.map(([abs]) => abs);
+    }
+    return new Map(plan.map((p) => {
+        const remaining = svc.service.getSemanticDiagnostics(p.abs).concat(svc.service.getSyntacticDiagnostics(p.abs));
+        const st = states.get(p.abs);
+        return [p.abs, { applied: st.applied, refused: st.refused.size, remaining: remaining.map((d) => ({ code: d.code, line: d.file ? d.file.getLineAndCharacterOfPosition(d.start).line + 1 : 0, message: ts.flattenDiagnosticMessageText(d.messageText, ' ') })) }];
+    }));
 }
 
 function arg(name, fallback) { const i = process.argv.indexOf(name); return i === -1 ? fallback : process.argv[i + 1]; }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const batch = arg('--batch'); const list = arg('--files');
-    if (!batch && !list) { console.error('usage: --batch <list file> | --files a,b [--dry]'); process.exit(2); }
-    const dry = process.argv.includes('--dry');
+    if (!batch && !list) { console.error('usage: --batch <list file> | --files a,b [--workers n] [--out dir] [--dry]'); process.exit(2); }
+    const outDir = arg('--out');
+    const dry = process.argv.includes('--dry') || !!outDir;
     const files = (batch ? fs.readFileSync(batch, 'utf8').split('\n') : list.split(','))
         .map((l) => l.trim()).filter(Boolean).filter((f) => fs.existsSync(path.join(HUB, f)));
+    const workers = Number(arg('--workers', 1));
+    if (workers > 1 && files.length > 1) {
+        // Split by directory (files that call each other mostly share one) into
+        // `workers` child processes, each with its own language service.
+        const chunks = Array.from({ length: workers }, () => []);
+        const byDir = new Map();
+        for (const f of files) { const d = path.dirname(f); if (!byDir.has(d)) byDir.set(d, []); byDir.get(d).push(f); }
+        for (const group of [...byDir.values()].sort((a, b) => b.length - a.length)) chunks.sort((a, b) => a.length - b.length)[0].push(...group);
+        const passOn = process.argv.slice(2).filter((a, i, all) => !['--batch', '--files', '--workers'].includes(a) && !['--batch', '--files', '--workers'].includes(all[i - 1]));
+        const { spawn } = await import('node:child_process');
+        const t0 = Date.now();
+        const outs = await Promise.all(chunks.filter((c) => c.length).map((c) => new Promise((resolve, reject) => {
+            const child = spawn(process.execPath, [fileURLToPath(import.meta.url), '--files', c.join(','), ...passOn], { stdio: ['ignore', 'pipe', 'inherit'] });
+            let out = ''; child.stdout.on('data', (d) => { out += d; });
+            child.on('close', (code) => (code === 0 ? resolve(JSON.parse(out)) : reject(new Error(`worker exited ${code}`))));
+        })));
+        console.log(JSON.stringify({ seconds: Math.round((Date.now() - t0) / 1000), workers, files: outs.flatMap((o) => o.files) }, null, 1));
+        process.exit(0);
+    }
     const ts = loadTs();
     const overrides = new Map(); const plan = [];
     for (const file of files) {
@@ -141,20 +184,26 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     // a function typed in one pass makes its callers' arguments typed in the next.
     const reports = new Map(plan.map((p) => [p.abs, []]));
     for (let pass = 0; pass < 5; pass++) {
-        let n = 0;
+        // One program per pass: infer every file against it, then apply all edits
+        // at once (each update would otherwise rebuild the checker).
+        let n = 0; const next = [];
+        resetCaches();
         for (const p of plan) {
             const inf = inferFile(ts, svc.service, p.abs);
-            reports.set(p.abs, inf.report);
+            reports.get(p.abs).push(...inf.report.map((l) => `[${pass + 1}] ${l}`));
             if (!inf.edits.length) continue;
-            svc.update(p.abs, applyEdits(svc.service.getProgram().getSourceFile(p.abs).text, inf.edits));
+            next.push([p.abs, applyEdits(svc.service.getProgram().getSourceFile(p.abs).text, inf.edits)]);
             n += inf.edits.length;
         }
+        for (const [abs, text] of next) svc.update(abs, text);
         console.error(`call-site pass ${pass + 1}: ${n} edits`);
         if (!n) break;
     }
+    const fixed = fixAll(ts, svc, plan);
     for (const p of plan) {
-        const r = fixFile(ts, svc, p.abs, { report: reports.get(p.abs) });
+        const r = { ...fixed.get(p.abs), callsites: reports.get(p.abs) };
         const text = overrides.get(p.abs);
+        if (outDir) { const o = path.join(outDir, p.target); fs.mkdirSync(path.dirname(o), { recursive: true }); fs.writeFileSync(o, text); }
         if (!dry) {
             execFileSync('git', ['-C', HUB, 'mv', p.file, p.target]);
             fs.writeFileSync(p.abs, text);
