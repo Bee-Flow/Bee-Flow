@@ -111,6 +111,9 @@ jobs:
           repositories: connector
           permission-contents: write
           permission-environments: write
+          # The mirror carries nextcloud-connector/.github/workflows; GitHub refuses
+          # an app push that changes a workflow file without this.
+          permission-workflows: write
 
       # ── Preflight: everything that can be wrong, said plainly, before
       #    anything is pushed anywhere. ────────────────────────────────────
