@@ -15,10 +15,16 @@ function loadEngine(): Promise<PdfJs> {
         engine = (async () => {
             const [pdfjs, worker] = await Promise.all([
                 import('pdfjs-dist'),
-                // Served same-origin by Vite; CSP has worker-src 'self' blob:.
-                import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
+                // `?worker`, not `?url`: Vite then emits the worker as a .js
+                // chunk. A `?url` asset keeps its .mjs name, which nginx serves
+                // as application/octet-stream; with nosniff the browser refuses
+                // it as a module worker and every document fails to open.
+                import('pdfjs-dist/build/pdf.worker.min.mjs?worker'),
             ]);
-            pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+            // One port for every document: pdf.js reuses it across getDocument calls.
+            if (!pdfjs.GlobalWorkerOptions.workerPort) {
+                pdfjs.GlobalWorkerOptions.workerPort = new worker.default();
+            }
             return pdfjs;
         })();
         // A failed load (offline chunk) must be retryable.
