@@ -52,7 +52,7 @@ function renderBothScreens(mode, props = {}) {
 describe('componentRegistry', () => {
     it('covers exactly the 52 spec types, each with full palette metadata', () => {
         const types = Object.keys(APP_COMPONENT_TYPES);
-        expect(types).toHaveLength(53); // +input_dataset, +browser_view, +approval_list, +input_html (HTML mail editor)
+        expect(types).toHaveLength(54); // +pdf_compare, +input_dataset, +browser_view, +approval_list, +input_html (HTML mail editor)
         for (const type of types) {
             const entry = APP_COMPONENT_TYPES[type];
             expect(entry.Component, `${type}.Component`).toBeTypeOf('function');

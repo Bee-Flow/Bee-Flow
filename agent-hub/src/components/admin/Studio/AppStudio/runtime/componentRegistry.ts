@@ -9,6 +9,7 @@ import {
     CheckSquare,
     ChevronsUpDown,
     ClipboardList,
+    FileDiff,
     FileText,
     FileUp,
     Dna,
@@ -71,6 +72,7 @@ import AppHeading from './components/AppHeading';
 import AppConnectorStatus from './components/AppConnectorStatus';
 import AppFileGallery from './components/AppFileGallery';
 import AppFilePreview from './components/AppFilePreview';
+import AppPdfCompare from './components/AppPdfCompare';
 import AppStepper from './components/AppStepper';
 import AppImage from './components/AppImage';
 import AppInputCheckbox from './components/AppInputCheckbox';
@@ -145,6 +147,14 @@ export const APP_COMPONENT_TYPES: Record<string, RegistryEntry | undefined> = {
         Component: AppFilePreview, label: 'File preview', icon: FileText, category: 'Content',
         defaultProps: { source: { kind: 'static', value: null }, emptyText: 'No document selected.', allowDownload: true },
         defaultStyle: { span: 12, height: 'lg' },
+    },
+    pdf_compare: {
+        Component: AppPdfCompare, label: 'PDF compare', icon: FileDiff, category: 'Content',
+        defaultProps: {
+            left: { kind: 'static', value: null }, right: { kind: 'static', value: null },
+            leftLabel: 'Original', rightLabel: 'Cleaned', emptyText: 'No documents to compare.', mode: 'side', allowDownload: true,
+        },
+        defaultStyle: { span: 12, height: 'xl' },
     },
     browser_view: {
         Component: AppBrowserView, label: 'Live browser', icon: Globe, category: 'Content',

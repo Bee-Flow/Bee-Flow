@@ -1,7 +1,7 @@
 import { Download, FileText, Loader2, RotateCw } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../../utils/helpers';
+import { authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { hoverable } from '../hoverable';
 import { resolveBinding } from '../resolveBinding';
@@ -9,6 +9,9 @@ import { useRuntime } from '../RuntimeContext';
 import { HEIGHT_PX, isFill, resolveHeightCss } from '../styleResolver';
 import { EmptyText } from '../uiBits';
 import { entryHref, entryName } from './AppInputFile';
+import { descriptorKey, firstDescriptor, friendlyError, materializeEntry } from './fileLoading';
+
+export { firstDescriptor };
 
 /**
  * App Studio runtime — 'file_preview'. Spec: server/appStudio/componentSpecs.js.
@@ -50,46 +53,6 @@ const CAD_EXT = /\.(step|stp|p21|iges|igs|dxf)$/i;
 function wantsCadRender(entry, mime) {
     if (CAD_MIME.test(mime || '')) return true;
     return CAD_EXT.test(entryName(entry) || '');
-}
-
-function friendlyError(status, message, t) {
-    if (status === 404) return t('studio_apps_runtime.file_preview.no_access', 'You do not have access to this file.');
-    if (status === 403) return t('studio_apps_runtime.file_preview.no_access', 'You do not have access to this file.');
-    if (status === 409) return t('studio_apps_runtime.file_preview.storage_full', "This app's file storage is full — ask the owner to clean up.");
-    if (status === 413) return t('studio_apps_runtime.file_preview.too_large', 'That file is too large to open here.');
-    if (status === 415) return t('studio_apps_runtime.file_preview.type_unsupported', 'That file type cannot be shown.');
-    if (status === 422) return t('studio_apps_runtime.file_preview.malware', 'That file did not pass the malware scan.');
-    return message || t('studio_apps_runtime.file_preview.open_failed', 'Could not open this file.');
-}
-
-/**
- * The first descriptor a binding resolved to — one file, no carousel.
- *
- * A `file` column is stored as JSON TEXT and nothing parses it on the read
- * path, so a records binding hands this component the raw string. Treating that
- * as a legacy URL is what rendered a filename like
- * `pdf\",\"size\":231504,\"isInline\":false}` — the tail of the JSON, split on
- * a slash.
- */
-export function firstDescriptor(value) {
-    let v = Array.isArray(value) ? value[0] : value;
-    if (!v) return null;
-    // Bounded unwrap, not a single parse: rows written while the connector
-    // pre-stringified descriptors are DOUBLE-encoded — text starting with `"`
-    // whose first parse yields another string. One parse returned that string,
-    // nothing downstream saw a descriptor, and the preview never even asked
-    // the server for the bytes.
-    for (let i = 0; i < 3 && typeof v === 'string'; i++) {
-        const s = v.trim();
-        if (!s.startsWith('{') && !s.startsWith('[') && !s.startsWith('"')) {
-            return s;                                   // legacy bare URL
-        }
-        try {
-            const parsed = JSON.parse(s);
-            v = Array.isArray(parsed) ? parsed[0] : parsed;
-        } catch { return s; }                           // not JSON → legacy bare URL
-    }
-    return (v && typeof v === 'object') ? v : null;
 }
 
 const CENTERED = 'flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center';
@@ -168,11 +131,7 @@ export default function AppFilePreview({ node }) {
 
     // The identity of the file being shown — a plain string so the effect does
     // not re-run on every render just because the descriptor object is new.
-    const key = descriptor
-        ? (typeof descriptor === 'string'
-            ? descriptor
-            : `${descriptor.kind}:${descriptor.fileId || descriptor.attachmentId || ''}:${descriptor.recordId || ''}`)
-        : null;
+    const key = descriptorKey(descriptor);
 
     // Editing must never fetch. The canvas re-renders on every keystroke, and a
     // fetch here would hammer the read limiter and, in a demo, leak real calls.
@@ -197,23 +156,7 @@ export default function AppFilePreview({ node }) {
                 let entry = currentDescriptor();
 
                 // A pending mailbox pointer has no bytes of its own yet.
-                if (entry && typeof entry === 'object' && entry.kind === 'mailbox_attachment') {
-                    const res = await authFetch(
-                        `${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/data/attachments/materialize`,
-                        {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            // The provider's id is all the server needs — it
-                            // finds the row itself, under this viewer's own read
-                            // access. The descriptor cannot carry a recordId:
-                            // the connector writes it before the row has one.
-                            body: JSON.stringify({ attachmentId: entry.attachmentId }),
-                        },
-                    );
-                    const body = await res.json().catch(() => null);
-                    if (!res.ok) throw Object.assign(new Error(body?.error || ''), { status: res.status });
-                    entry = body?.attachment;
-                }
+                entry = await materializeEntry(entry, appId);
 
                 const href = entryHref(entry, appId);
                 if (!href) throw Object.assign(new Error('That file cannot be opened.'), { status: 415 });

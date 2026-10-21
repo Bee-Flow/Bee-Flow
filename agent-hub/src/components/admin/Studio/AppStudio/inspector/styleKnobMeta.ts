@@ -146,6 +146,7 @@ export const TYPE_STYLE_KNOBS: Record<string, string[]> = {
     button:         ['span', 'size', 'align'],
     image:          ['span', 'height', 'radius', 'align'],
     file_preview:   ['span', 'height', 'radius'],
+    pdf_compare:    ['span', 'height', 'radius'],
     browser_view:   ['span'],
     divider:        ['span'],
     spacer:         ['span'],

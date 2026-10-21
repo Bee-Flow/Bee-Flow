@@ -599,6 +599,16 @@ export const V21_BATCH = deepFreeze({
                     },
                     style: { span: 12, height: 'lg' },
                 },
+                {
+                    // Two PDFs compared; static nulls = nothing to fetch in the fixture.
+                    id: 'cmp_v21pc', type: 'pdf_compare', visible: true,
+                    props: {
+                        left: { kind: 'static', value: null }, right: { kind: 'static', value: null },
+                        leftLabel: 'Original', rightLabel: 'Cleaned', emptyText: 'No documents to compare.',
+                        mode: 'side', allowDownload: true,
+                    },
+                    style: { span: 12, height: 'xl' },
+                },
                 // ── v3 ──────────────────────────────────────────────────
                 {
                     id: 'cmp_v21st', type: 'stepper', visible: true, onRowClick: 'act_v21t',

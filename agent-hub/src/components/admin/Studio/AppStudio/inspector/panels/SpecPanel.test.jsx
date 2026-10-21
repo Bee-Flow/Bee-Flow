@@ -99,7 +99,7 @@ describe('SpecPanel — renders a Content panel for every fallback type', () => 
         // in the runtime component, not here.
         // divider joined when it gained `orientation` — a single enum is
         // exactly what the generic panel exists for.
-        expect(fallbackTypes.sort()).toEqual(['approval_list', 'badge_list', 'browser_view', 'calendar', 'connector_status', 'divider', 'file_gallery', 'file_preview', 'input_dataset', 'markdown', 'message_thread', 'page_header', 'pane', 'progress', 'stepper', 'timeline']);
+        expect(fallbackTypes.sort()).toEqual(['approval_list', 'badge_list', 'browser_view', 'calendar', 'connector_status', 'divider', 'file_gallery', 'file_preview', 'input_dataset', 'markdown', 'message_thread', 'page_header', 'pane', 'pdf_compare', 'progress', 'stepper', 'timeline']);
     });
 
     for (const type of fallbackTypes) {
