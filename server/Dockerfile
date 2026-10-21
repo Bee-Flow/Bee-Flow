@@ -104,7 +104,7 @@ RUN set -eu; \
 
 # Buildx 0.38.0 with the corrected archive extractor and golang.org/x/net 0.60.0,
 # built with Go 1.27.2 (CVE-2026-78667/78669/97031); API/CLI stays unchanged.
-FROM golang:1.27.2-alpine@sha256:f92b6ef800e499660581efdabdf25d9d817a9d124eaf900924f0504e7e27e12d AS buildx-build
+FROM golang:1.27.3-alpine@sha256:f2c872bcee949b7be9c490efd02b48a8a2fbf947cdf533f1c58525ec9d8170fd AS buildx-build
 RUN apk add --no-cache git
 WORKDIR /src
 RUN git init -q . \

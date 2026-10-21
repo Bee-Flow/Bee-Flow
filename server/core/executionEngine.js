@@ -8,12 +8,11 @@ const log = require('../telemetry/log');
 /**
  * Variables a component child gets on top of the MCP child allow-list.
  *
- * NODE_EXTRA_CA_CERTS is a file path, not a secret: a self-host behind a
- * TLS-inspecting proxy sets it so outbound HTTPS verifies, and the components
- * that fetch web pages (webpage-to-markdown, website-sitemap-fetcher) would
- * start failing on such a host without it.
+ * Paths, not secrets: NODE_EXTRA_CA_CERTS lets the web-fetching components
+ * verify HTTPS behind a TLS-inspecting proxy; ATTACHMENTS_DIR is the only
+ * folder email-sender-smtp attaches files from, ATTACHMENT_MAX_BYTES its size cap.
  */
-const COMPONENT_EXTRA_ENV = Object.freeze(['NODE_EXTRA_CA_CERTS']);
+const COMPONENT_EXTRA_ENV = Object.freeze(['NODE_EXTRA_CA_CERTS', 'ATTACHMENTS_DIR', 'ATTACHMENT_MAX_BYTES']);
 
 /**
  * The environment a component's index.js runs with.

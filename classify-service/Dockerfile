@@ -7,6 +7,10 @@ WORKDIR /app
 # fixable HIGH/CRITICAL finding, so a stale base blocks the release.
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
+# The base image ships pip 25.0.1 (carries CVEs); upgrade it before any install.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip==26.2.2
+
 # CPU ONLY. This service runs on CPU everywhere; there is no GPU variant.
 # torch comes from PyTorch's CPU wheel index and ONLY from there
 # (--index-url, not --extra-index-url), so no CUDA wheel can ever resolve.

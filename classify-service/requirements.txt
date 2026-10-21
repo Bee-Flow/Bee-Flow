@@ -8,6 +8,8 @@ fastapi==0.143.0
 uvicorn[standard]==0.54.0
 pydantic==2.14.1
 pydantic-settings==2.15.0
+# certifi: GHSA-6q48-6c7w-9gw2 (compromised emSign intermediates), fixed in 2026.10.19.
+certifi==2026.10.19
 # Zero-shot classifier (Apache-2.0). PINNED, with the libraries that decide
 # what the model sees: the eval's thresholds hold for this stack, and a
 # floating version could move every score underneath them. Bump them together,

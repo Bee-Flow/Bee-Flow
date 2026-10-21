@@ -239,7 +239,7 @@ services:
 
   # ── Redis (session cache) ──────────────────────────────────────
   redis:
-    image: redis:7-alpine
+    image: redis:7.4.11-alpine
     container_name: beeflow-redis-dev
     # Phase 8a: cap memory so Redis never OOM-evicts session data silently.
     # allkeys-lru evicts the least-recently-used keys when the limit is hit,
