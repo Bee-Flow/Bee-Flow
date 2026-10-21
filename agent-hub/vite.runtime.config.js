@@ -56,7 +56,7 @@ function stubPdfEngine() {
         name: 'beeflow-runtime-stub-pdf-engine',
         enforce: 'pre',
         resolveId(source, importer) {
-            if (!/\/pdfEngine$/.test(source) || !importer) return null;
+            if (!source.endsWith('/pdfEngine') || !importer) return null;
             return path.resolve(path.dirname(importer), 'pdfEngine.stub.ts');
         },
     };

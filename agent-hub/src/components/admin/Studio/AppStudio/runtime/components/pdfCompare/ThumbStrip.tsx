@@ -34,7 +34,7 @@ export default function ThumbStrip({ doc, numPages, page, byPage, onSelect }: {
                         className={`relative flex shrink-0 flex-col items-center gap-0.5 rounded border p-0.5 ${n === page ? 'border-[var(--app-accent,#2563eb)] bg-[var(--bg-primary)]' : 'border-transparent hover:border-[var(--border-default)]'}`}
                     >
                         <PageCanvas doc={doc} pageNumber={n} cssWidth={60} />
-                        <span className="text-[10px] text-[var(--text-muted)]">{n}</span>
+                        <span className="text-[11px] text-[var(--text-secondary)]">{n}</span>
                         {count > 0 ? (
                             <span
                                 className="absolute -right-1 -top-1 min-w-[16px] rounded-full bg-red-500 px-1 text-center text-[10px] font-semibold leading-4 text-white"

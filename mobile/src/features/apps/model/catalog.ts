@@ -53,6 +53,7 @@ export const BROWSER_ONLY_TYPES: Readonly<Record<string, string>> = {
     pivot: 'A cross-tab needs two axes and one of them does not fit.',
     browser_view: 'A desktop viewport streamed as JPEG and scaled to phone width is unreadable.',
     file_preview: 'Renders through a same-origin blob: URL in an iframe — neither exists in React Native.',
+    pdf_compare: 'Two synced pdf.js canvases side by side need a desktop width, and pdf.js needs a DOM worker.',
 };
 
 export function isSupportedInput(type: string): type is SupportedInput {
