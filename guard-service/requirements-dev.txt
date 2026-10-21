@@ -4,7 +4,7 @@
 # the same pins as requirements.txt, so the tests import the versions the
 # image ships; the classes that read app/config.py need pydantic-settings.
 coverage==7.16.2
-fastapi==0.143.0
+fastapi==0.146.0
 pydantic==2.14.1
-pydantic-settings==2.15.0
+pydantic-settings==2.16.0
 httpx==0.28.1
