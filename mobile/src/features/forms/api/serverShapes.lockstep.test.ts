@@ -104,7 +104,10 @@ it('still answers filling a form in with the shapes the phone reads', () => {
     expect(missing(handler(formPublic, "router.post('/form/:token/upload'"), ['fileId', 'filename', 'size', 'mimeType', 'sessionId', 'csrf', 'field'])).toEqual([]);
     expect(missing(handler(formPublic, "router.post('/form/:token/pick'"), ['results', 'error', 'field', 'query', 'sessionId'])).toEqual([]);
     const poll = handler(formPublic, "router.get('/form/:token/s/:sid'");
-    for (const state of ['working', 'form', 'done', 'expired', 'error']) expect(poll).toContain(`state: '${state}'`);
+    for (const state of ['form', 'done', 'expired', 'error']) expect(poll).toContain(`state: '${state}'`);
+    // The still-working answer is built in one helper beside the poll (workingResponse).
+    expect(poll).toContain('workingResponse(');
+    expect(formPublic).toContain("state: 'working'");
     expect(missing(poll, ['progress', 'progressNote', 'stepId', 'ending'])).toEqual([]);
     // A 202 carries the session id; the silent bot answers do not.
     expect(formQueue).toContain('res.status(202).json({ accepted: true, ...extra });');

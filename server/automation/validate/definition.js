@@ -49,7 +49,7 @@ const { validateLayerGraph } = require('./layerGraph');
  * ask or could not reach it. Only `false` produces a finding, so a short
  * outage never blocks saving or activating (stepRules/topicRules.js).
  */
-function validateDefinitionStrict(def, { availableTools = null, toolRequiredParams = null, deliverableEvents = null, scope = 'root', availableBlocks = null, knownConnectionIds = null, availableAgents = null, topicClassifier = null } = {}) {
+function validateDefinitionStrict(def, { availableTools = null, toolRequiredParams = null, deliverableEvents = null, scope = 'root', availableBlocks = null, knownConnectionIds = null, knownVarNames = null, availableAgents = null, topicClassifier = null } = {}) {
     const errors = [];
     const warnings = [];
     const pushE = (rec) => errors.push(rec);
@@ -175,7 +175,7 @@ function validateDefinitionStrict(def, { availableTools = null, toolRequiredPara
     // Handoff 5: the buttons that start this automation from another app. A
     // root-document concern only; Steps and layers are never started that way.
 
-    const graphOpts = { errors, warnings, layers: layersMap, availableTools, toolRequiredParams, deliverableEvents, availableBlocks, knownConnectionIds, availableAgents, topicClassifier };
+    const graphOpts = { errors, warnings, layers: layersMap, availableTools, toolRequiredParams, deliverableEvents, availableBlocks, knownConnectionIds, knownVarNames, availableAgents, topicClassifier };
 
     // Root graph. Preserve the original early-return semantics: a root
     // whose basic shape is broken returns immediately (the layer graphs

@@ -49,6 +49,8 @@ export const controlExtractors: Record<string, TypeExtractor> = {
             // rather than defaulted here.
             form: step.form && typeof step.form === 'object' ? step.form : null,
             waitSeconds: typeof step.waitSeconds === 'number' ? step.waitSeconds : 3600,
+            // "Only show this page when…": an expression, '' = always shown.
+            when: typeof step.when === 'string' ? step.when : '',
         };
     },
 };

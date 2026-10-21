@@ -15,8 +15,9 @@ import { listAsForStepType, SlotListAsContext } from '../mapping/slotListAs';
 import { AiStepFields } from './settings/aiStepEditors';
 import { ApprovalFields } from './settings/approvalEditors';
 import {
-    DateTimeFields, WaitFields, LimitFields, DedupeFields, AggregateFields, SummarizeFields,
+    DateTimeFields, WaitFields,
 } from './settings/collectionEditors';
+import DataStepFields, { DATA_STEP_TYPES } from './settings/DataStepFields';
 import DatatableFields from './settings/datatableEditors';
 import { sampleFromRunOf } from './settings/flattenEditorModel';
 import FlattenFields from './settings/FlattenFields';
@@ -333,7 +334,7 @@ export default function SettingsForm({
                         draft={draft} set={set} modelTiers={modelTiers}
                         catalog={catalog} groups={groups}
                         onFocusField={onFocusField} previewSample={previewSample}
-                        errorSections={errorSections} runStep={runStep}
+                        errorSections={errorSections} runStep={runStep} stepIssues={stepIssues}
                     />
                 )}
 
@@ -472,14 +473,11 @@ export default function SettingsForm({
                 {step.type === 'form_page' && (
                     <FormPageFields draft={draft} set={set} stepId={step.id} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} onRenameField={onRenameField} formEditor={formEditor} />
                 )}
-                {step.type === 'limit' && (
-                    <LimitFields draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />
-                )}
-                {step.type === 'dedupe' && (
-                    <DedupeFields draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />
-                )}
                 {step.type === 'flatten' && (
                     <FlattenFields draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} sampleFromRun={sampleFromRunOf(groups, draft.arrayRef)} errorSections={errorSections} />
+                )}
+                {DATA_STEP_TYPES.has(step.type) && (
+                    <DataStepFields step={step} draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} automationId={automation?.id ?? null} />
                 )}
                 {step.type === 'datatable' && (
                     <DatatableFields
@@ -492,12 +490,6 @@ export default function SettingsForm({
                         draft={draft} set={set} groups={groups} onFocusField={onFocusField}
                         previewSample={previewSample} errorSections={errorSections} catalog={catalog}
                     />
-                )}
-                {step.type === 'aggregate' && (
-                    <AggregateFields draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />
-                )}
-                {step.type === 'summarize' && (
-                    <SummarizeFields draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />
                 )}
 
                 {/* Not in Simple mode: that view's whole point is that it

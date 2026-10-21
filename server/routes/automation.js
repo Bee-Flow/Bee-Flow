@@ -29,6 +29,26 @@
  *   POST   /runs/:id/approve               first-run-confirm flow approve
  *   GET    /runs/:id                       run details
  *   GET    /runs/:id/steps                 per-step log
+ *   GET    /runs/:runId/files              files the run produced
+ *   GET    /runs/:runId/files/:fileId      download one (?inline=1 for a PDF or image)
+ *   GET    /runs/:runId/files/:fileId/preview?page=N   PNG of one PDF page
+ *   GET    /runs/:runId/compare/:otherRunId?stepId=    two runs of one automation, step by step
+ *   POST   /runs/:runId/golden             mark a successful run as a golden run
+ *   DELETE /runs/:runId/golden             unmark it
+ *
+ *   GET    /:id/test-cases[?stepId=]       test cases of a code step or custom node
+ *   GET    /:id/test-cases/:caseId         one case with its input
+ *   POST   /:id/test-cases                 create (typed values or a recorded run)
+ *   PUT    /:id/test-cases/:caseId         update
+ *   DELETE /:id/test-cases/:caseId         delete
+ *   POST   /:id/test-cases/run             run the cases (optionally with unsaved code)
+ *   GET    /:id/goldens                    golden runs and their last replay
+ *   POST   /:id/goldens/replay             replay golden runs in the background
+ *   GET    /:id/form-scenarios[/:sid]      saved form answers
+ *   POST   /:id/form-scenarios             save from a run
+ *   PUT    /:id/form-scenarios/:sid        rename
+ *   DELETE /:id/form-scenarios/:sid        delete
+ *   POST   /:id/form-scenarios/:sid/dry-run  replay the form journey as a dry run
  *
  *   POST   /webhook/:slug                  PUBLIC inbound webhook (HMAC + nonce)
  *   GET    /form/:token                    PUBLIC hosted-form render config + CSRF
@@ -84,6 +104,13 @@ router.use(require('./automation/crud'));
 router.use(require('./automation/runs'));
 router.use(require('./automation/versions'));
 router.use(require('./automation/webhooksAndRunOps'));
+// The files a run produced: list, download, PDF page preview (routes/automation/runFiles.js).
+router.use(require('./automation/runFiles').makeRunFilesRouter());
+// The tables a run produced: a page of rows and a CSV download (routes/automation/runTables.js),
+// and the builder's dry preview of a table step (routes/automation/tablePreview.js).
+// Tables have their own ledger, so none of this serves a generated file.
+router.use(require('./automation/runTables').makeRunTablesRouter());
+router.use(require('./automation/tablePreview').makeTablePreviewRouter());
 // Handoff 5: who an automation is shared with, and handing it to a new owner.
 // Every path has a literal second segment, so position is free.
 router.use(require('./automation/sharing').makeSharingRouter());
@@ -102,5 +129,16 @@ router.use(require('./automation/usage').makeUsageRouter());
 // Handoff 5: duplicate, save as template, the description suggestion and the
 // header's tab counts (routes/automation/actions.js). Literal second segments.
 router.use(require('./automation/actions').makeActionsRouter());
+// Phase 9, testing as a product feature. Literal second segments (`test-cases`,
+// `goldens`, `form-scenarios`) and `/runs/:runId/compare|golden`, so the
+// position is free; they sit last so no earlier first-match route can shadow them.
+// Test cases for a code step or a custom node (routes/automation/testCases.js).
+router.use(require('./automation/testCases').makeTestCasesRouter());
+// Compare two runs of one automation, step by step (routes/automation/runCompare.js).
+router.use(require('./automation/runCompare').makeRunCompareRouter());
+// Golden runs: mark a good run, replay it later (routes/automation/goldens.js).
+router.use(require('./automation/goldens').makeGoldensRouter());
+// Saved form answers that replay a form journey as a dry run (routes/automation/formScenarios.js).
+router.use(require('./automation/formScenarios').makeFormScenariosRouter());
 
 module.exports = router;

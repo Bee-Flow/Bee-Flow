@@ -13,6 +13,8 @@ import TriggerProviderPicker from '../TriggerProviderPicker';
 import AgentBindingsSection from './agentBindings/AgentBindingsSection';
 import FieldDesigner from './fieldDesigner';
 import FormPageEditor from './FormPageEditor';
+import FormPageWaiting from './FormPageWaiting';
+import FormPageWhen from './FormPageWhen';
 import { defaultFormPageDeclaration, defaultFormEndingDeclaration } from './FormBuilderFields';
 import { FormRow, inputClass } from './formPrimitives';
 import FormTriggerFields from './FormTriggerFields';
@@ -380,13 +382,6 @@ function AppTriggerFields({ draft, set, onRenameField = null }: ParamFieldsProps
     );
 }
 
-const FORM_WAIT_CHOICES = [
-    { value: 900, label: '15 minutes' },
-    { value: 3600, label: '1 hour' },
-    { value: 86400, label: '24 hours' },
-    { value: 7 * 24 * 3600, label: '7 days' },
-];
-
 /**
  * A further page of the automation's public form.
  *
@@ -425,6 +420,14 @@ function FormPageFields({ draft, set, stepId, onFocusField, previewSample, error
     return (
         <>
             <AccordionSection stepType="form_page" sectionKey="config" title={t('automations.trigger_editors.page', 'Page')} defaultOpen forceOpen={errorSections.has('config')}>
+                <div className="mb-3">
+                    <FormPageWhen
+                        when={typeof draft.when === 'string' ? draft.when : ''}
+                        onChange={(next) => set('when', next)}
+                        onFocusField={onFocusField}
+                        previewSample={previewSample}
+                    />
+                </div>
                 <FormPageEditor
                     form={form}
                     onChange={(next) => set('form', next)}
@@ -438,22 +441,8 @@ function FormPageFields({ draft, set, stepId, onFocusField, previewSample, error
                     onRenameField={onRenameField}
                 />
             </AccordionSection>
-            {/* Its own section key, not 'options': how long the automation waits
-                for a real person is a first-class decision, so it must not
-                disappear behind the advanced-density filter. */}
             {!isEnding && (
-                <AccordionSection stepType="form_page" sectionKey="waiting" title={t('automations.trigger_editors.waiting', 'Waiting')} defaultOpen forceOpen={errorSections.has('waiting')}>
-                    <FormRow label={t('automations.trigger_editors.wait_for_an_answer', 'Wait for an answer')} hint={t('automations.trigger_editors.after_this_the_automation_gives_up', 'After this the automation gives up and the run fails.')}>
-                        <select
-                            aria-label={t('automations.trigger_editors.wait_for_an_answer', 'Wait for an answer')}
-                            value={draft.waitSeconds ?? 3600}
-                            onChange={(e) => set('waitSeconds', Number(e.target.value))}
-                            className={inputClass()}
-                        >
-                            {FORM_WAIT_CHOICES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                        </select>
-                    </FormRow>
-                </AccordionSection>
+                <FormPageWaiting waitSeconds={draft.waitSeconds} onChange={(seconds) => set('waitSeconds', seconds)} forceOpen={errorSections.has('waiting')} />
             )}
         </>
     );

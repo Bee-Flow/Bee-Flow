@@ -38,6 +38,8 @@ export const TYPE_ICON: Readonly<Record<string, IconName>> = {
     parse_json: 'Braces',
     limit: 'ChevronsDown',
     datatable: 'Table2',
+    read_table: 'FileSpreadsheet',
+    table: 'TableProperties',
     knowledge_write: 'BookOpen',
     dedupe: 'Copy',
     aggregate: 'Layers',

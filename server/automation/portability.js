@@ -38,6 +38,7 @@
  */
 
 const crypto = require('crypto');
+const { stripTestData, stripCapturedData } = require('../core/automationModel/testDataKeys');
 
 const EXPORT_FORMAT = 'beeflow.automation';
 const EXPORT_SCHEMA_VERSION = 1;
@@ -260,14 +261,9 @@ function buildExport(automation) {
     const definition = deepClone(isObject(src.definition) ? src.definition : {});
     stripPinnedOutputs(definition, warnings);
     stripEnvironmentRefs(definition, warnings);
-    // manualTriggerPayload is a sample payload the user captured for manual
-    // test runs (real email subjects/senders, ticket bodies, etc.). It's
-    // run-specific data, not part of the portable automation shape — strip it
-    // so an exported/shared file can't leak the author's sample content.
-    if (definition.manualTriggerPayload !== undefined) {
-        delete definition.manualTriggerPayload;
-        warnings.push('Removed the saved manual-trigger sample payload — it is captured from your data and is not portable.');
-    }
+    // The saved manual-trigger sample and any test data are captured from the author's
+    // own data, not part of the portable shape (core/automationModel/testDataKeys.js).
+    stripCapturedData(definition, warnings);
     stripAppRefs(definition, warnings);
     const envelope = {
         format: EXPORT_FORMAT,
@@ -338,7 +334,8 @@ function sanitizeImport(envelope) {
             triggerType: (typeof src.triggerType === 'string' && src.triggerType.trim()) ? src.triggerType.trim() : 'manual',
             scheduleCron: (typeof src.scheduleCron === 'string' && src.scheduleCron.trim()) ? src.scheduleCron.trim() : null,
             scheduleTz: (typeof src.scheduleTz === 'string' && src.scheduleTz.trim()) ? src.scheduleTz.trim() : null,
-            definition: deepClone(src.definition),
+            // Test data lives in tables, never in a definition: a hand-edited file cannot bring any.
+            definition: stripTestData(deepClone(src.definition)),
         },
         errors: [],
     };

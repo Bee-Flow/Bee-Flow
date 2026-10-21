@@ -1012,7 +1012,7 @@
  },
  "update: invalid type change": {
   "result": {
-   "error": "Cannot change a step's type to \"bogus_type\". Allowed types: integration_action, ai_step, data_extraction, condition, switch, notification, set, http_request, datatable, generate_document, fill_document, slide, presentation, code, datetime, wait, stop_error, form_page, approval, call_layer, knowledge_write, loop, filter, limit, dedupe, aggregate, summarize, flatten, guard, tokenize, untokenize."
+   "error": "Cannot change a step's type to \"bogus_type\". Allowed types: integration_action, ai_step, data_extraction, condition, switch, notification, set, http_request, datatable, generate_document, fill_document, slide, presentation, code, datetime, wait, stop_error, form_page, approval, call_layer, knowledge_write, loop, filter, limit, dedupe, aggregate, summarize, flatten, guard, tokenize, untokenize, read_table, table."
   },
   "steps": [
    {
@@ -5785,7 +5785,7 @@
  },
  "updates: rollback on error": {
   "result": {
-   "error": "update for \"b\": Field(s) bogus not patchable on a ai_step step. Allowed: prompt, systemPrompt, inputs, outputSchema, modelTier, allowTools, tools, knowledgeBaseIds, useMemory, label, forEach, agentId, skillIds, agentPermissions, disabledAgentSkillIds.",
+   "error": "update for \"b\": Field(s) bogus not patchable on a ai_step step. Allowed: prompt, systemPrompt, inputs, outputSchema, modelTier, allowTools, tools, knowledgeBaseIds, useMemory, label, forEach, agentId, skillIds, agentPermissions, disabledAgentSkillIds, temperature, enumFrom, checks, fallback, askOnce.",
    "_rolledBack": true
   },
   "steps": [
@@ -6433,7 +6433,7 @@
  },
  "replace: unknown type": {
   "result": {
-   "error": "Cannot replace into type \"nope\". Allowed: integration_action, ai_step, data_extraction, condition, switch, notification, set, http_request, datatable, generate_document, fill_document, slide, presentation, code, datetime, wait, stop_error, form_page, approval, call_layer, knowledge_write, loop, filter, limit, dedupe, aggregate, summarize, flatten, guard, tokenize, untokenize."
+   "error": "Cannot replace into type \"nope\". Allowed: integration_action, ai_step, data_extraction, condition, switch, notification, set, http_request, datatable, generate_document, fill_document, slide, presentation, code, datetime, wait, stop_error, form_page, approval, call_layer, knowledge_write, loop, filter, limit, dedupe, aggregate, summarize, flatten, guard, tokenize, untokenize, read_table, table."
   },
   "steps": [
    {
@@ -8104,7 +8104,12 @@
    "agentId",
    "skillIds",
    "agentPermissions",
-   "disabledAgentSkillIds"
+   "disabledAgentSkillIds",
+   "temperature",
+   "enumFrom",
+   "checks",
+   "fallback",
+   "askOnce"
   ],
   "condition": [
    "expr",
@@ -8266,6 +8271,7 @@
    "mode",
    "form",
    "waitSeconds",
+   "when",
    "label"
   ],
   "filter": [
@@ -8355,6 +8361,26 @@
   "untokenize": [
    "sourceRef",
    "label"
+  ],
+  "read_table": [
+   "source",
+   "sheets",
+   "headerRow",
+   "provenanceSheet",
+   "format",
+   "delimiter",
+   "skipHiddenSheets",
+   "expiresInDays",
+   "label",
+   "forEach"
+  ],
+  "table": [
+   "source",
+   "ops",
+   "name",
+   "expiresInDays",
+   "label",
+   "forEach"
   ]
  }
 }

@@ -371,6 +371,32 @@ test('activateCore without organizationId passes the automation\'s organisation 
     assert.strictEqual(calls.publish.length, 1);
 });
 
+test('checkBeforeLiveCore: a pseudonymise salt variable that holds no value blocks activation', async () => {
+    const def = {
+        trigger: { id: 'trg', type: 'trigger', kind: 'form', output: {}, form: { title: 'T', fields: [{ name: 'upload', type: 'file', label: 'F' }] } },
+        steps: [
+            { id: 'rd', type: 'read_table', label: 'Read table', source: { kind: 'ref', path: 'trigger.output.upload' } },
+            { id: 'tb', type: 'table', label: 'Edit table', source: { kind: 'ref', path: 'steps.rd.output.table' }, ops: [{ id: 'p1', op: 'pseudonymise', columns: ['rec_id'], saltVar: 'TABLE_SALT' }] },
+        ],
+        edges: [{ from: 'trg', to: 'rd' }, { from: 'rd', to: 'tb' }],
+        vars: {},
+    };
+    const asked = [];
+    const base = { agentsFor: async () => null, kbFindingsFor: async () => [], permittedApps: async () => new Set() };
+    const missing = await checkBeforeLiveCore({
+        automation: automation({ userId: 'owner', projectId: 'p1' }), definition: def, ownerId: 'owner',
+        deps: { ...base, knownVarNamesFor: async (d, a) => { asked.push(a.projectId); return new Set(['OTHER']); } },
+    });
+    assert.strictEqual(missing.ok, false);
+    assert.ok(missing.body.details.some(e => e.code === 'table.salt_var_missing'), JSON.stringify(missing.body));
+    assert.deepStrictEqual(asked, ['p1']);
+    const present = await checkBeforeLiveCore({
+        automation: automation({ userId: 'owner' }), definition: def, ownerId: 'owner',
+        deps: { ...base, knownVarNamesFor: async () => new Set(['TABLE_SALT']) },
+    });
+    assert.ok(!(present.body?.details || []).some(e => e.code === 'table.salt_var_missing'), JSON.stringify(present));
+});
+
 test('checkBeforeLiveCore: the presser\'s session stands in for the owner\'s only when they ARE the owner', async () => {
     const seen = [];
     const deps = { agentsFor: async () => null, kbFindingsFor: async () => [], permittedApps: async (opts) => { seen.push(opts); return new Set(); } };

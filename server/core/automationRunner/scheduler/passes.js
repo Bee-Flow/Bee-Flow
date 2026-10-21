@@ -15,7 +15,7 @@
 const { pool } = require('../../../db');
 // What the passes drive in automation/, jobs/ and meeting notes: see ../featurePorts.js.
 const { runnerPort } = require('../featurePorts');
-const { reapOrphanFormUploads, reapExpiredGeneratedFiles } = require('./reapers');
+const { reapOrphanFormUploads, reapExpiredGeneratedFiles, reapExpiredRunTables } = require('./reapers');
 const log = require('../../../telemetry/log');
 
 /**
@@ -120,6 +120,7 @@ async function processRunRetention() {
             // shape of work: bounded, idempotent, one pod.
             await reapOrphanFormUploads();
             await reapExpiredGeneratedFiles();
+            await reapExpiredRunTables();
             // Visitor sessions for multi-page forms. Purely a pointer row, so this
             // is a plain delete — the run it referenced has its own retention.
             try {

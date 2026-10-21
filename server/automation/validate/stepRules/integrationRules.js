@@ -9,6 +9,7 @@
 
 const { isObject } = require('../helpers');
 const { isSideEffect, isMemoisable } = require('../../sideEffectMap');
+const { aiStepCanCallTools } = require('../../../core/automationModel/aiStepReliability');
 const {
     HTTP_REQUEST_METHODS, HTTP_REQUEST_WRITE_METHODS, CACHE_INTO_MAX_DAYS,
 } = require('../constants');
@@ -175,8 +176,28 @@ function checkAskOnce(ctx, step, at) {
                     pushW({ code: 'integration_action.ask_once_across_runs_org_gated', severity: 'warning', path: at + '.askOnce.acrossRuns', message: `Step ${step.id}: answers are only kept between runs if your organisation allows it.`, hint: 'An administrator turns this on under Organisation settings; until then this step asks every run.' });
                 }
             }
+        } else if (step.type === 'ai_step') {
+            // "Reuse the answer": the same question, with the same data, to the
+            // same model gets the stored answer. Never while the step may call
+            // tools (a tool may change something, so the answer is not the
+            // whole story) or with the AI-answer setting off for the
+            // organisation (across runs).
+            if (aiStepCanCallTools(step)) {
+                pushW({ code: 'ai_step.ask_once_with_tools', severity: 'warning', path: at + '.askOnce', message: `Step ${step.id}: the answer is not reused when the step may call tools.`, hint: 'Turn tools off for this step to reuse its answer, or remove the reuse setting.' });
+            }
+            if (typeof step.askOnce === 'object') {
+                const ttl = Number(step.askOnce.ttlSeconds);
+                if (step.askOnce.ttlSeconds !== undefined && (!Number.isFinite(ttl) || ttl < 1 || ttl > 900)) {
+                    pushE({ code: 'ai_step.ask_once_ttl_range', severity: 'error', path: at + '.askOnce.ttlSeconds', message: `Step ${step.id}: reuse an answer for between 1 and 900 seconds.`, hint: 'Leave it empty for the default of five minutes.' });
+                }
+                if (step.askOnce.acrossRuns !== undefined && typeof step.askOnce.acrossRuns !== 'boolean') {
+                    pushE({ code: 'ai_step.ask_once_across_runs_type', severity: 'error', path: at + '.askOnce.acrossRuns', message: `Step ${step.id}: "reuse between runs" is on or off.`, hint: 'Leave it out for off.' });
+                } else if (step.askOnce.acrossRuns === true) {
+                    pushW({ code: 'ai_step.ask_once_across_runs_org_gated', severity: 'warning', path: at + '.askOnce.acrossRuns', message: `Step ${step.id}: answers are only kept between runs if your organisation allows it under "Answers from AI steps".`, hint: 'An administrator turns this on under Organisation settings ("Answers from AI steps"); until then this step asks the model every run.' });
+                }
+            }
         } else {
-            pushW({ code: `${step.type}.ask_once_unsupported`, severity: 'warning', path: at + '.askOnce', message: `Step ${step.id}: "ask only once" does nothing on a ${step.type} step — it runs every time.`, hint: 'Only an app action reuses its answer within a run. Remove the setting, or move the look-up into an app action step.' });
+            pushW({ code: `${step.type}.ask_once_unsupported`, severity: 'warning', path: at + '.askOnce', message: `Step ${step.id}: "ask only once" does nothing on a ${step.type} step — it runs every time.`, hint: 'Only an app action, a web request and an AI step reuse an answer. Remove the setting, or move the look-up into one of those steps.' });
         }
     }
 }

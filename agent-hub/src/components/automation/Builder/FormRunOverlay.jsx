@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { X, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
-import PublicFormRenderer from '../../forms/PublicFormRenderer';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import FormSaveScenario from './FormSaveScenario';
+import FormScenarioPicker from './FormScenarioPicker';
 import apiClient from '../../../api/client';
 import { useTranslation } from '../../../hooks/useTranslation';
+import PublicFormRenderer from '../../forms/PublicFormRenderer';
 
 function headerTitle(t, attached, hasStep) {
     if (attached) return t('automations.form_run_overlay.live_run_title', 'Live run — this page is waiting for you');
@@ -58,6 +60,8 @@ export default function FormRunOverlay({
     const [page, setPage] = useState({ form: form || null, stepId: null });
     const [runId, setRunId] = useState(attachRunId || null);
     const [error, setError] = useState(null);
+    // Saved answers laid over the page on screen (see FormScenarioPicker).
+    const [prefill, setPrefill] = useState(null);
     const closedRef = useRef(false);
 
     useEffect(() => {
@@ -93,6 +97,7 @@ export default function FormRunOverlay({
             if (state?.waiting && state.form) {
                 setRunId(state.runId || id);
                 setPage({ form: state.form, stepId: state.stepId });
+                setPrefill(null);
                 setPhase('form');
                 return;
             }
@@ -172,9 +177,11 @@ export default function FormRunOverlay({
                                     ? t('automations.form_run_overlay.paused_hint', 'The automation paused here and is waiting for an answer.')
                                     : t('automations.form_run_overlay.first_page_hint', 'What you submit runs the automation for real, with these answers as the trigger.')}
                             </p>
+                            <FormScenarioPicker automationId={automationId} stepId={page.stepId} onPick={setPrefill} />
                             <PublicFormRenderer
                                 key={page.stepId || 'page1'}
                                 form={page.form}
+                                prefill={prefill}
                                 onSubmit={submit}
                                 onSearchApp={searchApp}
                                 showSuccess={false}
@@ -203,6 +210,7 @@ export default function FormRunOverlay({
                             >
                                 {t('automations.form_run_overlay.see_what_each_step_did', 'See what each step did')}
                             </button>
+                            {runId && <FormSaveScenario automationId={automationId} runId={runId} />}
                         </div>
                     )}
 

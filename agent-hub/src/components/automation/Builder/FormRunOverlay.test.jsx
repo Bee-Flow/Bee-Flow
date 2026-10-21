@@ -8,15 +8,16 @@
  * tested, which is exactly when nobody is watching the network tab.
  */
 
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 
 const get = vi.fn();
 const post = vi.fn();
 vi.mock('../../../api/client', () => ({ default: { get: (...a) => get(...a), post: (...a) => post(...a) } }));
 
 import FormRunOverlay from './FormRunOverlay';
+import { withQueryClient } from '../../../test/queryWrapper';
 
 const PAGE_ONE = {
     title: 'Vraag het',
@@ -38,7 +39,7 @@ const PAGE_TWO = {
 function renderOverlay(props = {}) {
     const onStartRun = props.onStartRun || vi.fn(async () => ({ run: { id: 'run1' } }));
     const onClose = vi.fn();
-    render(<FormRunOverlay automationId="auto1" form={PAGE_ONE} onStartRun={onStartRun} onClose={onClose} {...props} />);
+    render(withQueryClient(<FormRunOverlay automationId="auto1" form={PAGE_ONE} onStartRun={onStartRun} onClose={onClose} {...props} />));
     return { onStartRun, onClose };
 }
 
@@ -160,7 +161,7 @@ describe('FormRunOverlay — attached to a live run', () => {
         get.mockResolvedValue({ runId: 'run9', status: 'awaiting_form', waiting: true, stepId: 'fp_2', form: PAGE_TWO });
         post.mockResolvedValue({ accepted: true, run: { id: 'run9' } });
         const onStartRun = vi.fn();
-        render(<FormRunOverlay automationId="auto1" runId="run9" onStartRun={onStartRun} onClose={vi.fn()} />);
+        render(withQueryClient(<FormRunOverlay automationId="auto1" runId="run9" onStartRun={onStartRun} onClose={vi.fn()} />));
 
         await waitFor(() => expect(screen.getByText('Nog één ding')).toBeTruthy());
         expect(get.mock.calls[0][0]).toBe('/api/automation/runs/run9/form');
@@ -179,7 +180,7 @@ describe('FormRunOverlay — attached to a live run', () => {
 
     it('starts on the working screen until the run has a page for you', async () => {
         get.mockResolvedValue({ runId: 'run9', status: 'running', waiting: false });
-        render(<FormRunOverlay automationId="auto1" runId="run9" onStartRun={vi.fn()} onClose={vi.fn()} />);
+        render(withQueryClient(<FormRunOverlay automationId="auto1" runId="run9" onStartRun={vi.fn()} onClose={vi.fn()} />));
         expect(screen.getByText('Running the automation…')).toBeTruthy();
     });
 });

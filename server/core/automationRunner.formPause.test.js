@@ -22,6 +22,7 @@
  */
 
 const { test, after, beforeEach } = require('node:test');
+const { makeMemoryRunStore } = require('../testUtils/memoryRunStore');
 // The runner reaches automation/, integrations/ and services/ through
 // core/automationRunner/featurePorts.js; boot registers these for the server.
 require('../automation/runnerPorts');
@@ -30,63 +31,10 @@ require('../services/runnerPorts');
 const assert = require('node:assert');
 
 // ── In-memory store stub ───────────────────────────────────────────────────
-const runs = new Map();
-const stepsByRun = new Map();   // runId → [recordRunStep args]
-let runSeq = 0;
-const updateRunCalls = [];
-let AUTOMATION = null;          // what getAutomation hands back to resumeFromStep
-// The kept full copies of truncated outputs (automation_run_full_outputs),
-// keyed `runId|stepId|attempts`.
-const FULL_COPIES = new Map();
+const memory = makeMemoryRunStore();
+const { runs, stepsByRun, updateRunCalls } = memory;
 
-function makeRun({ automationId, version, userId, triggerKind, triggerPayload, mode, parentRunId, rootRunId }) {
-    const id = `run-${++runSeq}`;
-    const row = {
-        id, automationId, version, userId, triggerKind,
-        triggerPayload: triggerPayload || null, mode, status: 'queued',
-        startedAt: new Date().toISOString(), finishedAt: null, durationMs: null,
-        // The journey: a run is its own root unless it CONTINUES a paused one.
-        // Mirrors createRun's COALESCE($rootRunId, id).
-        error: null, summary: null, parentRunId: parentRunId ?? null, rootRunId: rootRunId ?? id,
-        cancelRequested: false, awaitingStepId: null, approvalToken: null,
-        awaitingStepExpiresAt: null, errorClass: null, handledErrorCount: 0,
-    };
-    runs.set(id, row);
-    stepsByRun.set(id, []);
-    return row;
-}
-
-const storeStub = {
-    initDB: async () => {},
-    createRun: async (args) => makeRun(args),
-    getRun: async (id) => runs.get(id) || null,
-    updateRun: async (id, updates) => {
-        updateRunCalls.push({ id, updates: { ...updates } });
-        const r = runs.get(id);
-        if (!r) return false;
-        Object.assign(r, updates);
-        return true;
-    },
-    getRunsForAutomation: async () => [],
-    getRunSteps: async (id) => (stepsByRun.get(id) || []).map(s => ({ ...s })),
-    // Upsert on (runId, stepId, attempts), exactly like the real store's
-    // ON CONFLICT clause. The runner writes a 'running' row when a step starts
-    // and the real row when it lands; a stub that merely appended kept both,
-    // so a lookup by stepId found the placeholder instead of the result.
-    recordRunStep: async (row) => {
-        const rows = stepsByRun.get(row.runId) || [];
-        const i = rows.findIndex(r => r.stepId === row.stepId && r.attempts === row.attempts);
-        if (i >= 0) rows[i] = { ...row }; else rows.push({ ...row });
-    },
-    markRunning: async () => true,
-    releaseAutomation: async () => {},
-    resetAttempts: async () => {},
-    updateAutomation: async () => true,
-    touchRunHeartbeat: async () => {},
-    requestCancelRun: async () => null,
-    getAutomation: async () => AUTOMATION,
-    getRunFullOutput: async (runId, stepId, attempts = 1) => FULL_COPIES.get(`${runId}|${stepId}|${attempts}`) ?? null,
-};
+const storeStub = memory.methods;
 
 function stub(modPath, exportsObj) {
     const resolved = require.resolve(modPath);
@@ -106,14 +54,7 @@ const { execFormPage, FormInputRequiredError } = runner;
 
 after(() => { setImmediate(() => process.exit(process.exitCode || 0)); });
 
-beforeEach(() => {
-    runs.clear();
-    stepsByRun.clear();
-    runSeq = 0;
-    updateRunCalls.length = 0;
-    AUTOMATION = null;
-    FULL_COPIES.clear();
-});
+beforeEach(memory.reset);
 
 const noLayers = { layerStack: [] };
 const blankState = { trigger: { output: {} }, steps: {}, vars: {}, secrets: {} };
@@ -291,8 +232,8 @@ function formAutomation(pages = 1) {
 const outputOf = (runId, stepId) => (stepsByRun.get(runId) || []).find(s => s.stepId === stepId)?.output;
 
 test('a run pauses at a form page with awaiting_form, the step id and a deadline', async () => {
-    AUTOMATION = formAutomation(1);
-    const run = await runner.executeAutomation(AUTOMATION, {
+    memory.automation = formAutomation(1);
+    const run = await runner.executeAutomation(memory.automation, {
         triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live',
     });
 
@@ -319,8 +260,8 @@ test('a run pauses at a form page with awaiting_form, the step id and a deadline
 });
 
 test('resuming injects the answers as the step output, and downstream binds them', async () => {
-    AUTOMATION = formAutomation(1);
-    const paused = await runner.executeAutomation(AUTOMATION, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
+    memory.automation = formAutomation(1);
+    const paused = await runner.executeAutomation(memory.automation, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
 
     const resumed = await runner.resumeFromStep(paused.id, 'fp1', {
         decision: { answer1: 'Main Street 1' },
@@ -337,14 +278,14 @@ test('rootStepId and triggerHeaders survive the resume', async () => {
     // Neither is stored on the run row, so without the pass-through a form on a
     // secondary trigger would resume from the wrong node and every
     // trigger.headers.* binding would go blank.
-    AUTOMATION = formAutomation(1);
-    AUTOMATION.definition.steps.push({
+    memory.automation = formAutomation(1);
+    memory.automation.definition.steps.push({
         id: 'meta', type: 'set',
         fields: { page: { kind: 'ref', path: 'trigger.headers.form_page_id' } },
     });
-    AUTOMATION.definition.edges.push({ from: 'echo', to: 'meta' });
+    memory.automation.definition.edges.push({ from: 'echo', to: 'meta' });
 
-    const paused = await runner.executeAutomation(AUTOMATION, {
+    const paused = await runner.executeAutomation(memory.automation, {
         triggerKind: 'form', triggerPayload: { name: 'Ada' },
         triggerHeaders: { form_page_id: 'tok-abc' }, mode: 'live', rootStepId: 'trig',
     });
@@ -366,9 +307,9 @@ test('THREE pages work — the second resume still sees page one\'s answers', as
     //   2. resumeFromStep reads the whole ancestor chain, because everything
     //      before the previous pause was replayed rather than re-recorded.
     // Drop either and `got1` comes back undefined.
-    AUTOMATION = formAutomation(2);
+    memory.automation = formAutomation(2);
 
-    const p1 = await runner.executeAutomation(AUTOMATION, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
+    const p1 = await runner.executeAutomation(memory.automation, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
     assert.strictEqual(p1.status, 'awaiting_form');
     assert.strictEqual(runs.get(p1.id).awaitingStepId, 'fp1');
 
@@ -389,14 +330,14 @@ test('THREE pages work — the second resume still sees page one\'s answers', as
 });
 
 test('an ending page runs inline and leaves its rendered summary on the run', async () => {
-    AUTOMATION = formAutomation(1);
-    AUTOMATION.definition.steps.push({
+    memory.automation = formAutomation(1);
+    memory.automation.definition.steps.push({
         id: 'bye', type: 'form_page', mode: 'ending',
         form: { title: 'Thanks!', description: 'You told us: {{steps.fp1.output.answer1}}' },
     });
-    AUTOMATION.definition.edges.push({ from: 'echo', to: 'bye' });
+    memory.automation.definition.edges.push({ from: 'echo', to: 'bye' });
 
-    const paused = await runner.executeAutomation(AUTOMATION, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
+    const paused = await runner.executeAutomation(memory.automation, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
     const done = await runner.resumeFromStep(paused.id, 'fp1', { decision: { answer1: 'Main Street 1' } });
 
     assert.strictEqual(done.status, 'success', 'an ending page does not pause the run');
@@ -411,8 +352,8 @@ test('a resume of a FINISHED run starts its own journey, so a retry keeps its ow
     // step and "▶ Execute from here" set it too. The discriminator is whether
     // the run being resumed was still awaiting a human. Fold a retry into the
     // journey it replays and the history quietly loses the second attempt.
-    AUTOMATION = formAutomation(1);
-    const paused = await runner.executeAutomation(AUTOMATION, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
+    memory.automation = formAutomation(1);
+    const paused = await runner.executeAutomation(memory.automation, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
     const finished = await runner.resumeFromStep(paused.id, 'fp1', { decision: { answer1: 'x' } });
     assert.strictEqual(finished.status, 'success');
 
@@ -458,12 +399,12 @@ function truncateRecordedRow(runId, stepId, { full = null } = {}) {
         __truncated__: true, originalBytes: 2_400_000, headSample: '{"total":',
         ...(full ? { fullOutputRef: { runId, stepId, attempts } } : {}),
     };
-    if (full) FULL_COPIES.set(`${runId}|${stepId}|${attempts}`, full);
+    if (full) memory.fullCopies.set(`${runId}|${stepId}|${attempts}`, full);
 }
 
 test('an output the history truncated comes back whole when the run resumes after a form page', async () => {
-    AUTOMATION = bigThenForm();
-    const paused = await runner.executeAutomation(AUTOMATION, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
+    memory.automation = bigThenForm();
+    const paused = await runner.executeAutomation(memory.automation, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
     assert.strictEqual(paused.status, 'awaiting_form');
     const full = { total: 8000, items: [{ id: 'first-item' }, { id: 'second-item' }] };
     truncateRecordedRow(paused.id, 'fetch', { full });
@@ -476,8 +417,8 @@ test('an output the history truncated comes back whole when the run resumes afte
 });
 
 test('with no copy kept, a resume whose later steps read that output fails and names the step', async () => {
-    AUTOMATION = bigThenForm();
-    const paused = await runner.executeAutomation(AUTOMATION, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
+    memory.automation = bigThenForm();
+    const paused = await runner.executeAutomation(memory.automation, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
     truncateRecordedRow(paused.id, 'fetch');   // a row from before copies were kept
 
     const resumed = await runner.resumeFromStep(paused.id, 'fp1', { decision: { ok: 'yes' } });
@@ -489,8 +430,8 @@ test('with no copy kept, a resume whose later steps read that output fails and n
 });
 
 test('with no copy kept, a resume that never reads that output again carries on', async () => {
-    AUTOMATION = bigThenForm({ readAfterPause: false });
-    const paused = await runner.executeAutomation(AUTOMATION, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
+    memory.automation = bigThenForm({ readAfterPause: false });
+    const paused = await runner.executeAutomation(memory.automation, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
     truncateRecordedRow(paused.id, 'fetch');
 
     const resumed = await runner.resumeFromStep(paused.id, 'fp1', { decision: { ok: 'yes' } });
@@ -503,9 +444,9 @@ test('a sentinel naming some OTHER row\'s copy is not followed', async () => {
     // An output under the cap is stored as whatever the step returned, so a
     // web response can be shaped exactly like a sentinel with a ref. Following
     // that ref would load another run's output into this one.
-    AUTOMATION = bigThenForm();
-    const paused = await runner.executeAutomation(AUTOMATION, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
-    FULL_COPIES.set('run-elsewhere|fetch|1', { total: 666, items: [{ id: 'not-this-run' }] });
+    memory.automation = bigThenForm();
+    const paused = await runner.executeAutomation(memory.automation, { triggerKind: 'form', triggerPayload: { name: 'Ada' }, mode: 'live' });
+    memory.fullCopies.set('run-elsewhere|fetch|1', { total: 666, items: [{ id: 'not-this-run' }] });
     const row = stepsByRun.get(paused.id).find(r => r.stepId === 'fetch' && r.status === 'success');
     row.output = {
         __truncated__: true, originalBytes: 2_400_000, headSample: '{',

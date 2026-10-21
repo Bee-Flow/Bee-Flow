@@ -22,16 +22,24 @@ export const FIELD_TYPES: readonly { value: string; label: Msg }[] = [
     { value: 'number', label: msg('mobile.flow.form.type_number', 'Number') },
     { value: 'date', label: msg('mobile.flow.form.type_date', 'Date') },
     { value: 'select', label: msg('mobile.flow.form.type_select', 'Dropdown') },
+    { value: 'radio', label: msg('mobile.flow.form.type_radio', 'Choice buttons') },
+    { value: 'multiselect', label: msg('mobile.flow.form.type_multiselect', 'Several choices') },
     { value: 'checkbox', label: msg('mobile.flow.form.type_checkbox', 'Checkbox') },
     { value: 'file', label: msg('mobile.flow.form.type_file', 'File upload') },
     { value: 'app_pick', label: msg('mobile.flow.form.type_app_pick', 'Pick from an app') },
     { value: 'download', label: msg('mobile.flow.form.type_download', 'Download button') },
     { value: 'notebook', label: msg('mobile.flow.form.type_notebook', 'Open in Notebooks') },
+    { value: 'info', label: msg('mobile.flow.form.type_info', 'Text block') },
 ];
 
 /** Types that GIVE instead of ask: never submitted, never required, no placeholder or name to bind. */
-export const DISPLAY_FIELD_TYPES: readonly string[] = ['download', 'notebook'];
+export const DISPLAY_FIELD_TYPES: readonly string[] = ['download', 'notebook', 'info'];
 export const isDisplayField = (f: { type?: unknown } | null | undefined): boolean => DISPLAY_FIELD_TYPES.includes(String(f?.type));
+/** A display field that points at a file (download, Open in Notebooks); an info block carries text instead. */
+export const isFileField = (f: { type?: unknown } | null | undefined): boolean => isDisplayField(f) && String(f?.type) !== 'info';
+/** Types that offer a list of choices the author types in. */
+export const CHOICE_FIELD_TYPES: readonly string[] = ['select', 'radio', 'multiselect'];
+export const isChoiceField = (f: { type?: unknown } | null | undefined): boolean => CHOICE_FIELD_TYPES.includes(String(f?.type));
 
 export const THEME_KNOBS: readonly { key: keyof FormTheme; label: Msg; values: readonly string[] }[] = [
     { key: 'radius', label: msg('mobile.flow.form.knob_radius', 'Corners'), values: ['none', 'sm', 'md', 'lg', 'xl'] },
@@ -65,17 +73,19 @@ export function slugifyFieldName(label: unknown, taken: ReadonlySet<unknown> = n
     return `${base}_${Date.now().toString(36)}`;
 }
 
-/** Stored options (strings, or `{value,label}`) as `{value,label}` pairs; unreadable rows dropped. */
-export function normaliseOptions(options: unknown): { value: string; label: string }[] {
+/** Stored options (strings, or `{value,label,hint}`) as `{value,label,hint?}`; unreadable rows dropped. */
+export function normaliseOptions(options: unknown): { value: string; label: string; hint?: string }[] {
     if (!Array.isArray(options)) return [];
     return options
         .map((o) => {
             if (typeof o === 'string') return { value: o, label: o };
-            const row = o as { value?: unknown; label?: unknown } | null;
-            if (row && typeof row === 'object' && row.value) return { value: String(row.value), label: String(row.label || row.value) };
+            const row = o as { value?: unknown; label?: unknown; hint?: unknown } | null;
+            if (row && typeof row === 'object' && row.value) {
+                return { value: String(row.value), label: String(row.label || row.value), ...(typeof row.hint === 'string' && row.hint ? { hint: row.hint } : {}) };
+            }
             return null;
         })
-        .filter((o): o is { value: string; label: string } => !!o);
+        .filter((o): o is { value: string; label: string; hint?: string } => !!o);
 }
 
 /** A choice question's options as the list the author edits (blank values stay invisible). */

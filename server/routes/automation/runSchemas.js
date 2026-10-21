@@ -33,13 +33,26 @@ const RunBody = bodyOf({
     test: z.boolean({ error: typeError({ invalid: 'test is true or false.' }) }).optional(),
 });
 
+const SEED_TEXT = 'seedRunId is the id of a run of this automation.';
 const PARTIAL_TEXT = 'mode is "only", "from" or "upTo".';
 const PartialRunBody = bodyOf({
     ...RUN_SHAPE,
     // An enum, not a fall-back: `upto` for `upTo` used to run ONLY that step
     // instead of everything leading to it, and answer 200 either way.
     mode: z.enum(['only', 'from', 'upTo'], { error: () => PARTIAL_TEXT }).default('only'),
+    // Re-run from a chosen run: take the replay from exactly that run (see
+    // core/automationRunner/replaySeeding.seedReplayStateFromRun). Without
+    // seedRunId none of the three means anything and the step runs as before.
+    seedRunId: worded(SEED_TEXT).trim().min(1, SEED_TEXT).max(200, SEED_TEXT).nullish(),
+    allowLiveUpstream: z.boolean({ error: typeError({ invalid: 'allowLiveUpstream is true or false.' }) }).optional(),
+    confirmSideEffects: z.boolean({ error: typeError({ invalid: 'confirmSideEffects is true or false.' }) }).optional(),
 });
+// What a re-run from a chosen run would do, asked before doing it.
+const RerunPlanQuery = z.object({
+    seedRunId: worded(SEED_TEXT).trim().min(1, SEED_TEXT).max(200, SEED_TEXT),
+    mode: z.enum(['only', 'from'], { error: () => 'mode is "only" or "from".' }).default('only'),
+    triggerStepId: one('triggerStepId', 'the id of a trigger on this automation'),
+}).strict();
 
 const SEARCH_TEXT = 'q is a search term of at most 100 characters.';
 const TESTS_TEXT = 'tests is "include", "exclude" or "only".';
@@ -93,4 +106,4 @@ const SeenBody = z.object({
     items: z.array(worded(ITEMS_TEXT).trim().min(1, ITEMS_TEXT).max(100, ITEMS_TEXT), { error: () => ITEMS_TEXT }).max(100, ITEMS_TEXT),
 }).strict();
 
-module.exports = { SeenBody, RunBody, PartialRunBody, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody };
+module.exports = { SeenBody, RunBody, PartialRunBody, RerunPlanQuery, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody };

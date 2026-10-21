@@ -48,7 +48,7 @@ export function ChoiceAnswer({ field, value, error, disabled, onChange }: Answer
                 <Button
                     variant="secondary"
                     iconName="ChevronDown"
-                    label={chosenLabel || field.placeholder || t('mobile.forms.fill.choose', 'Choose…')}
+                    label={chosenLabel || field.placeholder || t('forms.choose', 'Choose…')}
                     onPress={() => setOpen(true)}
                     disabled={disabled}
                     testID={`fill-${field.name}`}

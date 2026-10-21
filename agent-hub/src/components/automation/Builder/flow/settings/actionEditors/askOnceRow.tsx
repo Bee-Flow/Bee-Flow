@@ -27,6 +27,11 @@ interface AskOnceRowProps {
     disabled?: boolean;
     disabledReason?: string | null;
     label?: string;
+    /** The sentence under the tick when the row is not disabled. Defaults to the app-action wording. */
+    description?: string;
+    /** Wording of the second tick ("keep the answer for later runs") and what it stores. */
+    acrossRunsLabel?: string;
+    acrossRunsDescription?: string;
 }
 
 /**
@@ -68,7 +73,7 @@ function askOnceAvailability(action: AskOnceAction | null | undefined, appLabel?
     };
 }
 
-function AskOnceRow({ draft, set, disabled = false, disabledReason = null, label = 'Ask this app only once per run' }: AskOnceRowProps) {
+function AskOnceRow({ draft, set, disabled = false, disabledReason = null, label = 'Ask this app only once per run', description, acrossRunsLabel, acrossRunsDescription }: AskOnceRowProps) {
     const { t } = useTranslation();
     const on = !!draft.askOnce;
     // Shown whether or not the tick is disabled. It used to be
@@ -107,7 +112,7 @@ function AskOnceRow({ draft, set, disabled = false, disabledReason = null, label
                 <span>
                     <span className="font-medium">{label}</span>
                     <span className="block text-slate-500 dark:text-slate-400">
-                        {reason || 'If this step asks the same thing more than once in a run — inside a loop, say — the first answer is used again instead of asking every time.'}
+                        {reason || description || 'If this step asks the same thing more than once in a run — inside a loop, say — the first answer is used again instead of asking every time.'}
                     </span>
                 </span>
             </label>
@@ -124,14 +129,14 @@ function AskOnceRow({ draft, set, disabled = false, disabledReason = null, label
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAcrossRuns(e.target.checked)}
                     />
                     <span>
-                        <span className="font-medium">{t('automations.ask_once_row.and_keep_the_answer_for_later', '…and keep the answer for later runs too')}</span>
+                        <span className="font-medium">{acrossRunsLabel || t('automations.ask_once_row.and_keep_the_answer_for_later', '…and keep the answer for later runs too')}</span>
                         <span className="block text-slate-500 dark:text-slate-400">
                             {/* Two things a person must be able to see before ticking
                                 this: the answer is STORED, and their administrator has
                                 the final say. Neither is discoverable from the runtime
                                 behaviour — a step that silently asked every time would
                                 just look slow. */}
-                            {t('automations.ask_once_row.the_answer_is_stored_encrypted_so', 'The answer is stored, encrypted, so the next run can use it instead of asking again. Your administrator decides whether that is allowed, and for how long; until they turn it on, this step asks every run.')}
+                            {acrossRunsDescription || t('automations.ask_once_row.the_answer_is_stored_encrypted_so', 'The answer is stored, encrypted, so the next run can use it instead of asking again. Your administrator decides whether that is allowed, and for how long; until they turn it on, this step asks every run.')}
                         </span>
                     </span>
                 </label>

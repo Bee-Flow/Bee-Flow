@@ -41,7 +41,7 @@ export function SelectField({ value, options, onChange, label, hint, required, e
     const t = useTranslation();
     const [open, setOpen] = useState(false);
     const current = options.find((o) => o.value === value);
-    const shown = current?.label ?? (value || prompt || t('mobile.flow.field.choose', 'Choose…'));
+    const shown = current?.label ?? (value || prompt || t('forms.choose', 'Choose…'));
     const choose = (next: string) => {
         setOpen(false);
         if (next !== value) onChange(next);
@@ -57,7 +57,7 @@ export function SelectField({ value, options, onChange, label, hint, required, e
                 disabled={disabled}
                 testID={testID ? `${testID}-select` : undefined}
             />
-            <Sheet visible={open} onClose={() => setOpen(false)} title={label ?? t('mobile.flow.field.choose', 'Choose…')}>
+            <Sheet visible={open} onClose={() => setOpen(false)} title={label ?? t('forms.choose', 'Choose…')}>
                 <View style={styles.list}>
                     {options.map((o) => (
                         <OptionRow

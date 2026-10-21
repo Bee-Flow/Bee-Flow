@@ -31,6 +31,7 @@ const { translateDatatablePatch, linkDatatablePatch, patchDatatableBody } = requ
 const { fillOnlyRefusal } = require('./patchGuards/fillOnly');
 const { patchDataExtraction } = require('./patchGuards/dataExtraction');
 const { patchBindingMap } = require('./patchGuards/bindings');
+const { patchTableStep } = require('./patchGuards/tables');
 
 /** Run a type change patch as the replace it is. */
 function updateAsTypeChange(graph, step, found, patch, newType, args, draftWrap) {
@@ -183,6 +184,10 @@ function applyUpdateStep(graph, args, draftWrap) {
     const extraction = patchDataExtraction(graph, step, patch, next, draftWrap, patchNotes);
     if (extraction) return extraction;
 
+    // read_table / table: source and ops, see patchGuards/tables.js.
+    const tables = patchTableStep(graph, step, patch, next, draftWrap, patchNotes);
+    if (tables) return tables;
+
     // set.operations is likewise an ARRAY — replace wholesale through the add
     // tool's sanitizer; null clears it.
     if (step.type === 'set' && 'operations' in patch) {
@@ -270,6 +275,7 @@ function applyUpdateStep(graph, args, draftWrap) {
         if (step.type === 'datatable' && (k === 'values' || k === 'where')) continue; // canonicalized above
         if (step.type === 'data_extraction' && k === 'source') continue; // canonicalized above
         if (step.type === 'flatten' && FLATTEN_PLANNED_KEYS.includes(k)) continue; // patchFlatten below
+        if ((step.type === 'read_table' || step.type === 'table') && (k === 'source' || k === 'ops')) continue; // patchTableStep above
         if (!(k in patch)) continue;
         const norm = normalizePatchField(step.type, k, k in checked ? checked[k] : patch[k]);
         if (norm === undefined) { if (k !== 'label') delete next[k]; }

@@ -13,7 +13,7 @@ export function problemText(t: TranslateFn, problem: AnswerProblem, field: FillF
     const label = field.label || field.name;
     switch (problem) {
         case 'required':
-            return t('mobile.forms.fill.err_required', '{label} is required.', { label });
+            return t('forms.required', '{label} is required.', { label });
         case 'email':
             return t('mobile.forms.fill.err_email', 'That is not an email address.');
         case 'number':

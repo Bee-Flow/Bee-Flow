@@ -1,4 +1,4 @@
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok } from '@/test/http';
@@ -99,6 +99,7 @@ describe('OrgIntegrationCacheEditor — what may be kept', () => {
 
     const appTick = () => screen.getByRole('checkbox', { name: /Answers from connected apps/i });
     const httpTick = () => screen.getByRole('checkbox', { name: /Answers from web service calls/i });
+    const aiTick = () => screen.getByRole('checkbox', { name: /Answers from AI steps/i });
 
     it('shows both ticks once the feature is on', async () => {
         authFetch.mockImplementation(() => ok(envelope({ scopes: { integration: true, http: false } })));
@@ -127,22 +128,58 @@ describe('OrgIntegrationCacheEditor — what may be kept', () => {
     });
 
     it('ticking outbound HTTP is a change worth saving, and is what gets sent', async () => {
-        authFetch.mockImplementation(() => ok(envelope({ scopes: { integration: true, http: false } })));
+        authFetch.mockImplementation(() => ok(envelope({ scopes: { integration: true, http: false, ai: false } })));
+        const user = userEvent.setup();
         render(<OrgIntegrationCacheEditor orgId="org-a" />);
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
 
         const save = screen.getByRole('button', { name: /^Save$/i });
         expect(save.disabled).toBe(true);
-        fireEvent.click(httpTick());
+        await user.click(httpTick());
         expect(save.disabled).toBe(false);
 
         authFetch.mockClear();
-        authFetch.mockImplementation(() => ok(envelope({ scopes: { integration: true, http: true } })));
-        fireEvent.click(save);
+        authFetch.mockImplementation(() => ok(envelope({ scopes: { integration: true, http: true, ai: false } })));
+        await user.click(save);
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
         const put = authFetch.mock.calls.find(([, init]) => init && init.method === 'PUT');
         expect(put).toBeTruthy();
-        expect(JSON.parse(put[1].body).scopes).toEqual({ integration: true, http: true });
+        expect(JSON.parse(put[1].body).scopes).toEqual({ integration: true, http: true, ai: false });
+    });
+
+    it('answers from AI steps are off by default, also for a server that predates the setting', async () => {
+        authFetch.mockImplementation(() => ok(envelope({ scopes: { integration: true, http: false } })));   // no `ai` key
+        render(<OrgIntegrationCacheEditor orgId="org-a" />);
+        await waitFor(() => expect(authFetch).toHaveBeenCalled());
+        expect(aiTick().checked).toBe(false);
+        expect(screen.getByRole('button', { name: /^Save$/i }).disabled).toBe(true);
+    });
+
+    it('ticking AI answers is a change worth saving, and is what gets sent', async () => {
+        authFetch.mockImplementation(() => ok(envelope({ scopes: { integration: true, http: false, ai: false } })));
+        const user = userEvent.setup();
+        render(<OrgIntegrationCacheEditor orgId="org-a" />);
+        await waitFor(() => expect(authFetch).toHaveBeenCalled());
+
+        await user.click(aiTick());
+        const save = screen.getByRole('button', { name: /^Save$/i });
+        expect(save.disabled).toBe(false);
+
+        authFetch.mockClear();
+        authFetch.mockImplementation(() => ok(envelope({ scopes: { integration: true, http: false, ai: true } })));
+        await user.click(save);
+        await waitFor(() => expect(authFetch).toHaveBeenCalled());
+        const put = authFetch.mock.calls.find(([, init]) => init && init.method === 'PUT');
+        expect(JSON.parse(put[1].body).scopes).toEqual({ integration: true, http: false, ai: true });
+        await waitFor(() => expect(aiTick().checked).toBe(true));
+    });
+
+    it('says what is stored and that test runs never use it', async () => {
+        authFetch.mockImplementation(() => ok(envelope()));
+        render(<OrgIntegrationCacheEditor orgId="org-a" />);
+        await waitFor(() => expect(authFetch).toHaveBeenCalled());
+        expect(screen.getByText(/same \(privacy-protected\) input, the stored answer is reused/i)).toBeTruthy();
+        expect(screen.getByText(/never used in test runs/i)).toBeTruthy();
     });
 
     it('the copy names outbound web service calls, not just apps', async () => {

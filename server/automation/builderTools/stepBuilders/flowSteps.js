@@ -319,6 +319,8 @@ function applyAddFormPage(draft, args) {
     if (!ending) {
         step.waitSeconds = Math.max(60, Math.min(7 * 24 * 3600, Math.round(Number(args.waitSeconds) || 3600)));
     }
+    // Optional page condition: the page is skipped when the expression is not met.
+    if (typeof args.when === 'string' && args.when.trim()) step.when = args.when.trim().slice(0, 2000);
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
     return { added: step };
 }

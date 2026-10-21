@@ -69,7 +69,20 @@ export function stripUndefined(obj: unknown): Record<string, unknown> {
 export const FOREACH_FORM_TYPES: ReadonlySet<string> = new Set([
     'integration_action', 'ai_step', 'code', 'notification', 'set', 'http_request',
     'datatable', 'knowledge_write', 'data_extraction',
+    // The spreadsheet steps: one table per file, or one edit per table of a list.
+    'read_table', 'table',
 ]);
+
+/**
+ * "Items at the same time". Kept as the author wrote it, NOT clamped: the
+ * validator's foreach.concurrency_range is how a wrong number is found out.
+ * Empty means the server default, and is written as no key at all.
+ */
+function forEachConcurrency(value: unknown): { concurrency?: number } {
+    if (value === undefined || value === null || value === '') return {};
+    const n = Number(value);
+    return Number.isFinite(n) ? { concurrency: Math.round(n) } : {};
+}
 
 /** The well-formed `{ itemVar, overRef }` entries of a forEach's `parents`. */
 function forEachParents(parents: unknown): { itemVar: string; overRef: string }[] {
@@ -93,6 +106,7 @@ export function applyForEachPatch(patch: StepPatch, step: Step, draft: FormDraft
             itemVar: fe.itemVar || 'item',
             maxIterations: clamp(Number(fe.maxIterations) || 100, 1, 1000),
             ...(parents.length ? { parents } : {}),
+            ...forEachConcurrency(fe.concurrency),
         };
     } else if (step.forEach) {
         patch.forEach = null;
@@ -103,6 +117,8 @@ export function applyForEachPatch(patch: StepPatch, step: Step, draft: FormDraft
 export const RETRY_FORM_TYPES: ReadonlySet<string> = new Set([
     'integration_action', 'ai_step', 'code', 'notification', 'http_request',
     'datatable', 'knowledge_write', 'data_extraction', 'slide',
+    // Reading and writing a stored table can fail for a moment (storage), and a second try is safe.
+    'read_table', 'table',
 ]);
 
 /** `{ max, backoffMs }`, not clamped; `max <= 0` is the one canonical off (undefined). */
@@ -122,7 +138,7 @@ export function applyRetryPatch(patch: StepPatch, step: Step, draft: FormDraft):
 }
 
 /** Step types whose "ask this app only once per run" tick round-trips. */
-export const ASK_ONCE_FORM_TYPES: ReadonlySet<string> = new Set(['integration_action', 'http_request']);
+export const ASK_ONCE_FORM_TYPES: ReadonlySet<string> = new Set(['integration_action', 'http_request', 'ai_step']);
 
 /** `true`, or `{ acrossRuns?, ttlSeconds? }`; anything falsy is the one off: undefined. */
 export function normalizeAskOnce(value: unknown): true | Record<string, unknown> | undefined {

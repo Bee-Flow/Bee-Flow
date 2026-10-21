@@ -43,12 +43,25 @@ const KIND = 'form_answers';
 const FORM_TYPE_TO_COLUMN = Object.freeze({
     text: 'text', textarea: 'text', email: 'text',
     number: 'number', date: 'date', select: 'select', checkbox: 'bool', file: 'file',
+    // One of a few choices shown at once is a select; several of a fixed set
+    // is a list, written as one line of text. `info` is display and has none.
+    radio: 'select', multiselect: 'text',
     // A picked record lands as TEXT — the title of what was chosen, not its
     // content. The content is the run's business and routinely tens of
     // thousands of characters; a dashboard column holding a whole meeting
     // transcript would be unreadable and would bloat every read of the table.
     app_pick: 'text',
 });
+
+/**
+ * The column type of one question. Choices that come from run data (the list
+ * is not known when the table is derived) and questions asked once per list
+ * item are text: a select column could not hold options that change per run.
+ */
+function columnTypeOf(field) {
+    if (field.optionsFrom || field.fieldsFrom) return 'text';
+    return FORM_TYPE_TO_COLUMN[field.type];
+}
 
 const SYSTEM_KEYS = new Set([...SYSTEM_COLUMNS, ...FORM_ANSWERS_FIELDS.map(f => f.key)]);
 
@@ -152,7 +165,7 @@ function deriveAnswerColumns(definition, existingColumnMap = null, { now = null 
     const kept = new Set();
 
     for (const { pageStepId, field } of questions) {
-        const columnType = FORM_TYPE_TO_COLUMN[field.type];
+        const columnType = columnTypeOf(field);
         if (!columnType) continue;
         const id = fieldIdFor(pageStepId, field.name, columnType);
         const before = prior[id] || null;
@@ -237,6 +250,28 @@ function pickTitles(raw) {
     return list.map(v => v.title || v.recordId || '').filter(Boolean).join(', ');
 }
 
+/** One answer as the text of a cell: yes/no, a list on one line. */
+function answerText(v) {
+    if (v === true) return 'yes';
+    if (v === false) return 'no';
+    if (Array.isArray(v)) return v.map(answerText).filter(Boolean).join(', ');
+    if (v === null || v === undefined) return '';
+    return typeof v === 'object' ? '' : String(v);
+}
+
+/**
+ * The text of a multiselect answer (strings joined by ', ') or of a group of
+ * per-item answers ('label: answer' joined by '; '), or null for any other
+ * shape. An empty list is '' (an empty cell), not null.
+ */
+function listText(raw) {
+    if (!Array.isArray(raw)) return null;
+    if (raw.every(v => typeof v === 'string')) return raw.join(', ');
+    const isItem = (v) => v && typeof v === 'object' && 'label' in v && 'answer' in v;
+    if (raw.every(isItem)) return raw.map(v => `${v.label}: ${answerText(v.answer)}`).join('; ');
+    return null;
+}
+
 function cellFor(entry, raw) {
     switch (entry.columnType) {
         case 'bool':
@@ -263,6 +298,8 @@ function cellFor(entry, raw) {
             // dashboard for every picked record.
             const picks = pickTitles(raw);
             if (picks !== null) return picks || null;
+            const list = listText(raw);
+            if (list !== null) return list || null;
             const s = typeof raw === 'string' ? raw : String(raw);
             return s === '' ? null : s;
         }

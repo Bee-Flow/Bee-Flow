@@ -156,6 +156,8 @@ function checkNote(ctx, step, at) {
     }
 }
 
+const FORM_PAGE_MAX_WHEN_LEN = 2000;
+
 function checkFormPage(ctx, step, at) {
     const { pushE, graph, trigger, nested, isContractScope } = ctx;
     if (step.type === 'form_page') {
@@ -186,8 +188,13 @@ function checkFormPage(ctx, step, at) {
         }
         // An ending page shows text, so zero fields is normal for it.
         const { validateFormDeclaration } = require('../../formTriggerContract');
-        for (const issue of validateFormDeclaration(step.form, { requireFields: !isEnding })) {
+        for (const issue of validateFormDeclaration(step.form, { requireFields: !isEnding, allowRunData: true })) {
             pushE({ code: `form_page.${issue.code}`, severity: 'error', path: `${at}.${issue.path}`, message: `Step ${step.id}: ${issue.message}`, hint: issue.hint });
+        }
+        // The page condition: an expression in the condition grammar, never a template.
+        if (step.when !== undefined && step.when !== null
+            && (typeof step.when !== 'string' || step.when.length > FORM_PAGE_MAX_WHEN_LEN || step.when.includes('{{'))) {
+            pushE({ code: 'form_page.when_invalid', severity: 'error', path: `${at}.when`, message: `Step ${step.id}: the page condition must be an expression.`, hint: 'Write a condition like trigger.output.request_type == "change" (an expression, no {{ }}). The page is skipped when it is not met.' });
         }
         if (!isEnding && step.waitSeconds !== undefined) {
             const w = Number(step.waitSeconds);

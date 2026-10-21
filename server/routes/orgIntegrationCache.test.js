@@ -297,8 +297,8 @@ test('the env kill switch is reported, and beats a stored ON', async () => {
 test('scopes round-trip, and a missing body writes the safe pair', async () => {
     await request('PUT', `/api/org-integration-cache/${ORG_ID}`, { enabled: true, ttlSeconds: 300 });
     const get = await request('GET', `/api/org-integration-cache/${ORG_ID}`);
-    assert.deepStrictEqual(get.body.scopes, { integration: true, http: false },
-        'an admin who said yes to app look-ups did not say yes to arbitrary outbound HTTP');
+    assert.deepStrictEqual(get.body.scopes, { integration: true, http: false, ai: false },
+        'an admin who said yes to app look-ups did not say yes to arbitrary outbound HTTP or to keeping model answers');
 });
 
 test('outbound HTTP is only ever enabled by a literal true', async () => {
@@ -321,7 +321,61 @@ test('the app-look-up half can be switched off on its own', async () => {
         enabled: true, ttlSeconds: 300, scopes: { integration: false, http: true },
     });
     const get = await request('GET', `/api/org-integration-cache/${ORG_ID}`);
-    assert.deepStrictEqual(get.body.scopes, { integration: false, http: true });
+    assert.deepStrictEqual(get.body.scopes, { integration: false, http: true, ai: false });
+});
+
+test('keeping model answers is only ever enabled by a literal true, and GET returns the tick', async () => {
+    for (const ai of ['true', 1, 'on', {}, []]) {
+        const put = await request('PUT', `/api/org-integration-cache/${ORG_ID}`, {
+            enabled: true, ttlSeconds: 300, scopes: { integration: true, ai },
+        });
+        assert.strictEqual(put.status, 400, `${JSON.stringify(ai)} is refused, not read as a no`);
+        assert.strictEqual((await request('GET', `/api/org-integration-cache/${ORG_ID}`)).body.scopes.ai, false);
+    }
+    const put = await request('PUT', `/api/org-integration-cache/${ORG_ID}`, {
+        enabled: true, ttlSeconds: 300, scopes: { integration: true, ai: true },
+    });
+    assert.strictEqual(put.status, 200);
+    assert.strictEqual(put.body.scopes.ai, true);
+    assert.strictEqual((await request('GET', `/api/org-integration-cache/${ORG_ID}`)).body.scopes.ai, true);
+    realPolicy.invalidateCachePolicy(ORG_ID);
+    assert.strictEqual((await realPolicy.resolveCachePolicy(ORG_ID)).scopes.ai, true, 'the runtime resolver sees it');
+});
+
+test('switching only the ai tick off keeps the stored rows and the other ticks', async () => {
+    await request('PUT', `/api/org-integration-cache/${ORG_ID}`, {
+        enabled: true, ttlSeconds: 300, scopes: { integration: true, http: true, ai: true },
+    });
+    const off = await request('PUT', `/api/org-integration-cache/${ORG_ID}`, {
+        enabled: true, ttlSeconds: 300, scopes: { integration: true, http: true, ai: false },
+    });
+    assert.strictEqual(off.status, 200);
+    assert.strictEqual(off.body.purged, 0, 'the policy is still on: no purge, the rows expire within the org window');
+    assert.deepStrictEqual(off.body.scopes, { integration: true, http: true, ai: false });
+    realPolicy.invalidateCachePolicy(ORG_ID);
+    assert.strictEqual((await realPolicy.resolveCachePolicy(ORG_ID)).scopes.ai, false, 'reads stop at once');
+});
+
+test('a client that leaves a tick out keeps the stored value instead of switching it off', async () => {
+    await request('PUT', `/api/org-integration-cache/${ORG_ID}`, {
+        enabled: true, ttlSeconds: 300, scopes: { integration: true, http: true, ai: true },
+    });
+    // an older client: no `ai` in scopes
+    const old = await request('PUT', `/api/org-integration-cache/${ORG_ID}`, {
+        enabled: true, ttlSeconds: 600, scopes: { integration: false, http: true },
+    });
+    assert.strictEqual(old.status, 200);
+    assert.deepStrictEqual(old.body.scopes, { integration: false, http: true, ai: true });
+    // no scopes at all: everything stays
+    const bare = await request('PUT', `/api/org-integration-cache/${ORG_ID}`, { enabled: true, ttlSeconds: 600 });
+    assert.deepStrictEqual(bare.body.scopes, { integration: false, http: true, ai: true });
+    // an explicit false still wins
+    const off = await request('PUT', `/api/org-integration-cache/${ORG_ID}`, {
+        enabled: true, ttlSeconds: 600, scopes: { ai: false },
+    });
+    assert.deepStrictEqual(off.body.scopes, { integration: false, http: true, ai: false });
+    realPolicy.invalidateCachePolicy(ORG_ID);
+    assert.strictEqual((await realPolicy.resolveCachePolicy(ORG_ID)).scopes.http, true);
 });
 
 test('a saved scope reaches the RUNTIME resolver, not just the screen', async () => {

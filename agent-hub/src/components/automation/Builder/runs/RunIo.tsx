@@ -6,6 +6,9 @@ import OutputView from '../OutputView';
 import type { IoField, IoKind } from './runIo';
 import { configFields, humanKey, ioFields, mainList } from './runIo';
 import BindingWarnings from './BindingWarnings';
+import RunFileChips from './RunFileChips';
+import RunTableChips from './RunTableChips';
+import SaveAsTestCaseAction from './SaveAsTestCaseAction';
 import { stepBindingWarnings } from './bindingMisses';
 
 const KIND_ICON: Record<IoKind, typeof Hash> = {
@@ -41,7 +44,7 @@ const LISTS = 'grid grid-cols-1 content-start shrink-0 border-b border-[var(--bo
 const SECOND_LIST = 'border-t border-[var(--border-default)] @[600px]/runio:border-t-0 @[600px]/runio:border-l @[1100px]/runio:border-l-0 @[1100px]/runio:border-t';
 
 /** Got in / Passed on for one step, and its output as a table. */
-export default function RunIo({ step, label, stepDef = null, labelById = null, typeById = null }: {
+export default function RunIo({ step, label, stepDef = null, labelById = null, typeById = null, automationId = null }: {
     step: RunStepRecord | null;
     label: string;
     /** The step as this run's version defined it (BFSF-456): what it was set up to do. */
@@ -49,6 +52,8 @@ export default function RunIo({ step, label, stepDef = null, labelById = null, t
     labelById?: Map<string, string> | null;
     /** Step id → type, so a path into a Condition's outputs names the output. */
     typeById?: Map<string, string> | null;
+    /** The automation the run belongs to; with it, a code step offers "Save as test case". */
+    automationId?: string | null;
 }) {
     const { t } = useTranslation();
     const settings = useMemo(() => configFields(t, stepDef, labelById), [t, stepDef, labelById]);
@@ -76,11 +81,16 @@ export default function RunIo({ step, label, stepDef = null, labelById = null, t
                 <div className="px-4 py-3 flex flex-col gap-2 flex-1 min-h-[320px] min-w-0 @[1100px]/runio:min-h-0">
                     {/* An input that came up empty is why an output looks wrong. */}
                     <BindingWarnings warnings={misses} labelById={labelById} typeById={typeById} />
+                    {/* A document the step kept: the file itself, not just its handle. */}
+                    <RunFileChips runId={step.runId} output={step.output} />
+                    {/* A table the step kept: its rows, a page at a time. */}
+                    <RunTableChips runId={step.runId} output={step.output} />
                     <div className="flex items-center gap-2">
                         <span className="font-semibold text-[var(--text-primary)] truncate">{tableTitle}</span>
                         {list && (
                             <span className="text-[var(--text-tertiary)]">{t('runs.tab.rows_count', '{n} rows', { n: list.rows.length })}</span>
                         )}
+                        <SaveAsTestCaseAction automationId={automationId} step={step} stepDef={stepDef} />
                     </div>
                     {step.error && !step.output ? (
                         <div className="max-w-[720px] rounded-lg border border-[var(--border-default)] bg-[color-mix(in_srgb,var(--error)_6%,transparent)] px-3 py-2 text-[var(--error)]">

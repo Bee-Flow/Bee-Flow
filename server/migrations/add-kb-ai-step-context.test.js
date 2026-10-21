@@ -14,7 +14,6 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const path = require('node:path');
-const Module = require('node:module');
 
 const { PGlite } = require('@electric-sql/pglite');
 const { pgliteQuery } = require('../testUtils/pglitePool');
@@ -23,13 +22,7 @@ const pg = new PGlite();
 // node-postgres's `query(sql, params)` over this PGlite.
 const q = pgliteQuery(pg);
 
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../testUtils/moduleMock');
 mock(path.join(__dirname, '..', 'db.js'), { exec: q, pool: { query: q }, run: q });
 
 const { up } = require('./add-kb-ai-step-context');

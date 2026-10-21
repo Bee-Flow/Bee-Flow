@@ -21,6 +21,7 @@
  *   dataExtractionStep.js  data_extraction, and every vocabulary it arrives in
  *   datatableStep.js       datatable reads and writes
  *   outboundSteps.js       http_request, notification, knowledge_write
+ *   tableSteps.js          read_table, table
  *   noteStep.js            the free-floating canvas note
  */
 
@@ -65,6 +66,7 @@ const {
     applyAddKnowledgeWrite,
 } = require('./outboundSteps');
 const { sanitizeNoteSize, applyAddNote, NOTE_MAX_TEXT_LENGTH, NOTE_COLOR_KEYS } = require('./noteStep');
+const { applyAddReadTable, applyAddTable } = require('./tableSteps');
 
 // The apply* builder of every type the builder can create. Reused by
 // builder_replace_step and builder_add_steps so a swapped or batched step inherits
@@ -86,6 +88,8 @@ const BUILDERS = {
     datatable: applyAddDatatable,
     knowledge_write: applyAddKnowledgeWrite,
     flatten: applyAddFlatten,
+    read_table: applyAddReadTable,
+    table: applyAddTable,
 };
 
 // Map a step type to its builder — DRIVEN BY the step-type table
@@ -168,6 +172,8 @@ module.exports = {
     applyAddAggregate,
     applyAddSummarize,
     applyAddArrayOp,
+    applyAddReadTable,
+    applyAddTable,
     applyAddNote,
     NOTE_MAX_TEXT_LENGTH,
     NOTE_COLOR_KEYS,

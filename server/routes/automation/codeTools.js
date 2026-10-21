@@ -45,6 +45,14 @@ const TestBody = z.object({
     stepId: z.string().max(200).optional(),
 }).strict();
 
+/** The answer for a code run that was refused: the shapes /code/test has always had. */
+function refuse(res, r) {
+    if (r.code === 'code_syntax_error') return res.status(422).json({ error: r.message, code: r.code, syntaxError: r.details.syntaxError });
+    if (r.code === 'code_blocked') return res.status(422).json({ error: r.message, code: r.code, findings: r.details.findings });
+    if (r.code === 'code_param_invalid') return res.status(422).json({ error: r.message, code: r.code, param: r.details.param });
+    throw new HttpError(r.status, r.code, r.message);
+}
+
 /**
  * @param {{ store?: object, access?: object, sandbox?: object, limiter?: Function, now?: () => number }} [overrides]
  */
@@ -54,8 +62,8 @@ function makeCodeToolsRouter(overrides = {}) {
     const { makeAutomationAccess } = require('../../automation/access');
     const access = overrides.access || makeAutomationAccess(overrides.store ? { store: overrides.store } : {});
     const sandbox = () => overrides.sandbox || require('../../automation/codeSandbox');
-    const { analyzeCode, blockingFindings } = require('../../automation/codeSafety');
-    const { applyParamValues } = require('../../automation/codeSafety/paramValues');
+    const { analyzeCode } = require('../../automation/codeSafety');
+    const { runCodeOnce } = require('../../automation/testing/codeTestRun');
     const now = overrides.now || (() => Date.now());
     const analyzeLimiter = overrides.limiter
         || require('../../utils/perUserRateLimit').perUserRateLimit({ windowMs: 60_000, max: 120 });
@@ -83,39 +91,14 @@ function makeCodeToolsRouter(overrides = {}) {
         const a = await automationFor(req, res, 'edit');
         if (a === false) return;
         const { code, inputs = {}, allowedTools = [], allowedHosts = [], limits = {} } = req.body;
-        const analysis = analyzeCode(code, { allowedTools, allowedHosts });
-        if (!analysis.ok) {
-            return res.status(422).json({ error: 'The code has a syntax error.', code: 'code_syntax_error', syntaxError: analysis.syntaxError });
-        }
-        const blocks = blockingFindings(analysis);
-        if (blocks.length) {
-            return res.status(422).json({ error: blocks[0].message, code: 'code_blocked', findings: blocks });
-        }
-        const applied = applyParamValues(analysis.params, inputs);
-        if (applied.error) {
-            return res.status(422).json({ error: applied.error.message, code: 'code_param_invalid', param: applied.error });
-        }
-        const sb = sandbox();
-        if (!sb.isAvailable()) {
-            throw new HttpError(503, 'code_sandbox_missing', 'This server was installed without the code sandbox.');
-        }
-        const started = now();
         const orgId = (a && a.organizationId) || req.session?.user?.organizationId || req.session?.user?.id || null;
-        try {
-            const out = await sb.runCode({
-                code,
-                inputs: applied.inputs,
-                limits,
-                mode: 'test',
-                bridges: { allowedTools: new Set(allowedTools) },
-                concurrencyKey: orgId,
-            });
-            res.json({ result: out.result === undefined ? null : out.result, logs: out.logs || [], calls: out.calls || [], durationMs: now() - started });
-        } catch (e) {
-            // The author's code threw, or hit a limit: an ordinary outcome of
-            // trying code, answered as data rather than as a server error.
-            res.json({ error: (e && e.message) || String(e), logs: [], calls: [], durationMs: now() - started });
-        }
+        const out = await runCodeOnce(
+            { code, inputs, allowedTools, allowedHosts, limits, concurrencyKey: orgId },
+            { getSandbox: sandbox, now },
+        );
+        if (out.refusal) return refuse(res, out.refusal);
+        if (out.ok === false) return res.json({ error: out.error, logs: [], calls: [], durationMs: out.durationMs });
+        return res.json({ result: out.result, logs: out.logs, calls: out.calls, durationMs: out.durationMs });
     });
 
     return router;

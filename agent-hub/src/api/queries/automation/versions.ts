@@ -41,6 +41,11 @@ export interface FieldChange {
     settingLabel: string | null;
     before: unknown;
     after: unknown;
+    /** The whole text of a changed long setting (code, prompt, message...), for the line diff. null = that side is not text. */
+    beforeText?: string | null;
+    afterText?: string | null;
+    /** A side was cut at the server's byte cap. */
+    textTruncated?: boolean;
 }
 
 export interface FieldDiff {
@@ -127,6 +132,10 @@ export function parseFieldDiff(body: unknown): FieldDiff {
             settingLabel: str(o.settingLabel),
             before: o.before,
             after: o.after,
+            ...('beforeText' in o || 'afterText' in o
+                ? { beforeText: typeof o.beforeText === 'string' ? o.beforeText : null, afterText: typeof o.afterText === 'string' ? o.afterText : null }
+                : {}),
+            ...(o.textTruncated === true ? { textTruncated: true } : {}),
         });
     }
     const ids = asObj(raw?.stepIds);

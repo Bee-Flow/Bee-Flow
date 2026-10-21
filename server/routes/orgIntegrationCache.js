@@ -8,7 +8,7 @@
  * processing decision, so it belongs to an org admin and leaves a config row
  * recording that they made it.
  *
- * The two ticks (`scopes.integration`, `scopes.http`) live inside the SAME key
+ * The three ticks (`scopes.integration`, `scopes.http`, `scopes.ai`) live inside the SAME key
  * because they answer the same question — may third-party response payloads be
  * stored at rest here — and two keys would let an org sit half-on with nobody
  * able to see which half. But an admin who consented to "what an app answers"
@@ -36,6 +36,7 @@ const { resolveUserOrgIds } = require('../auth');
 const { requireAuth, isOrgAdminForOrg: isOrgAdmin } = require('../auth/permissions');
 const {
     normalizePolicy,
+    normalizeScopes,
     invalidateCachePolicy,
     killSwitchOn,
     CONFIG_KEY_PREFIX,
@@ -80,7 +81,8 @@ const PolicyBody = bodyOf({
     scopes: z.object({
         integration: tick('scopes.integration'),
         http: tick('scopes.http'),
-    }, { error: typeError({ invalid: 'scopes is { integration, http }, each true or false.' }) }).strict().optional(),
+        ai: tick('scopes.ai'),
+    }, { error: typeError({ invalid: 'scopes is { integration, http, ai }, each true or false.' }) }).strict().optional(),
 });
 
 /**
@@ -130,12 +132,23 @@ router.put('/:orgId', requireAuth, validate({ body: PolicyBody }), async (req, r
     }
 
     const { enabled, ttlSeconds, scopes } = req.body;
+    // A tick the body leaves out keeps what is stored. An older client (one that
+    // does not know the model-answers tick) saves { integration, http } only,
+    // and reading its missing `ai` as "off" would silently switch off what an
+    // admin turned on in another screen.
+    const stored = await configStore.getConfig(`${CONFIG_KEY_PREFIX}${orgId}`);
+    const merged = { ...normalizeScopes(stored?.scopes) };
+    for (const kind of Object.keys(merged)) {
+        if (typeof scopes?.[kind] === 'boolean') merged[kind] = scopes[kind];
+    }
     // normalizePolicy clamps and resolves the default of an absent field,
     // so a hand-rolled body can never write an unusable row. `scopes`
     // decides WHICH outbound answers the consent covers (app look-ups /
-    // outbound HTTP); normalizeScopes only ever reads a literal true as a
-    // yes for http.
-    const policy = normalizePolicy({ enabled, ttlSeconds, scopes });
+    // outbound HTTP / model answers); normalizeScopes only ever reads a
+    // literal true as a yes for http and ai. Switching only the ai tick off
+    // stops reads at once (the policy is re-read, at most a 30 s memo); the
+    // rows already stored expire within the org window.
+    const policy = normalizePolicy({ enabled, ttlSeconds, scopes: merged });
 
     await configStore.setConfig(`${CONFIG_KEY_PREFIX}${orgId}`, {
         ...policy,
@@ -157,7 +170,7 @@ router.put('/:orgId', requireAuth, validate({ body: PolicyBody }), async (req, r
     if (policy.enabled) shrunk = await integrationCacheStore.shrinkTtlForOrg(orgId, policy.ttlSeconds);
 
     log.info(`[OrgIntegrationCache] org ${orgId}: ${policy.enabled ? 'ENABLED' : 'disabled'}`
-        + ` (ttl ${policy.ttlSeconds}s, scopes app=${policy.scopes.integration} http=${policy.scopes.http}`
+        + ` (ttl ${policy.ttlSeconds}s, scopes app=${policy.scopes.integration} http=${policy.scopes.http} ai=${policy.scopes.ai}`
         + `${purged ? `, purged ${purged} entries` : ''}`
         + `${shrunk ? `, shortened ${shrunk} stored entries` : ''})`);
 

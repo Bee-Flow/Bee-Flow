@@ -21,6 +21,28 @@ export interface FormFieldDef {
     source?: string;
     app?: string;
     searchHint?: string;
+    /** info fields (and a group's header): markdown, display only */
+    content?: string;
+    /** an expression over `form`, the answers of EARLIER questions */
+    showIf?: string;
+    /** number / date bounds */
+    min?: number | string;
+    max?: number | string;
+    /** text / textarea / email length bounds */
+    minLength?: number;
+    maxLength?: number;
+    /** text / textarea: whole-value pattern and the sentence to show when it fails */
+    pattern?: string;
+    patternMessage?: string;
+    /** multiselect bounds */
+    minSelected?: number;
+    maxSelected?: number;
+    /** a run-data list came back empty: nothing to choose, nothing required */
+    noOptions?: boolean;
+    /** one-question-per-list-item groups */
+    group?: string;
+    groupKey?: string;
+    groupHeader?: boolean;
 }
 
 /** The server's renderConfig(). */
@@ -55,7 +77,7 @@ export interface AppPickRow {
     subtitle?: string;
 }
 
-export type FormValue = string | boolean | FormUpload | AppPick | AppPick[] | null | undefined;
+export type FormValue = string | boolean | string[] | FormUpload | AppPick | AppPick[] | null | undefined;
 export type FormChangeHandler = (value: FormValue) => void;
 export type FormErrorHandler = (message: string) => void;
 export type FormValues = Record<string, FormValue>;
@@ -82,6 +104,8 @@ export interface PublicFormRendererProps {
     showSuccess?: boolean;
     downloadHref?: DownloadHrefHandler | null;
     onOpenInNotebooks?: OpenInNotebooksHandler | null;
+    /** Saved answers by question name, laid over the empty form; a new object fills the form again. */
+    prefill?: Record<string, unknown> | null;
 }
 
 export interface FormEndingViewProps {
@@ -98,6 +122,8 @@ export interface FormWaitingViewProps {
     progress?: string[] | null;
     note?: string | null;
     label?: string;
+    /** the median length of this form's recent runs, when the poll knew it */
+    typicalSeconds?: number | null;
 }
 
 export interface FormRichTextProps {
@@ -115,6 +141,8 @@ export interface FormFieldProps {
     onUpload?: UploadHandler | null;
     onSearchApp?: SearchAppHandler | null;
     onError?: (message: string) => void;
+    /** the question lost focus: check its rules now */
+    onBlur?: () => void;
     downloadHref?: string | null;
     onOpenInNotebooks?: OpenInNotebooksHandler | null;
 }

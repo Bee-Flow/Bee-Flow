@@ -158,7 +158,7 @@ function describeStep(step, idx) {
             return `${n} ${sentence ? `Make ${sentence}` : 'Flatten a list (the list inside each item is not picked yet)'}.`;
         }
         default:
-            return `${n} ${step.type} step (${step.id}).`;
+            return require('./summariseTables').describeTableStep(step, n) || `${n} ${step.type} step (${step.id}).`;
     }
 }
 
@@ -332,7 +332,7 @@ function renderStepState(step, opts = {}) {
         // can see (and edit) it without mistaking it for a step it could
         // chain something after.
         case 'note': detail = ` "${String(step.text || '').replace(/\s+/g, ' ').slice(0, 60)}" (annotation — never runs)`; break;
-        default: detail = '';
+        default: detail = require('./summariseTables').tableDetail(step);
     }
     const fe = step.forEach?.overRef ? `  [forEach over \`${step.forEach.overRef}\` as loop.${step.forEach.itemVar || 'item'}]` : '';
     const label = step.label ? `  — ${step.label}` : '';

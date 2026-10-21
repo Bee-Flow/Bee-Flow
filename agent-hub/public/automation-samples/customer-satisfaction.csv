@@ -1,0 +1,301 @@
+rec_id,region,channel,score,comment
+rec_0001,South,Online,3,
+rec_0002,Central,Phone,4,Good overall
+rec_0003,North,Phone,3,
+rec_0004,South,Phone,3,Average experience
+rec_0005,North,Online,1,Not what I expected
+rec_0006,South,Online,2,
+rec_0007,Central,Online,2,
+rec_0008,North,Store,,
+rec_0009,Central,Phone,3,
+rec_0010,South,Email,3,
+rec_0011,North,Phone,4,Friendly and helpful
+rec_0012,South,Online,4,Friendly and helpful
+rec_0013,Central,Email,1,
+rec_0014,South,Online,2,
+rec_0015,North,Online,2,Could be faster
+rec_0016,South,Phone,3,
+rec_0017,South,Online,3,Nothing special
+rec_0018,Central,Online,4,Clear and quick
+rec_0019,South,Store,1,Took too long
+rec_0020,Central,Phone,2,
+rec_0021,Central,Email,3,
+rec_0022,North,Online,4,
+rec_0023,South,Store,5,
+rec_0024,North,Email,3,Average experience
+rec_0025,North,Online,1,Did not get an answer
+rec_0026,South,Email,2,Some parts were unclear
+rec_0027,North,Online,4,
+rec_0028,Central,Email,3,
+rec_0029,South,Phone,1,
+rec_0030,Central,Email,1,
+rec_0031,South,Phone,,
+rec_0032,South,Email,3,
+rec_0033,North,Phone,2,
+rec_0034,North,Phone,1,
+rec_0035,North,Phone,3,It was fine
+rec_0036,South,Phone,4,Friendly and helpful
+rec_0037,South,Online,3,Nothing special
+rec_0038,North,Online,3,Nothing special
+rec_0039,North,Online,4,
+rec_0040,North,Online,1,Did not get an answer
+rec_0041,Central,Online,4,
+rec_0042,North,Email,1,Took too long
+rec_0043,Central,Online,5,Very easy
+rec_0044,South,Store,3,It was fine
+rec_0045,Central,Phone,2,Some parts were unclear
+rec_0046,Central,Store,4,Good overall
+rec_0047,South,Email,4,Clear and quick
+rec_0048,South,Online,1,Took too long
+rec_0049,North,Online,2,
+rec_0050,South,Email,4,Clear and quick
+rec_0051,Central,Email,4,Friendly and helpful
+rec_0052,North,Online,5,Fast and clear answer
+rec_0053,North,Online,5,
+rec_0054,Central,Online,,
+rec_0055,North,Online,2,
+rec_0056,North,Store,5,Everything went well
+rec_0057,South,Online,4,Friendly and helpful
+rec_0058,Central,Online,4,Good overall
+rec_0059,North,Online,4,
+rec_0060,North,Online,4,
+rec_0061,North,Email,2,Could be faster
+rec_0062,Central,Email,5,Very easy
+rec_0063,Central,Phone,1,
+rec_0064,South,Phone,1,Took too long
+rec_0065,South,Phone,3,
+rec_0066,Central,Online,4,
+rec_0067,Central,Store,1,
+rec_0068,South,Store,5,
+rec_0069,North,Phone,4,
+rec_0070,Central,Phone,5,Fast and clear answer
+rec_0071,Central,Online,1,
+rec_0072,North,Online,4,
+rec_0073,North,Online,2,Could be faster
+rec_0074,South,Online,2,
+rec_0075,Central,Email,2,Needed to ask twice
+rec_0076,North,Store,2,Needed to ask twice
+rec_0077,South,Store,,
+rec_0078,North,Email,1,
+rec_0079,North,Online,3,
+rec_0080,North,Online,5,
+rec_0081,North,Email,5,Fast and clear answer
+rec_0082,South,Phone,4,
+rec_0083,North,Store,3,
+rec_0084,South,Online,1,Did not get an answer
+rec_0085,North,Online,1,Not what I expected
+rec_0086,South,Store,2,
+rec_0087,North,Online,2,Needed to ask twice
+rec_0088,South,Online,4,Clear and quick
+rec_0089,Central,Email,3,It was fine
+rec_0090,South,Online,3,Average experience
+rec_0091,Central,Store,1,Took too long
+rec_0092,Central,Phone,1,Did not get an answer
+rec_0093,Central,Phone,5,Everything went well
+rec_0094,North,Store,2,Could be faster
+rec_0095,South,Online,4,
+rec_0096,South,Online,3,Average experience
+rec_0097,North,Email,3,Average experience
+rec_0098,Central,Online,4,
+rec_0099,Central,Phone,1,Not what I expected
+rec_0100,South,Online,,
+rec_0101,Central,Email,3,Average experience
+rec_0102,South,Store,2,Needed to ask twice
+rec_0103,North,Email,4,Friendly and helpful
+rec_0104,Central,Email,5,Everything went well
+rec_0105,Central,Phone,2,
+rec_0106,Central,Online,4,
+rec_0107,North,Online,3,It was fine
+rec_0108,Central,Online,3,
+rec_0109,Central,Phone,3,
+rec_0110,North,Email,5,
+rec_0111,South,Email,3,Average experience
+rec_0112,Central,Email,3,
+rec_0113,North,Phone,3,
+rec_0114,North,Email,3,
+rec_0115,South,Email,1,Did not get an answer
+rec_0116,Central,Online,3,Average experience
+rec_0117,Central,Phone,5,
+rec_0118,South,Store,1,
+rec_0119,Central,Phone,4,
+rec_0120,North,Online,3,
+rec_0121,South,Phone,3,Average experience
+rec_0122,Central,Phone,4,Good overall
+rec_0123,South,Online,,
+rec_0124,South,Email,2,
+rec_0125,South,Store,2,Could be faster
+rec_0126,Central,Online,3,Average experience
+rec_0127,North,Store,5,Very easy
+rec_0128,Central,Online,1,Took too long
+rec_0129,North,Online,5,Very easy
+rec_0130,South,Online,2,
+rec_0131,South,Online,4,
+rec_0132,North,Store,4,Friendly and helpful
+rec_0133,North,Store,4,
+rec_0134,South,Phone,2,Could be faster
+rec_0135,South,Phone,5,Everything went well
+rec_0136,North,Phone,4,
+rec_0137,Central,Online,4,Clear and quick
+rec_0138,Central,Email,4,Good overall
+rec_0139,North,Phone,4,Friendly and helpful
+rec_0140,Central,Phone,1,
+rec_0141,South,Phone,5,Very easy
+rec_0142,South,Online,2,
+rec_0143,Central,Email,5,
+rec_0144,North,Phone,3,
+rec_0145,Central,Online,3,It was fine
+rec_0146,Central,Online,,
+rec_0147,Central,Phone,3,Nothing special
+rec_0148,North,Phone,3,Nothing special
+rec_0149,North,Phone,4,
+rec_0150,North,Phone,5,
+rec_0151,North,Phone,1,Not what I expected
+rec_0152,South,Phone,3,
+rec_0153,Central,Online,2,
+rec_0154,Central,Online,4,Good overall
+rec_0155,North,Online,4,Friendly and helpful
+rec_0156,Central,Store,5,Very easy
+rec_0157,Central,Phone,1,Did not get an answer
+rec_0158,North,Online,3,It was fine
+rec_0159,South,Email,2,Some parts were unclear
+rec_0160,South,Online,2,
+rec_0161,Central,Online,2,
+rec_0162,Central,Online,5,
+rec_0163,Central,Phone,3,Average experience
+rec_0164,North,Store,4,Friendly and helpful
+rec_0165,South,Online,4,
+rec_0166,South,Store,5,Fast and clear answer
+rec_0167,North,Phone,4,Good overall
+rec_0168,South,Store,5,
+rec_0169,North,Store,,
+rec_0170,North,Online,4,Friendly and helpful
+rec_0171,Central,Phone,3,It was fine
+rec_0172,Central,Online,4,
+rec_0173,North,Online,5,Fast and clear answer
+rec_0174,South,Store,4,
+rec_0175,North,Email,1,Took too long
+rec_0176,Central,Online,5,
+rec_0177,Central,Email,3,Average experience
+rec_0178,Central,Store,4,Clear and quick
+rec_0179,South,Phone,2,Needed to ask twice
+rec_0180,Central,Email,3,Average experience
+rec_0181,South,Online,3,
+rec_0182,South,Email,3,Average experience
+rec_0183,Central,Phone,3,Average experience
+rec_0184,North,Online,3,Nothing special
+rec_0185,Central,Store,3,It was fine
+rec_0186,South,Online,4,Clear and quick
+rec_0187,Central,Online,5,Very easy
+rec_0188,South,Online,4,Friendly and helpful
+rec_0189,Central,Email,2,Could be faster
+rec_0190,South,Store,3,
+rec_0191,North,Phone,4,Good overall
+rec_0192,Central,Online,,
+rec_0193,Central,Store,4,Friendly and helpful
+rec_0194,South,Email,2,Could be faster
+rec_0195,North,Online,4,
+rec_0196,Central,Store,2,Could be faster
+rec_0197,North,Phone,4,
+rec_0198,South,Email,4,
+rec_0199,North,Online,2,Some parts were unclear
+rec_0200,North,Online,2,Could be faster
+rec_0201,Central,Store,5,Everything went well
+rec_0202,North,Online,3,
+rec_0203,North,Online,3,It was fine
+rec_0204,Central,Online,4,Good overall
+rec_0205,South,Store,2,
+rec_0206,Central,Online,4,Good overall
+rec_0207,North,Email,4,Friendly and helpful
+rec_0208,South,Store,2,Needed to ask twice
+rec_0209,Central,Online,4,
+rec_0210,Central,Online,2,Some parts were unclear
+rec_0211,North,Phone,5,
+rec_0212,South,Email,1,Did not get an answer
+rec_0213,Central,Phone,3,
+rec_0214,Central,Email,2,Needed to ask twice
+rec_0215,South,Online,,
+rec_0216,Central,Phone,3,
+rec_0217,Central,Email,3,Nothing special
+rec_0218,South,Store,1,Not what I expected
+rec_0219,North,Phone,5,
+rec_0220,North,Online,4,Friendly and helpful
+rec_0221,North,Phone,5,
+rec_0222,North,Online,2,
+rec_0223,South,Phone,3,Nothing special
+rec_0224,North,Online,2,
+rec_0225,South,Store,5,
+rec_0226,North,Online,3,Nothing special
+rec_0227,South,Email,4,Good overall
+rec_0228,North,Phone,4,Good overall
+rec_0229,South,Online,4,
+rec_0230,Central,Phone,5,Very easy
+rec_0231,North,Store,5,Very easy
+rec_0232,South,Online,5,
+rec_0233,South,Email,3,It was fine
+rec_0234,Central,Online,3,Nothing special
+rec_0235,South,Online,2,
+rec_0236,South,Online,5,Very easy
+rec_0237,Central,Store,5,
+rec_0238,Central,Online,,
+rec_0239,South,Online,4,
+rec_0240,South,Phone,4,
+rec_0241,South,Phone,1,Took too long
+rec_0242,Central,Online,4,
+rec_0243,Central,Email,4,Good overall
+rec_0244,North,Phone,2,Some parts were unclear
+rec_0245,South,Phone,1,
+rec_0246,North,Store,2,Could be faster
+rec_0247,South,Online,5,Fast and clear answer
+rec_0248,North,Email,4,
+rec_0249,North,Phone,2,Could be faster
+rec_0250,Central,Online,2,
+rec_0251,Central,Email,5,
+rec_0252,South,Online,1,Not what I expected
+rec_0253,North,Phone,1,Not what I expected
+rec_0254,South,Email,1,Did not get an answer
+rec_0255,South,Email,3,
+rec_0256,Central,Online,2,
+rec_0257,Central,Phone,2,Some parts were unclear
+rec_0258,North,Email,5,
+rec_0259,North,Phone,1,Took too long
+rec_0260,Central,Phone,5,
+rec_0261,South,Online,,
+rec_0262,Central,Store,1,
+rec_0263,North,Phone,3,Nothing special
+rec_0264,North,Online,5,Very easy
+rec_0265,Central,Store,3,It was fine
+rec_0266,South,Email,4,Friendly and helpful
+rec_0267,South,Online,4,Good overall
+rec_0268,Central,Online,4,
+rec_0269,South,Email,5,Everything went well
+rec_0270,South,Phone,3,Average experience
+rec_0271,South,Email,3,
+rec_0272,South,Online,3,
+rec_0273,North,Online,3,It was fine
+rec_0274,North,Online,4,
+rec_0275,Central,Online,3,
+rec_0276,Central,Phone,4,Friendly and helpful
+rec_0277,South,Online,5,
+rec_0278,Central,Store,1,
+rec_0279,South,Email,3,Average experience
+rec_0280,South,Online,1,
+rec_0281,South,Store,5,
+rec_0282,North,Online,2,Needed to ask twice
+rec_0283,North,Email,3,
+rec_0284,North,Store,,
+rec_0285,North,Store,3,
+rec_0286,Central,Store,2,Could be faster
+rec_0287,South,Online,2,
+rec_0288,Central,Online,5,Very easy
+rec_0289,South,Store,2,
+rec_0290,North,Phone,4,
+rec_0291,Central,Store,5,
+rec_0292,North,Online,1,
+rec_0293,North,Email,3,Nothing special
+rec_0294,North,Store,4,
+rec_0295,South,Phone,5,Everything went well
+rec_0296,Central,Online,4,Good overall
+rec_0297,South,Store,5,Fast and clear answer
+rec_0298,South,Phone,3,Average experience
+rec_0299,North,Store,2,
+rec_0300,Central,Phone,3,

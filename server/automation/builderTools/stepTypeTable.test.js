@@ -223,3 +223,15 @@ test('the batch schema describes the Privacy Shield steps, which have no single-
     assert.match(spec, /ref PATH STRING, not a binding object/);
     assert.ok(!TOOL_SCHEMAS.some(t => /^builder_add_(guard|tokenize|untokenize)$/.test(t.function.name)), 'and indeed there is no such tool');
 });
+
+test('the table steps are creatable in a batch and by replace, and the full prompt teaches them', () => {
+    for (const t of ['read_table', 'table']) {
+        assert.ok(BATCH_STEP_TYPES.includes(t), `${t} in the batch enum`);
+        assert.ok(REPLACEABLE_STEP_TYPES.includes(t), `${t} in the replace enum`);
+        assert.equal(typeof ADD_FOR_TYPE[t], 'function', `${t} has a builder`);
+    }
+    const prompt = buildFullSystemPrompt({ catalog: { apps: [] }, codeStepEnabled: true });
+    assert.match(prompt, /read_table\s+— open an uploaded spreadsheet or CSV/);
+    assert.match(prompt, /table\s+— edit a table without code/);
+    assert.match(prompt, /output\.segments from a groups op/);
+});

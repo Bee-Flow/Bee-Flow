@@ -8,6 +8,7 @@
 import { translate as t } from '@/core/i18n';
 import { nodeDefaultLabel } from '@/features/flow-editor/model/nodeDefs';
 
+import { editTableSample, readTableSample } from '../mirror/mapping/upstream/tableSamples';
 import type { Catalog, FlowNode, VariableGroup } from '../types';
 import { stepGroup } from './sampleFields';
 
@@ -74,4 +75,15 @@ export function describeKnowledgeWrite(node: FlowNode, catalog: Catalog | null |
     };
     const label = node.label || (base ? base.name : nodeDefaultLabel('knowledge_write', t));
     return stepGroup(node, { label: label as string, kind: 'knowledge_write' }, sample);
+}
+
+/** What a Read table step hands downstream (the sample is shared with the web). */
+export function describeReadTable(node: FlowNode): VariableGroup {
+    return stepGroup(node, { label: (node.label as string) || nodeDefaultLabel('read_table', t), kind: 'read_table' }, readTableSample());
+}
+
+/** What an Edit table step hands downstream (the sample is shared with the web). */
+export function describeTable(node: FlowNode): VariableGroup {
+    const label = (node.label as string) || nodeDefaultLabel('table', t);
+    return stepGroup(node, { label, kind: 'table' }, editTableSample(label));
 }

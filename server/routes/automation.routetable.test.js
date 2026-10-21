@@ -14,24 +14,18 @@
  */
 const { test } = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
 const path = require('path');
 
 const SERVER = path.resolve(__dirname, '..');
 
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../testUtils/moduleMock');
 const noopMw = () => (req, res, next) => next();
 
 // Mock every module routes/automation.js (and its sub-routers) require, so a
 // bare require never hits the DB / network / background timers.
 mock(path.join(SERVER, 'stores/automationStore'), {});
 mock(path.join(SERVER, 'stores/configStore'), {});
+mock(path.join(SERVER, 'stores/automationTestingStore'), {});
 mock(path.join(SERVER, 'core/scheduling/cron'), {});
 mock(path.join(SERVER, 'automation/validate'), { validateDefinition: () => ({ valid: true }) });
 mock(path.join(SERVER, 'automation/summarise'), {});
@@ -184,6 +178,8 @@ const EXPECTED = [
     'POST /:id/caller-notice/seen',
     'POST /:id/dry-run',
     'POST /:id/steps/:stepId/run',
+    // Re-run from a chosen run, asked before doing it (routes/automation/runs.js).
+    'GET /:id/steps/:stepId/rerun-plan',
     'GET /_runs/active',
     'POST /_schedule/preview',
     'GET /:id/runs',
@@ -233,6 +229,15 @@ const EXPECTED = [
     'POST /runs/:id/approve',
     'POST /:id/agent-invoke',
     'POST /:id/webhook/:slug/test',
+    // The files a run produced (routes/automation/runFiles.js).
+    'GET /runs/:runId/files',
+    'GET /runs/:runId/files/:fileId',
+    'GET /runs/:runId/files/:fileId/preview',
+    // The tables a run produced, and the dry preview of a table step
+    // (routes/automation/runTables.js, routes/automation/tablePreview.js).
+    'GET /runs/:runId/tables/:tableId',
+    'GET /runs/:runId/tables/:tableId/csv',
+    'POST /:id/table-preview',
     // Handoff 5, sharing and roles (routes/automation/sharing.js).
     'GET /:id/shares',
     'PUT /:id/shares',
@@ -261,6 +266,28 @@ const EXPECTED = [
     'POST /:id/save-as-template',
     'POST /:id/suggest-description',
     'GET /:id/counts',
+    // Phase 9, testing as a product feature. Test cases for a code step or a
+    // custom node (routes/automation/testCases.js).
+    'GET /:id/test-cases',
+    'GET /:id/test-cases/:caseId',
+    'POST /:id/test-cases',
+    'PUT /:id/test-cases/:caseId',
+    'DELETE /:id/test-cases/:caseId',
+    'POST /:id/test-cases/run',
+    // Two runs of one automation, step by step (routes/automation/runCompare.js).
+    'GET /runs/:runId/compare/:otherRunId',
+    // Golden runs (routes/automation/goldens.js).
+    'POST /runs/:runId/golden',
+    'DELETE /runs/:runId/golden',
+    'GET /:id/goldens',
+    'POST /:id/goldens/replay',
+    // Saved form answers (routes/automation/formScenarios.js).
+    'GET /:id/form-scenarios',
+    'GET /:id/form-scenarios/:scenarioId',
+    'POST /:id/form-scenarios',
+    'PUT /:id/form-scenarios/:scenarioId',
+    'DELETE /:id/form-scenarios/:scenarioId',
+    'POST /:id/form-scenarios/:scenarioId/dry-run',
 ];
 
 test('automation router loads and exposes the exact baseline route table in order', () => {
@@ -293,6 +320,10 @@ test('every relative require() across the facade + sub-routers resolves (catches
         'routes/automation/diagnoseTrigger.js',
         'routes/automation/versions.js',
         'routes/automation/webhooksAndRunOps.js',
+        'routes/automation/runFiles.js',
+        'routes/automation/runJourney.js',
+        'routes/automation/runTables.js',
+        'routes/automation/tablePreview.js',
         'routes/automation/sharing.js',
         'routes/automation/notifications.js',
         'routes/automation/agentStepRoutes.js',
@@ -301,6 +332,12 @@ test('every relative require() across the facade + sub-routers resolves (catches
         'routes/automation/usage.js',
         'routes/automation/versionHistory.js',
         'routes/automation/actions.js',
+        'routes/automation/testCases.js',
+        'routes/automation/testCaseSchemas.js',
+        'routes/automation/runCompare.js',
+        'routes/automation/goldens.js',
+        'routes/automation/formScenarios.js',
+        'routes/automation/runEntry.js',
     ];
     const re = /require\((["'])(\.[^"']+)\1\)/g;
     const unresolved = [];

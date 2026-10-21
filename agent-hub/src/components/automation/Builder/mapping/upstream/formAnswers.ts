@@ -9,6 +9,8 @@
 import { appendKey } from '@shared/expr/path.mjs';
 import { fieldFor } from './fieldTree';
 import { pickSourceById } from '../../flow/pickSourceCatalog';
+import { isDisplayField } from '../../flow/settings/formPreview';
+import { normaliseOptions } from '../../../../forms/formOptions';
 import type { FormFieldDecl, Group, UpstreamNode } from './upstream.types';
 
 /**
@@ -43,23 +45,56 @@ export function pickSample(field: FormFieldDecl) {
     return field.multiple ? [one] : one;
 }
 
-export function describeFormPage(node: UpstreamNode): Group | null {
-    if (node.mode === 'ending') return null;
-    const fields = Array.isArray(node.form?.fields) ? node.form.fields.filter(f => f?.name) : [];
-    const sampleFor = (f: FormFieldDecl) => (f.type === 'checkbox' ? true
+/**
+ * One answered question as a sample: what a downstream step would see in
+ * `<base>.<name>`. A choice question answers with the VALUE of a choice (the
+ * first one, when the list is typed in), several choices answer with a list of
+ * values, and a question asked once per list item answers with a list of
+ * `{ key, label, answer }`.
+ */
+export function formFieldSample(f: FormFieldDecl): unknown {
+    if (f.fieldsFrom) return [{ key: 'item_1', label: 'Item 1', answer: scalarSample({ ...f, fieldsFrom: undefined }) }];
+    if (f.type === 'multiselect') {
+        const first = normaliseOptions(f.options)[0]?.value;
+        return [first || 'choice_1'];
+    }
+    return scalarSample(f);
+}
+
+function scalarSample(f: FormFieldDecl): unknown {
+    if (f.type === 'radio') return normaliseOptions(f.options)[0]?.value || 'choice_1';
+    return f.type === 'checkbox' ? true
         : f.type === 'number' ? 42
         : f.type === 'date' ? '2026-01-31'
         : f.type === 'file' ? { kind: 'form_upload', filename: 'attachment.pdf' }
+        // A picked record, as the run receives it: the reference the person
+        // chose, plus the text that was read from it. Shown even when the
+        // question only takes one, because `.text` is what a downstream
+        // step binds and it has to be visible to be draggable.
         : f.type === 'app_pick' ? pickSample(f)
         : f.type === 'email' ? 'visitor@example.com'
-        : f.label || 'answer');
+        : f.label || 'answer';
+}
+
+/**
+ * The questions of a form that produce an answer: named, and not a display
+ * field (a download, an Open in Notebooks button or a text block gives
+ * instead of asks, so there is nothing to bind).
+ */
+export function answerableFields(form: { fields?: FormFieldDecl[] } | null | undefined): FormFieldDecl[] {
+    return (Array.isArray(form?.fields) ? form.fields : []).filter(f => f?.name && !isDisplayField(f));
+}
+
+export function describeFormPage(node: UpstreamNode): Group | null {
+    if (node.mode === 'ending') return null;
+    const fields = answerableFields(node.form);
     const base = `steps.${node.id}.output`;
     return {
         id: node.id,
         label: node.label || node.form?.title || 'Form page',
         kind: 'form_page',
         basePath: base,
-        sample: Object.fromEntries(fields.map(f => [f.name, sampleFor(f)])),
-        fields: fields.map(f => fieldFor(f.name, appendKey(base, f.name), sampleFor(f))),
+        sample: Object.fromEntries(fields.map(f => [f.name, formFieldSample(f)])),
+        fields: fields.map(f => fieldFor(f.name, appendKey(base, f.name), formFieldSample(f))),
     };
 }

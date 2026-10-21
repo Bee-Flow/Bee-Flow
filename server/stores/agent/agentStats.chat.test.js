@@ -21,7 +21,6 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const path = require('node:path');
-const Module = require('node:module');
 
 const SERVER = path.resolve(__dirname, '..', '..');
 
@@ -35,13 +34,7 @@ const db = { query: q };
 
 // db.js is mocked so requiring the store opens no pool; every call in this
 // suite passes its own `db`, so `initDB()` is deliberately never reached.
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../../testUtils/moduleMock');
 mock(path.join(SERVER, 'db.js'), {
     pool: { query: async () => { throw new Error('the default pool must not be used here'); } },
     run: async () => {}, getOne: async () => null, getAll: async () => [], exec: async () => {},

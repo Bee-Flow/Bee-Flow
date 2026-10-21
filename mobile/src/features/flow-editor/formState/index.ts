@@ -27,6 +27,7 @@ import {
     patchRoute, patchStopError, patchWait,
 } from './flowSteps';
 import { deepEqual } from './read';
+import { extractReadTable, extractTable, patchReadTable, patchTable } from './tableSteps';
 import { extractTrigger, patchTrigger } from './triggerStep';
 import type { Extractor, FormDraft, Patcher, Step, StepPatch } from './types';
 import { defaultTriggerLabel } from '../model/triggerLabels';
@@ -70,6 +71,8 @@ const FAMILIES: Record<string, [Extractor, Patcher]> = {
     flatten: [extractFlatten, patchFlatten],
     datatable: [extractDatatable, patchDatatable],
     knowledge_write: [extractKnowledgeWrite, patchKnowledgeWrite],
+    read_table: [extractReadTable, patchReadTable],
+    table: [extractTable, patchTable],
 };
 
 /** The step types with a family of their own (the lockstep test holds this to the web). */

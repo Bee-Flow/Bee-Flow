@@ -23,6 +23,49 @@ const { providerList: APP_EVENT_PROVIDERS, eventList: APP_EVENT_EVENTS } =
 const PICK_SOURCES = require('../formPickSources').catalog()
     .map(sc => `${sc.id} (${sc.label})`).join(', ');
 
+// The form-wizard attributes of a form question (phase 2). One definition for
+// the trigger's form and for a further page, so the two never drift. The
+// authoritative rules (caps, types, expression scope) live in
+// automation/formTriggerContract.js and the validator; this is the plain-language
+// face of them.
+const FORM_FIELD_TYPES = ['text', 'textarea', 'email', 'number', 'date', 'select', 'radio', 'multiselect', 'checkbox', 'file', 'app_pick', 'info'];
+const FORM_OPTIONS_HINT = 'Required when type=select, radio or multiselect. Each option is plain text and IS the value the answer holds, so a later switch matches on that exact text.';
+const FORM_WIZARD_FIELD_PROPS = {
+    content: { type: 'string', description: 'type=info only: the text shown to the visitor (markdown, up to 4000 characters). Nothing is asked and nothing is stored.' },
+    showIf: { type: 'string', description: 'Show this question only when the expression is true, e.g. form.contact == "email", contains(form.topics, "billing") or !isEmpty(form.company). May only use form.<name> of questions ABOVE it on the same page. Checked again on the server: a hidden question never blocks, and its answer is dropped. Max 500 characters.' },
+    min: { description: 'A number for type=number, a date string for type=date. type=number: the smallest allowed value, as a number (e.g. 0). type=date: the earliest date, YYYY-MM-DD. The visitor sees an inline error outside the range.' },
+    max: { description: 'A number for type=number, a date string for type=date. type=number: the largest allowed value, as a number. type=date: the latest date, YYYY-MM-DD.' },
+    minLength: { type: 'integer', description: 'type=text, textarea or email: the fewest characters allowed.' },
+    maxLength: { type: 'integer', description: 'type=text, textarea or email: the most characters allowed.' },
+    pattern: { type: 'string', description: 'type=text or textarea: the WHOLE answer must match this regular expression (RE2 syntax, up to 200 characters), e.g. "[A-Z]{2}-[0-9]{4}".' },
+    patternMessage: { type: 'string', description: 'The inline error shown when `pattern` does not match, in the visitor\'s words (up to 120 characters).' },
+    minSelected: { type: 'integer', description: 'type=multiselect: the fewest options that must be ticked.' },
+    maxSelected: { type: 'integer', description: 'type=multiselect: the most options that may be ticked.' },
+};
+const FORM_LIST_SOURCE_PROPS = {
+    ref: { type: 'string', description: 'Where the list lives in the run, e.g. "steps.load.output.rows". A path, never {{ }}.' },
+    value: { type: 'string', description: 'Path inside one list item to its value. Omit when the list holds plain text or numbers.' },
+    label: { type: 'string', description: 'Path inside one item to the text shown to the visitor. Defaults to the value.' },
+    hint: { type: 'string', description: 'Path inside one item to a short extra line shown under the label.' },
+    limit: { type: 'integer', description: 'Use at most this many items (1..10000).' },
+};
+// Only on a further form page: the trigger's page opens before any step ran, so
+// there is no run data for it to draw from.
+const FORM_PAGE_FIELD_PROPS = {
+    optionsFrom: {
+        type: 'object',
+        description: 'type=select, radio or multiselect: build the choices from a list found earlier in the run instead of typing `options`. The ANSWER is each item\'s `value`; `label` is display only, so route on the value.',
+        properties: FORM_LIST_SOURCE_PROPS,
+        required: ['ref'],
+    },
+    fieldsFrom: {
+        type: 'object',
+        description: 'type=text, textarea, number, date, select, radio or checkbox: ask this question ONCE PER ITEM of an earlier list (each item\'s label becomes the question). The answer is steps.<page>.output.<name> = a list of {key, label, answer}, one per item. Keep `name` to 54 characters.',
+        properties: FORM_LIST_SOURCE_PROPS,
+        required: ['ref'],
+    },
+};
+
 // The rule shapes a Condition may hold (filter, switch cases, condition):
 // only shapes the editor reopens as clickable rows. One list, shared with the
 // builder prompt and the Suggest-outputs prompt.
@@ -297,17 +340,18 @@ leading search step just to look up data that's already in the payload.`,
                                     type: 'object',
                                     properties: {
                                         name: { type: 'string' },
-                                        type: { type: 'string', enum: ['text', 'textarea', 'email', 'number', 'date', 'select', 'checkbox', 'file', 'app_pick'] },
+                                        type: { type: 'string', enum: FORM_FIELD_TYPES },
                                         label: { type: 'string' },
                                         required: { type: 'boolean' },
                                         placeholder: { type: 'string' },
-                                        options: { type: 'array', items: { type: 'string' }, description: 'Required when type=select.' },
+                                        options: { type: 'array', items: { type: 'string' }, description: FORM_OPTIONS_HINT },
                                         accept: { type: 'string', description: 'When type=file: a MIME allowlist, e.g. "application/pdf,image/*".' },
                                         maxSizeMb: { type: 'number', description: 'When type=file: 1–25.' },
                                         source: { type: 'string', description: `REQUIRED when type=app_pick: which app the person filling the form searches. One of: ${PICK_SOURCES}. The search runs against THEIR OWN account, so use this instead of asking someone to paste a transcript or forward an email.` },
                                         multiple: { type: 'boolean', description: 'When type=app_pick: let them pick several records. The answer is then a LIST of descriptors instead of one.' },
                                         maxItems: { type: 'number', description: 'When type=app_pick and multiple: 1–10 (default 5).' },
                                         withText: { type: 'boolean', description: 'When type=app_pick: read the record\'s content into the run (default true). Set false when only a reference is wanted.' },
+                                        ...FORM_WIZARD_FIELD_PROPS,
                                         // A file field binds as an OBJECT, never a string:
                                         // trigger.output.<name> is { kind, fileId, filename, mimeType, size,
                                         // text, textTruncated, textError }. `.text` is the extracted content —
@@ -404,6 +448,67 @@ leading search step just to look up data that's already in the payload.`,
                             startAutomations: { type: 'boolean', description: 'Default false. May the agent start other automations from this step? Only automations the AUTOMATION OWNER can already run AND the agent\'s owner granted it.' },
                             useKnowledge: { type: 'boolean', description: 'Default false. May the agent search its own knowledge bases here? Each one is still re-checked against the automation owner, so a base they may not read is dropped.' },
                             useTools: { type: 'boolean', description: 'Default false. May the agent call its integration tools here? Anything that would need a person to confirm it is left out — nobody is watching an automation run — so add an approval step after this one if the work has to be confirmed.' },
+                        },
+                    },
+                    temperature: { type: 'number', minimum: 0, maximum: 2, description: 'Optional, 0 to 2 (default 0.2). Lower: the same input gives the same answer more often. Above 1 the answers vary a lot between runs. Leave it out unless the user asks for more or less variation.' },
+                    enumFrom: {
+                        type: 'array',
+                        maxItems: 10,
+                        description: 'Optional. Limits an answer field to values that exist in the run data. The allowed values (the list at `ref`, read from `value` in each item, or the plain items when `value` is left out) are SHOWN to the model AND checked after the answer: a value outside the list fails the answer. `field` must be declared in outputSchema ("category"; "tags[]" = every item of a list field; "items[].category" = a field inside list items). ref is a plain run path (steps.<id>.output.<list>, trigger.output.<list>, vars.<name>, loop.<var>): no {{ }}, never secrets. ignoreCase defaults to true; allowEmpty (default false) lets the field stay empty. EXAMPLE: [{field:"category",ref:"steps.s1.output.rows",value:"name"}]. At most 10 entries.',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                field: { type: 'string', description: 'The answer field, e.g. "category", "tags[]" or "items[].category".' },
+                                ref: { type: 'string', description: 'Plain run path to the list of allowed values, e.g. "steps.s1.output.rows".' },
+                                value: { type: 'string', description: 'Path inside one list item to its value, e.g. "name". Leave out when the list holds plain text or numbers.' },
+                                ignoreCase: { type: 'boolean', description: 'Default true.' },
+                                allowEmpty: { type: 'boolean', description: 'Default false.' },
+                            },
+                            required: ['field', 'ref'],
+                            additionalProperties: false,
+                        },
+                    },
+                    checks: {
+                        type: 'array',
+                        maxItems: 20,
+                        description: 'Optional. Checks run on the answer AFTER the model replied; they are never sent to the model. An answer that fails gets ONE automatic repair round (the model is told what is wrong); if it still fails, `fallback` applies (default: the step fails with errorClass ai_check_failed, which an error branch can route). Kinds: allowedFrom {field, ref, value?} = the text is one of the values in a list; numbersFrom {field, ref, tolerance?, ignoreUpTo?, percent?, ignoreDates?} = every number in the text also appears in the source at ref (a summary of figures from a table: field "summary", ref "steps.s2.output.totals"); script {field, script, minRatio?} = the text is written in that writing system (latin, cyrillic, greek, arabic, hebrew, han, japanese, hangul, devanagari, thai); items {field, minItems?, maxItems?, sameCountAs?} = a list field has that many items (sameCountAs = a run path to another list). EXAMPLE: [{kind:"numbersFrom",field:"summary",ref:"steps.s2.output.totals"},{kind:"items",field:"tags",minItems:1,maxItems:5}]. At most 20 checks.',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                kind: { type: 'string', enum: ['allowedFrom', 'numbersFrom', 'script', 'items'] },
+                                field: { type: 'string', description: 'The answer field to check, declared in outputSchema.' },
+                                ref: { type: 'string', description: 'allowedFrom / numbersFrom: plain run path to the list or data to compare with.' },
+                                value: { type: 'string', description: 'allowedFrom: path inside one list item to its value. Leave out for a list of plain text.' },
+                                ignoreCase: { type: 'boolean', description: 'allowedFrom: default true.' },
+                                allowEmpty: { type: 'boolean', description: 'allowedFrom: default false.' },
+                                tolerance: { type: 'number', description: 'numbersFrom: how far a number may differ from the source (absolute). Default 0.' },
+                                ignoreUpTo: { type: 'integer', description: 'numbersFrom: whole numbers up to this value are not checked (0..1000, default 0).' },
+                                percent: { type: 'boolean', description: 'numbersFrom: a percentage may be written as a share or a number. Default true.' },
+                                ignoreDates: { type: 'boolean', description: 'numbersFrom: numbers that are part of a date are not checked. Default true.' },
+                                script: { type: 'string', enum: ['latin', 'cyrillic', 'greek', 'arabic', 'hebrew', 'han', 'japanese', 'hangul', 'devanagari', 'thai'], description: 'script: the writing system the text must be in.' },
+                                minRatio: { type: 'number', description: 'script: the share of letters that must be in that writing system, 0..1 (default 1).' },
+                                minItems: { type: 'integer', description: 'items: at least this many items (0..10000).' },
+                                maxItems: { type: 'integer', description: 'items: at most this many items (0..10000).' },
+                                sameCountAs: { type: 'string', description: 'items: plain run path to another list that must have the same number of items.' },
+                            },
+                            required: ['kind', 'field'],
+                            additionalProperties: false,
+                        },
+                    },
+                    fallback: {
+                        type: 'object',
+                        description: 'Optional. What happens when the answer still fails its checks after the repair round. {kind:"fail"} (the default when enumFrom or checks are set) stops the step with an error. {kind:"value", fields:{<answer field>: binding}} makes those values the WHOLE answer, notes a warning on the run, and drops every other field: list EVERY field that later steps read (steps.<id>.output.<field>), or it is undefined there. EXAMPLE for an answer with category and summary: {kind:"value",fields:{category:{kind:"literal",value:"Other"},summary:{kind:"literal",value:""}}}. At most 50 fields.',
+                        properties: {
+                            kind: { type: 'string', enum: ['fail', 'value'] },
+                            fields: { type: 'object', description: 'kind "value": top-level answer field name -> binding. These values become the whole answer, so include every field a later step reads.' },
+                        },
+                        required: ['kind'],
+                    },
+                    askOnce: {
+                        description: 'Optional. Reuse the answer when the same question (same prompt, data, model and settings) comes up again instead of asking the model again. true = within this run (repeated identical items); {ttlSeconds:1..900} shortens the window; {acrossRuns:true} also keeps it for LATER runs, which stores the answer and only works when the organisation allowed "Answers from AI steps" in its integration cache settings. Never used when the step may call tools.',
+                        properties: {
+                            ttlSeconds: { type: 'integer', description: '1..900 (default 300).' },
+                            acrossRuns: { type: 'boolean', description: 'Keep the answer for later runs too. Needs the organisation setting "Answers from AI steps".' },
                         },
                     },
                     branch: { type: 'string', enum: ['then', 'else'], description: 'When afterStepId is a condition: which branch this step begins. Omit to auto-fill (then first, else second).' },
@@ -709,7 +814,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
         type: 'function',
         function: {
             name: 'builder_add_data_extraction',
-            description: `Append a step that pulls NAMED, TYPED fields out of a piece of text — an invoice, an e-mail body, the text of a PDF, a web page. PREFER THIS OVER AN ai_step FOR EXTRACTION: an ai_step is for judgement and writing (classify, summarise, draft a reply); this step is for "read these values out of that text". It runs on the ONE extraction model the administrator configured (small, fast, deterministic, thinking off) — NOT on the automation's model tier, so there is no modelTier to pick. \`fields\` IS the output shape, so no outputSchema is needed: the output is exactly one object with exactly the declared names — steps.<id>.output.<name>, or loop.<itemVar>.output.<name> inside a fan-out — and a field the text does not contain is null (a field marked required:true FAILS the step instead, so an unreadable document can be routed to an on_error branch). Numbers are real JSON numbers even when the text says "€ 1.554,25"; dates are "YYYY-MM-DD" strings. \`source\` is ONE binding to the text to read. source, fields and instructions sit at the TOP LEVEL of the args — this step has NO inputs map (that is integration_action vocabulary). Use forEach to extract the same fields from every file: {source:{kind:"ref",path:"loop.f.output.content"}, forEach:{overRef:"steps.<read>.output.results", itemVar:"f"}}. EXAMPLE: {source:{kind:"ref",path:"steps.read.output.content"}, fields:[{name:"factuurnummer",type:"string",description:"Invoice number",required:true},{name:"datum",type:"date",description:"Invoice date"},{name:"totaal_incl_btw",type:"number",description:"Total including VAT"}], instructions:"Amounts are in euros."}.`,
+            description: `Append a step that pulls NAMED, TYPED fields out of a piece of text — an invoice, an e-mail body, the text of a PDF, a web page. PREFER THIS OVER AN ai_step FOR EXTRACTION: an ai_step is for judgement and writing (classify, summarise, draft a reply); this step is for "read these values out of that text". It runs on the ONE extraction model the administrator configured (small, fast, deterministic, thinking off) — NOT on the automation's model tier, so there is no modelTier to pick. \`fields\` IS the output shape, so no outputSchema is needed: the output is exactly one object with exactly the declared names — steps.<id>.output.<name>, or loop.<itemVar>.output.<name> inside a fan-out — and a field the text does not contain is null (a field marked required:true FAILS the step instead, so an unreadable document can be routed to an on_error branch). Numbers are real JSON numbers even when the text says "€ 1.554,25"; dates are "YYYY-MM-DD" strings. \`source\` is ONE binding to the text to read. source, fields and instructions sit at the TOP LEVEL of the args — this step has NO inputs map (that is integration_action vocabulary). Use forEach to extract the same fields from every file: {source:{kind:"ref",path:"loop.f.output.content"}, forEach:{overRef:"steps.<read>.output.results", itemVar:"f"}}. forEach.concurrency (1..1000) lets several files be read at once. EXAMPLE: {source:{kind:"ref",path:"steps.read.output.content"}, fields:[{name:"factuurnummer",type:"string",description:"Invoice number",required:true},{name:"datum",type:"date",description:"Invoice date"},{name:"totaal_incl_btw",type:"number",description:"Total including VAT"}], instructions:"Amounts are in euros."}.`,
             parameters: {
                 type: 'object',
                 properties: {
@@ -1007,7 +1112,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
         type: 'function',
         function: {
             name: 'builder_add_form_page',
-            description: 'Append a FURTHER page of the automation\'s public form, shown on the same /f/<token> URL the visitor is already on. Requires the trigger to be kind=form. mode="input" PAUSES the run until the visitor answers — bind their answers as steps.<id>.output.<fieldName>. mode="ending" is the closing page: no questions, and its `title`/`description` are template-interpolated against the finished run, so use {{steps.x.output.y}} there to show the visitor what happened. Do NOT put a form page inside a loop, a parallel branch or a flowlet.',
+            description: 'Append a FURTHER page of the automation\'s public form, shown on the same /f/<token> URL the visitor is already on. Requires the trigger to be kind=form. mode="input" PAUSES the run until the visitor answers — bind their answers as steps.<id>.output.<fieldName>. mode="ending" is the closing page: no questions, and its `title`/`description` are template-interpolated against the finished run, so use {{steps.x.output.y}} there to show the visitor what happened. Do NOT put a form page inside a loop, a parallel branch or a flowlet. A page can build choices from run data (optionsFrom), ask one question per list item (fieldsFrom), hide questions (showIf) and be skipped (`when`): see "Form wizards" in the guide.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -1015,6 +1120,7 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                     splice: { type: 'boolean', description: SPLICE_DESCRIPTION },
                     mode: { type: 'string', enum: ['input', 'ending'], description: 'Default "input".' },
                     waitSeconds: { type: 'integer', description: 'mode=input only: how long to wait for the visitor, 60..604800 (1 minute … 7 days). Default 3600.' },
+                    when: { type: 'string', description: 'Show this page only when the expression is true (same grammar and scope as a condition: trigger.*, steps.*, vars.*, never {{ }}), e.g. "steps.check.output.verdict == \'retry\'". When false the page is skipped without pausing: its answers are blank and output._skipped is true; a skipped ending page shows nothing. Max 2000 characters.' },
                     form: {
                         type: 'object',
                         description: 'The page. Same shape as the trigger\'s form. Omit `theme` to match the first page (recommended).',
@@ -1030,17 +1136,19 @@ Output is {fileId, filename, mimeType, size, documentId, missing[]} — the same
                                     type: 'object',
                                     properties: {
                                         name: { type: 'string' },
-                                        type: { type: 'string', enum: ['text', 'textarea', 'email', 'number', 'date', 'select', 'checkbox', 'file', 'app_pick'] },
+                                        type: { type: 'string', enum: FORM_FIELD_TYPES },
                                         label: { type: 'string' },
                                         required: { type: 'boolean' },
                                         placeholder: { type: 'string' },
-                                        options: { type: 'array', items: { type: 'string' }, description: 'Required when type=select.' },
+                                        options: { type: 'array', items: { type: 'string' }, description: FORM_OPTIONS_HINT },
                                         accept: { type: 'string', description: 'When type=file: a MIME allowlist, e.g. "application/pdf,image/*".' },
                                         maxSizeMb: { type: 'number', description: 'When type=file: 1–25.' },
                                         source: { type: 'string', description: `REQUIRED when type=app_pick: which app the person filling the form searches. One of: ${PICK_SOURCES}. The search runs against THEIR OWN account, so use this instead of asking someone to paste a transcript or forward an email.` },
                                         multiple: { type: 'boolean', description: 'When type=app_pick: let them pick several records. The answer is then a LIST of descriptors instead of one.' },
                                         maxItems: { type: 'number', description: 'When type=app_pick and multiple: 1–10 (default 5).' },
                                         withText: { type: 'boolean', description: 'When type=app_pick: read the record\'s content into the run (default true). Set false when only a reference is wanted.' },
+                                        ...FORM_WIZARD_FIELD_PROPS,
+                                        ...FORM_PAGE_FIELD_PROPS,
                                         // A file field binds as an OBJECT, never a string:
                                         // trigger.output.<name> is { kind, fileId, filename, mimeType, size,
                                         // text, textTruncated, textError }. `.text` is the extracted content —
@@ -1446,7 +1554,7 @@ EXAMPLE — each resolved ticket becomes an article: {knowledgeBaseId:"kb_9f2",t
                 type: 'object',
                 properties: {
                     stepId: { type: 'string', description: 'Id of the step to update (root flow, a flowlet via scope, or a loop-body step).' },
-                    patch: { type: 'object', description: 'Fields to change. ANY step: afterStepId (+ branch/caseName) MOVES it — same id, chain re-joined where it left; condition: thenStepId/elseStepId wire an EXISTING step onto that branch. Other allowed keys depend on the step type (ai_step: prompt, systemPrompt, inputs, outputSchema, modelTier, allowTools, tools, knowledgeBaseIds, useMemory, skillIds, agentPermissions, disabledAgentSkillIds (the full list), label, forEach, and agentId ONLY on a step that has none yet — pointing a step at a DIFFERENT agent goes through builder_replace_step, so the permission check runs on it (the one exception is a step INSIDE A LOOP BODY, which builder_replace_step cannot reach at all: patch it here and the same save-time check still runs); data_extraction: source, fields (replaced wholesale — send the full list), instructions, label, forEach; integration_action: tool, inputs, label, forEach; condition: expr, label; switch: expr, cases, defaultBranch, label; code: code (keep its JSDoc @param lines in step with the inputs it reads), inputs, outputSchema, allowedTools, limits, label, forEach; set: fields, arrayRef, operations, maxItems, label, forEach — arrayRef: null exits list mode, operations replace wholesale (null clears); notification: title, body, channels, label, forEach; http_request: url, method, headers, body, query (see builder_add_http_request), timeoutMs, blockPrivateTargets, parseResponse, label, forEach, askOnce, cacheInto; datatable: op, where, values, matchColumn, sort, limit, label, forEach, datatableKey, and datatableId ONLY on a step that has none yet (repointing a step that already names a table goes through builder_replace_step); knowledge_write: content, title, sourceUri, nearDuplicateStrategy, label, forEach, and knowledgeBaseId ONLY on a step that has none yet (repointing a write at a different base goes through builder_replace_step, so the save-time permission check runs on it); loop: overRef, itemVar, maxIterations, label; call_layer: inputs, label; datetime/wait/stop_error/filter/limit/dedupe/aggregate/summarize: their own fields + label; approval: prompt, approval as {expiresInHours (0..720, 0 = no deadline), assignee {userId}|{groupId}, details, attachments, fields}, label — approval steps do NOT accept forEach). Do NOT pass `id`. A type change carries the fields of the new type: patch {type:"datatable", op, datatableId, datatableKey, values}.' },
+                    patch: { type: 'object', description: 'Fields to change. ANY step: afterStepId (+ branch/caseName) MOVES it — same id, chain re-joined where it left; condition: thenStepId/elseStepId wire an EXISTING step onto that branch. Other allowed keys depend on the step type (ai_step: prompt, systemPrompt, inputs, outputSchema, modelTier, allowTools, tools, knowledgeBaseIds, useMemory, skillIds, agentPermissions, disabledAgentSkillIds (the full list), temperature, enumFrom, checks, fallback, askOnce (as on builder_add_ai_step; each replaced wholesale, null clears), label, forEach, and agentId ONLY on a step that has none yet — pointing a step at a DIFFERENT agent goes through builder_replace_step, so the permission check runs on it (the one exception is a step INSIDE A LOOP BODY, which builder_replace_step cannot reach at all: patch it here and the same save-time check still runs); data_extraction: source, fields (replaced wholesale — send the full list), instructions, label, forEach; integration_action: tool, inputs, label, forEach; condition: expr, label; switch: expr, cases, defaultBranch, label; code: code (keep its JSDoc @param lines in step with the inputs it reads), inputs, outputSchema, allowedTools, limits, label, forEach; set: fields, arrayRef, operations, maxItems, label, forEach — arrayRef: null exits list mode, operations replace wholesale (null clears); notification: title, body, channels, label, forEach; http_request: url, method, headers, body, query (see builder_add_http_request), timeoutMs, blockPrivateTargets, parseResponse, label, forEach, askOnce, cacheInto; datatable: op, where, values, matchColumn, sort, limit, label, forEach, datatableKey, and datatableId ONLY on a step that has none yet (repointing a step that already names a table goes through builder_replace_step); knowledge_write: content, title, sourceUri, nearDuplicateStrategy, label, forEach, and knowledgeBaseId ONLY on a step that has none yet (repointing a write at a different base goes through builder_replace_step, so the save-time permission check runs on it); loop: overRef, itemVar, maxIterations, label; call_layer: inputs, label; datetime/wait/stop_error/filter/limit/dedupe/aggregate/summarize: their own fields + label; approval: prompt, approval as {expiresInHours (0..720, 0 = no deadline), assignee {userId}|{groupId}, details, attachments, fields}, label — approval steps do NOT accept forEach). Do NOT pass `id`. A type change carries the fields of the new type: patch {type:"datatable", op, datatableId, datatableKey, values}.' },
                     inputsMode: { type: 'string', enum: ['merge', 'replace'], description: 'How to apply patch.inputs / patch.fields. Default "merge" (per-key; value null deletes that key). "replace" overwrites the whole map.' },
                 },
                 required: ['stepId', 'patch'],

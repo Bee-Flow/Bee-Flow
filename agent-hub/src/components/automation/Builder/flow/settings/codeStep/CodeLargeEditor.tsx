@@ -5,7 +5,7 @@
 // closing it loses nothing. Folds by its own width: below ~1100px the right
 // column is shown INSTEAD of the code, switched from the header, rather than
 // squeezing both side by side.
-import { Ban, ChevronDown, ChevronRight, Code2, ShieldCheck, Sparkles, SlidersHorizontal, X } from 'lucide-react';
+import { Ban, ChevronDown, ChevronRight, Code2, FlaskConical, ShieldCheck, Sparkles, SlidersHorizontal, X } from 'lucide-react';
 import { useCallback, useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import type { CodeFinding } from '../../../../../../api/queries/automation/codeStep';
@@ -15,11 +15,12 @@ import CodeChecksPanel from './CodeChecksPanel';
 import CodeEditorField, { type CodeEditorHandle } from './CodeEditorField';
 import CodeParamsForm from './CodeParamsForm';
 import type { InputsMap } from './codeParams';
+import CodeTestsPanel from './CodeTestsPanel';
 import CodeTryPanel from './CodeTryPanel';
 import { useCodeAssistChat } from './useCodeAssistChat';
 import type { StepCodeAnalysis } from './useStepCodeAnalysis';
 
-export type LargeEditorTab = 'assistant' | 'params' | 'checks';
+export type LargeEditorTab = 'assistant' | 'params' | 'checks' | 'tests';
 
 interface CodeLargeEditorProps {
     initialTab: LargeEditorTab;
@@ -39,6 +40,7 @@ const TABS: Array<[LargeEditorTab, string, string, typeof Sparkles]> = [
     ['assistant', 'code_step.large.tab_assistant', 'Assistant', Sparkles],
     ['params', 'code_step.large.tab_params', 'Parameters', SlidersHorizontal],
     ['checks', 'code_step.large.tab_checks', 'Checks', ShieldCheck],
+    ['tests', 'automation_testing.tab', 'Tests', FlaskConical],
 ];
 
 export default function CodeLargeEditor({ initialTab, onClose, draft, set, state, stepLabel, automationId, stepId, allowedTools, upstreamFields, onFocusField = null }: CodeLargeEditorProps) {
@@ -125,7 +127,7 @@ export default function CodeLargeEditor({ initialTab, onClose, draft, set, state
                         </div>
                     </section>
                     <aside className={`flex min-h-0 flex-col border-l border-[var(--border-subtle)] @max-[1099px]/codeeditor:border-l-0 ${smallView === 'code' ? '@max-[1099px]/codeeditor:hidden' : ''}`}>
-                        <div role="tablist" className="flex shrink-0 gap-1 border-b border-[var(--border-subtle)] px-2 pt-2">
+                        <div role="tablist" className="flex shrink-0 gap-1 overflow-x-auto border-b border-[var(--border-subtle)] px-2 pt-2">
                             {TABS.map(([id, key, english, Icon]) => (
                                 <button
                                     key={id}
@@ -159,6 +161,9 @@ export default function CodeLargeEditor({ initialTab, onClose, draft, set, state
                                             </div>
                                         )}
                                 </div>
+                            )}
+                            {tab === 'tests' && (
+                                <CodeTestsPanel automationId={automationId} stepId={stepId} code={code} params={params} otherInputs={analysis?.capabilities.undeclaredInputs || []} />
                             )}
                             {tab === 'checks' && (
                                 <CodeChecksPanel analysis={analysis} reading={state.reading} failed={state.failed} allowedHosts={allowedHosts} onHosts={(next) => set('allowedHosts', next)} onJump={jump} onFix={fixWithBee} />

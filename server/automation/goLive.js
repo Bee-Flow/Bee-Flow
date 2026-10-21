@@ -253,7 +253,7 @@ async function checkBeforeLiveCore({ automation, definition, ownerId, organizati
     // "Is about" rules need the topic classifier; `false` (none configured)
     // blocks activation, an unknown state never does (topicRules.js).
     const topicClassifier = await topicClassifierFor(def);
-    const v = validateDefinition(def, { availableTools, toolRequiredParams, deliverableEvents, knownConnectionIds, availableAgents, topicClassifier });
+    const v = validateDefinition(def, { availableTools, toolRequiredParams, deliverableEvents, knownConnectionIds, knownVarNames: await (deps.knownVarNamesFor || sideEffects.knownVarNamesFor)(def, a), availableAgents, topicClassifier });
     if (!v.ok) return refuse(400, 'invalid_definition', 'Invalid definition', { error: 'Invalid definition', details: v.errors });
 
     // Knowledge-base links, checked against the database (validate.js is the

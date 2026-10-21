@@ -44,8 +44,9 @@ const MOCKS = {
         normalizePolicy: (p) => ({
             enabled: p.enabled === true,
             ttlSeconds: p.ttlSeconds ?? 300,
-            scopes: { integration: p.scopes?.integration !== false, http: p.scopes?.http === true },
+            scopes: { integration: p.scopes?.integration !== false, http: p.scopes?.http === true, ai: p.scopes?.ai === true },
         }),
+        normalizeScopes: (src) => ({ integration: src?.integration !== false, http: src?.http === true, ai: src?.ai === true }),
         invalidateCachePolicy: () => {},
         killSwitchOn: () => false,
         CONFIG_KEY_PREFIX: 'org_integration_cache_',
@@ -120,6 +121,27 @@ test('a misspelled scope is refused by name', async () => {
     assert.deepStrictEqual(touched, []);
 });
 
+test('scopes.ai "true" (a string) is refused, instead of being read as not-true', async () => {
+    const res = await dispatch({ method: 'PUT', url: '/org1', body: { enabled: true, scopes: { ai: 'true' } } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.strictEqual(res.body.error, 'scopes.ai is true or false.');
+    assert.ok(res.body.details.some((d) => d.path === 'body.scopes.ai'));
+    assert.deepStrictEqual(touched, []);
+});
+
+test('an unknown scope key is still refused now that ai exists', async () => {
+    const res = await dispatch({ method: 'PUT', url: '/org1', body: { enabled: true, scopes: { ai: true, model: true } } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.ok(/model/.test(res.body.error), res.body.error);
+    assert.deepStrictEqual(touched, []);
+});
+
+test('scopes.ai true is accepted and saved as sent', async () => {
+    const res = await dispatch({ method: 'PUT', url: '/org1', body: { enabled: true, scopes: { integration: true, http: false, ai: true } } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(touched.find((t) => t.what === 'setConfig').args[1].scopes, { integration: true, http: false, ai: true });
+});
+
 test('a ttl that is not a number is refused by name', async () => {
     const res = await dispatch({ method: 'PUT', url: '/org1', body: { enabled: true, ttlSeconds: '10m' } });
     assert.strictEqual(res.statusCode, 400);
@@ -136,7 +158,7 @@ test('the body the settings screen sends is saved as sent', async () => {
     const saved = touched.find((t) => t.what === 'setConfig').args[1];
     assert.strictEqual(saved.enabled, true);
     assert.strictEqual(saved.ttlSeconds, 600);
-    assert.deepStrictEqual(saved.scopes, { integration: false, http: true });
+    assert.deepStrictEqual(saved.scopes, { integration: false, http: true, ai: false });
     assert.ok(!touched.some((t) => t.what === 'purgeForOrg'), 'an ON does not purge');
 });
 

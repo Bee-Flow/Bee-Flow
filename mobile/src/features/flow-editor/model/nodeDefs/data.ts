@@ -12,6 +12,45 @@
 import { FLAT, type NodeDefSource } from './types';
 
 export const DATA_DEFS: Record<string, NodeDefSource> = {
+    read_table: {
+        family: 'data',
+        typeLabel: 'Read table',
+        defaultLabel: 'Read table',
+        desc: 'Open a spreadsheet or CSV file as a table, one table for each sheet.',
+        help: 'Opens a spreadsheet or CSV file that someone uploaded, or that an earlier step made, and turns each sheet into a table the next steps can work on.',
+        sectionKeys: ['config', 'advanced'],
+        simpleSections: ['config'],
+        issueSections: {
+            fallback: 'config',
+            map: {
+                label: FLAT,
+                source: 'config',
+                sheets: 'config',
+                headerRow: 'config',
+                provenanceSheet: 'advanced',
+                format: 'advanced',
+                delimiter: 'advanced',
+                skipHiddenSheets: 'advanced',
+                expiresInDays: 'advanced',
+                forEach: 'advanced',
+            },
+        },
+        labelFallback: 'Read table',
+    },
+    table: {
+        family: 'data',
+        typeLabel: 'Edit table',
+        defaultLabel: 'Edit table',
+        desc: 'Join, filter, calculate, group or summarise a table, step by step, with a preview.',
+        help: 'Works on a table from an earlier step without code: combine it with another table, keep some rows, add calculated columns, group and count, or replace names by codes. The original table stays as it was.',
+        sectionKeys: ['config', 'output', 'advanced'],
+        simpleSections: ['config', 'output'],
+        issueSections: {
+            fallback: 'config',
+            map: { label: FLAT, source: 'config', ops: 'config', name: 'output', expiresInDays: 'output', forEach: 'advanced' },
+        },
+        labelFallback: 'Edit table',
+    },
     set: {
         family: 'data',
         typeLabel: 'Edit data',

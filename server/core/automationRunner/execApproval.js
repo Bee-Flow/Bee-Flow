@@ -4,12 +4,29 @@
  * their renderers, and the isRunPause predicate every dispatcher checks.
  */
 
-const { interpolateTemplate } = require('../automationModel/bind');
+const { interpolateTemplate, walkList } = require('../automationModel/bind');
+const log = require('../../telemetry/log');
 const { evaluate } = require('./expr');
 const { desugarApprovalStages } = require('../automationModel/approvalStages');
 // The form-config renderer is automation/'s, reached through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
 const { resolveApprovalTtlMs } = require('./shared');
+const { pageAnswersFor } = require('./testHarness');
+
+/**
+ * Evaluate an authored condition against the run state. A condition that
+ * cannot be evaluated FAILS OPEN (counts as met): a broken expression must
+ * never silently drop an approver or hide a page the visitor has to answer.
+ * Shared by approval-stage `when` and the form page `when`.
+ */
+function conditionMet(expr, safeState) {
+    try {
+        return !!evaluate(expr, safeState);
+    } catch (e) {
+        log.warn('form/approval condition failed; treated as met', { error: e.message });
+        return true;
+    }
+}
 
 // ── Approval step ───────────────────────────────────────
 //
@@ -148,7 +165,7 @@ function renderApprovalExtras(step, runState) {
     // under. The five panel fields above stay populated as legacy mirrors.
     const stages = desugarApprovalStages(a, {
         interpolate,
-        evaluateWhen: (expr) => !!evaluate(expr, safeState),
+        evaluateWhen: (expr) => conditionMet(expr, safeState),
     });
 
     // Reminder + escalation clocks (hours from the pause). Carried raw here;
@@ -290,7 +307,29 @@ function renderFormPage(step, runState, { baseTheme = null } = {}) {
     return renderFormConfig(step.form, {
         interpolate: (s) => interpolateTemplate(s, safeState, { listAsMarkdown: true }),
         baseTheme,
+        // Dynamic options / per-item questions read a run value. Same
+        // secret-free state as the interpolation, so `secrets.*` resolves to
+        // nothing.
+        resolveList: (ref) => walkList(ref, safeState),
     });
+}
+
+/**
+ * A dry run that answers this page from saved answers (a form scenario, a
+ * golden replay): the values a real submission of them would carry, flagged
+ * `_fromScenario`. A question that does not pass fails the step, naming the
+ * question LABELS only (the message reaches run history and MCP, so never an
+ * answer).
+ */
+function scenarioPageOutput(step, rendered, saved) {
+    const { values, invalidLabels } = runnerPort('forms').scenarioPageValues(rendered, saved);
+    if (invalidLabels.length) {
+        throw Object.assign(
+            new Error(`The saved answers no longer fit the form page "${step.title || step.id}": check ${invalidLabels.join(', ')}.`),
+            { errorClass: 'scenario_answers_invalid' },
+        );
+    }
+    return { ...values, _dryRun: true, _fromScenario: true };
 }
 
 async function execFormPage(step, ctx, runState, mode) {
@@ -301,31 +340,45 @@ async function execFormPage(step, ctx, runState, mode) {
         throw new Error('Form steps are not supported inside layers');
     }
 
-    const baseTheme = ctx.formBaseTheme || null;
-    const isEnding = step.mode === 'ending';
-    const rendered = renderFormPage(step, runState, { baseTheme });
+    // The page condition. Evaluated in live AND dry_run, so a preview takes the
+    // same path a real run would. A false condition skips the page: no pause,
+    // no page shown. Secrets are stripped like everywhere a page reads state.
+    const safeState = { ...runState, secrets: {} };
+    const hasWhen = typeof step.when === 'string' && step.when.trim();
+    if (hasWhen && !conditionMet(step.when, safeState)) {
+        if (step.mode === 'ending') {
+            // No `form` key: automation/formResult.js endingFrom ignores the row.
+            return { output: { shown: false, mode: 'ending', skipped: true } };
+        }
+        return { output: { ...runnerPort('forms').emptyFormValues(step.form), _skipped: true } };
+    }
 
-    if (isEnding) {
+    const baseTheme = ctx.formBaseTheme || null;
+
+    if (step.mode === 'ending') {
         // Nothing to wait for. The public poll endpoint picks this row up once
         // the run goes terminal and shows it instead of the generic thank-you.
-        return { output: { shown: true, mode: 'ending', form: rendered } };
+        return { output: { shown: true, mode: 'ending', form: renderFormPage(step, runState, { baseTheme }) } };
     }
 
     if (mode === 'dry_run') {
-        // Synthesise blank answers so downstream bindings resolve in a preview
-        // rather than pausing a run nobody is watching.
-        const blank = {};
-        for (const f of rendered.fields) {
-            blank[f.name] = f.type === 'checkbox' ? false : (f.type === 'file' ? null : '');
-        }
-        return { output: { ...blank, _dryRun: true } };
+        const saved = pageAnswersFor(ctx, step.id);
+        if (saved) return { output: scenarioPageOutput(step, renderFormPage(step, runState, { baseTheme }), saved) };
+        // Blank answers keyed by the AUTHORED field names (a multiselect or a
+        // per-item group is an empty list), so downstream bindings resolve in
+        // a preview rather than pausing a run nobody is watching.
+        return { output: { ...runnerPort('forms').emptyFormValues(step.form), _dryRun: true } };
     }
 
+    // The rendered page carries the resolved options and expanded groups. It is
+    // persisted on the awaiting step row: after a restart it is the vocabulary
+    // the submit route coerces against.
+    const rendered = renderFormPage(step, runState, { baseTheme });
     throw new FormInputRequiredError(step.id, rendered, new Date(Date.now() + resolveFormWaitMs(step)).toISOString());
 }
 
 module.exports = {
     ApprovalRequiredError, renderApprovalPrompt, renderApprovalExtras, execApproval,
     FORM_WAIT_DEFAULT_MS, FORM_WAIT_MIN_MS, FORM_WAIT_MAX_MS,
-    resolveFormWaitMs, FormInputRequiredError, isRunPause, execFormPage,
+    resolveFormWaitMs, FormInputRequiredError, isRunPause, execFormPage, conditionMet,
 };

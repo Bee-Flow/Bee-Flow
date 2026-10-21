@@ -19,6 +19,7 @@
  *   ref       { kind:'ref', path:'trigger.output.old' }        → …output.new
  *   template  "Dag {{trigger.output.old}}"                      → {{…output.new}}
  *   expr      "trigger.output.old == 'x'"                       → …output.new
+ *   showIf    "form.old == 'x'" on the other questions of the page → form.new
  *
  * Three rules it follows, each of which is a bug it exists to avoid:
  *
@@ -166,33 +167,49 @@ function rewriteDeep(value: JsonValue, base: string, from: string, to: string, c
     return out;
 }
 
-/** Rename the field itself inside one form declaration. */
-function renameInForm(form: FormLike | null | undefined, from: string, to: string): FormLike | null | undefined {
+/**
+ * Rename the field itself inside one form declaration, and the `form.<name>`
+ * in the `showIf` of the questions on the same page: a condition names its
+ * questions page-locally (`form.contact == "email"`), so it moves with them.
+ */
+function renameInForm(form: FormLike | null | undefined, from: string, to: string, counter: { count: number }): FormLike | null | undefined {
     if (!form || !Array.isArray(form.fields)) return form;
     let hit = false;
     const fields = form.fields.map((f: FormField | null) => {
-        if (!f || f.name !== from) return f;
-        hit = true;
-        return { ...f, name: to };
+        if (!f) return f;
+        let next: FormField = f;
+        if (f.name === from) {
+            hit = true;
+            next = { ...next, name: to };
+        }
+        if (typeof f.showIf === 'string') {
+            const showIf = renameInExpr(f.showIf, 'form', from, to);
+            if (showIf !== f.showIf) {
+                hit = true;
+                counter.count += 1;
+                next = { ...next, showIf };
+            }
+        }
+        return next;
     });
     return hit ? { ...form, fields } : form;
 }
 
 /** Every place a form declaration can live: the triggers and the form_page steps. */
-function mapForms(def: Def, base: string, from: string, to: string): Def {
+function mapForms(def: Def, base: string, from: string, to: string, counter: { count: number }): Def {
     const isTriggerBase = base === 'trigger.output';
     const pageId = isTriggerBase ? null : /^steps\.([^.]+)\.output$/.exec(base)?.[1] || null;
 
     const mapStep = (step: FormStep): FormStep => {
         if (!step || typeof step !== 'object') return step;
-        if (pageId && step.id === pageId && step.form) return { ...step, form: renameInForm(step.form, from, to) };
+        if (pageId && step.id === pageId && step.form) return { ...step, form: renameInForm(step.form, from, to, counter) };
         return step;
     };
     const mapSteps = (steps: FormStep[] | undefined) => (Array.isArray(steps) ? steps.map(mapStep) : steps);
 
     const next = { ...def };
     if (isTriggerBase && next.trigger?.form) {
-        next.trigger = { ...next.trigger, form: renameInForm(next.trigger.form, from, to) };
+        next.trigger = { ...next.trigger, form: renameInForm(next.trigger.form, from, to, counter) };
     }
     if (!isTriggerBase) next.steps = mapSteps(next.steps);
     if (next.layers && typeof next.layers === 'object') {
@@ -236,7 +253,7 @@ export function renameFormField(definition: unknown, { base, from, to }: { base?
     // The declaration first, then the references — order is irrelevant to the
     // result (they touch disjoint keys) but this way a failure to find the
     // field cannot leave half a rename behind.
-    const renamed = mapForms(definition as Def, base, from, to);
+    const renamed = mapForms(definition as Def, base, from, to, counter);
     const rewritten = rewriteDeep(renamed as JsonObject, base, from, to, counter);
     return { definition: rewritten, rewritten: counter.count, ok: true };
 }

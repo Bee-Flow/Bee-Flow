@@ -43,6 +43,7 @@ const EXEMPT = new Map([
     ['stores/projectAiParticipationDdl.js', 'DDL of projectAiParticipationStore — covered via that store (ladder)'],
     ['stores/projectTaskDdl.js', 'DDL of projectTaskStore — covered via that store (ladder)'],
     ['stores/lib/projectChatSchema.js', 'schema van projectChatStore — DDL draait via die store (ladder)'],
+    ['stores/lib/automationTestingSchema.js', 'schema of automationTestingStore: its DDL runs via that store (ladder)'],
     ['stores/lib/sqliteBlobEngine.js', 'per-tenant engine — sqlite-blob per app, geen Postgres-DDL'],
     ['stores/lib/sqliteBlobStatements.js', 'statement API of the sqlite-blob engine — names CREATE TABLE only in a comment'],
     // The user store's statement lists, split out of stores/user/schema.js:

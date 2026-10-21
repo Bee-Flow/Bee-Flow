@@ -25,7 +25,6 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const path = require('node:path');
-const Module = require('node:module');
 
 const SERVER = path.resolve(__dirname, '..');
 
@@ -38,13 +37,7 @@ const executed = [];   // every statement the migration ran, in order
 // node-postgres's `query(sql, params)` over this PGlite (testUtils/pglitePool.js).
 const rawQuery = pgliteQuery(pg);
 
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../testUtils/moduleMock');
 
 mock(path.join(SERVER, 'db.js'), {
     run: (sql, params) => { executed.push(String(sql).replace(/\s+/g, ' ').trim()); return rawQuery(sql, params); },

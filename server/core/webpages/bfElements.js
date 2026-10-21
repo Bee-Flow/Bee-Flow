@@ -69,6 +69,8 @@
 
 'use strict';
 
+const { deepFreeze } = require('../../utils/deepFreeze');
+
 /** Bovengrens aan het aantal rijen dat een publieke tabel mag tonen. */
 const PUBLIC_ROWS_MAX = 100;
 
@@ -116,14 +118,6 @@ const BF_TAG_PATTERN = /^bf-[a-z][a-z0-9-]*$/;
  * lopen net zo hard uit elkaar als twee lijsten.
  */
 const BF_TAG_SCAN = /<\s*(bf-[a-z0-9-]*)/gi;
-
-function deepFreeze(value) {
-    if (value && typeof value === 'object' && !Object.isFrozen(value)) {
-        Object.freeze(value);
-        for (const key of Object.keys(value)) deepFreeze(value[key]);
-    }
-    return value;
-}
 
 // ── HET VOCABULAIRE ───────────────────────────────────────────────────
 //

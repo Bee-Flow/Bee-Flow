@@ -10,6 +10,7 @@ const automationStore = require('../../stores/automationStore');
 // every replay-seeding path has to recognise it as "not data" (BFSF-360).
 const { isTruncatedOutput, fullOutputRefOf } = require('../automationModel/payloadTruncation');
 const { canReadRunData } = require('../automationModel/callerRunVisibility');
+const { HttpError } = require('../http/errors');
 
 // ── Replay seeding for partial runs ─────────────────────
 //
@@ -145,6 +146,7 @@ async function loadRunStepsForRuns(runIds) {
  * came from version 4".
  */
 async function seedReplayState(automationId, currentVersion, stepIdFor, opts = {}) {
+    if (opts.seedRunId) return seedReplayStateFromRun(automationId, currentVersion, stepIdFor, opts);
     const all = await automationStore.getRunsForAutomation(automationId, { limit: REPLAY_RUN_WINDOW }).catch(() => []);
     // A run on its starter's own connections holds the starter's data: it seeds
     // nobody else's partial run (automation/callerRunVisibility.js).
@@ -178,6 +180,79 @@ async function seedReplayState(automationId, currentVersion, stepIdFor, opts = {
 }
 
 /**
+ * The replay state of ONE chosen run, instead of the last-N heuristic: "run this
+ * step again with the inputs of that run".
+ *
+ * The run must be a run of THIS automation that the viewer may read the data of
+ * (the same check as reading its step I/O). Anything else answers the same 404
+ * as a run that does not exist, so a caller cannot probe for the ids of other
+ * automations' runs. A dry-run is refused (409): its outputs are synthesized and
+ * would be replayed as if they were real.
+ *
+ * The data is the whole JOURNEY of the chosen run, the same view the run detail
+ * shows (`/runs/:id/steps`): an automation that paused on a form or an approval
+ * continues in a child run, and each leg records only the steps it dispatched
+ * live. Reading one leg would report an output of an earlier page as missing
+ * even though the run recorded it. Only legs of this automation that the viewer
+ * may read the data of take part, and a later leg overrides an earlier one.
+ *
+ * Unlike the window, the full output is loaded for a row that holds only the
+ * truncation sentinel (withFullOutput): the person picked this run for its data.
+ * A row that stays a sentinel is simply absent, as everywhere else, and so is
+ * reported as a missing upstream step by the partial-run plan.
+ *
+ * Same return shape as seedReplayState; `parentRunId` is the chosen run, and
+ * `runsWindow[0]` is too (the other legs follow, newest first).
+ */
+async function seedReplayStateFromRun(automationId, currentVersion, stepIdFor, opts) {
+    const run = await automationStore.getRun(opts.seedRunId).catch(() => null);
+    if (!run || run.automationId !== automationId || !canReadRunData(run, opts.viewerUserId)) {
+        throw new HttpError(404, 'seed_run_not_found', 'The run to take the inputs from was not found.');
+    }
+    if (run.mode === 'dry_run') {
+        throw new HttpError(409, 'seed_run_synthetic', 'A dry run holds sample data, not real inputs. Pick a live or test run.');
+    }
+    // Oldest leg first. The chosen run is always one of them.
+    const chain = (await automationStore.getRunsInChain(run.id).catch(() => [])) || [];
+    const usable = (l) => l?.id && l.automationId === automationId && l.mode !== 'dry_run' && canReadRunData(l, opts.viewerUserId);
+    const orderedLegs = chain.filter(l => l?.id === run.id || usable(l));
+    if (!orderedLegs.some(l => l.id === run.id)) orderedLegs.push(run);
+    const legIndex = new Map(orderedLegs.map((l, i) => [l.id, i]));
+    const legById = new Map(orderedLegs.map(l => [l.id, l]));
+    const allRows = await automationStore.getRunStepsForChain(run.id).catch(() => []);
+    // Stable sort by leg: a later leg's row for a step lands after (and so
+    // overrides) an earlier leg's.
+    const rows = (allRows || [])
+        .map((r, i) => ({ r, i }))
+        .filter(x => legIndex.has(x.r.runId))
+        .sort((x, y) => (legIndex.get(x.r.runId) - legIndex.get(y.r.runId)) || (x.i - y.i))
+        .map(x => x.r);
+    const replayState = {};
+    const staleFrom = {};
+    for (const raw of rows) {
+        const stepId = stepIdFor(raw);
+        if (!stepId) continue;
+        const row = await withFullOutput(raw);
+        const entry = replayEntryFromRow(row, stepId, opts);
+        if (!entry) {
+            delete replayState[stepId];
+            delete staleFrom[stepId];
+            continue;
+        }
+        replayState[stepId] = entry;
+        const rowVersion = legById.get(raw.runId)?.version;
+        if (currentVersion != null && rowVersion != null && rowVersion !== currentVersion) staleFrom[stepId] = rowVersion;
+        else delete staleFrom[stepId];
+    }
+    const stepsByRun = new Map(orderedLegs.map(l => [l.id, []]));
+    for (const r of rows) stepsByRun.get(r.runId)?.push(r);
+    // The chosen run first (it is the parent and the trigger payload's home),
+    // then the other legs, newest first.
+    const runsWindow = [run, ...orderedLegs.filter(l => l.id !== run.id).reverse()];
+    return { replayState, staleFrom, runsWindow, stepsByRun, parentRunId: run.id };
+}
+
+/**
  * Tag a partial run's returned row with the steps whose replayed upstream data
  * came from an OLDER definition version.
  *
@@ -195,4 +270,4 @@ function withReplayStale(runRow, staleFrom) {
     return { ...runRow, replayStale: entries.map(([stepId, version]) => ({ stepId, version })) };
 }
 
-module.exports = { replayEntryFromRow, seedReplayState, withReplayStale, withFullOutput };
+module.exports = { replayEntryFromRow, seedReplayState, seedReplayStateFromRun, withReplayStale, withFullOutput };

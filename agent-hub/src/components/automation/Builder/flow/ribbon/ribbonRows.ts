@@ -1,4 +1,4 @@
-import { ClipboardList, FileText, Flag, Layers, ListFilter, Package, Table2 } from 'lucide-react';
+import { ClipboardList, FileSpreadsheet, FileText, Flag, Layers, ListFilter, Package, Table2 } from 'lucide-react';
 import { typeGroupOf } from '../nodeTypeColors';
 import type { IconType, ItemSection, PaletteItem } from './ribbonCategories';
 
@@ -77,6 +77,7 @@ export const TAB_ROWS: Record<RowTab, Slot[][]> = {
         ['set', 'datetime'],
         [
             { menu: 'tables', titleKey: 'automations.ribbon.data_tables', fallback: 'Tables', Icon: Table2, ids: ['datatable', 'knowledge_write'] },
+            { menu: 'spreadsheets', titleKey: 'automation_tables.ribbon.group', fallback: 'Spreadsheets', Icon: FileSpreadsheet, ids: ['read_table', 'table'] },
             { menu: 'documents', titleKey: 'automations.ribbon.data_documents', fallback: 'Documents', Icon: FileText, ids: ['generate_document', 'fill_document', 'slide', 'presentation'] },
             { menu: 'lists', titleKey: 'automations.ribbon.data_lists', fallback: 'Lists', Icon: ListFilter, ids: ['filter_list', 'flatten', 'limit', 'dedupe', 'aggregate', 'summarize'] },
         ],

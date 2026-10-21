@@ -8,6 +8,7 @@
  * would put customer data into the definition, which is a portable document.
  */
 import { sampleToFields } from './sampleFields';
+import { editTableSample, readTableSample } from './tableSamples';
 import type { Catalog, CatalogDatatable, Group, UpstreamNode } from './upstream.types';
 
 /**
@@ -111,6 +112,32 @@ export function describeKnowledgeWrite(node: UpstreamNode, catalog: Catalog | nu
         id: node.id,
         label: node.label || (base ? base.name : 'To knowledge base'),
         kind: 'knowledge_write',
+        basePath: `steps.${node.id}.output`,
+        sample,
+        fields: sampleToFields(sample, `steps.${node.id}.output`),
+    };
+}
+
+/** What a Read table step hands downstream (see tableSamples.ts). */
+export function describeReadTable(node: UpstreamNode): Group {
+    const sample = readTableSample();
+    return {
+        id: node.id,
+        label: node.label || 'Read table',
+        kind: 'read_table',
+        basePath: `steps.${node.id}.output`,
+        sample,
+        fields: sampleToFields(sample, `steps.${node.id}.output`),
+    };
+}
+
+/** What an Edit table step hands downstream (see tableSamples.ts). */
+export function describeTable(node: UpstreamNode): Group {
+    const sample = editTableSample(node.label || 'Edit table');
+    return {
+        id: node.id,
+        label: node.label || 'Edit table',
+        kind: 'table',
         basePath: `steps.${node.id}.output`,
         sample,
         fields: sampleToFields(sample, `steps.${node.id}.output`),

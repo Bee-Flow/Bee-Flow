@@ -77,10 +77,16 @@ export default function useRunControls(
      * `trigger.output === {}` and each of the steps mapping off the trigger
      * resolved to undefined. That is BFSF-408/409: the reporter did not need
      * another trigger NODE, they needed trigger DATA.
+     *
+     * `seedRunId` runs the step with the recorded outputs of that earlier run
+     * instead of the latest one (the Runs tab's "Re-run from this step"; the
+     * plan and the confirmation come first, see useRerunFromStep).
+     * `confirmSideEffects` is the person's yes to the steps that send or write.
      */
     const executeStep = useCallback(async (
         stepId: string,
-        { mode = 'only', triggerPayload = null }: { mode?: string; triggerPayload?: unknown } = {},
+        { mode = 'only', triggerPayload = null, seedRunId = null, confirmSideEffects = false }:
+            { mode?: string; triggerPayload?: unknown; seedRunId?: string | null; confirmSideEffects?: boolean } = {},
     ) => {
         if (!state.automationId || !stepId) return null;
         setState(s => ({ ...s, executingStepId: stepId, error: null }));
@@ -116,7 +122,11 @@ export default function useRunControls(
                 // Only sent when there IS one: the server treats an absent
                 // and a null payload identically, and an explicit null in the
                 // body would read as "deliberately empty" to a future reader.
-                body: JSON.stringify(triggerPayload == null ? { mode } : { mode, triggerPayload }),
+                body: JSON.stringify({
+                    mode,
+                    ...(triggerPayload == null ? {} : { triggerPayload }),
+                    ...(seedRunId ? { seedRunId, confirmSideEffects } : {}),
+                }),
             });
             if (GATEWAY_DROP.has(r.status) && await recoverFromDrop()) return { recovered: true };
             const j = await r.json().catch(() => ({}));
@@ -154,7 +164,7 @@ export default function useRunControls(
     }, [state.automationId, watchActiveRun]);
 
     const retryFromStep = useCallback(
-        (stepId: string, opts: { triggerPayload?: unknown } = {}) => executeStep(stepId, { ...opts, mode: 'from' }),
+        (stepId: string, opts: { triggerPayload?: unknown; seedRunId?: string | null; confirmSideEffects?: boolean } = {}) => executeStep(stepId, { ...opts, mode: 'from' }),
         [executeStep],
     );
 

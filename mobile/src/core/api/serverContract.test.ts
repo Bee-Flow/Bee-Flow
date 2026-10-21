@@ -1095,7 +1095,7 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
         for (const mode of ['only', 'from', 'upTo']) expect(partial).toContain(`'${mode}'`);
         expect(missingFrom(declSlice(runSchemas, 'RUN_SHAPE'), ['triggerPayload', 'triggerStepId'])).toEqual([]);
         expect(routeSlice(runs, "router.post('/:id/dry-run'")).toContain('res.json({ run, steps })');
-        expect(routeSlice(runs, "router.post('/:id/steps/:stepId/run'")).toContain('res.json({ run, steps, stepRecord })');
+        expect(routeSlice(runs, "router.post('/:id/steps/:stepId/run'")).toContain('{ run, steps, stepRecord }');
     });
 
     it('the catalog still answers every section and action field the editor reads', () => {
@@ -1148,7 +1148,8 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
 
         const templates = read('automation/templates.js');
         expect(missingFrom(functionSlice(templates, 'listTemplates'), ['id', 'title', 'description', 'category', 'icon', 'tags'])).toEqual([]);
-        expect(functionSlice(templates, 'deriveTemplateMeta')).toContain('return { requiredIntegrations: [...integrations], triggerReadiness,');
+        // deriveTemplateMeta moved out of templates.js into templateMeta.js.
+        expect(functionSlice(read('automation/templateMeta.js'), 'deriveTemplateMeta')).toContain('return { requiredIntegrations: [...integrations], triggerReadiness,');
         // The gallery is the organisation's saved templates, then the built-in ones.
         const gallery = routeSlice(importExport, "router.get('/templates'");
         expect(gallery).toContain('await listTemplatesFor(');

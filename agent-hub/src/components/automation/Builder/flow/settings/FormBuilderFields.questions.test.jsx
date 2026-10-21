@@ -74,11 +74,11 @@ describe('FormBuilderFields — the question list', () => {
         expect(onChange.mock.calls[0][0].fields.map(f => f.name)).toEqual(['one']);
     });
 
-    it('offers exactly the eleven types the server accepts, in one fixed order', () => {
+    it('offers exactly the fourteen types the server accepts, in one fixed order', () => {
         renderEditor(form([text('one', 'One')]));
         const options = [...screen.getByLabelText('Question 1 type').querySelectorAll('option')];
         expect(options.map(o => o.value)).toEqual([
-            'text', 'textarea', 'email', 'number', 'date', 'select', 'checkbox', 'file', 'app_pick', 'download', 'notebook',
+            'text', 'textarea', 'email', 'number', 'date', 'select', 'radio', 'multiselect', 'checkbox', 'file', 'app_pick', 'download', 'notebook', 'info',
         ]);
         expect(options.map(o => o.textContent)).toContain('Short text');
     });

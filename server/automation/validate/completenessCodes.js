@@ -52,6 +52,8 @@ const COMPLETENESS_CODES = new Set([
     'datatable.filter_missing',
     'datatable.where_field_missing',
     'datatable.where_op_missing',
+    // table: the salt variable of a pseudonymise step is made in the Solution's variables, often after the step.
+    'table.salt_var_missing',
     // knowledge_write: the same two half-configured states, for the same
     // reason — the node is dropped on the canvas before the base is picked and
     // before the text is wired. `knowledge_write.strategy_invalid` is
@@ -121,6 +123,11 @@ const COMPLETENESS_CODES = new Set([
     // A download button dropped on the canvas before its document step is
     // wired: incomplete, not wrong.
     'form_page.field_download_no_file',
+    // A dynamic-options field or an info block added from the palette before its
+    // run-data source or its text is filled in: unfinished, not wrong.
+    'form_page.field_options_from_no_ref',
+    'form_page.field_info_empty',
+    'form.field_info_empty',
     'generate_document.content_missing',
     // The two presentation nodes land empty from the palette and are wired
     // over the next few autosaves: not finished, not wrong.

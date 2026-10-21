@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react';
+import { Download, Sparkles } from 'lucide-react';
 import { useId } from 'react';
 import type { ComponentType } from 'react';
 import type { TemplateCard } from '../../../../api/queries/automation/templates';
@@ -102,6 +102,19 @@ export default function TemplateTile({ tmpl, busy = false, disabled = false, onU
                 <div className="flex-1 min-w-0 text-[11px] leading-snug text-[var(--text-tertiary)]">
                     {starts && <div className="truncate" title={starts}>{starts}</div>}
                     {saved && <div className="truncate" title={saved}>{saved}</div>}
+                    {tmpl.sampleData && (
+                        // A plain download of made-up data; it must never start the template.
+                        <a
+                            href={tmpl.sampleData.url}
+                            download={tmpl.sampleData.filename}
+                            title={t('automation_tables.templates.sample_data_hint', 'Download made-up sample data to try this template.')}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-0.5 inline-flex items-center gap-1 text-[var(--accent-primary)] hover:underline"
+                        >
+                            <Download size={11} aria-hidden="true" />
+                            {t('automation_tables.templates.sample_data', 'Sample data')}
+                        </a>
+                    )}
                 </div>
                 <button
                     type="button"

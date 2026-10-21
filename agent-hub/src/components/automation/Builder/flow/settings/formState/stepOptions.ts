@@ -27,6 +27,8 @@ export const FOREACH_FORM_TYPES = new Set<string>([
     // Fan-out over a list of documents ("one invoice per file") is the
     // extraction step's most common shape, so it round-trips from day one.
     'data_extraction',
+    // The spreadsheet steps: one table per file, or one edit per table of a list.
+    'read_table', 'table',
 ]);
 
 /** The well-formed `{ itemVar, overRef }` entries of a forEach's `parents`. */
@@ -35,6 +37,18 @@ function forEachParents(parents: unknown): FormRecord[] {
     return parents
         .filter(p => p && typeof p.itemVar === 'string' && p.itemVar && typeof p.overRef === 'string' && p.overRef)
         .map(p => ({ itemVar: p.itemVar, overRef: p.overRef }));
+}
+
+/**
+ * "Items at the same time" (an AI step without tools, data extraction). Kept as
+ * the author wrote it, NOT clamped: the validator's foreach.concurrency_range
+ * is how a wrong number is found out. Empty means the server default, and is
+ * written as no key at all.
+ */
+function forEachConcurrency(value: JsonValue): { concurrency?: number } {
+    if (value === undefined || value === null || value === '') return {};
+    const n = Number(value);
+    return Number.isFinite(n) ? { concurrency: Math.round(n) } : {};
 }
 
 /**
@@ -53,6 +67,7 @@ export function applyForEachPatch(patch: FormRecord, step: FormRecord, draft: Fo
             itemVar: draft.forEach.itemVar || 'item',
             maxIterations: clamp(Number(draft.forEach.maxIterations) || 100, 1, 1000),
             ...(parents.length ? { parents } : {}),
+            ...forEachConcurrency(draft.forEach.concurrency),
         };
     } else if (step.forEach) {
         patch.forEach = null;
@@ -84,6 +99,8 @@ export function applyForEachPatch(patch: FormRecord, step: FormRecord, draft: Fo
 export const RETRY_FORM_TYPES = new Set<string>([
     'integration_action', 'ai_step', 'code', 'notification', 'http_request',
     'datatable', 'knowledge_write', 'data_extraction', 'slide',
+    // Reading and writing a stored table can fail for a moment (storage), and a second try is safe.
+    'read_table', 'table',
 ]);
 
 /**
@@ -135,7 +152,7 @@ export function applyRetryPatch(patch: FormRecord, step: FormRecord, draft: Form
  * round-trips. Mirrors the runtime's readers — execIntegrationAction today,
  * execOutbound next — so the form never carries a field the engine ignores.
  */
-export const ASK_ONCE_FORM_TYPES = new Set<string>(['integration_action', 'http_request']);
+export const ASK_ONCE_FORM_TYPES = new Set<string>(['integration_action', 'http_request', 'ai_step']);
 
 /**
  * `askOnce` in exactly the shapes the runtime reads, mirroring

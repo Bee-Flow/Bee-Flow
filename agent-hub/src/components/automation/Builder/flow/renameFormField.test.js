@@ -155,3 +155,51 @@ describe('the guards around the gesture', () => {
         expect(fieldNameTaken(fields, 'c', 'a')).toBe(false);
     });
 });
+
+describe('renameFormField — conditions on the same page', () => {
+    const pageDef = () => ({
+        trigger: {
+            id: 'trg',
+            type: 'trigger',
+            kind: 'form',
+            form: {
+                title: 'Request',
+                fields: [
+                    { name: 'contact', type: 'radio', label: 'Contact', options: ['email', 'phone'] },
+                    { name: 'contact_note', type: 'text', label: 'Note' },
+                    { name: 'address', type: 'email', label: 'E-mail', showIf: 'form.contact == "email" && !isEmpty(form.contact_note)' },
+                    { name: 'phone', type: 'text', label: 'Phone', showIf: 'form.contact == "phone" || form.contact == "form.contact"' },
+                ],
+            },
+        },
+        steps: [],
+    });
+
+    it('rewrites form.<name> in the showIf of the other questions, whole segments and literals aside', () => {
+        const out = renameFormField(pageDef(), { base: 'trigger.output', from: 'contact', to: 'channel' });
+        expect(out.ok).toBe(true);
+        const [channel, note, address, phone] = out.definition.trigger.form.fields;
+        expect(channel.name).toBe('channel');
+        expect(note.name).toBe('contact_note');
+        expect(address.showIf).toBe('form.channel == "email" && !isEmpty(form.contact_note)');
+        expect(phone.showIf).toBe('form.channel == "phone" || form.channel == "form.contact"');
+        expect(out.rewritten).toBe(2);
+    });
+
+    it('leaves another page alone', () => {
+        const d = {
+            ...pageDef(),
+            steps: [{ id: 'fp1', type: 'form_page', form: { fields: [{ name: 'a', type: 'text' }, { name: 'b', type: 'text', showIf: 'form.contact == "x"' }] } }],
+        };
+        const out = renameFormField(d, { base: 'trigger.output', from: 'contact', to: 'channel' });
+        expect(out.definition.steps[0].form.fields[1].showIf).toBe('form.contact == "x"');
+    });
+
+    it('works on a later page too, and does not mutate its argument', () => {
+        const d = { trigger: { id: 'trg', type: 'trigger' }, steps: [{ id: 'fp1', type: 'form_page', form: { fields: [{ name: 'kind', type: 'radio' }, { name: 'why', type: 'text', showIf: 'form.kind == "x"' }] } }] };
+        const before = JSON.stringify(d);
+        const out = renameFormField(d, { base: 'steps.fp1.output', from: 'kind', to: 'category' });
+        expect(out.definition.steps[0].form.fields.map((f) => f.showIf ?? f.name)).toEqual(['category', 'form.category == "x"']);
+        expect(JSON.stringify(d)).toBe(before);
+    });
+});

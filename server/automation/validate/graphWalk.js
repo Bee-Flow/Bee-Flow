@@ -16,11 +16,11 @@ const { checkBindableStepId } = require('./fieldChecks');
  */
 function walkGraphSteps(ctx, walk) {
     const { graph, trigger, p, pushE, pushW, isContractScope, createStepChecker } = ctx;
-    const { ids, stepById, order, availableTools, toolRequiredParams, knownConnectionIds, availableAgents, topicClassifier } = walk;
+    const { ids, stepById, order, availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, availableAgents, topicClassifier } = walk;
     const seenSoFar = new Set([trigger.id]); // outputs available
     const checkStep = createStepChecker({
         graph, trigger, ids, seenSoFar, pushE, pushW,
-        availableTools, toolRequiredParams, knownConnectionIds, availableAgents, topicClassifier, isContractScope,
+        availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, availableAgents, topicClassifier, isContractScope,
     });
 
     // Nested walker — validates every step inside a loop body / parallel

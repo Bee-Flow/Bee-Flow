@@ -1,14 +1,25 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, Paperclip, Check, X, Download, BookOpen, Copy, Search, FileText, FileDown, Globe, type LucideIcon } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { Loader2, Check, Download, BookOpen, Copy, FileText, FileDown, Globe, type LucideIcon } from 'lucide-react';
 import { resultFilename, saveBlob } from './resultFile';
 import useTranslation from '../../hooks/useTranslation';
 import themeVars from '../admin/Studio/AppStudio/runtime/themeVars';
-import { Field, INPUT_CLASS, inputStyle } from '../admin/Studio/AppStudio/runtime/uiBits';
-import { normaliseOptions } from './formOptions';
 import { messageOf } from '../../utils/caughtError';
-import type { FormChangeHandler, FormErrorHandler, AppPick, AppPickFieldProps, AppPickRow, FileFieldProps, FormEndingViewProps, FormExportBarProps, FormFieldDef, FormFieldProps, FormRichTextProps, FormUpload, FormValue, FormValues, FormWaitingViewProps, MdProps, PublicFormRendererProps, SubmitError } from './PublicFormRenderer.types';
+import FormField from './fields/FormField';
+import { FormRichText } from './fields/FormRichText';
+import { valuesWithPrefill } from './prefill';
+import { collectErrors, fieldError, groupBlocks, initialValues, isDisplayField, submissionValues, typicalDurationText, visibleNames } from './formRules';
+import type { FormErrorHandler, FormEndingViewProps, FormExportBarProps, FormFieldDef, FormValue, FormValues, FormWaitingViewProps, PublicFormRendererProps, SubmitError } from './PublicFormRenderer.types';
+
+// The importers reach these through this module.
+export { FormRichText, initialValues };
+
+/** The server's per-question messages from a refused submit, by name, or null when it sent none. */
+function fieldErrorsOf(err: unknown): Record<string, string> | null {
+    const perField = typeof err === 'object' && err !== null && 'fields' in err ? (err as SubmitError).fields : undefined;
+    if (!Array.isArray(perField) || !perField.length) return null;
+    return Object.fromEntries(perField.map(f => [f.field, f.message]));
+}
+
 /**
  * Renders one form-trigger form. Used by the PUBLIC hosted page and by the
  * builder's live preview, so what the author sees while editing is literally
@@ -40,12 +51,19 @@ import type { FormChangeHandler, FormErrorHandler, AppPick, AppPickFieldProps, A
  *               the automation may still pause for another page and only the page
  *               that is polling knows what comes next.
  */
-export default function PublicFormRenderer({ form, onSubmit = null, onUpload = null, onSearchApp = null, preview = false, showSuccess = true, downloadHref = null, onOpenInNotebooks = null }: PublicFormRendererProps) {
+export default function PublicFormRenderer({ form, onSubmit = null, onUpload = null, onSearchApp = null, preview = false, showSuccess = true, downloadHref = null, onOpenInNotebooks = null, prefill = null }: PublicFormRendererProps) {
     const { t } = useTranslation();
-    const fields = form?.fields || [];
+    const fields = useMemo(() => form?.fields || [], [form?.fields]);
     const theme = form?.theme || {};
-    const [values, setValues] = useState<FormValues>(() => initialValues(fields));
+    const [values, setValues] = useState<FormValues>(() => valuesWithPrefill(fields, prefill));
     const [errors, setErrors] = useState<Record<string, string | null>>({});
+    // A new set of saved answers (picking a scenario) fills the form again.
+    const [appliedPrefill, setAppliedPrefill] = useState(prefill);
+    if (prefill !== appliedPrefill) {
+        setAppliedPrefill(prefill);
+        setValues(valuesWithPrefill(fields, prefill));
+        setErrors({});
+    }
     const [formError, setFormError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [done, setDone] = useState(false);
@@ -54,41 +72,75 @@ export default function PublicFormRenderer({ form, onSubmit = null, onUpload = n
     const [honeypot, setHoneypot] = useState('');
 
     const style = useMemo(() => themeVars(theme), [theme]);
+    // Which questions are on screen. A hidden one is not drawn, not checked and
+    // not sent; the server decides the same way and re-checks everything.
+    const visible = useMemo(() => visibleNames(fields, values), [fields, values]);
+    const blocks = useMemo(() => groupBlocks(fields, visible), [fields, visible]);
+
+    // A question that disappears takes its error with it, so it cannot come
+    // back from hiding still red.
+    useEffect(() => {
+        setErrors(prev => {
+            const stale = Object.keys(prev).filter(name => prev[name] && !visible.has(name));
+            if (!stale.length) return prev;
+            const next = { ...prev };
+            for (const name of stale) next[name] = null;
+            return next;
+        });
+    }, [visible]);
+
     const set = (name: string, v: FormValue) => {
         setValues(prev => ({ ...prev, [name]: v }));
         setErrors(prev => (prev[name] ? { ...prev, [name]: null } : prev));
     };
 
+    // On blur only the RULES speak: a visitor tabbing past a required question
+    // has not refused to answer it yet. Required is checked on submit.
+    const checkRules = (f: FormFieldDef) => {
+        const message = fieldError(f, values[f.name], t, { checkRequired: false });
+        setErrors(prev => (prev[f.name] === message || (!prev[f.name] && !message) ? prev : { ...prev, [f.name]: message }));
+    };
+
     const submit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (preview || !onSubmit || busy) return;
-        // Client-side required checks are a courtesy, not a gate — the server
-        // re-checks every field against the declaration.
-        const missing: Record<string, string> = {};
-        for (const f of fields) {
-            if (isDisplayField(f) || !f.required) continue;
-            if (isBlank(f, values[f.name])) missing[f.name] = `${f.label} is required.`;
-        }
-        if (Object.keys(missing).length) { setErrors(missing); return; }
+        // Client-side checks are a courtesy, not a gate — the server re-checks
+        // every field against the declaration.
+        const found = collectErrors(fields, values, visible, t);
+        if (Object.keys(found).length) { setErrors(found); return; }
 
         setBusy(true);
         setFormError(null);
         try {
-            await onSubmit({ ...values, website_url: honeypot });
+            await onSubmit({ ...submissionValues(fields, values, visible), website_url: honeypot });
             if (showSuccess) setDone(true);
         } catch (err) {
-            const perField = typeof err === 'object' && err !== null && 'fields' in err ? err.fields : undefined;
-            if (Array.isArray(perField) && perField.length) {
-                setErrors(Object.fromEntries(perField.map(f => [f.field, f.message])));
-            } else {
-                setFormError(messageOf(err, 'Something went wrong. Please try again.'));
-            }
+            const perField = fieldErrorsOf(err);
+            if (perField) setErrors(perField);
+            else setFormError(messageOf(err, 'Something went wrong. Please try again.'));
         } finally {
             setBusy(false);
         }
     };
 
     if (done) return <FormEndingView form={{ ...form, title: form.successMessage, description: '' }} />;
+
+    const renderField = (field: FormFieldDef) => (
+        <FormField
+            key={field.name}
+            field={field}
+            value={values[field.name]}
+            error={errors[field.name] || null}
+            disabled={preview || busy}
+            onChange={(v: FormValue) => set(field.name, v)}
+            onBlur={() => checkRules(field)}
+            onUpload={onUpload}
+            onSearchApp={onSearchApp}
+            onError={((msg: string) => setErrors(prev => ({ ...prev, [field.name]: msg }))) as FormErrorHandler}
+            downloadHref={downloadHref ? downloadHref(field) : null}
+            onOpenInNotebooks={onOpenInNotebooks}
+        />
+    );
 
     return (
         <form
@@ -108,21 +160,20 @@ export default function PublicFormRenderer({ form, onSubmit = null, onUpload = n
                     ) : null}
                 </header>
 
-                {fields.map(field => (
-                    <FormField
-                        key={field.name}
-                        field={field}
-                        value={values[field.name]}
-                        error={errors[field.name] || null}
-                        disabled={preview || busy}
-                        onChange={(v: FormValue) => set(field.name, v)}
-                        onUpload={onUpload}
-                        onSearchApp={onSearchApp}
-                        onError={(msg: string) => setErrors(prev => ({ ...prev, [field.name]: msg }))}
-                        downloadHref={downloadHref ? downloadHref(field) : null}
-                        onOpenInNotebooks={onOpenInNotebooks}
-                    />
-                ))}
+                {blocks.map(block => (block.kind === 'group' ? (
+                    // One question per list item: the header names the list, the
+                    // items sit under it as ordinary questions.
+                    <div
+                        key={`group_${block.group}`}
+                        role="group"
+                        aria-labelledby={block.header?.label ? `ff_${block.header.name}` : undefined}
+                        className="flex flex-col gap-4 pl-4 border-l-2 border-[var(--border-default)]"
+                        data-testid={`form-group-${block.group}`}
+                    >
+                        {block.header ? renderField(block.header) : null}
+                        {block.items.map(renderField)}
+                    </div>
+                ) : renderField(block.field)))}
 
                 {/* Honeypot — hidden from people AND from assistive tech, so
                     only an indiscriminate bot fills it in. */}
@@ -149,62 +200,11 @@ export default function PublicFormRenderer({ form, onSubmit = null, onUpload = n
     );
 }
 
-/**
- * The visitor's last screen: a single-page form's success message, or a
- * `form_page` step with mode 'ending' — which the server renders against the
- * finished run, so its text can be a summary of what actually happened.
- *
- * Same theme plumbing as the form, so the journey does not change appearance
- * on its final step.
- */
-// Every description on a form page — a mid-run question as much as the closing
-// summary — is where the automation SHOWS the visitor something: the keyword it
-// picked and why, the competitor analysis it just did, the text it wrote, a
-// link to the document. Rendered as a flat paragraph that meant reading raw
-// `##` and `**` and copy-pasting URLs by hand.
-//
-// react-markdown escapes embedded HTML unless rehype-raw is added; it is not
-// added, deliberately. These pages are served to anonymous visitors and their
-// text can carry model output, so nothing here may become live markup.
-const FORM_MD_COMPONENTS = {
-    a: ({ node: _node, ...props }: MdProps<'a'>) => (
-        <a {...props} target="_blank" rel="noopener noreferrer nofollow"
-            style={{ color: 'var(--app-primary)', textDecoration: 'underline' }} />
-    ),
-    h1: ({ node: _node, ...props }: MdProps<'h1'>) => <h2 {...props} className="text-lg font-semibold mt-5 mb-2" style={{ color: 'var(--text-primary)' }} />,
-    h2: ({ node: _node, ...props }: MdProps<'h2'>) => <h3 {...props} className="text-base font-semibold mt-5 mb-1.5" style={{ color: 'var(--text-primary)' }} />,
-    h3: ({ node: _node, ...props }: MdProps<'h3'>) => <h4 {...props} className="text-sm font-semibold mt-4 mb-1" style={{ color: 'var(--text-primary)' }} />,
-    p: ({ node: _node, ...props }: MdProps<'p'>) => <p {...props} className="mb-3" />,
-    ul: ({ node: _node, ...props }: MdProps<'ul'>) => <ul {...props} className="list-disc pl-5 mb-3 flex flex-col gap-1" />,
-    ol: ({ node: _node, ...props }: MdProps<'ol'>) => <ol {...props} className="list-decimal pl-5 mb-3 flex flex-col gap-1" />,
-    strong: ({ node: _node, ...props }: MdProps<'strong'>) => <strong {...props} style={{ color: 'var(--text-primary)' }} />,
-    hr: ({ node: _node, ...props }: MdProps<'hr'>) => <hr {...props} className="my-5" style={{ borderColor: 'var(--border-subtle)' }} />,
-    blockquote: ({ node: _node, ...props }: MdProps<'blockquote'>) => (
-        <blockquote {...props} className="pl-3 my-3" style={{ borderLeft: '3px solid var(--border-default)' }} />
-    ),
-    // GFM tables had no entry here at all, so they rendered as a bare <table>
-    // with zero cell padding: the widest label in a two-column fact table ran
-    // straight into its value ("Director ruleauto"). A snapshot table is the
-    // most common thing an approval's details block contains, and a form
-    // description's second most common, so it gets real cells — and a scroll
-    // box, so a wide one cannot push the column sideways.
-    table: ({ node: _node, ...props }: MdProps<'table'>) => (
-        <div className="my-3 overflow-x-auto">
-            <table {...props} className="w-auto min-w-0 border-collapse text-left" />
-        </div>
-    ),
-    th: ({ node: _node, ...props }: MdProps<'th'>) => (
-        <th {...props} className="py-1 pr-6 last:pr-0 align-top font-semibold" style={{ color: 'var(--text-primary)' }} />
-    ),
-    td: ({ node: _node, ...props }: MdProps<'td'>) => <td {...props} className="py-1 pr-6 last:pr-0 align-top" />,
-};
-
-export function FormRichText({ children, className = '', style = null }: FormRichTextProps) {
-    return (
-        <div className={className} style={style as React.CSSProperties}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={FORM_MD_COMPONENTS}>{children}</ReactMarkdown>
-        </div>
-    );
+/** How long this form's runs usually take, when the poll knew; nothing otherwise. */
+function TypicalDuration({ seconds }: { seconds: number | null | undefined }) {
+    const { t } = useTranslation();
+    const text = typicalDurationText(seconds, t);
+    return text ? <span className="text-xs text-[var(--text-tertiary)]" data-testid="form-waiting-typical">{text}</span> : null;
 }
 
 /**
@@ -232,7 +232,7 @@ export function FormRichText({ children, className = '', style = null }: FormRic
  * because a full-bleed dark page with two lines of grey text on it is not a
  * design, it is an absence of one.
  */
-export function FormWaitingView({ theme = null, progress = null, note = null, label = 'Working on it' }: FormWaitingViewProps) {
+export function FormWaitingView({ theme = null, progress = null, note = null, label = 'Working on it', typicalSeconds = null }: FormWaitingViewProps) {
     const style = useMemo(() => themeVars(theme || {}), [theme]);
     const trail = Array.isArray(progress) ? progress.filter(Boolean) : [];
     const current = trail.length ? trail[trail.length - 1] : null;
@@ -282,6 +282,9 @@ export function FormWaitingView({ theme = null, progress = null, note = null, la
                         <span className="text-xs" style={{ color: summary ? 'var(--text-tertiary)' : 'var(--text-secondary)' }}>
                             {current ? `${label} — this can take a moment.` : 'This can take a moment.'}
                         </span>
+                        {/* How long this form's runs usually take, when the poll knew:
+                            a wait with a number on it reads as progress, not as a hang. */}
+                        <TypicalDuration seconds={typicalSeconds} />
                     </div>
                 </div>
 
@@ -444,6 +447,14 @@ function FormExportBar({ text, title, onDownloadAs, onSaveToNotebook, onSaveAsWe
     );
 }
 
+/**
+ * The visitor's last screen: a single-page form's success message, or a
+ * `form_page` step with mode 'ending' — which the server renders against the
+ * finished run, so its text can be a summary of what actually happened.
+ *
+ * Same theme plumbing as the form, so the journey does not change appearance
+ * on its final step.
+ */
 export function FormEndingView({ form, downloadHref = null, onOpenInNotebooks = null, onSaveToNotebook = null, onSaveAsWebpage, onDownloadAs }: FormEndingViewProps) {
     const style = useMemo(() => themeVars(form?.theme || {}), [form]);
     const description = form?.description || '';
@@ -489,508 +500,5 @@ export function FormEndingView({ form, downloadHref = null, onOpenInNotebooks = 
                 ))}
             </div>
         </div>
-    );
-}
-
-// Display-only field types: they show something instead of collecting it, so
-// they get no entry in `values` and are skipped by the required check. Mirrors
-// the server's DISPLAY_FIELD_TYPES in automation/formTriggerContract.js.
-const DISPLAY_FIELD_TYPES: Array<string | undefined> = ['download', 'notebook'];
-const isDisplayField = (f: FormFieldDef | null | undefined): boolean => DISPLAY_FIELD_TYPES.includes(f?.type);
-
-/**
- * The form's key set with every answer empty — the shape a submission has
- * before anyone types anything.
- *
- * Exported (BFSF-408b) because it is also the free answer to "what does this
- * trigger hand my next step?": the automation builder seeds an edited trigger
- * payload from it, so the author sees every declared key without filling the
- * form in. Deliberately the SAME function the renderer seeds its own state
- * with — a second generator would drift from the real submission shape (the
- * placeholder-value samples in Builder/mapping/upstream.js are a different
- * thing: they show what a value LOOKS like, not what an empty form sends).
- */
-export function initialValues(fields: FormFieldDef[] | null | undefined): FormValues {
-    const out: FormValues = {};
-    for (const f of (Array.isArray(fields) ? fields : [])) {
-        if (isDisplayField(f)) continue;
-        // Mirrors the server's emptyValue() in automation/formTriggerContract.js:
-        // an unanswered pick is an empty LIST when the question takes several
-        // records, and null when it takes one.
-        out[f.name] = f.type === 'checkbox' ? false
-            : f.type === 'file' ? null
-                : f.type === 'app_pick' ? (f.multiple ? [] : null)
-                    : '';
-    }
-    return out;
-}
-
-function isBlank(field: FormFieldDef, value: FormValue): boolean {
-    if (field.type === 'checkbox') return value !== true;
-    if (field.type === 'file') return !value;
-    if (field.type === 'app_pick') return Array.isArray(value) ? value.length === 0 : !value;
-    return value === undefined || value === null || String(value).trim() === '';
-}
-
-/** Human file size. 1 decimal from MB up, none below — "0.9 kB" reads as noise. */
-function fileSize(bytes: unknown): string {
-    const n = Number(bytes);
-    if (!Number.isFinite(n) || n <= 0) return '';
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 * 1024) return `${Math.round(n / 1024)} kB`;
-    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-/** The extension, upper-cased, as a type chip: PDF, DOCX. */
-function fileKind(filename: unknown): string {
-    const m = /\.([a-z0-9]{1,5})$/i.exec(String(filename || ''));
-    return m ? m[1].toUpperCase() : '';
-}
-
-/**
- * The document the automation produced, offered as a download.
- *
- * A plain anchor, not a fetch: the browser's own download handling is what a
- * visitor expects, works without JavaScript state, and keeps the bytes out of
- * page memory. `download` asks for a save rather than a render; the server
- * sends `Content-Disposition: attachment` regardless, so this is a nicety
- * rather than the guarantee.
- *
- * With no href it must NOT render a link. `<a href="#" download="test.pdf">`
- * makes the browser save the CURRENT PAGE under that name, so a missing link
- * arrived as a 6 KB index.html called test.pdf — "Failed to load PDF document"
- * in Chrome, "unreadable content" in Word. A visibly dead button is the honest
- * failure; a corrupt download is not.
- */
-function FormDownload({ field, href }: { field: FormFieldDef; href?: string | null }) {
-    const meta = [fileKind(field.filename), fileSize(field.size)].filter(Boolean).join(' · ');
-    if (!href) return <FormDownloadUnavailable field={field} meta={meta} />;
-    return (
-        <div className="flex flex-col gap-1 text-left" data-testid={`form-download-${field.name}`}>
-            {field.label ? (
-                <span className="text-sm font-medium text-[var(--text-primary)]">{field.label}</span>
-            ) : null}
-            <a
-                href={href}
-                download={field.filename || true}
-                className="flex items-center gap-3 px-3 py-2.5 border transition"
-                style={{
-                    borderColor: 'var(--border-default)',
-                    borderRadius: 'var(--app-radius)',
-                    background: 'var(--bg-card, var(--bg-secondary))',
-                    color: 'var(--text-primary)',
-                    textDecoration: 'none',
-                }}
-            >
-                <span
-                    aria-hidden="true"
-                    className="flex items-center justify-center flex-shrink-0"
-                    style={{ width: 34, height: 34, borderRadius: '999px', background: 'var(--app-primary-soft)', color: 'var(--app-primary)' }}
-                >
-                    <Download size={16} />
-                </span>
-                <span className="min-w-0 flex flex-col">
-                    <span className="text-sm font-medium truncate">{field.filename || 'Download'}</span>
-                    {meta ? <span className="text-xs text-[var(--text-secondary)]">{meta}</span> : null}
-                </span>
-            </a>
-            {field.help ? <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{field.help}</p> : null}
-        </div>
-    );
-}
-
-/**
- * "Open in Notebooks" — the download's twin for a document you want to work
- * with rather than file away.
- *
- * It is a BUTTON, not a link, because opening is a write: the server copies the
- * document into a new notebook and only then is there an address to go to. That
- * also means it can fail, so it says so instead of navigating nowhere.
- *
- * Without a handler (the builder preview) it renders inert, exactly as the
- * download does — the author sees the shape without a live notebook being made
- * every time they look at the page.
- */
-function FormOpenInNotebooks({ field, onOpen }: { field: FormFieldDef; onOpen?: ((field: FormFieldDef) => Promise<unknown>) | null }) {
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const meta = [fileKind(field.filename), fileSize(field.size)].filter(Boolean).join(' · ');
-
-    const open = async () => {
-        if (!onOpen || busy) return;
-        setBusy(true);
-        setError(null);
-        try {
-            await onOpen(field);
-        } catch (e) {
-            setError(messageOf(e, 'Could not open this in Notebooks.'));
-            setBusy(false);
-        }
-        // No setBusy(false) on success: the page is navigating away, and
-        // flipping the button back first makes it look like nothing happened.
-    };
-
-    return (
-        <div className="flex flex-col gap-1 text-left" data-testid={`form-notebook-${field.name}`}>
-            {field.label ? (
-                <span className="text-sm font-medium text-[var(--text-primary)]">{field.label}</span>
-            ) : null}
-            <button
-                type="button"
-                onClick={open}
-                disabled={!onOpen || busy}
-                aria-disabled={!onOpen || busy}
-                className="flex items-center gap-3 px-3 py-2.5 border transition text-left disabled:opacity-60"
-                style={{
-                    borderColor: 'var(--border-default)',
-                    borderRadius: 'var(--app-radius)',
-                    background: 'var(--bg-card, var(--bg-secondary))',
-                    color: 'var(--text-primary)',
-                }}
-            >
-                <span
-                    aria-hidden="true"
-                    className="flex items-center justify-center flex-shrink-0"
-                    style={{ width: 34, height: 34, borderRadius: '999px', background: 'var(--app-primary-soft)', color: 'var(--app-primary)' }}
-                >
-                    {busy ? <Loader2 size={16} className="animate-spin" /> : <BookOpen size={16} />}
-                </span>
-                <span className="min-w-0 flex flex-col">
-                    <span className="text-sm font-medium truncate">
-                        {busy ? 'Opening in Notebooks…' : (field.filename || 'Open in Notebooks')}
-                    </span>
-                    {meta ? <span className="text-xs text-[var(--text-secondary)]">{meta}</span> : null}
-                </span>
-            </button>
-            {error ? <p className="text-xs" role="alert" style={{ color: '#ef4444' }}>{error}</p> : null}
-            {field.help ? <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{field.help}</p> : null}
-        </div>
-    );
-}
-
-/** The same card, inert — shown when there is no link to give (also the builder preview). */
-function FormDownloadUnavailable({ field, meta }: { field: FormFieldDef; meta: string }) {
-    return (
-        <div className="flex flex-col gap-1 text-left" data-testid={`form-download-${field.name}`}>
-            {field.label ? (
-                <span className="text-sm font-medium text-[var(--text-primary)]">{field.label}</span>
-            ) : null}
-            <div
-                className="flex items-center gap-3 px-3 py-2.5 border"
-                aria-disabled="true"
-                style={{
-                    borderColor: 'var(--border-default)',
-                    borderRadius: 'var(--app-radius)',
-                    background: 'var(--bg-card, var(--bg-secondary))',
-                    color: 'var(--text-secondary)',
-                    opacity: 0.65,
-                }}
-            >
-                <span
-                    aria-hidden="true"
-                    className="flex items-center justify-center flex-shrink-0"
-                    style={{ width: 34, height: 34, borderRadius: '999px', background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}
-                >
-                    <Download size={16} />
-                </span>
-                <span className="min-w-0 flex flex-col">
-                    <span className="text-sm font-medium truncate">{field.filename || 'Download'}</span>
-                    {meta ? <span className="text-xs">{meta}</span> : null}
-                </span>
-            </div>
-            {field.help ? <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{field.help}</p> : null}
-        </div>
-    );
-}
-
-function FormField({ field, value, error, disabled, onChange, onUpload, onSearchApp, onError, downloadHref, onOpenInNotebooks }: FormFieldProps) {
-    const id = `ff_${field.name}`;
-    const common = { id, name: field.name, disabled, className: INPUT_CLASS, style: inputStyle(!!error) };
-
-    // A download is the one field that GIVES rather than asks: the automation made
-    // a document and this hands it over. It collects nothing, so it has no
-    // value, no error and no place in the submission.
-    if (field.type === 'download') return <FormDownload field={field} href={downloadHref} />;
-    if (field.type === 'notebook') return <FormOpenInNotebooks field={field} onOpen={onOpenInNotebooks} />;
-
-    if (field.type === 'checkbox') {
-        return (
-            <div className="flex flex-col gap-1 text-left">
-                <label htmlFor={id} className="flex items-start gap-2 text-sm cursor-pointer text-[var(--text-primary)]">
-                    <input
-                        id={id}
-                        name={field.name}
-                        type="checkbox"
-                        disabled={disabled}
-                        checked={value === true}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => (onChange as FormChangeHandler)(e.target.checked)}
-                        className="mt-0.5"
-                        style={{ accentColor: 'var(--app-primary)' }}
-                    />
-                    <span>
-                        {field.label}
-                        {field.required ? <span aria-hidden="true" style={{ color: '#ef4444' }}> *</span> : null}
-                    </span>
-                </label>
-                {field.help ? <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{field.help}</p> : null}
-                {error ? <p className="text-xs" role="alert" style={{ color: '#ef4444' }}>{error}</p> : null}
-            </div>
-        );
-    }
-
-    return (
-        <Field id={id} label={field.label} required={field.required} error={error}>
-            {field.type === 'textarea' ? (
-                <textarea {...common} rows={5} value={(value || '') as string} placeholder={field.placeholder} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => (onChange as FormChangeHandler)(e.target.value)} />
-            ) : field.type === 'select' ? (
-                <select {...common} value={(value || '') as string} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => (onChange as FormChangeHandler)(e.target.value)}>
-                    <option value="">{field.placeholder || 'Choose…'}</option>
-                    {normaliseOptions(field.options).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-            ) : field.type === 'file' ? (
-                <FileField field={field} value={value as FormUpload | null} disabled={disabled} onChange={onChange as FormChangeHandler} onUpload={onUpload} onError={onError as FormErrorHandler} />
-            ) : field.type === 'app_pick' ? (
-                <AppPickField field={field} value={value as AppPick | AppPick[] | null} disabled={disabled} onChange={onChange as FormChangeHandler} onSearch={onSearchApp} />
-            ) : (
-                <input
-                    {...common}
-                    type={field.type === 'email' ? 'email' : field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
-                    value={(value ?? '') as string}
-                    placeholder={field.placeholder}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => (onChange as FormChangeHandler)(e.target.value)}
-                />
-            )}
-            {field.help ? <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{field.help}</p> : null}
-        </Field>
-    );
-}
-
-/**
- * "Pick from an app": search the app the question names, choose a record.
- *
- * What travels with the submission is a REFERENCE — `{ kind:'app_pick',
- * recordId, title }` — never the record itself. The server re-reads the record
- * as the person submitting, at submit time, which is what keeps this from being
- * a way to post someone else's transcript into an automation by hand-crafting a
- * body.
- *
- * The search runs against the FILLER's own account. So "no results" here can
- * mean "you have not connected this app", and the server says which — printed
- * next to the box rather than thrown, because it is not the person's mistake.
- */
-function AppPickField({ field, value, disabled, onChange, onSearch }: AppPickFieldProps) {
-    const { t } = useTranslation();
-    const [query, setQuery] = useState('');
-    const [results, setResults] = useState<AppPickRow[]>([]);
-    const [searching, setSearching] = useState(false);
-    const [note, setNote] = useState('');
-    const [opened, setOpened] = useState(false);
-
-    const picked = useMemo<AppPick[]>(
-        () => (Array.isArray(value) ? value : (value ? [value] : [])),
-        [value],
-    );
-    const full = field.multiple ? picked.length >= (field.maxItems || 5) : picked.length >= 1;
-
-    // Debounced, and only while the picker is open. The search hits the app the
-    // question names on every pause in typing, so a keystroke-per-request would
-    // be both slow and rude to the upstream API.
-    useEffect(() => {
-        if (!opened || !onSearch) return undefined;
-        let live = true;
-        setSearching(true);
-        const timer = setTimeout(async () => {
-            try {
-                const out = await onSearch(field, query);
-                if (!live) return;
-                setResults(Array.isArray(out?.results) ? out.results : []);
-                setNote(out?.error || '');
-            } catch (err) {
-                if (!live) return;
-                setResults([]);
-                setNote(messageOf(err, 'That app could not be searched.'));
-            } finally {
-                if (live) setSearching(false);
-            }
-        }, 300);
-        return () => { live = false; clearTimeout(timer); };
-    }, [opened, query, onSearch, field]);
-
-    const add = (row: AppPickRow) => {
-        const pick: AppPick = { kind: 'app_pick', source: field.source, recordId: row.id, title: row.title };
-        if (field.multiple) {
-            if (picked.some(p => p.recordId === row.id)) return;
-            onChange([...picked, pick]);
-        } else {
-            onChange(pick);
-            setOpened(false);
-        }
-        setQuery('');
-    };
-
-    const remove = (recordId: string) => {
-        if (field.multiple) onChange(picked.filter(p => p.recordId !== recordId));
-        else onChange(null);
-    };
-
-    return (
-        <div className="flex flex-col gap-2" data-testid={`form-apppick-${field.name}`}>
-            {picked.map(p => (
-                <div
-                    key={p.recordId}
-                    className="flex items-center gap-2 px-3 py-2 border text-sm"
-                    style={{
-                        borderColor: 'var(--border-default)',
-                        borderRadius: 'var(--app-radius)',
-                        background: 'var(--bg-card, var(--bg-secondary))',
-                        color: 'var(--text-primary)',
-                    }}
-                >
-                    <Check size={14} aria-hidden="true" style={{ color: 'var(--app-primary)', flexShrink: 0 }} />
-                    <span className="min-w-0 flex-1 truncate">{p.title || p.recordId}</span>
-                    <button
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => remove(p.recordId)}
-                        aria-label={`Remove ${p.title || p.recordId}`}
-                        style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}
-                    >
-                        <X size={14} />
-                    </button>
-                </div>
-            ))}
-
-            {!full && (
-                <button
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => setOpened(v => !v)}
-                    className="flex items-center gap-2 px-3 py-2 border text-sm"
-                    style={{
-                        borderColor: 'var(--border-default)',
-                        borderRadius: 'var(--app-radius)',
-                        background: 'transparent',
-                        color: 'var(--text-secondary)',
-                    }}
-                >
-                    <Search size={14} aria-hidden="true" />
-                    <span>{picked.length ? `Add another from ${field.app || 'the app'}` : `Choose from ${field.app || 'an app'}`}</span>
-                </button>
-            )}
-
-            {opened && !full && (
-                <div
-                    className="flex flex-col gap-1 p-2 border"
-                    style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', background: 'var(--bg-card, var(--bg-secondary))' }}
-                >
-                    <input
-                        type="text"
-                        autoFocus
-                        disabled={disabled}
-                        value={query}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
-                        placeholder={field.searchHint || `Search ${field.app || ''}`.trim()}
-                        className={INPUT_CLASS}
-                        style={inputStyle(false)}
-                        aria-label={`Search ${field.app || 'the app'}`}
-                    />
-                    {searching && (
-                        <span className="flex items-center gap-1.5 px-1 py-1 text-xs text-[var(--text-muted)]">
-                            <Loader2 size={12} className="animate-spin" /> {t('forms.searching', 'Searching…')}
-                        </span>
-                    )}
-                    {!searching && note && (
-                        <p className="px-1 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>{note}</p>
-                    )}
-                    {!searching && !note && results.length === 0 && (
-                        <p className="px-1 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-                            {onSearch ? 'Nothing found.' : 'The search runs on the live form.'}
-                        </p>
-                    )}
-                    {results.map(row => (
-                        <button
-                            key={row.id}
-                            type="button"
-                            disabled={disabled || picked.some(p => p.recordId === row.id)}
-                            onClick={() => add(row)}
-                            className="flex flex-col items-start gap-0.5 px-2 py-1.5 text-left text-sm"
-                            style={{ borderRadius: 'var(--app-radius)', color: 'var(--text-primary)' }}
-                        >
-                            <span className="w-full truncate font-medium">{row.title}</span>
-                            {row.subtitle ? (
-                                <span className="w-full truncate text-xs text-[var(--text-muted)]">{row.subtitle}</span>
-                            ) : null}
-                        </button>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
-
-/**
- * A file field uploads immediately and keeps only the DESCRIPTOR. Bytes never
- * travel with the submission, so a large attachment can't blow the body limit
- * and a failed submit doesn't mean re-picking the file.
- */
-function FileField({ field, value, disabled, onChange, onUpload, onError }: FileFieldProps) {
-    const [uploading, setUploading] = useState(false);
-
-    const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        // Let the same file be picked again after a failure.
-        e.target.value = '';
-        if (!file || !onUpload) return;
-        if (file.size > (field.maxSizeMb as number) * 1024 * 1024) {
-            onError(`That file is larger than ${field.maxSizeMb} MB.`);
-            return;
-        }
-        setUploading(true);
-        try {
-            const uploaded = await onUpload(file, field.name);
-            onChange({ kind: 'form_upload', fileId: uploaded.fileId, filename: uploaded.filename, size: uploaded.size });
-        } catch (err) {
-            onError(messageOf(err, 'That file could not be uploaded.'));
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    if (value) {
-        return (
-            <div
-                className="flex items-center gap-2 px-2.5 py-1.5 text-sm border"
-                style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-primary)' }}
-            >
-                <Paperclip size={14} style={{ color: 'var(--app-primary)' }} />
-                <span className="truncate flex-1 min-w-0">{value.filename}</span>
-                <button
-                    type="button"
-                    onClick={() => onChange(null)}
-                    disabled={disabled}
-                    aria-label={`Remove ${value.filename}`}
-                    className="text-[var(--text-secondary)]"
-                >
-                    <X size={14} />
-                </button>
-            </div>
-        );
-    }
-
-    return (
-        <label
-            className="flex items-center gap-2 px-2.5 py-1.5 text-sm border cursor-pointer"
-            style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-secondary)' }}
-        >
-            {uploading ? <Loader2 size={14} className="animate-spin" /> : <Paperclip size={14} />}
-            <span>{uploading ? 'Uploading…' : `Choose a file (max ${field.maxSizeMb} MB)`}</span>
-            <input
-                type="file"
-                className="sr-only"
-                accept={field.accept || undefined}
-                disabled={disabled || uploading}
-                onChange={pick}
-            />
-        </label>
     );
 }

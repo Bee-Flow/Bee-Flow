@@ -174,7 +174,11 @@ test('the projected trigger tool: agent_call and app_trigger offered with a para
     assert.match(p.params.description, /agent_call/);
     const field = p.form.properties.fields.items.properties;
     for (const kept of ['name', 'type', 'label', 'required', 'placeholder', 'options', 'accept', 'maxSizeMb', 'source']) assert.ok(kept in field, `form field ${kept}`);
-    for (const gone of ['multiple', 'maxItems', 'withText']) assert.ok(!(gone in field), `form field ${gone} dropped`);
+    for (const gone of ['multiple', 'maxItems', 'withText', 'content', 'showIf', 'min', 'max', 'minLength', 'maxLength', 'pattern', 'patternMessage', 'minSelected', 'maxSelected']) assert.ok(!(gone in field), `form field ${gone} dropped`);
+    for (const gone of ['radio', 'multiselect', 'info']) assert.ok(!field.type.enum.includes(gone), `field type ${gone} left out of the small menu`);
+    assert.ok(field.type.enum.includes('select'), 'select stays');
+    const full = CORE.find(t => t.function.name === 'builder_propose_trigger').function.parameters.properties.form.properties.fields.items.properties;
+    assert.ok(full.type.enum.includes('multiselect') && 'showIf' in full, 'the full schema keeps the wizard fields');
     assert.match(field.source.description, /fireflies_transcript|meeting_note/, 'the real pick-source list survives');
     assert.match(leanTool('builder_propose_trigger').function.description, /## Triggers/);
     assert.match(leanTool('builder_propose_trigger').function.description, /agent_call/);
@@ -196,7 +200,7 @@ test('shared params are stated once, in the lean wording, on every graph tool th
 
 test('the per-tool diet removed what it says it removed', () => {
     const ai = leanTool('builder_add_ai_step').function.parameters.properties;
-    for (const gone of ['tools', 'useMemory', 'agentPermissions']) assert.ok(!(gone in ai), `ai_step.${gone}`);
+    for (const gone of ['tools', 'useMemory', 'agentPermissions', 'temperature', 'enumFrom', 'checks', 'fallback', 'askOnce']) assert.ok(!(gone in ai), `ai_step.${gone}`);
     const http = leanTool('builder_add_http_request').function.parameters.properties;
     for (const gone of ['askOnce', 'cacheInto']) assert.ok(!(gone in http), `http_request.${gone}`);
     const appr = leanTool('builder_add_approval').function.parameters.properties;

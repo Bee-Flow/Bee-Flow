@@ -443,14 +443,14 @@ export const SKIP_REASONS: Readonly<Record<string, SkipGroup>> = Object.freeze({
     overref_unresolved: 'no_work',
     aggregate_field_absent: 'no_work',
     summarize_field_absent: 'no_work',
-    // A flatten whose inner list is on none of the outer items.
-    flatten_no_match: 'no_work',
+    flatten_no_match: 'no_work', // a flatten whose inner list is on none of the outer items
     // execDateTime.js
     datetime_unresolved_input: 'no_work',
     // execDatatable.js
     datatable_column_unknown: 'no_work',
     datatable_filter_unresolved: 'no_work',
     datatable_values_unresolved: 'no_work',
+    table_source_unresolved: 'no_work', // execTable.js
     // execKnowledgeWrite.js
     knowledge_write_empty: 'no_work',
     knowledge_write_no_kb: 'no_work',

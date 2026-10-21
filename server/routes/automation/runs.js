@@ -10,51 +10,19 @@ require('../../automation/triggerBus');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
-const { isManagedAutomation } = require('../../core/automationRunner/stageVars');
-const { automationForRun } = require('../../core/automationRunner/definitionForRun');
+const { entryDefinitionOf, resolveTriggerStepId } = require('./runEntry');
 const { resolveRunPolicy } = require('../../core/automationRunner/runPolicy');
 const { describeNoticeFor } = require('../../core/automationRunner/callerNotice');
 // Handoff 5 sharing: who may start, test and read the runs of an automation.
 const { makeAutomationAccess, roleSatisfies } = require('../../automation/access');
 const automationAccess = makeAutomationAccess({ store: automationStore });
 
-const { SeenBody, RunBody, PartialRunBody, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody } = require('./runSchemas');
+const { SeenBody, RunBody, PartialRunBody, RerunPlanQuery, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody } = require('./runSchemas');
 
 // Per-user throttle for the expensive run-trigger endpoints (each spins up a
 // full automation execution / LLM + tool calls). Keyed by session user id via
 // the limiter's default. Generous enough for normal manual testing, low enough
 // that a stuck client or a script can't flood the runner. Tunable via env.
-/**
- * Resolve an optional `triggerStepId` (the entry point a test run should use)
- * against the automation's triggers — the primary `definition.trigger` and every
- * `definition.triggers[]` entry. Returns the trigger node and the `rootStepId`
- * to hand the runner (null for the primary, so an automation without additional
- * triggers behaves exactly as before). A wrong id is a 400, never a silent
- * fall-back to the primary: the caller asked to test a specific root.
- */
-/**
- * The definition a run of this automation enters: for an automation a Solution stage
- * manages that is the LIVE copy (test runs included), so a trigger that exists
- * only in the working copy is not offered. Throws managed_part_not_deployed
- * (409) when it has no live copy.
- */
-async function entryDefinitionOf(a) {
-    if (!await isManagedAutomation(a)) return a.definition;
-    return automationForRun(a, { mode: 'live', managed: true }).definition;
-}
-
-function resolveTriggerStepId(def, triggerStepId) {
-    const known = [def?.trigger, ...(Array.isArray(def?.triggers) ? def.triggers : [])].filter(t => t && t.id);
-    if (!triggerStepId) {
-        return { trigger: def?.trigger || null, rootStepId: null };
-    }
-    const hit = known.find(t => t.id === triggerStepId);
-    if (!hit) {
-        return { error: `Unknown triggerStepId "${triggerStepId}". This automation's triggers: ${known.map(t => `${t.id} (${t.kind})`).join(', ') || '(none)'}.` };
-    }
-    return { trigger: hit, rootStepId: hit.id === def?.trigger?.id ? null : hit.id };
-}
-
 const RUN_TRIGGER_RPM = parseInt(process.env.AUTOMATION_RUN_TRIGGER_RPM, 10) || 30;
 const runTriggerLimiter = perUserRateLimit({ windowMs: 60_000, max: RUN_TRIGGER_RPM });
 
@@ -255,10 +223,51 @@ router.post('/:id/steps/:stepId/run', runTriggerLimiter, validate({ body: Partia
         triggerPayload: req.body.triggerPayload || null,
         rootStepId: entered.rootStepId,
         startedByUserId: userId,
+        // Re-run from a chosen run (see the doc above); all three are inert
+        // without seedRunId.
+        seedRunId: req.body.seedRunId || null,
+        allowLiveUpstream: req.body.allowLiveUpstream === true,
+        confirmSideEffects: req.body.confirmSideEffects === true,
     });
     const steps = await automationStore.getRunSteps(run.id);
     const stepRecord = steps.find(s => s.stepId === req.params.stepId) || null;
-    res.json({ run, steps, stepRecord });
+    // The plan describes this response, not the run: it leaves the run row.
+    const { rerunPlan, ...runRow } = run;
+    res.json(rerunPlan ? { run: runRow, steps, stepRecord, rerunPlan } : { run, steps, stepRecord });
+});
+
+/**
+ * What "run this step with the inputs of run X" would do, without doing it: the
+ * steps that would execute, the ones among them that have no recorded output in
+ * that run (they would run live), and the ones that send or write outside the
+ * run, so the UI can ask before the POST above is sent. Same access as the POST
+ * (an editor's tool); the run is checked exactly as there, so a run of another
+ * automation or one whose data the caller may not read answers 404.
+ *
+ * Query: seedRunId (required), mode ('only' | 'from', default 'only'),
+ * triggerStepId. Answers `{ rerunPlan }`, see core/automationRunner/partialRuns.js.
+ */
+router.get('/:id/steps/:stepId/rerun-plan', validate({ query: RerunPlanQuery }), async (req, res) => {
+    const a = await automationStore.getAutomation(req.params.id);
+    if (!a) return res.status(404).json({ error: 'Not found' });
+    if (!await automationAccess.guard(req, res, a, 'edit')) return;
+    const runner = require('../../core/automationRunner');
+    const entered = resolveTriggerStepId(await entryDefinitionOf(a), req.query.triggerStepId);
+    if (entered.error) return res.status(400).json({ error: entered.error });
+    let rerunPlan;
+    try {
+        rerunPlan = await runner.planPartialRun(a, req.params.stepId, {
+            mode: req.query.mode,
+            rootStepId: entered.rootStepId,
+            startedByUserId: req.session.user.id,
+            seedRunId: req.query.seedRunId,
+        });
+    } catch (e) {
+        // runPartial names a step it cannot find in a plain Error.
+        if (/not found in definition/.test(e?.message || '')) throw new HttpError(404, 'step_not_found', 'Step not found in this automation.');
+        throw e;
+    }
+    res.json({ rerunPlan });
 });
 
 /**

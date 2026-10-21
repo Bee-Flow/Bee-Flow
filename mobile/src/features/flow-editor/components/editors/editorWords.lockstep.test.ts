@@ -32,7 +32,13 @@ const WEB: Record<string, string[]> = {
         'WebhookPanel.tsx',
     ],
     params: ['flow/settings/fieldDesigner.tsx', 'flow/settings/triggerEditors.tsx'],
-    form: ['flow/settings/FormBuilderFields.jsx', 'flow/settings/fieldDesigner.tsx', 'flow/settings/triggerEditors.tsx'],
+    form: [
+        'flow/settings/FormBuilderFields.jsx',
+        'flow/settings/fieldDesigner.tsx',
+        'flow/settings/triggerEditors.tsx',
+        'flow/settings/FormPageWaiting.tsx',
+        'flow/settings/formFields/ChoiceOptionsEditor.tsx',
+    ],
     route: [
         'flow/settings/routeEditors.jsx',
         'flow/settings/routeEditorsOutputs.tsx',

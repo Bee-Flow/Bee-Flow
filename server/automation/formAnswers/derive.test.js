@@ -136,3 +136,48 @@ test('publicSource ships the columns and the link, never the fingerprint', () =>
     assert.ok(!JSON.stringify(pub).includes(fingerprint));
     assert.equal(derive.publicSource({ kind: 'nextcloud_table' }), null);
 });
+
+// ── wizard question types ─────────────────────────────────────────
+
+test('radio is a select column with its static options; multiselect is text; info has no column', () => {
+    const d = def([
+        Q('size', 'radio', 'Size', { options: ['small', 'large'] }),
+        Q('topics', 'multiselect', 'Topics', { options: ['a', 'b'] }),
+        Q('about', 'info', 'About', { content: 'Read this' }),
+        Q('note', 'text', 'Note'),
+    ]);
+    const r = derive.deriveAnswerColumns(d, null);
+    assert.deepEqual(r.fields.map(f => f.key), ['run_id', 'completed_at', 'size', 'topics', 'note']);
+    assert.deepEqual(r.fields.map(f => f.type), ['text', 'datetime', 'select', 'text', 'text']);
+    assert.deepEqual(r.fields[2].options, ['small', 'large']);
+});
+
+test('a question whose choices come from a run, or that is asked once per item, is a text column', () => {
+    const d = def([], { pages: [{ id: 'p2', fields: [
+        Q('which', 'select', 'Which', { optionsFrom: { ref: 'steps.a.output.rows' } }),
+        Q('which2', 'radio', 'Which', { optionsFrom: { ref: 'steps.a.output.rows' } }),
+        Q('rating', 'number', 'Rate', { fieldsFrom: { ref: 'steps.a.output.rows' } }),
+    ] }] });
+    const r = derive.deriveAnswerColumns(d, null);
+    assert.deepEqual(r.fields.slice(2).map(f => f.type), ['text', 'text', 'text']);
+    assert.equal(r.fields[2].options, undefined);
+});
+
+test('moving a select to optionsFrom retires the old column instead of dropping its answers', () => {
+    const a = derive.deriveAnswerColumns(def([], { pages: [{ id: 'p2', fields: [Q('which', 'select', 'Which', { options: ['x'] })] }] }), null);
+    const b = derive.deriveAnswerColumns(def([], { pages: [{ id: 'p2', fields: [Q('which', 'select', 'Which', { optionsFrom: { ref: 'steps.a.output.rows' } })] }] }), a.columnMap);
+    const live = b.fields.filter(f => !['run_id', 'completed_at'].includes(f.key));
+    assert.equal(live.length, 2);
+    assert.equal(Object.values(b.columnMap).filter(c => c.retired).length, 1);
+});
+
+test('cells: a multiselect is joined, a group is label: answer, picks are untouched', () => {
+    const d = def([Q('topics', 'multiselect', 'Topics', { options: ['a', 'b'] })], { pages: [{ id: 'p2', fields: [Q('rating', 'text', 'Rate', { fieldsFrom: { ref: 'steps.a.output.rows' } })] }] });
+    const { columnMap } = derive.deriveAnswerColumns(d, null);
+    const row1 = derive.rowValuesFor(columnMap, null, { topics: ['a', 'b'] });
+    assert.deepEqual(Object.values(row1), ['a, b']);
+    assert.deepEqual(Object.values(derive.rowValuesFor(columnMap, null, { topics: [] })), [null]);
+    const group = [{ key: 'k1', label: 'First', answer: 'good' }, { key: 'k2', label: 'Second', answer: true }, { key: 'k3', label: 'Third', answer: ['x', 'y'] }, { key: 'k4', label: 'Fourth', answer: '' }];
+    assert.deepEqual(Object.values(derive.rowValuesFor(columnMap, 'p2', { rating: group })), ['First: good; Second: yes; Third: x, y; Fourth: ']);
+    assert.deepEqual(Object.values(derive.rowValuesFor(columnMap, 'p2', { rating: [] })), [null]);
+});

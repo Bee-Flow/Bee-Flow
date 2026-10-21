@@ -166,6 +166,7 @@ const NL_TRANSLATIONS = [
     'add-nl-datatables-nextcloud-translations',
     'add-nl-datatables-spreadsheets-translations',
     'add-nl-forms-answers-translations',
+    'add-nl-forms-validation-translations',
     'add-nl-cowork-translations',
     'add-nl-studio-fundament-translations',
     'add-nl-dlp-review-translations',
@@ -228,6 +229,7 @@ const NL_TRANSLATIONS = [
     'add-nl-spreadsheet-documents-translations', // Spreadsheets in Documents: the type in the library and gallery, the grid editor and its formula errors
     'add-nl-condition-node-translations', // Condition node: rule rows, File type, outputs and Otherwise, Suggest outputs, follow-the-route and whole-list notices, Filter a list
     'add-nl-flatten-node-translations', // Flatten a list: the step card, Simple editor sentences, Choose fields, More options, run sentences
+    'add-nl-table-nodes-translations', // Read table / Edit table: the node catalog names
     'update-nl-legal-register-2026-10', // Legal register review of 6 Oct 2026: corrected framework, milestone and check Dutch (old shipped text only), new milestones, "Legal status checked" chip and Sources
     'update-nl-compliance-detect-2026-10', // Compliance round 2 detection and legal wording: one-month DSR clock, CRA notification, DORA/Data Act/EAA/PLD/Machinery terms, encryption levels (old shipped text only), two new milestones; after the legal register review, whose Dutch it partly replaces
     'update-nl-compliance-ui-2026-10', // Compliance Center UI round 2: Dutch for the strings the eleven UI packages added, and reworded Dutch where the English changed meaning (old shipped text only)

@@ -25,6 +25,7 @@ const { truncationSummary } = require('./truncations');
 // What this module needs from automation/ (a feature) comes through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
 const { releaseMarker, notifyRunEnd, advancePrimarySchedule } = require('./runFinalizeEffects');
+const { extendJourneyTablesForPause } = require('./tables/pauseExpiry');
 const log = require('../../telemetry/log');
 
 /**
@@ -170,6 +171,11 @@ async function finalizeRun(deps, {
     if (!firstRunNeedsConfirm && isApprovalPause) {
         const { createApprovalOnPause } = loadApprovalLifecycle();
         approvalRow = await createApprovalOnPause({ automation, run, err: runErrorObj });
+    }
+
+    // Tables the journey wrote must outlive the wait: the leg that resumes reads them.
+    if (!firstRunNeedsConfirm && (runStatus === 'awaiting_approval' || runStatus === 'awaiting_form')) {
+        await extendJourneyTablesForPause(automationStore, run, runErrorObj?.expiresAt || null);
     }
 
     // Stream the terminal state so the executions list + open execution flip

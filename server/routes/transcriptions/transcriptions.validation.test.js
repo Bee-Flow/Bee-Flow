@@ -34,17 +34,10 @@ process.env.NODE_ENV = 'test';
 const { test } = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
-const Module = require('module');
 const express = require('express');
 
 const SERVER = path.resolve(__dirname, '..', '..');
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../../testUtils/moduleMock');
 
 // Elke store-aanroep komt in `touched` terecht. Een geweigerd verzoek moet
 // hem leeg laten.

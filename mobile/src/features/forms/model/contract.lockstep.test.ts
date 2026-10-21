@@ -1,5 +1,6 @@
 /**
- * The form contract against server/automation/formTriggerContract.js.
+ * The form contract against server/automation/formTriggerContract.js and
+ * the vocabulary module it re-exports, formFieldTypes.js.
  *
  * TEXTUAL: the field types and every limit are read out of the server's
  * source (and the two it borrows). DIFFERENTIAL: forms are rendered by the
@@ -48,9 +49,15 @@ interface ServerContract {
     emptyFormValues: (form: unknown) => Record<string, unknown>;
 }
 
+/** formFieldTypes.js: the vocabulary and limits, split out of formTriggerContract.js (which re-exports them). */
+interface ServerTypes {
+    formOptionsCap: () => number;
+}
+
 const contract = requireServer<ServerContract>('automation/formTriggerContract.js');
 const pickSources = requireServer<{ SOURCE_IDS: readonly string[] }>('automation/formPickSources.js');
-const src = readServer('automation/formTriggerContract.js');
+const typesModule = requireServer<ServerTypes>('automation/formFieldTypes.js');
+const src = readServer('automation/formFieldTypes.js');
 const num = (text: string, name: string) => Number(constText(text, name));
 
 describe('the field types and limits', () => {
@@ -66,8 +73,9 @@ describe('the field types and limits', () => {
         expect(MAX_UPLOAD_MB).toBe(contract.MAX_UPLOAD_MB);
         expect(MAX_UPLOAD_MB).toBe(25);
         expect(DEFAULT_UPLOAD_MB).toBe(contract.DEFAULT_UPLOAD_MB);
-        expect(MAX_OPTIONS).toBe(num(src, 'MAX_OPTIONS'));
-        expect(MAX_OPTIONS).toBe(50);
+        // The default of the operator-tunable cap (env AUTOMATION_FORM_MAX_OPTIONS unset here).
+        expect(MAX_OPTIONS).toBe(typesModule.formOptionsCap());
+        expect(MAX_OPTIONS).toBe(200);
         expect(MAX_OPTION_LEN).toBe(num(src, 'MAX_OPTION_LEN'));
         expect(MAX_LABEL_LEN).toBe(num(src, 'MAX_LABEL_LEN'));
         expect(MAX_TEXT_LEN).toBe(num(src, 'MAX_TEXT_LEN'));

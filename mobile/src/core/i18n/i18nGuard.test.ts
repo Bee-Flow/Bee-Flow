@@ -338,7 +338,10 @@ const OTHER_OPTIONS = "automations.mismatch.options_generic heads the mapping mi
 const OTHER_DISCARD = "automations.assistant.discard throws away the assistant's proposal or plan; this discards something else";
 const OTHER_DOCUMENTS = "automations.ribbon.data_documents is a row of the step ribbon, and documents.title heads Studio Documents; this is the knowledge documents";
 const PAGE_SPECIFIC_AUTOMATION = "the web's only bare 'Automation' is the versions list's row label, not a screen title or a block subtitle";
+const OTHER_FORM_WIZARD = "automations.form_wizard.* words a choice or a list field of the form wizard; this is a Studio document's parameter";
 const SAME_WORDS_OWN_KEY = new Map<string, string>([
+    ['mobile.studio_documents.param.label', OTHER_FORM_WIZARD],
+    ['mobile.studio_documents.param.list', OTHER_FORM_WIZARD],
     ['mobile.automations.one', PAGE_SPECIFIC_AUTOMATION],
     ['mobile.webpages.data.automation', PAGE_SPECIFIC_AUTOMATION],
     ['mobile.error.retry', PAGE_SPECIFIC_RETRY],

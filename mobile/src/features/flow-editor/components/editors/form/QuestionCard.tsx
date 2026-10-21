@@ -18,7 +18,7 @@ import { Button, TextField } from '@/shared/ui';
 
 import { AppPickEditor } from './AppPickEditor';
 import { BindingName } from './BindingName';
-import { FIELD_TYPES, isDisplayField, optionLines } from './formModel';
+import { FIELD_TYPES, isChoiceField, isDisplayField, isFileField, optionLines } from './formModel';
 import { TextSlot } from './TextSlot';
 import { say } from '../declarative/runtime';
 import { Note } from '../shared/Note';
@@ -82,7 +82,21 @@ function Advanced(props: QuestionCardProps) {
 function TypeSpecific(props: QuestionCardProps) {
     const t = useTranslation();
     const { field, index, onChange } = props;
-    if (isDisplayField(field)) {
+    if (isDisplayField(field) && !isFileField(field)) {
+        return (
+            <TextSlot
+                label={t('automations.form_wizard.info_content', 'Text')}
+                hint={t('automations.form_wizard.info_help', 'Shown as it is between the questions. You can use **bold**, lists and links. Nothing is asked or saved.')}
+                value={field.content}
+                onChange={(content) => onChange({ content })}
+                allowVariables={props.allowVariables}
+                multiline
+                disabled={props.disabled}
+                testID={`question-${index + 1}-content`}
+            />
+        );
+    }
+    if (isFileField(field)) {
         return (
             <>
                 <TextSlot
@@ -102,7 +116,7 @@ function TypeSpecific(props: QuestionCardProps) {
             </>
         );
     }
-    if (field.type === 'select') {
+    if (isChoiceField(field)) {
         return (
             <StringListField
                 label={t('mobile.flow.form.choices', 'Choices')}

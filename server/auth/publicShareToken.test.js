@@ -11,7 +11,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
-const Module = require('module');
 
 const MODULE_PATH = require.resolve('./publicShareToken');
 
@@ -99,13 +98,7 @@ test('tampered tokens are rejected', () => {
 // "two pods" test passes on the bug.
 
 /** require.cache stub, same trick as routes/automation/formPublic/formPublic.testkit.js. */
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../testUtils/moduleMock');
 
 // signingSecret.ensureDurable() lazily requires this from inside the function,
 // so stubbing the cache entry before the call is enough. Without a stub it

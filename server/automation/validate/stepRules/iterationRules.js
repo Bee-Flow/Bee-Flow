@@ -15,6 +15,12 @@ const { fieldsAtRef, checkLoopRef, itemFieldsOf, topLevelFieldsOf } = require('.
 const { checkMaxItems } = require('../fieldChecks');
 const { SUMMARIZE_OPS, LIMIT_MODES } = require('../constants');
 const { checkFlatten } = require('./flattenRules');
+const { aiStepCanCallTools, FOREACH_CONCURRENCY_MAX } = require('../../../core/automationModel/aiStepReliability');
+
+// The steps whose forEach takes a `concurrency`: the AI step (without tools) and
+// data extraction. An app action decides its own pace (the runner reads no
+// number for it), so a number there is flagged as ignored.
+const CONCURRENCY_TYPES = new Set(['ai_step', 'data_extraction']);
 
 function checkLoop(ctx, step, at) {
     const { pushE } = ctx;
@@ -88,7 +94,9 @@ function checkForEach(ctx, step, at) {
         // 'slide' joined with the presentation step: "one slide per row"
         // is the shape it exists for, and it is pure — a forEach over it
         // costs nothing but the slide objects the deck then collects.
-        const FOREACH_ALLOWED = new Set(['integration_action', 'ai_step', 'code', 'notification', 'set', 'http_request', 'datatable', 'knowledge_write', 'data_extraction', 'slide']);
+        // 'read_table' and 'table' joined as the table steps arrived: one file
+        // (or one table) per item of a list is the ordinary shape.
+        const FOREACH_ALLOWED = new Set(['integration_action', 'ai_step', 'code', 'notification', 'set', 'http_request', 'datatable', 'knowledge_write', 'data_extraction', 'slide', 'read_table', 'table']);
         if (!isObject(step.forEach)) {
             pushE({ code: 'foreach.shape', severity: 'error', path: at + '.forEach', message: `Step ${step.id}: forEach must be an object { overRef, itemVar, maxIterations }.`, hint: 'Remove it, or provide overRef + itemVar.' });
         } else if (!FOREACH_ALLOWED.has(step.type)) {
@@ -99,12 +107,33 @@ function checkForEach(ctx, step, at) {
             if (step.forEach.maxIterations !== undefined && (typeof step.forEach.maxIterations !== 'number' || step.forEach.maxIterations < 1 || step.forEach.maxIterations > 1000)) {
                 pushE({ code: 'foreach.max_iterations_range', severity: 'error', path: at + '.forEach.maxIterations', message: `Step ${step.id}: forEach maxIterations must be 1..1000.`, hint: 'Pick a small integer; 100 is a sensible default.' });
             }
+            checkForEachConcurrency(ctx, step, at);
             if (typeof step.forEach.overRef === 'string' && step.forEach.overRef) {
                 checkForEachSource(ctx, step, at);
                 checkForEachParents(ctx, step, at);
                 checkForEachItemFields(ctx, step, at);
             }
         }
+    }
+}
+
+/**
+ * `forEach.concurrency`: how many items run at the same time. The runner
+ * honours it on an AI step that offers no tools and on data extraction; every
+ * other step decides its own pace, and a step that may call tools runs one
+ * item at a time because a tool may change something.
+ */
+function checkForEachConcurrency(ctx, step, at) {
+    const c = step.forEach.concurrency;
+    if (c === undefined || c === null) return;
+    if (!Number.isInteger(c) || c < 1 || c > FOREACH_CONCURRENCY_MAX) {
+        ctx.pushE({ code: 'foreach.concurrency_range', severity: 'error', path: at + '.forEach.concurrency', message: `Step ${step.id}: forEach concurrency must be a whole number from 1 to ${FOREACH_CONCURRENCY_MAX}.`, hint: 'It is how many items run at the same time. Leave it out to let the platform decide (a small number by default).' });
+        return;
+    }
+    if (!CONCURRENCY_TYPES.has(step.type)) {
+        ctx.pushW({ code: 'foreach.concurrency_ignored', severity: 'warning', path: at + '.forEach.concurrency', message: `Step ${step.id}: a ${step.type} step runs one item at a time, so "run ${c} at once" does nothing.`, hint: 'Only AI steps without tools and data extraction steps take a number here. Remove the setting.' });
+    } else if (step.type === 'ai_step' && aiStepCanCallTools(step)) {
+        ctx.pushW({ code: 'foreach.concurrency_ignored', severity: 'warning', path: at + '.forEach.concurrency', message: `Step ${step.id}: this AI step can call tools, so it runs one item at a time: a tool may change things, and the order of those changes should not depend on timing.`, hint: 'Turn tools off for this step to run several items at once, or remove the setting.' });
     }
 }
 

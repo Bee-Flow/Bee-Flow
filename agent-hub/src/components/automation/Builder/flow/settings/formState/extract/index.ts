@@ -13,6 +13,7 @@ import { approvalExtractors } from './approval';
 import { controlExtractors } from './control';
 import { dataExtractors } from './data';
 import { documentExtractors } from './documents';
+import { tableExtractors } from './tables';
 import { triggerExtractors } from './trigger';
 
 /** Step type -> its extractor. A Map, so a type named like an Object key ('constructor') finds nothing. */
@@ -23,6 +24,7 @@ const TYPE_EXTRACTORS: ReadonlyMap<string, TypeExtractor> = new Map(Object.entri
     ...controlExtractors,
     ...approvalExtractors,
     ...dataExtractors,
+    ...tableExtractors,
 }));
 
 export function defaultLabelPlaceholder(step: FormRecord): string {

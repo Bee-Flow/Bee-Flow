@@ -47,6 +47,7 @@
 'use strict';
 
 const { hashOf } = require('./model');
+const { stripCapturedData } = require('../../core/automationModel/testDataKeys');
 
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
@@ -68,8 +69,7 @@ const PAYLOAD_KINDS = Object.freeze([...Object.values(KIND_OF_SECTION), 'block',
 
 function canonicalAutomation(s) {
     const definition = isObject(s.definition) ? clone(s.definition) : {};
-    // A run sample, never carried (portability.buildExport strips it).
-    delete definition.manualTriggerPayload;
+    stripCapturedData(definition); // a run sample and test data are never carried
     const kind = ['block', 'layer'].includes(s.kind) ? s.kind : 'automation';
     return { kind, title: str(s.title), description: str(s.description), definition };
 }

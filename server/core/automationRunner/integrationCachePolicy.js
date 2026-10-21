@@ -15,7 +15,7 @@
  * Off unless ALL of these say yes:
  *   env    INTEGRATION_CACHE_DISABLED not ON         (self-host / incident kill switch)
  *   org    policy.enabled === true                   (default false, admin opt-in)
- *   org    policy.scopes[<kind>] === true            (integration / http, see normalizeScopes)
+ *   org    policy.scopes[<kind>] === true            (integration / http / ai, see normalizeScopes)
  *   step   step.askOnce.acrossRuns === true          (default absent)
  *
  * Three levels rather than one because they answer three different questions:
@@ -59,7 +59,7 @@ const MAX_TTL_SECONDS = 3600;
 const DEFAULT_POLICY = Object.freeze({
     enabled: false,
     ttlSeconds: DEFAULT_TTL_SECONDS,
-    scopes: Object.freeze({ integration: true, http: false }),
+    scopes: Object.freeze({ integration: true, http: false, ai: false }),
 });
 
 const _cache = new Map();   // orgId|'' → { at, policy }
@@ -88,7 +88,7 @@ function killSwitchOn() {
 /**
  * WHICH outbound answers this consent covers.
  *
- * One key, one screen, two ticks — because the underlying decision is the same
+ * One key, one screen, three ticks — because the underlying decision is the same
  * one ("may third-party response payloads be stored at rest for this org") and
  * two config keys would let an org sit half-on with nobody able to see which
  * half. But an admin who consented to "what an app answers" did not consent to
@@ -103,10 +103,16 @@ function killSwitchOn() {
  *
  * `http` defaults OFF and only a literal true turns it on. There is no reading
  * of an older config row under which the admin agreed to this.
+ *
+ * `ai` is the third tick: keeping a MODEL's answers (an ai_step ticked "reuse
+ * the answer across runs", see aiStepCache.js). Same stance as `http`: default
+ * OFF, only a literal true turns it on, and the integration tick never covers
+ * it, because model answers are derived from an organisation's own data and
+ * storing them is a separate decision from storing what an app returned.
  */
 function normalizeScopes(stored) {
     const src = (stored && typeof stored === 'object' && !Array.isArray(stored)) ? stored : {};
-    return { integration: src.integration !== false, http: src.http === true };
+    return { integration: src.integration !== false, http: src.http === true, ai: src.ai === true };
 }
 
 /**

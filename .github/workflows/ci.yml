@@ -173,10 +173,10 @@ jobs:
               - 'server/i18n/defaults/en/**'
               # read as text (templates.js) and require()d (deliverableEvents.js) by
               # src/features/flow-editor/formState/formState.lockstep.test.ts
-              - 'server/automation/{templates,deliverableEvents}.js'
+              - 'server/automation/{templates,deliverableEvents,tableTemplates,templateMeta}.js'
               # require()d by src/features/flow-editor/formState/settings.lockstep.test.ts,
               # and what that file requires in turn
-              - 'server/automation/{diffSummary,fieldDiff}.js'
+              - 'server/automation/{diffSummary,fieldDiff,fieldDiffText,mcpRunReadCaps}.js'
               # fieldDiff.js reads paths with the shared grammar
               - 'server/automation/expr.js'
               - 'server/automation/validate/refPaths.js'
@@ -347,7 +347,9 @@ jobs:
               - 'agent-hub/src/components/admin/Studio/AppStudio/runtime/{resolveBinding.ts,resolveBinding.types.ts,themeVars.js,uiBits.jsx}'
               - 'agent-hub/src/components/admin/security/guardrails/Info.jsx'
               - 'agent-hub/src/components/automation/Builder/BuilderConfirmContext.tsx'
-              - 'agent-hub/src/components/forms/{PublicFormRenderer.tsx,PublicFormRenderer.types.ts,resultFile.ts}'
+              - 'agent-hub/src/components/forms/{PublicFormRenderer.tsx,PublicFormRenderer.types.ts,resultFile.ts,prefill.ts,formRules.ts}'
+              - 'agent-hub/src/components/forms/fields/*'
+              - 'agent-hub/src/utils/lazyWithReload.*'
               - 'agent-hub/src/components/shared/{AnchoredMenu.tsx,illustrations.tsx}'
               - 'agent-hub/src/hooks/{useAutomationApi.ts,useAutomationApi.types.ts,useTranslation.tsx}'
               # required by useTranslation.tsx, and what those require in turn

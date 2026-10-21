@@ -110,7 +110,7 @@ function automationTargetRef(graph, pathPrefix, path, target) {
  * (shape → ids/edges → DAG → per-step), without aborting sibling graphs.
  */
 function validateGraph(graph, pathPrefix, opts) {
-    const { errors, warnings, scope = 'root', layers = {}, availableTools = null, toolRequiredParams = null, deliverableEvents = null, availableBlocks = null, knownConnectionIds = null, availableAgents = null, topicClassifier = null, target = null } = opts;
+    const { errors, warnings, scope = 'root', layers = {}, availableTools = null, toolRequiredParams = null, deliverableEvents = null, availableBlocks = null, knownConnectionIds = null, knownVarNames = null, availableAgents = null, topicClassifier = null, target = null } = opts;
     // Every record that leaves this graph carries the two fields the shared
     // Finding shape adds (core/findings/finding.js): `kind`, and a `targetRef`
     // naming WHICH automation and — when the path addresses one — WHICH step.
@@ -163,7 +163,7 @@ function validateGraph(graph, pathPrefix, opts) {
         validateCallBlockStep(step, at, availableBlocks, pushE);
     }
 
-    walkGraphSteps(ctx, { ids, stepById, order, availableTools, toolRequiredParams, knownConnectionIds, availableAgents, topicClassifier });
+    walkGraphSteps(ctx, { ids, stepById, order, availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, availableAgents, topicClassifier });
     checkDataRefCycles(ctx);
     checkFormEndings(ctx, stepById);
 }

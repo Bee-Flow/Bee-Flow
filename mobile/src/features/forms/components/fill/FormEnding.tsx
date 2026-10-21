@@ -17,7 +17,7 @@ import { describeError } from '@/core/api/errors';
 import { shareText } from '@/core/api/shareFile';
 import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
-import { isDisplayField } from '@/features/forms/model/contract';
+import { isFileField } from '@/features/forms/model/contract';
 import type { FillForm } from '@/features/forms/model/fillTypes';
 import { isLongEnding, resultFilename } from '@/features/forms/model/fillValues';
 import { Markdown } from '@/shared/markdown';
@@ -84,7 +84,7 @@ export function FormEnding({ form, actions = {}, onSaveToNotebook }: { form: Fil
             </Text>
             {description ? <Markdown value={description} /> : null}
             {long ? <ExportBar text={description} title={form?.title ?? ''} onSaveToNotebook={onSaveToNotebook} /> : null}
-            {(form?.fields ?? []).filter(isDisplayField).map((field) => (
+            {(form?.fields ?? []).filter(isFileField).map((field) => (
                 <DisplayFile key={field.name} field={field} actions={actions} />
             ))}
         </View>

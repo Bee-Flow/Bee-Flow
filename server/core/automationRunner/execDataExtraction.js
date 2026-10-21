@@ -52,7 +52,7 @@ const {
 const safety = require('./safety');
 const usageStore = require('../../stores/usageStore');
 const { usageLogFields } = require('../providers/usageNormalizer');
-const { resolveDataExtractionModel, extractionRequestOptions } = require('./dataExtractionModel');
+const { resolveDataExtractionModel, extractionRequestOptions, callExtractionModel } = require('./dataExtractionModel');
 const log = require('../../telemetry/log');
 
 // The contract's system prompt, verbatim. The field list, the optional
@@ -459,7 +459,7 @@ async function execDataExtraction(step, ctx, runState, mode) {
     }
 
     const options = extractionRequestOptions(fields.length);
-    const response = await adapter.chat(cfg.apiKey, cfg.url, modelId, messages, options);
+    const response = await callExtractionModel({ adapter, cfg, modelId, messages, options, signal: ctx.cancelSignal });
 
     const parsed = parseExtractionReply(response && response.content, { stepId: step.id, fieldNames: fields.map(f => f.name) });
     const aiOut = await safety.guardAiOutput(parsed, policy, auditBase, mode, ctx);

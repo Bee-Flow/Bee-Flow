@@ -135,6 +135,7 @@ export const SKIP_REASONS: Readonly<Record<string, SkipGroup>> = Object.freeze({
     aggregate_field_absent: 'no_work',
     summarize_field_absent: 'no_work',
     flatten_no_match: 'no_work',
+    table_source_unresolved: 'no_work',
     datetime_unresolved_input: 'no_work',
     datatable_column_unknown: 'no_work',
     datatable_filter_unresolved: 'no_work',

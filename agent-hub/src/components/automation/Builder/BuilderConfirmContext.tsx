@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, type ReactNode } from 'react';
 
 /**
  * The builder's one confirmation dialog, reachable from anywhere in the tree.
@@ -21,7 +21,8 @@ import React, { createContext, useContext } from 'react';
  */
 interface ConfirmOptions {
     title?: string;
-    description?: string;
+    /** Text, or a small piece of markup such as a list. */
+    description?: ReactNode;
     confirmLabel?: string;
     destructive?: boolean;
     [key: string]: unknown;
@@ -41,5 +42,5 @@ export function useBuilderConfirm() {
 async function nativeConfirm({ title, description }: ConfirmOptions = {}) {
     if (typeof window === 'undefined') return true;
     // eslint-disable-next-line no-restricted-properties -- a missing provider must still ask, never skip
-    return window.confirm([title, description].filter(Boolean).join('\n\n'));
+    return window.confirm([title, typeof description === 'string' ? description : null].filter(Boolean).join('\n\n'));
 }

@@ -114,8 +114,9 @@ export default function FormEditorModal({
             isEnding: page.kind === 'ending',
             allowVariables: page.allowVariables,
             previewSample,
+            t,
         });
-    }, [page, form, triggerTheme, previewSample]);
+    }, [page, form, triggerTheme, previewSample, t]);
 
     const kindLabel = (p: FormPageEntry) => p.kind === 'trigger'
         ? t('automations.form_editor.page_start', 'Start')

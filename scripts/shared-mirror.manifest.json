@@ -68,7 +68,8 @@
                 "upstream/forEachShape.ts",
                 "upstream/realOverlay.ts",
                 "upstream/routeFieldLabel.ts",
-                "upstream/sampleFields.ts"
+                "upstream/sampleFields.ts",
+                "upstream/tableSamples.ts"
             ],
             "importRewrite": [
                 [
@@ -215,6 +216,12 @@
                 ]
             ],
             "why": "Dotted key paths (IDENT_RE, joinKeyPath, keyPickable) over the shared expression path grammar; bindings/keyPath.ts re-exports it."
+        },
+        {
+            "source": "agent-hub/src/components/automation/Builder/flow/settings/aiStepReliability/reliabilityPatch.ts",
+            "target": "mobile/src/features/flow-editor/bindings/mirror/aiStepReliability/reliabilityPatch.ts",
+            "transform": "none",
+            "why": "The AI step's reliability patch (checks, allowed values, fallback, temperature) written once; formState/aiStepReliability.ts re-exports buildReliabilityPatch."
         },
         {
             "source": "agent-hub/src/components/automation/Builder/flow/waitDuration.ts",

@@ -27,16 +27,9 @@ process.env.NODE_ENV = 'test';
 const { test } = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
-const Module = require('module');
 
 const SERVER = path.resolve(__dirname, '..', '..');
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../../testUtils/moduleMock');
 
 const pass = (req, res, next) => next();
 mock(path.join(SERVER, 'auth/permissions'), {

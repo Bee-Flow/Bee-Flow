@@ -31,6 +31,8 @@
  * interpolate step and field names and need a different treatment.
  */
 
+import { TABLE_NODE_DEFS } from './tableNodeDefs';
+
 // `null` in an issue map = a flat, always-visible field (Label, Prompt) with no
 // section to open. Re-exported so sectionForIssue.js keeps its own vocabulary.
 export const FLAT = null;
@@ -59,14 +61,11 @@ export const PALETTE_ABSENT = {
     // Retired from the palette; its ability moved into Edit data. Existing
     // steps still load, render and run.
     parse_json: 'retired — absorbed by Edit data',
-    // Engine + validator have always supported this one; the palette still does
-    // not offer it, because there is no editor for building `branches` (an
-    // inline Step[][]) by hand — added from the palette it would be an empty
-    // shell the user could not fill, and `parallel.branches_missing` would
-    // light up the moment it landed. It DOES have a canvas component now
-    // (nodes/ParallelNode.jsx), so a definition that carries one — from the AI
-    // builder, from the `nc-onboarding` template, from an import — draws a
-    // proper card instead of a bare React Flow default node. See WS7.
+    // Engine + validator support this one; the palette does not offer it: nothing
+    // edits `branches` (an inline Step[][]) by hand, so a dropped one would be an
+    // empty shell (`parallel.branches_missing`). It DOES have a canvas component
+    // (nodes/ParallelNode.jsx), so one from the AI builder, the `nc-onboarding`
+    // template or an import draws a proper card, not a bare default node. See WS7.
     parallel: 'engine-only; drawn on the canvas, but nothing builds `branches` yet',
 };
 
@@ -109,6 +108,7 @@ const K = 'automations.node';
  * @property {object}   issueSections {fallback, map} — validation path → section
  */
 export const NODE_DEFS = {
+    ...TABLE_NODE_DEFS,
     // ── Triggers ────────────────────────────────────────────────────────────
     // The trigger's label/desc/typeLabel are per-KIND, not per-type, and live
     // in flow/triggerLabels.js; only the issue map belongs here.
@@ -139,14 +139,14 @@ export const NODE_DEFS = {
         // 'agent' (R2) is in simpleSections on purpose: it is where a step is
         // handed to an agent, and a section Simple mode leaves out is a feature
         // half the users cannot reach at all.
-        sectionKeys: ['agent', 'inputs', 'advanced', 'output'],
+        sectionKeys: ['agent', 'inputs', 'advanced', 'output', 'checks'],
         simpleSections: ['agent', 'inputs'],
         issueSections: {
             fallback: 'advanced',
             map: {
                 label: FLAT, prompt: FLAT,
                 systemPrompt: 'advanced', model: 'advanced', modelTier: 'advanced', allowTools: 'advanced', useMemory: 'advanced',
-                inputs: 'inputs', outputFields: 'output', forEach: 'advanced',
+                inputs: 'inputs', outputFields: 'output', forEach: 'advanced', checks: 'checks', enumFrom: 'checks', fallback: 'checks', temperature: 'advanced', askOnce: 'advanced',
                 // An agent error (`ai_step.agent_unavailable`) must open the
                 // section that holds the picker, not Advanced — the fallback
                 // would have sent the author to a section with no agent in it.

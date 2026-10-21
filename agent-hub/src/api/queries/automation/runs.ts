@@ -48,6 +48,8 @@ export interface RunRowData {
 }
 
 export interface RunStepRecord {
+    /** The run this row belongs to: a journey's later leg has its own. */
+    runId?: string;
     stepId: string;
     parentStepId?: string | null;
     stepType?: string | null;
@@ -61,6 +63,10 @@ export interface RunStepRecord {
     errorClass?: string | null;
     /** Inputs whose mapping found nothing in this step (runs/bindingMisses.ts reads them). */
     bindingWarnings?: unknown;
+    /** Which try of the step this row is (a retried step has several). */
+    attempts?: number | null;
+    /** The viewer may see that the step ran, not what it got (a run on its starter's own connections). */
+    dataHidden?: boolean;
 }
 
 export interface RunStepsPayload {

@@ -53,6 +53,25 @@ function installPartialRunHarness({ getRunsForAutomation } = {}) {
                 .reverse()
                 .slice(0, limit)),
         getRunSteps: async (runId) => (runStepsByRun.get(runId) || []).slice(),
+        // A journey: every run sharing the root of `runId` (`rootRunId`, else
+        // its own id), oldest first; steps concatenated the same way, with the
+        // later leg winning a repeated step id and attempt (as the real store).
+        getRunsInChain: async (runId) => {
+            const rootOf = (r) => r.rootRunId || r.id;
+            const start = runs.get(runId);
+            return start ? [...runs.values()].filter(r => rootOf(r) === rootOf(start)) : [];
+        },
+        getRunStepsForChain: async (runId) => {
+            const rootOf = (r) => r.rootRunId || r.id;
+            const start = runs.get(runId);
+            if (!start) return [];
+            const byKey = new Map();
+            for (const r of runs.values()) {
+                if (rootOf(r) !== rootOf(start)) continue;
+                for (const row of (runStepsByRun.get(r.id) || [])) byKey.set(`${row.stepId}#${row.attempts}`, row);
+            }
+            return [...byKey.values()].map(row => ({ ...row }));
+        },
         recordRunStep: async (rec) => {
             const list = runStepsByRun.get(rec.runId);
             if (!list) return;

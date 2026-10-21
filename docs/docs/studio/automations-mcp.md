@@ -71,6 +71,10 @@ The same tools the in-product builder agent uses — `builder_propose_trigger`,
 | `automations_list` | The automations this token's user owns. |
 | `automations_create` | A new, empty draft automation. |
 
+`builder_add_ai_step` and `builder_update_step` also take the reliability settings of an AI
+step (`temperature`, `enumFrom`, `checks`, `fallback`, `askOnce`) and `forEach.concurrency`;
+see [Reliable AI steps](ai-steps.md). The guide carries a section with the same examples.
+
 Every `builder_*` tool takes an `automationId`. Each call is independent and
 re-reads the automation from the database, so nothing is held in a server-side
 session that could expire mid-build, and a browser tab open on the same automation

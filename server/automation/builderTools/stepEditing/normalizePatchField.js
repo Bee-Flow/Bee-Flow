@@ -16,6 +16,24 @@ const { sanitizeSwitchCases } = require('../stepBuilders/flowSteps');
 const cycleDeps = require('./cycleDeps');
 const { normalizeQuery: normalizeHttpQuery } = require('../../../core/automationRunner/httpQuery');
 const { KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES, DATA_EXTRACTION_MAX_INSTRUCTIONS_CHARS } = require('../../validate/constants');
+const { sanitizeAiStepReliabilityArgs } = require('../../../core/automationModel/aiStepReliability');
+
+const AI_RELIABILITY_KEYS = new Set(['temperature', 'enumFrom', 'checks', 'fallback']);
+
+/**
+ * temperature / enumFrom / checks / fallback of an ai_step, through the same
+ * sanitiser the add path uses, so a patched step equals an added one. null
+ * clears (so does an empty list). There is no error channel here (`undefined`
+ * already means "clear"), so an unusable value is passed through UNCHANGED and
+ * validateDefinition refuses it on save with the field and the allowed values,
+ * the convention the code step's limits follow.
+ */
+function normalizeAiReliabilityPatch(key, value) {
+    if (value === null || value === undefined) return undefined;
+    if (Array.isArray(value) && value.length === 0 && (key === 'enumFrom' || key === 'checks')) return undefined;
+    const r = sanitizeAiStepReliabilityArgs({ [key]: value });
+    return 'error' in r ? value : r.value[key];
+}
 
 /**
  * Normalize a scalar/structured patch field to the exact shape the matching
@@ -47,6 +65,9 @@ function normalizePatchField(type, key, value) {
         // Handoff 5: the agent's skills this step switches off, replaced
         // wholesale (send the full list).
         if (key === 'disabledAgentSkillIds') return cycleDeps.sanitizeDisabledAgentSkillIds(value);
+        // Rebuilt, never merged, like integration_action's: see the askOnce note below.
+        if (key === 'askOnce') return normalizeAskOnce(value);
+        if (AI_RELIABILITY_KEYS.has(key)) return normalizeAiReliabilityPatch(key, value);
     }
     if (type === 'code') {
         if (key === 'outputSchema') return value || null;
@@ -85,6 +106,8 @@ function normalizePatchField(type, key, value) {
         if (key === 'mode') return value === 'ending' ? 'ending' : 'input';
         if (key === 'form') return (value && typeof value === 'object' && !Array.isArray(value)) ? value : null;
         if (key === 'waitSeconds') return Math.max(60, Math.min(7 * 24 * 3600, Math.round(Number(value) || 3600)));
+        // The page condition: a trimmed expression, or null (always show the page).
+        if (key === 'when') return (typeof value === 'string' && value.trim()) ? value.trim().slice(0, 2000) : null;
     }
     if (type === 'http_request') {
         if (key === 'method') return String(value || 'GET').toUpperCase();
@@ -211,6 +234,15 @@ function normalizePatchField(type, key, value) {
         if (key === 'nearDuplicateStrategy') {
             return KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES.includes(value) && value !== 'skip' ? value : undefined;
         }
+    }
+    if (type === 'read_table') {
+        // The shared spec clamps each setting, so a patched step equals an added one.
+        const { normalizeReadTableStep } = require('../../../core/automationModel/tableOps/readTableSpec');
+        return normalizeReadTableStep({ [key]: value })[key];
+    }
+    if (type === 'table') {
+        if (key === 'name') return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+        if (key === 'expiresInDays') return require('../../../core/automationModel/tableOps/spec').normalizeTableStep({ expiresInDays: value }).expiresInDays;
     }
     if (type === 'guard' || type === 'tokenize' || type === 'untokenize') {
         // A ref PATH string, as the add path stores it ('' = not picked yet).

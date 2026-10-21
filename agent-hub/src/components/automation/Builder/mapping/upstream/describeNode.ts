@@ -25,7 +25,7 @@ import {
     describeSet, describeParseJson, describeDateTime, describeCollectionItems,
     describeDedupe, describeAggregate, describeSummarize,
 } from './collectionSteps';
-import { describeDatatable, describeKnowledgeWrite } from './dataSteps';
+import { describeDatatable, describeKnowledgeWrite, describeReadTable, describeTable } from './dataSteps';
 import { describeFlatten } from './flattenStep';
 import type { Catalog, Group, SampleRoot, ToolOutputMap, TriggerOutputs, UpstreamDefinition, UpstreamNode } from './upstream.types';
 
@@ -106,6 +106,8 @@ export function describeNode(node: UpstreamNode | null | undefined, definition: 
     // A type missing from this chain contributes NO group to the variable
     // picker — nothing downstream can bind to it, through any picker, drag or
     // auto-map, and nothing errors.
+    if (node.type === 'read_table') return describeReadTable(node);
+    if (node.type === 'table')      return describeTable(node);
     if (node.type === 'datatable')  return describeDatatable(node, catalog);
     if (node.type === 'knowledge_write') return describeKnowledgeWrite(node, catalog);
     return null;

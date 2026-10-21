@@ -21,9 +21,14 @@ module.exports = {
     ...require('./automationStore/runs'),
     // Full copies of step outputs the run history truncated (BFSF-435).
     ...require('./automationStore/runFullOutputs'),
+    // Durations of recent legs (the public form poll's typical-duration hint).
+    ...require('./automationStore/runDurations'),
     ...require('./automationStore/webhooks'),
     ...require('./automationStore/forms'),
     ...require('./automationStore/generatedFiles'),
+    // Tables a run produced, and the form uploads a table step may read (own ledger, not generated files).
+    ...require('./automationStore/runTables'),
+    ...require('./automationStore/tableSources'),
     ...require('./automationStore/approvals'),
     ...require('./automationStore/approvalDeliveries'),
     ...require('./automationStore/folders'),

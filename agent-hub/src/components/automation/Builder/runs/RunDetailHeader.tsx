@@ -6,6 +6,9 @@ import { retriedRunId, useRetryRun } from '../../../../api/queries/automation/ru
 import { toast } from '../../../shared/Toast';
 import { runMeta, runSentence, runTone } from './runOutcome';
 import RunStatusIcon from './RunStatusIcon';
+import RunAction from './RunAction';
+import GoldenControl from './GoldenControl';
+import CompareWithMenu from './CompareWithMenu';
 
 /** The link that reopens this run in the builder's Runs tab. */
 export function runLink(runId: string, href: string = window.location.href): string {
@@ -16,34 +19,20 @@ export function runLink(runId: string, href: string = window.location.href): str
     return url.toString();
 }
 
-const BTN = 'inline-flex items-center justify-center gap-1.5 h-[30px] min-w-[30px] px-2 @[1100px]/rundetail:px-2.5 rounded-lg border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap disabled:opacity-50';
-
-/**
- * One next move. A run pane under 1100px wide (a screen up to ~1536px)
- * shows the icon alone, named for screen readers and on hover, so the run's
- * sentence keeps the room; wider panes show the words too.
- */
-function Action({ icon: Icon, label, onClick, disabled = false }: {
-    icon: typeof LinkIcon; label: string; onClick: () => void; disabled?: boolean;
-}) {
-    return (
-        <button type="button" className={BTN} onClick={onClick} disabled={disabled} aria-label={label} title={label}>
-            <Icon size={14} aria-hidden className="shrink-0" />
-            <span className="hidden @[1100px]/rundetail:inline">{label}</span>
-        </button>
-    );
-}
-
 interface RunDetailHeaderProps {
     automationId: string;
     run: RunRowData;
     onOpenRun: (runId: string) => void;
     onOpenEditor?: (stepId?: string | null) => void;
     onClose: () => void;
+    /** Open the compare view for this run and another one. */
+    onCompare?: (otherRunId: string) => void;
+    /** The run's data is hidden from this viewer: no golden, no compare. */
+    dataHidden?: boolean;
 }
 
-/** The run in one sentence, how it came about, and the three next moves. */
-export default function RunDetailHeader({ automationId, run, onOpenRun, onOpenEditor, onClose }: RunDetailHeaderProps) {
+/** The run in one sentence, how it came about, and the next moves. */
+export default function RunDetailHeader({ automationId, run, onOpenRun, onOpenEditor, onClose, onCompare, dataHidden = false }: RunDetailHeaderProps) {
     const { t, locale } = useTranslation();
     const retry = useRetryRun(automationId);
     const [retrying, setRetrying] = useState(false);
@@ -82,9 +71,11 @@ export default function RunDetailHeader({ automationId, run, onOpenRun, onOpenEd
                 <div className="text-[var(--text-tertiary)] truncate">{runMeta(t, run, locale)}</div>
             </div>
             <div className="flex gap-1.5 shrink-0">
-                <Action icon={LinkIcon} label={t('runs.tab.copy_link', 'Copy link')} onClick={copyLink} />
-                <Action icon={RotateCcw} label={t('runs.tab.run_again', 'Run again with this input')} onClick={runAgain} disabled={!finished || retrying} />
-                <Action icon={PenLine} label={t('runs.tab.open_editor', 'Open in editor')} onClick={() => onOpenEditor?.(null)} />
+                {finished && !dataHidden && onCompare && <CompareWithMenu automationId={automationId} run={run} onCompare={onCompare} />}
+                {finished && !dataHidden && <GoldenControl automationId={automationId} run={run} />}
+                <RunAction icon={LinkIcon} label={t('runs.tab.copy_link', 'Copy link')} onClick={copyLink} />
+                <RunAction icon={RotateCcw} label={t('runs.tab.run_again', 'Run again with this input')} onClick={runAgain} disabled={!finished || retrying} />
+                <RunAction icon={PenLine} label={t('runs.tab.open_editor', 'Open in editor')} onClick={() => onOpenEditor?.(null)} />
             </div>
         </header>
     );

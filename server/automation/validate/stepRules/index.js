@@ -3,7 +3,7 @@
  * integration_action, approval (incl. panel + stage chain), ai_step, condition,
  * guard/tokenize/untokenize, loop, parallel, forEach, code, notification,
  * http_request, layer_output, set, parse_json, datetime, wait, stop_error,
- * form_page, generate_document, switch, the collection ops — plus the
+ * form_page, generate_document, switch, the collection ops, the table steps — plus the
  * reference-scoping pass over every binding the step carries, and the two
  * compliance findings a definition can justify on its own (complianceRules.js).
  *
@@ -19,6 +19,7 @@ const { checkPinnedOutput } = require('./pinnedOutput');
 const { checkIntegrationAction, checkHttpRequest, checkAskOnce, checkCacheInto } = require('./integrationRules');
 const { checkApproval } = require('./approvalRules');
 const { checkAiStep, checkDataExtraction } = require('./modelStepRules');
+const { checkAiStepReliability } = require('./aiStepReliabilityRules');
 const { checkCondition, checkBranchWiring, checkPrivacyScan, checkSwitch } = require('./branchingRules');
 const { checkLoop, checkParallel, checkForEach, checkCollectionOps } = require('./iterationRules');
 const { checkTopics } = require('./topicRules');
@@ -26,6 +27,7 @@ const { checkRoutes } = require('./routeRules');
 const { checkCode, checkLayerOutput, checkSet, checkParseJson, checkDatetime } = require('./dataShapingRules');
 const { checkGenerateDocument, checkFillDocument, checkSlide, checkPresentation } = require('./documentRules');
 const { checkKnowledgeWrite, checkDatatable } = require('./persistenceRules');
+const { checkReadTable, checkTable } = require('./tableRules');
 const {
     checkNotification, checkWait, checkStopError, checkReturnToApp, checkNote, checkFormPage,
 } = require('./runFlowRules');
@@ -40,11 +42,11 @@ const { checkComplianceFindings } = require('./complianceRules');
  */
 function createStepChecker({
     graph, trigger, ids, seenSoFar, pushE, pushW,
-    availableTools, toolRequiredParams, knownConnectionIds, availableAgents, topicClassifier, isContractScope,
+    availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, availableAgents, topicClassifier, isContractScope,
 }) {
     const base = createStepContext({
         graph, trigger, ids, seenSoFar, pushE, pushW,
-        availableTools, toolRequiredParams, knownConnectionIds, availableAgents, topicClassifier, isContractScope,
+        availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, availableAgents, topicClassifier, isContractScope,
     });
     const { outgoingLabelsFor } = base;
 
@@ -94,6 +96,7 @@ function createStepChecker({
         checkIntegrationAction(ctx, step, at);
         checkApproval(ctx, step, at);
         checkAiStep(ctx, step, at);
+        checkAiStepReliability(ctx, step, at);
         checkCondition(ctx, step, at);
         checkBranchWiring(ctx, step, at);
         checkPrivacyScan(ctx, step, at);
@@ -125,6 +128,8 @@ function createStepChecker({
         checkCacheInto(ctx, step, at);
         checkKnowledgeWrite(ctx, step, at);
         checkDatatable(ctx, step, at);
+        checkReadTable(ctx, step, at);
+        checkTable(ctx, step, at);
         checkReferences(ctx, step, at);
         // Last, and never in front of a field rule: a compliance warning is
         // about a step that is already wired, so it reads after the step's own
