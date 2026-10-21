@@ -9,7 +9,7 @@
 # or against BROWSER_WS_ENDPOINT, so `playwright` stays a thin client.
 
 # ── deps ─────────────────────────────────────────────────────────────────────
-FROM node:22.23.2-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS deps
+FROM node:22.23.4-slim@sha256:5991875dfb80938dd8a6ba3fe3e96fd04929e70792762b3319d8caadbbe229bc AS deps
 
 WORKDIR /app
 
@@ -59,7 +59,7 @@ CMD ["node_modules/.bin/nodemon", "--ignore", "data/", "--ignore", "components/"
 # metadata marker with its database_type. A failed download FAILS THE BUILD,
 # because an image without it records every call as "unknown location";
 # GEO_DB_OPTIONAL=1 builds without it for a hotfix when download.db-ip.com is down.
-FROM node:22.23.2-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS geo
+FROM node:22.23.4-slim@sha256:5991875dfb80938dd8a6ba3fe3e96fd04929e70792762b3319d8caadbbe229bc AS geo
 
 ARG GEO_DB_MONTH=""
 ARG GEO_DB_OPTIONAL=0
@@ -117,7 +117,7 @@ RUN git init -q . \
     && CGO_ENABLED=0 go build -mod=mod -trimpath -ldflags='-s -w -X github.com/docker/buildx/version.Version=v0.38.0 -X github.com/docker/buildx/version.Revision=0dbe87f36ed472fe36b6796c3f70b4210a731fc5' -o /out/docker-buildx ./cmd/buildx
 
 # ── runtime ──────────────────────────────────────────────────────────────────
-FROM node:22.23.2-trixie-slim@sha256:c5849ff9c9ebcd66615412f0b548ca5b8ecaef84003dc9ac2e077ebe46aaa3f6 AS runtime
+FROM node:22.23.4-trixie-slim@sha256:817bd9409161864cc85fcda5febd87a26f2d47c9fe5af355d327aeddfa11602c AS runtime
 
 # The gid that owns /var/run/docker.sock on the host. The server runs as `node`
 # and still shells out to `docker build` / `docker run` (services/pwtRunner.js,

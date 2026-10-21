@@ -174,7 +174,7 @@ services:
 
   # ── Agent Hub Frontend (Vite Dev Server Hot Reload) ────────────
   agent-hub:
-    image: node:22.23.2-alpine
+    image: node:22.23.4-alpine
     container_name: beeflow-agent-hub-dev
     working_dir: /app
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5176"
