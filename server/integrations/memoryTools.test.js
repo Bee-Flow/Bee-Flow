@@ -13,15 +13,8 @@
 const { test, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
-const Module = require('module');
 
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../testUtils/moduleMock');
 
 let searchCalls = [];
 let createCalls = [];

@@ -20,16 +20,9 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('crypto');
 const path = require('path');
-const Module = require('module');
 
 const SERVER = path.resolve(__dirname, '..');
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../testUtils/moduleMock');
 
 // Captured outbound requests; nothing leaves the process.
 const calls = [];

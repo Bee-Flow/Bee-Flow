@@ -20,7 +20,6 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
-const Module = require('node:module');
 
 const SERVER = path.resolve(__dirname, '..');
 
@@ -35,13 +34,7 @@ const rawQuery = pgliteQuery(pg);
 // tests must stay sequential — two overlapping transactions would interleave.
 const client = { query: (sql, params) => rawQuery(sql, params), release: () => {} };
 
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../testUtils/moduleMock');
 
 mock(path.join(SERVER, 'db.js'), {
     pool: { query: rawQuery, connect: async () => client },

@@ -24,16 +24,9 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
-const Module = require('module');
 
 const SERVER = path.resolve(__dirname, '..', '..');
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../../testUtils/moduleMock');
 
 // Every store call lands in `touched`. A refused request must leave it empty.
 const touched = [];

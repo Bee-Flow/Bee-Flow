@@ -21,16 +21,9 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
-const Module = require('module');
 
 const SERVER = path.resolve(__dirname, '..', '..');
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../../testUtils/moduleMock');
 
 // cron is deliberately NOT mocked — the preview must be bit-exact with what
 // the scheduler would actually fire, so the real implementation is under test.

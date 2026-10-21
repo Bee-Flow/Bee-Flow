@@ -9,6 +9,7 @@
  */
 
 const { test, after, beforeEach } = require('node:test');
+const { makeMemoryRunStore } = require('../testUtils/memoryRunStore');
 const assert = require('node:assert');
 // The stores are stubbed by the shared test kit (it also registers the feature
 // ports and sets the test env); this suite replaces the run/step methods below
@@ -16,76 +17,16 @@ const assert = require('node:assert');
 const { storeStub } = require('./automationRunner.testkit').installRunnerStoreStubs();
 
 // ── In-memory store stub ───────────────────────────────────────────────────
-const runs = new Map();
-const stepsByRun = new Map();   // runId → [recordRunStep args]
-let runSeq = 0;
-const updateRunCalls = [];
-let AUTOMATION = null;          // what getAutomation hands back to resumeFromStep
-// The kept full copies of truncated outputs (automation_run_full_outputs),
-// keyed `runId|stepId|attempts`.
-const FULL_COPIES = new Map();
+const memory = makeMemoryRunStore();
+const { stepsByRun, updateRunCalls } = memory;
 
-function makeRun({ automationId, version, userId, triggerKind, triggerPayload, mode, parentRunId, rootRunId }) {
-    const id = `run-${++runSeq}`;
-    const row = {
-        id, automationId, version, userId, triggerKind,
-        triggerPayload: triggerPayload || null, mode, status: 'queued',
-        startedAt: new Date().toISOString(), finishedAt: null, durationMs: null,
-        // The journey: a run is its own root unless it CONTINUES a paused one.
-        // Mirrors createRun's COALESCE($rootRunId, id).
-        error: null, summary: null, parentRunId: parentRunId ?? null, rootRunId: rootRunId ?? id,
-        cancelRequested: false, awaitingStepId: null, approvalToken: null,
-        awaitingStepExpiresAt: null, errorClass: null, handledErrorCount: 0,
-    };
-    runs.set(id, row);
-    stepsByRun.set(id, []);
-    return row;
-}
-
-Object.assign(storeStub, {
-    initDB: async () => {},
-    createRun: async (args) => makeRun(args),
-    getRun: async (id) => runs.get(id) || null,
-    updateRun: async (id, updates) => {
-        updateRunCalls.push({ id, updates: { ...updates } });
-        const r = runs.get(id);
-        if (!r) return false;
-        Object.assign(r, updates);
-        return true;
-    },
-    getRunsForAutomation: async () => [],
-    getRunSteps: async (id) => (stepsByRun.get(id) || []).map(s => ({ ...s })),
-    // Upsert on (runId, stepId, attempts), exactly like the real store's
-    // ON CONFLICT clause. The runner writes a 'running' row when a step starts
-    // and the real row when it lands; a stub that merely appended kept both,
-    // so a lookup by stepId found the placeholder instead of the result.
-    recordRunStep: async (row) => {
-        const rows = stepsByRun.get(row.runId) || [];
-        const i = rows.findIndex(r => r.stepId === row.stepId && r.attempts === row.attempts);
-        if (i >= 0) rows[i] = { ...row }; else rows.push({ ...row });
-    },
-    markRunning: async () => true,
-    releaseAutomation: async () => {},
-    resetAttempts: async () => {},
-    updateAutomation: async () => true,
-    touchRunHeartbeat: async () => {},
-    requestCancelRun: async () => null,
-    getAutomation: async () => AUTOMATION,
-    getRunFullOutput: async (runId, stepId, attempts = 1) => FULL_COPIES.get(`${runId}|${stepId}|${attempts}`) ?? null,
-});
+Object.assign(storeStub, memory.methods);
 
 const runner = require('./automationRunner');
 
 after(() => { setImmediate(() => process.exit(process.exitCode || 0)); });
 
-beforeEach(() => {
-    runs.clear();
-    stepsByRun.clear();
-    runSeq = 0;
-    updateRunCalls.length = 0;
-    AUTOMATION = null;
-    FULL_COPIES.clear();
-});
+beforeEach(memory.reset);
 
 
 /** trigger → page (optionally conditional) → set (binds the page's answer). */
@@ -123,11 +64,11 @@ function wizardAutomation({ pageExtra = {}, fields, steps = [] } = {}) {
 const outputOf = (runId, stepId) => (stepsByRun.get(runId) || []).find(s => s.stepId === stepId)?.output;
 
 test('a page whose condition is not met is skipped: the run finishes, the answer reads blank', async () => {
-    AUTOMATION = wizardAutomation({
+    memory.automation = wizardAutomation({
         pageExtra: { when: 'trigger.output.request_type == "b"' },
         fields: [{ name: 'choice', type: 'text', label: 'Choice' }],
     });
-    const run = await runner.executeAutomation(AUTOMATION, {
+    const run = await runner.executeAutomation(memory.automation, {
         triggerKind: 'form', triggerPayload: { request_type: 'a' }, mode: 'live',
     });
     assert.strictEqual(run.status, 'success');
@@ -137,11 +78,11 @@ test('a page whose condition is not met is skipped: the run finishes, the answer
 });
 
 test('the same page pauses when its condition is met', async () => {
-    AUTOMATION = wizardAutomation({
+    memory.automation = wizardAutomation({
         pageExtra: { when: 'trigger.output.request_type == "b"' },
         fields: [{ name: 'choice', type: 'text', label: 'Choice' }],
     });
-    const run = await runner.executeAutomation(AUTOMATION, {
+    const run = await runner.executeAutomation(memory.automation, {
         triggerKind: 'form', triggerPayload: { request_type: 'b' }, mode: 'live',
     });
     assert.strictEqual(run.status, 'awaiting_form');
@@ -149,7 +90,7 @@ test('the same page pauses when its condition is met', async () => {
 });
 
 test('options read from an earlier step are persisted resolved, and the answer is the VALUE', async () => {
-    AUTOMATION = wizardAutomation({
+    memory.automation = wizardAutomation({
         steps: [{
             id: 'load', type: 'set',
             fields: {
@@ -161,7 +102,7 @@ test('options read from an earlier step are persisted resolved, and the answer i
             optionsFrom: { ref: 'steps.load.output.rows', value: 'id', label: 'name' },
         }],
     });
-    const paused = await runner.executeAutomation(AUTOMATION, {
+    const paused = await runner.executeAutomation(memory.automation, {
         triggerKind: 'form', triggerPayload: { request_type: 'a' }, mode: 'live',
     });
     assert.strictEqual(paused.status, 'awaiting_form');

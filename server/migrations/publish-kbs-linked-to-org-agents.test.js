@@ -20,7 +20,6 @@
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const path = require('node:path');
-const Module = require('node:module');
 
 const { PGlite } = require('@electric-sql/pglite');
 const { pgliteQuery } = require('../testUtils/pglitePool');
@@ -30,13 +29,7 @@ const pg = new PGlite();
 const q = pgliteQuery(pg);
 const db = { query: q };
 
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../testUtils/moduleMock');
 mock(path.join(__dirname, '..', 'db.js'), { pool: db, exec: q, run: q });
 
 // The store, reduced to the two calls the migration makes. Faithful on the one

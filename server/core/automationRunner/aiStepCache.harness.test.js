@@ -9,78 +9,17 @@
 
 const { test, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
-const crypto = require('crypto');
+const { installAiAnswerCacheKit } = require('../../testUtils/aiAnswerCacheKit');
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
-
-const cfg = {};
-const durableRows = new Map();
-const durableGets = [];
-const durablePuts = [];
-
-const restore = installResolveStub({
-    '../../stores/configStore': {
-        async getConfig(key) { return cfg[key] !== undefined ? cfg[key] : null; },
-        async setConfig(key, value) { cfg[key] = value; return true; },
-    },
-    '../../stores/integrationCacheStore': {
-        cacheKey: (identity) => crypto.createHash('sha256').update(String(identity || '')).digest('hex'),
-        async get(key, organizationId, opts = {}) {
-            durableGets.push({ key, organizationId, ...opts });
-            const row = durableRows.get(key);
-            return (row && row.organizationId === organizationId) ? { value: row.value } : null;
-        },
-        async put(record) {
-            durablePuts.push(record);
-            durableRows.set(record.key, record);
-            return true;
-        },
-    },
-});
-after(() => restore());
+const kit = installAiAnswerCacheKit();
+const { durableGets, durablePuts, flush, ANSWER, makeCtx, makeArgs } = kit;
+after(kit.restore);
 
 const { planAiReuse, readAiReuse, rememberAiAnswer } = require('./aiStepCache');
-const { createToolMemo } = require('./toolMemo');
-const policy = require('./integrationCachePolicy');
-
-const ORG = 'org-a';
-const POLICY_KEY = `org_integration_cache_${ORG}`;
-const flush = () => new Promise(r => setImmediate(r));
-
-const REQUEST = {
-    route: 'structured',
-    messages: [{ role: 'system', content: 'Sort the item.' }, { role: 'user', content: 'item <PERSON_1> arrived' }],
-    schema: { type: 'object', properties: { label: { type: 'string' } } },
-    temperature: 0.2,
-    maxOutputTokens: 1024,
-    reasoningEffort: null,
-};
-const ANSWER = { content: null, structured: { label: 'alpha' } };
 
 const harness = (aiAnswers) => Object.freeze({ source: { kind: 'golden', id: 'g1' }, formAnswers: null, aiAnswers });
-const makeCtx = (over = {}) => ({ userId: 'u1', orgId: ORG, _toolMemo: createToolMemo(), ...over });
-const makeArgs = (over = {}) => ({
-    step: { id: 's1', type: 'ai_step', askOnce: { acrossRuns: true } },
-    ctx: makeCtx(),
-    mode: 'live',
-    policy: { action: 'tokenize', privacyScope: 'external' },
-    modelId: 'model-a',
-    providerKey: 'llm:abc',
-    toolsOffered: false,
-    request: REQUEST,
-    ...over,
-});
 
-beforeEach(() => {
-    for (const k of Object.keys(cfg)) delete cfg[k];
-    cfg[POLICY_KEY] = { enabled: true, ttlSeconds: 600, scopes: { integration: true, http: false, ai: true } };
-    policy.invalidateCachePolicy();
-    durableRows.clear();
-    durableGets.length = 0;
-    durablePuts.length = 0;
-    delete process.env.AUTOMATION_ASK_ONCE_DISABLED;
-    delete process.env.INTEGRATION_CACHE_DISABLED;
-});
+beforeEach(kit.reset);
 
 test('a dry run without a harness has no plan', async () => {
     assert.strictEqual(await planAiReuse(makeArgs({ mode: 'dry_run' })), null);

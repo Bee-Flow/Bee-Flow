@@ -48,9 +48,9 @@ describe('the spreadsheet steps', () => {
 describe('SettingsForm: table', () => {
     const STEP = { id: 'edit', type: 'table', label: 'Edit table', source: { kind: 'ref', path: 'steps.read.output.table' }, ops: [], expiresInDays: 7 };
 
-    it('dispatches to the Edit table editor', () => {
+    it('dispatches to the Edit table editor', async () => {
         renderForm(STEP);
-        expect(screen.getByRole('combobox', { name: 'Table to work on' })).toBeTruthy();
+        expect(await screen.findByRole('combobox', { name: 'Table to work on' })).toBeTruthy();
         expect(screen.getByRole('button', { name: 'Add a step' })).toBeTruthy();
         expect(screen.getByText('Run the steps before this one once to see a preview.')).toBeTruthy();
     });
@@ -58,7 +58,7 @@ describe('SettingsForm: table', () => {
     it('saves the steps as a whole, and only what changed', async () => {
         const user = userEvent.setup();
         const onPatch = renderForm(STEP);
-        await user.click(screen.getByRole('button', { name: 'Add a step' }));
+        await user.click(await screen.findByRole('button', { name: 'Add a step' }));
         await user.click(screen.getByRole('menuitem', { name: /Take a sample/ }));
         await waitFor(() => expect(onPatch).toHaveBeenCalled(), { timeout: 4000 });
         const patch = onPatch.mock.calls.at(-1)?.[0];
@@ -74,16 +74,16 @@ describe('SettingsForm: read_table', () => {
         sheets: 'all', headerRow: 1, provenanceSheet: 'auto', format: 'auto', delimiter: 'auto', skipHiddenSheets: true, expiresInDays: 7,
     };
 
-    it('dispatches to the Read table editor', () => {
+    it('dispatches to the Read table editor', async () => {
         renderForm(STEP);
-        expect(screen.getByRole('radio', { name: 'All sheets' })).toBeTruthy();
+        expect(await screen.findByRole('radio', { name: 'All sheets' })).toBeTruthy();
         expect(screen.getByRole('spinbutton', { name: 'Row with the column names' })).toBeTruthy();
     });
 
     it('saves a change of sheets', async () => {
         const user = userEvent.setup();
         const onPatch = renderForm(STEP);
-        await user.click(screen.getByRole('radio', { name: 'The first sheet' }));
+        await user.click(await screen.findByRole('radio', { name: 'The first sheet' }));
         await waitFor(() => expect(onPatch).toHaveBeenCalled(), { timeout: 4000 });
         const { icon: _icon, ...rest } = onPatch.mock.calls.at(-1)?.[0];
         expect(rest).toEqual({ sheets: 'first' });

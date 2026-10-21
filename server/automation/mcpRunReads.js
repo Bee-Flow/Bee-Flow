@@ -54,8 +54,7 @@
  * in mcpRunReadScrub.js and the caps in mcpRunReadCaps.js.
  */
 
-const { HttpError } = require('../core/http/errors');
-const log = require('../telemetry/log');
+const { makeToolCall } = require('./mcpToolCall');
 const { makeAccess, rawPolicyKey, RAW_READ_AUDIT_ACTION } = require('./mcpRunReadAccess');
 const { envCap } = require('./mcpRunReadCaps');
 const handlerFns = require('./mcpRunReadHandlers');
@@ -74,21 +73,7 @@ function makeRunReads(overrides = {}) {
         automations_list_run_files: (userId, args) => handlerFns.listRunFiles(access, userId, args),
     };
 
-    /**
-     * Run one of the four tools. Never throws: a refusal comes back as
-     * `{ error, code }` like every other tool result of this surface.
-     */
-    async function call(name, args, { userId }) {
-        const handler = handlers[name];
-        if (!handler) return { error: `Unknown tool: ${name}` };
-        try {
-            return await handler(userId, args && typeof args === 'object' ? args : {});
-        } catch (e) {
-            if (e instanceof HttpError) return { error: e.message, code: e.code };
-            log.error(`[automations-mcp] ${name} failed: ${e.message}`);
-            return { error: `${name} failed.`, code: 'internal_error' };
-        }
-    }
+    const call = makeToolCall(handlers);
 
     return { call, rawReadsAllowed: access.rawReadsAllowed, setRawReadsAllowed: access.setRawReadsAllowed };
 }

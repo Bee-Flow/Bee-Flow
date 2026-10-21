@@ -29,11 +29,9 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const { contentDisposition } = require('../../core/http/contentDisposition');
-const { makeAutomationAccess } = require('../../automation/access');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
-const { tableLimits } = require('../../core/automationRunner/tables/limits');
 const { TABLE_ID_RE } = require('../../core/automationRunner/tables/handle');
-const { makeJourneyReader } = require('./runJourney');
+const { tableRouterDeps } = require('./tableRouterDeps');
 
 const WHOLE_NUMBER = /^\d{1,12}$/;
 const notFound = () => new HttpError(404, 'run_table_not_found', 'Not found');
@@ -69,21 +67,13 @@ function pageParams(query, limits) {
  * @param {any}   [overrides.store]       automationStore surface (getRun, getRunsInChain, getAutomation, getRunTableForRuns, ...)
  * @param {any}   [overrides.tableStore]  { readTablePage, streamTableCsv }
  * @param {any}   [overrides.storage]     unused by the routes themselves; kept so a test can name the seam
- * @param {() => ReturnType<typeof tableLimits>} [overrides.limits]
+ * @param {() => ReturnType<typeof import('../../core/automationRunner/tables/limits').tableLimits>} [overrides.limits]
  * @param {(id: string) => Promise<any>} [overrides.getUser]
  * @param {(userId: string, permission: string, session?: any) => Promise<boolean>} [overrides.hasPermission]
  */
 function makeRunTablesRouter(overrides = {}) {
     const router = express.Router();
-    const store = () => overrides.store || require('../../stores/automationStore');
-    const tables = () => overrides.tableStore || require('../../core/automationRunner/tables/tableStore');
-    const limitsNow = () => (overrides.limits ? overrides.limits() : tableLimits());
-    const access = makeAutomationAccess({
-        store: overrides.store,
-        ...(overrides.getUser ? { getUser: overrides.getUser } : {}),
-        ...(overrides.hasPermission ? { hasPermission: overrides.hasPermission } : {}),
-    });
-    const journey = makeJourneyReader({ store, access, what: 'see its tables' });
+    const { store, tables, limitsNow, journey } = tableRouterDeps(overrides);
 
     /** The ledger row for this request, or null after a 403 was written; 404 for every other miss. */
     async function openRow(req, res) {

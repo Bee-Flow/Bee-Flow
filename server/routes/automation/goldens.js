@@ -44,6 +44,7 @@ const { validate } = require('../../core/http/validate');
 const { bodyOf, worded, choice, idList, z } = require('../../core/http/schemaParts');
 const { makeAutomationAccess } = require('../../automation/access');
 const { makeRunDataAccess } = require('../../automation/testing/runDataAccess');
+const { makeGuarded } = require('./guardedAutomation');
 const { effectiveStatus, anyRunning } = require('../../automation/testing/goldenReplay');
 const { envCap } = require('../../automation/mcpRunReadCaps');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
@@ -119,13 +120,7 @@ function makeGoldensRouter(overrides = {}) {
     const limiter = overrides.limiter
         || (rpm > 0 ? perUserRateLimit({ windowMs: 60_000, max: rpm }) : (_req, _res, next) => next());
 
-    /** The automation, once the caller holds `need` on it; null after the guard answered. */
-    async function guarded(req, res, need) {
-        const a = await store().getAutomation(req.params.id);
-        if (!a) throw new HttpError(404, 'automation_not_found', 'Not found');
-        if (!await access.guard(req, res, a, need)) return null;
-        return a;
-    }
+    const guarded = makeGuarded({ store, access });
 
     async function runInfoOf(goldenRunId) {
         const [root, latest] = await Promise.all([

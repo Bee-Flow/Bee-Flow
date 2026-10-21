@@ -31,7 +31,6 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const path = require('node:path');
-const Module = require('node:module');
 
 const SERVER = path.resolve(__dirname, '..');
 
@@ -41,13 +40,7 @@ const SERVER = path.resolve(__dirname, '..');
 const { usePglitePool } = require('../testUtils/pglitePool');
 const { pg, query: rawQuery, close: closePg } = usePglitePool();
 
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../testUtils/moduleMock');
 
 // auth/datatableAccess pulls in userStore (through permissions and audience)
 // and projectStore, and BOTH run their full createSchema at require time. On

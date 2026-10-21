@@ -57,7 +57,7 @@ export default function FormPageEditor({ form, onChange, stepId = null, formEdit
                 <FormEditorModal
                     pages={pages}
                     currentId={stepId}
-                    onChangePage={(id, next) => { if (id === stepId) onChange(next); else formEditor.savePage(id, next); }}
+                    onChangePage={(id: string, next: Form) => { if (id === stepId) onChange(next); else formEditor.savePage(id, next); }}
                     onClose={() => setOpen(false)}
                     previewSample={rest.previewSample}
                     onFocusField={rest.onFocusField as ((h: unknown) => void) | null | undefined}

@@ -179,6 +179,19 @@ export function slugifyFieldName(label, taken = new Set()) {
     return `${base}_${Date.now().toString(36)}`;
 }
 
+/** The small "+ Add ..." button under a list of questions. */
+function AddButton({ onClick, children }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
+        >
+            <Plus size={12} /> {children}
+        </button>
+    );
+}
+
 export default function FormBuilderFields({
     form,
     onChange,
@@ -464,20 +477,8 @@ export default function FormBuilderFields({
                                 onMove={(dir) => moveField(i, dir)}
                             />
                         ))}
-                        <button
-                            type="button"
-                            onClick={addField}
-                            className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
-                        >
-                            <Plus size={12} /> {t('automations.form_builder_fields.add_a_question', 'Add a question')}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={addInfoField}
-                            className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
-                        >
-                            <Plus size={12} /> {t('automations.form_wizard.add_a_text_block', 'Add a text block')}
-                        </button>
+                        <AddButton onClick={addField}>{t('automations.form_builder_fields.add_a_question', 'Add a question')}</AddButton>
+                        <AddButton onClick={addInfoField}>{t('automations.form_wizard.add_a_text_block', 'Add a text block')}</AddButton>
                     </div>
 
                     <FormRow label={t('automations.form_builder_fields.button_text', 'Button text')}>
@@ -521,30 +522,12 @@ export default function FormBuilderFields({
                         />
                     ))}
                     <div className="flex items-center gap-1">
-                        <button
-                            type="button"
-                            onClick={() => addFileField('download')}
-                            className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
-                        >
-                            <Plus size={12} /> {t('automations.form_builder_fields.add_a_download', 'Add a download')}
-                        </button>
+                        <AddButton onClick={() => addFileField('download')}>{t('automations.form_builder_fields.add_a_download', 'Add a download')}</AddButton>
                         {/* Both write the same field shape and the type
                             dropdown swaps between them, so this is a shortcut
                             rather than a second concept. */}
-                        <button
-                            type="button"
-                            onClick={() => addFileField('notebook')}
-                            className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
-                        >
-                            <Plus size={12} /> {t('automations.form_builder_fields.add_an_open_in_notebooks', 'Add an Open in Notebooks')}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={addInfoField}
-                            className="flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] px-2 py-1 rounded transition"
-                        >
-                            <Plus size={12} /> {t('automations.form_wizard.add_a_text_block', 'Add a text block')}
-                        </button>
+                        <AddButton onClick={() => addFileField('notebook')}>{t('automations.form_builder_fields.add_an_open_in_notebooks', 'Add an Open in Notebooks')}</AddButton>
+                        <AddButton onClick={addInfoField}>{t('automations.form_wizard.add_a_text_block', 'Add a text block')}</AddButton>
                     </div>
                 </div>
             )}

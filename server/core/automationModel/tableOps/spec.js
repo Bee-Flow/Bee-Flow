@@ -22,9 +22,9 @@ const { byOp, AGG_FNS } = require('./normalize');
  * @param {number} index 0-based position in the step
  */
 function normalizeOp(op, index) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- OP_ID_RE is anchored with a bounded class {1,40}: linear
     const raw = isRecord(op) ? op : {};
     const name = str(raw.op);
-    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- OP_ID_RE is anchored with a bounded class {1,40}: linear
     const id = OP_ID_RE.test(str(raw.id)) ? str(raw.id) : `op${index + 1}`;
     const note = typeof raw.note === 'string' && raw.note.trim() ? raw.note.trim().slice(0, NOTE_MAX_CHARS) : undefined;
     const base = { id, op: name, enabled: raw.enabled !== false, ...(note ? { note } : {}) };

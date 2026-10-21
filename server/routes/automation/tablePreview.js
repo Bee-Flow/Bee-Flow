@@ -25,16 +25,13 @@ const express = require('express');
 const { z } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
-const { makeAutomationAccess } = require('../../automation/access');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
-const { tableLimits } = require('../../core/automationRunner/tables/limits');
 const { TABLE_ID_RE, COLUMN_TYPES } = require('../../core/automationRunner/tables/handle');
-const { serializeCell } = require('../../core/automationRunner/tables/tableCodec');
-const { makeJourneyReader } = require('./runJourney');
+const { listToTable } = require('../../core/automationRunner/tables/listSource');
+const { tableRouterDeps } = require('./tableRouterDeps');
 const log = require('../../telemetry/log');
 
 const MAX_PREVIEW_ROWS = 50;
-const KEY_SAMPLE_ROWS = 1000;
 const HARD_ROWS = 100_000;
 const HARD_OPS = 1000;
 const notFound = () => new HttpError(404, 'run_table_not_found', 'Not found');
@@ -49,10 +46,19 @@ const ColumnShape = z.object({
     type: z.enum(COLUMN_TYPES),
 }).strict();
 const InlineRows = z.object({
-    rows: z.array(z.record(z.string(), z.unknown())).max(HARD_ROWS),
+    rows: z.array(z.union([z.record(z.string(), z.unknown()), z.array(z.unknown())])).max(HARD_ROWS),
     columns: z.array(ColumnShape).max(2000).optional(),
 }).strict();
-const SourceShape = z.union([RunRef, InlineRows]);
+// A Code step's output envelope, with the list under `result`.
+const CodeResult = z.object({
+    result: z.union([
+        z.array(z.record(z.string(), z.unknown())).max(HARD_ROWS),
+        InlineRows,
+    ]),
+    logs: z.array(z.unknown()).optional(),
+    httpCalls: z.array(z.unknown()).optional(),
+}).strict();
+const SourceShape = z.union([RunRef, InlineRows, CodeResult]);
 const Body = z.object({
     source: SourceShape,
     ops: z.array(z.unknown()).max(HARD_OPS),
@@ -63,22 +69,25 @@ const Body = z.object({
 
 const isRunRef = (s) => !!s && typeof s.tableId === 'string';
 
-/** Inline rows as a table: given columns, or the union of the keys of the first rows (type 'mixed'). */
+/**
+ * A source that is not a run table, as columns and rows: the same list shapes
+ * the step itself accepts (a list of records, `{ rows }`, `{ columns, rows }`,
+ * a Code step's `{ result }`), read by `listToTable` so the preview types the
+ * columns exactly as a run would. Capped at `previewInputRows`.
+ */
 function inlineTable(src, limits) {
     const cap = limits.previewInputRows;
-    const capped = cap > 0 && src.rows.length > cap;
-    const rows = capped ? src.rows.slice(0, cap) : src.rows;
-    let columns = src.columns;
-    if (!columns) {
-        const seen = new Set();
-        for (const r of rows.slice(0, KEY_SAMPLE_ROWS)) for (const k of Object.keys(r || {})) if (k.length <= 200) seen.add(k);
-        let keys = [...seen];
-        if (limits.maxColumns > 0) keys = keys.slice(0, limits.maxColumns);
-        columns = keys.map(k => ({ key: k, label: k, type: 'mixed' }));
+    const listed = listToTable(src, cap > 0 ? { sample: cap } : {});
+    if (!listed) {
+        throw Object.assign(new Error('The sample is not a list of rows. Send rows, or { columns, rows }.'), { errorClass: 'table_source_invalid', field: 'source' });
     }
-    const keys = columns.map(c => c.key);
-    const clean = rows.map(r => Object.fromEntries(keys.map(k => [k, serializeCell(r ? r[k] : null)])));
-    return { columns, rows: clean, inputCapped: capped };
+    let { columns, rows } = listed;
+    if (limits.maxColumns > 0 && columns.length > limits.maxColumns) {
+        columns = columns.slice(0, limits.maxColumns);
+        const keys = columns.map(c => c.key);
+        rows = rows.map(r => Object.fromEntries(keys.map(k => [k, r[k]])));
+    }
+    return { columns, rows, inputCapped: listed.truncated };
 }
 
 /** Where in the step an engine error points, in the finding's relative-path form. */
@@ -100,21 +109,13 @@ const isMissingObject = (e) => !!e && (e.name === 'NoSuchKey' || e.code === 'ENO
  * @param {any} [overrides.engine]      core/automationRunner/tables/ops
  * @param {any} [overrides.groupPolicy] core/automationRunner/tables/groupPolicy
  * @param {(automation: any) => Promise<Record<string, unknown>>} [overrides.runVarsFor]
- * @param {() => ReturnType<typeof tableLimits>} [overrides.limits]
+ * @param {() => ReturnType<typeof import('../../core/automationRunner/tables/limits').tableLimits>} [overrides.limits]
  * @param {(id: string) => Promise<any>} [overrides.getUser]
  * @param {(userId: string, permission: string, session?: any) => Promise<boolean>} [overrides.hasPermission]
  */
 function makeTablePreviewRouter(overrides = {}) {
     const router = express.Router();
-    const store = () => overrides.store || require('../../stores/automationStore');
-    const tables = () => overrides.tableStore || require('../../core/automationRunner/tables/tableStore');
-    const limitsNow = () => (overrides.limits ? overrides.limits() : tableLimits());
-    const access = makeAutomationAccess({
-        store: overrides.store,
-        ...(overrides.getUser ? { getUser: overrides.getUser } : {}),
-        ...(overrides.hasPermission ? { hasPermission: overrides.hasPermission } : {}),
-    });
-    const journey = makeJourneyReader({ store, access, what: 'see its tables' });
+    const { store, tables, limitsNow, access, journey } = tableRouterDeps(overrides);
 
     let limiter = { rpm: 0, run: null };
     const previewLimiter = (req, res, next) => {
@@ -167,13 +168,20 @@ function makeTablePreviewRouter(overrides = {}) {
             });
         }
 
-        const input = await resolveSource(req, res, body.source, limits);
-        if (!input) return undefined;
+        let input;
         const joins = {};
-        for (const [opId, src] of Object.entries(body.joinSources || {})) {
-            const t = await resolveSource(req, res, src, limits);
-            if (!t) return undefined;
-            joins[opId] = t;
+        try {
+            input = await resolveSource(req, res, body.source, limits);
+            if (!input) return undefined;
+            for (const [opId, src] of Object.entries(body.joinSources || {})) {
+                const t = await resolveSource(req, res, src, limits);
+                if (!t) return undefined;
+                joins[opId] = t;
+            }
+        } catch (e) {
+            // A sample that cannot be a table is a finding on the source, not a 500.
+            if (!e || e.errorClass !== 'table_source_invalid') throw e;
+            return res.json({ ok: false, findings: [{ code: e.errorClass, severity: 'error', path: 'source', message: e.message }], opResults: [] });
         }
 
         const step = spec.normalizeTableStep({ source: null, ops: body.ops });

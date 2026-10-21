@@ -21,18 +21,11 @@
  */
 const { test } = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
 const path = require('path');
 
 const SERVER = path.resolve(__dirname, '..');
 
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../testUtils/moduleMock');
 mock(path.join(SERVER, 'stores/projectStore'), {});
 mock(path.join(SERVER, 'stores/userStore'), {});
 mock(path.join(SERVER, 'stores/knowledgeBases'), {});

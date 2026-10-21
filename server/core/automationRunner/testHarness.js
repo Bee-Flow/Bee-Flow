@@ -18,18 +18,12 @@
 
 'use strict';
 
+const { deepFreeze } = require('../../utils/deepFreeze');
+
 const SOURCE_KINDS = new Set(['golden', 'scenario']);
 const AI_ANSWERS = new Set(['live', 'cache']);
 
 const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
-
-function deepFreeze(value) {
-    if (value && typeof value === 'object' && !Object.isFrozen(value)) {
-        Object.freeze(value);
-        for (const key of Object.keys(value)) deepFreeze(value[key]);
-    }
-    return value;
-}
 
 /**
  * @param {any} harness

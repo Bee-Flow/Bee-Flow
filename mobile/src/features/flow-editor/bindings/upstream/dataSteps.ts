@@ -8,6 +8,7 @@
 import { translate as t } from '@/core/i18n';
 import { nodeDefaultLabel } from '@/features/flow-editor/model/nodeDefs';
 
+import { editTableSample, readTableSample } from '../mirror/mapping/upstream/tableSamples';
 import type { Catalog, FlowNode, VariableGroup } from '../types';
 import { stepGroup } from './sampleFields';
 
@@ -76,49 +77,13 @@ export function describeKnowledgeWrite(node: FlowNode, catalog: Catalog | null |
     return stepGroup(node, { label: label as string, kind: 'knowledge_write' }, sample);
 }
 
-/**
- * The table a table step hands on, as it looks BEFORE any run: a placeholder
- * (`dry-run`, no run id), so nothing mistakes it for a stored table.
- */
-function tableHandleSample(name: string) {
-    return {
-        kind: 'table', tableId: 'dry-run', runId: null, name, columns: [], rowCount: 0,
-        preview: [], expiresAt: null, provenance: null,
-    };
-}
-
-/**
- * What a Read table step hands downstream: the first sheet as `table`, every
- * sheet in `tables` and by name in `tablesByName`, plus facts about the file.
- */
+/** What a Read table step hands downstream (the sample is shared with the web). */
 export function describeReadTable(node: FlowNode): VariableGroup {
-    const handle = tableHandleSample('Sheet1');
-    const sample = {
-        table: handle,
-        tables: [handle],
-        tablesByName: { Sheet1: handle },
-        sheets: [{ name: 'Sheet1', index: 0, hidden: false, rowCount: 0, columnCount: 0, tableIndex: 0 }],
-        provenance: null,
-        source: { filename: 'file.xlsx', format: 'xlsx', size: 0 },
-        warnings: [],
-    };
-    return stepGroup(node, { label: (node.label as string) || nodeDefaultLabel('read_table', t), kind: 'read_table' }, sample);
+    return stepGroup(node, { label: (node.label as string) || nodeDefaultLabel('read_table', t), kind: 'read_table' }, readTableSample());
 }
 
-/**
- * What an Edit table step hands downstream: the table itself, its size and
- * columns, and the rows and a text version of them when the table is small.
- */
+/** What an Edit table step hands downstream (the sample is shared with the web). */
 export function describeTable(node: FlowNode): VariableGroup {
     const label = (node.label as string) || nodeDefaultLabel('table', t);
-    const sample = {
-        table: tableHandleSample(label),
-        rowCount: 0,
-        columns: [],
-        rows: [],
-        markdown: '',
-        opStats: [],
-        warnings: [],
-    };
-    return stepGroup(node, { label, kind: 'table' }, sample);
+    return stepGroup(node, { label, kind: 'table' }, editTableSample(label));
 }

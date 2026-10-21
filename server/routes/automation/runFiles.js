@@ -167,8 +167,8 @@ function makeRunFilesRouter(overrides = {}) {
         : (_req, _res, next) => next();
 
     router.get('/runs/:runId/files/:fileId/preview', previewLimiter, async (req, res) => {
-        const raw = req.query.page == null ? '1' : String(req.query.page);
         // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored with a bounded repeat {1,6}: linear
+        const raw = req.query.page == null ? '1' : String(req.query.page);
         const page = /^\d{1,6}$/.test(raw) ? Number(raw) : 0;
         if (page < 1) throw new HttpError(400, 'invalid_page', 'page must be a positive whole number');
         const maxPages = previewMaxPages();

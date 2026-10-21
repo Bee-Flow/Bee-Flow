@@ -41,6 +41,7 @@ const { validate } = require('../../core/http/validate');
 const { bodyOf, worded } = require('../../core/http/schemaParts');
 const { makeAutomationAccess } = require('../../automation/access');
 const { makeRunDataAccess } = require('../../automation/testing/runDataAccess');
+const { makeGuarded } = require('./guardedAutomation');
 const { answersFromJourney, answersSize, hasAnswers } = require('../../automation/testing/formAnswers');
 const { envCap } = require('../../automation/mcpRunReadCaps');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
@@ -92,13 +93,7 @@ function makeFormScenariosRouter(overrides = {}) {
     const rpm = parseInt(process.env.AUTOMATION_RUN_TRIGGER_RPM || '', 10) || 30;
     const limiter = overrides.limiter || perUserRateLimit({ windowMs: 60_000, max: rpm });
 
-    /** The automation, once the caller holds `need` on it; null after the guard answered. */
-    async function guarded(req, res, need) {
-        const a = await store().getAutomation(req.params.id);
-        if (!a) throw new HttpError(404, 'automation_not_found', 'Not found');
-        if (!await access.guard(req, res, a, need)) return null;
-        return a;
-    }
+    const guarded = makeGuarded({ store, access });
 
     async function scenarioOf(a, scenarioId) {
         const row = await testing().getFormScenario(a.id, scenarioId);

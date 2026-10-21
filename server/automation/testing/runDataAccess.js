@@ -31,7 +31,8 @@
 
 const { HttpError } = require('../../core/http/errors');
 const { makeAutomationAccess } = require('../access');
-const { assertCanReadRunData, canReadRunData, isCallerRun } = require('../../core/automationModel/callerRunVisibility');
+const { makeJourneyReader } = require('../journeyReader');
+const { isCallerRun } = require('../../core/automationModel/callerRunVisibility');
 const log = require('../../telemetry/log');
 
 const FINISHED = new Set(['success', 'error', 'cancelled']);
@@ -50,36 +51,8 @@ function makeRunDataAccess(overrides = {}) {
     const managedInfo = overrides.managedInfo
         || ((projectId) => require('../../stores/managedPartsDefault').managedInfo(projectId));
 
-    /**
-     * @param {any} req
-     * @param {any} res
-     * @param {string} runId
-     * @param {string} [what]  completes "only they can ..." in the caller-run refusal
-     * @returns {Promise<{ run: any, root: any, legs: any[], runIds: string[] }|null>}
-     */
-    async function readableRun(req, res, runId, what = 'see its data') {
-        const me = req.session.user.id;
-        const run = await store().getRun(runId);
-        if (!run) throw new HttpError(404, 'run_not_found', 'Not found');
-        // Not on this automation at all (another organisation, nobody shared it
-        // with them): the run does not exist as far as they can tell.
-        if (run.userId !== me) {
-            const automation = await store().getAutomation(run.automationId).catch(() => null);
-            const { role } = await access.roleFor(automation, me, { session: req.session });
-            if (!role) throw new HttpError(404, 'run_not_found', 'Not found');
-        }
-        if (!await access.runGuard(req, res, run, 'read')) return null;
-        assertCanReadRunData(run, me, what);
-        const chain = await store().getRunsInChain(run.id).catch(() => [run]);
-        const all = chain.length ? chain : [run];
-        const legs = all.filter((leg) => leg.automationId === run.automationId && canReadRunData(leg, me));
-        if (!legs.some((leg) => leg.id === run.id)) legs.push(run);
-        const rootId = run.rootRunId || run.id;
-        const root = all.find((leg) => leg.id === rootId)
-            || all.find((leg) => !leg.parentRunId)
-            || run;
-        return { run, root, legs, runIds: legs.map((leg) => leg.id) };
-    }
+    /** The run, its root, its readable legs and their ids; null after a 403 was written. */
+    const readableRun = makeJourneyReader({ store, access, what: 'see its data' });
 
     /**
      * @param {any} run

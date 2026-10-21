@@ -150,7 +150,7 @@ describe('NodeDetailView', () => {
             expect(screen.queryByText('Structured output')).toBeNull();
         });
 
-        it('offers Execute, a data line, and a counted way into everything else', () => {
+        it('offers Execute, a data line, and a counted way into everything else', async () => {
             const onExecuteStep = vi.fn();
             const onModeChange = vi.fn();
             render(<NodeDetailView {...quickProps({ onExecuteStep, onModeChange })} />);
@@ -161,14 +161,14 @@ describe('NodeDetailView', () => {
             // switching the MODE — it must not swap the window for the
             // three-column workspace (the old "More options" did, and still
             // left the sections hidden).
-            fireEvent.click(screen.getByText(/Show advanced options \(3\)/));
+            fireEvent.click(await screen.findByText(/Show advanced options \(3\)/));
             expect(onModeChange).toHaveBeenCalledWith('advanced');
         });
 
-        it('without a mode owner, the legacy counted button still opens the full view', () => {
+        it('without a mode owner, the legacy counted button still opens the full view', async () => {
             const onDensityChange = vi.fn();
             render(<NodeDetailView {...quickProps({ onDensityChange })} />);
-            fireEvent.click(screen.getByText(/More options \(3\)/));
+            fireEvent.click(await screen.findByText(/More options \(3\)/));
             expect(onDensityChange).toHaveBeenCalledWith('full');
         });
 
@@ -361,7 +361,7 @@ describe('NodeDetailView — nothing on the drawer is hardcoded English', () => 
 
     const dutch = (map) => { transOverride.current = map; };
 
-    it('counts the hidden sections with a KEY per form, not a number glued to a word', () => {
+    it('counts the hidden sections with a KEY per form, not a number glued to a word', async () => {
         // `hiddenCount > 0 ? `More options (${n})` : 'More options'` handed the
         // dictionary two half-sentences and built the rest in JavaScript.
         dutch({
@@ -369,7 +369,7 @@ describe('NodeDetailView — nothing on the drawer is hardcoded English', () => 
             'automations.ndv.more_options_n': 'Nog {n} opties',
         });
         render(<NodeDetailView {...baseProps({ density: 'quick', onDensityChange: vi.fn() })} />);
-        expect(screen.getByText(/Nog 3 opties/)).toBeTruthy();
+        expect(await screen.findByText(/Nog 3 opties/)).toBeTruthy();
         expect(screen.queryByText(/More options/)).toBeNull();
     });
 

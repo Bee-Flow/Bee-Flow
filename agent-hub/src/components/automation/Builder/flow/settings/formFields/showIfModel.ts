@@ -62,6 +62,7 @@ const NUMERIC = /^-?\d{1,30}(\.\d{1,30})?$/;
 /** The literal a value is written as, given the type of the question it is compared with. */
 function literal(value: string, type: string | undefined): string {
     if (type === 'checkbox') return value === 'false' ? 'false' : 'true';
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- NUMERIC is anchored with bounded repeats {1,30}: linear
     if (type === 'number' && NUMERIC.test(value.trim())) return String(Number(value.trim()));
     return JSON.stringify(String(value));
 }

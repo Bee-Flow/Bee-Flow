@@ -232,9 +232,9 @@ test('the default sample is previewRows rows and the largest is 50', async () =>
     assert.strictEqual((await post('a1', { source: { rows: named(80) }, ops: [], limit: 0 })).status, 400);
 });
 
-test('inline rows: columns are the union of the keys, typed mixed; given columns win', async () => {
+test('inline rows: columns are the union of the keys, typed from the values like a run; given columns win', async () => {
     await post('a1', { source: { rows: [{ a: 1 }, { b: 2, a: 3 }] }, ops: [] });
-    assert.deepStrictEqual(engineCalls[0].source.columns, [{ key: 'a', label: 'a', type: 'mixed' }, { key: 'b', label: 'b', type: 'mixed' }]);
+    assert.deepStrictEqual(engineCalls[0].source.columns, [{ key: 'a', label: 'a', type: 'number' }, { key: 'b', label: 'b', type: 'number' }]);
     await post('a1', { source: { rows: [{ a: 1, hidden: 2 }], columns: [{ key: 'a', label: 'A', type: 'number' }] }, ops: [] });
     assert.deepStrictEqual(engineCalls[1].source.columns, [{ key: 'a', label: 'A', type: 'number' }]);
     const seen = [];
@@ -246,7 +246,44 @@ test('inline cells that are not JSON scalars are stored as text, never passed on
     await post('a1', { source: { rows: [{ a: { nested: true }, b: [1, 2] }] }, ops: [] });
     const seen = [];
     for await (const r of engineCalls[0].source.rows()) seen.push(r);
-    assert.deepStrictEqual(seen, [{ a: '{"nested":true}', b: '[1,2]' }]);
+    assert.deepStrictEqual(seen, [{ a: '{"nested":true}', b: '1; 2' }]);
+});
+
+test('list sources: rows as lists with columns, a Code step envelope and its { rows } all become tables', async () => {
+    const declared = { columns: [{ key: 'name', label: 'Name', type: 'text' }, { key: 'score', label: 'Score', type: 'number' }], rows: [['a', 1], ['b', 2]] };
+    const viaLists = await post('a1', { source: declared, ops: [] });
+    assert.strictEqual(viaLists.status, 200);
+    assert.deepStrictEqual(engineCalls[0].source.columns, declared.columns);
+    const seen = [];
+    for await (const r of engineCalls[0].source.rows()) seen.push(r);
+    assert.deepStrictEqual(seen, [{ name: 'a', score: 1 }, { name: 'b', score: 2 }]);
+
+    const viaEnvelope = await post('a1', { source: { result: [{ x: 'p' }, { x: 'q' }], logs: [], httpCalls: [] }, ops: [] });
+    assert.strictEqual(viaEnvelope.status, 200);
+    assert.deepStrictEqual(engineCalls[1].source.columns, [{ key: 'x', label: 'x', type: 'text' }]);
+    assert.strictEqual(viaEnvelope.body.inputRows, 2);
+
+    const viaEnvelopeRows = await post('a1', { source: { result: { rows: [{ y: 1 }] }, logs: [], httpCalls: [] }, ops: [] });
+    assert.strictEqual(viaEnvelopeRows.status, 200);
+    assert.strictEqual(engineCalls[2].source.columns[0].key, 'y');
+});
+
+test('a list source that cannot be a table is a finding on the source, not an error', async () => {
+    const res = await post('a1', { source: { rows: [[1, 2]] }, ops: [] });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.ok, false);
+    assert.strictEqual(res.body.findings[0].code, 'table_source_invalid');
+    assert.strictEqual(res.body.findings[0].path, 'source');
+    assert.strictEqual(engineCalls.length, 0);
+});
+
+test('a join sample may be any list shape too', async () => {
+    const res = await post('a1', {
+        source: inline(), ops: [{ id: 'j1', op: 'join' }],
+        joinSources: { j1: { result: [{ name: 'row 0', boss: 'Person One' }], logs: [], httpCalls: [] } },
+    });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.ok, true);
 });
 
 test('the input is capped, and inputCapped says so', async () => {

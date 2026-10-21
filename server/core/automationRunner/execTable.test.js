@@ -125,6 +125,33 @@ test('join with a list of rows reads the list; a table handle goes through openT
     assert.equal(calls.open.at(-1).h.tableId, 'rtb_' + 'c'.repeat(32));
 });
 
+test('join with accepts {rows}, {columns, rows} and a Code step envelope as well as a plain list', async () => {
+    const owners = [{ region: 'north', boss: 'Person One' }, { region: 'south', boss: 'Person Two' }];
+    const shapes = {
+        rows: { rows: owners },
+        declared: { columns: [{ key: 'region' }, { key: 'boss' }], rows: owners.map((o) => [o.region, o.boss]) },
+        envelope: { result: owners, logs: [], httpCalls: [] },
+        envelopeRows: { result: { rows: owners }, logs: [], httpCalls: [] },
+    };
+    for (const [name, shape] of Object.entries(shapes)) {
+        const { deps } = makeDeps({ rows: ROWS.slice(0, 3) });
+        const rs = state();
+        rs.steps.dt = { output: shape };
+        const out = await execTable(step([{ op: 'join', with: { kind: 'ref', path: 'steps.dt.output' }, on: [{ left: 'region', right: 'region' }] }]), CTX, rs, 'live', deps);
+        assert.deepEqual(out.output.rows.map((r) => r.boss), ['Person Two', 'Person One', 'Person One'], name);
+    }
+});
+
+test('join with a value that is not a table or a list names the problem', async () => {
+    const { deps } = makeDeps({ rows: ROWS.slice(0, 3) });
+    const rs = state();
+    rs.steps.dt = { output: { text: 'hello' } };
+    await assert.rejects(
+        execTable(step([{ op: 'join', with: { kind: 'ref', path: 'steps.dt.output' }, on: [{ left: 'region', right: 'region' }] }]), CTX, rs, 'live', deps),
+        (e) => e.errorClass === 'table_op_invalid' && e.field === 'with',
+    );
+});
+
 test('an expired or foreign table is table_not_found', async () => {
     const { deps, calls } = makeDeps({ expired: true });
     await assert.rejects(execTable(step([]), CTX, state(), 'live', deps), (e) => e.errorClass === 'table_not_found' && /expired or belongs to another run/.test(e.message));

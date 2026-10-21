@@ -57,23 +57,6 @@ function unresolvedMessage(binding, resolved) {
         + 'Re-run the step that produces the table, then run this step again, or point this step at a different table.';
 }
 
-/** A plain list of objects as a table source: columns from the union of the first keys. */
-function listAsTable(list) {
-    const { toScalar } = require('./tables/ops/values');
-    const keys = [];
-    const seen = new Set();
-    for (const item of list.slice(0, LIST_SAMPLE)) {
-        if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
-        for (const k of Object.keys(item)) if (!seen.has(k)) { seen.add(k); keys.push(k); }
-    }
-    const rows = list.filter((i) => i && typeof i === 'object' && !Array.isArray(i)).map((i) => {
-        const row = {};
-        for (const k of keys) row[k] = toScalar(i[k]);
-        return row;
-    });
-    return { columns: keys.map((k) => ({ key: k, label: k, type: 'mixed' })), rows: () => rows };
-}
-
 function dryRunResult(step, spec, handle, deps) {
     const columns = planColumns(handle.columns || [], spec.ops).columns || [];
     const table = deps.dryRunHandle({ name: spec.name || step.label || 'table', columns });
@@ -133,7 +116,9 @@ async function execTable(step, ctx, runState, mode, overrides = defaultDeps) {
             if (!t) throw stepError('table_not_found', NOT_FOUND, 'with');
             return { columns: t.columns, rows: t.rows };
         }
-        if (Array.isArray(value)) return listAsTable(value);
+        // The same shapes a source accepts: a list, { rows }, { columns, rows } or a Code step's { result }.
+        const listed = deps.listToTable(value, { maxRows: limits.maxRows });
+        if (listed) return { columns: listed.columns, rows: () => listed.rows };
         throw stepError('table_op_invalid', 'The table to join with did not resolve to a table or a list of rows. Run the step that makes it again.', 'with');
     };
 

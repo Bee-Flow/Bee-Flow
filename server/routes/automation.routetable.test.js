@@ -14,18 +14,11 @@
  */
 const { test } = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
 const path = require('path');
 
 const SERVER = path.resolve(__dirname, '..');
 
-function mock(absId, exports) {
-    const p = require.resolve(absId);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { mockModule: mock } = require('../testUtils/moduleMock');
 const noopMw = () => (req, res, next) => next();
 
 // Mock every module routes/automation.js (and its sub-routers) require, so a

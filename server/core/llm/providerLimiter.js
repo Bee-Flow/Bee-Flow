@@ -97,8 +97,8 @@ function readRetryAfterHeader(err) {
 function rateLimitInfo(err, nowMs = Date.now()) {
     if (!err) return null;
     const status = err.status ?? err.statusCode ?? providerErrorStatus(err);
-    const msg = String(err.message || '');
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a fixed literal on an error message, no repeats: linear
+    const msg = String(err.message || '');
     const overloaded = /overloaded/i.test(msg) || (err.error && err.error.type === 'overloaded_error');
     if (!(status === 429 || status === 503 || status === 529 || overloaded)) return null;
     let retryAfterMs = Number.isFinite(err.retryAfterMs) ? err.retryAfterMs : null;

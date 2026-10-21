@@ -24,7 +24,7 @@
  */
 
 const { HttpError } = require('../core/http/errors');
-const log = require('../telemetry/log');
+const { makeToolCall } = require('./mcpToolCall');
 const { makeAccess, text } = require('./mcpRunReadAccess');
 const { caps, STEP_ERROR_CHARS, MAX_ID_CHARS, envCap } = require('./mcpRunReadCaps');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
@@ -167,18 +167,7 @@ function makeFormScenarioTools(overrides = {}) {
         automations_dry_run_form_scenario: dryRunScenario,
     };
 
-    /** Run one of the two tools. Never throws: a refusal comes back as `{ error, code }`. */
-    async function call(name, args, { userId }) {
-        const handler = handlers[name];
-        if (!handler) return { error: `Unknown tool: ${name}` };
-        try {
-            return await handler(userId, args && typeof args === 'object' ? args : {});
-        } catch (e) {
-            if (e instanceof HttpError) return { error: e.message, code: e.code };
-            log.error(`[automations-mcp] ${name} failed: ${e.message}`);
-            return { error: `${name} failed.`, code: 'internal_error' };
-        }
-    }
+    const call = makeToolCall(handlers);
 
     return { call };
 }
