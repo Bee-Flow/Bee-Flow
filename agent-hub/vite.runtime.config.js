@@ -46,11 +46,27 @@ function utilitiesWithIndexCss() {
     };
 }
 
+/**
+ * pdf_compare's pdf.js engine (pdfEngine.ts) is swapped for a stub that throws:
+ * this page has no network and no worker, and pdf.js would add ~1 MB to a file
+ * served on every render. The component shows a placeholder on that error.
+ */
+function stubPdfEngine() {
+    return {
+        name: 'beeflow-runtime-stub-pdf-engine',
+        enforce: 'pre',
+        resolveId(source, importer) {
+            if (!source.endsWith('/pdfEngine') || !importer) return null;
+            return path.resolve(path.dirname(importer), 'pdfEngine.stub.ts');
+        },
+    };
+}
+
 export default defineConfig(() => {
     const pkg = JSON.parse(readFileSync(path.resolve(import.meta.dirname, 'package.json'), 'utf8'));
 
     return {
-        plugins: [react(), utilitiesWithIndexCss()],
+        plugins: [react(), utilitiesWithIndexCss(), stubPdfEngine()],
         // No public/ passthrough: the app's static assets (logos, fonts,
         // module shims) belong to the SPA build. The contract here is exactly
         // two files; anything else in dist-runtime is a bug.

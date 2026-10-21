@@ -1,6 +1,6 @@
 {
   "_comment": "Gzipped size budget for agent-hub/dist/assets (bytes): the measurement plus 5%. Rewrite it with `node scripts/bundle-ratchet.mjs agent-hub --update` after a build; a raise belongs in a commit message with a reason.",
-  "_generated": "2026-10-16",
-  "totalGzip": 8929971,
-  "largestGzip": 1055398
+  "_generated": "2026-10-21",
+  "totalGzip": 9454803,
+  "largestGzip": 1055799
 }

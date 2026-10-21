@@ -9,7 +9,8 @@
     "src/i18n/en/*.generated.mjs",
     "scripts/*.mjs",
     "vite.config.js",
-    "vite.runtime.config.js"
+    "vite.runtime.config.js",
+    "src/components/admin/Studio/AppStudio/runtime/components/pdfCompare/pdfEngine.stub.ts"
   ],
   "project": ["src/**/*.{js,jsx,ts,tsx,mjs}", "scripts/**/*.mjs"],
   "vite": false,

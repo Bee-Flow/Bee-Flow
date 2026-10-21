@@ -75,8 +75,8 @@ test('formula scope roots include every documented root', () => {
 
 // ── Component catalog ───────────────────────────────────────────────────────
 
-test('catalog grew from 19 (v1) to 53 types, all earlier types retained', () => {
-    assert.equal(COMPONENT_TYPES.length, 53); // +input_dataset, +browser_view, +approval_list, +input_html (HTML mail editor)
+test('catalog grew from 19 (v1) to 54 types, all earlier types retained', () => {
+    assert.equal(COMPONENT_TYPES.length, 54); // +input_dataset, +browser_view, +approval_list, +input_html (HTML mail editor), +pdf_compare
     const v1 = ['heading', 'text', 'button', 'image', 'divider', 'spacer', 'callout', 'stat', 'keyValue', 'table', 'list', 'card', 'form', 'input_text', 'input_textarea', 'input_number', 'input_select', 'input_checkbox', 'input_date'];
     for (const t of v1) assert.ok(COMPONENT_TYPES.includes(t), `dropped v1 type ${t}`);
     for (const t of ['data_grid', 'chart', 'pivot', 'input_file', 'input_richtext', 'input_html', 'input_datetime', 'input_relation', 'input_person', 'input_multiselect', 'tabs', 'tab', 'modal', 'repeater']) {
@@ -95,6 +95,8 @@ test('catalog grew from 19 (v1) to 53 types, all earlier types retained', () => 
     // file_preview: a file column holds whatever arrived, and until now the only
     // thing an app could do with it was hand out a download link.
     assert.ok(COMPONENT_TYPES.includes('file_preview'), 'missing content type file_preview');
+    // pdf_compare: two PDFs (original + redacted copy) with the changed regions marked.
+    assert.ok(COMPONENT_TYPES.includes('pdf_compare'), 'missing content type pdf_compare');
     // v3: a workflow's stages, attachments as cards, and the state of the
     // connector feeding the app — the three things every mature app drew by
     // hand out of a list, a grid and a hope.

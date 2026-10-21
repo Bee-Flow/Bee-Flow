@@ -81,6 +81,21 @@ const CONTENT_SPECS = {
         styleKnobs: ['span', 'height', 'radius'],
         defaultStyle: { span: 12, height: 'lg' },
     },
+    pdf_compare: {
+        label: 'PDF compare', category: 'Content',
+        description: 'Two PDFs compared (original vs changed copy): synced pages, changed regions boxed in red. Bind left/right to file fields. mode: side, swipe, diff.',
+        props: {
+            left: { type: 'binding', default: { kind: 'static', value: null } },
+            right: { type: 'binding', default: { kind: 'static', value: null } },
+            leftLabel: { type: 'string', maxLen: 60, default: 'Original' },
+            rightLabel: { type: 'string', maxLen: 60, default: 'Cleaned' },
+            emptyText: { type: 'string', maxLen: 200, default: 'No documents to compare.' },
+            mode: { type: 'enum', values: ['side', 'swipe', 'diff'], default: 'side' },
+            allowDownload: { type: 'boolean', default: true },
+        },
+        styleKnobs: ['span', 'height', 'radius'],
+        defaultStyle: { span: 12, height: 'xl' },
+    },
     browser_view: {
         label: 'Live browser', category: 'Content',
         description: 'Shows the live screenshot stream while an ai_browse step of the named action runs — the viewer watches the agent work. Idle it renders a placeholder; frames are never stored, so a reload shows only the step\'s text result. Wire `actionId` to the action whose sequence contains the ai_browse step.',
