@@ -85,14 +85,14 @@ function createService(ts, overrides) {
 const FORMAT = { indentSize: 4, tabSize: 4, convertTabsToSpaces: true, semicolons: 'insert' };
 const PREFS = { quotePreference: 'single', importModuleSpecifierPreference: 'relative', includeCompletionsForModuleExports: false };
 
-/** One file: apply single fixes round by round, refusing any forbidden insert. */
+/** One file: per round every non-overlapping allowed quick fix at once, until a round adds nothing. */
 function fixFile(ts, svc, abs, inferred) {
     const applied = []; const refused = new Set();
-    for (let progress = true; progress && applied.length < 400;) {
-        progress = false;
+    for (let round = 0; round < 6; round++) {
+        const taken = [];
         for (const d of svc.service.getSemanticDiagnostics(abs)) {
             if (d.start === undefined) continue;
-            const key = `${d.code}:${d.start}:${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`;
+            const key = `${d.code}:${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`;
             if (refused.has(key)) continue;
             let fixes;
             try { fixes = svc.service.getCodeFixesAtPosition(abs, d.start, d.start + d.length, [d.code], FORMAT, PREFS); } catch { refused.add(key); continue; }
@@ -100,11 +100,12 @@ function fixFile(ts, svc, abs, inferred) {
             if (!fix || fix.changes.some((c) => path.resolve(c.fileName) !== abs)) { refused.add(key); continue; }
             const changes = fix.changes.flatMap((c) => c.textChanges);
             if (!changes.length || changes.some((c) => forbiddenInsert(c.newText))) { refused.add(key); continue; }
-            svc.update(abs, applyChanges(svc.service.getProgram().getSourceFile(abs).text, changes));
-            applied.push(fix.fixId);
-            progress = true;
-            break; // positions moved: recompute the diagnostics
+            const overlaps = changes.some((c) => taken.some((t) => c.span.start <= t.span.start + t.span.length && t.span.start <= c.span.start + c.span.length));
+            if (overlaps) continue; // next round
+            taken.push(...changes); applied.push(fix.fixId);
         }
+        if (!taken.length) break;
+        svc.update(abs, applyChanges(svc.service.getProgram().getSourceFile(abs).text, taken));
     }
     const remaining = svc.service.getSemanticDiagnostics(abs).concat(svc.service.getSyntacticDiagnostics(abs));
     return { applied, callsites: inferred.report, refused: refused.size, remaining: remaining.map((d) => ({ code: d.code, line: d.file ? d.file.getLineAndCharacterOfPosition(d.start).line + 1 : 0, message: ts.flattenDiagnosticMessageText(d.messageText, ' ') })) };
