@@ -10,6 +10,10 @@ RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# The base image ships pip 25.0.1 (carries CVEs); upgrade it before any install.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip==26.2.2
+
 # PyTorch CPU (lightweight — GLiNER PII NER + the fp32 PyTorch fallback path)
 # Pinned like gliner in requirements.txt: the eval baselines record the torch
 # version, and an unpinned install moved it underneath them. The +cpu local

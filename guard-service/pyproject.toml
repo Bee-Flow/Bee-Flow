@@ -17,6 +17,7 @@ dependencies = [
   "pydantic-settings==2.15.0",
   "httpx==0.28.1",
   "redis==8.1.0",
+  "certifi==2026.10.19",
   # GLiNER multilingual PII NER (Apache 2.0) — CPU PII detection backend.
   # PINNED: every eval baseline records the library version in its provenance;
   # a floating floor let a rebuild silently drift the engine underneath the

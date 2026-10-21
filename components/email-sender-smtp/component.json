@@ -71,7 +71,7 @@
     "attachments": {
       "type": "string",
       "label": "Attachments",
-      "description": "Comma-separated list of file paths for attachments",
+      "description": "Comma-separated list of http(s) URLs or file names in the attachment folder (ATTACHMENTS_DIR)",
       "required": false,
       "default": ""
     },

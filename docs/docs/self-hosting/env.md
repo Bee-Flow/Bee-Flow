@@ -78,6 +78,7 @@ Each limit is in bytes, has a generous default, and `0` means no limit. They kee
 | `TOOL_FILE_MAX_BYTES` | `104857600` (100 MB) | Largest file the Nextcloud, Nextcloud Mail and Gmail tools read into memory. A bigger file gets a clear error naming this variable. |
 | `KB_WEB_PAGE_MAX_BYTES` | `10485760` (10 MB) | Largest web page a knowledge-base source reads. A bigger page is refused, never indexed in part. |
 | `KB_SITEMAP_MAX_BYTES` | `52428800` (50 MB) | Largest sitemap a crawl reads (the sitemap specification's own maximum). A bigger one is skipped; the entry page is still indexed. |
+| `ATTACHMENT_MAX_BYTES` | `26214400` (25 MB) | Largest single attachment the Email Sender component adds, a file or a downloaded http(s) URL. Files come only from `ATTACHMENTS_DIR` (created when missing; default `beeflow-attachments` in the temp directory). |
 
 ## AI steps and automation concurrency
 
