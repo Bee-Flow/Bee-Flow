@@ -20,7 +20,10 @@
 
 'use strict';
 
-const RE2 = require('re2');
+// Loaded on first use: the mobile lockstep tests read this module without the
+// server's native dependencies installed.
+let RE2Ctor = null;
+const loadRE2 = () => RE2Ctor || (RE2Ctor = require('re2'));
 const { parseExpr, evaluate } = require('../shared/expr/index.mjs');
 const log = require('../telemetry/log');
 const { MAX_STRING_VALUE } = require('./appTriggerContract');
@@ -71,6 +74,7 @@ function compilePattern(pattern) {
     if (patternCache.has(pattern)) return patternCache.get(pattern);
     let re = null;
     try {
+        const RE2 = loadRE2();
         void new RE2(pattern, 'u');
         re = new RE2(`^(?:${pattern})$`, 'u');
     } catch (err) {
