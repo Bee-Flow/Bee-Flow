@@ -29,22 +29,8 @@
         { "dir": "components/webpage-to-markdown", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
         { "dir": "components/website-sitemap-fetcher", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
         { "dir": "components/youtrack-read-items", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
-        {
-            "dir": "hub-module-sdk/modules/security_scan",
-            "ecosystem": "npm",
-            "role": "satellite",
-            "lockfile": "npm",
-            "dependabot": "none",
-            "reason": "a module packed by hub-module-sdk with its own lockfile; no entry yet (candidate for the monthly satellite entry)"
-        },
-        {
-            "dir": "hub-module-sdk/modules/security_scan/frontend",
-            "ecosystem": "npm",
-            "role": "satellite",
-            "lockfile": "npm",
-            "dependabot": "none",
-            "reason": "frontend of the security_scan module; no entry yet (candidate for the monthly satellite entry)"
-        },
+        { "dir": "hub-module-sdk/modules/security_scan", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
+        { "dir": "hub-module-sdk/modules/security_scan/frontend", "ecosystem": "npm", "role": "satellite", "lockfile": "npm", "dependabot": "monthly" },
         {
             "dir": "scripts/release-notes",
             "ecosystem": "npm",

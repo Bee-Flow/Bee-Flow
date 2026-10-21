@@ -76,13 +76,15 @@ test('the component still runs normally: inputs on stdin, PATH and HOME present'
     if (process.env.HOME !== undefined) assert.equal(out.env.HOME, process.env.HOME);
 });
 
-test('buildComponentEnv keeps proxy, locale and the extra CA path, drops the rest', () => {
+test('buildComponentEnv keeps proxy, locale, the extra CA path and the attachment folder, drops the rest', () => {
     const env = buildComponentEnv({
         PATH: '/usr/bin',
         HTTPS_PROXY: 'http://proxy:3128',
         NO_PROXY: '',
         LANG: 'nl_NL.UTF-8',
         NODE_EXTRA_CA_CERTS: '/etc/ssl/corp-ca.pem',
+        ATTACHMENTS_DIR: '/data/attachments',
+        ATTACHMENT_MAX_BYTES: '1000',
         MASTER_ENCRYPTION_KEY: 'x',
         SESSION_SECRET: 'x',
         NODE_OPTIONS: '--require /tmp/evil.js',
@@ -93,6 +95,8 @@ test('buildComponentEnv keeps proxy, locale and the extra CA path, drops the res
         NO_PROXY: '',
         LANG: 'nl_NL.UTF-8',
         NODE_EXTRA_CA_CERTS: '/etc/ssl/corp-ca.pem',
+        ATTACHMENTS_DIR: '/data/attachments',
+        ATTACHMENT_MAX_BYTES: '1000',
     });
 });
 

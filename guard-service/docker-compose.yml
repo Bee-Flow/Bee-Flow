@@ -34,7 +34,7 @@ services:
 
   # ── Redis (PII cache) ──────────────────────────────────────────────
   guard-redis:
-    image: redis:7-alpine
+    image: redis:7.4.11-alpine
     container_name: guard-redis
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:

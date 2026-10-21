@@ -504,7 +504,7 @@ services:
 
   # ── Guard Redis ────────────────────────────────────────────────
   guard-redis:
-    image: redis:7-alpine
+    image: redis:7.4.11-alpine
     container_name: beeflow-guard-redis
     profiles: [ "guard" ]
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru

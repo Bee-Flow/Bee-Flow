@@ -288,7 +288,7 @@ services:
   # Redis for Guard Service decision caching (db 1) and the server's session
   # cache (db 0)
   guard-redis:
-    image: redis:7-alpine
+    image: redis:7.4.11-alpine
     container_name: beeflow-guard-redis
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
