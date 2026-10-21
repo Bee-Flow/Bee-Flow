@@ -52,7 +52,7 @@ const BASELINE = path.join(ROOT, '.github/security/audit-baseline.json');
  * `production: false` means the whole tree counts because the package IS
  * tooling; there is no runtime half to separate out.
  */
-const TARGETS = process.argv.includes('--standalone-connector')
+const ALL_TARGETS = process.argv.includes('--standalone-connector')
     ? [{ dir: '.', production: true, why: 'the extracted Nextcloud connector runtime' }]
     : [
     { dir: 'server', production: true, why: 'the API — every request goes through it' },
@@ -61,7 +61,23 @@ const TARGETS = process.argv.includes('--standalone-connector')
     { dir: 'desktop', production: true, why: 'runs on the user\'s own machine, outside any sandbox we control' },
     { dir: 'mobile', production: true, why: 'the Android client shipped as an APK to users\' phones' },
     { dir: '.', production: false, why: 'root dev tooling — dev:all, build scripts' },
+    // Own lockfiles outside the main services. `ratchetOnly`: counted against the
+    // baseline (a NEW advisory fails the PR gate) but left out of --release, whose
+    // rule is "no unreviewed high at all" and which these floors would block.
+    { dir: 'components/afas-customer-data', production: true, ratchetOnly: true, why: 'server-run component, installed from its own lockfile' },
+    { dir: 'components/email-sender-smtp', production: true, ratchetOnly: true, why: 'server-run component, installed from its own lockfile' },
+    { dir: 'components/get-date-time', production: true, ratchetOnly: true, why: 'server-run component, installed from its own lockfile' },
+    { dir: 'components/n8n-webhook-header-auth', production: true, ratchetOnly: true, why: 'server-run component, installed from its own lockfile' },
+    { dir: 'components/tavily-search', production: true, ratchetOnly: true, why: 'server-run component, installed from its own lockfile' },
+    { dir: 'components/webpage-to-markdown', production: true, ratchetOnly: true, why: 'server-run component, installed from its own lockfile' },
+    { dir: 'components/website-sitemap-fetcher', production: true, ratchetOnly: true, why: 'server-run component, installed from its own lockfile' },
+    { dir: 'components/youtrack-read-items', production: true, ratchetOnly: true, why: 'server-run component, installed from its own lockfile' },
+    { dir: 'hub-module-sdk/modules/security_scan', production: true, ratchetOnly: true, why: 'Hub module runtime, packed with its own lockfile' },
+    { dir: 'hub-module-sdk/modules/security_scan/frontend', production: false, ratchetOnly: true, why: 'Hub module frontend build tooling (vite)' },
+    { dir: 'docs', production: true, ratchetOnly: true, why: 'documentation site; a Docusaurus build, runtime deps only' },
 ];
+
+const TARGETS = ALL_TARGETS.filter((t) => !(process.argv.includes('--release') && t.ratchetOnly));
 
 const LEVELS = ['critical', 'high'];
 

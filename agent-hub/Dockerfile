@@ -110,7 +110,7 @@ FROM scratch AS sourcemaps
 COPY --from=build /app/dist/assets/*.map /
 
 # Production stage
-FROM nginx:alpine@sha256:62ff2089abf5a9ed33bd232895bef5e22f7bb4b200675cec49a5ebc48e3d4ac8
+FROM nginx:alpine@sha256:892bb2152464f0c5d8972593a5f5afaf8054552580b699d95f8ff4af08c2d33d
 RUN apk upgrade --no-cache
 
 # Copy built assets and strip sourcemaps so they are never served to clients.

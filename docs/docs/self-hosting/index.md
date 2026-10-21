@@ -29,7 +29,7 @@ licence](docker-compose.md#activate-a-licence); pricing and keys are at [beeflow
 | Bee Flow web UI (`agent-hub`) | `ghcr.io/bee-flow/agent-hub:latest` | ✅ |
 | PostgreSQL 15+ with pgvector | `pgvector/pgvector:pg15` | ✅ |
 | Object storage (S3-compatible) | `rustfs/rustfs:latest` (or any S3) | ✅ |
-| Redis 7 | `redis:7-alpine` | recommended |
+| Redis 7 | `redis:7.4.11-alpine` | recommended |
 | Bee Flow Nextcloud connector | NC App Store (`bee_flow`) | optional |
 | Guard service (PII detection) | `ghcr.io/bee-flow/guard:latest` | optional |
 | Classify service (topic classifier) | `ghcr.io/bee-flow/classify:latest` | optional |

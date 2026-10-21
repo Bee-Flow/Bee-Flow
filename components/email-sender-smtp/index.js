@@ -1,5 +1,6 @@
 const fs = require('fs');
 const nodemailer = require('nodemailer');
+const { resolveAttachments } = require('./attachments');
 
 async function main() {
   const inputs = JSON.parse(fs.readFileSync(0, 'utf-8'));
@@ -18,7 +19,7 @@ async function main() {
   const toEmails = inputs.toEmails.split(',').map(email => email.trim());
   const ccEmails = inputs.ccEmails ? inputs.ccEmails.split(',').map(email => email.trim()) : [];
   const bccEmails = inputs.bccEmails ? inputs.bccEmails.split(',').map(email => email.trim()) : [];
-  const attachments = inputs.attachments ? inputs.attachments.split(',').map(path => path.trim()) : [];
+  const attachments = inputs.attachments ? inputs.attachments.split(',').map(p => p.trim()).filter(Boolean) : [];
 
   // Validate email addresses
   const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
@@ -31,6 +32,9 @@ async function main() {
   if (bccEmails.length > 0 && !bccEmails.every(email => emailRegex.test(email))) {
     throw new Error("Invalid BCC email address(es)");
   }
+
+  // Load the attachments (folder files, fetched URLs) before connecting
+  const resolvedAttachments = await resolveAttachments(attachments);
 
   // Create transporter
   const transporter = nodemailer.createTransport({
@@ -53,7 +57,9 @@ async function main() {
     html: inputs.isHtml ? inputs.body : undefined,
     cc: ccEmails.length > 0 ? ccEmails.join(', ') : undefined,
     bcc: bccEmails.length > 0 ? bccEmails.join(', ') : undefined,
-    attachments: attachments.map(path => ({ path }))
+    attachments: resolvedAttachments,
+    disableFileAccess: true,
+    disableUrlAccess: true
   };
 
   try {
