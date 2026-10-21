@@ -25,7 +25,7 @@ function nameNodeOf(ts, fn) {
     if ((ts.isFunctionDeclaration(fn) || ts.isFunctionExpression(fn)) && fn.name) return fn.name;
     let n = fn.parent;
     // memo(...), forwardRef(...), memo(forwardRef(...))
-    while (n && ts.isCallExpression(n) && /^(React\.)?(memo|forwardRef)$/.test(n.expression.getText())) n = n.parent;
+    while (n && ts.isCallExpression(n) && /^(React\.)?(memo|forwardRef|useCallback)$/.test(n.expression.getText())) n = n.parent;
     if (n && ts.isVariableDeclaration(n) && ts.isIdentifier(n.name)) return n.name;
     if (n && ts.isExportAssignment(n)) return null;
     return null;
@@ -194,7 +194,7 @@ function calleeFunction(ts, checker, expr) {
     let d = sym && sym.valueDeclaration;
     if (!d) return null;
     if (ts.isVariableDeclaration(d)) d = d.initializer;
-    while (d && ts.isCallExpression(d) && /^(React\.)?(memo|forwardRef)$/.test(d.expression.getText())) d = d.arguments[0];
+    while (d && ts.isCallExpression(d) && /^(React\.)?(memo|forwardRef|useCallback)$/.test(d.expression.getText())) d = d.arguments[0];
     return d && (ts.isFunctionDeclaration(d) || ts.isArrowFunction(d) || ts.isFunctionExpression(d)) ? d : null;
 }
 
