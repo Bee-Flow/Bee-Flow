@@ -29,7 +29,6 @@ import useAutomationApi from '../../../hooks/useAutomationApi';
 import useAutomationBuilderStream from '../../../hooks/useAutomationBuilderStream';
 import useTranslation from '../../../hooks/useTranslation';
 import { lazyWithI18n } from '../../../utils/lazyWithReload';
-import ExecutionsPanel from '../../admin/Studio/Executions/ExecutionsPanel';
 import ManagedPartBanner from '../../shared/ManagedPartBanner';
 import useConfirm from '../../shared/useConfirm';
 
@@ -390,6 +389,8 @@ function breadcrumbSlot({ appRef, isStep, persistedAutomationId, readOnly, manag
 
 // The runs tab (compare, goldens, table and file chips) is big and only opens on demand: keep it out of the entry chunks.
 const RunsTab = lazyWithI18n(() => import('./runs/RunsTab'));
+// The Step execution list pulls in the whole run viewer: load it only when a Step's history opens.
+const ExecutionsPanel = lazyWithI18n(() => import('../../admin/Studio/Executions/ExecutionsPanel'));
 
 /** A Step lists its executions, an automation its runs; neither before it has an id. */
 function historySlot({ automationId, isStep, active, initialRunId, initialRunStepId, onRunStateChange, onOpenEditor }) {
@@ -409,14 +410,16 @@ function historySlot({ automationId, isStep, active, initialRunId, initialRunSte
         );
     }
     return (
-        <ExecutionsPanel
-            scope="step"
-            stepId={automationId}
-            active={active}
-            initialRunId={initialRunId}
-            initialStepId={initialRunStepId}
-            onRunStateChange={onRunStateChange}
-            onOpenEditor={() => onOpenEditor()}
-        />
+        <Suspense fallback={null}>
+            <ExecutionsPanel
+                scope="step"
+                stepId={automationId}
+                active={active}
+                initialRunId={initialRunId}
+                initialStepId={initialRunStepId}
+                onRunStateChange={onRunStateChange}
+                onOpenEditor={() => onOpenEditor()}
+            />
+        </Suspense>
     );
 }

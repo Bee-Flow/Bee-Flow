@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import AutomationsOverview from './AutomationsOverview';
 import FindRepeatingWorkTab from './FindRepeatingWorkTab';
 import TemplatesTab from './TemplatesTab';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import scopedStorage from '../../../../utils/scopedStorage';
-import ExecutionsPanel from '../Executions/ExecutionsPanel';
+import { lazyWithI18n } from '../../../../utils/lazyWithReload';
+
+// The run history pulls in the whole run viewer: keep it out of the start screen's chunk.
+const ExecutionsPanel = lazyWithI18n(() => import('../Executions/ExecutionsPanel'));
 
 /**
  * Right-pane start screen shown when no automation is selected.
@@ -117,12 +120,14 @@ export default function AutomationsLauncher({
                     </div>
                 </div>
                 <div className={`flex-1 min-h-0 ${activeTab === 'history' ? '' : 'hidden'}`}>
-                    <ExecutionsPanel
-                        scope="global"
-                        active={activeTab === 'history'}
-                        onOpenEditor={onOpenAutomation}
-                        onEditingChange={onEditingChange}
-                    />
+                    <Suspense fallback={null}>
+                        <ExecutionsPanel
+                            scope="global"
+                            active={activeTab === 'history'}
+                            onOpenEditor={onOpenAutomation}
+                            onEditingChange={onEditingChange}
+                        />
+                    </Suspense>
                 </div>
             </div>
         </div>
