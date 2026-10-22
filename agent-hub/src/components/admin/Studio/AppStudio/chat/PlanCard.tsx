@@ -1,0 +1,434 @@
+import { Database, HelpCircle, Layers, Plus, Shield, Trash2, Users } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import useTranslation from '../../../../../hooks/useTranslation';
+import type { LucideIcon } from 'lucide-react';
+import type React from 'react';
+
+/** One row of the plan the model authored: an object, or a bare string. */
+interface PlanObjectRow {
+    key?: string;
+    name?: string;
+    label?: string;
+    type?: string;
+    seedCount?: number;
+    fields?: PlanRow[];
+    [ROW_ID]?: string;
+    [other: string]: unknown;
+}
+type PlanRow = string | PlanObjectRow;
+
+/** The four editable lists of the plan. */
+type PlanList = 'tables' | 'roles' | 'datasets' | 'screens';
+
+/** The plan as the card edits it. */
+interface PlanDraft {
+    title: string;
+    summary: string;
+    tables: PlanRow[];
+    roles: PlanRow[];
+    datasets: PlanRow[];
+    screens: PlanRow[];
+    openQuestions: PlanRow[];
+    [other: string]: unknown;
+}
+
+/**
+ * App Studio AI builder — the editable PLAN card (Wave 5, plan-first UX).
+ *
+ * For a big ask the AI proposes a plan artifact instead of building blind; it
+ * streams as an `plan` SSE event and lands here as an editable card in the
+ * transcript. The user tweaks it (rename / delete / add rows across Screens,
+ * Data, Roles, Datasets), answers any open questions in the composer, then
+ * hits "Build it" — which approves the EDITED artifact so the AI builds what
+ * the user actually confirmed.
+ *
+ * Props:
+ *   pendingPlan { planId, plan }  — the artifact to render/edit (rehydrates
+ *                                   from the builder-session snapshot after a
+ *                                   mid-approval refresh)
+ *   onBuild(editedPlan)           — approve; the pane wraps this into
+ *                                   send({ plan:{ planId, action:'approve', plan } })
+ *   onDiscuss()                   — focus the composer to talk it over first
+ *   disabled                      — a turn is already running
+ *
+ * The plan artifact is intentionally loose (the model authors it): rows may be
+ * bare strings or objects, so every accessor/setter tolerates both and
+ * preserves an object's other keys on rename.
+ */
+
+// ---- shape-tolerant accessors -------------------------------------------------
+const labelOf = (row: PlanRow | null | undefined, ...keys: string[]) => {
+    if (typeof row === 'string') return row;
+    if (row && typeof row === 'object') {
+        for (const k of keys) if (typeof row[k] === 'string' && row[k]) return row[k];
+    }
+    return '';
+};
+/** Rename a row, preserving its object shape (or staying a bare string). */
+const renameRow = (row: PlanRow, value: string, key: string): PlanRow => {
+    if (typeof row === 'string' || !row || typeof row !== 'object') return value;
+    return { ...row, [key]: value };
+};
+
+/**
+ * WHICH FIELD IS THE ROW'S IDENTITY.
+ *
+ * The approved artifact is bounded server-side (builderTools.boundPlanArtifact)
+ * before the model ever sees it, and that bounder keeps a fixed set of keys per
+ * list and DROPS any row missing its identity one:
+ *
+ *   tables   → key (+ name)          fields → key (+ type, options, relationTo)
+ *   roles    → key (+ label)         screens/datasets → name
+ *
+ * This card was editing `name` on all of them. On screens and datasets that is
+ * the right field; on tables, fields and roles it is a field the bounder does
+ * not read — so renaming a role did nothing, and every row ADDED here vanished
+ * on approval for having no key. Both silently: the card still showed the edit,
+ * and the app was built from the plan as the model had written it.
+ */
+const IDENTITY = { tables: 'name', fields: 'key', roles: 'label', screens: 'name', datasets: 'name' };
+
+/** A key the bounder will keep, in the shape the model emits them. */
+function slugKey(value: string) {
+    const slug = String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 40);
+    return slug || `item_${(rowSeq += 1)}`;
+}
+
+// Stable React keys. Rows are edited in place, so an index key hands a deleted
+// row's live state — a half-typed "Add field" — to whatever row slides up into
+// its slot. Each object row carries a client-only id under a SYMBOL: object
+// spread (renameRow, setTableFields) preserves it, while JSON.stringify drops
+// it, so the artifact that reaches the server stays exactly as the model wrote
+// it. Bare-string rows have nowhere to hold an id and keep the index.
+const ROW_ID: unique symbol = Symbol('planRowId');
+let rowSeq = 0;
+const tagRow = (row: PlanRow): PlanRow => (row && typeof row === 'object' && !row[ROW_ID]
+    ? { ...row, [ROW_ID]: `row${(rowSeq += 1)}` }
+    : row);
+const tagRows = (list: unknown): PlanRow[] => (Array.isArray(list) ? list.map(tagRow) : []);
+const rowKey = (row: PlanRow, i: number) => (row && typeof row === 'object' && row[ROW_ID]) || `i${i}`;
+
+function normalizePlan(plan: unknown): PlanDraft {
+    const p = (plan && typeof plan === 'object' ? plan : {}) as Record<string, unknown>;
+    return {
+        // Anything else the model emitted (actions, phases, baseTemplateId…)
+        // rides along untouched so the approved artifact stays complete — the
+        // normalized fields below override its editable slices.
+        ...p,
+        title: typeof p.title === 'string' ? p.title : '',
+        summary: typeof p.summary === 'string' ? p.summary : '',
+        tables: tagRows(p.tables).map((t) => (t && typeof t === 'object' && Array.isArray(t.fields)
+            ? { ...t, fields: tagRows(t.fields) }
+            : t)),
+        roles: tagRows(p.roles),
+        datasets: tagRows(p.datasets),
+        screens: tagRows(p.screens),
+        openQuestions: Array.isArray(p.openQuestions) ? p.openQuestions : [],
+    };
+}
+
+interface PlanCardProps {
+    pendingPlan: { planId?: string | null; plan?: unknown } | null | undefined;
+    onBuild?: (plan: PlanDraft) => void;
+    onDiscuss: () => void;
+    disabled?: boolean;
+}
+
+export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = false }: PlanCardProps) {
+    const { t } = useTranslation();
+    const planId = pendingPlan?.planId ?? null;
+    const [draft, setDraft] = useState<PlanDraft>(() => normalizePlan(pendingPlan?.plan));
+
+    // Re-seed when a NEW plan arrives (planId changes) — but keep in-progress
+    // edits while the same plan is on screen.
+    const [seenPlanId, setSeenPlanId] = useState(planId);
+    if (seenPlanId !== planId) {
+        setSeenPlanId(planId);
+        setDraft(normalizePlan(pendingPlan?.plan));
+    }
+
+    const openQuestions = useMemo(
+        () => (draft.openQuestions || []).map((q: PlanRow) => (typeof q === 'string' ? q : labelOf(q, 'question', 'text'))).filter(Boolean),
+        [draft.openQuestions],
+    );
+
+    // ---- generic list ops (immutable) ----------------------------------------
+    const updateList = (field: PlanList, next: PlanRow[]) => setDraft((d) => ({ ...d, [field]: next }));
+    const renameAt = (field: PlanList, i: number, value: string, key: string) => updateList(field, draft[field].map((row: PlanRow, j: number) => (j === i ? renameRow(row, value, key) : row)));
+    /**
+     * Rename a TABLE. Its human name is what the bounder keeps, but the row is
+     * only kept at all if it has a `key` — so a table the model emitted without
+     * one (or a bare string) gets one here rather than disappearing on approval.
+     */
+    const renameTable = (i: number, value: string) => updateList('tables', draft.tables.map((t, j) => {
+        if (j !== i) return t;
+        const row: PlanObjectRow = (t && typeof t === 'object') ? t : { fields: [] };
+        return { ...row, name: value, key: row.key || slugKey(value) };
+    }));
+    const removeAt = (field: PlanList, i: number) => updateList(field, draft[field].filter((_, j) => j !== i));
+    const addRow = (field: PlanList, row: PlanObjectRow) => updateList(field, [...draft[field], tagRow(row)]);
+
+    // Fields live inside a table row; edit them in place, preserving shape.
+    const tableFields = (t: PlanRow): PlanRow[] => (Array.isArray((t as PlanObjectRow)?.fields) ? (t as PlanObjectRow).fields as PlanRow[] : []);
+    const setTableFields = (ti: number, fields: PlanRow[]) => updateList('tables', draft.tables.map((t, j) => {
+        if (j !== ti) return t;
+        return typeof t === 'string' ? { name: t, fields } : { ...t, fields };
+    }));
+
+    const build = () => {
+        if (disabled) return;
+        onBuild?.(draft);
+    };
+
+    return (
+        <div
+            className="flex w-full flex-col gap-3 rounded-xl border p-3 text-xs border-[var(--accent-primary)] bg-[var(--bg-secondary)]"
+            data-plan-card=""
+        >
+            {/* Title + summary */}
+            <div className="flex flex-col gap-1.5">
+                <input
+                    type="text"
+                    value={draft.title}
+                    disabled={disabled}
+                    onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+                    aria-label={t('studio_apps_edit.plan_card.plan_title', 'Plan title')}
+                    placeholder={t('studio_apps_edit.plan_card.untitled_plan', 'Untitled plan')}
+                    className="w-full bg-transparent text-sm font-semibold outline-none disabled:opacity-60"
+                    style={{ color: 'var(--text-primary)' }}
+                />
+                {draft.summary ? (
+                    <p className="leading-relaxed text-[var(--text-tertiary)]">{draft.summary}</p>
+                ) : null}
+            </div>
+
+            {/* Open questions — amber prompts to answer in the composer */}
+            {openQuestions.length ? (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-2">
+                    <div className="mb-1 flex items-center gap-1.5 font-medium text-amber-700 dark:text-amber-400">
+                        <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                        {t('studio_apps_edit.plan_card.open_questions', 'A few questions')}
+                    </div>
+                    <ul className="flex list-disc flex-col gap-0.5 pl-4 text-amber-700/90 dark:text-amber-300/90">
+                        {openQuestions.map((q, i) => <li key={i}>{q}</li>)}
+                    </ul>
+                </div>
+            ) : null}
+
+            {/* Screens */}
+            <Section icon={Layers} title={t('studio_apps_edit.plan_card.screens', 'Screens')}>
+                {draft.screens.map((s: PlanRow, i: number) => (
+                    <Row
+                        key={rowKey(s, i)}
+                        value={labelOf(s, 'name', 'title')}
+                        placeholder={t('studio_apps_edit.plan_card.screen_name', 'Screen name')}
+                        ariaLabel={t('studio_apps_edit.plan_card.screen_name', 'Screen name')}
+                        subtitle={labelOf(s, 'purpose')}
+                        disabled={disabled}
+                        onChange={(v) => renameAt('screens', i, v, 'name')}
+                        onRemove={() => removeAt('screens', i)}
+                    />
+                ))}
+                <AddRow label={t('studio_apps_edit.plan_card.add_screen', 'Add screen')} disabled={disabled} onAdd={(v) => addRow('screens', { name: v })} />
+            </Section>
+
+            {/* Data — tables with their fields */}
+            <Section icon={Database} title={t('studio_apps_edit.plan_card.data', 'Data')}>
+                {draft.tables.map((tbl: PlanRow, ti: number) => (
+                    <div key={rowKey(tbl, ti)} className="rounded-lg border p-2 border-[var(--border-default)]">
+                        <Row
+                            value={labelOf(tbl, 'name', 'key')}
+                            placeholder={t('studio_apps_edit.plan_card.table_name', 'Table name')}
+                            ariaLabel={t('studio_apps_edit.plan_card.table_name', 'Table name')}
+                            subtitle={typeof (tbl as PlanObjectRow)?.seedCount === 'number' ? t('studio_apps_edit.plan_card.sample_rows', '{n} sample rows', { n: (tbl as PlanObjectRow).seedCount }) : ''}
+                            disabled={disabled}
+                            onChange={(v) => renameTable(ti, v)}
+                            onRemove={() => removeAt('tables', ti)}
+                        />
+                        <div className="mt-1.5 flex flex-col gap-1 pl-2">
+                            {tableFields(tbl).map((f, fi) => (
+                                <Row
+                                    key={rowKey(f, fi)}
+                                    value={labelOf(f, 'key', 'name')}
+                                    placeholder={t('studio_apps_edit.plan_card.field', 'Field')}
+                                    ariaLabel={t('studio_apps_edit.plan_card.field_name', 'Field name')}
+                                    subtitle={labelOf(f, 'type')}
+                                    small
+                                    disabled={disabled}
+                                    onChange={(v) => setTableFields(ti, tableFields(tbl).map((row, j) => (j === fi ? renameRow(row, slugKey(v), IDENTITY.fields) : row)))}
+                                    onRemove={() => setTableFields(ti, tableFields(tbl).filter((_, j) => j !== fi))}
+                                />
+                            ))}
+                            <AddRow
+                                label={t('studio_apps_edit.plan_card.add_field', 'Add field')}
+                                small
+                                disabled={disabled}
+                                onAdd={(v) => setTableFields(ti, [...tableFields(tbl), tagRow({ key: slugKey(v), type: 'text' })])}
+                            />
+                        </div>
+                    </div>
+                ))}
+                <AddRow label={t('studio_apps_edit.plan_card.add_table', 'Add table')} disabled={disabled} onAdd={(v) => addRow('tables', { key: slugKey(v), name: v, fields: [] })} />
+            </Section>
+
+            {/* Roles */}
+            <Section icon={Shield} title={t('studio_apps_edit.plan_card.roles', 'Roles')}>
+                {draft.roles.map((r: PlanRow, i: number) => (
+                    <Row
+                        key={rowKey(r, i)}
+                        value={labelOf(r, 'label', 'key')}
+                        placeholder={t('studio_apps_edit.plan_card.role', 'Role')}
+                        ariaLabel={t('studio_apps_edit.plan_card.role_name', 'Role name')}
+                        disabled={disabled}
+                        onChange={(v) => renameAt('roles', i, v, IDENTITY.roles)}
+                        onRemove={() => removeAt('roles', i)}
+                    />
+                ))}
+                <AddRow label={t('studio_apps_edit.plan_card.add_role', 'Add role')} disabled={disabled} onAdd={(v) => addRow('roles', { key: slugKey(v), label: v })} />
+            </Section>
+
+            {/* Datasets */}
+            <Section icon={Users} title={t('studio_apps_edit.plan_card.datasets', 'Datasets')}>
+                {draft.datasets.map((ds: PlanRow, i: number) => (
+                    <Row
+                        key={rowKey(ds, i)}
+                        value={labelOf(ds, 'name', 'key')}
+                        placeholder={t('studio_apps_edit.plan_card.dataset', 'Dataset')}
+                        ariaLabel={t('studio_apps_edit.plan_card.dataset_name', 'Dataset name')}
+                        disabled={disabled}
+                        onChange={(v) => renameAt('datasets', i, v, 'name')}
+                        onRemove={() => removeAt('datasets', i)}
+                    />
+                ))}
+                <AddRow label={t('studio_apps_edit.plan_card.add_dataset', 'Add dataset')} disabled={disabled} onAdd={(v) => addRow('datasets', { name: v })} />
+            </Section>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => onDiscuss?.()}
+                    className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-opacity hover:bg-[var(--bg-tertiary)] disabled:opacity-40 border-[var(--border-default)] text-[var(--text-secondary)]"
+                >
+                    {t('studio_apps_edit.plan_card.discuss', 'Discuss')}
+                </button>
+                <button
+                    type="button"
+                    disabled={disabled}
+                    onClick={build}
+                    className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-opacity disabled:opacity-40 bg-[var(--accent-primary)]"
+                >
+                    {t('studio_apps_edit.plan_card.build_it', 'Build it')}
+                </button>
+            </div>
+        </div>
+    );
+}
+
+/** A titled group with a leading icon. */
+interface SectionProps {
+    icon: LucideIcon;
+    title: string;
+    children?: React.ReactNode;
+}
+
+function Section({ icon: Icon, title, children }: SectionProps) {
+    return (
+        <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-1.5 font-semibold text-[var(--text-secondary)]">
+                {Icon ? <Icon className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" /> : null}
+                {title}
+            </div>
+            <div className="flex flex-col gap-1">{children}</div>
+        </div>
+    );
+}
+
+/** One editable row: inline-rename input + optional subtitle + delete. */
+interface RowProps {
+    value: string;
+    placeholder: string;
+    ariaLabel: string;
+    subtitle?: string;
+    small?: boolean;
+    disabled: boolean;
+    onChange?: (value: string) => void;
+    onRemove: () => void;
+}
+
+function Row({ value, placeholder, ariaLabel, subtitle, small = false, disabled, onChange, onRemove }: RowProps) {
+    const { t } = useTranslation();
+    return (
+        <div className="flex items-center gap-1.5">
+            <input
+                type="text"
+                value={value}
+                disabled={disabled}
+                placeholder={placeholder}
+                aria-label={ariaLabel}
+                onChange={(e) => onChange?.(e.target.value)}
+                className={`min-w-0 flex-1 rounded border bg-transparent px-1.5 outline-none disabled:opacity-60 ${small ? 'py-0.5 text-[11px]' : 'py-1'}`}
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+            />
+            {subtitle ? (
+                <span className="shrink-0 truncate text-[10px] text-[var(--text-secondary)]" title={subtitle}>{subtitle}</span>
+            ) : null}
+            <button
+                type="button"
+                disabled={disabled}
+                onClick={onRemove}
+                aria-label={t('studio_apps_edit.plan_card.remove_item', 'Remove {name}', { name: value || placeholder || t('studio_apps_edit.plan_card.row', 'row') })}
+                className="shrink-0 rounded p-1 text-red-500 transition-opacity hover:bg-red-500/10 disabled:opacity-40"
+            >
+                <Trash2 className="h-3 w-3" aria-hidden="true" />
+            </button>
+        </div>
+    );
+}
+
+/** A tiny inline "add a row" form. */
+interface AddRowProps {
+    label: string;
+    small?: boolean;
+    disabled: boolean;
+    onAdd?: (v: string) => void;
+}
+
+function AddRow({ label, small = false, disabled, onAdd }: AddRowProps) {
+    const [value, setValue] = useState('');
+    const submit = () => {
+        const v = value.trim();
+        if (!v || disabled) return;
+        onAdd?.(v);
+        setValue('');
+    };
+    return (
+        <div className="flex items-center gap-1.5">
+            <input
+                type="text"
+                value={value}
+                disabled={disabled}
+                placeholder={label}
+                aria-label={label}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }}
+                className={`min-w-0 flex-1 rounded border border-dashed bg-transparent px-1.5 outline-none disabled:opacity-60 ${small ? 'py-0.5 text-[11px]' : 'py-1'}`}
+                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+            />
+            <button
+                type="button"
+                disabled={disabled || !value.trim()}
+                onClick={submit}
+                aria-label={label}
+                className="shrink-0 rounded p-1 transition-opacity hover:bg-[var(--bg-tertiary)] disabled:opacity-30 text-[var(--accent-primary)]"
+            >
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+        </div>
+    );
+}
