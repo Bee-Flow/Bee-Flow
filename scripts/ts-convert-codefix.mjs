@@ -160,7 +160,7 @@ function arg(name, fallback) { const i = process.argv.indexOf(name); return i ==
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const batch = arg('--batch'); const list = arg('--files');
-    if (!batch && !list) { console.error('usage: --batch <list file> | --files a,b [--observed obs.json] [--workers n] [--out dir] [--dry]'); process.exit(2); }
+    if (!batch && !list) { console.error('usage: --batch <list file> | --files a,b [--observed obs.json] [--workers n] [--heap-mb total] [--out dir] [--dry]'); process.exit(2); }
     const outDir = arg('--out');
     const dry = process.argv.includes('--dry') || !!outDir;
     const all = (batch ? fs.readFileSync(batch, 'utf8').split('\n') : list.split(','))
@@ -183,11 +183,13 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         const chunks = Array.from({ length: workers }, () => []);
         const groups = importGroups(files);
         for (const group of groups.sort((a, b) => b.length - a.length)) chunks.sort((a, b) => a.length - b.length)[0].push(...group);
-        const passOn = process.argv.slice(2).filter((a, i, all) => !['--batch', '--files', '--workers'].includes(a) && !['--batch', '--files', '--workers'].includes(all[i - 1]));
+        const passOn = process.argv.slice(2).filter((a, i, all) => !['--batch', '--files', '--workers', '--heap-mb'].includes(a) && !['--batch', '--files', '--workers', '--heap-mb'].includes(all[i - 1]));
         const { spawn } = await import('node:child_process');
         const t0 = Date.now();
         const outs = await Promise.all(chunks.filter((c) => c.length).map((c) => new Promise((resolve, reject) => {
-            const child = spawn(process.execPath, [fileURLToPath(import.meta.url), '--files', c.join(','), ...passOn], { stdio: ['ignore', 'pipe', 'inherit'] });
+            // Heap by share of the files: one import component can hold most of them.
+            const heap = Math.max(1536, Math.round((Number(arg('--heap-mb', 12288)) * c.length) / files.length));
+            const child = spawn(process.execPath, [`--max-old-space-size=${heap}`, fileURLToPath(import.meta.url), '--files', c.join(','), ...passOn], { stdio: ['ignore', 'pipe', 'inherit'] });
             let out = ''; child.stdout.on('data', (d) => { out += d; });
             child.on('close', (code) => (code === 0 ? resolve(JSON.parse(out)) : reject(new Error(`worker exited ${code}`))));
         })));
