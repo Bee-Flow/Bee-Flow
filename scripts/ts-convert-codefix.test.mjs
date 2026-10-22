@@ -81,3 +81,24 @@ test('useState([]) takes T from its setter calls; a literal widens', { skip: !ts
     const { edits } = inferFile(ts, service, at('list.ts'));
     assert.match(applyEdits(texts.get(at('list.ts')), edits), /useState<string\[\]>\(\[\]\)/);
 });
+
+test('a callback prop is typed from how the body calls it; a guard makes it optional', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+    const { service, at, texts } = serviceOver({
+        'Form.tsx': "export function Form({ onSave, onClose }) { const save = () => { onSave('x', 2); if (onClose) onClose(); }; return <button onClick={save} />; }\n",
+    });
+    resetCaches();
+    const out = applyEdits(texts.get(at('Form.tsx')), inferFile(ts, service, at('Form.tsx')).edits);
+    assert.match(out, /onSave: \(arg0: string, arg1: number\) => void;/);
+    assert.match(out, /onClose\?: \(\) => void;/);
+});
+
+test('an options object gets an <Name>Args interface; `= {}` makes every member optional', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+    const { service, at, texts } = serviceOver({
+        'span.ts': 'export function span({ dx, width } = {}) { return dx / width; }\n',
+        'use.ts': "import { span } from './span';\nexport const s = span({ dx: 1, width: 2 });\n",
+    });
+    resetCaches();
+    const out = applyEdits(texts.get(at('span.ts')), inferFile(ts, service, at('span.ts')).edits);
+    assert.match(out, /interface SpanArgs \{\n {4}dx\?: number;\n {4}width\?: number;\n\}/);
+    assert.match(out, /span\(\{ dx, width \}: SpanArgs = \{\}\)/);
+});

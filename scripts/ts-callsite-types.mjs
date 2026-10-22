@@ -17,11 +17,13 @@
 
 import path from 'node:path';
 
+import { typeFromSamples } from './ts-runtime-types.mjs';
+
 const MAX_TYPE = 140;
 
 const isTestOrJs = (f) => /\.(test|spec)\.[jt]sx?$/.test(f) || /\.[cm]?jsx?$/.test(f) || /\/__tests__\/|\/test-utils?\/|\/testUtils\//.test(f);
 
-function nameNodeOf(ts, fn) {
+export function nameNodeOf(ts, fn) {
     if ((ts.isFunctionDeclaration(fn) || ts.isFunctionExpression(fn)) && fn.name) return fn.name;
     let n = fn.parent;
     // memo(...), forwardRef(...), memo(forwardRef(...))
@@ -29,6 +31,24 @@ function nameNodeOf(ts, fn) {
     if (n && ts.isVariableDeclaration(n) && ts.isIdentifier(n.name)) return n.name;
     if (n && ts.isExportAssignment(n)) return null;
     return null;
+}
+
+/**
+ * A stable key per named function: `name#n` (n-th function of that name in
+ * document order). The runtime recorder (ts-runtime-types.mjs) keys what it
+ * sees by the same walk over the JavaScript, and adding types moves no function.
+ */
+export function functionKeys(ts, sf) {
+    const keys = new Map(); const seen = new Map();
+    const visit = (n) => {
+        if (ts.isFunctionDeclaration(n) || ts.isArrowFunction(n) || ts.isFunctionExpression(n)) {
+            const nn = nameNodeOf(ts, n);
+            if (nn) { const c = seen.get(nn.text) || 0; seen.set(nn.text, c + 1); keys.set(n, `${nn.text}#${c}`); }
+        }
+        ts.forEachChild(n, visit);
+    };
+    visit(sf);
+    return keys;
 }
 
 /** Return `{ node, text }` replacing `import("spec").Name` by `Name`, collecting the imports it needs. */
@@ -58,6 +78,9 @@ function unionText(ts, checker, types, enclosing, file, imports) {
     const widened = types.filter((t) => !(t.flags & ts.TypeFlags.Any)).map((t) => checker.getWidenedType(checker.getBaseTypeOfLiteralType(t)));
     if (!widened.length) { unionText.why = 'only any at the call sites'; return null; }
     // A union of the call-site types; the checker dedupes and collapses subtypes.
+    // Two structurally equal anonymous types stay two members of a union: dedupe by text.
+    const byText = new Map(); for (const t of widened) { const k = checker.typeToString(t); if (!byText.has(k)) byText.set(k, t); }
+    widened.length = 0; widened.push(...byText.values());
     const u = widened.length === 1 ? widened[0] : checker.getUnionType ? checker.getUnionType(widened) : null;
     if (!u) return null;
     if (u.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown | ts.TypeFlags.Never)) { unionText.why = checker.typeToString(u); return null; }
@@ -265,6 +288,58 @@ function consumerTypes(ts, service, program, checker, nameNode, depth = 0) {
 }
 
 /**
+ * A function-typed slot from how the body calls it: `onSave({ id, name })` and
+ * `onClose()` give `(value: { id: string; name: string }) => void` and
+ * `() => void`. Only when every use is a call whose result is thrown away, or
+ * a truthiness test (`if (onSave)`, `onSave && ...`, `onSave?.()` makes it
+ * optional); any other use, or an argument without a type, refuses.
+ */
+function calleeShape(ts, service, program, checker, nameNode, enclosing, abs, imports) {
+    const refs = refsOf(ts, service, program, nameNode);
+    if (!refs.length) return null;
+    const calls = []; let optional = false;
+    for (const { node } of refs) {
+        const p = node.parent;
+        if (ts.isCallExpression(p) && p.expression === node) {
+            if (!ts.isExpressionStatement(p.parent) && !(ts.isArrowFunction(p.parent) && p.parent.body === p) && !ts.isVoidExpression(p.parent)) return null;
+            if (p.questionDotToken) optional = true;
+            calls.push(p);
+            continue;
+        }
+        const test = ts.isIfStatement(p) && p.expression === node
+            || ts.isPrefixUnaryExpression(p) && p.operator === ts.SyntaxKind.ExclamationToken
+            || ts.isBinaryExpression(p) && p.left === node && [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken].includes(p.operatorToken.kind)
+            || ts.isConditionalExpression(p) && p.condition === node
+            || ts.isTypeOfExpression(p);
+        if (test) { optional = true; continue; }
+        return null;
+    }
+    if (!calls.length) return null;
+    const arity = Math.max(...calls.map((c) => c.arguments.length));
+    const params = [];
+    for (let i = 0; i < arity; i++) {
+        const types = []; let missing = false; let name = null;
+        for (const c of calls) {
+            const a = c.arguments[i];
+            if (!a) { missing = true; continue; }
+            if (ts.isSpreadElement(a)) return null;
+            if (!name && ts.isIdentifier(a) && /^[a-z][\w$]*$/.test(a.text)) name = a.text;
+            types.push(checker.getTypeAtLocation(a));
+        }
+        const t = unionText(ts, checker, types, enclosing, abs, imports);
+        if (!t) return null;
+        params.push({ name: name || (arity === 1 ? 'value' : `arg${i}`), text: t.text, missing, local: t.local });
+    }
+    // An optional parameter may not come before a required one.
+    for (let i = params.length - 2; i >= 0; i--) if (params[i].missing && !params[i + 1].missing) params[i].missing = false;
+    const seen = new Set();
+    for (const p of params) { let n = p.name; for (let k = 2; seen.has(n); k++) n = `${p.name}${k}`; p.name = n; seen.add(n); }
+    const text = `(${params.map((p) => `${p.name}${p.missing ? '?' : ''}: ${p.text}`).join(', ')}) => void`;
+    if (text.length > MAX_TYPE) return null;
+    return { text, local: params.flatMap((p) => p.local), optional };
+}
+
+/**
  * A demand is only a lower bound (the receiver may read one field of a much
  * larger object), so it may stand for the value's type only when it names a
  * domain type, a primitive or a function: no anonymous object shape, and not
@@ -309,7 +384,7 @@ function refTarget(ts, checker, ct, at) {
  * parameter type where the setter is passed on); for a ref, `ref={x}` and
  * `x.current = v`. The initial value joins the union (null stays possible).
  */
-function inferHooks(ts, service, program, checker, sf, abs, report, edits, imports) {
+function inferHooks(ts, service, program, checker, sf, abs, report, edits, imports, observed, named, { fkeys, allowed, chosen }) {
     const calls = [];
     const visit = (n) => {
         if (ts.isCallExpression(n) && !n.typeArguments && /(^|\.)(useState|useRef)$/.test(n.expression.getText(sf)) && ts.isVariableDeclaration(n.parent) && n.parent.initializer === n) calls.push(n);
@@ -332,6 +407,7 @@ function inferHooks(ts, service, program, checker, sf, abs, report, edits, impor
             target = decl.name;
         }
         const label = `${isState ? 'useState' : 'useRef'} ${target.text}`;
+        const slot = hookSlot(ts, decl, fkeys);
         const types = [];
         for (const { fileName, node } of refsOf(ts, service, program, target)) {
             if (isTestOrJs(fileName)) continue;
@@ -367,7 +443,12 @@ function inferHooks(ts, service, program, checker, sf, abs, report, edits, impor
             }
         }
         let useful = types.filter((t) => !(t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Never | ts.TypeFlags.Unknown)) && !/\bnever\b|\bany\b/.test(checker.typeToString(t)));
-        if (!useful.length) {
+        // setX(null) / setX(undefined) only resets: it says nothing about T.
+        if (useful.every((t) => t.flags & (ts.TypeFlags.Null | ts.TypeFlags.Undefined))) useful = [];
+        let source = 'call';
+        if (useful.length && !allowed(slot, 'call')) useful = [];
+        if (!useful.length && allowed(slot, 'demand')) {
+            source = 'demand';
             // Nothing typed goes in: what the value is handed to says what it must be.
             const holder = isState ? decl.name.elements[0] : decl.name;
             if (holder && ts.isBindingElement(holder) ? ts.isIdentifier(holder.name) : ts.isIdentifier(holder)) {
@@ -375,6 +456,17 @@ function inferHooks(ts, service, program, checker, sf, abs, report, edits, impor
                 const demands = consumerTypes(ts, service, program, checker, nn);
                 const c = mostSpecific(ts, checker, isState ? demands : demands.map((d) => refTarget(ts, checker, d, nn)).filter(Boolean));
                 if (c && demandText({ text: checker.typeToString(c) })) useful = [isState ? checker.getNonNullableType(c) : c];
+            }
+        }
+        if (!useful.length && isState && allowed(slot, 'observed')) {
+            const o = observedText(observed, `state:${target.text}`, '=', named);
+            if (o) {
+                chosen.push({ slot, source: 'observed' });
+                const text = init && init.kind === ts.SyntaxKind.NullKeyword && !/\bnull\b/.test(o.text) ? `${o.text} | null` : o.text;
+                edits.push({ start: call.expression.getEnd(), end: call.expression.getEnd(), text: `<${text}>` });
+                for (const l of o.local) imports.set(l[0], l[1]);
+                report.push(`${label}: <${text}> (observed)`);
+                continue;
             }
         }
         if (!useful.length) { report.push(`${label}: nothing typed flows in`); continue; }
@@ -386,15 +478,153 @@ function inferHooks(ts, service, program, checker, sf, abs, report, edits, impor
         const text = !isState && isNull ? t.text.replace(/\s*\|\s*null\b/g, '') : t.text;
         edits.push({ start: call.expression.getEnd(), end: call.expression.getEnd(), text: `<${text}>` });
         for (const l of t.local) imports.set(l[0], l[1]);
-        report.push(`${label}: <${text}>`);
+        chosen.push({ slot, source });
+        report.push(`${label}: <${text}>${source === 'call' ? '' : ` (${source})`}`);
     }
 }
 
+// ------------------------------------------------------------ slots and sources
+//
+// A slot is one place a type is written: a parameter (`fn#0|#1`), a prop
+// (`Card#0|.label`), a state (`state:setX@fn#0`) or a ref. Each slot takes the
+// first source that yields a type: `call` (typed call sites), `demand` (what
+// the value is handed to), `observed` (the test runs). The converter checks
+// the result: a slot whose own references now carry type errors had a source
+// that was wrong (a demand or a fixture is only a lower bound), and is redone
+// without that source.
+
+function enclosingKey(ts, node, fkeys) {
+    for (let n = node.parent; n; n = n.parent) if (fkeys.has(n)) return fkeys.get(n);
+    return '';
+}
+
+function hookSlot(ts, decl, fkeys) {
+    const init = decl.initializer;
+    if (!init || !ts.isCallExpression(init)) return null;
+    const callee = init.expression.getText();
+    if (/(^|\.)useState$/.test(callee) && ts.isArrayBindingPattern(decl.name)) {
+        const set = decl.name.elements[1];
+        return set && ts.isBindingElement(set) && ts.isIdentifier(set.name) ? `state:${set.name.text}@${enclosingKey(ts, decl, fkeys)}` : null;
+    }
+    if (/(^|\.)useRef$/.test(callee) && ts.isIdentifier(decl.name)) return `ref:${decl.name.text}@${enclosingKey(ts, decl, fkeys)}`;
+    return null;
+}
+
+/** The slot an identifier's value was declared in, or null. */
+function slotOfIdentifier(ts, checker, id, fkeys) {
+    const sym = ts.isShorthandPropertyAssignment(id.parent) && id.parent.name === id ? checker.getShorthandAssignmentValueSymbol(id.parent) : checker.getSymbolAtLocation(id);
+    const d = sym && sym.valueDeclaration;
+    if (!d) return null;
+    if (ts.isParameter(d) && ts.isIdentifier(d.name) && fkeys.has(d.parent)) return `${fkeys.get(d.parent)}|#${d.parent.parameters.indexOf(d)}`;
+    if (ts.isBindingElement(d)) {
+        const pat = d.parent;
+        if (ts.isObjectBindingPattern(pat) && ts.isParameter(pat.parent) && fkeys.has(pat.parent.parent)) return `${fkeys.get(pat.parent.parent)}|.${(d.propertyName || d.name).getText()}`;
+        if (ts.isArrayBindingPattern(pat) && ts.isVariableDeclaration(pat.parent)) return hookSlot(ts, pat.parent, fkeys);
+    }
+    if (ts.isVariableDeclaration(d)) return hookSlot(ts, d, fkeys);
+    return null;
+}
+
+// Diagnostics that say a value's type does not fit how the code uses it.
+export const MISFIT = new Set([2339, 2551, 2532, 2533, 18046, 18047, 18048, 18049, 2345, 2322, 2538, 7053, 2349, 2722, 2769, 2353]);
+
+/** The slot a diagnostic is about: the value at (or left of) its span. */
+export function slotOfDiagnostic(ts, program, abs, d) {
+    const sf = program.getSourceFile(abs); if (!sf || d.start === undefined) return null;
+    const checker = program.getTypeChecker();
+    const fkeys = functionKeys(ts, sf);
+    let n = ts.getTokenAtPosition(sf, d.start);
+    for (let up = 0; n && up < 5; up++, n = n.parent) {
+        let id = null;
+        if (ts.isIdentifier(n)) id = n;
+        else if (ts.isPropertyAccessExpression(n) || ts.isElementAccessExpression(n) || ts.isCallExpression(n)) {
+            let e = n.expression; while (e && (ts.isPropertyAccessExpression(e) || ts.isElementAccessExpression(e) || ts.isNonNullExpression(e) || ts.isParenthesizedExpression(e))) e = e.expression;
+            if (e && ts.isIdentifier(e)) id = e;
+        } else if (ts.isJsxAttribute(n) && n.initializer && ts.isJsxExpression(n.initializer) && n.initializer.expression && ts.isIdentifier(n.initializer.expression)) id = n.initializer.expression;
+        if (id) { const slot = slotOfIdentifier(ts, checker, id, fkeys); if (slot) return slot; }
+        if (ts.isStatement(n)) break;
+    }
+    return null;
+}
+
+// ------------------------------------------------------------ observed types
+
+let namedIndex = null;
+
+/** Exported object-shaped interfaces and type aliases of agent-hub/src: name -> { file, props, required }. */
+function buildNamedIndex(ts, program) {
+    const idx = [];
+    for (const sf of program.getSourceFiles()) {
+        const f = sf.fileName;
+        if (!/\/agent-hub\/src\//.test(f) || /\.d\.ts$|\.(test|spec)\.|\/test\//.test(f) || !/\.tsx?$/.test(f)) continue;
+        for (const st of sf.statements) {
+            const exported = st.modifiers && st.modifiers.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+            if (!exported || st.typeParameters && st.typeParameters.length) continue;
+            let members = null;
+            if (ts.isInterfaceDeclaration(st) && !st.heritageClauses) members = st.members;
+            else if (ts.isTypeAliasDeclaration(st) && ts.isTypeLiteralNode(st.type)) members = st.type.members;
+            if (!members) continue;
+            const props = new Set(); const required = new Set(); let ok = true;
+            for (const m of members) {
+                if (!ts.isPropertySignature(m) || !m.name || !(ts.isIdentifier(m.name) || ts.isStringLiteral(m.name))) { ok = false; break; }
+                props.add(m.name.text); if (!m.questionToken) required.add(m.name.text);
+            }
+            if (ok && props.size >= 2) idx.push({ name: st.name.text, file: f, props, required });
+        }
+    }
+    return idx;
+}
+
+/**
+ * The exported interface an observed object shape belongs to: every observed
+ * key (80% at least) is one of its properties, all its required ones were
+ * seen, and it wins on overlap. One clear winner, or nothing.
+ */
+function namedFor(ts, program, sf, abs, imports, declaredHere) {
+    namedIndex ??= buildNamedIndex(ts, program);
+    return (objs) => {
+        const keys = new Set(objs.flatMap((o) => Object.keys(o.p)));
+        if (keys.size < 2) return null;
+        // Real data carries fields an interface leaves out (a fixture's userId):
+        // most observed keys must be properties, all required ones observed.
+        // Score: Jaccard overlap; a tie goes to the declaration nearest to the file.
+        const dist = (f) => path.relative(path.dirname(abs), path.dirname(f)).split('/').filter(Boolean).length;
+        let best = null; let bestScore = 0; let tie = false;
+        for (const c of namedIndex) {
+            if (c.file === abs) continue;
+            const hit = [...keys].filter((k) => c.props.has(k)).length;
+            if (hit < 2 || hit / keys.size < 0.8) continue;
+            if (![...c.required].every((k) => keys.has(k))) continue;
+            const score = hit / new Set([...keys, ...c.props]).size;
+            if (score < 0.4) continue;
+            if (score > bestScore + 1e-9) { best = c; bestScore = score; tie = false; } else if (Math.abs(score - bestScore) < 1e-9 && best && best.name !== c.name) {
+                const d = dist(c.file) - dist(best.file);
+                if (d < 0) { best = c; tie = false; } else if (d === 0) tie = true;
+            }
+        }
+        if (!best || tie || declaredHere.has(best.name) && !imports.has(best.name)) return null;
+        let spec = path.relative(path.dirname(abs), best.file).replace(/\\/g, '/').replace(/\.tsx?$/, '').replace(/\/index$/, '');
+        if (!spec.startsWith('.')) spec = `./${spec}`;
+        imports.set(best.name, spec);
+        return best.name;
+    };
+}
+
+/** The observed type of one slot as `{ text, local, optional }`, or null. */
+function observedText(observed, key, slot, named) {
+    const descs = observed && observed[key] && observed[key][slot];
+    if (!descs) return null;
+    const opts = {};
+    const text = typeFromSamples(descs, named, 0, opts);
+    if (!text) return null;
+    return { text, local: text.includes('React.') ? [['React', null]] : [], optional: !!opts.optional };
+}
+
 /** Edits for one file: [{ start, end, text }]; plus imports to add. */
-export function inferFile(ts, service, abs) {
+export function inferFile(ts, service, abs, observed = null, banned = new Set()) {
     const program = service.getProgram(); const checker = program.getTypeChecker();
     const sf = program.getSourceFile(abs); if (!sf) return { edits: [], report: [] };
-    const edits = []; const report = []; const imports = new Map();
+    const edits = []; const report = []; const imports = new Map(); const chosen = [];
     const declared = new Set();
     sf.forEachChild((s) => { if (ts.isInterfaceDeclaration(s) || ts.isTypeAliasDeclaration(s)) declared.add(s.name.text); });
     const fns = [];
@@ -403,7 +633,12 @@ export function inferFile(ts, service, abs) {
         ts.forEachChild(n, visit);
     };
     visit(sf);
-    inferHooks(ts, service, program, checker, sf, abs, report, edits, imports);
+    const have0 = new Set();
+    sf.forEachChild((st) => { if ((ts.isInterfaceDeclaration(st) || ts.isTypeAliasDeclaration(st) || ts.isFunctionDeclaration(st) || ts.isClassDeclaration(st)) && st.name) have0.add(st.name.text); });
+    const named = namedFor(ts, program, sf, abs, imports, have0);
+    const fkeys = functionKeys(ts, sf);
+    const allowed = (slot, source) => !banned.has(`${slot}|${source}`);
+    inferHooks(ts, service, program, checker, sf, abs, report, edits, imports, observed, named, { fkeys, allowed, chosen });
     for (const fn of fns) {
         const nameNode = nameNodeOf(ts, fn);
         if (!nameNode) continue; // inline callbacks: contextually typed, or the codefix pass takes them
@@ -417,7 +652,18 @@ export function inferFile(ts, service, abs) {
         const local = [];
         const first = fn.parameters[0];
         const isComponent = /^[A-Z]/.test(fname) && first && !first.type && ts.isObjectBindingPattern(first.name) && (!usable || sites.every((s) => s.kind === 'jsx'));
-        if (isComponent) {
+        // A function taking one options object (`useData({ user, onError })`,
+        // `span({ dx } = {})`) is typed the same way: an interface per binding.
+        const isOptions = !isComponent && first && !first.type && ts.isObjectBindingPattern(first.name);
+        if (isOptions && usable && sites.every((s) => s.kind === 'args')) {
+            for (const site of sites) {
+                const t0 = site.types[0];
+                site.kind = 'jsx'; site.attrs = new Map(); site.children = false;
+                if (!t0 || t0.flags & ts.TypeFlags.Any) { site.opaque = true; continue; }
+                for (const prop of checker.getNonNullableType(t0).getProperties()) site.attrs.set(prop.name, checker.getTypeOfSymbolAtLocation(prop, first));
+            }
+        }
+        if (isComponent || isOptions && (!usable || sites.every((s) => s.kind === 'jsx' && !s.opaque))) {
             const lines = []; const open = [];
             let ok = true;
             for (const el of first.name.elements) {
@@ -425,27 +671,39 @@ export function inferFile(ts, service, abs) {
                 const key = (el.propertyName || el.name).getText(sf);
                 if (!/^[A-Za-z_$][\w$]*$/.test(key)) { ok = false; break; }
                 const hasDefault = !!el.initializer;
-                let missing = hasDefault; const types = []; let children = false;
+                const slot = `${fkeys.get(fn)}|.${key}`;
+                let missing = hasDefault; const types = []; let children = false; let source = 'call';
                 if (usable) for (const s of sites) {
                     if (key === 'children' && s.children) { children = true; continue; }
                     if (s.attrs.has(key)) types.push(s.attrs.get(key)); else missing = true;
                 }
                 if (key === 'children' && (children || !usable)) { lines.push(`    children${missing || !children ? '?' : ''}: React.ReactNode;`); continue; }
                 if (hasDefault) types.push(checker.getTypeAtLocation(el.initializer));
-                let t = types.length ? unionText(ts, checker, types, fn, abs, imports) : null;
+                let t = types.length && allowed(slot, 'call') ? unionText(ts, checker, types, fn, abs, imports) : null;
                 if (t && /^(null|undefined)( \| (null|undefined))?$/.test(t.text)) t = null;
-                if (!t) {
+                if (!t && allowed(slot, 'demand')) {
                     const c = mostSpecific(ts, checker, consumerTypes(ts, service, program, checker, el.name));
                     if (c) t = demandText(unionText(ts, checker, [c], fn, abs, imports));
-                    if (t && !usable) missing = missing || false;
+                    if (t) source = 'demand';
                 }
+                if (!t && allowed(slot, 'callee')) {
+                    const c = calleeShape(ts, service, program, checker, el.name, fn, abs, imports);
+                    if (c) { t = c; source = 'callee'; if (c.optional) missing = true; }
+                }
+                if (!t && allowed(slot, 'observed')) {
+                    const o = observedText(observed, fkeys.get(fn), `.${key}`, named);
+                    if (o) { t = o; source = 'observed'; if (o.optional) missing = true; }
+                }
+                if (t) chosen.push({ slot, source });
                 if (!t) { open.push(`${key}${unionText.why ? ` [${unionText.why}]` : ''}`); unionText.why = ''; continue; }
                 local.push(...t.local);
                 lines.push(`    ${key}${missing ? '?' : ''}: ${t.text};`);
             }
             if (!ok) { report.push(`${fname}: props not a plain destructure`); continue; }
             if (!lines.length) { report.push(`${fname}: no prop typed (${open.join(', ')})`); continue; }
-            const iname = `${fname}Props`;
+            const iname = isComponent ? `${fname}Props` : `${fname[0].toUpperCase()}${fname.slice(1)}Args`;
+            // `({ a } = {})`: the whole object may be left out, so every member is optional.
+            if (first.initializer) for (let k = 0; k < lines.length; k++) lines[k] = lines[k].replace(/^(\s+[\w$]+)(\??):/, '$1?:');
             if (declared.has(iname)) { report.push(`${fname}: ${iname} exists`); continue; }
             declared.add(iname);
             let stmt = fn; while (stmt.parent && stmt.parent !== sf) stmt = stmt.parent;
@@ -464,17 +722,29 @@ export function inferFile(ts, service, abs) {
         fn.parameters.forEach((p, i) => {
             if (p.type || p.dotDotDotToken || !ts.isIdentifier(p.name)) return;
             const types = []; let missing = !!p.initializer || !!p.questionToken;
-            if (usable && sites.every((s) => s.kind === 'args')) for (const s of sites) {
+            const slot = `${fkeys.get(fn)}|#${i}`; let source = 'call';
+            if (usable && allowed(slot, 'call') && sites.every((s) => s.kind === 'args')) for (const s of sites) {
                 if (i < s.types.length && s.types[i]) types.push(s.types[i]);
                 else if (!s.contextual) missing = true;
             }
             if (p.initializer) types.push(checker.getTypeAtLocation(p.initializer));
             let t = types.length ? unionText(ts, checker, types, fn, abs, imports) : null;
             if (t && /^(null|undefined)( \| (null|undefined))?$/.test(t.text)) t = null;
-            if (!t) {
+            if (!t && allowed(slot, 'demand')) {
                 const c = mostSpecific(ts, checker, consumerTypes(ts, service, program, checker, p.name));
                 if (c) t = demandText(unionText(ts, checker, [c], fn, abs, imports));
+                if (t) source = 'demand';
             }
+            if (!t && allowed(slot, 'callee')) {
+                const c = calleeShape(ts, service, program, checker, p.name, fn, abs, imports);
+                if (c) { t = c.optional && !p.initializer ? { ...c, text: `(${c.text}) | undefined` } : c; source = 'callee'; }
+            }
+            if (!t && allowed(slot, 'observed')) {
+                const o = observedText(observed, fkeys.get(fn), `#${i}`, named);
+                // `x?:` is only legal when every later parameter is optional too.
+                if (o) { t = o.optional && !p.initializer ? { ...o, text: `${o.text} | undefined` } : o; source = 'observed'; }
+            }
+            if (t) chosen.push({ slot, source });
             if (!t) { report.push(`${fname}#${i}: open`); return; }
             local.push(...t.local);
             const opt = missing && !p.initializer ? '?' : '';
@@ -504,7 +774,7 @@ export function inferFile(ts, service, abs) {
     for (const [name, spec] of imports) {
         if (have.has(name)) continue;
         if (name === 'React' && spec === null) { add.push(`import type React from 'react';`); continue; }
-        if (!spec) return { edits: [], report: [...report, `import for ${name} unknown: file refused`] };
+        if (!spec) return { edits: [], chosen: [], report: [...report, `import for ${name} unknown: file refused`] };
         add.push(`import type { ${name} } from '${spec}';`);
     }
     if (add.length) {
@@ -512,7 +782,7 @@ export function inferFile(ts, service, abs) {
         const at = lastImport ? lastImport.getEnd() : 0;
         edits.push({ start: at, end: at, text: (lastImport ? '\n' : '') + add.join('\n') + (lastImport ? '' : '\n') });
     }
-    return { edits, report };
+    return { edits, report, chosen };
 }
 
 export function applyEdits(text, edits) {

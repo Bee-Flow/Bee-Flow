@@ -25,7 +25,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { applyEdits, inferFile, resetCaches } from './ts-callsite-types.mjs';
+import { applyEdits, inferFile, MISFIT, resetCaches, slotOfDiagnostic } from './ts-callsite-types.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HUB = path.join(ROOT, 'agent-hub');
@@ -134,23 +134,44 @@ function fixAll(ts, svc, plan) {
     }));
 }
 
+/** Connected components of the relative-import graph among `files` (paths relative to agent-hub). */
+export function importGroups(files) {
+    const set = new Set(files); const parent = new Map(files.map((f) => [f, f]));
+    const find = (f) => { while (parent.get(f) !== f) { parent.set(f, parent.get(parent.get(f))); f = parent.get(f); } return f; };
+    const resolve = (from, spec) => {
+        const base = path.join(path.dirname(from), spec);
+        for (const c of [base, ...['.js', '.jsx', '.ts', '.tsx'].map((e) => base.replace(/\.[jt]sx?$/, '') + e), ...['/index.js', '/index.jsx'].map((e) => base + e)]) if (set.has(c)) return c;
+        return null;
+    };
+    for (const f of files) {
+        const src = fs.readFileSync(path.join(HUB, f), 'utf8');
+        for (const m of src.matchAll(/(?:from\s+|import\(\s*)['"](\.{1,2}\/[^'"]+)['"]/g)) {
+            const t = resolve(f, m[1]);
+            if (t) parent.set(find(f), find(t));
+        }
+    }
+    const groups = new Map();
+    for (const f of files) { const r = find(f); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(f); }
+    return [...groups.values()];
+}
+
 function arg(name, fallback) { const i = process.argv.indexOf(name); return i === -1 ? fallback : process.argv[i + 1]; }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const batch = arg('--batch'); const list = arg('--files');
-    if (!batch && !list) { console.error('usage: --batch <list file> | --files a,b [--workers n] [--out dir] [--dry]'); process.exit(2); }
+    if (!batch && !list) { console.error('usage: --batch <list file> | --files a,b [--observed obs.json] [--workers n] [--out dir] [--dry]'); process.exit(2); }
     const outDir = arg('--out');
     const dry = process.argv.includes('--dry') || !!outDir;
     const files = (batch ? fs.readFileSync(batch, 'utf8').split('\n') : list.split(','))
         .map((l) => l.trim()).filter(Boolean).filter((f) => fs.existsSync(path.join(HUB, f)));
     const workers = Number(arg('--workers', 1));
     if (workers > 1 && files.length > 1) {
-        // Split by directory (files that call each other mostly share one) into
-        // `workers` child processes, each with its own language service.
+        // Split along the import graph: files that import each other (directly
+        // or through other files of the run) stay in one worker, because types
+        // flow between them. Components are dealt out largest first.
         const chunks = Array.from({ length: workers }, () => []);
-        const byDir = new Map();
-        for (const f of files) { const d = path.dirname(f); if (!byDir.has(d)) byDir.set(d, []); byDir.get(d).push(f); }
-        for (const group of [...byDir.values()].sort((a, b) => b.length - a.length)) chunks.sort((a, b) => a.length - b.length)[0].push(...group);
+        const groups = importGroups(files);
+        for (const group of groups.sort((a, b) => b.length - a.length)) chunks.sort((a, b) => a.length - b.length)[0].push(...group);
         const passOn = process.argv.slice(2).filter((a, i, all) => !['--batch', '--files', '--workers'].includes(a) && !['--batch', '--files', '--workers'].includes(all[i - 1]));
         const { spawn } = await import('node:child_process');
         const t0 = Date.now();
@@ -163,6 +184,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         process.exit(0);
     }
     const ts = loadTs();
+    // Runtime observations (scripts/ts-runtime-types.mjs collect): a source for what static analysis cannot see.
+    const observed = arg('--observed') ? JSON.parse(fs.readFileSync(arg('--observed'), 'utf8')) : {};
     const overrides = new Map(); const plan = [];
     for (const file of files) {
         const source = fs.readFileSync(path.join(HUB, file), 'utf8');
@@ -182,24 +205,49 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const t0 = Date.now(); const result = [];
     // Call-site pass first, over the whole batch until nothing new is typed:
     // a function typed in one pass makes its callers' arguments typed in the next.
-    const reports = new Map(plan.map((p) => [p.abs, []]));
-    for (let pass = 0; pass < 5; pass++) {
-        // One program per pass: infer every file against it, then apply all edits
-        // at once (each update would otherwise rebuild the checker).
-        let n = 0; const next = [];
-        resetCaches();
-        for (const p of plan) {
-            const inf = inferFile(ts, svc.service, p.abs);
-            reports.get(p.abs).push(...inf.report.map((l) => `[${pass + 1}] ${l}`));
-            if (!inf.edits.length) continue;
-            next.push([p.abs, applyEdits(svc.service.getProgram().getSourceFile(p.abs).text, inf.edits)]);
-            n += inf.edits.length;
+    // Then the check: a slot typed from a demand or an observation whose own
+    // references now carry type errors had the wrong source. Those sources are
+    // banned for that slot and the whole batch is redone from the original text.
+    const originals = new Map(plan.map((p) => [p.abs, overrides.get(p.abs)]));
+    const bans = new Map(plan.map((p) => [p.abs, new Set()]));
+    let reports; let fixed;
+    for (let attempt = 0; attempt < 4; attempt++) {
+        if (attempt) for (const [abs, text] of originals) svc.update(abs, text);
+        reports = new Map(plan.map((p) => [p.abs, []]));
+        const chosen = new Map(plan.map((p) => [p.abs, new Map()]));
+        for (let pass = 0; pass < 5; pass++) {
+            // One program per pass: infer every file against it, then apply all edits
+            // at once (each update would otherwise rebuild the checker).
+            let n = 0; const next = [];
+            resetCaches();
+            for (const p of plan) {
+                const inf = inferFile(ts, svc.service, p.abs, observed[p.file] || null, bans.get(p.abs));
+                reports.get(p.abs).push(...inf.report.map((l) => `[${attempt + 1}.${pass + 1}] ${l}`));
+                for (const c of inf.chosen || []) chosen.get(p.abs).set(c.slot, c.source);
+                if (!inf.edits.length) continue;
+                next.push([p.abs, applyEdits(svc.service.getProgram().getSourceFile(p.abs).text, inf.edits)]);
+                n += inf.edits.length;
+            }
+            for (const [abs, text] of next) svc.update(abs, text);
+            console.error(`attempt ${attempt + 1} pass ${pass + 1}: ${n} edits`);
+            if (!n) break;
         }
-        for (const [abs, text] of next) svc.update(abs, text);
-        console.error(`call-site pass ${pass + 1}: ${n} edits`);
-        if (!n) break;
+        fixed = fixAll(ts, svc, plan);
+        let banned = 0;
+        const program = svc.service.getProgram();
+        for (const p of plan) {
+            for (const d of svc.service.getSemanticDiagnostics(p.abs)) {
+                if (!MISFIT.has(d.code)) continue;
+                const slot = slotOfDiagnostic(ts, program, p.abs, d);
+                const source = slot && chosen.get(p.abs).get(slot);
+                if (!source || source === 'call') continue; // typed callers are the truth; the error is the code's
+                const key = `${slot}|${source}`;
+                if (!bans.get(p.abs).has(key)) { bans.get(p.abs).add(key); banned++; }
+            }
+        }
+        console.error(`attempt ${attempt + 1}: ${banned} slot source(s) rejected`);
+        if (!banned) break;
     }
-    const fixed = fixAll(ts, svc, plan);
     for (const p of plan) {
         const r = { ...fixed.get(p.abs), callsites: reports.get(p.abs) };
         const text = overrides.get(p.abs);
