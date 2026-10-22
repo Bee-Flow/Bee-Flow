@@ -79,6 +79,7 @@ function createService(ts, overrides) {
         readDirectory: ts.sys.readDirectory,
         directoryExists: ts.sys.directoryExists,
         getDirectories: ts.sys.getDirectories,
+        useCaseSensitiveFileNames: () => ts.sys.useCaseSensitiveFileNames,
     };
     const service = ts.createLanguageService(host, ts.createDocumentRegistry());
     if (process.env.TS_CONVERT_PROFILE) {
@@ -162,8 +163,18 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     if (!batch && !list) { console.error('usage: --batch <list file> | --files a,b [--observed obs.json] [--workers n] [--out dir] [--dry]'); process.exit(2); }
     const outDir = arg('--out');
     const dry = process.argv.includes('--dry') || !!outDir;
-    const files = (batch ? fs.readFileSync(batch, 'utf8').split('\n') : list.split(','))
+    const all = (batch ? fs.readFileSync(batch, 'utf8').split('\n') : list.split(','))
         .map((l) => l.trim()).filter(Boolean).filter((f) => fs.existsSync(path.join(HUB, f)));
+    // A target whose name differs only in case from a file next to it
+    // (ToolChooser.tsx beside toolChooser.ts) breaks module resolution on a
+    // case-insensitive disk: it needs a deliberate rename, not this tool.
+    const collides = (f) => {
+        const t = path.basename(targetName(f, fs.readFileSync(path.join(HUB, f), 'utf8'))).toLowerCase();
+        return fs.readdirSync(path.join(HUB, path.dirname(f))).some((o) => o !== path.basename(f) && o.toLowerCase() === t);
+    };
+    const skippedCase = all.filter(collides);
+    for (const f of skippedCase) console.error(`skip  ${f}: its .ts/.tsx name differs only in case from a file beside it`);
+    const files = all.filter((f) => !skippedCase.includes(f));
     const workers = Number(arg('--workers', 1));
     if (workers > 1 && files.length > 1) {
         // Split along the import graph: files that import each other (directly
