@@ -1,9 +1,9 @@
 import React from 'react';
 import GoogleWorkspacePickerModal from './GoogleWorkspacePickerModal';
+import type { ExportedAttachment, WorkspaceItem } from '../../hooks/useGoogleWorkspacePicker';
+import type { DriveFile } from '../../hooks/useKnowledgeBases';
 import useTranslation from '../../hooks/useTranslation';
 import { formatRelativeDate } from '../../utils/dateFormatters';
-import type { DriveFile } from '../../hooks/useKnowledgeBases';
-import type { ExportedAttachment, WorkspaceItem } from '../../hooks/useGoogleWorkspacePicker';
 
 // Official Google Drive triangle logo
 interface GoogleDriveIconProps {

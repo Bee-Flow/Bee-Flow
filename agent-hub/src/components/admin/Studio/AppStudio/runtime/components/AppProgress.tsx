@@ -1,9 +1,9 @@
 import useTranslation from '../../../../../../hooks/useTranslation';
 import { resolveBinding } from '../resolveBinding';
+import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
 import { ROLE_COLORS } from '../styleResolver';
 import { Skeleton, useStickyBinding } from '../uiBits';
-import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
 
 /**

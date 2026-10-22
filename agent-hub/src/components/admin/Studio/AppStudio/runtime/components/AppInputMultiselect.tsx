@@ -2,10 +2,10 @@ import { X } from 'lucide-react';
 import { useEffect } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import { useFormField } from '../formContext';
+import type { BindingInput } from '../resolveBinding.types';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import useInputChange from '../useInputChange';
 import useValueFrom from '../useValueFrom';
-import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
 
 /**

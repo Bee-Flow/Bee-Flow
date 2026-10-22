@@ -8,10 +8,8 @@ import { toast } from '../../../shared/Toast';
 import { mergePreviewPage, mergePreviewSite } from '../localeMerge';
 import { buildPreviewContent } from '../preview/previewContent';
 import { isChromeEntryId } from '../sentinels';
-import { AI_LOCK_MSG, BLOCK_LABELS } from './helpers';
-import type { CmsPageLink } from './useCmsDerived';
-import type { HeaderData } from '../blockEditors/HeaderEditor.types';
 import type { CmsActivePage, CmsBlock, CmsLocaleOverrides, CmsPageDoc, CmsSiteDoc } from './cmsPanelTypes';
+import { AI_LOCK_MSG, BLOCK_LABELS } from './helpers';
 
 interface UseCmsPreviewBridgeArgs {
     iframeRef: { current: HTMLIFrameElement | null };

@@ -1,12 +1,12 @@
 import './index.css';
 import { flushSync } from 'react-dom';
 import { createRoot, type Container } from 'react-dom/client';
+import type { AppDefinition } from './components/admin/Studio/AppStudio/inspector/appDefinition';
 import { appDesignProps } from './components/admin/Studio/AppStudio/runtime/appDesign';
 import AppRenderer from './components/admin/Studio/AppStudio/runtime/AppRenderer';
 import { seedVariableDefaults } from './components/admin/Studio/AppStudio/runtime/appVariables';
-import { CANVAS_GROUND, themeVars } from './components/admin/Studio/AppStudio/runtime/themeVars';
 import type { DataState } from './components/admin/Studio/AppStudio/runtime/DataContext';
-import type { AppDefinition } from './components/admin/Studio/AppStudio/inspector/appDefinition';
+import { CANVAS_GROUND, themeVars } from './components/admin/Studio/AppStudio/runtime/themeVars';
 
 /**
  * App Studio headless runtime — the entry the SERVER-SIDE screenshot pipeline

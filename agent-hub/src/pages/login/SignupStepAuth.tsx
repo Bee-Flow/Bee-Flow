@@ -1,7 +1,7 @@
-import React from 'react';
 import { AlertCircle, ArrowLeft, ArrowRight } from 'lucide-react';
-import { useTranslation } from '../../hooks/useTranslation';
+import React from 'react';
 import type { SignupData } from './signupValidation';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface SignupStepAuthProps {
     signupData: SignupData;

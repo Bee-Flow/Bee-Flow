@@ -1,9 +1,9 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { applyCaseColor, applyPiiGroupColor, caseColorOf, resolvePiiGroupColors } from './edgeColorOps';
 import { autoCaseColor, EDGE_COLOR_KEYS, PII_GROUP_COLORS, resolveEdgeColor } from './edgeColors';
-import { useTranslation } from '../../../../hooks/useTranslation';
 import type { FlowDefinition } from './types';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * The "Lines" control — the one discoverable home for connection colours.

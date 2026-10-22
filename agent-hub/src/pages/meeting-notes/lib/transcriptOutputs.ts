@@ -34,8 +34,6 @@
  */
 
 import { buildSilentAttendees } from './insightsMetrics';
-import type { PlayerSegment } from '../detail/player/player.types';
-import type { LineArtifact } from './transcriptLines';
 import type { InsightsModel } from '../detail/insights/insights.types';
 
 /** De drie antwoorden op "hebben we iedereen herkend?". */

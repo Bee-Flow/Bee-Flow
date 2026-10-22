@@ -6,8 +6,8 @@
  * is routed through the EditorView (view.updateAtom).
  */
 import React, { useCallback, useRef, useState, useEffect } from 'react';
-import type { UploadedImage } from '../react/beeEditorTypes';
 import type { EditorView } from '../engine/view.js';
+import type { UploadedImage } from '../react/beeEditorTypes';
 
 interface ImageAttrs extends Omit<UploadedImage, 'src'> {
     src?: string;

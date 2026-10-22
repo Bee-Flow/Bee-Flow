@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import { useState } from 'react';
 import { boolValue, dateInputValue, listValue, optionPairs, type RowField } from './rowValues';
 import { importableFields, type ImportTable } from './spreadsheetPaste';
+import useTranslation from '../../../../../hooks/useTranslation';
 import type { TableColumn } from '../inspector/aiFieldMatching';
 
 /**

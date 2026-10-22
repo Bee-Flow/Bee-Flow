@@ -1,5 +1,5 @@
-import React, { Suspense, useMemo, useState } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import React, { Suspense, useMemo, useState } from 'react';
 import useTranslation from '../hooks/useTranslation';
 
 // Per-module host boundary for a runtime-loaded Studio app.

@@ -1,19 +1,19 @@
 import { Copy, Layers, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import type { AppDefinition } from './appDefinition';
 import { SelectField } from './panels/kit';
 import { STYLE_KNOBS, getKnobsForType, clampKnob, knobLabel, valueLabel } from './styleKnobMeta';
+import type { KnobSpec } from './styleKnobMeta.types';
 import TokenColorField from './TokenColorField';
+import useTranslation from '../../../../../hooks/useTranslation';
+import type { TranslateParams } from '../../../../../hooks/useTranslation';
 import ConfirmDialog from '../../../../shared/ConfirmDialog';
-import IconButton from '../../../../shared/IconButton';
 import FormField from '../../../../shared/FormField';
+import IconButton from '../../../../shared/IconButton';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 import Slider from '../../../../shared/Slider';
-import { duplicateNode, findNode, removeNode, updateNodeStyle } from '../state/definitionOps';
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
-import type { AppDefinition } from './appDefinition';
-import type { KnobSpec } from './styleKnobMeta.types';
 import type { AppEditorAction } from '../state/appEditorState';
+import { duplicateNode, findNode, removeNode, updateNodeStyle } from '../state/definitionOps';
 
 /**
  * MultiInspector — the inspector body shown when more than one node is

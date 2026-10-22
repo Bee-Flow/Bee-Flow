@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
 import { Star, Tag, ExternalLink } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import SectionHeader from '../components/SectionHeader';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';

@@ -1,3 +1,4 @@
+import { AuthenticationResponseJSON } from '@simplewebauthn/browser';
 import { ShieldCheck, ShieldOff, Loader2, RefreshCw, KeyRound, AlertCircle, Check, Smartphone, Usb } from 'lucide-react';
 import React, { useEffect, useId, useState } from 'react';
 import PolicyAcknowledgements from './PolicyAcknowledgements';
@@ -11,7 +12,6 @@ import { securityKeyMessage } from '../../components/mfa/securityKeyMessages';
 import SecurityKeysCard from '../../components/mfa/SecurityKeysCard';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
-import { AuthenticationResponseJSON } from '@simplewebauthn/browser';
 
 interface MfaStatus {
     enabled: boolean;

@@ -1,15 +1,15 @@
 import { ArrowUp, Loader2 } from 'lucide-react';
+import type { RefObject, Dispatch, SetStateAction } from 'react';
 import beeFlowIcon from '../../../../assets/BeeFlow-logo-Icon-2026.svg';
 import ModelTierSelector from '../../../licensing/ModelTierSelector';
 import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
 import PlanCard from '../PlanCard';
 import RefineDoneCard from './RefineDoneCard';
 import type { TranslateParams } from '../../../../hooks/useTranslation';
-import type { RefObject, Dispatch, SetStateAction } from 'react';
 import type { ChatMessage } from '../agentEditor.types';
 import type { createHandleRefine } from './refineActions';
-import type { AgentPlan } from '../PlanCard';
 import type { ModelTierMap } from '../../../../hooks/useModelTierSelection';
+import type { AgentPlan } from '../PlanCard';
 
 // De verfijn-rail ("refine this agent") van de builder-split. Sinds A2 stap 1
 // staat hij RECHTS in plaats van links: vandaar de linkerrand en de

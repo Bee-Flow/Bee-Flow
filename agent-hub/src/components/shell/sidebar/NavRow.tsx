@@ -1,7 +1,6 @@
-import React from 'react';
 import type { ReactNode } from 'react';
-import { ROW, ROW_ACTIVE, ROW_IDLE, SECTION_LBL } from './sidebarTokens';
 import type { NavItem } from './sidebarNav';
+import { ROW, ROW_ACTIVE, ROW_IDLE, SECTION_LBL } from './sidebarTokens';
 import type { FlyoutPosition } from './useSidebarFlyouts';
 
     /* ── Nav row: plain icon + label. Rows with a `flyout` open a floating

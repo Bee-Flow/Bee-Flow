@@ -1,10 +1,10 @@
 import { Plus, Search, Zap } from 'lucide-react';
 import React from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
-import { kindColorVar } from '../../../shared/kindColors';
 import { isEmptySkill, usageSubline } from './skillModel';
 import type { UsageSummaryMap, Skill } from './skillModel.types';
+import useTranslation from '../../../../hooks/useTranslation';
 import type { TranslateParams } from '../../../../hooks/useTranslation';
+import { kindColorVar } from '../../../shared/kindColors';
 
 /**
  * The 280px skill list (Skills artboard 1a, left column).

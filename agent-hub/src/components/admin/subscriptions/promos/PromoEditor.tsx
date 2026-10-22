@@ -1,5 +1,5 @@
-import { ArrowLeft, Tag, Percent, Euro, Save } from 'lucide-react';
-import React, { useState } from 'react';
+import { ArrowLeft, Percent, Euro, Save } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { Button } from '../../../shared/Button';
 import { toast } from '../../../shared/Toast';

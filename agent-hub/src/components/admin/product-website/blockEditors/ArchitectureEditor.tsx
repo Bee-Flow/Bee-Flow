@@ -1,4 +1,3 @@
-import React from 'react';
 import { InlineHint, BackgroundCard } from '../primitives';
 import { set, SectionHeaderFields, GroupedItemsField, type BlockData, type SectionHeaderData } from './shared';
 import { useTranslation } from '../../../../hooks/useTranslation';

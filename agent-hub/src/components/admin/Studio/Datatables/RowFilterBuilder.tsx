@@ -2,9 +2,9 @@ import { Plus, X } from 'lucide-react';
 import React from 'react';
 import { ColumnKindIcon } from './ColumnKind';
 import { columnLabel, columnTypeKind, filterDescriptor, opTakesList, opTakesNoValue, opsForColumn } from './datatableDisplay';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
 import type { DtColumn, RowFilter } from './rowBrowser/rowBrowserModel';
+import type { TranslateParams } from '../../../../hooks/useTranslation';
+import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 
 /**
  * The row filter (Datatables artboard 1e, the "Filter" control).

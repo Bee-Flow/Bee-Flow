@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     userName, fmtDate, Field, DateInput, TextArea, UserChecklist, ActionButton, Intro, RegisterLayout,
 } from './auditForms';

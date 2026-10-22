@@ -1,12 +1,12 @@
 import { Loader2, Lock, Plus, User, Users, X } from 'lucide-react';
 import React, { useState } from 'react';
+import type { FormDetail } from './useFormDetail';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import DashCard from '../../../../shared/dashboard/DashCard';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 import useConfirm from '../../../../shared/useConfirm';
 import { useOrgDirectory } from '../../AppStudio/rbac/useAppRoles';
-import type { FormDetail } from './useFormDetail';
 
 /**
  * Who can FILL THE FORM IN — the form's audience (PUT /forms/:id/audience).

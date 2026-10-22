@@ -1,7 +1,7 @@
-import React from 'react';
 import { Building, MapPin, Phone, FileText, ArrowLeft, ArrowRight, User } from 'lucide-react';
-import { useTranslation } from '../../hooks/useTranslation';
+import React from 'react';
 import type { SignupData } from './signupValidation';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface SignupStepOrgProps {
     signupData: SignupData;

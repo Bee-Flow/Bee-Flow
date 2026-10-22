@@ -1,13 +1,13 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import Brand from './Brand';
+import type { NavModel, NavScreen } from './navModel';
 import UserMenu from './UserMenu';
+import type { UserMenuViewer } from './UserMenu';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 import type { AppDefinition } from '../../inspector/appDefinition';
-import type { NavModel, NavScreen } from './navModel';
 import type { NavigateFn } from '../actionRunner/runnerContext';
-import type { UserMenuViewer } from './UserMenu';
 
 /**
  * NavSidebar — the left-rail shell layout (nav.style 'sidebar'). Brand on

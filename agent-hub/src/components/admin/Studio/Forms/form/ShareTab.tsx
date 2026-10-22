@@ -1,12 +1,12 @@
 import { Table2 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import FormAudienceCard from './FormAudienceCard';
 import PublicLinkCard from './PublicLinkCard';
+import type { FormDetail } from './useFormDetail';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import DashCard from '../../../../shared/dashboard/DashCard';
 import { datatablesApi } from '../../Datatables/datatablesApi';
 import DatatableSharing from '../../Datatables/DatatableSharing';
-import type { FormDetail } from './useFormDetail';
 import type { DtTable } from '../../Datatables/rowBrowser/rowBrowserModel';
 
 const LINK_BTN = 'inline-flex items-center gap-1.5 text-xs underline-offset-2 hover:underline';

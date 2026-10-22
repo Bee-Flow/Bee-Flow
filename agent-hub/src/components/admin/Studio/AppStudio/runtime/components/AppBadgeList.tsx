@@ -1,9 +1,9 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { resolveBinding, walkPath } from '../resolveBinding';
+import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
 import { ROLE_COLORS, roleFillContrast } from '../styleResolver';
 import { EmptyText, ErrorText, SkeletonLines, displayValue , useStickyBinding } from '../uiBits';
-import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
 
 /**

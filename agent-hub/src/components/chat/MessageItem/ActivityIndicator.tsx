@@ -1,14 +1,14 @@
-import React from 'react';
 import {
     Cpu, Wrench, Brain, BookOpen, FileText, Layers, Sparkles, Shield, Loader, History, ListTree,
     type LucideIcon,
 } from 'lucide-react';
+import React from 'react';
+import { visibleToolHistory } from './chatToolCallDisplay';
+import type { SkillSummary } from '../../../hooks/useChatEngine/types';
 import useTranslation from '../../../hooks/useTranslation';
+import type { TranslateParams } from '../../../hooks/useTranslation';
 import { getToolLabel, getToolIcon, toolNameToCatalogId } from '../../../utils/helpers';
 import AppEmoji from '../../icons/AppEmoji';
-import { visibleToolHistory } from './chatToolCallDisplay';
-import type { TranslateParams } from '../../../hooks/useTranslation';
-import type { SkillSummary } from '../../../hooks/useChatEngine/types';
 
 interface ToolRow {
     name: string;

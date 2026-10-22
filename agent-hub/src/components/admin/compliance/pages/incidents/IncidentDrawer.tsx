@@ -1,13 +1,13 @@
 import { CheckCircle2, Mail, Play } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { clocksOf, isVulnerability, stepsOf } from './incidentClocks';
 import { INPUT, ReportingList, SECONDARY_BUTTON, StepAction, usesCraRoute, type StepFields, type StepId } from './IncidentReporting';
 import { IncidentClock, IncidentStatusPill, incidentRef, type IncidentRecord } from './IncidentsTable';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import SideDrawer, { DrawerFooter, DrawerSection, DrawerId } from '../../../../shared/SideDrawer';
+import type { SideDrawerMode } from '../../../../shared/SideDrawer';
 import { useDateFormat } from '../../shared/formatDates';
 import SeverityTag from '../../shared/SeverityTag';
-import type { SideDrawerMode } from '../../../../shared/SideDrawer';
 
 /**
  * IncidentDrawer — one row of the incident / vulnerability register.

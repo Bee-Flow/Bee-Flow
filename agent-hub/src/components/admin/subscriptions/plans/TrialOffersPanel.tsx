@@ -1,12 +1,12 @@
 import { CalendarPlus, Building2, Users, Save } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { PlanRecord } from './usePlanForm';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { Button } from '../../../shared/Button';
 import { toast } from '../../../shared/Toast';
 import { apiJson } from '../hooks/useApi';
 import { Card, CardHeader } from '../ui/Card';
 import { Field, Select } from '../ui/Input';
-import type { PlanRecord } from './usePlanForm';
 
 interface TrialOffersPanelProps {
     plans: PlanRecord[];

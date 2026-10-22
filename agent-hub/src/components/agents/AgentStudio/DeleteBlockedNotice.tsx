@@ -1,6 +1,5 @@
-import React from 'react';
-import useTranslation from '../../../hooks/useTranslation';
 import { blockHasFindings, type DeleteBlockSummary } from './deleteBlock';
+import useTranslation from '../../../hooks/useTranslation';
 
 /**
  * The second stage of the delete dialog: what a 409 from DELETE /agents/:id

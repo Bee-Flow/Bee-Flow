@@ -16,16 +16,16 @@
  *   now          test seam for the expiry comparison
  *   modalZIndex  lifts the ladder above a host drawer (the agent wizard's is z-1100)
  */
-import React, { useMemo, useState } from 'react';
 import { ClipboardCheck, PenLine, Sparkles } from 'lucide-react';
-import { useTranslation, type TranslateParams } from '../../../../hooks/useTranslation';
-import StatusPill from '../shared/StatusPill';
-import { formatCalDate } from '../shared/calendarMath';
-import useAiActAssessment from './useAiActAssessment';
+import { useMemo, useState } from 'react';
 import AiActLadderModal from './AiActLadderModal';
-import type { FilmDefinition } from '../../Studio/Playbooks/stages/runFilm';
 import type { AiActSignals } from './aiSignals';
+import useAiActAssessment from './useAiActAssessment';
+import { useTranslation, type TranslateParams } from '../../../../hooks/useTranslation';
 import type { Tone } from '../../../shared/statusTone';
+import type { FilmDefinition } from '../../Studio/Playbooks/stages/runFilm';
+import { formatCalDate } from '../shared/calendarMath';
+import StatusPill from '../shared/StatusPill';
 
 interface AssessmentRow {
     outcome?: string;

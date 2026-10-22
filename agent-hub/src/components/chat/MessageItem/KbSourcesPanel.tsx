@@ -1,10 +1,10 @@
 import { groupByDocument } from './citationGroups';
-import { whenLabel } from '../../../pages/documents/notebook/citationText';
-import RelevanceBar from '../../shared/RelevanceBar';
-import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
-import useTranslation from '../../../hooks/useTranslation';
 import type { ChatMessage } from './messageTypes';
+import useTranslation from '../../../hooks/useTranslation';
 import type { TranslateParams } from '../../../hooks/useTranslation';
+import { whenLabel } from '../../../pages/documents/notebook/citationText';
+import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
+import RelevanceBar from '../../shared/RelevanceBar';
 
 /**
  * KB Sources — grouped per document, inside "How I got this answer".

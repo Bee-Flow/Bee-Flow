@@ -1,11 +1,11 @@
 import { AlertTriangle, CheckCircle2, Link2Off, Loader2, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState, type JSX } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import type { TranslateParams } from '../../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { useRuntime } from '../RuntimeContext';
 import { ROLE_COLORS } from '../styleResolver';
-import type { TranslateParams } from '../../../../../../hooks/useTranslation';
 
 /**
  * App Studio runtime — 'connector_status'. Spec: server/appStudio/componentSpecs.js.

@@ -1,16 +1,16 @@
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import { Line, LineChart } from 'recharts';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 import { chartColorAt } from '../chartPalette';
 import { hoverable } from '../hoverable';
 import { resolveBinding } from '../resolveBinding';
+import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
 import { ROLE_COLORS, roleTextColor, spaceSteps } from '../styleResolver';
 import { ErrorText, Skeleton, displayValue, useStickyBinding } from '../uiBits';
-import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
-import type { CSSProperties } from 'react';
 
 /**
  * App Studio runtime — 'stat'. Spec: server/appStudio/componentSpecs.js.

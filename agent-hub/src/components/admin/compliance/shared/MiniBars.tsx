@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
+import { bucketHistory, formatDelta, type HistoryRow } from './miniBarsMath';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { TONES, toneOfScore, type Tone } from '../../../shared/statusTone';
-import { bucketHistory, formatDelta, type HistoryRow } from './miniBarsMath';
 
 /**
  * MiniBars — the twelve-bar score trend on a framework card (Compliance

@@ -1,10 +1,10 @@
-import React from 'react';
 import { ShieldCheck, Globe, ArrowLeft, ArrowRight } from 'lucide-react';
-import { useTranslation } from '../../hooks/useTranslation';
-import { piiCategoriesLocalized } from '../../config/piiCategories';
-import PiiCategoryGrid from '../../components/privacy/PiiCategoryGrid';
-import PiiActionPicker from '../../components/privacy/PiiActionPicker';
+import React from 'react';
 import type { SignupData } from './signupValidation';
+import PiiActionPicker from '../../components/privacy/PiiActionPicker';
+import PiiCategoryGrid from '../../components/privacy/PiiCategoryGrid';
+import { piiCategoriesLocalized } from '../../config/piiCategories';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * Onboarding "Privacy Shield" step. Mirrors the admin Privacy Shield page:

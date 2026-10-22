@@ -1,15 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
 import { Mail } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import AccessTab from './AccessTab';
+import AuditTab from './AuditTab';
+import AutomationsTab from './AutomationsTab';
+import InboxesTab from './InboxesTab';
+import RepliesTab from './RepliesTab';
+import type { SupportAgent, SupportInbox, SupportUser } from './supportStudio.types';
+import TemplatesTab from './TemplatesTab';
 import useTranslation from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import EmptyState from '../../../shared/EmptyState';
-import InboxesTab from './InboxesTab';
-import RepliesTab from './RepliesTab';
-import AutomationsTab from './AutomationsTab';
-import TemplatesTab from './TemplatesTab';
-import AccessTab from './AccessTab';
-import AuditTab from './AuditTab';
-import type { SupportAgent, SupportInbox, SupportUser } from './supportStudio.types';
 
 // Tab set — mirrors Organisation Settings' top pill bar. Per-inbox tabs act on
 // the inbox chosen in the in-panel selector; org-wide tabs ignore it.

@@ -17,7 +17,6 @@
  * 1750 ms zegt.
  */
 
-import React from 'react';
 
 /**
  * `1750` → `'1.8s'`, `840` → `'840ms'`, alles wat geen getal is → null.

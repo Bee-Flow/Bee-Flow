@@ -1,13 +1,13 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import StageMessage from './StageMessage';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import BuilderChatPane from '../../AppStudio/chat/BuilderChatPane';
+import type { AppMetaUpdate } from '../../AppStudio/chat/useBuilderTurn';
 import AppEditorShell from '../../AppStudio/editor/AppEditorShell';
+import type { HeaderApp } from '../../AppStudio/editor/header/headerModel';
 import { studioAppsApi } from '../../AppStudio/studioAppsApi';
 import { kindOf, type Phase, type PlaybookEvent, type PlaybookLike } from '../phaseMachine';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { phaseLabel } from '../recipes';
-import type { HeaderApp } from '../../AppStudio/editor/header/headerModel';
-import type { AppMetaUpdate } from '../../AppStudio/chat/useBuilderTurn';
 
 /**
  * Phases 4 and 5 — the App Studio editor with its builder pane, unchanged.

@@ -1,17 +1,17 @@
 import { ArrowLeft, Save, Trash2, Shield, CalendarPlus, Clock, Check, Lock, FlaskConical } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { Button } from '../../../shared/Button';
 import { toast } from '../../../shared/Toast';
 import { LIMIT_FIELDS } from '../constants';
 import { useResource } from '../hooks/useApi';
+import type { PlanRecord } from '../plans/usePlanForm';
 import { Banner } from '../ui/Banner';
 import { Card } from '../ui/Card';
 import { IconButton } from '../ui/IconButton';
 import { Field, Select, Textarea } from '../ui/Input';
 import { LimitField } from '../ui/LimitField';
 import { UsageBar } from '../ui/UsageBar';
-import type { PlanRecord } from '../plans/usePlanForm';
 
 /** One organization subscription in `GET /api/subscriptions/orgs`, as the editor reads it. */
 interface OrgSubscription {

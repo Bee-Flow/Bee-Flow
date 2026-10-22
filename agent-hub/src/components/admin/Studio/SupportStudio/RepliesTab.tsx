@@ -1,5 +1,6 @@
 import { Save } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { SupportInbox } from './supportStudio.types';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE } from './supportStyles';
 import { getIntegrationById } from '../../../../config/integrationCatalog';
 import useTranslation from '../../../../hooks/useTranslation';
@@ -10,7 +11,6 @@ import FormField from '../../../shared/FormField';
 import Section from '../../../shared/Section';
 import Slider from '../../../shared/Slider';
 import { toast } from '../../../shared/Toast';
-import type { SupportInbox } from './supportStudio.types';
 
 const REPLY_MODE_IDS = ['draft', 'auto_confident', 'autonomous'];
 

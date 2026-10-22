@@ -1,5 +1,5 @@
 import { Mic, Square, X, Loader2 } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { passageFor } from './voiceprintPassages';
 import Modal from '../../components/shared/Modal';
 import { useTranslation } from '../../hooks/useTranslation';

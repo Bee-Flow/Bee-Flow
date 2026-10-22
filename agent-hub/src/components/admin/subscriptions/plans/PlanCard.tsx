@@ -1,5 +1,5 @@
 import { Building2, Users, Star, Pencil, Trash2, CreditCard, TrendingUp, Loader2, Cloud } from 'lucide-react';
-import React from 'react';
+import type { PlanRecord } from './usePlanForm';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { Button } from '../../../shared/Button';
 import { CURRENCY_SYMBOL } from '../constants';
@@ -7,7 +7,6 @@ import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { IconButton } from '../ui/IconButton';
 import { StatRow, StatGrid } from '../ui/StatRow';
-import type { PlanRecord } from './usePlanForm';
 
 interface PlanCardProps {
     plan: PlanRecord;

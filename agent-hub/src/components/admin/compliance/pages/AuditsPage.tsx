@@ -1,11 +1,11 @@
 import React from 'react';
+import type { ComponentProps } from 'react';
+import type { OrgUser } from './accessAuditLabels';
 import AuditsTab from './audits/AuditsTab';
-import ReviewsTab from './audits/ReviewsTab';
 import NcsTab from './audits/NcsTab';
 import ObjectivesTab from './audits/ObjectivesTab';
-import type { ComponentProps } from 'react';
+import ReviewsTab from './audits/ReviewsTab';
 import type { SetHeaderActions } from './audits/useHeaderPrimary';
-import type { OrgUser } from './accessAuditLabels';
 
 interface AuditTabProps {
     audit: AuditHook;

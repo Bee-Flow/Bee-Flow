@@ -1,5 +1,4 @@
 import { AlertTriangle, AppWindow, ArrowRight, Globe, HeartPulse, Info, Network, ShieldCheck, Workflow, Link2, type LucideIcon } from 'lucide-react';
-import React from 'react';
 import { kindInkClass } from './kindBar';
 import { Strip, sectionNames } from './solutionNotices';
 import { ROW, TabCard, TabNote, TabSpinner } from './TabParts';

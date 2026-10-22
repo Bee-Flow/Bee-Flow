@@ -32,7 +32,6 @@
  */
 
 import { ChevronDown } from 'lucide-react';
-import React from 'react';
 
 import { kindColorVar, kindIcon, kindTint } from '../shared/kindColors';
 

@@ -1,18 +1,18 @@
-import React, { useMemo, useState } from 'react';
 import { ArrowUpRight, CircleCheck, CircleDashed, CircleX, Info, TriangleAlert, X, type LucideIcon } from 'lucide-react';
-import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
-import SideDrawer, { DrawerSection, DrawerFooter } from '../../../../shared/SideDrawer';
-import Tooltip from '../../../../shared/Tooltip';
-import { TONES, toneOfCheckStatus } from '../../../../shared/statusTone';
-import ArticleRef, { formatArticleRef } from '../../shared/ArticleRef';
-import { useDateFormat, type DateLike } from '../../shared/formatDates';
-import UserPicker from '../../shared/UserPicker';
-import { sectionForRegulation } from '../../sections';
+import { useMemo, useState } from 'react';
 import RadioCards from './RadioCards';
 import { ownerName, type SoaControl } from './SoaTable';
 import { approvedBlocked, draftOf, justificationMissing, liveCheckOf, patchOf, DECISIONS } from './soaThemes';
-import type { OrgUser } from '../../shared/UserPicker';
+import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
+import SideDrawer, { DrawerSection, DrawerFooter } from '../../../../shared/SideDrawer';
 import type { SideDrawerMode } from '../../../../shared/SideDrawer';
+import { TONES, toneOfCheckStatus } from '../../../../shared/statusTone';
+import Tooltip from '../../../../shared/Tooltip';
+import { sectionForRegulation } from '../../sections';
+import ArticleRef, { formatArticleRef } from '../../shared/ArticleRef';
+import { useDateFormat, type DateLike } from '../../shared/formatDates';
+import UserPicker from '../../shared/UserPicker';
+import type { OrgUser } from '../../shared/UserPicker';
 
 /**
  * SoaDrawer — one Annex A row, editable (artboard 1d right pane).

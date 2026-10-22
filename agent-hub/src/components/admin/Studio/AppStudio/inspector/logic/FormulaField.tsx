@@ -1,4 +1,3 @@
-import React from 'react';
 import ExpressionInput from './ExpressionInput';
 import type { ExpressionInputProps } from './ExpressionInput';
 

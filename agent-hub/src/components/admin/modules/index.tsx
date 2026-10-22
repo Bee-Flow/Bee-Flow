@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
 import { Boxes, Loader2, RefreshCw, Store } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { useAdminModules, useImportModule, useRemoveModule, type AdminModule } from '../../../api/queries/modules';
-import { useEntitlements } from '../../licensing/EntitlementsContext';
+import { useEffect, useRef, useState } from 'react';
+import MarketplaceTab from './MarketplaceTab';
 import ModuleCard from './ModuleCard';
 import RemoveModuleDialog from './RemoveModuleDialog';
-import MarketplaceTab from './MarketplaceTab';
+import { useAdminModules, useImportModule, useRemoveModule, type AdminModule } from '../../../api/queries/modules';
+import { useTranslation } from '../../../hooks/useTranslation';
+import { useEntitlements } from '../../licensing/EntitlementsContext';
 
 export default function ModulesPanel() {
     const { t } = useTranslation();

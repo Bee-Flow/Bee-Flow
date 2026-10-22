@@ -7,8 +7,8 @@ import { useFormField } from '../formContext';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { displayValue } from '../uiBits';
-import type { ComboOption } from './comboBox';
 import type { NodeProps } from './appNode.types';
+import type { ComboOption } from './comboBox';
 import type { DataBinding } from '../resolveBinding.types';
 
 /**

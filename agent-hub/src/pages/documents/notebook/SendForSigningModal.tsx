@@ -1,5 +1,5 @@
 import { X, Plus, Trash2, PenTool, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Modal from '../../../components/shared/Modal';
 import useTranslation from '../../../hooks/useTranslation';
 

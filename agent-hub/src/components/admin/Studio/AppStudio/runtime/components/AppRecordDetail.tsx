@@ -2,10 +2,10 @@ import CadThumb from './CadThumb';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import renderInlineMarkdown from '../markdownInline';
 import { resolveBinding, walkPath } from '../resolveBinding';
+import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
 import { isFill } from '../styleResolver';
 import { EM_DASH, EmptyText, ErrorText, SkeletonLines, displayValue , useStickyBinding } from '../uiBits';
-import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
 
 /**

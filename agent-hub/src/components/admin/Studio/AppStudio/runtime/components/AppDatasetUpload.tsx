@@ -6,8 +6,8 @@ import { useDataContext } from '../DataContext';
 import { useFormField } from '../formContext';
 import { useRuntime } from '../RuntimeContext';
 import { Field } from '../uiBits';
-import useInputChange from '../useInputChange';
 import useDatasetUpload from '../useDatasetUpload';
+import useInputChange from '../useInputChange';
 import type { NodeProps } from './appNode.types';
 
 /**

@@ -1,14 +1,13 @@
-import React from 'react';
 import { CircleCheck, CircleDashed, TriangleAlert, CircleX, Eye, CircleMinus } from 'lucide-react';
+import React from 'react';
+import { decisionOf, liveCheckOf } from './soaThemes';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import DataTable, { TableRow, TableCell } from '../../../../shared/DataTable';
+import type { DataTableContext } from '../../../../shared/DataTable';
 import { TONES } from '../../../../shared/statusTone';
 import ArticleRef from '../../shared/ArticleRef';
 import StatusPill from '../../shared/StatusPill';
-import { decisionOf, liveCheckOf } from './soaThemes';
 import type { OrgUser } from '../accessAuditLabels';
-import type { SearchableCheck } from '../../data/checkSearch';
-import type { DataTableContext } from '../../../../shared/DataTable';
 
 /**
  * SoaTable — the 93-row register (artboard 1d): Control · Title / how met ·

@@ -1,7 +1,7 @@
 import { Globe } from 'lucide-react';
 import useTranslation from '../../../../../../hooks/useTranslation';
-import { useRuntime } from '../RuntimeContext';
 import { useBrowserRun } from '../BrowserRunContext';
+import { useRuntime } from '../RuntimeContext';
 import type { NodeProps } from './appNode.types';
 
 /**

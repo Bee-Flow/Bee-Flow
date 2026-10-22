@@ -1,8 +1,7 @@
 import { useReactFlow, useStore, type ReactFlowState } from '@xyflow/react';
 import { Plus, Minus, Maximize, Maximize2, Minimize2, Rows3, Presentation } from 'lucide-react';
-import React from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
 import { toggleCanvasFullscreen, useStudioMenuHidden } from '../../../../hooks/useStudioChrome';
+import useTranslation from '../../../../hooks/useTranslation';
 
 /**
  * The zoom stack in the canvas's south-west zone (design 1a): zoom in, zoom

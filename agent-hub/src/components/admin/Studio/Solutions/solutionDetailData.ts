@@ -1,9 +1,9 @@
 import { Activity, Boxes, Download, GitBranch, History, LayoutDashboard, Rocket, Settings, ShieldCheck } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import type { ControlFinding } from './ControlFindingGroup';
 import { isBlocking } from './SolutionControlPanel';
 import useProjectStream from '../../../../hooks/useProjectStream';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
-import type { ControlFinding } from './ControlFindingGroup';
 
 /**
  * The data side of the Solution detail screen: the fetches, the live feed and

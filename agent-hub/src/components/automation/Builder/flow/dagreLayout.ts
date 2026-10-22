@@ -1,6 +1,6 @@
 import dagre from '@dagrejs/dagre';
-import type { Position } from '../build/addStepModel';
 import type { FlowDefinition } from './types';
+import type { Position } from '../build/addStepModel';
 
 /**
  * Dagre auto-layout for an automation graph, with a module-level LRU.

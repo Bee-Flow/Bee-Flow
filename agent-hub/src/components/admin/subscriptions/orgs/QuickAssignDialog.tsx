@@ -1,12 +1,12 @@
 import { CalendarPlus, CheckCircle, Clock, Gift } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { Button } from '../../../shared/Button';
 import { toast } from '../../../shared/Toast';
+import type { PlanRecord } from '../plans/usePlanForm';
 import { Banner } from '../ui/Banner';
 import { Field, Select } from '../ui/Input';
 import { Modal } from '../ui/Modal';
-import type { PlanRecord } from '../plans/usePlanForm';
 
 /** An organization from `GET /auth/organizations`, as the dialog reads it. */
 interface OrgRow {

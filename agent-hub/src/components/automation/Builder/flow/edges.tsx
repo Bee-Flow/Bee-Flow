@@ -1,15 +1,15 @@
-import { useNodeRuntime } from './NodeRuntimeContext';
-import useTranslation from '../../../../hooks/useTranslation';
-import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, useReactFlow, useViewport, type Position } from '@xyflow/react';
+import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, useReactFlow, useViewport } from '@xyflow/react';
+import type { XYPosition } from '@xyflow/system';
 import { Palette, Plus, X } from 'lucide-react';
 import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { chipPlacement, compactChipText } from './edgeChip';
 import { EDGE_COLOR_KEYS, resolveEdgeColor } from './edgeColors';
-import { hopPath } from './edgeHops';
 import { useEdgeCrossingVersion, useEdgeCrossings } from './EdgeCrossingContext';
+import { hopPath } from './edgeHops';
+import type { EdgeIdentity, LabelledEdgeProps, ToolLinkEdgeProps } from './edges.types';
+import { useNodeRuntime } from './NodeRuntimeContext';
 import { PresenterContext } from './PresenterContext';
-import type { XYPosition } from '@xyflow/system';
-import type { EdgeIdentity, LabelledEdgeData, LabelledEdgeProps, ToolLinkEdgeProps } from './edges.types';
+import useTranslation from '../../../../hooks/useTranslation';
 
 /**
  * Custom edge that renders `then` / `else` / loop labels as a small

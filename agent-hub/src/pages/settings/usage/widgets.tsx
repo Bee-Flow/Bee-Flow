@@ -3,7 +3,6 @@
 // the source map, so they live here rather than in the generic `kit.jsx`.
 
 import { Bot, MessageSquare, BookOpen, Search, LayoutTemplate, Code, Globe, Cpu, type LucideIcon } from 'lucide-react';
-import React from 'react';
 import { shortModel } from './format';
 import { getIntegrationIcon, hasIntegrationIcon } from '../../../config/integrationIcons';
 

@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import type { OptionPair } from '../../tables/rowValues';
 import { useFormField } from '../formContext';
 import { resolveBinding, walkPath } from '../resolveBinding';
+import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import useInputChange from '../useInputChange';
 import useValueFrom from '../useValueFrom';
-import type { BindingInput } from '../resolveBinding.types';
-import type { OptionPair } from '../../tables/rowValues';
 import type { NodeProps } from './appNode.types';
 
 /** App Studio runtime — 'input_select'. Spec: server/appStudio/componentSpecs.js. */

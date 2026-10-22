@@ -1,5 +1,5 @@
 import { Activity, BarChart3, ChevronDown, ListChecks, Tags, Users } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Tabs from '../../../components/shared/Tabs';
 import useTranslation from '../../../hooks/useTranslation';
 import { formatDuration } from '../lib/format';
@@ -8,13 +8,12 @@ import { buildInsightsModel } from '../lib/insightsMetrics';
 import { buildSpeakerColorMap, speakerColor } from '../lib/playerData';
 import FlowTab from './insights/FlowTab';
 import FollowUpTab from './insights/FollowUpTab';
+import type { SeekFn } from './insights/insights.types';
 import OverviewTab from './insights/OverviewTab';
 import PeopleTab from './insights/PeopleTab';
 import { StatChip } from './insights/primitives';
 import TopicsTab from './insights/TopicsTab';
 import type { MeetingNote } from './meetingDetailTypes';
-import type { PlayerSegment } from './player/player.types';
-import type { SeekFn } from './insights/insights.types';
 import type { TranslateParams } from '../../../hooks/useTranslation';
 
 /**

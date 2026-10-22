@@ -9,7 +9,7 @@
  *
  * Commits on blur / Enter / Tab; an empty formula removes itself.
  */
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import useTranslation from '../../hooks/useTranslation';
 import type { AtomNode } from '../react/AtomRenderer';
 

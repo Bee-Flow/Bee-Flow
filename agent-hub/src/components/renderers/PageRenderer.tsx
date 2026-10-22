@@ -1,9 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { renderPageElement } from './pageElementRenderers';
-import PageOverlay from './PageOverlay';
-import { useTranslation } from '../../hooks/useTranslation';
-import type { PageOverlayState } from './PageOverlay';
 import type { PageElement } from './pageElementTypes';
+import PageOverlay from './PageOverlay';
+import type { PageOverlayState } from './PageOverlay';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * PageRenderer - Renders a page/dashboard from JSON definition

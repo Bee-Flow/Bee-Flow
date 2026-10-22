@@ -1,5 +1,5 @@
-import { fillRowTemplate, isFill, spaceSteps } from '../styleResolver';
 import type { NodeStyle } from '../../inspector/appDefinition';
+import { fillRowTemplate, isFill, spaceSteps } from '../styleResolver';
 import type { NodeProps } from './appNode.types';
 
 /**

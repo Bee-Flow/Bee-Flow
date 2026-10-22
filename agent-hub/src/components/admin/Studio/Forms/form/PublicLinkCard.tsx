@@ -1,5 +1,5 @@
 import { Check, ExternalLink, Link2, Loader2, RefreshCw } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import DashCard from '../../../../shared/dashboard/DashCard';

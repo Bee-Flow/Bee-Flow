@@ -2,9 +2,9 @@ import { formatSpeakerLabel } from './format';
 import { buildInteractivity, buildTalkStats, topTopics } from './insightsData';
 import { fuseSpans, mergeTurns, normalizeChapters, segmentSpeakerId } from './playerData';
 import { toSeconds } from './timelineMarkers';
-import type { PlayerSegment } from '../detail/player/player.types';
-import type { TalkSpeaker, TalkStats, Interactivity, FlowStats, TopicsStats, FollowUpStats, InsightsModel, Monologue, PersonStat } from '../detail/insights/insights.types';
+import type { TalkSpeaker, InsightsModel, Monologue, PersonStat } from '../detail/insights/insights.types';
 import type { MeetingNote } from '../detail/meetingDetailTypes';
+import type { PlayerSegment } from '../detail/player/player.types';
 
 /**
  * Derivations for the tabbed Insights panel — everything beyond the original

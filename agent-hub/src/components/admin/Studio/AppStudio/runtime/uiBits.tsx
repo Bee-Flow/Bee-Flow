@@ -1,7 +1,7 @@
 import { useRef } from 'react';
+import type React from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
 import Illustration from '../../../../shared/illustrations';
-import type React from 'react';
 import type { IllustrationName } from '../../../../shared/illustrations';
 
 /**

@@ -2,13 +2,13 @@ import { appendKey, canonicalPath, isValidPath, pathKeys } from '@shared/expr/pa
 import { ChevronDown, FunctionSquare, Search } from 'lucide-react';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { onBindingDragOver, getBindingDropPath } from './bindingDnd';
+import type { Binding } from './itemRefs';
 import useTranslation from '../../../../hooks/useTranslation';
+import type { TranslateParams } from '../../../../hooks/useTranslation';
 import { previewValue } from '../../../../utils/bindingHelpers';
 import AnchoredMenu from '../../../shared/AnchoredMenu';
 import { humanizeFieldKey } from '../flow/displayHelpers';
 import { denseInputClass } from '../flow/settings/formStyles';
-import type { Binding } from './itemRefs';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
 
 /**
  * Pick a data field by its NAME.

@@ -1,13 +1,12 @@
 import { GitBranch, Check, AlertTriangle, FolderGit2 } from 'lucide-react';
-import React from 'react';
 import { GitHubConfigForm } from './GitHubConfigForm';
 import { GitHubRepoCard } from './GitHubRepoCard';
+import type { GitHubSyncConfig } from './githubSync.types';
 import { GitHubSyncActions } from './GitHubSyncActions';
 import { GitHubSyncDetails } from './GitHubSyncDetails';
 import { useGitHubSync } from './useGitHubSync';
-import { useTranslation } from '../../../hooks/useTranslation';
 import type { PermissionUser } from '../../../hooks/usePermissionCheck';
-import type { GitHubSyncConfig } from './githubSync.types';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface GitHubSyncPanelProps {
     user: PermissionUser | null | undefined;

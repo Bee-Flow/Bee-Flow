@@ -1,11 +1,11 @@
 import CellValue, { ALIGN_CLASS, alignFor } from './cellValue';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import { resolveBinding, walkPath } from '../resolveBinding';
+import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
 import { EmptyText, ErrorText, SkeletonLines, useStickyBinding } from '../uiBits';
-import { GridColumn } from './grid/useGridColumns';
-import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
+import { GridColumn } from './grid/useGridColumns';
 
 /**
  * App Studio runtime — 'table'. Spec: server/appStudio/componentSpecs.js.

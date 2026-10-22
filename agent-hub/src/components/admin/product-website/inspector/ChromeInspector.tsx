@@ -1,15 +1,14 @@
-import React from 'react';
 import type { ComponentProps } from 'react';
 import AppIcon from '../../../icons/AppIcon';
-import { HeaderEditor, FooterEditor } from '../editors';
-import CookieBannerEditor from '../CookieBannerEditor';
 import AnnouncementEditor from '../blockEditors/AnnouncementEditor';
+import type { BlockData } from '../blockEditors/shared';
+import CookieBannerEditor from '../CookieBannerEditor';
+import { HeaderEditor, FooterEditor } from '../editors';
+import type { CmsPageOption } from '../fields';
+import type { CmsLocale, CmsSiteDoc } from '../panel/cmsPanelTypes';
 import {
     HEADER_VIRTUAL_ID, FOOTER_VIRTUAL_ID, COOKIE_VIRTUAL_ID, ANNOUNCE_VIRTUAL_ID,
 } from '../sentinels';
-import type { CmsPageOption } from '../fields';
-import type { CmsLocale, CmsSiteDoc } from '../panel/cmsPanelTypes';
-import type { BlockData } from '../blockEditors/shared';
 
 const META: Record<string, { icon: string; title: string; note: string }> = {
     [HEADER_VIRTUAL_ID]: {

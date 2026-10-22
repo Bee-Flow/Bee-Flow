@@ -1,5 +1,5 @@
 import { X, FileText } from 'lucide-react';
-import React, { useId } from 'react';
+import { useId } from 'react';
 import Modal from '../../../components/shared/Modal';
 import useTranslation from '../../../hooks/useTranslation';
 

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { useTranslation } from '../../hooks/useTranslation';
 import { CheckCircle, XCircle, AlertTriangle, Clock, ChevronDown, ChevronRight, Bug, Shield, Zap, Eye } from 'lucide-react';
+import React, { useState } from 'react';
 import MarkdownRenderer from './MarkdownRenderer';
-import type { TestStep, TestCase, TestReportData } from './TestReportRenderer.types';
+import type { TestCase, TestReportData } from './TestReportRenderer.types';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const TestReportRenderer = ({ data }: { data?: TestReportData | null }) => {
     const { t } = useTranslation();

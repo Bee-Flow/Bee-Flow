@@ -1,11 +1,10 @@
 import { ArrowRight, ArrowUpRight, ChevronDown, ChevronUp } from 'lucide-react';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { SyntheticEvent } from 'react';
 import { affectedProjects } from './AffectedProjects';
 import {
     isOpen, otherFrameworkRefs, articleForRegulation, resolveRemediation, formatRunAt, rowKeyOf, subjectLabel,
     type CheckRecord,
-    type FrameworkTag,
 } from './checkSort';
 import { FindingStateChip, type FindingStateView } from './FindingDecision';
 import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
@@ -13,9 +12,9 @@ import { TableRow, TableCell, type TableColumn } from '../../../../shared/DataTa
 import { TONES, toneOfCheckStatus, glyphOfCheckStatus } from '../../../../shared/statusTone';
 import { sectionById } from '../../sections';
 import ArticleRef, { formatArticleRef, formatRef } from '../../shared/ArticleRef';
+import type { DateLike } from '../../shared/formatDates';
 import SeverityTag from '../../shared/SeverityTag';
 import VerificationChip from '../../shared/VerificationChip';
-import type { DateLike } from '../../shared/formatDates';
 
 /**
  * CheckRow — one check in the framework table (artboard 1b).

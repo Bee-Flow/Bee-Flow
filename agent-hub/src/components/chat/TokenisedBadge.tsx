@@ -42,10 +42,10 @@
  *      profielmenu leesbaar blijft boven een wallpaper.
  */
 
-import React, { useRef, useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
-import AnchoredMenu from '../shared/AnchoredMenu';
+import { useRef, useState } from 'react';
 import { interpolate, type TranslateParams } from '../../hooks/useTranslation';
+import AnchoredMenu from '../shared/AnchoredMenu';
 
 /** Het chiprecept uit index.css: tint als vlak, -ink als tekst, 40% als rand. */
 const WARN_TINT = 'color-mix(in srgb, var(--warning) 14%, transparent)';

@@ -2,10 +2,9 @@ import { NodeResizer } from '@xyflow/react';
 import { StickyNote } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNodeRuntime } from '../NodeRuntimeContext';
+import type { NodeStep, StepNodeData } from './nodeProps';
 import { renderNoteText } from './noteRichText';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import type { Position } from '../../build/addStepModel';
-import type { NodeStep, StepIssues, StepNodeData } from './nodeProps';
 
 /**
  * A free-floating canvas annotation (BFSF-411) — sticky-note text tied to a

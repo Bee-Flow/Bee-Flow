@@ -1,10 +1,10 @@
 import { Loader2, MessageCircleQuestion, X } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { knowledgeApi } from './knowledgeApi';
 import useTranslation from '../../../../hooks/useTranslation';
+import type { TranslateParams } from '../../../../hooks/useTranslation';
 import CitationChips from '../../../../pages/documents/notebook/CitationChips';
 import RelevanceBar from '../../../shared/RelevanceBar';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
 
 /**
  * "Testvraag" — ask this knowledge base something and see WHICH source
