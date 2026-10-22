@@ -25,6 +25,9 @@ const isTestOrJs = (f) => /\.(test|spec)\.[jt]sx?$/.test(f) || /\.[cm]?jsx?$/.te
 
 export function nameNodeOf(ts, fn) {
     if ((ts.isFunctionDeclaration(fn) || ts.isFunctionExpression(fn)) && fn.name) return fn.name;
+    // A class's constructor is called as `new Name(...)`; a method as `x.name(...)`.
+    if (ts.isConstructorDeclaration(fn)) return fn.parent.name || null;
+    if (ts.isMethodDeclaration(fn) && ts.isIdentifier(fn.name)) return fn.name;
     let n = fn.parent;
     // memo(...), forwardRef(...), memo(forwardRef(...))
     while (n && ts.isCallExpression(n) && /^(React\.)?(memo|forwardRef|useCallback)$/.test(n.expression.getText())) n = n.parent;
@@ -41,9 +44,10 @@ export function nameNodeOf(ts, fn) {
 export function functionKeys(ts, sf) {
     const keys = new Map(); const seen = new Map();
     const visit = (n) => {
-        if (ts.isFunctionDeclaration(n) || ts.isArrowFunction(n) || ts.isFunctionExpression(n)) {
+        if (ts.isFunctionDeclaration(n) || ts.isArrowFunction(n) || ts.isFunctionExpression(n) || ts.isConstructorDeclaration(n) || ts.isMethodDeclaration(n)) {
             const nn = nameNodeOf(ts, n);
-            if (nn) { const c = seen.get(nn.text) || 0; seen.set(nn.text, c + 1); keys.set(n, `${nn.text}#${c}`); }
+            const name = nn && (ts.isConstructorDeclaration(n) ? `${nn.text}.constructor` : ts.isMethodDeclaration(n) && n.parent.name ? `${n.parent.name.text}.${nn.text}` : nn.text);
+            if (name) { const c = seen.get(name) || 0; seen.set(name, c + 1); keys.set(n, `${name}#${c}`); }
         }
         ts.forEachChild(n, visit);
     };
@@ -87,6 +91,12 @@ function unionText(ts, checker, types, enclosing, file, imports) {
     const printed = printType(ts, checker, u, enclosing, file, imports);
     if (!printed) return null;
     const { text, local } = printed;
+    // agent-hub's layer direction (lint:import-zones-ratchet): api/ and hooks/
+    // never import from components/ or pages/, components/ never from pages/.
+    // A type that would need such an import is not written.
+    const layer = (f) => (/\/src\/(api|hooks)\//.test(f) ? 0 : /\/src\/components\//.test(f) ? 1 : /\/src\/pages\//.test(f) ? 2 : -1);
+    const from = layer(file);
+    if (from >= 0 && local.some(([, spec]) => spec && spec.startsWith('.') && layer(path.resolve(path.dirname(file), spec)) > from)) { unionText.why = 'needs an import against the layer direction'; return null; }
     if (/\bany\b|\bunknown\b|\bnever\b|import\(|typeof import|\.\.\.\s*args|\bthis\b/.test(text) || text.length > MAX_TYPE) { unionText.why = text.slice(0, 200); return null; }
     return { text, local };
 }
@@ -175,7 +185,7 @@ function sitesOf(ts, checker, refs) {
             sites.push({ kind: 'jsx', attrs, spread, children });
             continue;
         }
-        if (ts.isCallExpression(p) && p.expression === n) { sites.push({ kind: 'args', types: p.arguments.map((a) => (ts.isSpreadElement(a) ? null : checker.getTypeAtLocation(a))) }); continue; }
+        if ((ts.isCallExpression(p) || ts.isNewExpression(p)) && p.expression === n) { sites.push({ kind: 'args', types: (p.arguments || []).map((a) => (ts.isSpreadElement(a) ? null : checker.getTypeAtLocation(a))) }); continue; }
         if (ts.isImportSpecifier(p) || ts.isImportClause(p) || ts.isExportSpecifier(p) || ts.isExportAssignment(p) || ts.isShorthandPropertyAssignment(p) && false) continue;
         // Passed as a value: the expected signature tells the parameter types.
         if (ts.isExpression(n)) {
@@ -259,6 +269,18 @@ function consumerTypes(ts, service, program, checker, nameNode, depth = 0) {
             break;
         }
         const p = n.parent; if (!p) continue;
+        // items.map((item) => <Row item={item} />): what each element is handed
+        // to says what the array holds.
+        if (ts.isPropertyAccessExpression(p) && p.expression === n && /^(map|forEach|filter|find|findLast|some|every|flatMap|findIndex)$/.test(p.name.text)
+            && ts.isCallExpression(p.parent) && p.parent.expression === p) {
+            const cb = p.parent.arguments[0];
+            const el = cb && (ts.isArrowFunction(cb) || ts.isFunctionExpression(cb)) && cb.parameters[0];
+            if (el && !el.type && ts.isIdentifier(el.name) && depth < 4) {
+                const inner = mostSpecific(ts, checker, consumerTypes(ts, service, program, checker, el.name, depth + 1));
+                if (inner) out.push(checker.createArrayType(inner));
+            }
+            continue;
+        }
         const handedOn = (ts.isJsxExpression(p) && ts.isJsxAttribute(p.parent))
             || (ts.isCallExpression(p) && p.expression !== n) || ts.isNewExpression(p)
             || (ts.isPropertyAssignment(p) && p.initializer === n) || ts.isShorthandPropertyAssignment(p)
@@ -420,6 +442,8 @@ function inferHooks(ts, service, program, checker, sf, abs, report, edits, impor
                         // An updater: its return type, unless it is built from the untyped prev.
                         const sig = checker.getSignatureFromDeclaration(a);
                         if (sig) types.push(checker.getReturnTypeOfSignature(sig));
+                    } else if (ts.isPropertyAccessExpression(a) && a.name.text === 'message' && checker.getTypeAtLocation(a).flags & ts.TypeFlags.Any) {
+                        types.push(checker.getStringType()); // setError(err.message): an error message is a string
                     } else types.push(checker.getTypeAtLocation(a));
                 } else if (ts.isExpression(node)) {
                     const ct = checker.getContextualType(node);
@@ -603,6 +627,8 @@ function namedFor(ts, program, sf, abs, imports, declaredHere) {
             }
         }
         if (!best || tie || declaredHere.has(best.name) && !imports.has(best.name)) return null;
+        const layer = (f) => (/\/src\/(api|hooks)\//.test(f) ? 0 : /\/src\/components\//.test(f) ? 1 : /\/src\/pages\//.test(f) ? 2 : -1);
+        if (layer(abs) >= 0 && layer(best.file) > layer(abs)) return null; // against the layer direction
         let spec = path.relative(path.dirname(abs), best.file).replace(/\\/g, '/').replace(/\.tsx?$/, '').replace(/\/index$/, '');
         if (!spec.startsWith('.')) spec = `./${spec}`;
         imports.set(best.name, spec);
@@ -620,6 +646,150 @@ function observedText(observed, key, slot, named) {
     return { text, local: text.includes('React.') ? [['React', null]] : [], optional: !!opts.optional };
 }
 
+/**
+ * `const out = { views: 0 }; out.rate = 1.5;` and `const byId = {}; byId[k] = v;`:
+ * a JS object grown after its literal. TypeScript closes the literal's type, so
+ * it gets the whole shape: the literal's members plus each later one as
+ * optional, or Record<string, T> for an empty literal filled by key.
+ */
+function inferExpandos(ts, checker, sf, abs, imports, edits, report) {
+    const decls = [];
+    const visit = (n) => {
+        if (ts.isVariableDeclaration(n) && !n.type && ts.isIdentifier(n.name) && n.initializer && ts.isObjectLiteralExpression(n.initializer)) decls.push(n);
+        ts.forEachChild(n, visit);
+    };
+    visit(sf);
+    for (const d of decls) {
+        const sym = checker.getSymbolAtLocation(d.name); if (!sym) continue;
+        let scope = d; while (scope.parent && !ts.isBlock(scope) && !ts.isSourceFile(scope)) scope = scope.parent;
+        const lit = d.initializer;
+        const own = new Set();
+        let ok = true;
+        for (const p of lit.properties) {
+            if ((ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) own.add(p.name.text);
+            else ok = false;
+        }
+        if (!ok) continue;
+        const extra = new Map(); const keyed = []; let other = false;
+        const walk = (n) => {
+            if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
+                const l = n.left;
+                if (ts.isPropertyAccessExpression(l) && ts.isIdentifier(l.expression) && checker.getSymbolAtLocation(l.expression) === sym && !own.has(l.name.text)) {
+                    if (!extra.has(l.name.text)) extra.set(l.name.text, []);
+                    extra.get(l.name.text).push(checker.getTypeAtLocation(n.right));
+                } else if (ts.isElementAccessExpression(l) && ts.isIdentifier(l.expression) && checker.getSymbolAtLocation(l.expression) === sym) {
+                    if (ts.isStringLiteral(l.argumentExpression)) { if (!own.has(l.argumentExpression.text)) { if (!extra.has(l.argumentExpression.text)) extra.set(l.argumentExpression.text, []); extra.get(l.argumentExpression.text).push(checker.getTypeAtLocation(n.right)); } } else keyed.push(n);
+                }
+            }
+            if (ts.isDeleteExpression(n)) other = true;
+            ts.forEachChild(n, walk);
+        };
+        walk(scope);
+        if (other || !extra.size && !keyed.length) continue;
+        const label = `object ${d.name.text}`;
+        let text = null; const local = [];
+        if (keyed.length && !own.size && !extra.size) {
+            // Filled by computed key only: Record<string, T>.
+            const keyTypes = keyed.map((n) => checker.getTypeAtLocation(n.left.argumentExpression));
+            if (!keyTypes.every((t) => t.flags & (ts.TypeFlags.StringLike | ts.TypeFlags.NumberLike))) { report.push(`${label}: key not a string`); continue; }
+            const t = unionText(ts, checker, keyed.map((n) => checker.getTypeAtLocation(n.right)), d, abs, imports);
+            if (!t) { report.push(`${label}: value type not writable`); continue; }
+            text = `Record<string, ${t.text}>`; local.push(...t.local);
+        } else if (!keyed.length) {
+            const members = [];
+            for (const p of lit.properties) {
+                const t = unionText(ts, checker, [checker.getTypeAtLocation(ts.isPropertyAssignment(p) ? p.initializer : p.name)], d, abs, imports);
+                if (!t) { ok = false; break; }
+                members.push(`${IDENT_RE.test(p.name.text) ? p.name.text : JSON.stringify(p.name.text)}: ${t.text}`); local.push(...t.local);
+            }
+            for (const [k, types] of extra) {
+                const t = ok && unionText(ts, checker, types, d, abs, imports);
+                if (!t) { ok = false; break; }
+                members.push(`${IDENT_RE.test(k) ? k : JSON.stringify(k)}?: ${t.text}`); local.push(...t.local);
+            }
+            if (!ok) { report.push(`${label}: a member type not writable`); continue; }
+            text = `{ ${members.join('; ')} }`;
+        } else { report.push(`${label}: named and computed members mixed`); continue; }
+        if (text.length > 2 * MAX_TYPE) { report.push(`${label}: shape too long`); continue; }
+        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: ${text}` });
+        for (const l of local) imports.set(l[0], l[1]);
+        report.push(`${label}: ${text}`);
+    }
+}
+const IDENT_RE = /^[A-Za-z_$][\w$]*$/;
+
+/**
+ * Patterns the agents fixed by hand in the first wave, done by the tooling:
+ *  - a lookup table read with a computed key (`LABELS[kind]`) is
+ *    `Record<string, T>` (unless something takes `typeof`/`keyof` of it);
+ *  - `catch (e) { ... e.message }`: `(e as Error).message` for message/name/stack;
+ *  - `let ro = null; ... ro = new ResizeObserver(...)`: the union of what is
+ *    assigned, null included.
+ */
+function inferLearned(ts, checker, sf, abs, imports, edits, report) {
+    const consts = []; const lets = []; const catches = [];
+    const visit = (n) => {
+        if (ts.isVariableDeclaration(n) && !n.type && ts.isIdentifier(n.name) && n.initializer) {
+            const flags = n.parent && n.parent.flags;
+            if (ts.isObjectLiteralExpression(n.initializer) && n.initializer.properties.length && flags & ts.NodeFlags.Const) consts.push(n);
+            if (!(flags & ts.NodeFlags.Const) && isEmptyInit(ts, n.initializer) && n.initializer.kind === ts.SyntaxKind.NullKeyword) lets.push(n);
+        }
+        if (ts.isVariableDeclaration(n) && !n.type && ts.isIdentifier(n.name) && !n.initializer && n.parent && !(n.parent.flags & ts.NodeFlags.Const) && ts.isVariableDeclarationList(n.parent) && !ts.isForInStatement(n.parent.parent) && !ts.isForOfStatement(n.parent.parent)) lets.push(n);
+        if (ts.isCatchClause(n) && n.variableDeclaration && ts.isIdentifier(n.variableDeclaration.name) && !n.variableDeclaration.type) catches.push(n);
+        ts.forEachChild(n, visit);
+    };
+    visit(sf);
+    const refsIn = (scope, sym) => {
+        const out = [];
+        const walk = (n) => { if (ts.isIdentifier(n) && checker.getSymbolAtLocation(n) === sym) out.push(n); ts.forEachChild(n, walk); };
+        walk(scope);
+        return out;
+    };
+    for (const d of consts) {
+        const sym = checker.getSymbolAtLocation(d.name); if (!sym) continue;
+        const refs = refsIn(sf, sym).filter((r) => r !== d.name);
+        const computed = refs.some((r) => ts.isElementAccessExpression(r.parent) && r.parent.expression === r && !ts.isStringLiteralLike(r.parent.argumentExpression) && !ts.isNumericLiteral(r.parent.argumentExpression));
+        if (!computed) continue;
+        if (refs.some((r) => ts.isTypeQueryNode(r.parent) || ts.isTypeOfExpression(r.parent) && false)) continue;
+        const exported = d.parent.parent && ts.isVariableStatement(d.parent.parent) && d.parent.parent.modifiers && d.parent.parent.modifiers.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+        if (exported) continue; // other files may rely on its literal keys
+        const props = d.initializer.properties;
+        if (!props.every((p) => ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p))) continue;
+        const t = unionText(ts, checker, props.map((p) => checker.getTypeAtLocation(ts.isPropertyAssignment(p) ? p.initializer : p.name)), d, abs, imports);
+        if (!t) { report.push(`lookup ${d.name.text}: value type not writable`); continue; }
+        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: Record<string, ${t.text}>` });
+        for (const l of t.local) imports.set(l[0], l[1]);
+        report.push(`lookup ${d.name.text}: Record<string, ${t.text}>`);
+    }
+    for (const c of catches) {
+        const v = c.variableDeclaration.name; const sym = checker.getSymbolAtLocation(v); if (!sym) continue;
+        for (const r of refsIn(c.block, sym)) {
+            const p = r.parent;
+            if (ts.isPropertyAccessExpression(p) && p.expression === r && /^(message|name|stack)$/.test(p.name.text)) {
+                edits.push({ start: r.getStart(sf), end: r.getStart(sf), text: '(' });
+                edits.push({ start: r.getEnd(), end: r.getEnd(), text: ' as Error)' });
+            }
+        }
+    }
+    for (const d of lets) {
+        const sym = checker.getSymbolAtLocation(d.name); if (!sym) continue;
+        let scope = d; while (scope.parent && !ts.isBlock(scope) && !ts.isSourceFile(scope)) scope = scope.parent;
+        const types = [];
+        for (const r of refsIn(scope, sym)) {
+            const p = r.parent;
+            if (ts.isBinaryExpression(p) && p.left === r && p.operatorToken.kind === ts.SyntaxKind.EqualsToken) types.push(checker.getTypeAtLocation(p.right));
+        }
+        const useful = types.filter((t) => !(t.flags & (ts.TypeFlags.Any | ts.TypeFlags.Null | ts.TypeFlags.Undefined)));
+        if (!useful.length) continue;
+        if (d.initializer) useful.push(checker.getNullType());
+        const t = unionText(ts, checker, useful, d, abs, imports);
+        if (!t) continue;
+        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: ${t.text}` });
+        for (const l of t.local) imports.set(l[0], l[1]);
+        report.push(`let ${d.name.text}: ${t.text}`);
+    }
+}
+
 /** Edits for one file: [{ start, end, text }]; plus imports to add. */
 export function inferFile(ts, service, abs, observed = null, banned = new Set()) {
     const program = service.getProgram(); const checker = program.getTypeChecker();
@@ -629,7 +799,7 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
     sf.forEachChild((s) => { if (ts.isInterfaceDeclaration(s) || ts.isTypeAliasDeclaration(s)) declared.add(s.name.text); });
     const fns = [];
     const visit = (n) => {
-        if ((ts.isFunctionDeclaration(n) || ts.isArrowFunction(n) || ts.isFunctionExpression(n)) && n.parameters.some((p) => !p.type)) fns.push(n);
+        if ((ts.isFunctionDeclaration(n) || ts.isArrowFunction(n) || ts.isFunctionExpression(n) || ts.isConstructorDeclaration(n) || ts.isMethodDeclaration(n)) && n.parameters.some((p) => !p.type)) fns.push(n);
         ts.forEachChild(n, visit);
     };
     visit(sf);
@@ -639,6 +809,8 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
     const fkeys = functionKeys(ts, sf);
     const allowed = (slot, source) => !banned.has(`${slot}|${source}`);
     inferHooks(ts, service, program, checker, sf, abs, report, edits, imports, observed, named, { fkeys, allowed, chosen });
+    inferExpandos(ts, checker, sf, abs, imports, edits, report);
+    inferLearned(ts, checker, sf, abs, imports, edits, report);
     for (const fn of fns) {
         const nameNode = nameNodeOf(ts, fn);
         if (!nameNode) continue; // inline callbacks: contextually typed, or the codefix pass takes them
@@ -651,7 +823,7 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
         if (!usable) report.push(`${fname}: ${sites.length ? `${opaque} opaque use(s)` : 'no typed call site'}`);
         const local = [];
         const first = fn.parameters[0];
-        const isComponent = /^[A-Z]/.test(fname) && first && !first.type && ts.isObjectBindingPattern(first.name) && (!usable || sites.every((s) => s.kind === 'jsx'));
+        const isComponent = /^[A-Z]/.test(fname) && !ts.isConstructorDeclaration(fn) && !ts.isMethodDeclaration(fn) && first && !first.type && ts.isObjectBindingPattern(first.name) && (!usable || sites.every((s) => s.kind === 'jsx'));
         // A function taking one options object (`useData({ user, onError })`,
         // `span({ dx } = {})`) is typed the same way: an interface per binding.
         const isOptions = !isComponent && first && !first.type && ts.isObjectBindingPattern(first.name);
@@ -723,7 +895,10 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
             if (p.type || p.dotDotDotToken || !ts.isIdentifier(p.name)) return;
             const types = []; let missing = !!p.initializer || !!p.questionToken;
             const slot = `${fkeys.get(fn)}|#${i}`; let source = 'call';
-            if (usable && allowed(slot, 'call') && sites.every((s) => s.kind === 'args')) for (const s of sites) {
+            // A site that only hands the function on (onRowClick={fn}) gives the receiver's
+            // expectation, a lower bound like any demand: it is checked as one.
+            if (usable && sites.every((s) => s.kind === 'args') && sites.every((s) => s.contextual)) source = 'demand';
+            if (usable && allowed(slot, source) && sites.every((s) => s.kind === 'args')) for (const s of sites) {
                 if (i < s.types.length && s.types[i]) types.push(s.types[i]);
                 else if (!s.contextual) missing = true;
             }
@@ -775,7 +950,10 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
         if (have.has(name)) continue;
         if (name === 'React' && spec === null) { add.push(`import type React from 'react';`); continue; }
         if (!spec) return { edits: [], chosen: [], report: [...report, `import for ${name} unknown: file refused`] };
-        add.push(`import type { ${name} } from '${spec}';`);
+        // One `import type` line per module, not per name.
+        const same = add.findIndex((l) => l.endsWith(` from '${spec}';`) && l.startsWith('import type { '));
+        if (same >= 0) add[same] = add[same].replace(/ \} from /, `, ${name} } from `);
+        else add.push(`import type { ${name} } from '${spec}';`);
     }
     if (add.length) {
         const lastImport = [...sf.statements].reverse().find((s) => ts.isImportDeclaration(s));

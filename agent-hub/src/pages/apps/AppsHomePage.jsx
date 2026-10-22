@@ -60,7 +60,7 @@ function accentTile(accentColor) {
 // person, which internal tools they open and when — an attendance log by
 // accident. In a privacy product that question gets asked out loud before it
 // gets built, so this half of the feature stays on the device, in per-user
-// scoped storage, exactly as `utils/formRecents.js` argues for forms.
+// scoped storage, exactly as `utils/formRecents.ts` argues for forms.
 //
 // The one thing this deliberately does NOT copy from formRecents: that helper
 // falls back to publication date so the sidebar always has five forms to show.

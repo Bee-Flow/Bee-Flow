@@ -216,7 +216,7 @@ async function fakeRecordFor(username) {
 /**
  * A wrapped-DEK blob of the right shape for an account that does not exist.
  * Returning null here instead would re-open the oracle one field further in:
- * the client reads {iv, authTag, data} hex (see agent-hub/src/lib/opaque.js
+ * the client reads {iv, authTag, data} hex (see agent-hub/src/lib/opaque.ts
  * wrapDEK), so absence has to look like presence at this level too.
  */
 function fakeWrappedDEK(username, context) {

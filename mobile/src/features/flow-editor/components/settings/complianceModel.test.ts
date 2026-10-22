@@ -15,7 +15,7 @@ const t = (_key: string, fallback: string, params?: Record<string, unknown>) =>
     fallback.replace(/\{(\w+)\}/g, (_, k: string) => String(params?.[k] ?? ''));
 
 const WEB = fs.readFileSync(
-    path.resolve(__dirname, '../../../../../../agent-hub/src/components/admin/compliance/ladder/ComplianceBlock.jsx'),
+    path.resolve(__dirname, '../../../../../../agent-hub/src/components/admin/compliance/ladder/ComplianceBlock.tsx'),
     'utf8',
 );
 

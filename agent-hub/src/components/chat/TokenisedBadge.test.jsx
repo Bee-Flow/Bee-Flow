@@ -78,7 +78,7 @@ describe('TokenisedBadge — C7: geen redactieclaim meer in deze component', () 
         // De pil verfde zich met rgba(217,119,6,…) en rgb(180,83,9): één vaste
         // lichte amber voor twaalf thema's. Een hex of rgb() in de bron is het
         // bewijs dat er weer een kleur buiten index.css om is gekozen.
-        const src = fs.readFileSync(path.join(HERE, 'TokenisedBadge.jsx'), 'utf8')
+        const src = fs.readFileSync(path.join(HERE, 'TokenisedBadge.tsx'), 'utf8')
             .replace(/\/\*[\s\S]*?\*\//g, '')
             .replace(/^[ \t]*\/\/.*$/gm, '');
         expect(src).not.toMatch(/rgba?\(/);

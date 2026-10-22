@@ -223,7 +223,7 @@ describe('node files — no private colour vocabularies remain', () => {
     const BANNED = /\b(?:border|bg|text|ring)-(?:emerald|red|amber|cyan|sky|blue|green|rose)-\d{3}\b/;
 
     for (const f of files) {
-        if (f === 'NoteNode.jsx' || f === 'AiToolNode.tsx' || f === 'LoopItemNode.tsx' || f === 'GroupNode.tsx' || f === 'IntegrationLogo.tsx') continue;
+        if (f === 'NoteNode.tsx' || f === 'AiToolNode.tsx' || f === 'LoopItemNode.tsx' || f === 'GroupNode.tsx' || f === 'IntegrationLogo.tsx') continue;
         it(`${f} paints with tokens only`, () => {
             const src = fs.readFileSync(path.join(dir, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
             expect(src).not.toMatch(BANNED);

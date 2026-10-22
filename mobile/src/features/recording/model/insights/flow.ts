@@ -1,7 +1,7 @@
 /**
  * Delivery, airtime, hand-offs, dead air, monologues, topic ownership and tag
  * mentions — the first half of a port of
- * agent-hub/src/pages/meeting-notes/lib/insightsMetrics.js (model.ts holds
+ * agent-hub/src/pages/meeting-notes/lib/insightsMetrics.ts (model.ts holds
  * the follow-up stats and the model builder), pinned to it by
  * insights.lockstep.test.ts.
  *

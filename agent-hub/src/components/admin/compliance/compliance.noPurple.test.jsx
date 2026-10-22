@@ -93,7 +93,7 @@ describe('Compliance Center — no purple, no raw hex', () => {
 
     it('the scan sees the tree', () => {
         expect(files.length).toBeGreaterThan(10);
-        expect(files.some(f => f.rel === 'sections.js')).toBe(true);
+        expect(files.some(f => f.rel === 'sections.ts')).toBe(true);
     });
 
     it('no forbidden colour word or hex outside the shrinking legacy list', () => {

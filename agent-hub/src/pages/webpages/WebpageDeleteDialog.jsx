@@ -23,7 +23,7 @@ import useUsage from '../../hooks/useUsage';
  * That deleting does NOT stop any of it. Nothing below is told; what points
  * at this page keeps pointing at a page that is gone, and what lives on the
  * page goes with it. The same sentence the agent delete owes its reader
- * (`components/agents/AgentStudio/DeleteBlockedNotice.jsx`), for the same
+ * (`components/agents/AgentStudio/DeleteBlockedNotice.tsx`), for the same
  * reason: somebody about to press a red button is owed it.
  *
  * ── "IN USE" AND "COULD NOT CHECK" ARE DIFFERENT ANSWERS ────────────

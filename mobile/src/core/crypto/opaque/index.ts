@@ -10,7 +10,7 @@
  * WASM, no native modules, no WebCrypto.
  *
  * The public surface deliberately mirrors @serenity-kit/opaque's `client`
- * namespace so call sites read like the web client's `agent-hub/src/lib/opaque.js`.
+ * namespace so call sites read like the web client's `agent-hub/src/lib/opaque.ts`.
  * All values are base64url without padding, which is what the reference library
  * emits and the only encoding it accepts (see `serde.ts`).
  *
@@ -308,7 +308,7 @@ function loginFinish(
     if (!recovered) {
         // Wrong password. The reference client signals this by returning
         // `undefined`; we return `null` and never throw, which is what
-        // `agent-hub/src/lib/opaque.js` and the mobile call sites rely on.
+        // `agent-hub/src/lib/opaque.ts` and the mobile call sites rely on.
         wipe(context.ephemeralPrivateKey);
         return null;
     }

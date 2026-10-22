@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
-import FormulaView from './FormulaView.jsx';
+import FormulaView from './FormulaView';
 
 /** Minimal EditorView stand-in exposing just the bridge FormulaView uses. */
 function fakeView() {

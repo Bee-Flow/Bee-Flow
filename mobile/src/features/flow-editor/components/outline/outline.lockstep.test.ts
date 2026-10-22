@@ -109,7 +109,7 @@ describe('the card glyphs', () => {
     });
 
     it('draws the datatable operations, the trigger kinds and the app events as TriggerNode and DatatableNode do', () => {
-        const table = read('nodes/DatatableNode.jsx');
+        const table = read('nodes/DatatableNode.tsx');
         for (const [op, icon] of Object.entries(DATATABLE_OP_ICON)) expect(table).toMatch(new RegExp(`${op}: ${icon},`));
         const trigger = read('nodes/TriggerNode.tsx');
         for (const [kind, icon] of Object.entries(TRIGGER_ICON)) expect(trigger).toMatch(new RegExp(`${kind}:\\s+${icon},`));

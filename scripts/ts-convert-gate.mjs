@@ -2,7 +2,7 @@
 // The gate after scripts/ts-convert-codefix.mjs has converted files in the
 // working tree: only what is green in every respect stays TypeScript.
 //
-//   node scripts/ts-convert-gate.mjs --result run.json [--report open.json]
+//   node scripts/ts-convert-gate.mjs --result run.json [--report open.json] [--changes-report changes.json] [--report-only]
 //
 // run.json is the converter's output ({ files: [{ file, target }] }). Loop:
 //   1. agent-hub's typecheck (tsc 7, the project tsconfig). A converted file
@@ -19,6 +19,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { createRequire } from 'node:module';
+
 import { compile } from './ts-equivalence.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -32,9 +34,40 @@ export function parseTsc(out) {
     return errs;
 }
 
+/**
+ * Constructs the conversion rules forbid, found in `source` (a converted file):
+ * `any`, `as unknown as`, `as never` (assignable to everything, an `any` in
+ * disguise), `Function`, ts-comments, non-null `!`, eslint-disable comments
+ * that the old JavaScript did not have.
+ */
+export function forbidden(ts, source, before = '') {
+    const out = [];
+    const sf = ts.createSourceFile('x.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const visit = (n) => {
+        if (n.kind === ts.SyntaxKind.AnyKeyword) out.push('any');
+        if (ts.isNonNullExpression(n)) out.push('non-null !');
+        if (ts.isAsExpression(n)) {
+            // `as never`, `as never[]`, `as Foo<never>`: never is assignable to everything.
+            let hasNever = false;
+            const walkType = (t) => { if (t.kind === ts.SyntaxKind.NeverKeyword) hasNever = true; ts.forEachChild(t, walkType); };
+            walkType(n.type);
+            if (hasNever) out.push('as never');
+        }
+        if (ts.isAsExpression(n) && n.type.kind === ts.SyntaxKind.UnknownKeyword && ts.isAsExpression(n.parent)) out.push('as unknown as');
+        if (ts.isTypeReferenceNode(n) && n.typeName.getText(sf) === 'Function') out.push('Function');
+        ts.forEachChild(n, visit);
+    };
+    visit(sf);
+    for (const m of source.matchAll(/@ts-(ignore|expect-error|nocheck)|eslint-disable[^\n]*/g)) if (!before.includes(m[0])) out.push(m[0]);
+    return [...new Set(out)];
+}
+
 function typecheck() {
     const r = spawnSync(process.execPath, [path.join(HUB, 'node_modules', 'typescript-7', 'bin', 'tsc'), '--noEmit', '--pretty', 'false'], { cwd: HUB, encoding: 'utf8', maxBuffer: 1 << 28 });
-    return parseTsc(`${r.stdout}\n${r.stderr}`);
+    const errs = parseTsc(`${r.stdout}\n${r.stderr}`);
+    // A killed tsc (out of memory) prints nothing: that is not a green run.
+    if (r.status !== 0 && !errs.length) throw new Error(`typecheck did not finish (status ${r.status}, signal ${r.signal}): not treated as green`);
+    return errs;
 }
 
 /** Relative imports of a source file, resolved against `candidates` (paths relative to agent-hub). */
@@ -57,28 +90,45 @@ function arg(name, fallback) { const i = process.argv.indexOf(name); return i ==
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const result = JSON.parse(fs.readFileSync(arg('--result'), 'utf8'));
+    const changesReport = arg('--changes-report');
+    const reportOnly = process.argv.includes('--report-only');
     let kept = result.files.filter((f) => fs.existsSync(path.join(HUB, f.target)));
     const back = new Map(); // target -> { file, target, reason, errors }
     for (let round = 1; ; round++) {
         const errs = typecheck();
         const byTarget = new Map(kept.map((k) => [k.target, k]));
-        const bad = new Map();
+        const bad = new Map(); let unattributed = 0;
         for (const e of errs) {
             if (byTarget.has(e.file)) { const b = bad.get(e.file) || { reason: 'typecheck', errors: [] }; b.errors.push(e); bad.set(e.file, b); continue; }
             // An error elsewhere: the converted files it imports caused it.
             const blame = importsOf(e.file, [...byTarget.keys()]);
             for (const t of blame) { const b = bad.get(t) || { reason: 'breaks an importer', errors: [] }; b.errors.push(e); bad.set(t, b); }
-            if (!blame.length) console.error(`gate: unattributed error ${e.file}(${e.line}) ${e.code}`);
+            if (!blame.length) { console.error(`gate: unattributed error ${e.file}(${e.line}) ${e.code}`); unattributed++; }
         }
+        // An error nobody can be blamed for is still an error: never call that green.
+        if (!bad.size && unattributed) throw new Error(`gate: ${unattributed} typecheck error(s) not caused by a converted file it can name; fix or revert by hand`);
         if (!bad.size) {
-            // Typecheck green: now the compiled program must be unchanged.
+            // Typecheck green: now no forbidden construct, and the compiled program unchanged.
+            const ts = createRequire(path.join(HUB, 'package.json'))('typescript');
             for (const k of kept) {
+                const f = forbidden(ts, fs.readFileSync(path.join(HUB, k.target), 'utf8'), git('show', `HEAD:agent-hub/${k.file}`));
+                if (f.length) bad.set(k.target, { reason: `forbidden: ${f.join(', ')}`, errors: [] });
+            }
+            const changes = [];
+            for (const k of kept) {
+                if (bad.has(k.target)) continue;
                 const a = await compile(git('show', `HEAD:agent-hub/${k.file}`));
                 const b = await compile(fs.readFileSync(path.join(HUB, k.target), 'utf8'));
-                if (a.length !== b.length || a.some((l, i) => l !== b[i])) bad.set(k.target, { reason: 'compiled JavaScript differs', errors: [] });
+                if (a.length === b.length && a.every((l, i) => l === b[i])) continue;
+                // --changes-report: code changes are allowed but every one is written
+                // down (removed and added compiled lines) for review; otherwise back.
+                if (changesReport) { const sa = new Set(a), sb = new Set(b); changes.push({ file: k.file, target: k.target, removed: a.filter((l) => !sb.has(l)), added: b.filter((l) => !sa.has(l)) }); }
+                else bad.set(k.target, { reason: 'compiled JavaScript differs', errors: [] });
             }
+            if (changesReport) fs.writeFileSync(changesReport, JSON.stringify(changes, null, 1));
             if (!bad.size) { console.error(`gate: round ${round}: green, ${kept.length} files stay TypeScript`); break; }
         }
+        if (reportOnly) { for (const [t, b] of bad) back.set(t, { ...byTarget.get(t), ...b }); console.error(`gate: report only: ${bad.size} would go back`); break; }
         for (const [t, b] of bad) { const k = byTarget.get(t); sendBack(k); back.set(t, { ...k, ...b }); }
         kept = kept.filter((k) => !bad.has(k.target));
         console.error(`gate: round ${round}: ${bad.size} sent back, ${kept.length} left`);

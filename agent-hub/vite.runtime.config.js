@@ -7,7 +7,7 @@ import { defineConfig } from 'vite'
  * Headless App Studio runtime — a LIBRARY build, not another app build.
  *
  * `npm run build:runtime` emits dist-runtime/app-runtime.{mjs,css}: the App
- * Studio renderer (src/appRuntimeHeadless.jsx) as ONE self-contained ESM file
+ * Studio renderer (src/appRuntimeHeadless.tsx) as ONE self-contained ESM file
  * plus its compiled CSS. The consumer is server/services/appStudioRender.js,
  * which serves both files into a Playwright page that has NO NETWORK — hence
  * no externals, no CDN, no import map: react, recharts, lucide-react,
@@ -100,7 +100,7 @@ export default defineConfig(() => {
             // exactly two files.
             cssCodeSplit: false,
             lib: {
-                entry: path.resolve(import.meta.dirname, 'src/appRuntimeHeadless.jsx'),
+                entry: path.resolve(import.meta.dirname, 'src/appRuntimeHeadless.tsx'),
                 formats: ['es'],
                 fileName: () => 'app-runtime.mjs',
                 cssFileName: 'app-runtime',

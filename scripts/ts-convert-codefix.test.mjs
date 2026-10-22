@@ -18,7 +18,8 @@ test('a quick fix that writes any, Function or a ts- comment is refused', () => 
 });
 
 test('.jsx becomes .tsx; .js becomes .tsx only when it holds JSX', () => {
-    assert.equal(targetName('src/A.jsx', ''), 'src/A.tsx');
+    assert.equal(targetName('src/A.jsx', 'export const A = () => <div />;'), 'src/A.tsx');
+    assert.equal(targetName('src/a.jsx', 'export const a = 1; // <Tag> in a comment'), 'src/a.ts');
     assert.equal(targetName('src/a.js', 'export const a = 1;'), 'src/a.ts');
     assert.equal(targetName('src/a.js', 'export const A = () => <div />;'), 'src/a.tsx');
     assert.equal(targetName('src/a.js', 'export const A = () => <>x</>;'), 'src/a.tsx');
@@ -101,4 +102,25 @@ test('an options object gets an <Name>Args interface; `= {}` makes every member 
     const out = applyEdits(texts.get(at('span.ts')), inferFile(ts, service, at('span.ts')).edits);
     assert.match(out, /interface SpanArgs \{\n {4}dx\?: number;\n {4}width\?: number;\n\}/);
     assert.match(out, /span\(\{ dx, width \}: SpanArgs = \{\}\)/);
+});
+
+test('an object grown after its literal gets the whole shape; one filled by key a Record', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+    const { service, at, texts } = serviceOver({
+        'm.ts': "export function f(k: string) { const out = { views: 1 }; out.rate = 0.5; const byId = {}; byId[k] = 'x'; return [out, byId]; }\n",
+    });
+    resetCaches();
+    const out = applyEdits(texts.get(at('m.ts')), inferFile(ts, service, at('m.ts')).edits);
+    assert.match(out, /const out: \{ views: number; rate\?: number \} = \{ views: 1 \};/);
+    assert.match(out, /const byId: Record<string, string> = \{\};/);
+});
+
+test('learned patterns: lookup tables, caught errors, late-assigned lets', { skip: !ts && 'agent-hub typescript not installed' }, () => {
+    const { service, at, texts } = serviceOver({
+        'l.ts': "const LABELS = { a: 'A', b: 'B' };\nexport function f(k: string) { let ro = null; ro = new Date(); try { return LABELS[k]; } catch (e) { return e.message + String(ro); } }\n",
+    });
+    resetCaches();
+    const out = applyEdits(texts.get(at('l.ts')), inferFile(ts, service, at('l.ts')).edits);
+    assert.match(out, /const LABELS: Record<string, string> = /);
+    assert.match(out, /let ro: Date \| null = null;/);
+    assert.match(out, /return \(e as Error\)\.message/);
 });

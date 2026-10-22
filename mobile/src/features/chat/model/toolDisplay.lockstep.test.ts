@@ -38,7 +38,7 @@ const web = loadWebModule<{
     visibleToolHistory: (m: unknown) => unknown[];
 }>('components/chat/MessageItem/chatToolCallDisplay.ts', { getToolLabel: helpers.getToolLabel });
 const timeline = loadWebFunctions<{ formatDurationMs: (ms: unknown) => string | null }>(
-    'components/chat/MessageItem/timelineParts.jsx',
+    'components/chat/MessageItem/timelineParts.tsx',
     ['formatDurationMs'],
 );
 

@@ -159,7 +159,7 @@ describe('what only the web components say', () => {
     });
 
     it('fans parallel lines out by the same pitches (edges.jsx)', () => {
-        const edges = read('flow/edges.jsx');
+        const edges = read('flow/edges.tsx');
         expect(edges).toContain(`const LANE_PITCH = ${LANE_PITCH};`);
         expect(edges).toContain(`const CHIP_PITCH = ${CHIP_PITCH};`);
         expect(edges).toContain('borderRadius: 12');

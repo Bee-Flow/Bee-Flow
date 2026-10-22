@@ -2,7 +2,7 @@
  * The sign-in endpoints, in the order the server expects them.
  *
  * This mirrors agent-hub/src/pages/LoginPage.jsx's handleLogin and
- * src/lib/opaque.js, because the sequence is not obvious from the endpoints
+ * src/lib/opaque.ts, because the sequence is not obvious from the endpoints
  * alone:
  *
  *   1. POST /auth/admin-login with the password.
@@ -94,7 +94,7 @@ export interface OpaqueLoginResult {
 }
 
 /**
- * OPAQUE sign-in — the port of agent-hub/src/lib/opaque.js opaqueLogin().
+ * OPAQUE sign-in — the port of agent-hub/src/lib/opaque.ts opaqueLogin().
  *
  * The server never sees the password. What it does see, at the end, is the DEK
  * encrypted under the OPAQUE session key ("Option B" in the web comments): the

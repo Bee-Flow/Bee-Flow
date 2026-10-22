@@ -1,7 +1,7 @@
 /**
  * Follow-up health, actions per topic, the whole Insights model and its
  * Overview highlights — the second half of a port of
- * agent-hub/src/pages/meeting-notes/lib/insightsMetrics.js, pinned to it by
+ * agent-hub/src/pages/meeting-notes/lib/insightsMetrics.ts, pinned to it by
  * insights.lockstep.test.ts.
  *
  * buildInsightsModel applies the organisation's per-person switch at BUILD

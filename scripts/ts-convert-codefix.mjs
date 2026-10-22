@@ -26,20 +26,30 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { applyEdits, inferFile, MISFIT, resetCaches, slotOfDiagnostic } from './ts-callsite-types.mjs';
+import { mergeTypeImports } from './ts-merge-type-imports.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HUB = path.join(ROOT, 'agent-hub');
 
-export const FIX_IDS = ['annotateWithTypeFromJSDoc', 'inferFromUsage'];
+export const FIX_IDS = ['annotateWithTypeFromJSDoc', 'inferFromUsage', 'fixMissingMember'];
 
 /** True when a quick fix would write a forbidden type into the file. */
 export function forbiddenInsert(text) {
     return /\bany\b|\bFunction\b|@ts-|\bunknown\b\s*as\b/.test(text);
 }
 
+/** True when `source` holds JSX (parsed, so a `<` in a comment, string or comparison does not count). */
+export function hasJsx(source) {
+    const ts = loadTs();
+    const sf = ts.createSourceFile('x.jsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.JSX);
+    let found = false;
+    const visit = (n) => { if (found) return; if (ts.isJsxElement(n) || ts.isJsxSelfClosingElement(n) || ts.isJsxFragment(n)) { found = true; return; } ts.forEachChild(n, visit); };
+    visit(sf);
+    return found;
+}
+
 export function targetName(file, source) {
-    if (file.endsWith('.jsx')) return file.replace(/\.jsx$/, '.tsx');
-    return file.replace(/\.js$/, /<[A-Za-z][\w.]*[\s/>]|<>/.test(source) ? '.tsx' : '.ts');
+    return file.replace(/\.jsx?$/, hasJsx(source) ? '.tsx' : '.ts');
 }
 
 /** Apply text changes (sorted descending so offsets stay valid). */
@@ -109,8 +119,19 @@ function fixRound(ts, svc, abs, state) {
         try { fixes = svc.service.getCodeFixesAtPosition(abs, d.start, d.start + d.length, [d.code], FORMAT, PREFS); } catch { state.refused.add(key); continue; }
         const fix = fixes.find((f) => FIX_IDS.includes(f.fixId));
         if (!fix || fix.changes.some((c) => path.resolve(c.fileName) !== abs)) { state.refused.add(key); continue; }
-        const changes = fix.changes.flatMap((c) => c.textChanges);
+        let changes = fix.changes.flatMap((c) => c.textChanges);
         if (!changes.length || changes.some((c) => forbiddenInsert(c.newText))) { state.refused.add(key); continue; }
+        if (fix.fixId === 'fixMissingMember') {
+            // `this.host = host` in a JS class: the member goes in as `declare host: T;`,
+            // which emits nothing (a plain field would, with useDefineForClassFields).
+            // Only into a class or interface of this file; never an index signature.
+            const sf = svc.service.getProgram().getSourceFile(abs);
+            const intoClass = (pos) => { for (let n = ts.getTokenAtPosition(sf, pos); n; n = n.parent) { if (ts.isClassLike(n)) return 'class'; if (ts.isInterfaceDeclaration(n) || ts.isTypeLiteralNode(n)) return 'type'; } return null; };
+            if (changes.some((c) => /^\s*\[/.test(c.newText) || /:\s*(null|undefined)\s*;/.test(c.newText))) { state.refused.add(key); continue; }
+            const where = intoClass(changes[0].span.start);
+            if (!where) { state.refused.add(key); continue; }
+            if (where === 'class') changes = changes.map((c) => ({ ...c, newText: c.newText.replace(/^(\s*)(?!declare\b)([\w$]+\??:)/, '$1declare $2') }));
+        }
         const overlaps = changes.some((c) => taken.some((t) => c.span.start <= t.span.start + t.span.length && t.span.start <= c.span.start + c.span.length));
         if (overlaps) continue; // next round
         taken.push(...changes); state.applied.push(fix.fixId);
@@ -133,6 +154,22 @@ function fixAll(ts, svc, plan) {
         const st = states.get(p.abs);
         return [p.abs, { applied: st.applied, refused: st.refused.size, remaining: remaining.map((d) => ({ code: d.code, line: d.file ? d.file.getLineAndCharacterOfPosition(d.start).line + 1 : 0, message: ts.flattenDiagnosticMessageText(d.messageText, ' ') })) }];
     }));
+}
+
+/** `files` with every importer before what it imports (Kahn); files in a cycle keep their order at the end. */
+export function orderByImports(files) {
+    const set = new Set(files); const edges = new Map(files.map((f) => [f, new Set()])); const indeg = new Map(files.map((f) => [f, 0]));
+    for (const f of files) {
+        const src = fs.readFileSync(path.join(HUB, f), 'utf8');
+        for (const m of src.matchAll(/(?:from\s+|import\(\s*)['"](\.{1,2}\/[^'"]+)['"]/g)) {
+            const base = path.join(path.dirname(f), m[1]).replace(/\.[jt]sx?$/, '');
+            const t = files.find((c) => c !== f && (c.replace(/\.[jt]sx?$/, '') === base || c.replace(/\/index\.[jt]sx?$/, '') === base));
+            if (t && set.has(t) && !edges.get(f).has(t)) { edges.get(f).add(t); indeg.set(t, indeg.get(t) + 1); }
+        }
+    }
+    const out = []; const queue = files.filter((f) => indeg.get(f) === 0);
+    while (queue.length) { const f = queue.shift(); out.push(f); for (const t of edges.get(f)) { indeg.set(t, indeg.get(t) - 1); if (!indeg.get(t)) queue.push(t); } }
+    return out.concat(files.filter((f) => !out.includes(f)));
 }
 
 /** Connected components of the relative-import graph among `files` (paths relative to agent-hub). */
@@ -188,7 +225,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         const t0 = Date.now();
         const outs = await Promise.all(chunks.filter((c) => c.length).map((c) => new Promise((resolve, reject) => {
             // Heap by share of the files: one import component can hold most of them.
-            const heap = Math.max(1536, Math.round((Number(arg('--heap-mb', 12288)) * c.length) / files.length));
+            const heap = Math.max(3072, Math.round((Number(arg('--heap-mb', 12288)) * c.length) / files.length));
             const child = spawn(process.execPath, [`--max-old-space-size=${heap}`, fileURLToPath(import.meta.url), '--files', c.join(','), ...passOn], { stdio: ['ignore', 'pipe', 'inherit'] });
             let out = ''; child.stdout.on('data', (d) => { out += d; });
             child.on('close', (code) => (code === 0 ? resolve(JSON.parse(out)) : reject(new Error(`worker exited ${code}`))));
@@ -221,49 +258,76 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     // Then the check: a slot typed from a demand or an observation whose own
     // references now carry type errors had the wrong source. Those sources are
     // banned for that slot and the whole batch is redone from the original text.
-    const originals = new Map(plan.map((p) => [p.abs, overrides.get(p.abs)]));
-    const bans = new Map(plan.map((p) => [p.abs, new Set()]));
-    let reports; let fixed;
-    for (let attempt = 0; attempt < 4; attempt++) {
-        if (attempt) for (const [abs, text] of originals) svc.update(abs, text);
-        reports = new Map(plan.map((p) => [p.abs, []]));
-        const chosen = new Map(plan.map((p) => [p.abs, new Map()]));
-        for (let pass = 0; pass < 5; pass++) {
-            // One program per pass: infer every file against it, then apply all edits
-            // at once (each update would otherwise rebuild the checker).
-            let n = 0; const next = [];
-            resetCaches();
-            for (const p of plan) {
-                const inf = inferFile(ts, svc.service, p.abs, observed[p.file] || null, bans.get(p.abs));
-                reports.get(p.abs).push(...inf.report.map((l) => `[${attempt + 1}.${pass + 1}] ${l}`));
-                for (const c of inf.chosen || []) chosen.get(p.abs).set(c.slot, c.source);
-                if (!inf.edits.length) continue;
-                next.push([p.abs, applyEdits(svc.service.getProgram().getSourceFile(p.abs).text, inf.edits)]);
-                n += inf.edits.length;
+    // A large run goes in chunks, importers first: each chunk is inferred
+    // against the already typed text of the chunks before it, and the checker
+    // only ever has to answer for one chunk's files (all of them at once ran
+    // out of memory at ~440 files).
+    const chunkSize = Number(arg('--chunk', 120));
+    const ordered = orderByImports(plan.map((p) => p.file)).map((f) => plan.find((p) => p.file === f));
+    const allReports = new Map(); let fixedAll = new Map();
+    const runChunk = (chunk) => {
+        const originals = new Map(chunk.map((p) => [p.abs, overrides.get(p.abs)]));
+        const bans = new Map(chunk.map((p) => [p.abs, new Set()]));
+        let reports; let fixed;
+        for (let attempt = 0; attempt < 4; attempt++) {
+            if (attempt) for (const [abs, text] of originals) svc.update(abs, text);
+            reports = new Map(chunk.map((p) => [p.abs, []]));
+            const chosen = new Map(chunk.map((p) => [p.abs, new Map()]));
+            for (let pass = 0; pass < 5; pass++) {
+                // One program per pass: infer every file against it, then apply all edits
+                // at once (each update would otherwise rebuild the checker).
+                let n = 0; const next = [];
+                resetCaches();
+                for (const p of chunk) {
+                    const inf = inferFile(ts, svc.service, p.abs, observed[p.file] || null, bans.get(p.abs));
+                    reports.get(p.abs).push(...inf.report.map((l) => `[${attempt + 1}.${pass + 1}] ${l}`));
+                    for (const c of inf.chosen || []) chosen.get(p.abs).set(c.slot, c.source);
+                    if (!inf.edits.length) continue;
+                    next.push([p.abs, applyEdits(svc.service.getProgram().getSourceFile(p.abs).text, inf.edits)]);
+                    n += inf.edits.length;
+                }
+                for (const [abs, text] of next) svc.update(abs, text);
+                console.error(`attempt ${attempt + 1} pass ${pass + 1}: ${n} edits${process.env.TS_CONVERT_PROFILE ? `, heap ${(globalThis.gc?.(), Math.round(process.memoryUsage().heapUsed / 1e6))} MB` : ''}`);
+                if (!n) break;
             }
-            for (const [abs, text] of next) svc.update(abs, text);
-            console.error(`attempt ${attempt + 1} pass ${pass + 1}: ${n} edits`);
-            if (!n) break;
-        }
-        fixed = fixAll(ts, svc, plan);
-        let banned = 0;
-        const program = svc.service.getProgram();
-        for (const p of plan) {
-            for (const d of svc.service.getSemanticDiagnostics(p.abs)) {
-                if (!MISFIT.has(d.code)) continue;
-                const slot = slotOfDiagnostic(ts, program, p.abs, d);
-                const source = slot && chosen.get(p.abs).get(slot);
-                if (!source || source === 'call') continue; // typed callers are the truth; the error is the code's
-                const key = `${slot}|${source}`;
-                if (!bans.get(p.abs).has(key)) { bans.get(p.abs).add(key); banned++; }
+            fixed = fixAll(ts, svc, chunk);
+            let banned = 0;
+            const program = svc.service.getProgram();
+            for (const p of chunk) {
+                for (const d of svc.service.getSemanticDiagnostics(p.abs)) {
+                    if (!MISFIT.has(d.code)) continue;
+                    const slot = slotOfDiagnostic(ts, program, p.abs, d);
+                    const source = slot && chosen.get(p.abs).get(slot);
+                    if (!source || source === 'call') continue; // typed callers are the truth; the error is the code's
+                    const key = `${slot}|${source}`;
+                    if (!bans.get(p.abs).has(key)) { bans.get(p.abs).add(key); banned++; }
+                }
             }
+            console.error(`attempt ${attempt + 1}: ${banned} slot source(s) rejected`);
+            if (!banned) break;
         }
-        console.error(`attempt ${attempt + 1}: ${banned} slot source(s) rejected`);
-        if (!banned) break;
+        return { reports, fixed };
+    };
+    for (let i = 0; i < ordered.length; i += chunkSize) {
+        const chunk = ordered.slice(i, i + chunkSize);
+        if (ordered.length > chunkSize) console.error(`chunk ${i / chunkSize + 1}/${Math.ceil(ordered.length / chunkSize)}: ${chunk.length} files`);
+        const { reports: r, fixed: f } = runChunk(chunk);
+        for (const [k, v] of r) allReports.set(k, v);
+        for (const [k, v] of f) fixedAll.set(k, v);
     }
+    // Later chunks change what earlier ones see: count what remains at the end.
+    if (ordered.length > chunkSize) {
+        const final = new Map();
+        for (const p of plan) {
+            const remaining = svc.service.getSemanticDiagnostics(p.abs).concat(svc.service.getSyntacticDiagnostics(p.abs));
+            final.set(p.abs, { ...fixedAll.get(p.abs), remaining: remaining.map((d) => ({ code: d.code, line: d.file ? d.file.getLineAndCharacterOfPosition(d.start).line + 1 : 0, message: ts.flattenDiagnosticMessageText(d.messageText, ' ') })) });
+        }
+        fixedAll = final;
+    }
+    const reports = allReports; const fixed = fixedAll;
     for (const p of plan) {
         const r = { ...fixed.get(p.abs), callsites: reports.get(p.abs) };
-        const text = overrides.get(p.abs);
+        const text = mergeTypeImports(overrides.get(p.abs));
         if (outDir) { const o = path.join(outDir, p.target); fs.mkdirSync(path.dirname(o), { recursive: true }); fs.writeFileSync(o, text); }
         if (!dry) {
             execFileSync('git', ['-C', HUB, 'mv', p.file, p.target]);

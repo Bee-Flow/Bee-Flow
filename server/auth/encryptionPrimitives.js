@@ -191,7 +191,7 @@ function wrapDEK(dek, key, context) {
     wrapped = Buffer.concat([wrapped, cipher.final()]);
     return {
         // Explicit encoding marker. This module has always written base64
-        // while the browser-side wrapper (agent-hub/src/lib/opaque.js) writes
+        // while the browser-side wrapper (agent-hub/src/lib/opaque.ts) writes
         // HEX into the SAME `wrappedDEK` column. Reading a hex envelope as
         // base64 yields garbage, unwrap returns null, and the caller charges
         // the user a failed password attempt — walking them toward the
