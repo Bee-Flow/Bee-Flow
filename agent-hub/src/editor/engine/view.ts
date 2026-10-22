@@ -37,15 +37,40 @@ import { runInputRules } from './inputRules.js';
 import { astToHtml } from '../serialization/astToHtml.js';
 import { astToMarkdown } from '../serialization/astToMd.js';
 import { selectionToFlat } from './flatpos.js';
-import type { TextSelection } from './selection';
+import type { TextSelection, Selection as ModelSelection } from './selection';
 import type { ModelPos } from './textIndex.js';
+import type { History } from './history.js';
+import type { RenderCtx } from './render.js';
+import type { DocMark } from '../model/schema.js';
+
+/** A hook-callback argument: a state, or the small meta object a hook receives. */
+type HookArg = EditorState | { source: string } | { kind: string } | undefined;
+/** A co-editing plugin: any subset of the hook callbacks (see the header). */
+interface ViewPlugin { [hook: string]: ((...args: HookArg[]) => void) | undefined }
+/** An external undo manager (per-user undo while co-editing). */
+interface UndoProvider { undo(): void; redo(): void; canUndo(): boolean; canRedo(): boolean; stopCapturing(): void }
+/** What formula reference picking hands the view (see beginRefPick). */
+interface RefPickHandlers { tablePath?: number[] | null; onPick?(ref: string): void; onCommitPick?(): void }
+
+export interface EditorViewOptions {
+  state?: EditorState;
+  editable?: boolean;
+  onUpdate?(meta?: { remote?: boolean }): void;
+  onSelectionChange?(state: EditorState): void;
+  onError?: ((e: unknown) => void) | null;
+  htmlToAst?: ((html: string) => DocNode) | null;
+  plugins?: ViewPlugin[];
+  mountAtom?(node: DocNode, host: HTMLElement): void;
+  unmountAtom?(el: Element): void;
+  remapAtom?(el: Element, node: DocNode): void;
+}
 
 const now = () => (typeof Date !== 'undefined' ? Date.now() : 0);
 
 /** Remember the scroll offsets of `el` and its ancestors; the returned function puts them back. */
 function keepScroll(el: HTMLDivElement) {
-  const saved: (number|HTMLDivElement)[][] = [];
-  for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+  const saved: [HTMLElement, number, number][] = [];
+  for (let n: HTMLElement | null = el; n && n.nodeType === 1; n = n.parentElement) {
     if (n.scrollTop || n.scrollLeft) saved.push([n, n.scrollTop, n.scrollLeft]);
   }
   return () => {
@@ -59,7 +84,7 @@ function keepScroll(el: HTMLDivElement) {
 /** Plain text of a doc AST, one line per textblock (hard breaks become newlines). */
 function docToText(doc: DocNode) {
   const out: string[] = [];
-  const walk = (n: { type: string; content: DocNode[]|undefined; }) => {
+  const walk = (n: DocNode) => {
     if (isTextblock(n.type)) {
       out.push(inlineToTokens(n.content)
         .map((t) => (t.node ? (t.node.type === 'hardBreak' ? '\n' : '') : t.ch))
@@ -74,7 +99,44 @@ function docToText(doc: DocNode) {
 
 export class EditorView {
   declare editable: boolean;
-  constructor(host: HTMLDivElement, opts: {} = {}) {
+  declare host: HTMLDivElement;
+  declare doc: Document;
+  declare contentEl: HTMLDivElement;
+  declare state: EditorState;
+  declare onUpdate: (meta?: { remote?: boolean }) => void;
+  declare onSelectionChange: (state: EditorState) => void;
+  declare onError: ((e: unknown) => void) | null;
+  declare history: History;
+  declare nodeToPath: Map<DocNode, number[]>;
+  declare domForNode: WeakMap<DocNode, HTMLElement>;
+  declare composing: boolean;
+  declare compStartSel: ModelSelection | null;
+  declare compStartStored: DocMark[] | null;
+  declare suppressSelectionSync: boolean;
+  declare htmlToAst: ((html: string) => DocNode) | null;
+  declare plugins: ViewPlugin[];
+  declare undoProvider: UndoProvider | null;
+  declare lastKind: string | null;
+  declare collaborative: boolean;
+  declare ctx: RenderCtx;
+  declare mo: MutationObserver | null;
+  declare selfWrittenRange: { an: Node | null; ao: number; fn: Node | null; fo: number } | null;
+  declare cellDragging: boolean;
+  declare _resizing: boolean;
+  declare refPick: RefPickHandlers | null;
+  declare _onBeforeInput: (e: InputEvent) => void;
+  declare _onKeyDown: (e: KeyboardEvent) => void;
+  declare _onCompStart: (e: CompositionEvent) => void;
+  declare _onCompEnd: (e: CompositionEvent) => void;
+  declare _onPaste: (e: ClipboardEvent) => void;
+  declare _onCopy: (e: ClipboardEvent) => void;
+  declare _onCut: (e: ClipboardEvent) => void;
+  declare _onSelChange: () => void;
+  declare _onChange: (e: Event) => void;
+  declare _onDrop: (e: DragEvent) => void;
+  declare _onMouseDown: (e: MouseEvent) => void;
+  declare _onHoverMove: (e: MouseEvent) => void;
+  constructor(host: HTMLDivElement, opts: EditorViewOptions = {}) {
     this.host = host;
     this.doc = host.ownerDocument;
     this.contentEl = host;
@@ -167,7 +229,7 @@ export class EditorView {
   /* ── co-editing seams ─────────────────────────────────── */
 
   /** Attach a plugin; returns the function that detaches it again. */
-  addPlugin(plugin) {
+  addPlugin(plugin: ViewPlugin | null | undefined) {
     if (!plugin) return () => {};
     this.plugins.push(plugin);
     return () => { this.plugins = this.plugins.filter((p) => p !== plugin); };
@@ -177,7 +239,7 @@ export class EditorView {
    * Call `name` on every plugin. A plugin's failure is reported through
    * onError and never breaks the edit that triggered it.
    */
-  runHook(name: string, ...args: (EditorState|undefined)[]) {
+  runHook(name: string, ...args: HookArg[]) {
     for (const p of this.plugins.slice()) {
       const fn = p && p[name];
       if (typeof fn !== 'function') continue;
@@ -192,7 +254,7 @@ export class EditorView {
    * `provider` = { undo(), redo(), canUndo(), canRedo(), stopCapturing() };
    * null restores the built-in snapshot history, starting empty.
    */
-  setUndoProvider(provider: null) {
+  setUndoProvider(provider: UndoProvider | null) {
     this.undoProvider = provider || null;
     this.lastKind = null;
     if (!provider) this.history = createHistory();
@@ -211,7 +273,7 @@ export class EditorView {
    * what it was; what this adds is that every caret move reaches the plugins.
    * `opts.storedMarks` replaces the stored marks when given, else they stay.
    */
-  setSelection(selection: TextSelection | NodeSelection | CellSelection, opts = {}) {
+  setSelection(selection: TextSelection | NodeSelection | CellSelection, opts: { storedMarks?: DocMark[] | null; source?: string } = {}) {
     const storedMarks = Object.prototype.hasOwnProperty.call(opts, 'storedMarks') ? opts.storedMarks : this.state.storedMarks;
     this.state = { ...this.state, selection, storedMarks };
     this.runHook('selectionChanged', this.state, { source: opts.source || 'local' });
@@ -237,10 +299,10 @@ export class EditorView {
    * origin: 'remote' (someone else), 'undo' (our own undo/redo), or 'load'
    * (first content: fresh history, caret at the start, full render).
    */
-  applyExternal(doc: DocNode, { mapSelection = null, origin = 'remote' } = {}) {
+  applyExternal(doc: DocNode, { mapSelection = null, origin = 'remote' }: { mapSelection?: ((sel: ModelSelection) => ModelSelection | null | undefined) | null; origin?: string } = {}) {
     const prev = this.state;
     const nextDoc = normalizeLight(doc);
-    const map = (sel: TextSelection) => {
+    const map = (sel: ModelSelection) => {
       if (!sel || !mapSelection) return sel;
       try { return mapSelection(sel) || sel; } catch { return sel; }
     };
@@ -281,13 +343,13 @@ export class EditorView {
   installMutationGuard() {
     const MO = this.doc.defaultView && this.doc.defaultView.MutationObserver;
     if (!MO) return;
-    this.mo = new MO((records) => {
+    this.mo = new MO((records: MutationRecord[]) => {
       if (this.composing) return; // IME resyncs itself on compositionend
       // We disconnect the observer around our own DOM writes (applyDOM). Mutations
       // inside atom hosts are React portals rendering — also expected. Anything
       // left is an untracked mutation in the editable flow (drag-drop, extension,
       // browser quirk) that diverged the DOM from the model → restore from model.
-      if (!records.some((r: { target: EventTarget|null; }) => !this.inAtom(r.target))) return;
+      if (!records.some((r) => !this.inAtom(r.target))) return;
       // eslint-disable-next-line no-console
       console.warn('[BeeEditor] untracked DOM mutation — re-syncing from model');
       this.fullRender();
@@ -296,9 +358,9 @@ export class EditorView {
   }
 
   inAtom(node: EventTarget | null) {
-    let n = node;
+    let n = node as Node | null;
     while (n && n !== this.host) {
-      if (n.nodeType === 1 && n.getAttribute && n.getAttribute('data-bf-atom') != null) return true;
+      if (n.nodeType === 1 && (n as Element).getAttribute && (n as Element).getAttribute('data-bf-atom') != null) return true;
       n = n.parentNode;
     }
     return false;
@@ -324,24 +386,24 @@ export class EditorView {
     this.rebuildPaths(this.state.doc);
     this.applyDOM(() => {
       // Unmount existing atom hosts before clearing.
-      if (this.ctx.unmountAtom) this.host.querySelectorAll('[data-bf-atom]').forEach((a) => a.__bfAtomNode && this.ctx.unmountAtom(a));
+      if (this.ctx.unmountAtom) this.host.querySelectorAll('[data-bf-atom]').forEach((a) => a.__bfAtomNode && this.ctx.unmountAtom?.(a));
       this.host.textContent = '';
       this.host.appendChild(renderDoc(this.state.doc, this.ctx));
     });
     this.writeSelection();
   }
 
-  rebuildPaths(doc) {
+  rebuildPaths(doc: DocNode) {
     this.nodeToPath.clear();
-    const walk = (n, p: number[]) => {
+    const walk = (n: DocNode, p: number[]) => {
       this.nodeToPath.set(n, p);
       if (isTextblock(n.type) || n.type === 'text') return;
-      (n.content || []).forEach((c: { type: string; }, i: number) => { if (c.type !== 'text') walk(c, [...p, i]); });
+      (n.content || []).forEach((c, i) => { if (c.type !== 'text') walk(c, [...p, i]); });
     };
     (doc.content || []).forEach((c, i) => walk(c, [i]));
   }
 
-  reconcile(oldDoc, newDoc) {
+  reconcile(oldDoc: DocNode, newDoc: DocNode) {
     this.rebuildPaths(newDoc);
     // Incremental, identity-aware patch (see reconcile.js): only the differing
     // blocks are touched, and a changed textblock keeps its caret text node.
@@ -472,7 +534,7 @@ export class EditorView {
   }
 
   /** Snapshot the DOM range we just wrote, so we can recognise its echo. */
-  rememberWrite(dsel) {
+  rememberWrite(dsel: Selection) {
     if (!dsel || dsel.rangeCount === 0) return;
     this.selfWrittenRange = {
       an: dsel.anchorNode, ao: dsel.anchorOffset, fn: dsel.focusNode, fo: dsel.focusOffset,
@@ -986,14 +1048,14 @@ export class EditorView {
    *   whether the dispatch changed the document — so node views can keep
    *   their editor open instead of silently dropping the edit (S5).
    */
-  updateAtom(node: DocNode | { type: string; attrs: ImageAttrs; }, attrs: { width: number | undefined; } | { latex: string; } | { code: string; }, { kind = 'structural', fallbackAt = null } = {}) {
+  updateAtom(node: DocNode, attrs: { width: number | undefined; } | { latex: string; } | { code: string; }, { kind = 'structural', fallbackAt = null } = {}) {
     const at = this.resolveAtom(node, fallbackAt);
     if (!at) return false;
     return this.dispatch((s) => (at.inline
       ? T.updateInlineNodeAttrs(s, at.path, at.offset, attrs)
       : T.updateNodeAttrsAtPath(s, at.path, attrs)), { kind });
   }
-  selectAtom(node: DocNode | { type: string; attrs: ImageAttrs; }) {
+  selectAtom(node: DocNode) {
     const at = this.resolveAtom(node);
     if (!at) return false;
     const selection = at.inline ? EditorView.inlineAtomSelection(at) : nodeSelection(at.path);

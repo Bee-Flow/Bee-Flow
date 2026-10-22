@@ -25,8 +25,12 @@ export const SKILL_CAP = 5;
  *                            The popover still anchors here, in the composer row.
  *   hideTrigger            — render the popover without its own button
  */
-interface SkillsPopoverProps {
+type SessionSkillView = SessionSkill & { name?: string; description?: string; order?: number; instructions?: string; workflow?: string; rules?: string; examples?: string };
+
+export interface SkillsPopoverProps {
     user: { id: string };
+    activeSkillIds?: string[];
+    directSessionSkills?: SessionSkillView[];
     attachedSkillIds?: string[];
     directMode?: boolean;
     directConversationId?: string | null;
@@ -58,7 +62,7 @@ export default function SkillsPopover({
     const [openSelf, setOpenSelf] = useState(false);
     const controlled = openProp !== undefined;
     const open = controlled ? !!openProp : openSelf;
-    const setOpen = (next: boolean) => {
+    const setOpen = (next: boolean | ((prev: boolean) => boolean)) => {
         const value = typeof next === 'function' ? next(open) : next;
         if (!controlled) setOpenSelf(value);
         onOpenChange?.(value);
@@ -66,12 +70,12 @@ export default function SkillsPopover({
     const [search, setSearch] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [sessionSkills, setSessionSkills] = useState<SessionSkill[]>([]);
-    const [importingSkillId, setImportingSkillId] = useState<((prevState: null) => null) | null>(null);
-    const [importedSessionSkillIds, setImportedSessionSkillIds] = useState<((prevState: null) => null)[]>([]);
+    const [sessionSkills, setSessionSkills] = useState<SessionSkillView[]>([]);
+    const [importingSkillId, setImportingSkillId] = useState<string | null>(null);
+    const [importedSessionSkillIds, setImportedSessionSkillIds] = useState<string[]>([]);
     const [expandedSessionSkillId, setExpandedSessionSkillId] = useState<string | null | undefined>(null);
     const [regenerating, setRegenerating] = useState(false);
-    const [deletingSessionSkillId, setDeletingSessionSkillId] = useState<((prevState: null) => null) | null>(null);
+    const [deletingSessionSkillId, setDeletingSessionSkillId] = useState<string | null>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -80,11 +84,11 @@ export default function SkillsPopover({
 
     useEffect(() => {
         if (!open) return;
-        const close = (e) => {
+        const close = (e: PointerEvent) => {
             const root = popoverRef.current;
             if (!root) return;
             const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
-            const clickedInside = root.contains(e.target) || path.includes(root);
+            const clickedInside = root.contains(e.target as Node | null) || path.includes(root);
             if (clickedInside) return;
             setOpen(false);
         };
@@ -210,7 +214,7 @@ export default function SkillsPopover({
         }
     };
 
-    const handleDeleteSessionSkill = async (skillId: React.SetStateAction<null>) => {
+    const handleDeleteSessionSkill = async (skillId: string | undefined) => {
         if (!directConversationId || !skillId || deletingSessionSkillId) return;
         setDeletingSessionSkillId(skillId);
         try {
@@ -231,7 +235,7 @@ export default function SkillsPopover({
         }
     };
 
-    const handleImportSessionSkill = async (skillId: React.SetStateAction<null>) => {
+    const handleImportSessionSkill = async (skillId: string | undefined) => {
         if (!directConversationId || !skillId) return;
         setImportingSkillId(skillId);
         try {

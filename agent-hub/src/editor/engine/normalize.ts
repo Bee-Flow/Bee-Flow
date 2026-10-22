@@ -28,7 +28,7 @@ function lightNode(n: DocNode): DocNode {
 }
 
 export function normalizeDeep(doc: DocNode): DocNode {
-  let content = (doc.content || []).map(deepNode).filter(Boolean);
+  let content = (doc.content || []).map(deepNode).filter(Boolean) as DocNode[];
   if (content.length === 0) content = [emptyParagraph()];
   if (isAtom(content[content.length - 1].type)) content = [...content, emptyParagraph()];
   return recomputeFormulas({ type: 'doc', content });
@@ -40,7 +40,7 @@ export function normalizeDeep(doc: DocNode): DocNode {
 // value actually changed (e.g. an edit to a referenced cell). Selection-safe:
 // an atom is always one token, so positions never shift.
 export function recomputeFormulas(doc: DocNode): DocNode {
-  const content = (doc.content || []).map(recomputeNode);
+  const content = (doc.content || []).map(recomputeNode) as DocNode[];
   return { type: 'doc', content };
 }
 
@@ -49,7 +49,7 @@ function recomputeNode(n: DocNode | null): DocNode | null {
   if (n.type === 'table') return recomputeTable(n);
   if (!n.content) return n;
   let changed = false;
-  const content = n.content.map((c) => { const nc = recomputeNode(c); if (nc !== c) changed = true; return nc; });
+  const content = n.content.map((c) => { const nc = recomputeNode(c); if (nc !== c) changed = true; return nc; }) as DocNode[];
   return changed ? { ...n, content } : n;
 }
 
@@ -122,7 +122,7 @@ function deepNode(n: DocNode): DocNode | null {
     const loc = locateFormulaAtom(n);
     if (loc) return { ...n, content: [{ ...n.content[loc.blockIdx], content: [loc.atom] }] };
   }
-  const content = n.content.map(deepNode).filter(Boolean);
+  const content = n.content.map(deepNode).filter(Boolean) as DocNode[];
   if (content.length === 0) {
     if (n.type === 'listItem' || n.type === 'taskItem' || n.type === 'tableCell') return { ...n, content: [emptyParagraph()] };
     return null; // empty list / blockquote / table / row → drop
@@ -158,7 +158,7 @@ function mergeText(content: DocNode[]): DocNode[] {
     if (c.type === 'text' && c.text === '') continue;
     const last = out[out.length - 1];
     if (c.type === 'text' && last && last.type === 'text' && sameMarkSet(last.marks || [], c.marks || [])) {
-      out[out.length - 1] = { ...last, text: last.text + c.text };
+      out[out.length - 1] = { ...last, text: String(last.text) + String(c.text) };
     } else if (c.type === 'text') {
       out.push(c.marks && c.marks.length ? { ...c, marks: sortMarks(c.marks) } : { type: 'text', text: c.text });
     } else {

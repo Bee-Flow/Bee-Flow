@@ -60,7 +60,7 @@ export function shortAppLabel(label: string, category: string, integrationId: st
     const vendor = vendorWord(category);
     if (!full || !vendor) return full;
     if (full.toLowerCase() === vendor.toLowerCase()) {
-        return BASE_APP_LABEL[integrationId] || full;
+        return BASE_APP_LABEL[String(integrationId)] || full;
     }
     if (full.toLowerCase().startsWith(`${vendor.toLowerCase()} `)) {
         return full.slice(vendor.length + 1).trim() || full;
@@ -103,10 +103,10 @@ function sentenceCase(text: string) {
  * stops guessing and defers to them.
  */
 export function actionLabelMap(actions: (AppAction | null)[] = []) {
-    const list = (actions || []).filter(a => a && a.tool);
+    const list = (actions || []).filter(a => a && a.tool) as (AppAction & { tool: string })[];
     const derivable = list.filter(isMechanicalLabel);
     const skip = commonTokenPrefix(derivable.map(a => a.tool));
-    const out = new Map<string, string>();
+    const out = new Map<string, string | undefined>();
     for (const a of list) {
         if (!isMechanicalLabel(a)) { out.set(a.tool, a.label); continue; }
         const rest = String(a.tool).split('_').slice(skip).join(' ');
@@ -116,7 +116,7 @@ export function actionLabelMap(actions: (AppAction | null)[] = []) {
 }
 
 /** Convenience for a single action when its siblings are already to hand. */
-export function actionLabel(action: AppAction | null | undefined, labelMap: Map<string, string> | null | undefined) {
+export function actionLabel(action: AppAction | null | undefined, labelMap: { get(key: string | undefined): string | undefined } | null | undefined) {
     return labelMap?.get(action?.tool) || action?.label || '';
 }
 

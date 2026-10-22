@@ -222,7 +222,7 @@ export function RelationsStep({ t, tables, locked = [], lockedLabel = '', sugges
                     {draftRel && (
                         <p className="text-[11px] text-[var(--text-secondary)]">
                             {t('datatables.nc_relation_sentence', 'Each row of {a} gets a link to the row of {b} whose {y} equals its {x}. The link column will be called {key}.',
-                                { a: draftRel.from.name, b: draftRel.to.name, x: draftRel.localColumn.title, y: draftRel.targetColumn.title, key: `${draftRel.to.key}_ref` })}
+                                { a: fromSel?.name, b: toSel?.name, x: localCol?.title, y: targetCol?.title, key: `${toSel?.key}_ref` })}
                         </p>
                     )}
                     <button type="button" disabled={!draftRel || hasRel(draftRel)} onClick={() => { if (!draftRel) return; onAdd(draftRel); setDraft({ from: '', local: '', to: '', target: '' }); }}

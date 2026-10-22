@@ -9,16 +9,36 @@
  * void hosts; ctx.mountAtom(node, hostEl) lets the React layer portal a component
  * into them. In a plain-DOM context (tests) mountAtom may be omitted.
  */
-import { markDefaults } from '../model/schema.js';
+import { markDefaults, type DocAttrs, type DocMark, type DocNode } from '../model/schema.js';
 import { escapeAttr, encodeForAttr, safeUrl } from '../serialization/util.js';
 
-export function renderDoc(doc, ctx) {
+/** Identity links the engine hangs on DOM nodes (see the header). */
+declare global {
+  interface Node {
+    __bfNode?: DocNode;
+    __bfAtomNode?: DocNode;
+    __bfAtomId?: unknown;
+    __bfInlineAtom?: boolean;
+  }
+}
+
+/** The view's render context: DOM factory, identity maps and the React atom hooks. */
+export interface RenderCtx {
+  document: Document;
+  nodeToPath?: Map<DocNode, number[]> | null;
+  domForNode?: WeakMap<DocNode, Element> | null;
+  mountAtom?: ((node: DocNode, host: HTMLElement) => void) | null;
+  unmountAtom?: ((el: Element) => void) | null;
+  remapAtom?: ((el: Element, node: DocNode) => void) | null;
+}
+
+export function renderDoc(doc: DocNode, ctx: RenderCtx) {
   const frag = ctx.document.createDocumentFragment();
-  (doc.content || []).forEach((b, i) => frag.appendChild(renderBlock(b, ctx, [i])));
+  (doc.content || []).forEach((b: DocNode, i: number) => frag.appendChild(renderBlock(b, ctx, [i])));
   return frag;
 }
 
-export function renderBlock(node, ctx, path: number[]) {
+export function renderBlock(node: DocNode, ctx: RenderCtx, path: number[]) {
   const el = createBlockEl(node, ctx, path);
   el.__bfNode = node;
   el.setAttribute('data-bf-block', node.type);
@@ -27,10 +47,10 @@ export function renderBlock(node, ctx, path: number[]) {
   return el;
 }
 
-function createBlockEl(node, ctx, path: number[]) {
+function createBlockEl(node: DocNode, ctx: RenderCtx, path: number[]) {
   const d = ctx.document;
-  const a = (n: string) => node.attrs?.[n] ?? null;
-  let el;
+  const a = <K extends keyof DocAttrs>(n: K): DocAttrs[K] | null => node.attrs?.[n] ?? null;
+  let el: HTMLElement;
   switch (node.type) {
     case 'paragraph':
       el = d.createElement('p');
@@ -48,7 +68,7 @@ function createBlockEl(node, ctx, path: number[]) {
       break;
     case 'orderedList':
       el = d.createElement('ol');
-      if (a('start') && a('start') !== 1) el.setAttribute('start', a('start'));
+      if (a('start') && a('start') !== 1) el.setAttribute('start', String(a('start')));
       renderChildBlocks(el, node, ctx, path);
       break;
     case 'taskList':
@@ -86,7 +106,7 @@ function createBlockEl(node, ctx, path: number[]) {
       el.className = 'notebook-code-block';
       const code = d.createElement('code');
       if (a('language')) code.className = 'language-' + a('language');
-      code.textContent = (node.content || []).map((c) => c.text || '').join('') || '​';
+      code.textContent = (node.content || []).map((c: DocNode) => c.text || '').join('') || '​';
       el.appendChild(code);
       break;
     }
@@ -98,7 +118,7 @@ function createBlockEl(node, ctx, path: number[]) {
     case 'table': {
       el = d.createElement('table');
       const tbody = d.createElement('tbody');
-      (node.content || []).forEach((row, i) => tbody.appendChild(renderBlock(row, ctx, [...path, i])));
+      (node.content || []).forEach((row: DocNode, i: number) => tbody.appendChild(renderBlock(row, ctx, [...path, i])));
       el.appendChild(tbody);
       break;
     }
@@ -108,9 +128,9 @@ function createBlockEl(node, ctx, path: number[]) {
       break;
     case 'tableCell': {
       el = d.createElement(a('header') ? 'th' : 'td');
-      if (a('align')) el.style.textAlign = a('align');
-      if (a('colspan') && a('colspan') !== 1) el.setAttribute('colspan', a('colspan'));
-      if (a('rowspan') && a('rowspan') !== 1) el.setAttribute('rowspan', a('rowspan'));
+      if (a('align')) el.style.textAlign = String(a('align'));
+      if (a('colspan') && a('colspan') !== 1) el.setAttribute('colspan', String(a('colspan')));
+      if (a('rowspan') && a('rowspan') !== 1) el.setAttribute('rowspan', String(a('rowspan')));
       if (a('colwidth')) el.style.width = `${a('colwidth')}px`;
       renderChildBlocks(el, node, ctx, path);
       break;
@@ -136,14 +156,11 @@ function createBlockEl(node, ctx, path: number[]) {
   return el;
 }
 
-function renderChildBlocks(el: HTMLUListElement | HTMLLIElement | HTMLTableRowElement | HTMLTableCellElement | HTMLOListElement | HTMLQuoteElement | HTMLDivElement, node, ctx, path: number[]) {
-  (node.content || []).forEach((child, i) => el.appendChild(renderBlock(child, ctx, [...path, i])));
+function renderChildBlocks(el: HTMLElement, node: DocNode, ctx: RenderCtx, path: number[]) {
+  (node.content || []).forEach((child: DocNode, i: number) => el.appendChild(renderBlock(child, ctx, [...path, i])));
 }
 
-function createAtomHost(node: { type: string; attrs: {
-    spec: string;
-    code: string; src?: string; alt?: string; width?: number; latex?: string; value?: string; error?: boolean 
-} }, ctx, inline: boolean) {
+function createAtomHost(node: DocNode, ctx: RenderCtx, inline: boolean) {
   const d = ctx.document;
   const host = d.createElement(inline ? 'span' : 'div');
   host.setAttribute('data-bf-atom', node.type);
@@ -186,11 +203,7 @@ function createAtomHost(node: { type: string; attrs: {
  * React portal (when mounted) owns the host's children and re-renders via
  * ctx.remapAtom; this keeps the non-React fallback (export / tests) correct too.
  */
-export function updateAtomHost(host: ChildNode, node: { type: string; attrs: {
-    spec: string;
-    value: string|undefined;
-    code: string; latex?: string; src?: string; alt?: string; width?: number 
-} }) {
+export function updateAtomHost(host: Element, node: DocNode) {
   // A host with a live portal is owned by React: writing to its children here
   // (textContent = …) removes React-rendered DOM while React still believes it
   // is mounted — it destroyed the formula's open <input> on every reconcile.
@@ -219,24 +232,24 @@ export function updateAtomHost(host: ChildNode, node: { type: string; attrs: {
 
 /* ── Inline ─────────────────────────────────────────────── */
 
-function renderInline(el: HTMLParagraphElement | HTMLHeadingElement, content = [], ctx) {
+function renderInline(el: HTMLElement, content: DocNode[] = [], ctx: RenderCtx) {
   for (const n of content) el.appendChild(renderInlineNode(n, ctx));
 }
 
-export function renderInlineNode(n, ctx) {
+export function renderInlineNode(n: DocNode, ctx: RenderCtx) {
   const d = ctx.document;
   if (n.type === 'hardBreak') return d.createElement('br');
   if (n.type === 'mathInline') return createAtomHost(n, ctx, true);
   if (n.type === 'formula') return createAtomHost(n, ctx, true);
   if (n.type === 'image') return createAtomHost(n, ctx, true);
   // text with marks → nested wrappers, innermost = text node
-  let domNode = d.createTextNode(n.text);
+  let domNode: Text | HTMLElement = d.createTextNode(String(n.text));
   const marks = n.marks || [];
   for (const m of [...marks].reverse()) domNode = wrapMarkEl(domNode, m, d);
   return domNode;
 }
 
-function wrapMarkEl(inner: Text | HTMLElement, m, d: Document) {
+function wrapMarkEl(inner: Text | HTMLElement, m: DocMark, d: Document) {
   let el: HTMLElement | HTMLSpanElement | HTMLAnchorElement;
   switch (m.type) {
     case 'code': el = d.createElement('code'); break;
@@ -257,8 +270,8 @@ function wrapMarkEl(inner: Text | HTMLElement, m, d: Document) {
       el = d.createElement('a');
       const def = markDefaults('link');
       el.setAttribute('href', safeUrl(m.attrs?.href || '') || '');
-      el.setAttribute('target', m.attrs?.target || def.target);
-      el.setAttribute('rel', m.attrs?.rel || def.rel);
+      el.setAttribute('target', String(m.attrs?.target || def.target));
+      el.setAttribute('rel', String(m.attrs?.rel || def.rel));
       el.className = 'notebook-link';
       break;
     }
@@ -268,6 +281,6 @@ function wrapMarkEl(inner: Text | HTMLElement, m, d: Document) {
   return el;
 }
 
-function applyAlign(el: HTMLParagraphElement | HTMLHeadingElement, align: string) {
+function applyAlign(el: HTMLElement, align: string | null | undefined) {
   if (align === 'center' || align === 'right') el.style.textAlign = align;
 }

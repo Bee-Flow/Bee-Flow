@@ -1,5 +1,5 @@
 import { RotateCcw, Save } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import { isPrivacyStep } from './privacyModel';
 import { isRouteStep } from './routeModel';
 import { sectionsWithErrors } from './sectionForIssue';
@@ -34,9 +34,15 @@ import { SetFields } from './settings/setEditors';
 import { TriggerFields, FormPageFields } from './settings/triggerEditors';
 import { IconPicker } from './stepIcons';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import type { CatalogApp } from './stepPalette.types';
+import type { ActionCatalog } from './settings/actionEditors/integrationActionFields';
+import type { BlockCatalogEntry } from './settings/actionEditors/flowletCallFields';
+import type { StepIssues } from './nodes/nodeProps';
+import type { FormRecord } from './settings/formState/types';
 import type { TimelineStep } from '../../../admin/Studio/Executions/RunStepTimeline';
-import type { UpstreamNode, Group } from '../mapping/upstream/upstream.types';
+import type { OnFocusField } from '../mapping/focusField.types';
+import type { UpstreamDefinition, UpstreamNode, Group } from '../mapping/upstream/upstream.types';
+import type { ModelTierConfig } from '../../../../hooks/useModelTierSelection';
+import type { RouteFollow, WholeRun } from './settings/SourceNotices';
 import type { TriggerAutomation } from './settings/triggerEditors.types';
 import type { OnRenameField } from './settings/fieldDesigner.types';
 import type { FormEditorContext } from './settings/FormPageEditor';
@@ -47,7 +53,7 @@ import type React from 'react';
  * from the builder catalog: `{ available, reason }`, or null when the server
  * does not say (an older server), in which case the operator is not offered.
  */
-function topicsCapability(catalog) {
+function topicsCapability(catalog: ActionCatalog | null | undefined) {
     const flags = catalog?.flags;
     if (!flags || typeof flags.topics !== 'boolean') return null;
     return { available: flags.topics, reason: flags.topicsReason || null };
@@ -72,21 +78,34 @@ export { schemaToFields, fieldsToSchema } from './settings/formState';
  * Validation banner + Save/Reset live at the bottom of the form so every
  * type shares the same chrome.
  */
-interface SettingsFormProps {
-    step?: UpstreamNode;
-    modelTiers?: {};
+type SettingsFormProps = {
+    step: UpstreamNode & { type: string };
+    modelTiers?: Record<string, ModelTierConfig>;
+    stepIssues: StepIssues;
     saving?: boolean;
     saveError?: string | null;
+    onPatch: (patch: FormRecord) => void | Promise<unknown>;
+    onFocusField?: OnFocusField | null;
+    previewSample?: unknown;
+    catalog?: ActionCatalog | null;
     groups?: Group[];
+    rootDefinition?: UpstreamDefinition | null;
+    blocksCatalog?: BlockCatalogEntry[];
+    wiredCaseNames?: Set<string> | null;
     automation?: TriggerAutomation | null;
     stepEdges?: { from: string; to: string }[];
     isSecondaryTrigger?: boolean;
+    onTestSubmit?: ComponentProps<typeof TriggerFields>['onTestSubmit'];
     onRenameField?: OnRenameField | null;
     formEditor?: FormEditorContext | null;
+    onInsertUpstreamStep?: ComponentProps<typeof RouteFields>['onInsertUpstreamStep'];
+    routeFollow?: RouteFollow | null;
+    wholeRun?: WholeRun | null;
     footerLeft?: React.ReactNode | null;
     compactFooter?: boolean;
+    onExpandOnCanvas?: ((stepId: string) => void) | null;
     runStep?: TimelineStep | null;
-}
+};
 
 export default function SettingsForm({
     step, modelTiers, stepIssues, saving, saveError, onPatch,
@@ -236,8 +255,8 @@ export default function SettingsForm({
 
     // A function value is an updater on the current value (and the whole
     // draft), for edits that must land after another one in the same event.
-    const set = (k: string, v: string) => setDraft(d => ({ ...d, [k]: typeof v === 'function' ? v(d[k], d) : v }));
-    const setNested = (parent: string, k: string, v: string | undefined) => setDraft(d => ({ ...d, [parent]: { ...(d[parent] || {}), [k]: v } }));
+    const set = (k: string, v: unknown) => setDraft(d => ({ ...d, [k]: typeof v === 'function' ? v(d[k], d) : v }));
+    const setNested = (parent: string, k: string, v: unknown) => setDraft(d => ({ ...d, [parent]: { ...(d[parent] || {}), [k]: v } }));
 
     const flushNow = () => {
         if (deepEqual(draftRef.current, baselineRef.current)) return false;

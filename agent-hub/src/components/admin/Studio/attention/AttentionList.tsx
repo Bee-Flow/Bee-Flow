@@ -253,7 +253,7 @@ export default function AttentionList({ user = null, hasFeature = null, onNaviga
                                 // The producer's own sentence, which already
                                 // names the object; this client's line for the
                                 // source only when the row carried none.
-                                message={item.message || t(item.labelKey ?? undefined, item.labelFallback ?? undefined)}
+                                message={item.message || t(item.labelKey as string, item.labelFallback as string)}
                                 hint={item.remediation}
                                 icon={KindIcon
                                     ? <KindIcon className="w-3.5 h-3.5 flex-shrink-0 mt-px" style={{ color: kindColorVar(item.kind) }} strokeWidth={1.75} aria-hidden="true" />

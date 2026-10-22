@@ -7,6 +7,7 @@ import AiStepPorts from './AiStepPorts';
 import StepNodeBase, { NodeChip, ForEachBadge } from './StepNodeBase';
 import type { TranslateParams } from '../../../../../hooks/useTranslation';
 import type { Position } from '../../build/addStepModel';
+import type { StepNodeData } from './nodeProps';
 
 const VARIANT_ICON: Record<string, LucideIcon> = { agent: Bot, skill: Zap, instruction: Sparkles };
 
@@ -25,6 +26,7 @@ function toolPortLabel(toolState: { mode: string; tools: string[] }, variant: st
  */
 interface AiStepNodeProps {
     id: string | null;
+    data: StepNodeData;
 }
 
 export default function AiStepNode({ id, data }: AiStepNodeProps) {

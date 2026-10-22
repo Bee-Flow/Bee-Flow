@@ -115,11 +115,10 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
     const [applied, setApplied] = useState<{ code: string; out: Awaited<ReturnType<typeof applyResolvePlan>> } | null>(null);
 
     const propose = useCallback(async (code: string) => {
-        if (!playbookId) return;
         setPlanBusy(code);
         setPlanErrors((m) => ({ ...m, [code]: null }));
         try {
-            const body = await playbooksApi.resolvePlan(playbookId, phase.key, code);
+            const body = await playbooksApi.resolvePlan(playbookId as string, phase.key, code);
             setPlans((m) => ({ ...m, [code]: body && body.plan }));
         } catch (e) {
             setPlanErrors((m) => ({ ...m, [code]: (e as Error)?.message || t('playbooks.compliance.fix_plan_failed', 'A fix for this one could not be worked out.') }));
@@ -129,11 +128,10 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
     }, [playbookId, phase.key, t]);
 
     const apply = useCallback(async (code: string, plan: ResolvePlan) => {
-        if (!playbookId) return;
         setApplying(code);
         setApplied(null);
         const out = await applyResolvePlan(plan, {
-            register: (body) => playbooksApi.register(playbookId, phase.key, { ...body, risks: [] }),
+            register: (body) => playbooksApi.register(playbookId as string, phase.key, { ...body, risks: [] }),
             saveAutomation: (id, definition) => automationApi.updateAutomation(id, { definition }),
             publish: (id, body) => studioAppsApi.publish(id, body),
             // Both of these go straight at their endpoint rather than through
@@ -152,12 +150,12 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
     }, [playbookId, phase.key, automationApi, appId, recheck]);
 
     const register = useCallback(async (reg: { lawfulBasis: string; retentionDays: number | string; retentionField: string; subjectColumn: string }) => {
-        if (busy || !playbookId) return;
+        if (busy) return;
         setBusy(true);
         setError(null);
         try {
             const days = Number(reg.retentionDays);
-            const body = await playbooksApi.register(playbookId, phase.key, {
+            const body = await playbooksApi.register(playbookId as string, phase.key, {
                 registration: {
                     lawfulBasis: reg.lawfulBasis || undefined,
                     retentionDays: Number.isFinite(days) && days > 0 ? days : undefined,
@@ -186,8 +184,8 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
     const registrationFinding = findings.find((f) => f.fix_kind === 'registration'
         || f.code === 'ropa_retention' || f.code === 'mirror_personal') || null;
     const suggestRegistration = useCallback(async () => {
-        if (!registrationFinding || !playbookId) return null;
-        const body = await playbooksApi.resolvePlan(playbookId, phase.key, registrationFinding.code);
+        if (!registrationFinding) return null;
+        const body = await playbooksApi.resolvePlan(playbookId as string, phase.key, registrationFinding.code);
         const plan = body && body.plan;
         const call = ((plan && plan.calls) || []).find((c: { kind: string; }) => c.kind === 'register');
         return {

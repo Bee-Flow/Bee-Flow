@@ -19,11 +19,14 @@ const POLL_MAX_MS = 16000;
  *   `base` to chain a second event on the fresh version.
  *   event: { type: 'start'|'artifact'|'finished'|'markDone'|'failed'|'continue'|'revise'|'skip'|'retry'|'stop'|'resume'|'needs_input'|'dismiss_input'|'replace', key, … }
  */
-/** A playbook the server answered with: it always has an id and a version. */
-export type Playbook = PlaybookLike & { id: string; version: number };
+/** A playbook that has been saved: it has an id. */
+export type Playbook = PlaybookLike & { id: string };
+
+/** A playbook the server answered with: it always has a version as well. */
+export type ServerPlaybook = Playbook & { version: number };
 
 interface PlaybookRequestError extends JsonResourceError {
-    body: { playbook: Playbook };
+    body: { playbook: ServerPlaybook };
 }
 
 interface ReloadArgs {
@@ -31,12 +34,12 @@ interface ReloadArgs {
 }
 
 export default function usePlaybook(id: string) {
-    const [playbook, setPlaybook] = useState<Playbook | null>(null);
+    const [playbook, setPlaybook] = useState<ServerPlaybook | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<JsonResourceError | null>(null);
     const [conflict, setConflict] = useState(0);
     const aliveRef = useRef(true);
-    const playbookRef = useRef<Playbook | null>(null);
+    const playbookRef = useRef<ServerPlaybook | null>(null);
     useEffect(() => { playbookRef.current = playbook; }, [playbook]);
     useEffect(() => () => { aliveRef.current = false; }, []);
 
@@ -84,16 +87,16 @@ export default function usePlaybook(id: string) {
     }, [polling, reload]);
 
     // Set state AND the ref at once, so two events in one tick see one version.
-    const commit = useCallback((pb: Playbook | null) => { playbookRef.current = pb; setPlaybook(pb); }, []);
+    const commit = useCallback((pb: ServerPlaybook | null) => { playbookRef.current = pb; setPlaybook(pb); }, []);
 
-    const dispatch = useCallback(async (event: PlaybookEvent, base: Playbook | null = null) => {
+    const dispatch = useCallback(async (event: PlaybookEvent, base: ServerPlaybook | null = null) => {
         const current = base || playbookRef.current;
         if (!current || !event) return null;
         // A stage that already HAS the server's answer (the compliance phase's
         // Register call returns the whole playbook) hands it over instead of
         // asking for it again — no second write, no refetch.
         if (event.type === 'replace') {
-            if (event.playbook) commit(event.playbook as Playbook);
+            if (event.playbook) commit(event.playbook as ServerPlaybook);
             return event.playbook || current;
         }
         if (event.type === 'needs_input' || event.type === 'dismiss_input') {

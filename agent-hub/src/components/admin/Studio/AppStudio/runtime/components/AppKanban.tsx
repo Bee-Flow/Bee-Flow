@@ -307,7 +307,7 @@ export function rankForSlot(beforeRank: number | null, afterRank: number | null)
     const b = Number.isFinite(beforeRank) ? beforeRank : null;
     const a = Number.isFinite(afterRank) ? afterRank : null;
     if (b === null && a === null) return 0;
-    if (b === null) return a === null ? 0 : a - 1;
+    if (b === null) return (a as number) - 1;
     if (a === null) return b + 1;
     const mid = (b + a) / 2;
     // A midpoint is only a midpoint if it lands STRICTLY between. Two neighbours
@@ -748,8 +748,7 @@ export default function AppKanban({ node }: NodeProps<KanbanProps>) {
             // order its cards never writes a column it does not have.
             rank: rankKey ? rankForSlot(rankOf(beforeId), rankOf(afterId)) : null,
         };
-        if (!node.onCardMove) return;
-        runAction(node.onCardMove, { formValues: payload, ...payload });
+        runAction(node.onCardMove as string, { formValues: payload, ...payload });
     };
 
     const toggleCollapsed = (value: string) => {
@@ -838,8 +837,8 @@ export default function AppKanban({ node }: NodeProps<KanbanProps>) {
                         dragEnabled={dragEnabled}
                         clickable={clickable}
                         onClick={() => {
-                            if (suppressClick.current || !node.onRowClick) return;
-                            runAction(node.onRowClick, { formValues: row, item: row });
+                            if (suppressClick.current) return;
+                            runAction(node.onRowClick as string, { formValues: row, item: row });
                         }}
                     />
                 ))}

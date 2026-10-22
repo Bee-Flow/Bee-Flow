@@ -133,7 +133,7 @@ export default function FolderedAutomationList({
         </div>
     );
 
-    const startRename = (f: AutomationFolder) => { setRenaming(f.id); setDraftName(f.name ?? ''); };
+    const startRename = (f: AutomationFolder) => { setRenaming(f.id); setDraftName(f.name as string); };
     const commitCreate = () => {
         const name = newName.trim();
         setCreating(false);

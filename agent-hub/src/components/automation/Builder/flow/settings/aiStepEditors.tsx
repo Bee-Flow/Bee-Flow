@@ -34,7 +34,7 @@ const AnswerChecksSection = lazyWithI18n(() => import('./aiStepReliability/Answe
 interface AiStepFieldsProps {
     draft: FormRecord;
     set: SetField;
-    modelTiers: Record<string, ModelTierConfig>;
+    modelTiers?: Record<string, ModelTierConfig>;
     groups?: Group[];
     catalog?: ActionCatalog | null;
     onFocusField?: OnFocusField | null;

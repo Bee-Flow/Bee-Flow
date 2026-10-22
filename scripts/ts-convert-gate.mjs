@@ -2,7 +2,7 @@
 // The gate after scripts/ts-convert-codefix.mjs has converted files in the
 // working tree: only what is green in every respect stays TypeScript.
 //
-//   node scripts/ts-convert-gate.mjs --result run.json [--report open.json] [--changes-report changes.json] [--report-only]
+//   node scripts/ts-convert-gate.mjs --result run.json [--report open.json] [--changes-report changes.json] [--report-only] [--base <rev>]
 //
 // run.json is the converter's output ({ files: [{ file, target }] }). Loop:
 //   1. agent-hub's typecheck (tsc 7, the project tsconfig). A converted file
@@ -81,9 +81,13 @@ function importsOf(file, candidates) {
     return out;
 }
 
+// The commit that still holds the JavaScript (--base; HEAD unless a work-in-progress
+// commit of the conversion itself sits on top).
+let BASE = 'HEAD';
+
 function sendBack(entry) {
     git('mv', '-f', `agent-hub/${entry.target}`, `agent-hub/${entry.file}`);
-    git('checkout', 'HEAD', '--', `agent-hub/${entry.file}`);
+    git('checkout', BASE, '--', `agent-hub/${entry.file}`);
 }
 
 function arg(name, fallback) { const i = process.argv.indexOf(name); return i === -1 ? fallback : process.argv[i + 1]; }
@@ -91,6 +95,7 @@ function arg(name, fallback) { const i = process.argv.indexOf(name); return i ==
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const result = JSON.parse(fs.readFileSync(arg('--result'), 'utf8'));
     const changesReport = arg('--changes-report');
+    BASE = arg('--base', 'HEAD');
     const reportOnly = process.argv.includes('--report-only');
     let kept = result.files.filter((f) => fs.existsSync(path.join(HUB, f.target)));
     const back = new Map(); // target -> { file, target, reason, errors }
@@ -111,13 +116,13 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
             // Typecheck green: now no forbidden construct, and the compiled program unchanged.
             const ts = createRequire(path.join(HUB, 'package.json'))('typescript');
             for (const k of kept) {
-                const f = forbidden(ts, fs.readFileSync(path.join(HUB, k.target), 'utf8'), git('show', `HEAD:agent-hub/${k.file}`));
+                const f = forbidden(ts, fs.readFileSync(path.join(HUB, k.target), 'utf8'), git('show', `${BASE}:agent-hub/${k.file}`));
                 if (f.length) bad.set(k.target, { reason: `forbidden: ${f.join(', ')}`, errors: [] });
             }
             const changes = [];
             for (const k of kept) {
                 if (bad.has(k.target)) continue;
-                const a = await compile(git('show', `HEAD:agent-hub/${k.file}`));
+                const a = await compile(git('show', `${BASE}:agent-hub/${k.file}`));
                 const b = await compile(fs.readFileSync(path.join(HUB, k.target), 'utf8'));
                 if (a.length === b.length && a.every((l, i) => l === b[i])) continue;
                 // --changes-report: code changes are allowed but every one is written

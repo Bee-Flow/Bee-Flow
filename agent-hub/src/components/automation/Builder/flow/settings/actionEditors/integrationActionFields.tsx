@@ -25,6 +25,7 @@ import type { ForEachSpec } from '../../../mapping/templateRemedies';
 import type { ForEachConfig } from '../../../mapping/itemRefs';
 import type { InputSchema } from '../../../mapping/autoMapInputs.types';
 import type { CacheTable } from './cacheIntoRow';
+import type { TriggerCatalog } from '../triggerEditors.types';
 import type { Catalog, CatalogDatatable, UpstreamNode } from '../../../mapping/upstream/upstream.types';
 import type { FormRecord } from '../formState/types';
 
@@ -71,12 +72,13 @@ export interface IntegrationApp {
 }
 
 /** The builder's tool catalog, with the operations the action editor switches between. */
-export interface ActionCatalog extends Catalog {
+export interface ActionCatalog extends Catalog, TriggerCatalog {
     apps?: IntegrationApp[];
     datatables?: Array<CatalogDatatable & {
         id: string; key?: string; rowCount?: number; scope?: string; canWrite?: boolean;
         columns?: Array<{ key: string; type: string; name?: string }>;
     }>;
+    flags?: { topics?: boolean; topicsReason?: string | null };
     datatableOps?: Array<{ op: string; label: string; blurb?: string }>;
     knowledgeBases?: Array<CacheTable & { name: string }>;
     knowledgeWriteStrategies?: Array<{ value: string; label: string; blurb: string }>;

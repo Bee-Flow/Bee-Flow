@@ -3,7 +3,20 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { appRefParam, parseAppRefParam } from '../../../admin/Studio/studioRoutes';
 import type { Contact } from '../../../admin/compliance/pages/settings/settingsFields.types';
 import type { Position } from '../build/addStepModel';
+import type { FlowDefinition } from './types';
 import type { AppRef } from '../../../admin/Studio/AppStudio/inspector/appDefinition';
+
+/** The server's answer for one reference (server/appStudio/appRefLookup.js). */
+export interface AppRefRecord {
+    status?: string;
+    appId?: string;
+    screenId?: string;
+    nodeId?: string;
+    appName?: string;
+    screenName?: string;
+    nodeLabel?: string;
+    canOpen?: boolean;
+}
 
 /**
  * "Which button, in which screen, of which app" — resolved for the person
@@ -53,19 +66,19 @@ import type { AppRef } from '../../../admin/Studio/AppStudio/inspector/appDefini
  * "Studio App trigger" and claims nothing, which is what a definition someone
  * hand-edited deserves.
  */
-export function triggerAppRef(definition: unknown) {
-    return parseAppRefParam(appRefParam(definition?.trigger?.appRef));
+export function triggerAppRef(definition: FlowDefinition | null | undefined) {
+    return parseAppRefParam(appRefParam(definition?.trigger?.appRef as AppRef | null | undefined));
 }
 
 const TTL_MS = 60_000;
 
 /** key → { at, record }. `record` may be null (the lookup failed). */
-const cache = new Map();
+const cache = new Map<string, { at: number; record: AppRefRecord | null }>();
 /** key → in-flight promise, so two callers for one reference make ONE request. */
-const inflight = new Map();
+const inflight = new Map<string, Promise<AppRefRecord | null>>();
 
 /** Cache key for a reference. Null for anything that is not a whole one. */
-export function appRefKey(ref: AppRef | null) {
+export function appRefKey(ref: AppRef | null | undefined) {
     if (!ref?.appId || !ref?.screenId) return null;
     // Scheidingsteken: een ESCAPE (`\u0001`), geen letterlijke byte. Een echte
     // 0x00 in de bron maakt het bestand voor git BINAIR — dan is er in een PR
@@ -86,12 +99,12 @@ function fresh(key: string) {
  * Resolve one reference. Never rejects; resolves to the record, or to null
  * when the lookup could not be made (offline, 500, a body that is not JSON).
  */
-export function loadAppRef(ref: AppRef) {
+export function loadAppRef(ref: AppRef | null | undefined): Promise<AppRefRecord | null> {
     const key = appRefKey(ref);
-    if (!key) return Promise.resolve(null);
+    if (!key || !ref) return Promise.resolve(null);
     const hit = fresh(key);
     if (hit !== undefined) return Promise.resolve(hit);
-    if (inflight.has(key)) return inflight.get(key);
+    if (inflight.has(key)) return inflight.get(key) as Promise<AppRefRecord | null>;
 
     const qs = new URLSearchParams({ screenId: ref.screenId, ...(ref.nodeId ? { nodeId: ref.nodeId } : {}) });
     const p = authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(ref.appId)}/ref?${qs}`)
@@ -151,7 +164,7 @@ export const __clearAppRefCacheForTests = clearAppRefCache;
  */
 export function useAppRefLabel(ref: AppRef | null | undefined) {
     const key = appRefKey(ref);
-    const [record, setRecord] = useState(() => (key ? fresh(key) : undefined));
+    const [record, setRecord] = useState<AppRefRecord | null | undefined>(() => (key ? fresh(key) : undefined));
 
     // `ref` is a fresh object every render; the key is its identity.
     const load = useEffectEvent(() => loadAppRef(ref));
@@ -192,9 +205,9 @@ export function useAppRefLabel(ref: AppRef | null | undefined) {
  */
 const GONE_LEVEL: Record<string, string> = { app_missing: 'app', screen_missing: 'screen', node_missing: 'node' };
 
-export function appRefDisplay(record: {}|null, ref = null) {
-    const got = record || {};
-    const asked = ref || {};
+export function appRefDisplay(record: AppRefRecord | null, ref: AppRef | null = null) {
+    const got: AppRefRecord = record || {};
+    const asked: Partial<AppRef> = ref || {};
     const appId = got.appId || asked.appId || null;
     const screenId = got.screenId || asked.screenId || null;
     const nodeId = got.nodeId || asked.nodeId || null;
@@ -205,7 +218,7 @@ export function appRefDisplay(record: {}|null, ref = null) {
         appText: got.appName || appId,
         screenText: got.screenName || screenId,
         nodeText: got.nodeLabel || nodeId,
-        gone: GONE_LEVEL[got.status] || null,
+        gone: GONE_LEVEL[String(got.status)] || null,
         restricted: got.status === 'restricted',
         unknown: record == null,
         canOpen: got.canOpen === true,

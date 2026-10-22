@@ -19,12 +19,12 @@
  * element currently reflects, and `ctx.domForNode` maps every block node in the new
  * doc to its element. `nodeToPath` is rebuilt globally by the caller each pass.
  */
-import { renderBlock, renderInlineNode, updateAtomHost } from './render.js';
-import { isTextblock, isAtom, isCode } from '../model/schema.js';
+import { renderBlock, renderInlineNode, updateAtomHost, type RenderCtx } from './render.js';
+import { isTextblock, isAtom, isCode, type DocAttrs, type DocNode } from '../model/schema.js';
 import { sameMarkSet } from '../model/marks.js';
 
 /** Entry point: patch `parentEl`'s children from oldNodes → newNodes. */
-export function reconcileChildren(parentEl: HTMLDivElement | HTMLUListElement | HTMLLIElement | HTMLTableSectionElement | HTMLTableRowElement | HTMLTableCellElement, oldNodes, newNodes, ctx, basePath: number[]) {
+export function reconcileChildren(parentEl: Element, oldNodes: DocNode[] | null | undefined, newNodes: DocNode[] | null | undefined, ctx: RenderCtx, basePath: number[]) {
   oldNodes = oldNodes || [];
   newNodes = newNodes || [];
   const domEls = elementChildren(parentEl);
@@ -33,7 +33,7 @@ export function reconcileChildren(parentEl: HTMLDivElement | HTMLUListElement | 
   if (domEls.length !== oldNodes.length) {
     Array.from(parentEl.childNodes).forEach((c) => unmountEl(c, ctx));
     parentEl.textContent = '';
-    newNodes.forEach((n, i) => parentEl.appendChild(renderBlock(n, ctx, [...basePath, i])));
+    newNodes.forEach((n: DocNode, i: number) => parentEl.appendChild(renderBlock(n, ctx, [...basePath, i])));
     return;
   }
   // Identity-common prefix / suffix (unchanged subtrees: DOM already correct).
@@ -62,7 +62,7 @@ export function reconcileChildren(parentEl: HTMLDivElement | HTMLUListElement | 
   }
 }
 
-function patchOrReplace(parentEl: HTMLDivElement | HTMLUListElement | HTMLLIElement | HTMLTableSectionElement | HTMLTableRowElement | HTMLTableCellElement, el: Element, newNode, ctx, path: number[]) {
+function patchOrReplace(parentEl: Element, el: Element, newNode: DocNode, ctx: RenderCtx, path: number[]) {
   const oldNode = el.__bfNode;
   if (oldNode === newNode) { ctx.domForNode && ctx.domForNode.set(newNode, el); return; }
   if (!sameTag(oldNode, newNode)) {
@@ -74,7 +74,7 @@ function patchOrReplace(parentEl: HTMLDivElement | HTMLUListElement | HTMLLIElem
   patchBlock(el, oldNode, newNode, ctx, path);
 }
 
-function patchBlock(el: Element, oldNode, newNode, ctx, path: number[]) {
+function patchBlock(el: Element, oldNode: DocNode | undefined, newNode: DocNode, ctx: RenderCtx, path: number[]) {
   el.__bfNode = newNode;
   ctx.domForNode && ctx.domForNode.set(newNode, el);
   patchBlockAttrs(el, newNode);
@@ -100,7 +100,7 @@ function patchBlock(el: Element, oldNode, newNode, ctx, path: number[]) {
 
 /* ── inline (textblock) patching ────────────────────────── */
 
-function patchInline(blockEl: HTMLParagraphElement | HTMLHeadingElement, oldInline, newInline, ctx) {
+function patchInline(blockEl: Element, oldInline: DocNode[], newInline: DocNode[], ctx: RenderCtx) {
   const d = blockEl.ownerDocument;
   const filler = blockEl.querySelector(':scope > br[data-bf-filler]');
   if (filler) blockEl.removeChild(filler);
@@ -154,7 +154,7 @@ function patchInline(blockEl: HTMLParagraphElement | HTMLHeadingElement, oldInli
   }
 }
 
-function patchInlineNode(dom: ChildNode, nn, ctx) {
+function patchInlineNode(dom: ChildNode, nn: DocNode, ctx: RenderCtx) {
   if (nn.type === 'text') {
     const t = innermostText(dom);
     if (t && t.data !== nn.text) t.data = nn.text; // preserve the text node → stable caret/IME
@@ -170,8 +170,8 @@ function patchInlineNode(dom: ChildNode, nn, ctx) {
 
 /* ── attribute patching ─────────────────────────────────── */
 
-function patchBlockAttrs(el: HTMLParagraphElement | HTMLUListElement | HTMLLIElement | HTMLHeadingElement | HTMLTableElement | HTMLTableRowElement | HTMLTableCellElement | HTMLDivElement, node) {
-  const a = (k: string) => node.attrs?.[k] ?? null;
+function patchBlockAttrs(el: HTMLElement, node: DocNode) {
+  const a = <K extends keyof DocAttrs>(k: K): DocAttrs[K] | null => node.attrs?.[k] ?? null;
   switch (node.type) {
     case 'paragraph':
     case 'heading': {
@@ -188,7 +188,7 @@ function patchBlockAttrs(el: HTMLParagraphElement | HTMLUListElement | HTMLLIEle
     case 'taskItem': {
       const checked = !!a('checked');
       el.setAttribute('data-checked', checked ? 'true' : 'false');
-      const box = el.querySelector('input[data-bf-checkbox]');
+      const box = el.querySelector<HTMLInputElement>('input[data-bf-checkbox]');
       if (box) box.checked = checked;
       break;
     }
@@ -206,39 +206,39 @@ function patchBlockAttrs(el: HTMLParagraphElement | HTMLUListElement | HTMLLIEle
 
 /* ── helpers ────────────────────────────────────────────── */
 
-function elementChildren(parentEl: HTMLDivElement | HTMLUListElement | HTMLLIElement | HTMLTableSectionElement | HTMLTableRowElement | HTMLTableCellElement) {
+function elementChildren(parentEl: Element) {
   return Array.from(parentEl.children).filter((c) => c.__bfNode);
 }
 
-function childContainer(el: HTMLUListElement | HTMLLIElement | HTMLTableElement | HTMLTableRowElement | HTMLTableCellElement, type: string) {
+function childContainer(el: Element, type: string) {
   if (type === 'table') return el.querySelector(':scope > tbody') || el;
   if (type === 'taskItem') return el.lastElementChild || el; // <li><label/><div>children</div></li>
   return el;
 }
 
-function sameTag(a, b) {
+function sameTag(a: DocNode | undefined, b: DocNode | undefined) {
   if (!a || !b || a.type !== b.type) return false;
   if (a.type === 'heading') return (a.attrs?.level || 1) === (b.attrs?.level || 1);
   if (a.type === 'tableCell') return !!(a.attrs?.header) === !!(b.attrs?.header);
   return true;
 }
 
-const isInlineAtom = (n) => n && (n.type === 'mathInline' || n.type === 'image' || n.type === 'formula');
+const isInlineAtom = (n: DocNode | undefined) => n && (n.type === 'mathInline' || n.type === 'image' || n.type === 'formula');
 
-function inlineEq(a, b) {
+function inlineEq(a: DocNode | undefined, b: DocNode | undefined) {
   if (!a || !b || a.type !== b.type) return false;
   if (a.type === 'text') return a.text === b.text && sameMarkSet(a.marks || [], b.marks || []);
   if (a.type === 'hardBreak') return true;
   return shallowAttrsEq(a.attrs, b.attrs); // inline atoms
 }
 
-function inlineSameShape(a, b) {
+function inlineSameShape(a: DocNode | undefined, b: DocNode | undefined) {
   if (!a || !b || a.type !== b.type) return false;
   if (a.type === 'text') return sameMarkSet(a.marks || [], b.marks || []);
   return true; // same-type atom / hardBreak → patch in place
 }
 
-function shallowAttrsEq(a: {} = {}, b: {} = {}) {
+function shallowAttrsEq(a: DocAttrs | undefined = {}, b: DocAttrs | undefined = {}) {
   a = a || {}; b = b || {};
   const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
   for (const k of keys) if (a[k] !== b[k]) return false;
@@ -251,7 +251,7 @@ function innermostText(dom: Text | HTMLElement) {
   return n && n.nodeType === 3 ? n : null;
 }
 
-function unmountEl(el: Element | ChildNode, ctx) {
+function unmountEl(el: Element | ChildNode, ctx: RenderCtx) {
   if (!ctx.unmountAtom || !el || el.nodeType !== 1) return;
   if (el.getAttribute && el.getAttribute('data-bf-atom') != null && el.__bfAtomNode) ctx.unmountAtom(el);
   el.querySelectorAll && el.querySelectorAll('[data-bf-atom]').forEach((a) => a.__bfAtomNode && ctx.unmountAtom(a));

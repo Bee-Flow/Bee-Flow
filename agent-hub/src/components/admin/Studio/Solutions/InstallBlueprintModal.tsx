@@ -142,7 +142,7 @@ interface InstallBlueprintModalProps {
     open: boolean;
     source: InstallSource | null;
     onClose: () => void;
-    onInstalled: ((id: string | undefined) => void) | undefined;
+    onInstalled?(id: string | undefined): void;
 }
 
 export default function InstallBlueprintModal({ open, source, onClose, onInstalled }: InstallBlueprintModalProps) {

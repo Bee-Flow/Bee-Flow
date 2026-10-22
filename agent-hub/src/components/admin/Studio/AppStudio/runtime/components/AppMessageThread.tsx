@@ -455,7 +455,7 @@ export default function AppMessageThread({ node }: NodeProps<MessageThreadProps>
                             <button
                                 type="button"
                                 className="text-left cursor-pointer max-w-full"
-                                onClick={() => node.onRowClick && runAction(node.onRowClick, { formValues: row, item: row })}
+                                onClick={() => runAction(node.onRowClick as string, { formValues: row, item: row })}
                             >
                                 {bubble}
                             </button>

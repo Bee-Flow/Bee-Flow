@@ -410,7 +410,7 @@ export default function AppList({ node }: NodeProps<ListProps>) {
                         className={`${cls} cursor-pointer transition-colors hover:brightness-[1.06]`}
                         style={style}
                         aria-current={selected ? 'true' : undefined}
-                        onClick={() => node.onRowClick && runAction(node.onRowClick, { formValues: item, item })}
+                        onClick={() => runAction(node.onRowClick as string, { formValues: item, item })}
                         onFocus={hasPeek ? (e) => showPeek(i, e.currentTarget) : undefined}
                         onBlur={hasPeek ? hidePeek : undefined}
                     >

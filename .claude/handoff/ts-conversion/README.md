@@ -1,5 +1,7 @@
 # Handoff: agent-hub JavaScript → TypeScript conversion
 
+> **Wave 3 is paused midway:** see [wave3/STATUS.md](wave3/STATUS.md) for where it stands and how to resume.
+>
 > **Server:** see [SERVER.md](SERVER.md): the same inference, written as JSDoc (the server stays
 > CommonJS JavaScript). **Tooling-first pipeline for agent-hub** (used for the 157-file commit):
 > `scripts/ts-convert-codefix.mjs` (inference + quick fixes, `--observed` from

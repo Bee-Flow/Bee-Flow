@@ -55,7 +55,7 @@ const MediaCreationPanel = ({
     const [videoGenOpen, setVideoGenOpen] = useState(false);
     // Per-integration enable/disable — user-scoped so toggling "disable images"
     // as user A doesn't persist into user B's composer on the same browser.
-    const [disabledMedia, setDisabledMedia] = useState(() => scopedStorage.getJSON('disabledMedia', {}));
+    const [disabledMedia, setDisabledMedia] = useState<Record<string, boolean | undefined>>(() => scopedStorage.getJSON('disabledMedia', {}) as Record<string, boolean | undefined>);
     const imageGenBtnRef = useRef<HTMLButtonElement>(null);
     const musicGenBtnRef = useRef<HTMLButtonElement>(null);
     const elevenLabsBtnRef = useRef<HTMLButtonElement>(null);
@@ -65,8 +65,8 @@ const MediaCreationPanel = ({
     // Close media menu on click outside
     useEffect(() => {
         if (!open) return;
-        const handler = (e) => {
-            if (mediaMenuRef.current?.contains(e.target)) return;
+        const handler = (e: MouseEvent) => {
+            if (mediaMenuRef.current?.contains(e.target as Node | null)) return;
             onOpenChange(false);
         };
         document.addEventListener('mousedown', handler);

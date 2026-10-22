@@ -18,7 +18,7 @@ import { useRouteScope } from './useRouteScope';
 import type { RouteConfig, SetDraft } from './routeTypes';
 import type { OnFocusField } from '../../mapping/focusField.types';
 import type { TopicsCapability } from '../../mapping/TopicNotice';
-import type { Group } from '../../mapping/upstream/upstream.types';
+import type { Group, UpstreamNode } from '../../mapping/upstream/upstream.types';
 
 /**
  * The unified "Condition" editor — one form for what used to be four palette
@@ -53,8 +53,8 @@ import type { Group } from '../../mapping/upstream/upstream.types';
  * routeModel.js: an absent `matchMode` is every stored router's contract).
  */
 interface RouteFieldsProps {
-    step: { id: string; type: string; expr?: string; arrayRef?: string; cases?: RouteRule[]; matchMode?: string; routeStyle?: string };
-    draft: { label: string; icon: string; route: RouteConfig };
+    step: UpstreamNode & { type: string };
+    draft: { route?: RouteConfig };
     set: SetDraft;
     groups: Group[] | null;
     onFocusField?: OnFocusField | null;

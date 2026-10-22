@@ -91,7 +91,7 @@ function Switch({ on }: SwitchProps) {
     );
 }
 
-type ToolRow = ComposerTool & { badge?: number };
+type ToolRow = Omit<ComposerTool, 'icon'> & { icon: React.ComponentType<{ className?: string; size?: number }> | string; badge?: number };
 
 interface RowProps {
     item: ToolRow;

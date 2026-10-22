@@ -9,6 +9,8 @@ interface SkillsPanelProps {
     onClose: () => void;
     activeSkillIds?: string[];
     onToggleSkill: (id: string) => void;
+    user?: { id?: string; isAdmin?: boolean; organizationId?: string | null } | null;
+    agents?: { config?: { attachedSkillIds?: unknown } | null }[];
 }
 
 export default function SkillsPanel({ user, onClose, activeSkillIds = [], onToggleSkill, agents = [] }: SkillsPanelProps) {
@@ -18,7 +20,7 @@ export default function SkillsPanel({ user, onClose, activeSkillIds = [], onTogg
     const [saving, setSaving] = useState(false);
 
     const attachedCountBySkillId = useMemo(() => {
-        const counts = {};
+        const counts: Record<string, number> = {};
         for (const agent of agents || []) {
             const ids = agent?.config?.attachedSkillIds;
             if (!Array.isArray(ids)) continue;

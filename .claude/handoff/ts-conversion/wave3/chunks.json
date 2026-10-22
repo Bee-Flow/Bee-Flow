@@ -1,0 +1,1758 @@
+[
+ [
+  {
+   "file": "src/AgentHub.jsx",
+   "target": "src/AgentHub.tsx"
+  },
+  {
+   "file": "src/AgentHub/AgentChatView.jsx",
+   "target": "src/AgentHub/AgentChatView.tsx"
+  },
+  {
+   "file": "src/AgentHub/DirectChatView.jsx",
+   "target": "src/AgentHub/DirectChatView.tsx"
+  },
+  {
+   "file": "src/AgentHub/useAgentHubActions.js",
+   "target": "src/AgentHub/useAgentHubActions.ts"
+  },
+  {
+   "file": "src/AgentHub/useAgentHubData.js",
+   "target": "src/AgentHub/useAgentHubData.ts"
+  },
+  {
+   "file": "src/AgentHub/useDirectChatEvents.js",
+   "target": "src/AgentHub/useDirectChatEvents.ts"
+  },
+  {
+   "file": "src/App.jsx",
+   "target": "src/App.tsx"
+  },
+  {
+   "file": "src/AuthedApp.jsx",
+   "target": "src/AuthedApp.tsx"
+  },
+  {
+   "file": "src/components/admin/ai-config/chatModelTiers/TierCard.jsx",
+   "target": "src/components/admin/ai-config/chatModelTiers/TierCard.tsx"
+  },
+  {
+   "file": "src/components/admin/ai-config/index.jsx",
+   "target": "src/components/admin/ai-config/index.tsx"
+  },
+  {
+   "file": "src/components/admin/ai-config/WebSearchInferenceConfig.jsx",
+   "target": "src/components/admin/ai-config/WebSearchInferenceConfig.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/ComplianceHeader.jsx",
+   "target": "src/components/admin/compliance/ComplianceHeader.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/ComplianceMobile.jsx",
+   "target": "src/components/admin/compliance/ComplianceMobile.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/ComplianceRail.jsx",
+   "target": "src/components/admin/compliance/ComplianceRail.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/data/aggregates.js",
+   "target": "src/components/admin/compliance/data/aggregates.ts"
+  },
+  {
+   "file": "src/components/admin/compliance/data/registers.js",
+   "target": "src/components/admin/compliance/data/registers.ts"
+  },
+  {
+   "file": "src/components/admin/compliance/data/useComplianceCounts.js",
+   "target": "src/components/admin/compliance/data/useComplianceCounts.ts"
+  },
+  {
+   "file": "src/components/admin/compliance/index.jsx",
+   "target": "src/components/admin/compliance/index.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/ladder/AiActLadderModal.jsx",
+   "target": "src/components/admin/compliance/ladder/AiActLadderModal.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/ladder/ladderOutcome.js",
+   "target": "src/components/admin/compliance/ladder/ladderOutcome.ts"
+  },
+  {
+   "file": "src/components/admin/compliance/ladder/useAiActAssessment.js",
+   "target": "src/components/admin/compliance/ladder/useAiActAssessment.ts"
+  },
+  {
+   "file": "src/components/admin/compliance/mobile/MobileHomeOverview.jsx",
+   "target": "src/components/admin/compliance/mobile/MobileHomeOverview.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/AccessAuditPage.jsx",
+   "target": "src/components/admin/compliance/pages/AccessAuditPage.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/custom/AttestDrawer.jsx",
+   "target": "src/components/admin/compliance/pages/custom/AttestDrawer.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/custom/CustomChecksTable.jsx",
+   "target": "src/components/admin/compliance/pages/custom/CustomChecksTable.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/CustomFrameworksPage.jsx",
+   "target": "src/components/admin/compliance/pages/CustomFrameworksPage.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/DpiaPage.jsx",
+   "target": "src/components/admin/compliance/pages/DpiaPage.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/dsr/dsrArticles.js",
+   "target": "src/components/admin/compliance/pages/dsr/dsrArticles.ts"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/dsr/DsrDrawer.jsx",
+   "target": "src/components/admin/compliance/pages/dsr/DsrDrawer.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/DsrPage.jsx",
+   "target": "src/components/admin/compliance/pages/DsrPage.tsx"
+  }
+ ],
+ [
+  {
+   "file": "src/components/admin/compliance/pages/framework/CheckExpansion.jsx",
+   "target": "src/components/admin/compliance/pages/framework/CheckExpansion.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/framework/ChecksTable.jsx",
+   "target": "src/components/admin/compliance/pages/framework/ChecksTable.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/framework/EvidenceTab.jsx",
+   "target": "src/components/admin/compliance/pages/framework/EvidenceTab.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/framework/TimelineTab.jsx",
+   "target": "src/components/admin/compliance/pages/framework/TimelineTab.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/FrameworkPage.jsx",
+   "target": "src/components/admin/compliance/pages/FrameworkPage.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/FrameworksPage.jsx",
+   "target": "src/components/admin/compliance/pages/FrameworksPage.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/incidents/incidentClocks.js",
+   "target": "src/components/admin/compliance/pages/incidents/incidentClocks.ts"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/IncidentsPage.jsx",
+   "target": "src/components/admin/compliance/pages/IncidentsPage.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/MachineryPage.jsx",
+   "target": "src/components/admin/compliance/pages/MachineryPage.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/overview/AttentionList.jsx",
+   "target": "src/components/admin/compliance/pages/overview/AttentionList.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/overview/DeadlinesCard.jsx",
+   "target": "src/components/admin/compliance/pages/overview/DeadlinesCard.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/overview/UpcomingDatesCard.jsx",
+   "target": "src/components/admin/compliance/pages/overview/UpcomingDatesCard.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/OverviewPage.jsx",
+   "target": "src/components/admin/compliance/pages/OverviewPage.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/policies/PolicyDrawer.jsx",
+   "target": "src/components/admin/compliance/pages/policies/PolicyDrawer.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/PoliciesPage.jsx",
+   "target": "src/components/admin/compliance/pages/PoliciesPage.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/RisksPage.jsx",
+   "target": "src/components/admin/compliance/pages/RisksPage.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/settings/SettingsGroup.jsx",
+   "target": "src/components/admin/compliance/pages/settings/SettingsGroup.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/SettingsPage.jsx",
+   "target": "src/components/admin/compliance/pages/SettingsPage.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/soa/soaThemes.js",
+   "target": "src/components/admin/compliance/pages/soa/soaThemes.ts"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/SoaPage.jsx",
+   "target": "src/components/admin/compliance/pages/SoaPage.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/pages/TrainingPage.jsx",
+   "target": "src/components/admin/compliance/pages/TrainingPage.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/shared/calendarMath.js",
+   "target": "src/components/admin/compliance/shared/calendarMath.ts"
+  },
+  {
+   "file": "src/components/admin/compliance/shared/RegulatoryCalendar.jsx",
+   "target": "src/components/admin/compliance/shared/RegulatoryCalendar.tsx"
+  },
+  {
+   "file": "src/components/admin/compliance/shared/TimelinePhases.jsx",
+   "target": "src/components/admin/compliance/shared/TimelinePhases.tsx"
+  },
+  {
+   "file": "src/components/admin/modules/MarketplaceTab.jsx",
+   "target": "src/components/admin/modules/MarketplaceTab.tsx"
+  },
+  {
+   "file": "src/components/admin/modules/moduleActions.js",
+   "target": "src/components/admin/modules/moduleActions.ts"
+  },
+  {
+   "file": "src/components/admin/monitoring/ActivityPage.jsx",
+   "target": "src/components/admin/monitoring/ActivityPage.tsx"
+  },
+  {
+   "file": "src/components/admin/monitoring/index.jsx",
+   "target": "src/components/admin/monitoring/index.tsx"
+  },
+  {
+   "file": "src/components/admin/monitoring/OverviewPage.jsx",
+   "target": "src/components/admin/monitoring/OverviewPage.tsx"
+  },
+  {
+   "file": "src/components/admin/monitoring/shared.jsx",
+   "target": "src/components/admin/monitoring/shared.tsx"
+  },
+  {
+   "file": "src/components/admin/monitoring/TerminationsPage.jsx",
+   "target": "src/components/admin/monitoring/TerminationsPage.tsx"
+  },
+  {
+   "file": "src/components/admin/monitoring/UsageExplorerPage.jsx",
+   "target": "src/components/admin/monitoring/UsageExplorerPage.tsx"
+  },
+  {
+   "file": "src/components/admin/org/access/CloudCeilingEditor.jsx",
+   "target": "src/components/admin/org/access/CloudCeilingEditor.tsx"
+  },
+  {
+   "file": "src/components/admin/org/orgInfo/OrgInfoSection.jsx",
+   "target": "src/components/admin/org/orgInfo/OrgInfoSection.tsx"
+  },
+  {
+   "file": "src/components/admin/product-website/analytics/AnalyticsPanel.jsx",
+   "target": "src/components/admin/product-website/analytics/AnalyticsPanel.tsx"
+  }
+ ],
+ [
+  {
+   "file": "src/components/admin/product-website/analytics/model.js",
+   "target": "src/components/admin/product-website/analytics/model.ts"
+  },
+  {
+   "file": "src/components/admin/product-website/analytics/sections/AudienceSection.jsx",
+   "target": "src/components/admin/product-website/analytics/sections/AudienceSection.tsx"
+  },
+  {
+   "file": "src/components/admin/product-website/analytics/sections/BehaviorSection.jsx",
+   "target": "src/components/admin/product-website/analytics/sections/BehaviorSection.tsx"
+  },
+  {
+   "file": "src/components/admin/product-website/analytics/sections/HeatmapSection.jsx",
+   "target": "src/components/admin/product-website/analytics/sections/HeatmapSection.tsx"
+  },
+  {
+   "file": "src/components/admin/product-website/analytics/sections/PagesSection.jsx",
+   "target": "src/components/admin/product-website/analytics/sections/PagesSection.tsx"
+  },
+  {
+   "file": "src/components/admin/product-website/analytics/sections/PerformanceSection.jsx",
+   "target": "src/components/admin/product-website/analytics/sections/PerformanceSection.tsx"
+  },
+  {
+   "file": "src/components/admin/product-website/analytics/sections/ReplaysSection.jsx",
+   "target": "src/components/admin/product-website/analytics/sections/ReplaysSection.tsx"
+  },
+  {
+   "file": "src/components/admin/product-website/analytics/sections/SettingsSection.jsx",
+   "target": "src/components/admin/product-website/analytics/sections/SettingsSection.tsx"
+  },
+  {
+   "file": "src/components/admin/product-website/analytics/sections/SourcesSection.jsx",
+   "target": "src/components/admin/product-website/analytics/sections/SourcesSection.tsx"
+  },
+  {
+   "file": "src/components/admin/product-website/analytics/useAnalyticsQuery.js",
+   "target": "src/components/admin/product-website/analytics/useAnalyticsQuery.ts"
+  },
+  {
+   "file": "src/components/admin/product-website/assistant/CmsAssistantPane.jsx",
+   "target": "src/components/admin/product-website/assistant/CmsAssistantPane.tsx"
+  },
+  {
+   "file": "src/components/admin/product-website/blockEditors/ContentEditor.jsx",
+   "target": "src/components/admin/product-website/blockEditors/ContentEditor.tsx"
+  },
+  {
+   "file": "src/components/admin/product-website/blockEditors/RoadmapEditor.jsx",
+   "target": "src/components/admin/product-website/blockEditors/RoadmapEditor.tsx"
+  },
+  {
+   "file": "src/components/admin/product-website/blockEditors/ShowcaseEditor.jsx",
+   "target": "src/components/admin/product-website/blockEditors/ShowcaseEditor.tsx"
+  },
+  {
+   "file": "src/components/admin/product-website/googleFonts.js",
+   "target": "src/components/admin/product-website/googleFonts.ts"
+  },
+  {
+   "file": "src/components/admin/product-website/inspector/PageInspector.jsx",
+   "target": "src/components/admin/product-website/inspector/PageInspector.tsx"
+  },
+  {
+   "file": "src/components/admin/product-website/localeMerge.js",
+   "target": "src/components/admin/product-website/localeMerge.ts"
+  },
+  {
+   "file": "src/components/admin/product-website/panel/useCmsBlockEditing.js",
+   "target": "src/components/admin/product-website/panel/useCmsBlockEditing.ts"
+  },
+  {
+   "file": "src/components/admin/product-website/panel/useCmsPagesTemplates.js",
+   "target": "src/components/admin/product-website/panel/useCmsPagesTemplates.ts"
+  },
+  {
+   "file": "src/components/admin/product-website/preview/previewContent.js",
+   "target": "src/components/admin/product-website/preview/previewContent.ts"
+  },
+  {
+   "file": "src/components/admin/product-website/ProductWebsitePanel.jsx",
+   "target": "src/components/admin/product-website/ProductWebsitePanel.tsx"
+  },
+  {
+   "file": "src/components/admin/security/guardrails/orgShield/activity/shieldRows.js",
+   "target": "src/components/admin/security/guardrails/orgShield/activity/shieldRows.ts"
+  },
+  {
+   "file": "src/components/admin/security/guardrails/orgShield/OrgShieldEditor.jsx",
+   "target": "src/components/admin/security/guardrails/orgShield/OrgShieldEditor.tsx"
+  },
+  {
+   "file": "src/components/admin/security/guardrails/orgShield/orgShieldPosture.js",
+   "target": "src/components/admin/security/guardrails/orgShield/orgShieldPosture.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/Approvals/ApprovalDecisionControls.jsx",
+   "target": "src/components/admin/Studio/Approvals/ApprovalDecisionControls.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Approvals/ApprovalDetail.jsx",
+   "target": "src/components/admin/Studio/Approvals/ApprovalDetail.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/AppList.jsx",
+   "target": "src/components/admin/Studio/AppStudio/AppList.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/bi/ConnectorChainEditor.jsx",
+   "target": "src/components/admin/Studio/AppStudio/bi/ConnectorChainEditor.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/bi/ConnectorPicker.jsx",
+   "target": "src/components/admin/Studio/AppStudio/bi/ConnectorPicker.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/bi/FilterRowsEditor.jsx",
+   "target": "src/components/admin/Studio/AppStudio/bi/FilterRowsEditor.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/bi/QueryBuilder.jsx",
+   "target": "src/components/admin/Studio/AppStudio/bi/QueryBuilder.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/chat/PlanCard.jsx",
+   "target": "src/components/admin/Studio/AppStudio/chat/PlanCard.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/editor/Canvas.jsx",
+   "target": "src/components/admin/Studio/AppStudio/editor/Canvas.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/editor/ComponentRibbon.jsx",
+   "target": "src/components/admin/Studio/AppStudio/editor/ComponentRibbon.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/editor/LogicaTab.jsx",
+   "target": "src/components/admin/Studio/AppStudio/editor/LogicaTab.tsx"
+  }
+ ],
+ [
+  {
+   "file": "src/components/admin/Studio/AppStudio/editor/logicRows.js",
+   "target": "src/components/admin/Studio/AppStudio/editor/logicRows.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/editor/resize.js",
+   "target": "src/components/admin/Studio/AppStudio/editor/resize.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/editor/ScreenTabs.jsx",
+   "target": "src/components/admin/Studio/AppStudio/editor/ScreenTabs.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/flow/ActionFlowEditor.jsx",
+   "target": "src/components/admin/Studio/AppStudio/flow/ActionFlowEditor.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/flow/DocumentFillFields.jsx",
+   "target": "src/components/admin/Studio/AppStudio/flow/DocumentFillFields.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/flow/stepGraph.js",
+   "target": "src/components/admin/Studio/AppStudio/flow/stepGraph.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/flow/StepSettings.jsx",
+   "target": "src/components/admin/Studio/AppStudio/flow/StepSettings.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/inspector/ActionsSection.jsx",
+   "target": "src/components/admin/Studio/AppStudio/inspector/ActionsSection.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/inspector/AiActionEditors.jsx",
+   "target": "src/components/admin/Studio/AppStudio/inspector/AiActionEditors.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/inspector/AutomationPicker.jsx",
+   "target": "src/components/admin/Studio/AppStudio/inspector/AutomationPicker.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/inspector/logic/ConditionField.jsx",
+   "target": "src/components/admin/Studio/AppStudio/inspector/logic/ConditionField.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/inspector/logic/ExpressionInput.jsx",
+   "target": "src/components/admin/Studio/AppStudio/inspector/logic/ExpressionInput.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/inspector/panels/BindingField.jsx",
+   "target": "src/components/admin/Studio/AppStudio/inspector/panels/BindingField.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/inspector/panels/InputHtmlInspector.jsx",
+   "target": "src/components/admin/Studio/AppStudio/inspector/panels/InputHtmlInspector.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/inspector/panels/inputPanels.jsx",
+   "target": "src/components/admin/Studio/AppStudio/inspector/panels/inputPanels.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/inspector/panels/SpecPanel.jsx",
+   "target": "src/components/admin/Studio/AppStudio/inspector/panels/SpecPanel.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/inspector/StyleSection.jsx",
+   "target": "src/components/admin/Studio/AppStudio/inspector/StyleSection.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/inspector/ThemePanel.jsx",
+   "target": "src/components/admin/Studio/AppStudio/inspector/ThemePanel.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/rbac/RolesManager.jsx",
+   "target": "src/components/admin/Studio/AppStudio/rbac/RolesManager.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/rbac/RowRuleBuilder.jsx",
+   "target": "src/components/admin/Studio/AppStudio/rbac/RowRuleBuilder.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/rbac/RowRuleEditor.jsx",
+   "target": "src/components/admin/Studio/AppStudio/rbac/RowRuleEditor.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/AppRenderer.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/AppRenderer.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/AppApprovalList.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/AppApprovalList.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/AppCalendar.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/AppCalendar.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/AppChart.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/AppChart.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/AppDataGrid.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/AppDataGrid.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/AppFileGallery.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/AppFileGallery.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/AppFilePreview.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/AppFilePreview.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/AppInputHtml.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/AppInputHtml.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/AppInputPerson.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/AppInputPerson.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/AppInputRichtext.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/AppInputRichtext.tsx"
+  }
+ ],
+ [
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/AppInputTextarea.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/AppInputTextarea.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/AppKanban.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/AppKanban.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/AppList.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/AppList.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/AppMessageThread.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/AppMessageThread.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/AppPivot.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/AppPivot.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/AppTabs.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/AppTabs.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/cellValue.jsx",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/cellValue.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/components/gridColumnFilters.js",
+   "target": "src/components/admin/Studio/AppStudio/runtime/components/gridColumnFilters.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/themeVars.js",
+   "target": "src/components/admin/Studio/AppStudio/runtime/themeVars.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/runtime/useAppDataSource.js",
+   "target": "src/components/admin/Studio/AppStudio/runtime/useAppDataSource.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/state/definitionOps.js",
+   "target": "src/components/admin/Studio/AppStudio/state/definitionOps.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/state/generators.js",
+   "target": "src/components/admin/Studio/AppStudio/state/generators.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/state/useAppAutosave.js",
+   "target": "src/components/admin/Studio/AppStudio/state/useAppAutosave.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/tables/relationOps.js",
+   "target": "src/components/admin/Studio/AppStudio/tables/relationOps.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/tables/RelationshipsTab.jsx",
+   "target": "src/components/admin/Studio/AppStudio/tables/RelationshipsTab.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/tables/RowsTab.jsx",
+   "target": "src/components/admin/Studio/AppStudio/tables/RowsTab.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AppStudio/variables/VariablesManager.jsx",
+   "target": "src/components/admin/Studio/AppStudio/variables/VariablesManager.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/attention/attentionChecks.js",
+   "target": "src/components/admin/Studio/attention/attentionChecks.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/attention/AttentionList.jsx",
+   "target": "src/components/admin/Studio/attention/AttentionList.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AutomationsStudio/AutomationRow.jsx",
+   "target": "src/components/admin/Studio/AutomationsStudio/AutomationRow.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AutomationsStudio/AutomationsLauncher.jsx",
+   "target": "src/components/admin/Studio/AutomationsStudio/AutomationsLauncher.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AutomationsStudio/AutomationsOverview.jsx",
+   "target": "src/components/admin/Studio/AutomationsStudio/AutomationsOverview.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AutomationsStudio/FolderedAutomationList.jsx",
+   "target": "src/components/admin/Studio/AutomationsStudio/FolderedAutomationList.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/AutomationsStudio/overviewModel.js",
+   "target": "src/components/admin/Studio/AutomationsStudio/overviewModel.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/ColumnDesigner.jsx",
+   "target": "src/components/admin/Studio/Datatables/ColumnDesigner.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/DatatableDetail.jsx",
+   "target": "src/components/admin/Studio/Datatables/DatatableDetail.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/datatableDisplay.js",
+   "target": "src/components/admin/Studio/Datatables/datatableDisplay.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/DatatableSharing.jsx",
+   "target": "src/components/admin/Studio/Datatables/DatatableSharing.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/DatatablesStudio.jsx",
+   "target": "src/components/admin/Studio/Datatables/DatatablesStudio.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/LinkNextcloudTablesDialog.jsx",
+   "target": "src/components/admin/Studio/Datatables/LinkNextcloudTablesDialog.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/LinkSpreadsheetDialog.jsx",
+   "target": "src/components/admin/Studio/Datatables/LinkSpreadsheetDialog.tsx"
+  }
+ ],
+ [
+  {
+   "file": "src/components/admin/Studio/Datatables/linkWizardShared.jsx",
+   "target": "src/components/admin/Studio/Datatables/linkWizardShared.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/NewDatatableDialog.jsx",
+   "target": "src/components/admin/Studio/Datatables/NewDatatableDialog.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/RelationsCard.jsx",
+   "target": "src/components/admin/Studio/Datatables/RelationsCard.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/SourceMirrorPanel.jsx",
+   "target": "src/components/admin/Studio/Datatables/SourceMirrorPanel.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/sourceMirrors.js",
+   "target": "src/components/admin/Studio/Datatables/sourceMirrors.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/spreadsheet/FileBrowser.jsx",
+   "target": "src/components/admin/Studio/Datatables/spreadsheet/FileBrowser.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/spreadsheet/SheetSection.jsx",
+   "target": "src/components/admin/Studio/Datatables/spreadsheet/SheetSection.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/spreadsheet/SheetsStep.jsx",
+   "target": "src/components/admin/Studio/Datatables/spreadsheet/SheetsStep.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/SpreadsheetSourceCards.jsx",
+   "target": "src/components/admin/Studio/Datatables/SpreadsheetSourceCards.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Datatables/useSourceMirror.js",
+   "target": "src/components/admin/Studio/Datatables/useSourceMirror.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/Executions/ExecutionBar.jsx",
+   "target": "src/components/admin/Studio/Executions/ExecutionBar.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Executions/ExecutionsPanel.jsx",
+   "target": "src/components/admin/Studio/Executions/ExecutionsPanel.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Executions/ExecutionsTable.jsx",
+   "target": "src/components/admin/Studio/Executions/ExecutionsTable.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Executions/ExecutionView.jsx",
+   "target": "src/components/admin/Studio/Executions/ExecutionView.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Executions/useExecutions.js",
+   "target": "src/components/admin/Studio/Executions/useExecutions.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/Forms/answers/AnswersDashboard.jsx",
+   "target": "src/components/admin/Studio/Forms/answers/AnswersDashboard.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Forms/answers/QuestionBreakdowns.jsx",
+   "target": "src/components/admin/Studio/Forms/answers/QuestionBreakdowns.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Forms/form/AiDraftPanel.jsx",
+   "target": "src/components/admin/Studio/Forms/form/AiDraftPanel.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Forms/form/SettingsTab.jsx",
+   "target": "src/components/admin/Studio/Forms/form/SettingsTab.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Forms/FormPage.jsx",
+   "target": "src/components/admin/Studio/Forms/FormPage.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Forms/FormsStudio.jsx",
+   "target": "src/components/admin/Studio/Forms/FormsStudio.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/index.jsx",
+   "target": "src/components/admin/Studio/index.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/KnowledgeStudio/index.jsx",
+   "target": "src/components/admin/Studio/KnowledgeStudio/index.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/KnowledgeStudio/knowledgeApi.js",
+   "target": "src/components/admin/Studio/KnowledgeStudio/knowledgeApi.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/KnowledgeStudio/KnowledgeDetail.jsx",
+   "target": "src/components/admin/Studio/KnowledgeStudio/KnowledgeDetail.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/KnowledgeStudio/KnowledgeOverview.jsx",
+   "target": "src/components/admin/Studio/KnowledgeStudio/KnowledgeOverview.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/KnowledgeStudio/SettingsTab.jsx",
+   "target": "src/components/admin/Studio/KnowledgeStudio/SettingsTab.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/KnowledgeStudio/SourceDetail.jsx",
+   "target": "src/components/admin/Studio/KnowledgeStudio/SourceDetail.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/KnowledgeStudio/SourcesTab.jsx",
+   "target": "src/components/admin/Studio/KnowledgeStudio/SourcesTab.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/NewMenu.jsx",
+   "target": "src/components/admin/Studio/NewMenu.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Playbooks/NewPlaybookDialog.jsx",
+   "target": "src/components/admin/Studio/Playbooks/NewPlaybookDialog.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Playbooks/PlaybookRun.jsx",
+   "target": "src/components/admin/Studio/Playbooks/PlaybookRun.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Playbooks/PlaybooksStudio.jsx",
+   "target": "src/components/admin/Studio/Playbooks/PlaybooksStudio.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Playbooks/playbookView.js",
+   "target": "src/components/admin/Studio/Playbooks/playbookView.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/Playbooks/stages/AccessStage.jsx",
+   "target": "src/components/admin/Studio/Playbooks/stages/AccessStage.tsx"
+  }
+ ],
+ [
+  {
+   "file": "src/components/admin/Studio/Playbooks/stages/AutomationStage.jsx",
+   "target": "src/components/admin/Studio/Playbooks/stages/AutomationStage.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Playbooks/stages/ComplianceStage.jsx",
+   "target": "src/components/admin/Studio/Playbooks/stages/ComplianceStage.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Playbooks/stages/complianceView.js",
+   "target": "src/components/admin/Studio/Playbooks/stages/complianceView.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/Playbooks/stages/DoneCard.jsx",
+   "target": "src/components/admin/Studio/Playbooks/stages/DoneCard.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Playbooks/stages/FillStage.jsx",
+   "target": "src/components/admin/Studio/Playbooks/stages/FillStage.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Playbooks/stages/RegisterPanel.jsx",
+   "target": "src/components/admin/Studio/Playbooks/stages/RegisterPanel.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Playbooks/stages/resolveApply.js",
+   "target": "src/components/admin/Studio/Playbooks/stages/resolveApply.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/Playbooks/usePlaybook.js",
+   "target": "src/components/admin/Studio/Playbooks/usePlaybook.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/Runs/RunsStudio.jsx",
+   "target": "src/components/admin/Studio/Runs/RunsStudio.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/SkillsStudio/ExamplesTab.jsx",
+   "target": "src/components/admin/Studio/SkillsStudio/ExamplesTab.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/SkillsStudio/index.jsx",
+   "target": "src/components/admin/Studio/SkillsStudio/index.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/SkillsStudio/SkillDetail.jsx",
+   "target": "src/components/admin/Studio/SkillsStudio/SkillDetail.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/SkillsStudio/skillsApi.js",
+   "target": "src/components/admin/Studio/SkillsStudio/skillsApi.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/SkillsStudio/TestTab.jsx",
+   "target": "src/components/admin/Studio/SkillsStudio/TestTab.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Solutions/InstallBlueprintModal.jsx",
+   "target": "src/components/admin/Studio/Solutions/InstallBlueprintModal.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Solutions/installRequirements.js",
+   "target": "src/components/admin/Studio/Solutions/installRequirements.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/Solutions/installWizardSteps.jsx",
+   "target": "src/components/admin/Studio/Solutions/installWizardSteps.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Solutions/SolutionContentTable.jsx",
+   "target": "src/components/admin/Studio/Solutions/SolutionContentTable.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Solutions/SolutionDetail.jsx",
+   "target": "src/components/admin/Studio/Solutions/SolutionDetail.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Solutions/solutionOverviewModel.js",
+   "target": "src/components/admin/Studio/Solutions/solutionOverviewModel.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/Solutions/SolutionsStudio.jsx",
+   "target": "src/components/admin/Studio/Solutions/SolutionsStudio.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/Solutions/upgradeClient.jsx",
+   "target": "src/components/admin/Studio/Solutions/upgradeClient.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/studioAi/DescribeItPanel.jsx",
+   "target": "src/components/admin/Studio/studioAi/DescribeItPanel.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/studioAi/handoff.js",
+   "target": "src/components/admin/Studio/studioAi/handoff.ts"
+  },
+  {
+   "file": "src/components/admin/Studio/StudioHomeHeader.jsx",
+   "target": "src/components/admin/Studio/StudioHomeHeader.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/StudioStart.jsx",
+   "target": "src/components/admin/Studio/StudioStart.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/SupportStudio/index.jsx",
+   "target": "src/components/admin/Studio/SupportStudio/index.tsx"
+  },
+  {
+   "file": "src/components/admin/Studio/SupportStudio/InsightsPanel.jsx",
+   "target": "src/components/admin/Studio/SupportStudio/InsightsPanel.tsx"
+  },
+  {
+   "file": "src/components/admin/subscriptions/grants/GrantsView.jsx",
+   "target": "src/components/admin/subscriptions/grants/GrantsView.tsx"
+  },
+  {
+   "file": "src/components/admin/subscriptions/plans/sections/FeaturesSection.jsx",
+   "target": "src/components/admin/subscriptions/plans/sections/FeaturesSection.tsx"
+  },
+  {
+   "file": "src/components/admin/subscriptions/ui/FeatureCardGrid.jsx",
+   "target": "src/components/admin/subscriptions/ui/FeatureCardGrid.tsx"
+  },
+  {
+   "file": "src/components/agents/AgentDesigner/hooks/useAgentChat.js",
+   "target": "src/components/agents/AgentDesigner/hooks/useAgentChat.ts"
+  },
+  {
+   "file": "src/components/agents/AgentDesigner/sections/IdentitySection.jsx",
+   "target": "src/components/agents/AgentDesigner/sections/IdentitySection.tsx"
+  },
+  {
+   "file": "src/components/agents/AgentDesignerPanel.jsx",
+   "target": "src/components/agents/AgentDesignerPanel.tsx"
+  },
+  {
+   "file": "src/components/agents/AgentEditorUI.jsx",
+   "target": "src/components/agents/AgentEditorUI.tsx"
+  }
+ ],
+ [
+  {
+   "file": "src/components/agents/AgentMarketplace.jsx",
+   "target": "src/components/agents/AgentMarketplace.tsx"
+  },
+  {
+   "file": "src/components/agents/AgentSkillsTab.jsx",
+   "target": "src/components/agents/AgentSkillsTab.tsx"
+  },
+  {
+   "file": "src/components/agents/AgentStudio/index.jsx",
+   "target": "src/components/agents/AgentStudio/index.tsx"
+  },
+  {
+   "file": "src/components/agents/AgentWizard/BuilderSplit.jsx",
+   "target": "src/components/agents/AgentWizard/BuilderSplit.tsx"
+  },
+  {
+   "file": "src/components/agents/AgentWizard/builderSplit/AgentEditorHeader.jsx",
+   "target": "src/components/agents/AgentWizard/builderSplit/AgentEditorHeader.tsx"
+  },
+  {
+   "file": "src/components/agents/AgentWizard/canUse/ToolChooser.jsx",
+   "target": "src/components/agents/AgentWizard/canUse/ToolChooser.tsx"
+  },
+  {
+   "file": "src/components/agents/AgentWizard/canUse/toolChooserModel.js",
+   "target": "src/components/agents/AgentWizard/canUse/toolChooserModel.ts"
+  },
+  {
+   "file": "src/components/agents/AgentWizard/canUse/toolGrants.js",
+   "target": "src/components/agents/AgentWizard/canUse/toolGrants.ts"
+  },
+  {
+   "file": "src/components/agents/AgentWizard/index.jsx",
+   "target": "src/components/agents/AgentWizard/index.tsx"
+  },
+  {
+   "file": "src/components/agents/AgentWizard/pickers/AdvancedDrawer.jsx",
+   "target": "src/components/agents/AgentWizard/pickers/AdvancedDrawer.tsx"
+  },
+  {
+   "file": "src/components/agents/AgentWizard/pickers/BehaviorPicker.jsx",
+   "target": "src/components/agents/AgentWizard/pickers/BehaviorPicker.tsx"
+  },
+  {
+   "file": "src/components/agents/AgentWizard/pickers/SchedulePickers.jsx",
+   "target": "src/components/agents/AgentWizard/pickers/SchedulePickers.tsx"
+  },
+  {
+   "file": "src/components/agents/AgentWizard/tests/TestSetCard.jsx",
+   "target": "src/components/agents/AgentWizard/tests/TestSetCard.tsx"
+  },
+  {
+   "file": "src/components/agents/AgentWizard/tests/testSetFacts.js",
+   "target": "src/components/agents/AgentWizard/tests/testSetFacts.ts"
+  },
+  {
+   "file": "src/components/agents/AgentWizard/tests/useAgentTests.js",
+   "target": "src/components/agents/AgentWizard/tests/useAgentTests.ts"
+  },
+  {
+   "file": "src/components/agents/VersionHistory.jsx",
+   "target": "src/components/agents/VersionHistory.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/approvals/ApprovalActionBar.jsx",
+   "target": "src/components/automation/Builder/approvals/ApprovalActionBar.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/BuilderShell.jsx",
+   "target": "src/components/automation/Builder/BuilderShell.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/DiagramPane.jsx",
+   "target": "src/components/automation/Builder/DiagramPane.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/aiToolNodes.js",
+   "target": "src/components/automation/Builder/flow/aiToolNodes.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/appLabels.js",
+   "target": "src/components/automation/Builder/flow/appLabels.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/appRefLabel.js",
+   "target": "src/components/automation/Builder/flow/appRefLabel.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/arrange.js",
+   "target": "src/components/automation/Builder/flow/arrange.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/branchEdges.js",
+   "target": "src/components/automation/Builder/flow/branchEdges.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/buildChoreography.js",
+   "target": "src/components/automation/Builder/flow/buildChoreography.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/CallContractFields.jsx",
+   "target": "src/components/automation/Builder/flow/CallContractFields.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/CanvasSouthBar.jsx",
+   "target": "src/components/automation/Builder/flow/CanvasSouthBar.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/dataSummary.js",
+   "target": "src/components/automation/Builder/flow/dataSummary.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/displayHelpers.js",
+   "target": "src/components/automation/Builder/flow/displayHelpers.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/edgeHops.js",
+   "target": "src/components/automation/Builder/flow/edgeHops.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/flowletScope.js",
+   "target": "src/components/automation/Builder/flow/flowletScope.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/ghostDraft.js",
+   "target": "src/components/automation/Builder/flow/ghostDraft.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/inlineFlowlets.js",
+   "target": "src/components/automation/Builder/flow/inlineFlowlets.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/layout.js",
+   "target": "src/components/automation/Builder/flow/layout.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/nodes/AiStepNode.jsx",
+   "target": "src/components/automation/Builder/flow/nodes/AiStepNode.tsx"
+  }
+ ],
+ [
+  {
+   "file": "src/components/automation/Builder/flow/nodeSummaries.js",
+   "target": "src/components/automation/Builder/flow/nodeSummaries.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/ribbonOrigin.js",
+   "target": "src/components/automation/Builder/flow/ribbonOrigin.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/routeModel.js",
+   "target": "src/components/automation/Builder/flow/routeModel.ts"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/actionEditors/dataExtractionFields.jsx",
+   "target": "src/components/automation/Builder/flow/settings/actionEditors/dataExtractionFields.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/actionEditors/documentFields.jsx",
+   "target": "src/components/automation/Builder/flow/settings/actionEditors/documentFields.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/actionEditors/flowletCallFields.jsx",
+   "target": "src/components/automation/Builder/flow/settings/actionEditors/flowletCallFields.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/actionEditors/httpRequestFields.jsx",
+   "target": "src/components/automation/Builder/flow/settings/actionEditors/httpRequestFields.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/actionEditors/integrationActionFields.jsx",
+   "target": "src/components/automation/Builder/flow/settings/actionEditors/integrationActionFields.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/actionEditors/loopFields.jsx",
+   "target": "src/components/automation/Builder/flow/settings/actionEditors/loopFields.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/actionEditors/notificationFields.jsx",
+   "target": "src/components/automation/Builder/flow/settings/actionEditors/notificationFields.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/actionEditors/presentationFields.jsx",
+   "target": "src/components/automation/Builder/flow/settings/actionEditors/presentationFields.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/actionEditors/slideFields.jsx",
+   "target": "src/components/automation/Builder/flow/settings/actionEditors/slideFields.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/actionEditors/stopErrorFields.jsx",
+   "target": "src/components/automation/Builder/flow/settings/actionEditors/stopErrorFields.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/aiStepEditors.jsx",
+   "target": "src/components/automation/Builder/flow/settings/aiStepEditors.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/approvalEditors.jsx",
+   "target": "src/components/automation/Builder/flow/settings/approvalEditors.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/approvalStages.jsx",
+   "target": "src/components/automation/Builder/flow/settings/approvalStages.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/collectionEditors.jsx",
+   "target": "src/components/automation/Builder/flow/settings/collectionEditors.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/datatableEditors.jsx",
+   "target": "src/components/automation/Builder/flow/settings/datatableEditors.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/FormBuilderFields.jsx",
+   "target": "src/components/automation/Builder/flow/settings/FormBuilderFields.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/knowledgeWriteEditors.jsx",
+   "target": "src/components/automation/Builder/flow/settings/knowledgeWriteEditors.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/ParseJsonFields.jsx",
+   "target": "src/components/automation/Builder/flow/settings/ParseJsonFields.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/privacyEditors.jsx",
+   "target": "src/components/automation/Builder/flow/settings/privacyEditors.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/returnToAppEditor.jsx",
+   "target": "src/components/automation/Builder/flow/settings/returnToAppEditor.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/RouteAssist.jsx",
+   "target": "src/components/automation/Builder/flow/settings/RouteAssist.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/routeEditors.jsx",
+   "target": "src/components/automation/Builder/flow/settings/routeEditors.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/setEditors.jsx",
+   "target": "src/components/automation/Builder/flow/settings/setEditors.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/SettingsHost.jsx",
+   "target": "src/components/automation/Builder/flow/settings/SettingsHost.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/settings/TablesRowValuesEditor.jsx",
+   "target": "src/components/automation/Builder/flow/settings/TablesRowValuesEditor.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/SettingsForm.jsx",
+   "target": "src/components/automation/Builder/flow/SettingsForm.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/flow/ToolPicker.jsx",
+   "target": "src/components/automation/Builder/flow/ToolPicker.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/FormRunOverlay.jsx",
+   "target": "src/components/automation/Builder/FormRunOverlay.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/mapping/BindingField.jsx",
+   "target": "src/components/automation/Builder/mapping/BindingField.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/mapping/ConditionBuilder.jsx",
+   "target": "src/components/automation/Builder/mapping/ConditionBuilder.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/mapping/LoopBodyEditor.jsx",
+   "target": "src/components/automation/Builder/mapping/LoopBodyEditor.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/mapping/PathField.jsx",
+   "target": "src/components/automation/Builder/mapping/PathField.tsx"
+  }
+ ],
+ [
+  {
+   "file": "src/components/automation/Builder/mapping/RefTokenInput.jsx",
+   "target": "src/components/automation/Builder/mapping/RefTokenInput.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/mapping/TemplateField.jsx",
+   "target": "src/components/automation/Builder/mapping/TemplateField.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/mapping/ToolInputForm.jsx",
+   "target": "src/components/automation/Builder/mapping/ToolInputForm.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/mapping/ValueBuilder.jsx",
+   "target": "src/components/automation/Builder/mapping/ValueBuilder.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/mapping/VariablePicker.jsx",
+   "target": "src/components/automation/Builder/mapping/VariablePicker.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/NodeDetailView.jsx",
+   "target": "src/components/automation/Builder/NodeDetailView.tsx"
+  },
+  {
+   "file": "src/components/automation/Builder/RunExecutionView.jsx",
+   "target": "src/components/automation/Builder/RunExecutionView.tsx"
+  },
+  {
+   "file": "src/components/automation/index.jsx",
+   "target": "src/components/automation/index.tsx"
+  },
+  {
+   "file": "src/components/chat/AnswerTracePanel.jsx",
+   "target": "src/components/chat/AnswerTracePanel.tsx"
+  },
+  {
+   "file": "src/components/chat/ComposerToolsMenu.jsx",
+   "target": "src/components/chat/ComposerToolsMenu.tsx"
+  },
+  {
+   "file": "src/components/chat/InputArea/ComposerPills.jsx",
+   "target": "src/components/chat/InputArea/ComposerPills.tsx"
+  },
+  {
+   "file": "src/components/chat/InputArea/index.jsx",
+   "target": "src/components/chat/InputArea/index.tsx"
+  },
+  {
+   "file": "src/components/chat/InputArea/MediaCreationPanel.jsx",
+   "target": "src/components/chat/InputArea/MediaCreationPanel.tsx"
+  },
+  {
+   "file": "src/components/chat/MessageItem/CalendarDraftCard.jsx",
+   "target": "src/components/chat/MessageItem/CalendarDraftCard.tsx"
+  },
+  {
+   "file": "src/components/chat/MessageItem/MessageContentBody.jsx",
+   "target": "src/components/chat/MessageItem/MessageContentBody.tsx"
+  },
+  {
+   "file": "src/components/chat/WorkspaceNotebook.jsx",
+   "target": "src/components/chat/WorkspaceNotebook.tsx"
+  },
+  {
+   "file": "src/components/cowork/coworkFormat.js",
+   "target": "src/components/cowork/coworkFormat.ts"
+  },
+  {
+   "file": "src/components/cowork/CoworkRunHistory.jsx",
+   "target": "src/components/cowork/CoworkRunHistory.tsx"
+  },
+  {
+   "file": "src/components/integrations/azure/ChatModelsSection.jsx",
+   "target": "src/components/integrations/azure/ChatModelsSection.tsx"
+  },
+  {
+   "file": "src/components/integrations/azure/SSOSection.jsx",
+   "target": "src/components/integrations/azure/SSOSection.tsx"
+  },
+  {
+   "file": "src/components/integrations/IntegrationsAdminPanel.jsx",
+   "target": "src/components/integrations/IntegrationsAdminPanel.tsx"
+  },
+  {
+   "file": "src/components/integrations/nextcloud/NcScopeSection.jsx",
+   "target": "src/components/integrations/nextcloud/NcScopeSection.tsx"
+  },
+  {
+   "file": "src/components/integrations/nextcloud/NextcloudSyncPanel.jsx",
+   "target": "src/components/integrations/nextcloud/NextcloudSyncPanel.tsx"
+  },
+  {
+   "file": "src/components/knowledge/SystemKnowledgeBasesPanel.jsx",
+   "target": "src/components/knowledge/SystemKnowledgeBasesPanel.tsx"
+  },
+  {
+   "file": "src/components/onboarding/player/LessonPlayer.jsx",
+   "target": "src/components/onboarding/player/LessonPlayer.tsx"
+  },
+  {
+   "file": "src/components/renderers/ResearchRenderer.jsx",
+   "target": "src/components/renderers/ResearchRenderer.tsx"
+  },
+  {
+   "file": "src/components/shared/AppActionPicker.jsx",
+   "target": "src/components/shared/AppActionPicker.tsx"
+  },
+  {
+   "file": "src/components/shared/DangerZone.jsx",
+   "target": "src/components/shared/DangerZone.tsx"
+  },
+  {
+   "file": "src/components/shared/resolveTarget.js",
+   "target": "src/components/shared/resolveTarget.ts"
+  },
+  {
+   "file": "src/components/shared/StudioSectionHeader.jsx",
+   "target": "src/components/shared/StudioSectionHeader.tsx"
+  },
+  {
+   "file": "src/components/shell/SearchOverlay.jsx",
+   "target": "src/components/shell/SearchOverlay.tsx"
+  },
+  {
+   "file": "src/components/shell/Sidebar.jsx",
+   "target": "src/components/shell/Sidebar.tsx"
+  },
+  {
+   "file": "src/components/skills/SkillFormModal.jsx",
+   "target": "src/components/skills/SkillFormModal.tsx"
+  },
+  {
+   "file": "src/components/skills/SkillsPanel.jsx",
+   "target": "src/components/skills/SkillsPanel.tsx"
+  },
+  {
+   "file": "src/components/skills/SkillsPopover.jsx",
+   "target": "src/components/skills/SkillsPopover.tsx"
+  }
+ ],
+ [
+  {
+   "file": "src/components/support/SupportAIConfig.jsx",
+   "target": "src/components/support/SupportAIConfig.tsx"
+  },
+  {
+   "file": "src/demo/ComplianceDemo.jsx",
+   "target": "src/demo/ComplianceDemo.tsx"
+  },
+  {
+   "file": "src/demo/fixtures/appStudio.js",
+   "target": "src/demo/fixtures/appStudio.ts"
+  },
+  {
+   "file": "src/demo/fixtures/compliance.js",
+   "target": "src/demo/fixtures/compliance.ts"
+  },
+  {
+   "file": "src/demo/fixtures/knowledge.js",
+   "target": "src/demo/fixtures/knowledge.ts"
+  },
+  {
+   "file": "src/demo/registry.js",
+   "target": "src/demo/registry.ts"
+  },
+  {
+   "file": "src/editor/engine/doc.js",
+   "target": "src/editor/engine/doc.ts"
+  },
+  {
+   "file": "src/editor/engine/normalize.js",
+   "target": "src/editor/engine/normalize.ts"
+  },
+  {
+   "file": "src/editor/engine/reconcile.js",
+   "target": "src/editor/engine/reconcile.ts"
+  },
+  {
+   "file": "src/editor/engine/render.js",
+   "target": "src/editor/engine/render.ts"
+  },
+  {
+   "file": "src/editor/engine/tables.js",
+   "target": "src/editor/engine/tables.ts"
+  }
+ ],
+ [
+  {
+   "file": "src/editor/engine/view.js",
+   "target": "src/editor/engine/view.ts"
+  },
+  {
+   "file": "src/editor/react/BeeEditor.jsx",
+   "target": "src/editor/react/BeeEditor.tsx"
+  },
+  {
+   "file": "src/editor/react/SectionDragLayer.jsx",
+   "target": "src/editor/react/SectionDragLayer.tsx"
+  },
+  {
+   "file": "src/editor/serialization/astToMd.js",
+   "target": "src/editor/serialization/astToMd.ts"
+  },
+  {
+   "file": "src/editor/serialization/htmlToAst.js",
+   "target": "src/editor/serialization/htmlToAst.ts"
+  },
+  {
+   "file": "src/editor/serialization/mdToAst.js",
+   "target": "src/editor/serialization/mdToAst.ts"
+  },
+  {
+   "file": "src/editor/serialization/util.js",
+   "target": "src/editor/serialization/util.ts"
+  },
+  {
+   "file": "src/marketing/components/analyticsEvents.js",
+   "target": "src/marketing/components/analyticsEvents.ts"
+  },
+  {
+   "file": "src/marketing/components/GoogleAnalyticsTracker.jsx",
+   "target": "src/marketing/components/GoogleAnalyticsTracker.ts"
+  },
+  {
+   "file": "src/marketing/PricingPage.jsx",
+   "target": "src/marketing/PricingPage.tsx"
+  },
+  {
+   "file": "src/marketing/sections/CustomerSupport.jsx",
+   "target": "src/marketing/sections/CustomerSupport.tsx"
+  },
+  {
+   "file": "src/marketing/sections/LiveComponent.jsx",
+   "target": "src/marketing/sections/LiveComponent.tsx"
+  },
+  {
+   "file": "src/marketing/sections/ReleaseNotes.jsx",
+   "target": "src/marketing/sections/ReleaseNotes.tsx"
+  },
+  {
+   "file": "src/marketing/sections/Roadmap.jsx",
+   "target": "src/marketing/sections/Roadmap.tsx"
+  },
+  {
+   "file": "src/moduleRuntime/registry.js",
+   "target": "src/moduleRuntime/registry.ts"
+  },
+  {
+   "file": "src/pages/AdminDashboard.jsx",
+   "target": "src/pages/AdminDashboard.tsx"
+  },
+  {
+   "file": "src/pages/AdvancedSettings.jsx",
+   "target": "src/pages/AdvancedSettings.tsx"
+  },
+  {
+   "file": "src/pages/apps/AppRunPage.jsx",
+   "target": "src/pages/apps/AppRunPage.tsx"
+  },
+  {
+   "file": "src/pages/apps/AppsHomePage.jsx",
+   "target": "src/pages/apps/AppsHomePage.tsx"
+  },
+  {
+   "file": "src/pages/documents/DeckLookFields.jsx",
+   "target": "src/pages/documents/DeckLookFields.tsx"
+  },
+  {
+   "file": "src/pages/documents/documentsApi.js",
+   "target": "src/pages/documents/documentsApi.ts"
+  }
+ ],
+ [
+  {
+   "file": "src/pages/documents/DocumentWorkspacePanel.jsx",
+   "target": "src/pages/documents/DocumentWorkspacePanel.tsx"
+  },
+  {
+   "file": "src/pages/documents/HouseStylePanel.jsx",
+   "target": "src/pages/documents/HouseStylePanel.tsx"
+  },
+  {
+   "file": "src/pages/documents/notebook/CitationChips.jsx",
+   "target": "src/pages/documents/notebook/CitationChips.tsx"
+  },
+  {
+   "file": "src/pages/documents/notebook/MermaidBlock.jsx",
+   "target": "src/pages/documents/notebook/MermaidBlock.tsx"
+  },
+  {
+   "file": "src/pages/documents/notebook/NotebookChat.jsx",
+   "target": "src/pages/documents/notebook/NotebookChat.tsx"
+  },
+  {
+   "file": "src/pages/documents/notebook/NotebookWorkspace.jsx",
+   "target": "src/pages/documents/notebook/NotebookWorkspace.tsx"
+  },
+  {
+   "file": "src/pages/EmbedChat.jsx",
+   "target": "src/pages/EmbedChat.tsx"
+  },
+  {
+   "file": "src/pages/login/SignupWizard.jsx",
+   "target": "src/pages/login/SignupWizard.tsx"
+  },
+  {
+   "file": "src/pages/LoginPage.jsx",
+   "target": "src/pages/LoginPage.tsx"
+  },
+  {
+   "file": "src/pages/meeting-notes/detail/DestinationPicker.jsx",
+   "target": "src/pages/meeting-notes/detail/DestinationPicker.tsx"
+  },
+  {
+   "file": "src/pages/meeting-notes/detail/ExtractedPanel.jsx",
+   "target": "src/pages/meeting-notes/detail/ExtractedPanel.tsx"
+  },
+  {
+   "file": "src/pages/meeting-notes/detail/insights/FollowUpTab.jsx",
+   "target": "src/pages/meeting-notes/detail/insights/FollowUpTab.tsx"
+  },
+  {
+   "file": "src/pages/meeting-notes/detail/MeetingDetail.jsx",
+   "target": "src/pages/meeting-notes/detail/MeetingDetail.tsx"
+  },
+  {
+   "file": "src/pages/meeting-notes/detail/MeetingHeader.jsx",
+   "target": "src/pages/meeting-notes/detail/MeetingHeader.tsx"
+  },
+  {
+   "file": "src/pages/meeting-notes/detail/SummaryActionsLayout.jsx",
+   "target": "src/pages/meeting-notes/detail/SummaryActionsLayout.tsx"
+  },
+  {
+   "file": "src/pages/meeting-notes/detail/TranscriptLineMenu.jsx",
+   "target": "src/pages/meeting-notes/detail/TranscriptLineMenu.tsx"
+  },
+  {
+   "file": "src/pages/meeting-notes/detail/TranscriptView.jsx",
+   "target": "src/pages/meeting-notes/detail/TranscriptView.tsx"
+  },
+  {
+   "file": "src/pages/meeting-notes/lib/meetingRules.js",
+   "target": "src/pages/meeting-notes/lib/meetingRules.ts"
+  },
+  {
+   "file": "src/pages/meeting-notes/lib/playerData.js",
+   "target": "src/pages/meeting-notes/lib/playerData.ts"
+  },
+  {
+   "file": "src/pages/meeting-notes/lib/sourceMeta.js",
+   "target": "src/pages/meeting-notes/lib/sourceMeta.ts"
+  },
+  {
+   "file": "src/pages/meeting-notes/library/MeetingLibrary.jsx",
+   "target": "src/pages/meeting-notes/library/MeetingLibrary.tsx"
+  },
+  {
+   "file": "src/pages/meeting-notes/MeetingNotesPage.jsx",
+   "target": "src/pages/meeting-notes/MeetingNotesPage.tsx"
+  },
+  {
+   "file": "src/pages/PublicFormPage.jsx",
+   "target": "src/pages/PublicFormPage.tsx"
+  },
+  {
+   "file": "src/pages/settings/AvatarPicker.jsx",
+   "target": "src/pages/settings/AvatarPicker.tsx"
+  },
+  {
+   "file": "src/pages/settings/ConnectionsManager.jsx",
+   "target": "src/pages/settings/ConnectionsManager.tsx"
+  },
+  {
+   "file": "src/pages/settings/ConsumerIntegrationsSection.jsx",
+   "target": "src/pages/settings/ConsumerIntegrationsSection.tsx"
+  },
+  {
+   "file": "src/pages/settings/ConsumerUsageSection.jsx",
+   "target": "src/pages/settings/ConsumerUsageSection.tsx"
+  },
+  {
+   "file": "src/pages/settings/IntegrationsSection.jsx",
+   "target": "src/pages/settings/IntegrationsSection.tsx"
+  },
+  {
+   "file": "src/pages/settings/learning/AchievementsView.jsx",
+   "target": "src/pages/settings/learning/AchievementsView.tsx"
+  },
+  {
+   "file": "src/pages/settings/learning/admin/AcademyContentEditor.jsx",
+   "target": "src/pages/settings/learning/admin/AcademyContentEditor.tsx"
+  },
+  {
+   "file": "src/pages/settings/learning/bits.jsx",
+   "target": "src/pages/settings/learning/bits.tsx"
+  },
+  {
+   "file": "src/pages/settings/learning/CertificateDrawer.jsx",
+   "target": "src/pages/settings/learning/CertificateDrawer.tsx"
+  },
+  {
+   "file": "src/pages/settings/learning/CourseView.jsx",
+   "target": "src/pages/settings/learning/CourseView.tsx"
+  },
+  {
+   "file": "src/pages/settings/learning/OverviewView.jsx",
+   "target": "src/pages/settings/learning/OverviewView.tsx"
+  },
+  {
+   "file": "src/pages/settings/learning/ReviewView.jsx",
+   "target": "src/pages/settings/learning/ReviewView.tsx"
+  }
+ ],
+ [
+  {
+   "file": "src/pages/settings/LearningCenterSection.jsx",
+   "target": "src/pages/settings/LearningCenterSection.tsx"
+  },
+  {
+   "file": "src/pages/settings/OrganisationSection.jsx",
+   "target": "src/pages/settings/OrganisationSection.tsx"
+  },
+  {
+   "file": "src/pages/settings/OrgFeedbackPanel.jsx",
+   "target": "src/pages/settings/OrgFeedbackPanel.tsx"
+  },
+  {
+   "file": "src/pages/settings/OrgTerminationsPanel.jsx",
+   "target": "src/pages/settings/OrgTerminationsPanel.tsx"
+  },
+  {
+   "file": "src/pages/settings/PolicyAcknowledgements.jsx",
+   "target": "src/pages/settings/PolicyAcknowledgements.tsx"
+  },
+  {
+   "file": "src/pages/settings/SimpleApiKeyIntegration.jsx",
+   "target": "src/pages/settings/SimpleApiKeyIntegration.tsx"
+  },
+  {
+   "file": "src/pages/settings/usage/OverviewTab.jsx",
+   "target": "src/pages/settings/usage/OverviewTab.tsx"
+  },
+  {
+   "file": "src/pages/settings/UsageSection.jsx",
+   "target": "src/pages/settings/UsageSection.tsx"
+  },
+  {
+   "file": "src/pages/TemplatesPage.jsx",
+   "target": "src/pages/TemplatesPage.tsx"
+  },
+  {
+   "file": "src/pages/webpages/FileExplorer.jsx",
+   "target": "src/pages/webpages/FileExplorer.tsx"
+  },
+  {
+   "file": "src/pages/webpages/WebpageActionsPanel.jsx",
+   "target": "src/pages/webpages/WebpageActionsPanel.tsx"
+  },
+  {
+   "file": "src/pages/webpages/WebpageAppsPanel.jsx",
+   "target": "src/pages/webpages/WebpageAppsPanel.tsx"
+  },
+  {
+   "file": "src/pages/webpages/WebpageAudiencePanel.jsx",
+   "target": "src/pages/webpages/WebpageAudiencePanel.tsx"
+  },
+  {
+   "file": "src/pages/webpages/WebpageChat.jsx",
+   "target": "src/pages/webpages/WebpageChat.tsx"
+  },
+  {
+   "file": "src/pages/webpages/WebpageCodeStrip.jsx",
+   "target": "src/pages/webpages/WebpageCodeStrip.tsx"
+  },
+  {
+   "file": "src/pages/webpages/WebpageDataCards.jsx",
+   "target": "src/pages/webpages/WebpageDataCards.tsx"
+  },
+  {
+   "file": "src/pages/webpages/WebpageDataTab.jsx",
+   "target": "src/pages/webpages/WebpageDataTab.tsx"
+  },
+  {
+   "file": "src/pages/webpages/WebpageDeleteDialog.jsx",
+   "target": "src/pages/webpages/WebpageDeleteDialog.tsx"
+  },
+  {
+   "file": "src/pages/webpages/WebpageEditorHeader.jsx",
+   "target": "src/pages/webpages/WebpageEditorHeader.tsx"
+  },
+  {
+   "file": "src/pages/webpages/WebpagesList.jsx",
+   "target": "src/pages/webpages/WebpagesList.tsx"
+  },
+  {
+   "file": "src/pages/webpages/WebpageSources.jsx",
+   "target": "src/pages/webpages/WebpageSources.tsx"
+  },
+  {
+   "file": "src/pages/WebpagesPage.jsx",
+   "target": "src/pages/WebpagesPage.tsx"
+  },
+  {
+   "file": "src/utils/buildWebpagePreview.js",
+   "target": "src/utils/buildWebpagePreview.ts"
+  },
+  {
+   "file": "src/utils/imageResize.js",
+   "target": "src/utils/imageResize.ts"
+  },
+  {
+   "file": "src/utils/lazyWithReload.js",
+   "target": "src/utils/lazyWithReload.ts"
+  },
+  {
+   "file": "src/utils/mcpLogos.jsx",
+   "target": "src/utils/mcpLogos.tsx"
+  },
+  {
+   "file": "src/utils/messageShape.js",
+   "target": "src/utils/messageShape.ts"
+  },
+  {
+   "file": "src/utils/sseStream.js",
+   "target": "src/utils/sseStream.ts"
+  }
+ ]
+]

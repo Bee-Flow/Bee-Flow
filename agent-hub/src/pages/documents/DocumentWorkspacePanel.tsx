@@ -4,23 +4,88 @@ import { documentRequest, getHouseStyle } from './documentsApi';
 import useTranslation from '../../hooks/useTranslation';
 import Modal from '../../components/shared/Modal';
 import DeckLookFields from './DeckLookFields';
+import type { StudioDocument } from './documentQueries';
+import type { MegaItem } from '../../components/admin/product-website/blockEditors/HeaderEditor.types';
+import type { FeatureOption } from '../../shared/featureCatalog';
 
 const input = 'w-full rounded border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1.5 text-sm';
 const button = 'rounded border border-[var(--border-subtle)] px-2.5 py-1.5 text-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50';
 const field = (label: string | number, child: React.JSX.Element) => <label key={label} className="block space-y-1 text-xs font-medium">{label}{child}</label>;
 const TYPES = ['text','number','boolean','date','choice','list'];
-const PRESETS: Record<string, { accent: string; ink: string; font: string; fontSize: number; lineHeight: number; margin: number; }> = {neutral:{accent:'#334155',ink:'#172033',font:'sans',fontSize:11,lineHeight:1.5,margin:18},branded:{accent:'#d97706',ink:'#172033',font:'sans',fontSize:11,lineHeight:1.6,margin:18},formal:{accent:'#1e3a5f',ink:'#172033',font:'serif',fontSize:12,lineHeight:1.6,margin:22}};
-function readDraft(id: string) {
+type ParamValue = string | number | boolean | readonly string[] | undefined;
+interface ParameterDef {
+    key: string;
+    type: string;
+    label?: string;
+    summary?: string;
+    instructions?: string;
+    required?: boolean;
+    options?: string[];
+    example?: string | Record<string, unknown>;
+    default?: string | number | boolean;
+    fields?: ParameterDef[];
+}
+interface Condition {
+    all?: Condition[];
+    any?: Condition[];
+    parameter?: string;
+    operator?: string;
+    value?: ParamValue;
+}
+interface SectionDef {
+    id: string;
+    title: string;
+    summary?: string;
+    condition?: Condition | null;
+    source?: { versionId: string };
+}
+interface Contract {
+    instructions?: string;
+    parameters?: ParameterDef[];
+    sections?: SectionDef[];
+}
+interface DocSettings {
+    contract: Contract;
+    design?: Record<string, string | number | boolean>;
+    deck?: Record<string, string>;
+    sampleValues?: Record<string, ParamValue>;
+    sectionOverrides?: Record<string, string>;
+}
+interface DraftState { settings: DocSettings; kind: string; visibility: string; versionId?: string; bodyHtml?: string; css?: string }
+interface WorkspaceResult {
+    message?: string;
+    valid?: boolean;
+    issues?: { message: string }[];
+    sections?: { id: string; title: string; state: string; reason?: string }[];
+    html?: string;
+}
+interface Proposal {
+    html?: string;
+    previewOnly?: boolean;
+    validation?: WorkspaceResult;
+    explanation?: string;
+    suggestions?: { sectionId: string; choice: string; reason?: string }[];
+    patch?: { settings?: DocSettings } & Record<string, unknown>;
+    expectedVersionId?: string;
+}
+interface LibraryEntry { id: string; name: string }
+interface UpdateEntry { sectionId?: string; name: string }
+interface HistoryEntry { role: string; content: string | undefined }
+const PRESETS: Record<string, Record<string, string | number>> = {neutral:{accent:'#334155',ink:'#172033',font:'sans',fontSize:11,lineHeight:1.5,margin:18},branded:{accent:'#d97706',ink:'#172033',font:'sans',fontSize:11,lineHeight:1.6,margin:18},formal:{accent:'#1e3a5f',ink:'#172033',font:'serif',fontSize:12,lineHeight:1.6,margin:22}};
+function readDraft(id: string): DraftState | null {
     try { return JSON.parse(sessionStorage.getItem(`document-settings-draft:${id}`) || 'null'); }
     catch { return null; }
 }
 interface ParameterProps {
+    parameter: ParameterDef;
+    onChange: (next: ParameterDef) => void;
+    onInsert?: (p: ParameterDef) => unknown;
     onDelete: React.MouseEventHandler<HTMLButtonElement>;
     nested?: boolean;
 }
 
 function Parameter({ parameter:p, onChange, onDelete, onInsert, nested=false }: ParameterProps) {
-    const { t } = useTranslation(); const set = (key: string,value)=>onChange({...p,[key]:value});
+    const { t } = useTranslation(); const set = (key: string,value: unknown)=>onChange({...p,[key]:value});
     return <details className="rounded-lg border border-[var(--border-subtle)] p-3" open={!p.key}>
         <summary className="cursor-pointer text-sm font-medium">{p.label || p.key || t('documents.workspace.new_parameter', 'New parameter')} {p.required?'*':''}<span className="block text-xs font-normal text-[var(--text-muted)]">{p.summary || p.key}</span>{!p.instructions && <span className="block text-xs font-normal text-amber-600">{t('documents.workspace.instructions_need_review', 'Instructions need review')}</span>}</summary>
         <div className="space-y-3 mt-3">
@@ -33,12 +98,15 @@ function Parameter({ parameter:p, onChange, onDelete, onInsert, nested=false }: 
             {p.type==='choice' && field(t('documents.workspace.choices_one_per_line', 'Choices (one per line)'),<textarea className={input} value={(p.options || []).join('\n')} onChange={e=>set('options',e.target.value.split('\n'))}/>)}
             {field(t('documents.workspace.example', 'Example'),<input className={input} value={typeof p.example==='object'?JSON.stringify(p.example):p.example ?? ''} onChange={e=>set('example',e.target.value)}/>)}
             {p.type!=='list' && field(t('documents.workspace.default_optional', 'Default (optional)'),p.type==='boolean'?<select className={input} value={p.default===undefined?'':String(p.default)} onChange={e=>set('default',e.target.value===''?undefined:e.target.value==='true')}><option value="">—</option><option value="true">{t('documents.workspace.yes', 'Yes')}</option><option value="false">{t('documents.workspace.no', 'No')}</option></select>:<input className={input} type={p.type==='number'?'number':p.type==='date'?'date':'text'} value={p.default ?? ''} onChange={e=>set('default',e.target.value===''?undefined:p.type==='number'?Number(e.target.value):e.target.value)}/>)}
-            {p.type==='list' && <div className="space-y-2">{(p.fields || []).map((f,i)=><Parameter key={i} nested parameter={f} onChange={next=>set('fields',p.fields.map((x,j)=>j===i?next:x))} onDelete={()=>set('fields',p.fields.filter((_,j)=>i!==j))}/>)}<button className={button} onClick={()=>set('fields',[...(p.fields || []),{key:'',type:'text',label:'',required:false}])}>{t('documents.workspace.add_list_field', 'Add list field')}</button></div>}
+            {p.type==='list' && <div className="space-y-2">{(p.fields || []).map((f,i)=><Parameter key={i} nested parameter={f} onChange={next=>set('fields',p.fields?.map((x,j)=>j===i?next:x))} onDelete={()=>set('fields',p.fields?.filter((_,j)=>i!==j))}/>)}<button className={button} onClick={()=>set('fields',[...(p.fields || []),{key:'',type:'text',label:'',required:false}])}>{t('documents.workspace.add_list_field', 'Add list field')}</button></div>}
             <div className="flex gap-2">{onInsert && <button className={button} disabled={!p.key} onClick={()=>onInsert(p)}>{t('documents.workspace.insert_into_document', 'Insert into document')}</button>}<button className={button} onClick={onDelete} aria-label={t('documents.workspace.remove_parameter', 'Remove parameter')}><Trash2 size={14}/></button></div>
         </div>
     </details>;
 }
 interface RuleProps {
+    rule: Condition | null | undefined;
+    onChange: (next: Condition | null) => void;
+    parameters: ParameterDef[];
     depth?: number;
 }
 
@@ -48,7 +116,7 @@ function Rule({rule,onChange,parameters,depth=0}: RuleProps) {
     const newRule = () => ({parameter:first?.key || '',operator:'equals',value:first?.type==='boolean'?true:first?.type==='number'?0:''});
     if (!rule) return <button className={button} onClick={()=>onChange({all:[newRule()]})}>{t('documents.workspace.add_condition', 'Add condition')}</button>;
     if (rule.all || rule.any) {
-        const key = rule.all?'all':'any'; const rows = rule[key];
+        const key = rule.all?'all':'any'; const rows = rule[key]; if (!rows) return null;
         return <div className="border-l-2 border-[var(--border-subtle)] pl-2 space-y-2">
             <select aria-label={t('documents.workspace.condition_group', 'Condition group')} className={input} value={key} onChange={e=>onChange({[e.target.value]:rows})}><option value="all">{t('documents.workspace.all_conditions', 'All conditions')}</option><option value="any">{t('documents.workspace.any_condition', 'Any condition')}</option></select>
             {rows.map((r,i)=><div key={i} className="space-y-1"><Rule rule={r} depth={depth+1} parameters={parameters} onChange={next=>{const changed=rows.flatMap((x,j)=>j===i?(next?[next]:[]):[x]);onChange(changed.length?{[key]:changed}:null);}}/><button className="text-xs underline" onClick={()=>onChange(rows.length===1?null:{[key]:rows.filter((_,j)=>i!==j)})}>{t('documents.workspace.remove_condition', 'Remove condition')}</button></div>)}
@@ -59,7 +127,9 @@ function Rule({rule,onChange,parameters,depth=0}: RuleProps) {
     return <div className="space-y-1"><select aria-label={t('documents.workspace.condition_parameter', 'Condition parameter')} className={input} value={rule.parameter} onChange={e=>{const next=parameters.find(x=>x.key===e.target.value);onChange({...rule,parameter:e.target.value,value:next?.type==='boolean'?true:next?.type==='number'?0:''});}}><option value="">{t('documents.workspace.choose_parameter', 'Choose parameter')}</option>{parameters.map(p=><option key={p.key} value={p.key}>{p.label || p.key}</option>)}</select><select aria-label={t('documents.workspace.comparison', 'Comparison')} className={input} value={rule.operator} onChange={e=>onChange({...rule,operator:e.target.value})}>{[['equals',t('documents.workspace.equals', 'Equals')],['not_equals',t('documents.workspace.does_not_equal', 'Does not equal')],['contains',t('documents.workspace.contains', 'Contains')],['greater_than',t('documents.workspace.greater_than', 'Greater than')],['less_than',t('documents.workspace.less_than', 'Less than')],['is_set',t('documents.workspace.is_set', 'Is set')]].map(([key,label])=><option key={key} value={key}>{label}</option>)}</select>{rule.operator!=='is_set' && <ValueInput parameter={p || {type:'text'}} value={rule.value} onChange={value=>onChange({...rule,value})}/>}</div>;
 }
 interface ValueInputProps {
-    value: string | number | readonly string[];
+    parameter: Partial<ParameterDef>;
+    onChange: (value: ParamValue | Record<string, ParamValue>[]) => void;
+    value: ParamValue;
 }
 
 function ValueInput({parameter:p,value,onChange}: ValueInputProps) {
@@ -79,12 +149,15 @@ function ValueInput({parameter:p,value,onChange}: ValueInputProps) {
  */
 const NO_DECK = Object.freeze({});
 interface DeckLookTabProps {
+    settings: DocSettings;
+    setSettings: React.Dispatch<React.SetStateAction<DocSettings>>;
+    onPreviewDraft?: (draft: { settings: { deck: Record<string, string> } }) => void;
     disabled: boolean;
 }
 
 function DeckLookTab({ settings, setSettings, onPreviewDraft, disabled }: DeckLookTabProps) {
     const { t } = useTranslation();
-        const [house, setHouse] = useState<{ style: {}; deck: null; } | null>(null);
+        const [house, setHouse] = useState<{ style: {}; deck: { presets: MegaItem[]; fonts: string[]; coverStyles: FeatureOption[]; tableStyles: FeatureOption[]; logoPlacements: FeatureOption[] } | null } | null>(null);
     const first = useRef(true);
     useEffect(() => {
         let alive = true;
@@ -115,6 +188,12 @@ function DeckLookTab({ settings, setSettings, onPreviewDraft, disabled }: DeckLo
 }
 
 interface DocumentWorkspacePanelProps {
+    doc: StudioDocument;
+    onSave: (patch: Record<string, unknown>) => Promise<unknown>;
+    onInsert: (key: string) => void;
+    onSection: (id: string) => void;
+    onBeforeAction: () => Promise<unknown> | void;
+    onPreviewDraft?: (draft: { settings: { deck: Record<string, string> } }) => void;
     tab: string;
     onRefresh: () => void;
 }
@@ -123,23 +202,21 @@ const DocumentWorkspacePanel = forwardRef(function DocumentWorkspacePanel({doc,t
     const { t } = useTranslation();
     const isDeck = doc.docType === 'presentation';
     const currentSettings=()=>({...doc.settings,contract:doc.contract || doc.settings?.contract || {parameters:[],sections:[],instructions:''}});
-    const [recovered,setRecovered]=useState(()=>readDraft(doc.id));
+    const [recovered,setRecovered]=useState<DraftState | null>(()=>readDraft(doc.id));
     const openedVersion=useRef(doc.versionId);
-    const [settings,setSettings]=useState(()=>recovered?.settings || currentSettings());
+    const [settings,setSettings]=useState<DocSettings>(()=>recovered?.settings || currentSettings());
     const [busy,setBusy]=useState(false); const [error,setError]=useState('');
-    const [history,setHistory]=useState([]);
-    const [result,setResult]=useState<{
-        html: React.JSX.Element; message: string; 
-} | null>(null); const [message,setMessage]=useState(''); const [mode,setMode]=useState('design'); const [proposal,setProposal]=useState(null);
-    const [library,setLibrary]=useState([]); const [updates,setUpdates]=useState([]); const [kind,setKind]=useState(recovered?.kind || doc.kind || 'document'); const [visibility,setVisibility]=useState(recovered?.visibility || doc.visibility || 'private');
+    const [history,setHistory]=useState<HistoryEntry[]>([]);
+    const [result,setResult]=useState<WorkspaceResult | null>(null); const [message,setMessage]=useState(''); const [mode,setMode]=useState('design'); const [proposal,setProposal]=useState<Proposal | null>(null);
+    const [library,setLibrary]=useState<LibraryEntry[]>([]); const [updates,setUpdates]=useState<UpdateEntry[]>([]); const [kind,setKind]=useState(recovered?.kind || doc.kind || 'document'); const [visibility,setVisibility]=useState(recovered?.visibility || doc.visibility || 'private');
     const contract=settings.contract; const parameters=contract.parameters || []; const sections=contract.sections || [];
-    const setContract=(next: { instructions: string })=>setSettings(s=>({...s,contract:{...s.contract,...next}}));
+    const setContract=(next: Partial<Contract>)=>setSettings(s=>({...s,contract:{...s.contract,...next}}));
     const setDesign=(key: string | number,value: string | number | boolean)=>setSettings(s=>({...s,design:{...PRESETS.neutral,...s.design,[key]:value}}));
     const action=async (fn: (() => Promise<void>) | (() => Promise<null>))=>{setBusy(true);setError('');try{await fn();}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
     const savedState=useRef(JSON.stringify({settings:currentSettings(),kind:doc.kind || 'document',visibility:doc.visibility || 'private'}));
-    const latestState=useRef(null);latestState.current={settings,kind,visibility};
-    const saving=useRef(null);
-    const acceptSettings=next=>{
+    const latestState=useRef<DraftState | null>(null);latestState.current={settings,kind,visibility};
+    const saving=useRef<Promise<unknown> | null>(null);
+    const acceptSettings=(next: DocSettings)=>{
         latestState.current={settings:next,kind,visibility};
         savedState.current=JSON.stringify({settings:next,kind,visibility});setSettings(next);setRecovered(null);
         try{sessionStorage.removeItem(`document-settings-draft:${doc.id}`);}catch{/* memory copy remains */}

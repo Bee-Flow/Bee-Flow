@@ -60,7 +60,22 @@ import type { SkillRecord } from './SkillCard';
 export const ICONS = SKILL_EMOJI_ICONS;
 export const INSTRUCTION_LIMIT = 4000;
 
-const emptyForm = () => ({
+type TextTab = 'instructions' | 'workflow' | 'rules' | 'examples';
+
+interface FormState {
+    name: string;
+    description: string;
+    instructions: string;
+    workflow: string;
+    rules: string;
+    examples: string;
+    icon: string;
+    isShared: boolean;
+    dynamicActivation: boolean;
+    sharedGroups: string[];
+}
+
+const emptyForm = (): FormState => ({
     name: '',
     description: '',
     instructions: '',
@@ -78,7 +93,7 @@ const emptyForm = () => ({
  * render time — the list itself is static data, so the keys stay literal
  * (i18nGuard's rule) and a translator sees them all in one place.
  */
-const TABS = [
+const TABS: { id: TextTab; labelKey: string; labelEn: string; hintKey: string; hintEn: string; phKey: string; phEn: string; structureField?: string }[] = [
     {
         id: 'instructions',
         labelKey: 'skill_form.tab.instructions', labelEn: 'Instructions',
@@ -140,7 +155,7 @@ const STRUCTURE_WARNING: Record<string, { one: { key: string; en: string; }; man
  * field this modal edits (name, description, instructions, icon, sharing)
  * has no structured counterpart, so sending it unchanged costs nothing.
  */
-const STRUCTURED_TEXT_FIELDS = Object.freeze(['workflow', 'rules', 'examples']);
+const STRUCTURED_TEXT_FIELDS: readonly ('workflow' | 'rules' | 'examples')[] = Object.freeze(['workflow', 'rules', 'examples']);
 
 /**
  * The body for `onSave`: everything the modal edits, minus the structured
@@ -156,7 +171,7 @@ const STRUCTURED_TEXT_FIELDS = Object.freeze(['workflow', 'rules', 'examples']);
  * @param {object} form     the current field values
  * @param {object|null} initial  the values the modal opened with; null = create
  */
-function payloadOf(form, initial, locked: boolean = false) {
+function payloadOf(form: FormState, initial: FormState | null, locked: boolean = false) {
     // A managed skill: who sees it is the only thing that can change.
     if (locked) return { isShared: form.isShared, sharedGroups: form.sharedGroups };
     const out = { ...form };
@@ -186,6 +201,10 @@ function CharCount({ value, limit, t }: CharCountProps) {
 
 interface SkillFormModalProps {
     skill: Skill | SkillRecord | null;
+    onSave: (body: Record<string, unknown>) => unknown;
+    groups?: OrgGroup[];
+    orgId?: string | null;
+    user?: { id?: string | number; organizationId?: string | null } | null;
     onCancel: () => void;
     saving: boolean;
 }
@@ -194,7 +213,7 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
     const { t } = useTranslation();
     // Captured ONCE, and kept beside the live form: it is the only thing
     // that can answer "did the person actually change this text?".
-    const [initial] = useState(() => (skill ? {
+    const [initial] = useState<FormState | null>(() => (skill ? {
         name: skill.name || '',
         description: skill.description || '',
         instructions: skill.instructions || '',
@@ -244,12 +263,12 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
     const effectiveGroups = (groups && groups.length > 0) ? groups : (fetchedGroups || []);
     const effectiveOrgId = orgId || user?.organizationId || null;
     const orgGroups = effectiveGroups.filter(g => !effectiveOrgId || g.organizationId === effectiveOrgId);
-    const toggleGroup = (gid) => setForm(f => {
+    const toggleGroup = (gid: string) => setForm(f => {
         const cur = f.sharedGroups || [];
         return { ...f, sharedGroups: cur.includes(gid) ? cur.filter(x => x !== gid) : [...cur, gid] };
     });
     const [showIconPicker, setShowIconPicker] = useState(false);
-    const [activeTab, setActiveTab] = useState('instructions');
+    const [activeTab, setActiveTab] = useState<TextTab>('instructions');
 
     const setField = (k: string, v: string | boolean) => setForm(f => ({ ...f, [k]: v }));
 

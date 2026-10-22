@@ -204,7 +204,7 @@ export default function LinkSpreadsheetDialog({ scope, providers, onBack, onClos
         }
     }, [selected, sheetDescribes, scope]);
 
-    const described = (s: SheetSelection) => s.describeKey === describeKeyOf(s.fileKey, s.sheet, s.headerRow) && s.columns.length > 0;
+    const described = (s: Sel) => s.describeKey === describeKeyOf(s.fileKey, s.sheet, s.headerRow) && s.columns.length > 0;
     const sheetsOk = selected.length > 0 && selected.length <= MAX_TABLES_PER_LINK && selected.every(described);
 
     // ── step 3: names ──────────────────────────────────────────────

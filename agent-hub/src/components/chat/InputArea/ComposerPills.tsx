@@ -29,7 +29,7 @@ import React from 'react';
 
 import useTranslation from '../../../hooks/useTranslation';
 import AppsPicker from '../../apps/AppsPicker';
-import SkillsPopover from '../../skills/SkillsPopover';
+import SkillsPopover, { type SkillsPopoverProps } from '../../skills/SkillsPopover';
 import ComposerPill from '../ComposerPill';
 import ComposerToolsMenu from '../ComposerToolsMenu';
 
@@ -65,7 +65,13 @@ interface ComposerPillsProps {
     activeSkillCount: number;
     skillsOpen: boolean;
     setSkillsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-    user?: { id: number | string; name?: string; betaFeatures?: string[]; simpleMode?: boolean; username?: string; permissions?: string[]; isAdmin?: boolean } | null;
+    user?: { id: string; name?: string; betaFeatures?: string[]; simpleMode?: boolean; username?: string; permissions?: string[]; isAdmin?: boolean } | null;
+    activeSkillIds?: SkillsPopoverProps['activeSkillIds'];
+    agentAttachedSkillIds?: SkillsPopoverProps['attachedSkillIds'];
+    directConversationId?: SkillsPopoverProps['directConversationId'];
+    directSessionSkills?: SkillsPopoverProps['directSessionSkills'];
+    directActivatedSessionSkillIds?: SkillsPopoverProps['directActivatedSessionSkillIds'];
+    onToggleSkill?: SkillsPopoverProps['onToggleSkill'];
     canPickKBs?: boolean;
     kbStatementOnly?: boolean;
     kbClaim: KbClaim | null;
