@@ -7,7 +7,8 @@
 // those observations into types. Nothing here changes a source file: a vitest
 // plugin instruments the JavaScript in memory for the test run only.
 //
-//   node scripts/ts-runtime-types.mjs collect --batch <list> --out obs.json [--tests a,b]
+//   node scripts/ts-runtime-types.mjs collect --batch <list> --out obs.json [--tests a,b]          (agent-hub, vitest)
+//   node scripts/ts-runtime-types.mjs collect-server --batch <list> --out obs.json [--tests a,b] (server, node --test)
 //
 // What the converter does with obs.json: a slot static analysis could not type
 // gets the observed type when it is writable (no functions, no `any`, a
@@ -37,7 +38,8 @@ const isState = (ts, call) => ts.isCallExpression(call) && /(^|\.)useState$/.tes
  * Slots: `#i` a plain parameter, `.name` a destructured prop, `=` the state.
  */
 export function instrument(ts, source, file) {
-    const kind = /\.tsx?$/.test(file) ? ts.ScriptKind.TSX : ts.ScriptKind.JSX;
+    // agent-hub's .js may hold JSX; the server's never does (and `a < b` must stay a comparison).
+    const kind = /\.tsx?$/.test(file) ? ts.ScriptKind.TSX : /^server\//.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.JSX;
     const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, kind);
     const keys = functionKeys(ts, sf);
     const inserts = [];
@@ -158,6 +160,98 @@ export function testsFor(files) {
     };
     walk(path.join(HUB, 'src'));
     return out;
+}
+
+/**
+ * The server is CommonJS and its tests run with `node --test`, one process per
+ * file: a `--require` hook instruments the listed files as Node compiles
+ * them (Module.prototype._compile), and writes what it recorded when the
+ * process exits. Keys are paths relative to the repo root.
+ */
+export function serverHookSource(targetsFile, recDir) {
+    return `'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+const Module = require('node:module');
+const ts = Module.createRequire(${JSON.stringify(path.join(HUB, 'package.json'))})('typescript');
+const { instrument } = require(${JSON.stringify(path.join(ROOT, 'scripts', 'ts-runtime-types.mjs'))});
+const { describe } = require(${JSON.stringify(path.join(ROOT, 'scripts', 'ts-runtime-recorder.mjs'))});
+const targets = new Set(JSON.parse(fs.readFileSync(${JSON.stringify(targetsFile)}, 'utf8')));
+const records = {};
+globalThis.__tcRec = (file, key, slots) => {
+    try {
+        const bySlot = ((records[file] ??= {})[key] ??= {});
+        for (const [slot, value] of Object.entries(slots)) {
+            const list = (bySlot[slot] ??= []);
+            if (list.length >= 20) continue;
+            const d = describe(value); const j = JSON.stringify(d);
+            if (!list.some((x) => JSON.stringify(x) === j)) list.push(d);
+        }
+    } catch { /* observing must never break a test */ }
+};
+const compile = Module.prototype._compile;
+Module.prototype._compile = function (content, filename) {
+    if (targets.has(filename)) content = instrument(ts, content, path.relative(${JSON.stringify(ROOT)}, filename));
+    return compile.call(this, content, filename);
+};
+process.on('exit', () => {
+    if (Object.keys(records).length) fs.writeFileSync(path.join(${JSON.stringify(recDir)}, process.pid + '-' + Math.random().toString(36).slice(2) + '.json'), JSON.stringify(records));
+});
+`;
+}
+
+/** Server test files that require one of `files` (by basename). */
+export function serverTestsFor(files) {
+    const bases = new Set(files.map((f) => path.basename(f).replace(/\.[cm]?js$/, '')));
+    const out = [];
+    const walk = (d) => {
+        for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+            if (e.name === 'node_modules') continue;
+            const p = path.join(d, e.name);
+            if (e.isDirectory()) walk(p);
+            else if (/\.test\.[cm]?js$/.test(e.name)) {
+                const src = fs.readFileSync(p, 'utf8');
+                for (const m of src.matchAll(/require\(\s*['"]([^'"]+)['"]\s*\)|from\s+['"]([^'"]+)['"]/g)) {
+                    if (bases.has(path.basename(m[1] || m[2]).replace(/\.[cm]?js$/, ''))) { out.push(p); break; }
+                }
+            }
+        }
+    };
+    walk(path.join(ROOT, 'server'));
+    return out;
+}
+
+function mergeRecords(recDir) {
+    const merged = {};
+    for (const f of fs.readdirSync(recDir)) {
+        const part = JSON.parse(fs.readFileSync(path.join(recDir, f), 'utf8'));
+        for (const [file, byKey] of Object.entries(part)) for (const [key, bySlot] of Object.entries(byKey)) for (const [slot, list] of Object.entries(bySlot)) {
+            const m = (((merged[file] ??= {})[key] ??= {})[slot] ??= []);
+            for (const d of list) { const j = JSON.stringify(d); if (!m.some((x) => JSON.stringify(x) === j) && m.length < 30) m.push(d); }
+        }
+    }
+    return merged;
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv[2] === 'collect-server') {
+    const batch = arg('--batch'); const outFile = path.resolve(arg('--out', 'obs-server.json'));
+    const files = fs.readFileSync(batch, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean).map((f) => path.resolve(ROOT, f)).filter((f) => fs.existsSync(f));
+    const tests = arg('--tests') ? arg('--tests').split(',').map((t) => path.resolve(ROOT, t)) : serverTestsFor(files);
+    const work = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-runtime-server-'));
+    const recDir = path.join(work, 'rec'); fs.mkdirSync(recDir);
+    const targetsFile = path.join(work, 'targets.json'); fs.writeFileSync(targetsFile, JSON.stringify(files));
+    const hook = path.join(work, 'hook.cjs'); fs.writeFileSync(hook, serverHookSource(targetsFile, recDir));
+    console.error(`collect-server: ${files.length} files, ${tests.length} test files`);
+    const t0 = Date.now(); let failed = 0;
+    // One process per test file, like server/scripts/run-tests.mjs; a failing test still records.
+    for (const t of tests) {
+        const r = spawnSync(process.execPath, ['--require', hook, '--test', t], { cwd: path.join(ROOT, 'server'), stdio: 'ignore', timeout: 300000, env: { ...process.env, NODE_ENV: 'test' } });
+        if (r.status !== 0) failed++;
+    }
+    const merged = mergeRecords(recDir);
+    fs.writeFileSync(outFile, JSON.stringify(merged));
+    console.error(`collect-server: ${tests.length - failed}/${tests.length} test files passed, ${Object.keys(merged).length} files observed in ${Math.round((Date.now() - t0) / 1000)} s -> ${outFile}`);
+    fs.rmSync(work, { recursive: true, force: true });
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv[2] === 'collect') {

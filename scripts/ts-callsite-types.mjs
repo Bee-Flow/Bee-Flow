@@ -21,7 +21,27 @@ import { typeFromSamples } from './ts-runtime-types.mjs';
 
 const MAX_TYPE = 140;
 
-const isTestOrJs = (f) => /\.(test|spec)\.[jt]sx?$/.test(f) || /\.[cm]?jsx?$/.test(f) || /\/__tests__\/|\/test-utils?\/|\/testUtils\//.test(f);
+const isTestOrJs = (f) => !siteFilter(f);
+
+/**
+ * Where a function's JSDoc goes: the statement, class member or property that
+ * holds it (`const f = (a) => ...` -> the variable statement).
+ */
+export function jsdocHost(ts, fn) {
+    let n = fn;
+    for (;;) {
+        const p = n.parent;
+        if (!p || ts.isSourceFile(p) || ts.isBlock(p) || ts.isModuleBlock(p) || ts.isClassLike(p) || ts.isObjectLiteralExpression(p)) return n;
+        if (ts.isStatement(n) && !ts.isVariableDeclarationList(p)) return n;
+        n = p;
+    }
+}
+
+// Which call sites count as typed. agent-hub: TypeScript sources only (a
+// JavaScript caller passes `any`). The server is JavaScript throughout, with
+// types from JSDoc: there JavaScript callers count, tests still do not.
+let siteFilter = (f) => !(/\.(test|spec)\.[jt]sx?$/.test(f) || /\.[cm]?jsx?$/.test(f) || /\/__tests__\/|\/test-utils?\/|\/testUtils\//.test(f));
+export function setSiteFilter(fn) { siteFilter = fn; }
 
 export function nameNodeOf(ts, fn) {
     if ((ts.isFunctionDeclaration(fn) || ts.isFunctionExpression(fn)) && fn.name) return fn.name;
@@ -142,8 +162,67 @@ function refsOf(ts, service, program, nameNode) {
             const node = findNode(ts, rsf, e.textSpan.start);
             if (node) out.push({ fileName: e.fileName, node });
         }
+        const seen = new Set(out.map((r) => `${r.fileName}:${r.node.getStart()}`));
+        for (const r of cjsImporterRefs(ts, program, nameNode)) if (!seen.has(`${r.fileName}:${r.node.getStart()}`)) out.push(r);
     }
     refCache.set(key, out);
+    return out;
+}
+
+/**
+ * CommonJS importers of a function TypeScript's findReferences does not follow
+ * (`module.exports = { greet }` -> `const { greet } = require('./greet')` in
+ * another file). The exported name comes from `module.exports = {...}`,
+ * `module.exports.x =`, `exports.x =` or `module.exports = name`; an importer
+ * is any program file whose `require(...)` the checker resolves to this file.
+ * Returns the identifiers that stand for the function there.
+ */
+function cjsImporterRefs(ts, program, nameNode) {
+    const sf = nameNode.getSourceFile();
+    if (!/\.[cm]?js$/.test(sf.fileName)) return [];
+    const checker = program.getTypeChecker();
+    const local = nameNode.text;
+    let exportName = null; let whole = false;
+    const isModuleExports = (e) => ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression) && e.expression.text === 'module' && e.name.text === 'exports';
+    for (const st of sf.statements) {
+        if (!ts.isExpressionStatement(st) || !ts.isBinaryExpression(st.expression) || st.expression.operatorToken.kind !== ts.SyntaxKind.EqualsToken) continue;
+        const { left, right } = st.expression;
+        if (isModuleExports(left) && ts.isIdentifier(right) && right.text === local) whole = true;
+        if (isModuleExports(left) && ts.isObjectLiteralExpression(right)) {
+            for (const p of right.properties) {
+                if (ts.isShorthandPropertyAssignment(p) && p.name.text === local) exportName = local;
+                if (ts.isPropertyAssignment(p) && ts.isIdentifier(p.initializer) && p.initializer.text === local && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name))) exportName = p.name.text;
+            }
+        }
+        if (ts.isPropertyAccessExpression(left) && (isModuleExports(left.expression) || ts.isIdentifier(left.expression) && left.expression.text === 'exports') && ts.isIdentifier(right) && right.text === local) exportName = left.name.text;
+    }
+    if (!exportName && !whole) return [];
+    const out = [];
+    const base = path.basename(sf.fileName).replace(/\.[cm]?js$/, '');
+    for (const other of program.getSourceFiles()) {
+        if (other === sf || other.isDeclarationFile || !other.text.includes(base)) continue;
+        const visit = (n) => {
+            if (ts.isVariableDeclaration(n) && n.initializer && ts.isCallExpression(n.initializer) && ts.isIdentifier(n.initializer.expression) && n.initializer.expression.text === 'require' && n.initializer.arguments[0] && ts.isStringLiteralLike(n.initializer.arguments[0])) {
+                const mod = checker.getSymbolAtLocation(n.initializer.arguments[0]);
+                const decl = mod && mod.valueDeclaration;
+                if (decl && decl.getSourceFile && decl.getSourceFile() === sf) {
+                    const refsOfBinding = (id) => { const sym = checker.getSymbolAtLocation(id); const walk = (m) => { if (ts.isIdentifier(m) && m !== id && m.text === id.text && checker.getSymbolAtLocation(m) === sym) out.push({ fileName: other.fileName, node: m }); ts.forEachChild(m, walk); }; walk(other); };
+                    if (ts.isObjectBindingPattern(n.name) && exportName) {
+                        for (const el of n.name.elements) if ((el.propertyName || el.name).getText(other) === exportName && ts.isIdentifier(el.name)) refsOfBinding(el.name);
+                    } else if (ts.isIdentifier(n.name)) {
+                        if (whole) refsOfBinding(n.name);
+                        else {
+                            const sym = checker.getSymbolAtLocation(n.name);
+                            const walk = (m) => { if (ts.isPropertyAccessExpression(m) && m.name.text === exportName && ts.isIdentifier(m.expression) && checker.getSymbolAtLocation(m.expression) === sym) out.push({ fileName: other.fileName, node: m.name }); ts.forEachChild(m, walk); };
+                            walk(other);
+                        }
+                    }
+                }
+            }
+            ts.forEachChild(n, visit);
+        };
+        visit(other);
+    }
     return out;
 }
 
@@ -186,7 +265,10 @@ function sitesOf(ts, checker, refs) {
             continue;
         }
         if ((ts.isCallExpression(p) || ts.isNewExpression(p)) && p.expression === n) { sites.push({ kind: 'args', types: (p.arguments || []).map((a) => (ts.isSpreadElement(a) ? null : checker.getTypeAtLocation(a))) }); continue; }
-        if (ts.isImportSpecifier(p) || ts.isImportClause(p) || ts.isExportSpecifier(p) || ts.isExportAssignment(p) || ts.isShorthandPropertyAssignment(p) && false) continue;
+        if (ts.isImportSpecifier(p) || ts.isImportClause(p) || ts.isExportSpecifier(p) || ts.isExportAssignment(p)) continue;
+        // CommonJS exports (`module.exports = { fn }`, `exports.fn = fn`) name the function, they do not use it.
+        const cjsExport = (x) => { let e = x; while (e && !ts.isExpressionStatement(e)) e = e.parent; return !!e && /^(module\.)?exports\b/.test(e.expression.getText()); };
+        if ((ts.isShorthandPropertyAssignment(p) || ts.isPropertyAssignment(p) && p.initializer === n || ts.isBinaryExpression(p) && p.right === n) && cjsExport(p)) continue;
         // Passed as a value: the expected signature tells the parameter types.
         if (ts.isExpression(n)) {
             const ct = checker.getContextualType(n);
@@ -487,7 +569,7 @@ function inferHooks(ts, service, program, checker, sf, abs, report, edits, impor
             if (o) {
                 chosen.push({ slot, source: 'observed' });
                 const text = init && init.kind === ts.SyntaxKind.NullKeyword && !/\bnull\b/.test(o.text) ? `${o.text} | null` : o.text;
-                edits.push({ start: call.expression.getEnd(), end: call.expression.getEnd(), text: `<${text}>` });
+                edits.push({ start: call.expression.getEnd(), end: call.expression.getEnd(), text: `<${text}>`, kind: 'typeArg', type: text });
                 for (const l of o.local) imports.set(l[0], l[1]);
                 report.push(`${label}: <${text}> (observed)`);
                 continue;
@@ -500,7 +582,7 @@ function inferHooks(ts, service, program, checker, sf, abs, report, edits, impor
         if (!t) { report.push(`${label}: type not writable [${unionText.why}]`); continue; }
         // useRef<HTMLDivElement>(null) is the React 19 RefObject<T | null>: no `| null` needed.
         const text = !isState && isNull ? t.text.replace(/\s*\|\s*null\b/g, '') : t.text;
-        edits.push({ start: call.expression.getEnd(), end: call.expression.getEnd(), text: `<${text}>` });
+        edits.push({ start: call.expression.getEnd(), end: call.expression.getEnd(), text: `<${text}>`, kind: 'typeArg', type: text });
         for (const l of t.local) imports.set(l[0], l[1]);
         chosen.push({ slot, source });
         report.push(`${label}: <${text}>${source === 'call' ? '' : ` (${source})`}`);
@@ -711,7 +793,7 @@ function inferExpandos(ts, checker, sf, abs, imports, edits, report) {
             text = `{ ${members.join('; ')} }`;
         } else { report.push(`${label}: named and computed members mixed`); continue; }
         if (text.length > 2 * MAX_TYPE) { report.push(`${label}: shape too long`); continue; }
-        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: ${text}` });
+        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: ${text}`, kind: 'var', type: text, host: d.parent.parent.getStart(sf) });
         for (const l of local) imports.set(l[0], l[1]);
         report.push(`${label}: ${text}`);
     }
@@ -757,7 +839,7 @@ function inferLearned(ts, checker, sf, abs, imports, edits, report) {
         if (!props.every((p) => ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p))) continue;
         const t = unionText(ts, checker, props.map((p) => checker.getTypeAtLocation(ts.isPropertyAssignment(p) ? p.initializer : p.name)), d, abs, imports);
         if (!t) { report.push(`lookup ${d.name.text}: value type not writable`); continue; }
-        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: Record<string, ${t.text}>` });
+        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: Record<string, ${t.text}>`, kind: 'var', type: `Record<string, ${t.text}>`, host: d.parent.parent.getStart(sf) });
         for (const l of t.local) imports.set(l[0], l[1]);
         report.push(`lookup ${d.name.text}: Record<string, ${t.text}>`);
     }
@@ -766,8 +848,8 @@ function inferLearned(ts, checker, sf, abs, imports, edits, report) {
         for (const r of refsIn(c.block, sym)) {
             const p = r.parent;
             if (ts.isPropertyAccessExpression(p) && p.expression === r && /^(message|name|stack)$/.test(p.name.text)) {
-                edits.push({ start: r.getStart(sf), end: r.getStart(sf), text: '(' });
-                edits.push({ start: r.getEnd(), end: r.getEnd(), text: ' as Error)' });
+                edits.push({ start: r.getStart(sf), end: r.getStart(sf), text: '(', kind: 'castOpen', type: 'Error' });
+                edits.push({ start: r.getEnd(), end: r.getEnd(), text: ' as Error)', kind: 'castClose', type: 'Error' });
             }
         }
     }
@@ -784,7 +866,7 @@ function inferLearned(ts, checker, sf, abs, imports, edits, report) {
         if (d.initializer) useful.push(checker.getNullType());
         const t = unionText(ts, checker, useful, d, abs, imports);
         if (!t) continue;
-        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: ${t.text}` });
+        edits.push({ start: d.name.getEnd(), end: d.name.getEnd(), text: `: ${t.text}`, kind: 'var', type: t.text, host: d.parent.parent.getStart(sf) });
         for (const l of t.local) imports.set(l[0], l[1]);
         report.push(`let ${d.name.text}: ${t.text}`);
     }
@@ -882,8 +964,8 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
             const at = stmt.getStart(sf);
             // Props the tooling could not type stay out: the destructure then
             // names them as errors, which is the to-do list for the next step.
-            edits.push({ start: at, end: at, text: `interface ${iname} {\n${lines.join('\n')}\n}\n\n` });
-            edits.push({ start: first.name.getEnd(), end: first.name.getEnd(), text: `: ${iname}` });
+            edits.push({ start: at, end: at, text: `interface ${iname} {\n${lines.join('\n')}\n}\n\n`, kind: 'interface', name: iname, members: lines.map((l) => { const m = l.match(/^\s+([\w$]+)(\??): (.*);$/); return { key: m[1], optional: !!m[2], type: m[3] }; }) });
+            edits.push({ start: first.name.getEnd(), end: first.name.getEnd(), text: `: ${iname}`, kind: 'param', name: null, index: 0, optional: !!first.initializer, type: iname, host: jsdocHost(ts, fn).getStart(sf) });
             if (lines.some((l) => l.includes('React.'))) local.push(['React', null]);
             for (const l of local) imports.set(l[0], l[1]);
             report.push(`${fname}: props typed ${lines.length}/${lines.length + open.length}${open.length ? ` (open: ${open.join(', ')})` : ''}`);
@@ -923,13 +1005,13 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
             if (!t) { report.push(`${fname}#${i}: open`); return; }
             local.push(...t.local);
             const opt = missing && !p.initializer ? '?' : '';
-            posEdits.push({ start: p.name.getEnd(), end: p.name.getEnd(), text: `${opt}: ${t.text}`, arrowParen: ts.isArrowFunction(fn) && fn.parameters.length === 1 && !fn.getChildren(sf).some((c) => c.kind === ts.SyntaxKind.OpenParenToken) ? p : null });
+            posEdits.push({ start: p.name.getEnd(), end: p.name.getEnd(), text: `${opt}: ${t.text}`, kind: 'param', name: p.name.text, index: i, optional: !!(opt || p.initializer), type: t.text, host: jsdocHost(ts, fn).getStart(sf), arrowParen: ts.isArrowFunction(fn) && fn.parameters.length === 1 && !fn.getChildren(sf).some((c) => c.kind === ts.SyntaxKind.OpenParenToken) ? p : null });
         });
         if (!posEdits.length) continue;
         for (const e of posEdits) {
             if (e.arrowParen) { // x => ... needs parentheses to take a type
-                edits.push({ start: e.arrowParen.getStart(sf), end: e.arrowParen.getStart(sf), text: '(' });
-                edits.push({ start: e.start, end: e.end, text: `${e.text})` });
+                edits.push({ start: e.arrowParen.getStart(sf), end: e.arrowParen.getStart(sf), text: '(', kind: 'arrowParen' });
+                edits.push({ ...e, text: `${e.text})` });
             } else edits.push(e);
         }
         for (const l of local) imports.set(l[0], l[1]);
@@ -958,7 +1040,7 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
     if (add.length) {
         const lastImport = [...sf.statements].reverse().find((s) => ts.isImportDeclaration(s));
         const at = lastImport ? lastImport.getEnd() : 0;
-        edits.push({ start: at, end: at, text: (lastImport ? '\n' : '') + add.join('\n') + (lastImport ? '' : '\n') });
+        edits.push({ start: at, end: at, text: (lastImport ? '\n' : '') + add.join('\n') + (lastImport ? '' : '\n'), kind: 'imports', imports: [...imports].filter(([name]) => !have.has(name)) });
     }
     return { edits, report, chosen };
 }

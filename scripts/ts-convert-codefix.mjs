@@ -64,15 +64,15 @@ function loadTs() {
     return createRequire(path.join(HUB, 'package.json'))('typescript');
 }
 
-function createService(ts, overrides) {
-    const configPath = path.join(HUB, 'tsconfig.json');
+export function createService(ts, overrides, { configPath = path.join(HUB, 'tsconfig.json'), baseDir = HUB, options: extra = {}, includeTests = false } = {}) {
     const cfg = ts.readConfigFile(configPath, ts.sys.readFile);
-    const parsed = ts.parseJsonConfigFileContent(cfg.config, ts.sys, HUB);
+    const parsed = ts.parseJsonConfigFileContent(cfg.config, ts.sys, baseDir);
+    Object.assign(parsed.options, extra);
     const versions = new Map();
     // Tests are never a source of types here (their values are mocks), and they
     // are a third of the program: leaving them out makes the first build and
     // every reference search cheaper. A converted file is never a test.
-    const files = new Set(parsed.fileNames.map((f) => path.resolve(f)).filter((f) => !/\.(test|spec)\.[jt]sx?$|\/__tests__\//.test(f)));
+    const files = new Set(parsed.fileNames.map((f) => path.resolve(f)).filter((f) => includeTests || !/\.(test|spec)\.[cm]?[jt]sx?$|\/__tests__\//.test(f)));
     for (const f of overrides.keys()) files.add(f);
     const host = {
         getScriptFileNames: () => [...files],
@@ -81,7 +81,7 @@ function createService(ts, overrides) {
             const text = overrides.has(f) ? overrides.get(f) : ts.sys.readFile(f);
             return text === undefined ? undefined : ts.ScriptSnapshot.fromString(text);
         },
-        getCurrentDirectory: () => HUB,
+        getCurrentDirectory: () => baseDir,
         getCompilationSettings: () => parsed.options,
         getDefaultLibFileName: (o) => ts.getDefaultLibFilePath(o),
         fileExists: (f) => overrides.has(f) || ts.sys.fileExists(f),
@@ -109,7 +109,7 @@ const FORMAT = { indentSize: 4, tabSize: 4, convertTabsToSpaces: true, semicolon
 const PREFS = { quotePreference: 'single', importModuleSpecifierPreference: 'relative', includeCompletionsForModuleExports: false };
 
 /** One round for one file: every non-overlapping allowed quick fix against the current program. */
-function fixRound(ts, svc, abs, state) {
+export function fixRound(ts, svc, abs, state, { fixIds = FIX_IDS } = {}) {
     const taken = [];
     for (const d of svc.service.getSemanticDiagnostics(abs)) {
         if (d.start === undefined) continue;
@@ -117,7 +117,7 @@ function fixRound(ts, svc, abs, state) {
         if (state.refused.has(key)) continue;
         let fixes;
         try { fixes = svc.service.getCodeFixesAtPosition(abs, d.start, d.start + d.length, [d.code], FORMAT, PREFS); } catch { state.refused.add(key); continue; }
-        const fix = fixes.find((f) => FIX_IDS.includes(f.fixId));
+        const fix = fixes.find((f) => fixIds.includes(f.fixId));
         if (!fix || fix.changes.some((c) => path.resolve(c.fileName) !== abs)) { state.refused.add(key); continue; }
         let changes = fix.changes.flatMap((c) => c.textChanges);
         if (!changes.length || changes.some((c) => forbiddenInsert(c.newText))) { state.refused.add(key); continue; }
