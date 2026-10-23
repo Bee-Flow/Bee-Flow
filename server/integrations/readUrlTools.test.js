@@ -102,3 +102,16 @@ test('HTTP errors and network failures come back as errors, not throws', async (
     assert.match((await run({ url: 'https://example.org/x' }, page('', { status: 404 }))).error, /HTTP 404/);
     assert.match((await run({ url: 'https://example.org/x' }, async () => { throw new Error('boom'); })).error, /boom/);
 });
+
+test('a response without a body reads as an empty page instead of throwing', async () => {
+    for (const type of ['text/plain', 'text/html']) {
+        const fetchImpl = async () => ({
+            ok: true, status: 204, url: 'https://example.org/empty',
+            headers: { get: (h) => (h.toLowerCase() === 'content-type' ? type : null) },
+            body: null,
+        });
+        const out = await run({ url: 'https://example.org/empty' }, fetchImpl);
+        assert.strictEqual(out.error, undefined);
+        assert.strictEqual(out.totalChars, 0);
+    }
+});
