@@ -126,6 +126,7 @@
   },
   "overrides": {
     "lodash-es": "4.18.1",
-    "katex": "$katex"
+    "katex": "$katex",
+    "dompurify": "3.4.17"
   }
 }
