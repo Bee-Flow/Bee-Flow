@@ -1,4 +1,4 @@
-# Vulnerability watch — every dependency and every runtime, every day.
+# Vulnerability watch — every dependency and every runtime, every hour.
 #
 # WHY NEXT TO dependency-audit.yml: that job is the required PR gate for six
 # hand-listed npm trees. This one answers a different question — "has
@@ -22,7 +22,11 @@
 # .github/security/vuln-watch-accepted.json (or audit-baseline.json's
 # `accepted`), a runtime behind a security release or past EOL, an expired
 # acceptance, or a scan that could not run. GitHub mails a failed scheduled
-# run to whoever last changed the cron line. Rules: scripts/vuln-watch-gate.mjs.
+# run to whoever last changed the cron line. Each finding turns a run red ONCE:
+# afterwards it is an alert in the Security tab, and an alert that is already
+# there (open or dismissed) is not mailed again. Expired acceptances and an
+# unreadable feed are repeated by the 05:15 UTC run only, so at most daily.
+# Rules: scripts/vuln-watch-gate.mjs.
 #
 # Not a pull-request check on purpose: the advisory database moves without a
 # commit, so a PR gate on it would block work for a reason the PR did not cause
@@ -31,9 +35,10 @@ name: Vulnerability watch
 
 on:
   schedule:
-    # Daily, 05:15 UTC: before the working day in Europe, after the US
-    # advisory publications of the previous evening.
-    - cron: '15 5 * * *'
+    # Hourly, at :15. An advisory is mailed once (see `Alerts already
+    # reported`); the 05:15 UTC run is the daily one that also repeats the
+    # standing reminders (expired acceptances, a feed it could not read).
+    - cron: '15 * * * *'
   push:
     branches: [main]
     paths:
@@ -97,12 +102,35 @@ jobs:
       - name: Check runtimes
         run: node scripts/runtime-watch.mjs --json "$RUNNER_TEMP/runtime.json"
 
+      # The Security tab is the record of what was already mailed: an alert
+      # that is open or dismissed there turned a run red once and does not do
+      # it again. A failed lookup writes an empty list, so the cost of an API
+      # hiccup is one repeated mail, never a missed one.
+      - name: Alerts already reported
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          out="$RUNNER_TEMP/known.jsonl"
+          : > "$out"
+          for state in open dismissed; do
+            gh api --paginate \
+              "repos/${GITHUB_REPOSITORY}/code-scanning/alerts?tool_name=vuln-watch&state=${state}&per_page=100" \
+              --jq '.[] | {rule: .rule.id, path: .most_recent_instance.location.path} | tojson' >> "$out" \
+              || { echo "::warning::Could not list the ${state} vuln-watch alerts; treating them as not reported"; : > "$out"; break; }
+          done
+          echo "$(wc -l < "$out") alert(s) already reported"
+
       - name: Gate
         id: gate
         run: |
-          node scripts/vuln-watch-gate.mjs \
+          # Only the scheduled runs outside 05 UTC are in-between runs; the
+          # 05:15 run, a push and a manual run judge in full.
+          mode=()
+          if [[ "$GITHUB_EVENT_NAME" == schedule && "$(date -u +%H)" != 05 ]]; then mode=(--hourly); fi
+          node scripts/vuln-watch-gate.mjs "${mode[@]}" \
             --osv "$RUNNER_TEMP/osv.json" \
             --runtime "$RUNNER_TEMP/runtime.json" \
+            --known "$RUNNER_TEMP/known.jsonl" \
             --sarif "$RUNNER_TEMP/vuln-watch.sarif" \
             --summary "$RUNNER_TEMP/summary.md"
 

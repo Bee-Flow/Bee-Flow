@@ -11,7 +11,7 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { main, osvFindings, toSarif } from './vuln-watch-gate.mjs';
+import { alertKey, evaluate, main, osvFindings, readKnown, toSarif } from './vuln-watch-gate.mjs';
 
 const TODAY = '2026-10-23';
 
@@ -104,4 +104,28 @@ test('SARIF carries the security severity and points at the package line', () =>
     assert.equal(run.results[0].level, 'error');
     assert.equal(run.results[0].locations[0].physicalLocation.artifactLocation.uri, 'server/package-lock.json');
     assert.ok(run.results[0].locations[0].physicalLocation.region.startLine > 1);
+});
+
+test('a finding already in the Security tab does not fail again; a new location does', () => {
+    const findings = osvFindings({ results: [vuln('server', 'prod-pkg', 8.1)] }, { root: '/nonexistent', registry: [{ dir: 'server', role: 'service' }] });
+    const known = new Set([alertKey('GHSA-aaaa-bbbb-cccc', 'server/package-lock.json')]);
+    assert.equal(evaluate(findings, [], TODAY, { known }).fail.length, 0);
+    assert.equal(evaluate(findings, [], TODAY, { known: new Set([alertKey('GHSA-aaaa-bbbb-cccc', 'mobile/package-lock.json')]) }).fail.length, 1);
+});
+
+test('an hourly run leaves expired acceptances and unreadable feeds to the daily run', () => {
+    const findings = osvFindings({ results: [vuln('server', 'prod-pkg', 8.1)] }, { root: '/nonexistent', registry: [{ dir: 'server', role: 'service' }] });
+    const expired = [{ id: 'GHSA-aaaa-bbbb-cccc', reason: 'x', expires: '2026-10-01' }];
+    assert.equal(evaluate(findings, expired, TODAY, { hourly: true }).fail.length, 0);
+    assert.equal(evaluate(findings, expired, TODAY).fail.length, 1);
+    const feed = [{ kind: 'runtime', level: 'error', id: 'RUNTIME-node-22', file: '.nvmrc', line: 1, gating: true }];
+    assert.equal(evaluate(feed, [], TODAY, { hourly: true }).fail.length, 0);
+    assert.equal(evaluate(feed, [], TODAY).fail.length, 1);
+});
+
+test('the alerts file is read as rule|path keys; a missing file means nothing reported', () => {
+    const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'known-')), 'known.jsonl');
+    fs.writeFileSync(file, '{"rule":"GHSA-x","path":"server/package-lock.json"}\n\n');
+    assert.deepEqual([...readKnown(file)], ['GHSA-x|server/package-lock.json']);
+    assert.equal(readKnown(file + '.missing').size, 0);
 });
