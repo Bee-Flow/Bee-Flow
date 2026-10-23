@@ -105,7 +105,7 @@ async function getUsdToCurrencyRate(targetCurrency, opts = {}) {
  * keys that don't look like valid 3-letter currency codes.
  */
 async function getAllConfiguredRates() {
-    const keys = await configStore.searchConfigKeys?.('currency_fx_usd_%').catch(() => null);
+    const keys = await configStore.listKeysWithPrefix('currency_fx_usd_').catch(() => null);
     if (Array.isArray(keys)) {
         const out = {};
         for (const k of keys) {
@@ -117,7 +117,7 @@ async function getAllConfiguredRates() {
         }
         return out;
     }
-    // Fallback path when configStore lacks search: probe common currencies.
+    // Fallback when the key listing fails: probe common currencies.
     const candidates = ['eur', 'gbp', 'usd', 'sek', 'nok', 'dkk', 'chf', 'cad', 'aud', 'jpy'];
     const out = {};
     for (const code of candidates) {

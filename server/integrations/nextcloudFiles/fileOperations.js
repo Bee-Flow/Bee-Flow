@@ -259,7 +259,7 @@ async function executeFileOperationTool(toolName, args, ctx) {
                         attachmentId: args.sourceHandle.attachmentId,
                     });
                     body = fetched.buffer;
-                    handleMime = args.sourceHandle.mimeType || fetched.mimeType || null;
+                    handleMime = args.sourceHandle.mimeType || null;
                 } else if (kind === 'generated_file') {
                     // A file a document/presentation step kept for THIS run —
                     // resolved against the journey's run ids, never by id alone.

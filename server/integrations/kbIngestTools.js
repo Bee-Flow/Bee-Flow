@@ -402,7 +402,7 @@ async function executeKbIngestTool(toolName, args = {}, context = {}) {
                     const res = await _refreshInPlace(tenantId, knowledgeBaseId, existing, screenedBody, docTitle, lang, { threadId, inboxId: context.inboxId || null, replacedBy: sourceUri || null }, sourceId, refreshOpts);
                     return { ok: true, replaced: true, deduped: false, documentId: res.document.id, nearDuplicateOf: e.documentId, chunks_created: res.chunks, sourceUri: sourceUri || null };
                 }
-                const merged = await _mergeArticles(priorArticle, body, orgId);
+                const merged = await _mergeArticles(priorArticle, screenedBody, orgId);
                 if (!merged) {
                     // Merge LLM failed → keep the existing article unchanged.
                     return { ok: true, deduped: true, reason: 'merge_failed_kept_existing', nearDuplicateOf: e.documentId, documentId: e.documentId, chunks_created: 0, sourceUri: sourceUri || null };

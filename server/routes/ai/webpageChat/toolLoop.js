@@ -125,7 +125,7 @@ async function runToolLoop({
         user_id: userId || null,
         organization_id: userOrgForTiers || null,
         agent_id: webpageId || null,
-        agent_name: webpage?.title ? `Webpage: ${webpage.title}` : 'Webpage chat',
+        agent_name: webpage?.name ? `Webpage: ${webpage.name}` : 'Webpage chat',
         model: modelId || null,
         source: 'webpage_chat',
         conversation_id: webpageId || null,

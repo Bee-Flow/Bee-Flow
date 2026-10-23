@@ -749,7 +749,7 @@ function compileDelete(tableMeta, id, accessFilter, opts = {}) {
  * Access-scoped like every other read; a sync passes the owner's filter.
  */
 function compileKeyIndex(tableMeta, keyFieldName, keys, accessFilter, opts = {}) {
-    resolveDialect(opts);
+    const dialect = resolveDialect(opts);
     assertTableMeta(tableMeta);
     assertAccessFilter(accessFilter);
     const fm = fieldMap(tableMeta);
@@ -762,7 +762,7 @@ function compileKeyIndex(tableMeta, keyFieldName, keys, accessFilter, opts = {})
     return {
         sql: `SELECT ${qi('id')} AS ${qi('id')}, ${column} AS ${qi('k')} FROM ${qi(tableMeta.key)} `
             + `WHERE (${accessFilter.where}) AND ${column} IN (${list.map(() => '?').join(', ')})`,
-        params: [...accessFilter.params, ...list.map(scalar)],
+        params: [...accessFilter.params, ...list.map((k) => scalar(k, dialect))],
     };
 }
 
@@ -1095,14 +1095,14 @@ module.exports = {
     compileDeleteOrphans,
     encodeCursor,
     decodeCursor,
-    // Exported so a route clamps with the compiler's own rule instead of
-    // re-deriving one that disagrees with it.
+    // Exported so a route clamps with the compiler's own rule, not a copy.
     clampLimit,
     CompileError,
     RowsLockedError,
     assertRowsWritable,
     MATCH_MODES,
     MAX_RESULT_ROWS,
+    MAX_AGGREGATES,
     DEFAULT_LIMIT,
     // Test-only internals
     _qi: qi,

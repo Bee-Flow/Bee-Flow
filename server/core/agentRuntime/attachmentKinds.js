@@ -213,4 +213,4 @@ async function appendParsedDocument(att, lastMsg, { maybeScan, persistedByLive, 
     }
 }
 
-module.exports = { appendPdf, appendImage, appendInlineText, appendParsedDocument };
+module.exports = { uploadImageForInference, appendPdf, appendImage, appendInlineText, appendParsedDocument };

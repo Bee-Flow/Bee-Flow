@@ -389,13 +389,14 @@ router.get('/:id/data/attachments/:fileId/preview', requireAuth, readLimiter, va
     let png;
     try {
         ({ png } = format === 'dxf'
-            ? await renderDxfSheet(buffer, { name: attachment.fileName || '' })
+            // No filename on the sheet: an attachment row (mapAttachmentRow) carries none.
+            ? await renderDxfSheet(buffer)
             : await renderCadSheet(buffer, { format }));
     } catch (err) {
         // A renderer refusing a file is a normal outcome, not a server
         // fault — some STEP files carry no solid geometry at all, and a
         // binary DXF has no group codes to read.
-        log.warn(`[StudioAppFiles/cadPreview] ${attachment.fileName}: ${err.message}`);
+        log.warn(`[StudioAppFiles/cadPreview] attachment ${attachment.id}: ${err.message}`);
         return res.status(415).json({ error: 'This file could not be drawn' });
     }
 

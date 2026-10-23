@@ -423,10 +423,8 @@ async function loadTaskTools(task, session) {
         log.warn(`[AITaskRunner] Failed to load integration tools: ${err.message}`);
         // Fallback: try to load at least web search
         try {
-            const { buildAgentSearchTool } = require('../integrations/agentSearchTools');
-            if (typeof buildAgentSearchTool === 'function') {
-                tools = [buildAgentSearchTool()];
-            }
+            const { AGENT_SEARCH_TOOLS } = require('../integrations/agentSearchTools');
+            tools = [...AGENT_SEARCH_TOOLS];
         } catch (_) { /* no search available */ }
     }
     return { tools, toolHint };

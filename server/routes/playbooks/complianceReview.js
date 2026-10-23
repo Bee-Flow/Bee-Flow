@@ -116,7 +116,10 @@ function makeRunComplianceReview(ctx) {
                         published: !!row.isPublished,
                         sharedGroups: Array.isArray(row.sharedGroups) ? row.sharedGroups : [],
                         screenCount: (row.definition && Array.isArray(row.definition.screens)) ? row.definition.screens.length : null,
-                        publicPages: Array.isArray(row.publicPages) ? row.publicPages.length : 0,
+                        // Public links live in studio_app_public_pages, not on the app row.
+                        publicPages: await d.studioAppStore.listPublicPages(appId)
+                            .then((list) => (Array.isArray(list) ? list.length : 0))
+                            .catch(() => 0),
                     };
                     const meta = await d.studioAppDataStore.getDataModel(appId, row.userId).catch(() => null);
                     const members = await d.studioAppDataStore.listMembers(appId, row.userId).catch(() => []);

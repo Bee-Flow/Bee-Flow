@@ -60,7 +60,7 @@ function DestinationSection({ draft, set, onFocusField, errorSections, bases }) 
                         className={inputClass()}
                         value={draft.knowledgeBaseId || ''}
                         onChange={(e) => set('knowledgeBaseId', e.target.value)}
-                        onFocus={() => onFocusField?.('knowledgeBaseId')}
+                        onFocus={() => onFocusField?.(null)}
                     >
                         <option value="">{t('automations.knowledge_write_editors.pick_a_knowledge_base', 'Pick a knowledge base…')}</option>
                         {bases.map(b => (
@@ -170,7 +170,7 @@ function AdvancedSection({ draft, set, groups, onFocusField, errorSections, stra
                     className={inputClass()}
                     value={strategy}
                     onChange={(e) => set('nearDuplicateStrategy', e.target.value)}
-                    onFocus={() => onFocusField?.('nearDuplicateStrategy')}
+                    onFocus={() => onFocusField?.(null)}
                 >
                     {strategies.map(s => (
                         <option key={s.value} value={s.value}>{s.label}</option>

@@ -174,8 +174,7 @@ export interface TranscriptionSectionProps {
     voiceprintMatchingEnabled: boolean;
     saveVoiceprintSettings: (patch: { voiceprintMatchingEnabled?: boolean; pyannoteIdentifyThreshold?: number }) => void;
     savingVoiceprint: boolean;
-    pyannoteIdentifyThreshold: number | string;
-    /** The threshold input hands over its raw string, the state starts as a number. */
-    setPyannoteIdentifyThreshold: (value: string) => void;
+    pyannoteIdentifyThreshold: number;
+    setPyannoteIdentifyThreshold: (value: number) => void;
     setMessage: SetMessage;
 }

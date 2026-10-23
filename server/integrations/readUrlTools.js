@@ -117,7 +117,7 @@ function findPassages(text, find) {
 
 async function readBody(res) {
     const reader = res.body?.getReader();
-    if (!reader) return '';
+    if (!reader) return { html: '', capped: false };
     let decoder;
     const cs = /charset=([\w-]+)/i.exec(res.headers.get('content-type') || '');
     try { decoder = new TextDecoder(cs ? cs[1] : 'utf-8'); } catch (_) { decoder = new TextDecoder('utf-8'); }

@@ -91,6 +91,16 @@ test('/w/<slug>/content levert de snapshot met de extras-basis van dit adres', a
     }));
 });
 
+test('a repeated ?v= is no view token and is never written back into the page', async () => {
+    await withPatches(base({ readSnapshotSlot: async (id, slot) => (slot === 'html' ? '<img src="a.png">' : '') }),
+        () => withServer(test, async (b) => {
+            const res = await fetch(`${b}/w/${SLUG}/content?v=x&v=y`);
+            assert.strictEqual(res.status, 200);
+            const html = await res.text();
+            assert.ok(!/v=x/.test(html), 'an array ?v= must not be echoed as a token');
+        }));
+});
+
 test('/share/<token> doet nog precies wat het deed', async () => {
     await withPatches(base(), () => withServer(test, async (b) => {
         const res = await fetch(`${b}/share/${TOKEN}`);

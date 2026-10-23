@@ -299,7 +299,7 @@ Reply only to the customer's most recent message. If the knowledge base does not
         CHAT_AGENT_TIMEOUT_MS,
         'chatWithAgent',
     );
-    const aiResultRaw = (result && (result.content || result.response || result.message)) || '';
+    const aiResultRaw = (result && result.message) || '';
     const modelUsed = (result && result.model) || null;
 
     const escalateMatch = aiResultRaw.match(ESCALATE_RE);

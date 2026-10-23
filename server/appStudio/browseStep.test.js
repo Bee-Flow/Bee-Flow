@@ -20,7 +20,7 @@ function stub(path, exports) {
 // ever returns apps present in TOOL_REGISTRY and browse_web is registered
 // inline. The stub was therefore green while the real gate refused every user
 // on every deployment. Stub the single-app check the step actually calls.
-const env = { permitted: true, backend: true, browseCalls: [], gateCalls: [] };
+const env = { permitted: true, backend: true, browseCalls: [], gateCalls: [], usage: [] };
 
 stub('../core/integrations/integrationTools', {
     isIntegrationPermittedForUser: async ({ userId, appId }) => {
@@ -36,7 +36,7 @@ stub('../integrations/browserFetchTools', {
         return `Found it.\n\n---\n**Pages read:**\n- https://example.com/a\n- https://example.com/b`;
     },
 });
-stub('../stores/usageStore', { logUsage: async () => {} });
+stub('../stores/usageStore', { logUsage: async (entry) => { env.usage.push(entry); } });
 stub('../stores/integrationActivityStore', { logIntegrationActivity: async () => {} });
 
 const { executeBrowseStep, effectiveAllowlist } = require('./browseStep');
@@ -80,6 +80,11 @@ test('happy path: enabled app reaches the browser with the effective allowlist',
     assert.deepStrictEqual(env.browseCalls[0].allowedHosts, ['docs.example.com']);
     assert.strictEqual(env.browseCalls[0].maxSteps, 6);
     assert.strictEqual(env.browseCalls[0].args.task, 'find the price');
+    // The usage row is attributed to the owner, in the snake_case shape logUsage reads.
+    const u = env.usage.at(-1);
+    assert.strictEqual(u.user_id, 'owner-1');
+    assert.strictEqual(u.organization_id, 'org-1');
+    assert.strictEqual(u.agent_type, 'studio_app');
 });
 
 test('gate 1: a disabled app never reaches the browser', async () => {

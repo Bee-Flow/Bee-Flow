@@ -213,3 +213,19 @@ test('isValidPermissionId accepts the taxonomy + http grants, rejects junk', () 
         assert.strictEqual(hostApi.isValidPermissionId(bad), false, String(bad));
     }
 });
+
+test('license.hasFeature(feature, ctx) reaches license.hasFeature(scope, feature) in that order', async () => {
+    const licPath = require.resolve('../license');
+    const prev = require.cache[licPath];
+    const calls = [];
+    require.cache[licPath] = new Module(licPath);
+    require.cache[licPath].exports = { hasFeature: async (scope, feature) => { calls.push([scope, feature]); return true; } };
+    require.cache[licPath].loaded = true;
+    try {
+        const host = hostApi.build('m2mod', { permissions: ['license:read'] });
+        await host.license.hasFeature('sso', { organizationId: 'org1' });
+        assert.deepStrictEqual(calls, [[{ organizationId: 'org1' }, 'sso']]);
+    } finally {
+        if (prev) require.cache[licPath] = prev; else delete require.cache[licPath];
+    }
+});

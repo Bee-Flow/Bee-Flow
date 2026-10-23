@@ -81,10 +81,13 @@ stub('../stores/configStore', {
     getConfig: async (k) => (k.startsWith('studio_app_email_dlp_') ? dlpMode : null),
     setConfig: async () => {},
 });
+stub('../core/privacy/orgShield', { resolveOrgShield: async () => ({ dlpEnabled: true, dlpScope: 'external' }) });
+// The real runner's shape: without the org's shield config it skips the scan.
 stub('../core/dlp/dlpRunner', {
-    scan: async () => {
+    scan: async ({ orgShieldConfig }) => {
         if (dlpThrows) throw new Error('guard down');
-        return { findings: Array.from({ length: dlpFindings }, () => ({ type: 'person' })) };
+        if (!orgShieldConfig?.dlpEnabled) return { action: 'allow', findings: [], scanStatus: 'skipped' };
+        return { findings: Array.from({ length: dlpFindings }, () => ({ type: 'person' })), scanStatus: 'ok' };
     },
 });
 

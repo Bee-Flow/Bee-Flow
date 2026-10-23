@@ -50,7 +50,7 @@ const PROVIDER_PRESETS = {
 const DEFAULT_CONFIG = {
     url: 'https://api.mistral.ai/v1',
     model: 'ministral-8b-latest',
-    apikey: '',
+    apiKey: '',
     lakeraApiKey: '',
     regexGuardrails: null,
     piiDetectionEnabled: false,

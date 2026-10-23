@@ -61,7 +61,7 @@ async function _fetchConversationSource({ conversationId }, userId) {
 
 async function _fetchGithubFileSource({ owner, repo, filePath, ref }, userId) {
     const { executeGitHubTool } = require('../integrations/githubTools');
-    const r = await executeGitHubTool('github_get_file', { owner, repo, path: filePath, ref }, userId);
+    const r = await executeGitHubTool('github_get_file', { owner, repo, path: filePath, branch: ref }, userId);
     if (r?.error) {
         if (/no github token|not configured/i.test(r.error)) {
             return { error: 'missing_integration', integration: 'github', message: r.error };
@@ -102,7 +102,7 @@ async function _fetchYouTrackSource(src, userId) {
         return { kind: 'youtrack_issue', title: src.issueId, body: JSON.stringify(r).slice(0, 8000) };
     }
     if (src.query) {
-        const r = await executeYouTrackTool('youtrack_search_issues', { query: src.query, top: 10 }, userId);
+        const r = await executeYouTrackTool('youtrack_search_issues', { query: src.query, limit: 10 }, userId);
         if (r?.error) {
             if (/not configured/i.test(r.error)) return { error: 'missing_integration', integration: 'youtrack', message: r.error };
             return { error: 'fetch_failed', detail: r.error };

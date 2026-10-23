@@ -49,7 +49,7 @@ const DEF = {
 };
 
 function makeRf() {
-    return { flowToScreenPosition: vi.fn(p => ({ x: p.x + 5, y: p.y + 7 })), getZoom: () => 1, getNode: () => null };
+    return { flowToScreenPosition: vi.fn(p => ({ x: p.x + 5, y: p.y + 7 })), getZoom: () => 1, getInternalNode: () => null };
 }
 
 function propsFor(over = {}) {

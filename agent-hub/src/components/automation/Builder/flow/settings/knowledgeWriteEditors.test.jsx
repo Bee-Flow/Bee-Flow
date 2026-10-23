@@ -69,6 +69,16 @@ describe('the knowledge_write editor', () => {
     });
 });
 
+describe('focusing a select', () => {
+    it('clears the Input panel insert target (a select takes no reference)', () => {
+        const onFocusField = vi.fn();
+        const draft = { ...extractFormState(STEP) };
+        render(<KnowledgeWriteFields draft={draft} set={vi.fn()} groups={[]} catalog={CATALOG} onFocusField={onFocusField} />);
+        fireEvent.focus(screen.getByRole('option', { name: /Handbook/ }).closest('select'));
+        expect(onFocusField).toHaveBeenCalledWith(null);
+    });
+});
+
 describe('the form round trip', () => {
     it('carries every field the runner reads, both ways', () => {
         const draft = extractFormState(STEP);

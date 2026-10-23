@@ -234,8 +234,8 @@ async function resolveAutomationPolicy(ctx, { honourAutomationOptOut = true } = 
         // hide the same terms chat does.
         categories: (shield && shield.piiDetectionCategories) || aiConfig.piiDetectionCategories || null,
         // What to do when the detector is unreachable or only partly ran.
-        failureMode: (shield && (shield.piiFailureMode || shield.dlpFailureMode))
-            || aiConfig.piiFailureMode || 'fail_closed',
+        // The org shield is where this setting lives; AIConfig never carries it.
+        failureMode: (shield && (shield.piiFailureMode || shield.dlpFailureMode)) || 'fail_closed',
         // What to do with the UNSCANNED tail of an oversize value (same setting
         // the attachment path uses; default preserves today's pass-through).
         largeInputPolicy: (shield && shield.attachmentLargeInputPolicy) === 'fail_closed' ? 'fail_closed' : 'fail_open',

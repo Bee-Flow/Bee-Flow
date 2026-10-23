@@ -86,8 +86,7 @@ router.get('/sbom/meta', requireAuth, requirePermission('admin_compliance'), asy
         size: found.size,
         mtime: found.mtime,
         sha256: found.sha256 || null,
-        components: Array.isArray(found.parsed?.components) ? found.parsed.components.length
-            : Array.isArray(found.parsed?.packages) ? found.parsed.packages.length : null,
+        components: typeof found.parsed?.component_count === 'number' ? found.parsed.component_count : null,
     });
 });
 

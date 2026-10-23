@@ -31,7 +31,7 @@ const PG = { dialect: 'pg' };
 const DAY_MS = 86400000;
 const RECENT = 10;
 const TEXT_PREVIEW = 200;
-const AGG_BATCH = Number(MAX_AGGREGATES) || 16;
+const AGG_BATCH = MAX_AGGREGATES;
 
 // ── the range ───────────────────────────────────────────────────────────
 

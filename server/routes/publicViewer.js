@@ -188,24 +188,22 @@ function getUnlockClaim(req, shareId) {
 // success (email may be null for password/unlisted) or null when gated-out.
 function resolveSubResourceGate(req, share) {
     if (share.accessMode === 'unlisted') return { email: null };
-    // Cookie path (works for same-site top-level; kept as a fallback).
-    const unlock = getUnlockClaim(req, share.id);
-    if (unlock) {
-        if (share.accessMode === 'email' && !publicShareStore.isEmailAllowed(share, unlock.email)) return null;
-        return { email: unlock.email || null };
-    }
-    // View-token path (the opaque-origin sub-frame's actual authorization).
-    const view = publicShareToken.verifyViewToken(req.query?.v || '', share.id);
-    if (view) {
-        if (share.accessMode === 'email' && !publicShareStore.isEmailAllowed(share, view.email)) return null;
-        return { email: view.email || null };
-    }
-    return null;
+    // Cookie (same-site top-level fallback), else the view token: the opaque-origin sub-frame's real authorization.
+    const claim = getUnlockClaim(req, share.id) || publicShareToken.verifyViewToken(viewTokenOf(req), share.id);
+    if (!claim) return null;
+    if (share.accessMode === 'email' && !publicShareStore.isEmailAllowed(share, claim.email)) return null;
+    return { email: claim.email || null };
 }
 
 // ── Chrome + iframe document composition ───────────────────────────
 
 const FOOTER_REPORT_EMAIL = process.env.PUBLIC_SHARE_ABUSE_EMAIL || 'info@beeflow.nl';
+
+/** `?v=` as one string: a repeated parameter arrives as an array and is no token. */
+function viewTokenOf(req) {
+    const v = req.query?.v;
+    return typeof v === 'string' ? v : '';
+}
 
 function composeViewerChrome({ share, publisher, nonce, base, addr, viewToken }) {
     // Server-rendered HTML page. No client JS bundle is loaded.
@@ -645,7 +643,7 @@ router.get('/:token/content', async (req, res) => {
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('Referrer-Policy', 'no-referrer');
         res.setHeader('Cache-Control', 'private, no-store');
-        res.type('html').send(composeIframeContent({ html, css, base: ctx.base, addr: ctx.addr, viewToken: req.query?.v || '' }));
+        res.type('html').send(composeIframeContent({ html, css, base: ctx.base, addr: ctx.addr, viewToken: viewTokenOf(req) }));
     } catch (err) {
         log.error('[PublicViewer] content GET failed:', err);
         res.status(500).type('text').send('Error');
@@ -681,7 +679,8 @@ router.get('/:token/extras/*path', async (req, res) => {
         // re-snapshots an updated page, returning viewers were stuck with the old
         // extra assets (images/fonts) until the window lapsed (BFSF-190). An
         // ETag on the snapshot bytes lets unchanged assets still 304 cheaply.
-        const _etag = obj.etag || (obj.bytes ? `"${require('crypto').createHash('sha1').update(obj.bytes).digest('hex')}"` : null);
+        // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_sha1 -- a cache validator over our own bytes, not a security hash
+        const _etag = obj.bytes ? `"${require('crypto').createHash('sha1').update(obj.bytes).digest('hex')}"` : null;
         if (_etag) {
             res.setHeader('ETag', _etag);
             if (req.headers['if-none-match'] === _etag) return res.status(304).end();

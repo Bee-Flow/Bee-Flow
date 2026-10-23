@@ -105,28 +105,20 @@ class GoogleVertexProvider extends GoogleProvider {
         try {
             const ai = this.createClient(apiKey, options);
             const models = [];
-            let pageToken = undefined;
 
-            // Fetch all pages from the API
-            do {
-                const config = { pageSize: 300 };
-                if (pageToken) config.pageToken = pageToken;
+            // The SDK pager walks every page by itself in the for-await below.
+            const result = await ai.models.list({ config: { pageSize: 300 } });
 
-                const result = await ai.models.list({ config });
+            for await (const model of result) {
+                let id = model.name || '';
+                const match = id.match(/models\/(.+)$/);
+                if (match) id = match[1];
 
-                for await (const model of result) {
-                    let id = model.name || '';
-                    const match = id.match(/models\/(.+)$/);
-                    if (match) id = match[1];
-
-                    models.push({
-                        id,
-                        name: model.displayName || id,
-                    });
-                }
-
-                pageToken = result.pageToken || result.nextPageToken;
-            } while (pageToken);
+                models.push({
+                    id,
+                    name: model.displayName || id,
+                });
+            }
 
             // Supplement with well-known Gemini models not returned by the API
             const existingIds = new Set(models.map(m => m.id));
@@ -258,17 +250,31 @@ class GoogleVertexProvider extends GoogleProvider {
             log.info(`[GoogleVertex] Video polling... ${((Date.now() - startTime) / 1000).toFixed(0)}s elapsed`);
         }
 
-        const video = operation.response?.generatedSamples?.[0];
-        if (!video?.video) {
+        const generated = operation.response?.generatedVideos?.[0];
+        if (!generated?.video) {
             return { videoBase64: null, mimeType: 'video/mp4' };
         }
 
-        const videoData = await ai.files.download({ file: video.video });
-        const videoBuffer = Buffer.from(videoData);
+        // Vertex normally returns the bytes inline; only a storage URI needs a download,
+        // and files.download writes to a path (it returns nothing).
+        let videoBase64 = generated.video.videoBytes || null;
+        if (!videoBase64) {
+            const fs = require('fs');
+            const os = require('os');
+            const path = require('path');
+            const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'vertex-video-'));
+            const filePath = path.join(dir, 'video.mp4');
+            try {
+                await ai.files.download({ file: generated.video, downloadPath: filePath });
+                videoBase64 = (await fs.promises.readFile(filePath)).toString('base64');
+            } finally {
+                await fs.promises.rm(dir, { recursive: true, force: true });
+            }
+        }
 
-        log.info(`[GoogleVertex] Video generated: ${(videoBuffer.length / 1024 / 1024).toFixed(1)} MB`);
+        log.info(`[GoogleVertex] Video generated: ${(videoBase64.length * 0.75 / 1024 / 1024).toFixed(1)} MB`);
 
-        return { videoBase64: videoBuffer.toString('base64'), mimeType: 'video/mp4' };
+        return { videoBase64, mimeType: 'video/mp4' };
     }
 }
 

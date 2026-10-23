@@ -117,7 +117,7 @@ async function attachmentsToContentBlocks(attachments, userId) {
                 // Last-resort lazy upload for base64 content that never made
                 // it into RustFS (e.g. pre-RustFS conversations).
                 try {
-                    const { uploadImageForInference } = require('./attachmentProcessor');
+                    const { uploadImageForInference } = require('./attachmentKinds');
                     url = await uploadImageForInference(att.content, type, userId, name);
                 } catch (e) {
                     log.warn(`[HistoryHydrator] Lazy upload failed for ${name}: ${e.message}`);

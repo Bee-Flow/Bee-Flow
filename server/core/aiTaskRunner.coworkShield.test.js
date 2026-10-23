@@ -90,7 +90,7 @@ const restore = installResolveStub({
         buildToolHint: async () => '',
     },
     './tools/toolDispatcher': { executeTool: async () => 'ok' },
-    '../integrations/agentSearchTools': { buildAgentSearchTool: () => null },
+    '../integrations/agentSearchTools': { AGENT_SEARCH_TOOLS: [] },
     '../stores/notificationStore': { createNotification: async (n) => { notifications.push(n); } },
     '../stores/usageStore': { logUsage: async (e) => { usage.push(e); } },
     '../utils/appPaths': { coworkTaskPath: (id) => `/app/cowork/${id}` },
