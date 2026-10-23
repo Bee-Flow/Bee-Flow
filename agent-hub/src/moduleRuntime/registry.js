@@ -1,12 +1,12 @@
-import React, { useSyncExternalStore } from 'react';
 import {
     Puzzle, Gauge, Activity, ShieldAlert, Bot, Sparkles, ListChecks, BookOpen,
     Globe, Bug, Mic, LifeBuoy, Target, LayoutGrid, Boxes, Wrench, Zap, BarChart3,
     Calendar, Mail, FileText, Users, Database, Lock, Bell, Search, Star, Clock,
     Cloud, Server, Terminal, Code, Layers, Package, MessageSquare, Workflow,
 } from 'lucide-react';
-import { API_BASE, authFetch } from '../utils/helpers';
+import React, { useSyncExternalStore } from 'react';
 import RemoteStudioApp from './RemoteStudioApp';
+import { API_BASE, authFetch } from '../utils/helpers';
 
 // Runtime Studio-app registry. After auth, `GET /api/modules/frontend` returns
 // the installed remote modules that ship a frontend; each becomes a descriptor

@@ -259,7 +259,7 @@ function TablesStep({ t, tables, query, onQuery, selection, onToggle, marks, tot
             </p>
             {total > 8 && (
                 <label className="relative block">
-                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" aria-hidden="true" />
                     <input value={query} onChange={(e) => onQuery(e.target.value)} placeholder={t('datatables.nc_search_tables', 'Find a table')}
                         aria-label={t('datatables.nc_search_tables', 'Find a table')} className={`${INPUT} pl-9`} style={INPUT_STYLE} />
                 </label>
@@ -358,7 +358,7 @@ function NamesStep({ t, selected, describes, onChange, keyDup, marks, onSelectTa
                                                     <ColumnKindIcon kind={kind} size={12} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
                                                     <span className="truncate text-[var(--text-primary)]">{c.title}</span>
                                                     <span className="ml-auto shrink-0 text-[var(--text-tertiary)]">{c.type}{c.subtype ? `/${c.subtype}` : ''}</span>
-                                                    {c.mandatory && <Lock className="w-3 h-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-label={t('datatables.nc_required', 'required in Nextcloud')} />}
+                                                    {c.mandatory && <Lock className="w-3 h-3 shrink-0 text-[var(--text-tertiary)]" aria-label={t('datatables.nc_required', 'required in Nextcloud')} />}
                                                 </span>
                                                 {missingTarget && (
                                                     <span className="inline-flex items-center gap-1 flex-wrap text-[var(--warning)]">

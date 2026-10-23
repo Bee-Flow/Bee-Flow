@@ -1,5 +1,5 @@
-import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { Sparkles, Plus, Lock, Users, Link2, Puzzle, RefreshCw, Trash2, ChevronDown, ChevronUp, X, Check } from 'lucide-react';
+import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { deriveCompletedSkillIds, classifySessionSkill } from './sessionSkillState';
 import SkillFormModal from './SkillFormModal';
 import { useSkills } from '../../hooks/useSkills';
@@ -331,9 +331,9 @@ export default function SkillsPopover({
                                                 </span>
                                             )}
                                             {!isAttached && (skill.isShared ? (
-                                                <Users size={9} style={{ color: 'var(--text-tertiary)' }} />
+                                                <Users size={9} className="text-[var(--text-tertiary)]" />
                                             ) : (
-                                                <Lock size={9} style={{ color: 'var(--text-tertiary)' }} />
+                                                <Lock size={9} className="text-[var(--text-tertiary)]" />
                                             ))}
                                         </div>
                                         {skill.description && (

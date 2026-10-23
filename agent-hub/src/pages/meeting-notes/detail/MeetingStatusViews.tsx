@@ -45,10 +45,10 @@ export function MeetingLoadError({ t, error, onRetry }: { t: TranslateFn; error:
     return (
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-center" role="alert">
             <AlertTriangle className="w-8 h-8" style={{ color: 'var(--error)' }} aria-hidden="true" />
-            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
                 {t('meetings.load_failed', 'Couldn’t load this meeting')}
             </p>
-            <p className="text-xs max-w-sm" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-xs max-w-sm text-[var(--text-tertiary)]">
                 {error.status === 404
                     ? t('meetings.load_failed_404', 'It may have been deleted, or you no longer have access to it.')
                     : (error.message || t('meetings.something_wrong', 'Something went wrong.'))}
@@ -86,9 +86,9 @@ export function MeetingProcessingBody({ t, failed, reason, audioGone, canRetry, 
     if (!failed) {
         return (
             <>
-                <Loader2 className="w-10 h-10 animate-spin" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
-                <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('meetings.transcribing_title', 'Transcribing…')}</p>
-                <p className="text-sm max-w-md" style={{ color: 'var(--text-tertiary)' }}>
+                <Loader2 className="w-10 h-10 animate-spin text-[var(--accent-primary)]" aria-hidden="true" />
+                <p className="text-lg font-semibold text-[var(--text-primary)]">{t('meetings.transcribing_title', 'Transcribing…')}</p>
+                <p className="text-sm max-w-md text-[var(--text-tertiary)]">
                     {t('meetings.transcribing_desc', 'This runs in the background — you can close this and come back. Long recordings with speaker labels can take a while on the local diarizer; the note updates automatically when it’s ready.')}
                 </p>
             </>
@@ -97,11 +97,11 @@ export function MeetingProcessingBody({ t, failed, reason, audioGone, canRetry, 
     return (
         <>
             <AlertTriangle className="w-10 h-10" style={{ color: 'var(--error)' }} aria-hidden="true" />
-            <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{t('meetings.failed_title', 'Transcription failed')}</p>
+            <p className="text-lg font-semibold text-[var(--text-primary)]">{t('meetings.failed_title', 'Transcription failed')}</p>
             {reason ? (
                 <p className="text-sm max-w-md" style={{ color: 'var(--error)' }}>{reason}</p>
             ) : null}
-            <p className="text-sm max-w-md" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-sm max-w-md text-[var(--text-tertiary)]">
                 {audioGone
                     ? t('meetings.failed_audio_gone', 'The audio is no longer available, so this note cannot be retried.')
                     : t('meetings.failed_retry_hint', 'The recording is saved, so you can retry it.')}

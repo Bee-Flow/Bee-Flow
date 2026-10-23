@@ -7,11 +7,11 @@ import React, { useMemo, useRef, useState } from 'react';
 import { loopBodyPreview } from './loopBodyPreview';
 import { computeLoopBodyGroups } from './upstream';
 import { VariablePickerProvider } from './VariablePickerContext';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { buildStepFromPayload } from '../DiagramPane';
 import AddStepMenu from '../flow/AddStepMenu';
 import { FormDensityContext } from '../flow/settings/formDensity';
 import SettingsForm from '../flow/SettingsForm';
-import { useTranslation } from '../../../../hooks/useTranslation';
 
 // The nested SettingsForm always renders every section — see the comment at
 // its mount. Module-level so the provider value is referentially stable.

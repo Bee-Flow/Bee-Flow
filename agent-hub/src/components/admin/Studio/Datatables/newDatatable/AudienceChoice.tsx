@@ -21,7 +21,7 @@ export default function AudienceChoice({ canChoose, orgScopeWithheld, target, se
             <div className="grid grid-cols-2 gap-2">
                 <ChoiceCard
                     name="datatable-scope"
-                    icon={<Building2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />}
+                    icon={<Building2 className="w-3.5 h-3.5 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />}
                     checked={target === 'organisation'}
                     onChange={() => setTarget('organisation')}
                     title={t('datatables.scope_org', 'Your organisation')}
@@ -29,7 +29,7 @@ export default function AudienceChoice({ canChoose, orgScopeWithheld, target, se
                 />
                 <ChoiceCard
                     name="datatable-scope"
-                    icon={<User className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />}
+                    icon={<User className="w-3.5 h-3.5 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />}
                     checked={target === 'personal'}
                     onChange={() => setTarget('personal')}
                     title={t('datatables.scope_personal', 'This account only')}

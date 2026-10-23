@@ -111,7 +111,7 @@ export default function AiDraftPanel({ form, onApply, seed = null }) {
     return (
         <section className="rounded-xl border p-4 space-y-3" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }} aria-labelledby="form-ai-title" data-testid="form-ai">
             <div className="flex items-start gap-2">
-                <Sparkles className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
                     <h3 id="form-ai-title" className="text-sm font-semibold text-[var(--text-primary)]">{t('forms.ai.title', 'Build it with AI')}</h3>
                     <p className="text-xs mt-0.5 text-[var(--text-secondary)]">

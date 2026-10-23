@@ -227,7 +227,7 @@ export default function ConnectorChainEditor({
 
             {chain.map((step, i) => (
                 <React.Fragment key={`${step.tool}-${i}`}>
-                    <ArrowDown className="mx-auto h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                    <ArrowDown className="mx-auto h-3.5 w-3.5 text-[var(--text-tertiary)]" aria-hidden="true" />
                     <StepCard
                         step={step}
                         index={i}
@@ -287,7 +287,7 @@ export default function ConnectorChainEditor({
                             onClick={() => addStep({ tool: s.tool, argsFrom: s.field ? { [s.param]: s.field } : undefined })}
                             className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2 text-left text-xs border-[var(--accent-primary)] text-[var(--text-primary)]"
                         >
-                            <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                            <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
                             <span>
                                 <span className="font-medium">{s.why}</span>
                                 <span className="block mt-0.5 text-[var(--text-tertiary)]">{t('studio_apps_bi.chain.add_as_step', 'Add it as a step.')}</span>

@@ -109,7 +109,7 @@ export default function NowRunningStrip({ facets = null, loading = false, failed
             data-testid="now-running"
         >
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
-                <Activity className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
+                <Activity className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
                 {t('runs.now.title', 'Now running')}
                 <span className="ml-auto text-xs font-normal text-[var(--text-tertiary)]">
                     {t('runs.now.window', 'last 24 hours')}
@@ -118,7 +118,7 @@ export default function NowRunningStrip({ facets = null, loading = false, failed
 
             {loading && !model ? (
                 <div className="flex items-center justify-center py-3" role="status" data-testid="now-running-loading">
-                    <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                    <Loader2 className="w-4 h-4 animate-spin text-[var(--text-tertiary)]" aria-hidden="true" />
                 </div>
             ) : !model ? (
                 /* UNREADABLE — never "nothing is running". A strip people

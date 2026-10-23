@@ -126,8 +126,7 @@ export default function NavSidebar({ definition, model, screenId, onNavigate, vi
                             />
                         ) : (
                             <div
-                                className="app-nav-group-label flex items-center gap-1.5 px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider"
-                                style={{ color: 'var(--text-muted)' }}
+                                className="app-nav-group-label flex items-center gap-1.5 px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]"
                             >
                                 {group.icon ? <AppIcon name={group.icon} className="w-3 h-3 shrink-0" /> : null}
                                 <span className="truncate">{group.label}</span>

@@ -105,7 +105,7 @@ export default function AppModal({ node, children }: NodeProps<ModalNodeProps>) 
                     >
                         {t('studio_apps_runtime.modal.badge', 'Modal')}
                     </span>
-                    <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                    <span className="text-sm font-medium truncate text-[var(--text-primary)]">
                         {title || t('studio_apps_runtime.modal.untitled', 'Untitled dialog')}
                     </span>
                 </div>

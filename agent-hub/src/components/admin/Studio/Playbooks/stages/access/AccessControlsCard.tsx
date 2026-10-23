@@ -150,7 +150,7 @@ export default function AccessControlsCard({
                             Who already holds a role shows; the rest are
                             searched for. */}
                         <span className="ml-auto relative">
-                            <Search className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                            <Search className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" aria-hidden="true" />
                             <input
                                 value={peopleQuery}
                                 onChange={(e) => setPeopleQuery(e.target.value)}

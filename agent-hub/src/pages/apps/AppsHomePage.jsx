@@ -422,8 +422,7 @@ function Toolbar({ count, query, onQuery, canBuild }) {
                 {count !== null && (
                     <div className="relative min-w-0 flex-1 sm:flex-none sm:w-[230px]">
                         <Search
-                            className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                            style={{ color: 'var(--text-tertiary)' }}
+                            className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-tertiary)]"
                             aria-hidden="true"
                         />
                         <input

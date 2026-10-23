@@ -21,7 +21,7 @@ function DoorLink({ icon, kind, label, name, onClick, t }) {
                 <span className="block text-[11px] text-[var(--text-secondary)]">{label}</span>
                 <span className="block text-sm font-medium truncate text-[var(--text-primary)]">{name}</span>
             </span>
-            <ArrowUpRight className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+            <ArrowUpRight className="w-4 h-4 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
             <span className="sr-only">{t('playbooks.done.open', 'Open')}</span>
         </button>
     );
@@ -53,7 +53,7 @@ export default function DoneCard({ playbook, onNavigate, onBack, onResume = null
             <div className="w-full rounded-2xl" style={{ maxWidth: 560, background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-md)', padding: presenter ? 28 : 22 }}>
                 <div className="flex items-start gap-3">
                     {stopped
-                        ? <Square className="w-6 h-6 mt-0.5 shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
+                        ? <Square className="w-6 h-6 mt-0.5 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
                         : <CheckCircle2 className="w-6 h-6 mt-0.5 shrink-0" style={{ color: 'var(--kind-playbook)' }} aria-hidden="true" />}
                     <div className="min-w-0">
                         <h2 className="font-semibold" style={{ fontSize: presenter ? 22 : 18, color: 'var(--text-primary)' }}>

@@ -1,21 +1,21 @@
 import { X } from 'lucide-react';
-import useTranslation from '../../../../../hooks/useTranslation';
 import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
-import { INPUT_CLS } from './panels/kit';
-import ExpressionInput from './logic/ExpressionInput';
-import FormField from '../../../../shared/FormField';
-import SegmentedControl from '../../../../shared/SegmentedControl';
-import Toggle from '../../../../shared/Toggle';
-import IconButton from '../../../../shared/IconButton';
-import ModelTierSelector from '../../../../licensing/ModelTierSelector';
-import useModelTierSelection from '../../../../../hooks/useModelTierSelection';
-import useAppTables, { fieldsForTable } from '../bi/useAppTables';
-import { useEditorChrome } from '../editor/EditorChromeContext';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import {
     autoMapping, bindingForField, extractableColumns, fieldNameFromBinding,
     isUntouchedSchema, sanitizeVarName, schemaFromColumns, writableColumns,
 } from './aiFieldMatching';
+import ExpressionInput from './logic/ExpressionInput';
+import { INPUT_CLS } from './panels/kit';
+import useModelTierSelection from '../../../../../hooks/useModelTierSelection';
+import useTranslation from '../../../../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import ModelTierSelector from '../../../../licensing/ModelTierSelector';
+import FormField from '../../../../shared/FormField';
+import IconButton from '../../../../shared/IconButton';
+import SegmentedControl from '../../../../shared/SegmentedControl';
+import Toggle from '../../../../shared/Toggle';
+import useAppTables, { fieldsForTable } from '../bi/useAppTables';
+import { useEditorChrome } from '../editor/EditorChromeContext';
 
 /**
  * Inline editors for the native AI action kinds (ai_extract / ai_generate /

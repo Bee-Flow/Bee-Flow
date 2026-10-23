@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
 import { CircleHelp, Gavel, ListChecks, MoreHorizontal, Search } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 import SpeakerLegend from './SpeakerLegend';
 import TranscriptLineMenu from './TranscriptLineMenu';
 import useTranslation from '../../../hooks/useTranslation';
@@ -91,7 +91,7 @@ export default function TranscriptView({
         <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
                 <div className="relative flex-1 min-w-[200px]">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                     <input
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}

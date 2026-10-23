@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { useTranslation } from '../../hooks/useTranslation';
 import { CheckCircle, XCircle, AlertTriangle, Clock, ChevronDown, ChevronRight, Bug, Shield, Zap, Eye } from 'lucide-react';
+import React, { useState } from 'react';
 import MarkdownRenderer from './MarkdownRenderer';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * TestReportRenderer — Renders structured test reports for QA/testing agents

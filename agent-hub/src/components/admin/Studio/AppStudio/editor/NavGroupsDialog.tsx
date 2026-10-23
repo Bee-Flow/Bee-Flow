@@ -220,8 +220,7 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose }:
                                 return (
                                     <div key={screen.id}>
                                         <label
-                                            className={`flex items-center gap-2 text-sm px-1 py-0.5 rounded ${claimedElsewhere ? 'opacity-50' : ''}`}
-                                            style={{ color: 'var(--text-primary)' }}
+                                            className={`flex items-center gap-2 text-sm px-1 py-0.5 rounded ${claimedElsewhere ? 'opacity-50' : ''} text-[var(--text-primary)]`}
                                             title={claimedElsewhere ? t('studio_apps_edit.nav_groups.already_in', 'Already in "{group}" — a screen can be in one group.', { group: owning.label || t('studio_apps_edit.nav_groups.another_group', 'another group') }) : undefined}
                                         >
                                             <input

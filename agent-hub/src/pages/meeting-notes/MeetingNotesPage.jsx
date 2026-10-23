@@ -1,19 +1,19 @@
-import React, { useCallback, useEffect, useEffectEvent, useState } from 'react';
 import { ArrowLeft, Mic } from 'lucide-react';
-import SegmentedControl from '../../components/shared/SegmentedControl';
-import StudioShell from '../../components/shared/StudioShell';
-import { PRIMARY_ACTION_STYLE } from '../../components/shared/StudioSectionHeader';
-import useTranslation from '../../hooks/useTranslation';
-import MeetingLibrary from './library/MeetingLibrary';
-import UpcomingMeetings from './library/UpcomingMeetings';
-import MeetingDetail from './detail/MeetingDetail';
-import DetailEmptyState from './detail/DetailEmptyState';
+import React, { useCallback, useEffect, useEffectEvent, useState } from 'react';
 import { useCapture } from './capture/CaptureContext';
-import useTranscriptions from './hooks/useTranscriptions';
-import useMeetingTags from './hooks/useMeetingTags';
+import DetailEmptyState from './detail/DetailEmptyState';
+import MeetingDetail from './detail/MeetingDetail';
+import { useRecorder } from './hooks/RecorderContext';
 import useMediaQuery from './hooks/useMediaQuery';
 import useMeetingSources from './hooks/useMeetingSources';
-import { useRecorder } from './hooks/RecorderContext';
+import useMeetingTags from './hooks/useMeetingTags';
+import useTranscriptions from './hooks/useTranscriptions';
+import MeetingLibrary from './library/MeetingLibrary';
+import UpcomingMeetings from './library/UpcomingMeetings';
+import SegmentedControl from '../../components/shared/SegmentedControl';
+import { PRIMARY_ACTION_STYLE } from '../../components/shared/StudioSectionHeader';
+import StudioShell from '../../components/shared/StudioShell';
+import useTranslation from '../../hooks/useTranslation';
 
 /**
  * Meeting notes — the section chrome (Bee Flow Builder redesign, Sep 2026,

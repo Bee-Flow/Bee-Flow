@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
 import {
     AlertTriangle, AlertOctagon, ZapOff, RefreshCcw, XCircle,
     Clock, Filter, Search, Cpu, Bot, Paperclip, FileWarning
 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     fmt, fmtDuration, fmtTime, shortModel, COLORS,
     Card, Empty, MetricCard
 } from './shared';
-import { TYPE_ORDER, isLargeInput, LARGE_ATTACHMENT_BYTES_THRESHOLD, LARGE_INPUT_TOKEN_THRESHOLD } from '../../../utils/terminationsModel';
-import { authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { authFetch } from '../../../utils/helpers';
+import { TYPE_ORDER, isLargeInput, LARGE_ATTACHMENT_BYTES_THRESHOLD, LARGE_INPUT_TOKEN_THRESHOLD } from '../../../utils/terminationsModel';
 
 const API = (import.meta.env.VITE_API_URL || '') + '/api/terminations';
 // authFetch, not raw fetch. Both send credentials, but authFetch also sets the

@@ -10,9 +10,9 @@
  * `onChanged` is called after every mutation so the hub can bump the counts.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { API, fetchJson, json, jsonInit } from './api';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { toast } from '../../../shared/Toast';
-import { API, fetchJson, json, jsonInit } from './api';
 
 export default function useComplianceCore({ onChanged = null } = {}) {
     const { t } = useTranslation();

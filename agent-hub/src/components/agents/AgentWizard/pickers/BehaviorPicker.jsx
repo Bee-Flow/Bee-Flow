@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
 import { X, Check, Copy } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ToggleRow } from './_primitives';
 
 // Copy-to-clipboard field for the embed URL / iframe snippet. Only used

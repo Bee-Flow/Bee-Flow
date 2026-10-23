@@ -31,7 +31,7 @@ const GitHubSyncPanel = ({ user }) => {
             {/* Header */}
             <div>
                 <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
-                    <FolderGit2 className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+                    <FolderGit2 className="w-5 h-5 text-[var(--accent-primary)]" />
                     {t('integ.git_hub_sync_github_sync', 'GitHub Sync')}
                 </h2>
                 <p className="text-sm text-[var(--text-muted)] mt-0.5">
@@ -67,7 +67,7 @@ const GitHubSyncPanel = ({ user }) => {
                     <div className="p-6 text-center">
                         <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-4"
                             style={{ background: 'var(--brand-gradient-soft)' }}>
-                            <FolderGit2 className="w-7 h-7" style={{ color: 'var(--accent-primary)' }} />
+                            <FolderGit2 className="w-7 h-7 text-[var(--accent-primary)]" />
                         </div>
                         <h3 className="text-base font-bold text-[var(--text-primary)] mb-1">{t('integ.git_hub_sync_set_up_agent_sync', 'Set Up Agent Sync')}</h3>
                         <p className="text-sm text-[var(--text-muted)] mb-5 max-w-md mx-auto">
@@ -128,7 +128,7 @@ const GitHubSyncPanel = ({ user }) => {
                     {/* Info Box */}
                     <div className="p-3 rounded-xl text-[12px] flex items-start gap-2"
                         style={{ background: 'var(--brand-gradient-soft)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
-                        <FolderGit2 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent-primary)' }} />
+                        <FolderGit2 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-[var(--accent-primary)]" />
                         <span>
                             {t('integ.git_hub_sync_agent_system_prompts_are_stored_as', 'Agent system prompts are stored as')} <code className="text-[11px] px-1 py-0.5 rounded bg-[var(--bg-tertiary)]">.md</code> {t('integ.git_hub_sync_files_for_clean_diffs_each_agent', 'files for clean diffs. Each agent change creates a traceable commit in your GitHub repo.')}
                         </span>

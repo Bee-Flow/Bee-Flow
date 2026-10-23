@@ -81,8 +81,7 @@ export function ChatColumn({ chatSlot, pane, streamLock }: ChatColumnProps) {
                     onClick={pane.toggle}
                     aria-label={t('app_studio.shell.ai_hide', 'Hide the AI builder')}
                     title={t('app_studio.shell.ai_hide', 'Hide the AI builder')}
-                    className="absolute right-1.5 top-1.5 z-10 rounded-md p-1.5 hover:bg-[var(--bg-card-hover)]"
-                    style={{ color: 'var(--text-tertiary)' }}
+                    className="absolute right-1.5 top-1.5 z-10 rounded-md p-1.5 hover:bg-[var(--bg-card-hover)] text-[var(--text-tertiary)]"
                 >
                     <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
                 </button>
@@ -190,7 +189,7 @@ export function DragChip({ label, Icon }: ActiveDrag) {
         <div
             className="inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium shadow-lg bg-[var(--bg-secondary)] border-[var(--accent-primary)] text-[var(--text-primary)]"
         >
-            {Icon ? <Icon className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" /> : null}
+            {Icon ? <Icon className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" /> : null}
             {label}
         </div>
     );

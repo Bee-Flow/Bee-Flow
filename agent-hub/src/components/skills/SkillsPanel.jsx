@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import SkillsGrid from './SkillsGrid';
 import SkillFormModal from './SkillFormModal';
+import SkillsGrid from './SkillsGrid';
 import { useSkills } from '../../hooks/useSkills';
 import { toast } from '../shared/Toast';
 

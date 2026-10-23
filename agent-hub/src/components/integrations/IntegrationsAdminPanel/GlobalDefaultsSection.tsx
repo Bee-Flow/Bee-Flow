@@ -46,7 +46,7 @@ export default function GlobalDefaultsSection({
                                                 style={{ background: enabled ? 'rgba(16, 185, 129, 0.06)' : 'var(--bg-primary)', border: `1px solid ${enabled ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-subtle)'}` }}>
                                                 {enabled
                                                     ? <ToggleRight className="w-5 h-5 shrink-0" style={{ color: '#10b981' }} />
-                                                    : <ToggleLeft className="w-5 h-5 shrink-0" style={{ color: 'var(--text-muted)' }} />
+                                                    : <ToggleLeft className="w-5 h-5 shrink-0 text-[var(--text-muted)]" />
                                                 }
                                                 {integ.icon && <span className="text-base shrink-0">{integ.icon}</span>}
                                                 <div className="min-w-0">

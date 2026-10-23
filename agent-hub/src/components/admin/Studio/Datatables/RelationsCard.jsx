@@ -82,8 +82,8 @@ export default function RelationsCard({ t, table, mirror, canEdit, onRefresh }) 
                 {relations.map((r) => (
                     <li key={r.fieldId} className="flex items-center gap-2 text-sm p-2.5 rounded-lg bg-[var(--bg-secondary)]">
                         {r.kind === 'nc'
-                            ? <Lock className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
-                            : <Link2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />}
+                            ? <Lock className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
+                            : <Link2 className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />}
                         <span className="min-w-0 truncate text-[var(--text-primary)]">
                             {fieldName(schema, r.fieldId)} → {siblingName(r.targetDatatableId)}
                         </span>

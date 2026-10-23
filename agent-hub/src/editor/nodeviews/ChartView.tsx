@@ -55,7 +55,7 @@ export default function ChartView({ node, view, editable }: { node: DocNode; vie
 
   let chart: React.ReactNode = null;
   if (!series.length || !labels.length) {
-    chart = <div className="flex items-center justify-center h-full text-[12px]" style={{ color: 'var(--text-muted)' }}>{t('editor.chart_no_data', 'No chart data')}</div>;
+    chart = <div className="flex items-center justify-center h-full text-[12px] text-[var(--text-muted)]">{t('editor.chart_no_data', 'No chart data')}</div>;
   } else if (type === 'line') {
     chart = (
       <LineChart data={data}><XAxis dataKey="name" {...axis} /><YAxis {...axis} />{grid}{tooltip}<Legend wrapperStyle={{ fontSize: 11 }} />
@@ -88,7 +88,7 @@ export default function ChartView({ node, view, editable }: { node: DocNode; vie
     <div className="bf-chart group relative my-3 rounded-xl border p-3"
       style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)' }}
       onMouseDown={() => view.selectAtom(node)}>
-      {spec.title && <div className="text-[13px] font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>{spec.title}</div>}
+      {spec.title && <div className="text-[13px] font-semibold mb-2 text-[var(--text-primary)]">{spec.title}</div>}
       <div style={{ width: '100%', height: 260 }}>
         <ResponsiveContainer width="100%" height="100%">{chart}</ResponsiveContainer>
       </div>

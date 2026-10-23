@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
 import { Star, Tag, ExternalLink } from 'lucide-react';
-import SectionHeader from '../components/SectionHeader';
+import React, { useEffect, useState } from 'react';
+import { sectionBgClass } from './sectionBg';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
-import { sectionBgClass } from './sectionBg';
+import SectionHeader from '../components/SectionHeader';
 import './githubStats.css';
 
 /**

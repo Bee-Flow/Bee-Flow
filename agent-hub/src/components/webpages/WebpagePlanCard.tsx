@@ -89,7 +89,7 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
                         {status === 'rejected' && ' · Rejected'}
                     </div>
                 </div>
-                {status === 'approved' && <Loader2 size={13} className="animate-spin" style={{ color: 'var(--accent-primary)' }} />}
+                {status === 'approved' && <Loader2 size={13} className="animate-spin text-[var(--accent-primary)]" />}
                 {status === 'executed' && <CheckCircle2 size={14} style={{ color: 'rgb(22,163,74)' }} />}
                 <ChevronRight
                     size={14}
@@ -129,7 +129,7 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
                                         </span>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-1.5">
-                                                <Icon size={12} style={{ color: 'var(--text-secondary)' }} />
+                                                <Icon size={12} className="text-[var(--text-secondary)]" />
                                                 <span className="text-[11px] font-mono text-[var(--text-primary)]">
                                                     {FILE_LABEL[s.file] || s.file}
                                                 </span>

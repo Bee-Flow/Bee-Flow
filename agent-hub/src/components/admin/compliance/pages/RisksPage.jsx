@@ -1,13 +1,13 @@
-import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { Plus, Search, Sprout } from 'lucide-react';
+import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import RiskDrawer from './risks/RiskDrawer';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import FilterPills from '../../../shared/FilterPills';
 import EmptyState from '../../../shared/EmptyState';
+import FilterPills from '../../../shared/FilterPills';
 import Modal from '../../../shared/Modal';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import { API, fetchJson, jsonInit } from '../data/api';
 import RisksTable, { CATEGORIES, SCALE, RISK_STATUSES, scoreOf, isReviewOverdue, ownerName } from './risks/RisksTable';
-import RiskDrawer from './risks/RiskDrawer';
 import useDrawerMode from '../shared/useDrawerMode';
 
 /**

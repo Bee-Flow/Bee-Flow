@@ -12,7 +12,7 @@ export default function GeneratingOverlay({ label, t }: Props) {
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none" style={{ background: 'rgba(127,127,127,0.06)' }}>
       <div className="flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border text-sm font-semibold" style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>
-        <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--accent-primary)' }} />
+        <Loader2 className="w-4 h-4 animate-spin text-[var(--accent-primary)]" />
         <span>{t('editor.generating', 'Generating {what}…', { what: String(label).replace(/_/g, ' ') })}</span>
         <span className="flex gap-0.5">
           {[0, 1, 2].map((i) => <span key={i} className="w-1 h-1 rounded-full animate-bounce" style={{ background: 'var(--accent-primary)', animationDelay: `${i * 120}ms` }} />)}

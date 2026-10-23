@@ -87,7 +87,7 @@ export default function LibraryFilters({
         <div className="flex flex-col gap-2">
             <div className="flex items-center gap-1.5">
                 <div className="relative flex-1 min-w-0">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" aria-hidden="true" />
                     <input
                         value={query}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => onQueryChange(e.target.value)}

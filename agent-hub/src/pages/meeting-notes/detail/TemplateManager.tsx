@@ -69,7 +69,7 @@ export default function TemplateManager({
                                 onClick={() => openEdit(tpl)}
                                 className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[var(--bg-tertiary)] transition-colors"
                             >
-                                <Icon className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                                <Icon className="w-4 h-4 flex-shrink-0 text-[var(--text-muted)]" />
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-1.5">
                                         <span className="text-[13px] font-medium truncate text-[var(--text-primary)]">{tpl.name}</span>
@@ -82,7 +82,7 @@ export default function TemplateManager({
                                     </div>
                                     <span className="text-[11px] text-[var(--text-muted)]">{scopeLabel(tpl)}</span>
                                 </div>
-                                <Pencil className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                                <Pencil className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-muted)]" />
                             </button>
                         </div>
                     );

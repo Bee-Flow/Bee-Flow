@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
 import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '../../../../utils/agentAvatar';
 import { toast } from '../../../shared/Toast';
 

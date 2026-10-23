@@ -115,7 +115,7 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
                         </p>
                     </div>
                     <button onClick={onClose} className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5">
-                        <X className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
+                        <X className="w-5 h-5 text-[var(--text-secondary)]" />
                     </button>
                 </div>
 
@@ -145,7 +145,7 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
                                 onClick={handleUploadClick}
                                 className="w-full max-w-xs aspect-square border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-6 text-center cursor-pointer transition-colors hover:bg-black/5 dark:hover:bg-white/5 border-[var(--border-subtle)]"
                             >
-                                {uploading ? <Loader2 className="w-8 h-8 animate-spin mb-3" style={{ color: 'var(--accent-primary)' }} /> : <ImageIcon className="w-8 h-8 mb-3" style={{ color: 'var(--text-muted)' }} />}
+                                {uploading ? <Loader2 className="w-8 h-8 animate-spin mb-3 text-[var(--accent-primary)]" /> : <ImageIcon className="w-8 h-8 mb-3 text-[var(--text-muted)]" />}
                                 <h3 className="font-semibold text-[var(--text-primary)]">{t('common.icon_picker.click_upload', 'Click to upload')}</h3>
                                 <p className="text-xs mt-1 text-[var(--text-muted)]">{t('common.icon_picker.upload_hint', 'PNG, JPG, WEBP (Max 2MB)')}</p>
                             </div>

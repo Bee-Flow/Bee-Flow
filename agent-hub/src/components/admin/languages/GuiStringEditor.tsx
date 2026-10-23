@@ -148,7 +148,7 @@ function GuiFilters({ search, setSearch, namespace, setNamespace, showOnly, setS
     return (
         <div className="flex items-center gap-2 mb-3 shrink-0 flex-wrap">
             <div className="relative flex-1 min-w-48">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('admin_languages.search_keys', 'Search keys or values...')} className="w-full pl-8 pr-3 py-1.5 rounded-lg text-xs border bg-[var(--bg-secondary)]" style={FIELD_STYLE} />
             </div>
             <select value={namespace} onChange={e => setNamespace(e.target.value)} className="px-2 py-1.5 rounded-lg text-xs border bg-[var(--bg-secondary)]" style={FIELD_STYLE}>

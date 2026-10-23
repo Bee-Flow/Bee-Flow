@@ -27,11 +27,11 @@ const FIELD = 'min-w-0 flex-1 bg-transparent px-1.5 py-0.5 text-xs outline-none 
 const SELECT = `${FIELD} appearance-none pr-5 cursor-pointer`;
 
 function Dash() {
-    return <span aria-hidden="true" className="shrink-0 select-none px-0.5" style={{ color: 'var(--text-muted)' }}>–</span>;
+    return <span aria-hidden="true" className="shrink-0 select-none px-0.5 text-[var(--text-muted)]">–</span>;
 }
 
 function Arrow() {
-    return <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-1.5 h-3 w-3" style={{ color: 'var(--text-muted)' }} />;
+    return <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-1.5 h-3 w-3 text-[var(--text-muted)]" />;
 }
 
 export default function GridFilterControl({ kind, name, value, options, active, onChange }) {

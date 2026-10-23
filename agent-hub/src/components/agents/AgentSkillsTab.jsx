@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
 import { Sparkles, Plus, Search, Users, Lock, Edit2, Check, Zap } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 import { useSkills } from '../../hooks/useSkills';
 import useTranslation from '../../hooks/useTranslation';
 import { kindColorVar } from '../shared/kindColors';
@@ -89,7 +89,7 @@ export default function AgentSkillsTab({ user, attachedSkillIds = [], onChangeAt
             </div>
 
             <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-tertiary)]" aria-hidden="true" />
                 <input
                     value={search}
                     onChange={e => setSearch(e.target.value)}
@@ -189,8 +189,8 @@ function SkillRow({ skill, attached, canEdit, onToggle, onEdit, t }) {
                         {skill.name}
                     </span>
                     {skill.isShared
-                        ? <Users size={10} style={{ color: 'var(--text-tertiary)' }} aria-label={t('skill_form.shared_org', 'Shared with org')} />
-                        : <Lock size={10} style={{ color: 'var(--text-tertiary)' }} aria-label={t('skill_form.private', 'Private')} />}
+                        ? <Users size={10} className="text-[var(--text-tertiary)]" aria-label={t('skill_form.shared_org', 'Shared with org')} />
+                        : <Lock size={10} className="text-[var(--text-tertiary)]" aria-label={t('skill_form.private', 'Private')} />}
                 </div>
                 <div className="text-[11px] truncate text-[var(--text-tertiary)]">
                     {/* What attaching this actually costs: a static skill is in

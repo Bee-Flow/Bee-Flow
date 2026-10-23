@@ -194,8 +194,7 @@ function HiddenBadge() {
     const { t } = useTranslation();
     return (
         <span
-            className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide mb-1"
-            style={{ color: 'var(--text-muted)' }}
+            className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide mb-1 text-[var(--text-secondary)]"
             data-app-hidden-badge="true"
         >
             <EyeOff className="w-3 h-3" aria-hidden="true" />

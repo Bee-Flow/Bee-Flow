@@ -209,7 +209,7 @@ function OwnCodeSection({ t, code, onNavigate, onRetry }) {
             {calls.length === 0 && code.unresolved === 0 && (
                 <Card>
                     <div className="flex items-center gap-2">
-                        <Workflow size={14} style={{ color: 'var(--text-secondary)' }} />
+                        <Workflow size={14} className="text-[var(--text-secondary)]" />
                         <span className="text-sm font-medium">
                             {t('webpages.actions.no_own_calls', 'No calls to other services found in this page\'s code')}
                         </span>

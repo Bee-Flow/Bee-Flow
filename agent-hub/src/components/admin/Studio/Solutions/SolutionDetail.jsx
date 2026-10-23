@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Notice from './Notice';
 import { effectiveStage, readStateOf } from './pipeline/pipelineModel';
 import PipelineTab from './pipeline/PipelineTab';
 import StageSettingsTab from './pipeline/settings/StageSettingsTab';
@@ -8,7 +9,6 @@ import StageRail from './pipeline/StageRail';
 import { getPipeline, stageFromSearch } from './pipeline/stagesApi';
 import StageStatus from './pipeline/StageStatus';
 import { useStageLabel } from './pipeline/StageSwitcher';
-import Notice from './Notice';
 import ProjectAudienceCapsule from './ProjectAudienceCapsule';
 import ProjectFlowTab from './ProjectFlowTab';
 import ProjectOverviewTab from './ProjectOverviewTab';

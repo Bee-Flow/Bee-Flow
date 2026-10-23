@@ -75,7 +75,7 @@ export default function TagRow({ tags = [], canEdit = false, onAddTag, onRemoveT
                     </button>
                 )
             )}
-            {busy && <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />}
+            {busy && <Loader2 className="w-3.5 h-3.5 animate-spin ml-1 text-[var(--text-tertiary)]" aria-hidden="true" />}
         </div>
     );
 }

@@ -1,5 +1,5 @@
-import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { Brain, ChevronRight, Lock } from 'lucide-react';
+import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import useTranslation from '../../../hooks/useTranslation';
 
 // Normalise whatever shape we have for msg.thinking / msg.thinkingParts into a

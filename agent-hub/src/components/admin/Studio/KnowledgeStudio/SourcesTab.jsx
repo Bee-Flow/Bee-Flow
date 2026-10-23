@@ -60,7 +60,7 @@ export default function SourcesTab({
         <div className="flex flex-col gap-3 min-h-0" data-testid="kb-tab-sources">
             <div className="flex items-center gap-2 text-[12px]">
                 <label className="relative block shrink-0" style={{ width: 260 }}>
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-tertiary)]" aria-hidden="true" />
                     <input
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}

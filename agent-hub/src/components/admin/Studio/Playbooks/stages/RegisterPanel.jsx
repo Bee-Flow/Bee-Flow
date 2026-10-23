@@ -1,8 +1,8 @@
 import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, Info, Loader2, Sparkles } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { basisOptions, dateColumns, registrationDefaults, registrationSources, retentionWords, subjectColumns } from './complianceView';
 import { TONES } from '../../../../shared/statusTone';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
-import { basisOptions, dateColumns, registrationDefaults, registrationSources, retentionWords, subjectColumns } from './complianceView';
 import { playbooksApi } from '../playbooksApi';
 
 /** Art. 6(1) — the six the datatable itself accepts, in the order they are used. */

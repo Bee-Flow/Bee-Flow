@@ -4,9 +4,9 @@
 import React from 'react';
 import { CLAUDE_RECOMMENDED } from './constants';
 import { clampToEfforts, defaultTierEffort, getModelMeta, isClaudeAdaptiveOnly, isClaudeModel, isClaudeReasoning, isGpt5, isGpt5Pro, isGpt56Plus, openAIEffortOptions, stampedEffortOptions } from './modelMeta';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { getModelDisplayName } from '../../../../utils/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
-import { useTranslation } from '../../../../hooks/useTranslation';
 
 export default function TierCard({
     tier, tierConfig, updateFn, defaults,

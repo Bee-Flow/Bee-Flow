@@ -113,7 +113,7 @@ export default function AppTabs({ node, children }) {
 
     if (tabs.length === 0) {
         return (
-            <div className="text-sm py-2" style={{ color: 'var(--text-muted)' }}>
+            <div className="text-sm py-2 text-[var(--text-muted)]">
                 {t('studio_apps_runtime.tabs.add_tab', 'Add a tab to this tab group.')}
             </div>
         );
@@ -240,8 +240,7 @@ export default function AppTabs({ node, children }) {
                             <span>{label}</span>
                             {badge === null ? null : badgeTone === 'neutral' ? (
                                 <span
-                                    className="text-xs font-normal"
-                                    style={{ color: 'var(--text-muted)' }}
+                                    className="text-xs font-normal text-[var(--text-muted)]"
                                     data-app-tab-badge="neutral"
                                 >
                                     {badge}

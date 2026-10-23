@@ -1,9 +1,9 @@
-import React, { useEffect, useEffectEvent, useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
-import { documentRequest, getHouseStyle } from './documentsApi';
-import useTranslation from '../../hooks/useTranslation';
-import Modal from '../../components/shared/Modal';
+import React, { useEffect, useEffectEvent, useState, useRef, useImperativeHandle, forwardRef } from 'react';
 import DeckLookFields from './DeckLookFields';
+import { documentRequest, getHouseStyle } from './documentsApi';
+import Modal from '../../components/shared/Modal';
+import useTranslation from '../../hooks/useTranslation';
 
 const input = 'w-full rounded border border-[var(--border-subtle)] bg-[var(--bg-primary)] px-2 py-1.5 text-sm';
 const button = 'rounded border border-[var(--border-subtle)] px-2.5 py-1.5 text-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50';

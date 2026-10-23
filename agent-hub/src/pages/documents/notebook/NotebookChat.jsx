@@ -1,9 +1,9 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { ArrowDown, Info, Lock, MessageSquare, MessageSquarePlus, Sparkles } from 'lucide-react';
-import MessageItem from '../../../components/chat/MessageItem';
-import InputArea from '../../../components/chat/InputArea';
-import EmptyState from '../../../components/shared/EmptyState';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import CitationChips from './CitationChips';
+import InputArea from '../../../components/chat/InputArea';
+import MessageItem from '../../../components/chat/MessageItem';
+import EmptyState from '../../../components/shared/EmptyState';
 import useTranslation from '../../../hooks/useTranslation';
 
 /* ── NotebookChat — AI chat panel for right side ─────────────── */

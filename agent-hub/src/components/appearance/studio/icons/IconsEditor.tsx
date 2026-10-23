@@ -174,15 +174,15 @@ export default function IconsEditor() {
                 <div className="w-64 border-r shrink-0 flex flex-col border-[var(--border-default)] bg-[var(--bg-secondary)]">
                     <div className="p-3 border-b flex items-center justify-between border-[var(--border-default)]">
                         <span className="text-sm font-semibold flex items-center gap-2 text-[var(--text-primary)]">
-                            <Package className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
+                            <Package className="w-4 h-4 text-[var(--accent-primary)]" />
                             {t('admin.tab_appearance', 'Icon Packs')}
                         </span>
                         <div className="flex items-center gap-0.5">
                             <button onClick={handleImport} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('appearance.icons_editor_import_pack', 'Import pack')} aria-label={t('appearance.icons_editor_import_pack', 'Import pack')}>
-                                <Upload className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                                <Upload className="w-4 h-4 text-[var(--text-secondary)]" />
                             </button>
                             <button onClick={() => setShowAddModal(true)} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('appearance.icons_editor_new_pack', 'New pack')} aria-label={t('appearance.icons_editor_new_pack', 'New pack')}>
-                                <Plus className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                                <Plus className="w-4 h-4 text-[var(--text-secondary)]" />
                             </button>
                         </div>
                     </div>
@@ -499,7 +499,7 @@ const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPack
                     {stats.customized} / {stats.total} ({stats.progress}%)
                 </span>
                 <div className="relative">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                     <input
                         value={search}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
@@ -617,7 +617,7 @@ const IconCell = React.memo(({ entry, custom, onClick }: IconCellProps) => {
             {custom && <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" title={t('appearance.icons_editor_customized', 'Customized')} />}
             <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-lg transition-opacity">
                 <div className="p-1 rounded-full shadow-sm bg-[var(--bg-card)]">
-                    <Pencil className="w-3 h-3" style={{ color: 'var(--accent-primary)' }} />
+                    <Pencil className="w-3 h-3 text-[var(--accent-primary)]" />
                 </div>
             </div>
         </button>

@@ -91,7 +91,7 @@ export default function AzureSpeechCard({ transcriptionProvider, hasAzureSpeechK
                     </ul>
                 </div>
                 <div className="flex items-start gap-2 rounded-xl p-3" style={{ background: 'var(--accent-primary)10', border: '1px solid var(--accent-primary)30' }}>
-                    <ExternalLink className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent-primary)' }} />
+                    <ExternalLink className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--accent-primary)]" />
                     <p className="text-xs text-[var(--text-muted)]">
                         {t('integ.transcription_create_a_resource_in_the', 'Create a resource in the')}{' '}
                         <a href="https://portal.azure.com/#create/Microsoft.CognitiveServicesSpeechServices" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('integ.transcription_azure_portal_ai_speech', 'Azure Portal → AI Speech')}</a>{t('integ.transcription_copy', '. Copy')} <strong>{t('integ.transcription_key_1', 'Key 1')}</strong> {t('integ.transcription_and_the', 'and the')} <strong>{t('integ.transcription_location_region', 'Location / Region')}</strong>.

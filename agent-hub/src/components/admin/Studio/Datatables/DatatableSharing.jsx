@@ -69,7 +69,7 @@ function PersonalNotice() {
     const { t } = useTranslation();
     return (
         <div className="px-4 py-4 flex items-start gap-3" style={CARD}>
-            <Lock className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+            <Lock className="w-4 h-4 mt-0.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
             <div className="min-w-0">
                 <p className="text-sm font-medium text-[var(--text-primary)]">
                     {t('datatables.share_personal_title', 'This table cannot be shared')}
@@ -203,7 +203,7 @@ function OrgSharing({ table, canEdit, onChanged }) {
           <div className="grid gap-3 md:grid-cols-2 items-start">
             <div className="overflow-hidden" style={CARD}>
                 <h4 className="flex items-center gap-2 text-sm font-semibold px-4 pt-3 pb-1 m-0 text-[var(--text-primary)]">
-                    <Eye className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
+                    <Eye className="w-3.5 h-3.5 text-[var(--text-secondary)]" aria-hidden="true" />
                     {t('datatables.share_read_title', 'Who can read the rows')}
                 </h4>
                 {/* Real radios in a fieldset, not three aria-pressed buttons: this
@@ -453,7 +453,7 @@ function GrantList({ table, grants, canEdit, directory, onChanged, onPaywalled }
                 {/* The owner is always on the list, so an empty list never
                     reads "Nobody yet" above a row with somebody on it. */}
                 <h4 className="flex items-center gap-2 text-sm font-semibold px-4 py-3 m-0" style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border-default)' }}>
-                    <UserPlus className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
+                    <UserPlus className="w-3.5 h-3.5 text-[var(--text-secondary)]" aria-hidden="true" />
                     {t('datatables.grants_title', 'People and teams')}
                     <span className="ml-auto text-[11px] font-medium text-[var(--text-tertiary)]">{t('datatables.grants_caption', 'invited by name')}</span>
                 </h4>

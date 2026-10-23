@@ -121,7 +121,7 @@ function RunsHeader({ t, scope, setScope, error }) {
             <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                     <h2 className="text-base font-semibold flex items-center gap-2 text-[var(--text-primary)]">
-                        <ScrollText className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
+                        <ScrollText className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
                         {t('runs.title', 'Runs & log')}
                     </h2>
                     <p className="text-sm mt-1 text-[var(--text-secondary)]">

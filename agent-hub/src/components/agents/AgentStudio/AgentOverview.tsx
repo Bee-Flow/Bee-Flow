@@ -214,8 +214,7 @@ export default function AgentOverview<T extends AgentListRow>({
 function SearchBox({ t, value, onChange }: { t: TranslateFn; value: string; onChange: (value: string) => void }) {
     return (
         <label className="relative block shrink-0" style={{ width: 200 }}>
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-tertiary)]" aria-hidden="true" />
             <input
                 value={value}
                 onChange={(e) => onChange(e.target.value)}

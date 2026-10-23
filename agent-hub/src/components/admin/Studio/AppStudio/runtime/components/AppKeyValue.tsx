@@ -96,7 +96,7 @@ export default function AppKeyValue({ node }: NodeProps<KeyValueProps>) {
                             className={`flex flex-col gap-0.5 min-w-0 ${bordered ? 'pl-3' : ''}`}
                             style={bordered ? { borderLeftWidth: '1px', borderLeftStyle: 'solid', borderLeftColor: 'var(--border-default)' } : undefined}
                         >
-                            <dt className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                            <dt className="text-[11px] text-[var(--text-muted)]">
                                 {field.label || field.key}
                             </dt>
                             <dd className="break-words min-w-0">{readableLeaf(walkPath(record, field.key))}</dd>
@@ -111,7 +111,7 @@ export default function AppKeyValue({ node }: NodeProps<KeyValueProps>) {
         <dl className={`flex flex-col ${size === 'sm' ? 'text-xs gap-1' : 'text-sm gap-1.5'}`}>
             {rows.map((field) => (
                 <div key={field.key} className="flex items-baseline justify-between gap-3">
-                    <dt className="shrink-0 font-medium" style={{ color: 'var(--text-secondary)' }}>
+                    <dt className="shrink-0 font-medium text-[var(--text-secondary)]">
                         {field.label || field.key}
                     </dt>
                     <dd className="text-right break-words min-w-0">{readableLeaf(walkPath(record, field.key))}</dd>

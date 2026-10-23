@@ -1,8 +1,8 @@
 import React from 'react';
 import AuditsTab from './audits/AuditsTab';
-import ReviewsTab from './audits/ReviewsTab';
 import NcsTab from './audits/NcsTab';
 import ObjectivesTab from './audits/ObjectivesTab';
+import ReviewsTab from './audits/ReviewsTab';
 
 /**
  * AuditsPage — the ISMS-process section (ISO 27001 clauses 9.2 / 9.3 / 10.2 /

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
 import { boolValue, dateInputValue, listValue, optionPairs } from './rowValues';
 import { importableFields } from './spreadsheetPaste';
+import useTranslation from '../../../../../hooks/useTranslation';
 
 /**
  * App Studio — the editor for ONE cell of ONE row, chosen by the column's type.

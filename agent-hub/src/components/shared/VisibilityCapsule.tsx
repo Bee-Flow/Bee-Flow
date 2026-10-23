@@ -300,9 +300,9 @@ export default function VisibilityCapsule({
                 color: 'var(--text-primary)',
             }}
         >
-            <CapsuleIcon size={13} aria-hidden="true" style={{ color: 'var(--text-secondary)' }} />
+            <CapsuleIcon size={13} aria-hidden="true" className="text-[var(--text-secondary)]" />
             <span>{label}</span>
-            <ChevronDown size={12} aria-hidden="true" className={`transition-transform ${open ? 'rotate-180' : ''}`} style={{ color: 'var(--text-tertiary)' }} />
+            <ChevronDown size={12} aria-hidden="true" className={`transition-transform ${open ? 'rotate-180' : ''} text-[var(--text-tertiary)]`} />
         </button>
     ) : (
         <button

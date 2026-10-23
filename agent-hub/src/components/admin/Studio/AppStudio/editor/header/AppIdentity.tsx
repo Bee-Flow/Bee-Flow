@@ -78,8 +78,7 @@ function AppNameField({ app, locked, isManaged, noteRefusal, onAppUpdated }: App
         >
             <span className="truncate max-w-[14rem]">{app?.name || t('app_studio.header.untitled', 'Untitled app')}</span>
             <Pencil
-                className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                style={{ color: 'var(--text-tertiary)' }}
+                className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 text-[var(--text-tertiary)]"
                 aria-hidden="true"
             />
         </button>

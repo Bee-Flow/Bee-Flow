@@ -21,8 +21,8 @@
  *       field (format inferred from the field type).
  */
 
-import { APP_COMPONENT_TYPES } from '../runtime/componentRegistry';
 import { deepClone, newId } from './definitionOps';
+import { APP_COMPONENT_TYPES } from '../runtime/componentRegistry';
 
 // field type → input component type (writable fields only; computed is skipped).
 export const FIELD_INPUT_TYPE = Object.freeze({

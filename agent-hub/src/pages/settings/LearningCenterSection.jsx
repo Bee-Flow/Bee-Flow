@@ -1,21 +1,19 @@
 import { Map, Footprints, Ellipsis, RotateCcw, Award } from 'lucide-react';
 import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
-import { readLearningPath, mirrorLearningPath, saveLearningPath } from '../../components/onboarding/learningPath';
-import { orderCoursesForPath } from '../../components/onboarding/learningPaths';
-import { fetchCatalog } from '../../components/onboarding/catalogClient';
-import { fetchAchievements, issueCertificate } from '../../components/onboarding/achievements';
-import { getActionCheck, runActionCheck, applicableCriteria } from '../../components/onboarding/actionChecks';
-import LearningRail from './learning/LearningRail';
-import LearningHeader, { HeaderTile, PathChip } from './learning/LearningHeader';
-import OverviewView from './learning/OverviewView';
-import CourseView from './learning/CourseView';
 import AchievementsView from './learning/AchievementsView';
-import ReviewView from './learning/ReviewView';
-import CertificateDrawer from './learning/CertificateDrawer';
 import { IconSquareButton, SecondaryButton } from './learning/bits';
+import CertificateDrawer from './learning/CertificateDrawer';
+import CourseView from './learning/CourseView';
 import { splitCapstone, nextLessonIn, CAPSTONE_CHECK_ID } from './learning/curriculum';
 import { LEARNING_NAVIGATE_EVENT, takePendingLearningNavigate } from './learning/learningEvents';
+import LearningHeader, { HeaderTile, PathChip } from './learning/LearningHeader';
+import LearningRail from './learning/LearningRail';
+import OverviewView from './learning/OverviewView';
+import ReviewView from './learning/ReviewView';
 import { useLicenseContext } from '../../components/licensing/LicenseContext';
+import { fetchAchievements, issueCertificate } from '../../components/onboarding/achievements';
+import { getActionCheck, runActionCheck, applicableCriteria } from '../../components/onboarding/actionChecks';
+import { fetchCatalog } from '../../components/onboarding/catalogClient';
 import {
     resolveCourses,
     courseLessons,
@@ -29,6 +27,8 @@ import {
     applyServerCatalog,
     catalogVersion,
 } from '../../components/onboarding/courses';
+import { readLearningPath, mirrorLearningPath, saveLearningPath } from '../../components/onboarding/learningPath';
+import { orderCoursesForPath } from '../../components/onboarding/learningPaths';
 import {
     readLearningProgress,
     lessonEntryComplete,

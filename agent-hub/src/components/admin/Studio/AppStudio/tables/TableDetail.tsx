@@ -20,8 +20,8 @@ function SourceStrip({ source }: { source: TableSource | null }) {
             data-testid="table-source-strip"
         >
             {source
-                ? <Link2 className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
-                : <Database className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />}
+                ? <Link2 className="h-3.5 w-3.5 shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
+                : <Database className="h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />}
             <span className="text-[var(--text-primary)]">{sourceLabel(t, source)}</span>
             {source?.datatableId ? (
                 <code className="rounded px-1 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
@@ -58,7 +58,7 @@ function Generators({ isSaved, source, onGenerate, onSave, saving, dirty }: Gene
     return (
         <div className="rounded-lg border p-3 border-[var(--border-default)] bg-[var(--bg-secondary)]">
             <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
-                <Database className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                <Database className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
                 {t('studio_apps_tables.manager.add_to_screen', 'Add to this screen')}
             </div>
             {isSaved ? (
@@ -73,12 +73,12 @@ function Generators({ isSaved, source, onGenerate, onSave, saving, dirty }: Gene
                         </p>
                     ) : (
                         <button type="button" onClick={() => onGenerate('form')} className={GEN_BTN}>
-                            <FileInput className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                            <FileInput className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
                             {t('studio_apps_tables.manager.make_form', 'Make a form')}
                         </button>
                     )}
                     <button type="button" onClick={() => onGenerate('grid')} className={GEN_BTN}>
-                        <Table2 className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                        <Table2 className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
                         {t('studio_apps_tables.manager.make_grid', 'Make a grid')}
                     </button>
                 </div>
@@ -127,7 +127,7 @@ export function NoTableSelected({ onAdd }: { onAdd: () => void }) {
         <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-sm text-[var(--text-tertiary)]">
             {t('studio_apps_tables.manager.pick_table', 'Pick a table on the left, or add one to get started.')}
             <button type="button" onClick={onAdd} className={GEN_BTN}>
-                <Plus className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                <Plus className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
                 {t('studio_apps_tables.manager.add_table', 'Add a table')}
             </button>
         </div>

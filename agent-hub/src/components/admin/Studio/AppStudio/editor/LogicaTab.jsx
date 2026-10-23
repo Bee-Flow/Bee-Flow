@@ -8,8 +8,8 @@ import useTranslation from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import { kindColorVar } from '../../../../shared/kindColors';
 import { nOf } from '../../KnowledgeStudio/plural';
-import { automationHref } from '../inspector/AutomationTile';
 import AutomationPicker from '../inspector/AutomationPicker';
+import { automationHref } from '../inspector/AutomationTile';
 import { getComponentEntry } from '../runtime/componentRegistry';
 import { setAction } from '../state/definitionOps';
 
@@ -365,7 +365,7 @@ function JumpCell({ row, onReveal, t }) {
                     className="inline-flex items-center rounded p-0.5 hover:bg-[var(--bg-tertiary)]"
                     aria-label={t('app_studio.logic.show_me', 'Show me')}
                 >
-                    <ArrowUpRight className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                    <ArrowUpRight className="h-3.5 w-3.5 text-[var(--text-tertiary)]" aria-hidden="true" />
                 </button>
             ) : href ? (
                 <a
@@ -375,7 +375,7 @@ function JumpCell({ row, onReveal, t }) {
                     className="inline-flex items-center rounded p-0.5 hover:bg-[var(--bg-tertiary)]"
                     aria-label={t('app_studio.inspector.tile_open', 'Open')}
                 >
-                    <ExternalLink className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                    <ExternalLink className="h-3.5 w-3.5 text-[var(--text-tertiary)]" aria-hidden="true" />
                 </a>
             ) : null}
         </td>

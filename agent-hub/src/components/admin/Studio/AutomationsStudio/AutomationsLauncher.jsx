@@ -3,8 +3,8 @@ import AutomationsOverview from './AutomationsOverview';
 import FindRepeatingWorkTab from './FindRepeatingWorkTab';
 import TemplatesTab from './TemplatesTab';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import scopedStorage from '../../../../utils/scopedStorage';
 import { lazyWithI18n } from '../../../../utils/lazyWithReload';
+import scopedStorage from '../../../../utils/scopedStorage';
 
 // The run history pulls in the whole run viewer: keep it out of the start screen's chunk.
 const ExecutionsPanel = lazyWithI18n(() => import('../Executions/ExecutionsPanel'));

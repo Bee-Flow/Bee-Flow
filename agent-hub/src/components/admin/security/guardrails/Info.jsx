@@ -73,8 +73,7 @@ export default function Info({ children, title, className = '' }) {
                 minWidth={HINT_WIDTH}
                 role="tooltip"
                 data-field-hint=""
-                className="p-3 text-xs leading-relaxed"
-                style={{ color: 'var(--text-primary)' }}
+                className="p-3 text-xs leading-relaxed text-[var(--text-primary)]"
             >
                 {title && <div className="font-semibold mb-1">{title}</div>}
                 <div className="text-[var(--text-secondary)]">{children}</div>

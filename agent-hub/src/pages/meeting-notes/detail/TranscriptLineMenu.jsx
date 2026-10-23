@@ -1,10 +1,18 @@
-import React, { useCallback, useMemo } from 'react';
 import { BookOpen, Check, Copy, Gavel, ListChecks, Loader2, Table } from 'lucide-react';
-import AnchoredMenu from '../../../components/shared/AnchoredMenu';
-import useTranslation from '../../../hooks/useTranslation';
-import useCopyToClipboard from '../../../hooks/useCopyToClipboard';
+import React, { useCallback, useMemo } from 'react';
+import {
+    BranchList,
+    ColumnMapping,
+    MenuRow,
+    VIEW,
+    fieldLabels,
+    useDestinationBranches,
+} from './destinationMenu';
 import { datatablesApi } from '../../../components/admin/Studio/Datatables/datatablesApi';
 import knowledgeApi from '../../../components/admin/Studio/KnowledgeStudio/knowledgeApi';
+import AnchoredMenu from '../../../components/shared/AnchoredMenu';
+import useCopyToClipboard from '../../../hooks/useCopyToClipboard';
+import useTranslation from '../../../hooks/useTranslation';
 import { buildRowValues } from '../lib/actionDestinations';
 import {
     anchorOf,
@@ -15,14 +23,6 @@ import {
     lineAsActionRecord,
     lineQuote,
 } from '../lib/transcriptLines';
-import {
-    BranchList,
-    ColumnMapping,
-    MenuRow,
-    VIEW,
-    fieldLabels,
-    useDestinationBranches,
-} from './destinationMenu';
 
 /**
  * WHAT ONE TRANSCRIPT LINE CAN BECOME — the per-line popover (Meeting Notes

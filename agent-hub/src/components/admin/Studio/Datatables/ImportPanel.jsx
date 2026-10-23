@@ -153,7 +153,7 @@ export default function ImportPanel({ columns, onImport, onDone, onClose }) {
                                 <span className="min-w-0 flex-1 truncate text-[var(--text-primary)]">
                                     {name || t('datatables.import_column_n', 'Column {n}', { n: index + 1 })}
                                 </span>
-                                <ArrowRight className="h-3 w-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                                <ArrowRight className="h-3 w-3 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                                 <select
                                     className={SELECT_CLS}
                                     value={mapping[index] || NO_IMPORT}

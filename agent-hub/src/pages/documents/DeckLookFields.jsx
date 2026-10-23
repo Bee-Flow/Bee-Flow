@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useTranslation } from '../../hooks/useTranslation';
 import { fileToDataUrl, uploadDeckTemplate } from './documentsApi';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * The look of a presentation, as a form — ONE form for two owners.
@@ -282,7 +282,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
                     </div>
                 )}
             </div>
-            <div className={`flex flex-wrap gap-5 text-sm${isDoc ? ' grid grid-cols-2' : ''}`} style={{ color: 'var(--text-primary)' }}>
+            <div className={`flex flex-wrap gap-5 text-sm${isDoc ? ' grid grid-cols-2' : ''} text-[var(--text-primary)]`}>
                 {triState('slideNumbers', 'documents.style.deck_numbers', 'Slide numbers')}
                 {triState('brandOnSlides', 'documents.style.deck_brand', 'Company name on every slide')}
             </div>

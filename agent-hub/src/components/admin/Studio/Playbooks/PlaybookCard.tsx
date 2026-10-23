@@ -80,7 +80,7 @@ export default function PlaybookCard({ t, playbook, onOpen }: PlaybookCardProps)
                         {playbook.updatedAt && (<><span aria-hidden="true">·</span><span>{relative(playbook.updatedAt, t)}</span></>)}
                     </span>
                 </span>
-                <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)]" aria-hidden="true" />
             </button>
         </li>
     );

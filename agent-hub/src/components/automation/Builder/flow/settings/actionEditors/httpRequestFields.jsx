@@ -1,6 +1,7 @@
 // The http_request editor: the call itself (URL, method, credential, headers,
 // body), its options, and the two Advanced ticks about not calling twice.
 import { Plus, X } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
 import TemplateField from '../../../mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
@@ -9,7 +10,6 @@ import { FormRow, inputClass } from '../formPrimitives';
 import HttpAuthPicker from '../HttpAuthPicker';
 import { AskOnceRow } from './askOnceRow';
 import { CacheIntoRow } from './cacheIntoRow';
-import { useState } from 'react';
 import { CurlImportDialog } from './CurlImportDialog';
 import { mergeMovedQuery } from './httpQueryLib';
 import { HttpQuerySection } from './httpQuerySection';

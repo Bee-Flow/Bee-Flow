@@ -1,22 +1,22 @@
 import { AlertTriangle, Workflow } from 'lucide-react';
 import React, { useState } from 'react';
+import DocumentFillFields from './DocumentFillFields';
 import { stepMeta } from './stepCatalog';
 import {
     columnOptions, isDanglingRef, labelForRef, REFERENCE_EMPTY_HINTS,
     REFERENCE_FIELDS, REFERENCE_PLACEHOLDERS, referenceText,
 } from './stepReferences';
 import useStepReferences from './useStepReferences';
-import DocumentFillFields from './DocumentFillFields';
 import useTranslation from '../../../../../hooks/useTranslation';
 import FormField from '../../../../shared/FormField';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 import Toggle from '../../../../shared/Toggle';
+import AutomationPicker from '../inspector/AutomationPicker';
+import { mergeDrafts, splitNamed } from '../inspector/keyedRows';
 import ExpressionInput from '../inspector/logic/ExpressionInput';
 import BindingField from '../inspector/panels/BindingField';
 import { INPUT_CLS } from '../inspector/panels/kit';
 import { useCatalogStepSpecs } from '../inspector/panels/SpecPanel';
-import { mergeDrafts, splitNamed } from '../inspector/keyedRows';
-import AutomationPicker from '../inspector/AutomationPicker';
 
 /**
  * One step's settings, rendered FROM THE SPEC rather than hand-written per kind.

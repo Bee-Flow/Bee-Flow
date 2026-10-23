@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from 'react';
 import { AlertTriangle, Loader2, Sparkles, X } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import LibraryEmptyState from './LibraryEmptyState';
+import LibraryFilters from './LibraryFilters';
+import MeetingRow from './MeetingRow';
+import ReportModal from './ReportModal';
 import { PRIMARY_ACTION_STYLE } from '../../../components/shared/StudioSectionHeader';
 import useTranslation from '../../../hooks/useTranslation';
-import MeetingRow from './MeetingRow';
-import LibraryFilters from './LibraryFilters';
-import LibraryEmptyState from './LibraryEmptyState';
-import ReportModal from './ReportModal';
 import { messageOf } from '../../../utils/caughtError';
 
 const REPORT_MAX_NOTES = 10;
@@ -136,7 +136,7 @@ export default function MeetingLibrary({
             <div className="flex-1 overflow-auto px-3 pb-3">
                 {loading && meetings.length === 0 && (
                     <div className="h-full flex items-center justify-center py-8">
-                        <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                        <Loader2 className="w-5 h-5 animate-spin text-[var(--text-tertiary)]" aria-hidden="true" />
                     </div>
                 )}
                 {/* A failed list load is not an empty library. Without this the

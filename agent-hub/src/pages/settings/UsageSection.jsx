@@ -1,19 +1,19 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { API_BASE, authFetch } from '../../utils/helpers';
-import { useTranslation } from '../../hooks/useTranslation';
 import {
     Bot, Filter, X, Cpu, Users, ChevronDown, Activity, BarChart3,
     AlertTriangle, ThumbsUp,
 } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import OrgFeedbackPanel from './OrgFeedbackPanel';
 import OrgTerminationsPanel from './OrgTerminationsPanel';
+import { shortModel } from './usage/format';
+import OverviewTab from './usage/OverviewTab';
+import RangeControl, { defaultRange } from './usage/RangeControl';
+import { getSourceDetails } from './usage/widgets';
 import { useLicenseContext } from '../../components/licensing/LicenseContext';
 import { useDeploymentMode } from '../../hooks/useDeploymentMode';
+import { useTranslation } from '../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../utils/helpers';
 import { deriveRangeParams, USAGE_ALL_DAYS, buildModelTierMap, tierForModel } from '../../utils/usageHelpers';
-import { shortModel } from './usage/format';
-import { getSourceDetails } from './usage/widgets';
-import RangeControl, { defaultRange } from './usage/RangeControl';
-import OverviewTab from './usage/OverviewTab';
 
 /* ── Report tabs ─────────────────────────────────────────────────────────── */
 // Safety & Integrations moved to Settings → Organisation → Privacy Shield →

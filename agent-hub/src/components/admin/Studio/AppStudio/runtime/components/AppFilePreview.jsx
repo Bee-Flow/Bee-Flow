@@ -71,7 +71,7 @@ function DesignPlaceholder({ name }) {
 
 function Spinner() {
     return (
-        <div className="flex h-full w-full items-center justify-center p-6" style={{ color: 'var(--text-muted)' }}>
+        <div className="flex h-full w-full items-center justify-center p-6 text-[var(--text-muted)]">
             <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
         </div>
     );
@@ -81,7 +81,7 @@ function ErrorState({ message, onRetry }) {
     const { t } = useTranslation();
     return (
         <div className={CENTERED}>
-            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{message}</span>
+            <span className="text-sm text-[var(--text-secondary)]">{message}</span>
             <button type="button" onClick={onRetry} className={SMALL_BUTTON} style={BUTTON_STYLE}>
                 <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
                 {t('studio_apps_runtime.file_preview.try_again', 'Try again')}
@@ -99,8 +99,8 @@ function DownloadCard({ name, url, allowDownload }) {
     const { t } = useTranslation();
     return (
         <div className={CENTERED}>
-            <FileText className="h-6 w-6" aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
-            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{name}</span>
+            <FileText className="h-6 w-6 text-[var(--text-muted)]" aria-hidden="true" />
+            <span className="text-sm text-[var(--text-secondary)]">{name}</span>
             {allowDownload ? (
                 <a href={url} download={name} className={SMALL_BUTTON} style={BUTTON_STYLE}>
                     <Download className="h-3.5 w-3.5" aria-hidden="true" />
@@ -254,13 +254,12 @@ export default function AppFilePreview({ node }) {
         <>
             {allowDownload ? (
                 <div className="flex shrink-0 items-center justify-between gap-2 px-2 py-1.5">
-                    <span className="truncate text-xs" {...hoverable(state.name)} style={{ color: 'var(--text-secondary)' }}>{state.name}</span>
+                    <span className="truncate text-xs text-[var(--text-secondary)]" {...hoverable(state.name)}>{state.name}</span>
                     <a
                         href={state.downloadUrl || state.url}
                         download={state.name}
                         aria-label={t('studio_apps_runtime.file_preview.download_name', 'Download {name}', { name: state.name })}
-                        className="inline-flex shrink-0 items-center gap-1 text-xs"
-                        style={{ color: 'var(--text-muted)' }}
+                        className="inline-flex shrink-0 items-center gap-1 text-xs text-[var(--text-muted)]"
                     >
                         <Download className="h-3.5 w-3.5" aria-hidden="true" />
                     </a>

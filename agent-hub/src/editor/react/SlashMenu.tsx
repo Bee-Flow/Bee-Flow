@@ -91,7 +91,7 @@ export default function SlashMenu({ items, query, rect, onSelect, onClose }: Sla
                     >
                         {Icon && (
                             <span className="w-6 h-6 rounded-md flex items-center justify-center shrink-0" style={{ background: 'var(--bg-tertiary)' }}>
-                                <Icon className="w-3.5 h-3.5" strokeWidth={2} style={{ color: 'var(--text-secondary)' }} />
+                                <Icon className="w-3.5 h-3.5 text-[var(--text-secondary)]" strokeWidth={2} />
                             </span>
                         )}
                         <span className="flex-1 truncate">{it.label}</span>

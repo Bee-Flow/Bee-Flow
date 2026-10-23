@@ -22,7 +22,7 @@ export default function SlideStep({ step }: { step: LessonStep }) {
                 >
                     {step.icon || '💡'}
                 </div>
-                <h2 className="text-lg font-bold leading-snug pt-1" style={{ color: 'var(--text-primary)' }}>
+                <h2 className="text-lg font-bold leading-snug pt-1 text-[var(--text-primary)]">
                     {title}
                 </h2>
             </div>

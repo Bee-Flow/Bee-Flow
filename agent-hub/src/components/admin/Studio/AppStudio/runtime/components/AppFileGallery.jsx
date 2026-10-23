@@ -211,11 +211,11 @@ export default function AppFileGallery({ node }) {
                     </span>
                 )}
                 <span className="min-w-0 text-left">
-                    <span className="block text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                    <span className="block text-sm font-medium truncate text-[var(--text-primary)]">
                         {name}
                     </span>
                     {meta ? (
-                        <span className="block text-xs truncate" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="block text-xs truncate text-[var(--text-tertiary)]">
                             {meta}
                         </span>
                     ) : null}
@@ -276,11 +276,10 @@ export default function AppFileGallery({ node }) {
             {[...groups].map(([name, entries]) => (
                 <section key={name} className="mt-3 first:mt-0" data-app-file-group={name}>
                     <h4
-                        className="mb-1.5 flex items-baseline gap-1.5 text-xs font-semibold"
-                        style={{ color: 'var(--text-secondary)' }}
+                        className="mb-1.5 flex items-baseline gap-1.5 text-xs font-semibold text-[var(--text-secondary)]"
                     >
                         <span className="truncate" title={name}>{name}</span>
-                        <span className="tabular-nums font-normal" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="tabular-nums font-normal text-[var(--text-tertiary)]">
                             {entries.length}
                         </span>
                     </h4>

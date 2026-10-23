@@ -1,15 +1,15 @@
 import { AlertTriangle, CheckCircle2, ChevronDown, ExternalLink, Loader2, RefreshCw, ScaleIcon, ShieldCheck } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
-import StageShell from './StageShell';
-import { TONES } from '../../../../shared/statusTone';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import { studioAppsApi } from '../../AppStudio/studioAppsApi';
-import { playbooksApi } from '../playbooksApi';
 import { CENTER_PATH, groupFindings, methodLine, verdictOf, writtenWords } from './complianceView';
 import FindingRow from './FindingRow';
 import RegisterPanel from './RegisterPanel';
 import { applyResolvePlan, resolveSummary } from './resolveApply';
+import StageShell from './StageShell';
+import useAutomationApi from '../../../../../hooks/useAutomationApi';
+import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { TONES } from '../../../../shared/statusTone';
+import { studioAppsApi } from '../../AppStudio/studioAppsApi';
+import { playbooksApi } from '../playbooksApi';
 
 /** One write, at the endpoint that owns it. Throws with the status on it. */
 async function put(path, body, method = 'PUT') {

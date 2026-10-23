@@ -105,7 +105,7 @@ function MegaPanel({ group, screenId, onPick, panelRef }: MegaPanelProps) {
                                             {screen.name}
                                         </span>
                                         {screen.description ? (
-                                            <span className="block text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                                            <span className="block text-xs mt-0.5 text-[var(--text-tertiary)]">
                                                 {screen.description}
                                             </span>
                                         ) : null}

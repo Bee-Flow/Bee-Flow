@@ -47,7 +47,7 @@ const DirectChatConfig = () => {
         }
     };
 
-    if (loading) return <div className="text-sm p-4" style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.loading', 'Loading...')}</div>;
+    if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_ai_config.loading', 'Loading...')}</div>;
 
     return (
         <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">

@@ -1,8 +1,8 @@
+import ActivityIndicator from './ActivityIndicator';
+import useTranslation from '../../../hooks/useTranslation';
 import { messageContentToText } from '../../../utils/messageShape';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 import MarkdownRenderer from '../../renderers/MarkdownRenderer';
-import ActivityIndicator from './ActivityIndicator';
-import useTranslation from '../../../hooks/useTranslation';
 
 /**
  * The non-tool message body: error card, rendered markdown, or the streaming

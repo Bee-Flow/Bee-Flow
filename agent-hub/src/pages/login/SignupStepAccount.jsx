@@ -1,9 +1,9 @@
-import React from 'react';
 import { User, Lock, Mail, Loader2, UserPlus, Building, ArrowLeft } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
-import { useTranslation } from '../../hooks/useTranslation';
-import { MIN_PASSWORD_LENGTH } from './signupValidation';
+import React from 'react';
 import CaptchaWidget from './CaptchaWidget';
+import { MIN_PASSWORD_LENGTH } from './signupValidation';
+import { useTranslation } from '../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../utils/helpers';
 
 const SignupStepAccount = ({
     signupData, setSignupData, signupOrgs, handleSignup,

@@ -1,25 +1,25 @@
-import React from 'react';
-import { useTranslation } from '../hooks/useTranslation';
 import { ArrowLeft } from 'lucide-react';
-import NavLink from '../components/shell/NavLink';
-import AgentConfigHub from '../components/agents/AgentConfigHub';
+import React from 'react';
 import AIConfigPanel from '../components/admin/ai-config';
-import SecurityHub from '../components/admin/security/SecurityHub';
-import IntegrationsAdminPanel from '../components/integrations/IntegrationsAdminPanel';
-import MonitoringPanel from '../components/admin/monitoring';
 import ComplianceHub from '../components/admin/compliance';
-import SubscriptionsPanel from '../components/admin/subscriptions';
 import LanguagesPanel from '../components/admin/languages/LanguagesPanel';
-import AppearancePanel from '../components/appearance/studio/AppearancePanel';
-import ProductWebsitePanel from '../components/admin/product-website/ProductWebsitePanel';
-import AnalyticsPanel from '../components/admin/product-website/AnalyticsPanel';
-import ReleaseNotesPanel from '../components/admin/product-website/ReleaseNotesPanel';
-import ServerLicensePanel from '../components/licensing/ServerLicensePanel';
 import ModulesPanel from '../components/admin/modules';
-import SupportInboxPanel from '../components/support/SupportInboxPanel';
+import MonitoringPanel from '../components/admin/monitoring';
 import AccessPermissionsPanel from '../components/admin/org/AccessPermissionsPanel';
-import { useDeploymentMode } from '../hooks/useDeploymentMode';
+import AnalyticsPanel from '../components/admin/product-website/AnalyticsPanel';
+import ProductWebsitePanel from '../components/admin/product-website/ProductWebsitePanel';
+import ReleaseNotesPanel from '../components/admin/product-website/ReleaseNotesPanel';
+import SecurityHub from '../components/admin/security/SecurityHub';
+import SubscriptionsPanel from '../components/admin/subscriptions';
+import AgentConfigHub from '../components/agents/AgentConfigHub';
+import AppearancePanel from '../components/appearance/studio/AppearancePanel';
+import IntegrationsAdminPanel from '../components/integrations/IntegrationsAdminPanel';
 import { useLicenseContext, TIER_RANK } from '../components/licensing/LicenseContext';
+import ServerLicensePanel from '../components/licensing/ServerLicensePanel';
+import NavLink from '../components/shell/NavLink';
+import SupportInboxPanel from '../components/support/SupportInboxPanel';
+import { useDeploymentMode } from '../hooks/useDeploymentMode';
+import { useTranslation } from '../hooks/useTranslation';
 
 
 const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }) => {

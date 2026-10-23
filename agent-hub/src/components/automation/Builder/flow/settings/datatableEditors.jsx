@@ -6,17 +6,17 @@
 // closed operator list; only the VALUE is a binding. That is what makes "no
 // client SQL" true end to end rather than merely intended — there is no input
 // whose contents could become an identifier.
-import { useMemo } from 'react';
 import { Table2 } from 'lucide-react';
-import FieldKeyCombobox from '../../mapping/FieldKeyCombobox';
-import ValueBuilder from '../../mapping/ValueBuilder';
-import { isScalarKind } from '../../mapping/fieldKinds';
-import useForEachRequest from '../../mapping/useForEachRequest';
-import { columnTypeKind, opTakesList, opTakesNoValue } from '../../../../admin/Studio/Datatables/datatableDisplay';
-import AccordionSection from '../AccordionSection';
+import { useMemo } from 'react';
 import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
 import { controlSurfaceClass, FormRow, inputClass } from './formPrimitives';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import { columnTypeKind, opTakesList, opTakesNoValue } from '../../../../admin/Studio/Datatables/datatableDisplay';
+import FieldKeyCombobox from '../../mapping/FieldKeyCombobox';
+import { isScalarKind } from '../../mapping/fieldKinds';
+import useForEachRequest from '../../mapping/useForEachRequest';
+import ValueBuilder from '../../mapping/ValueBuilder';
+import AccordionSection from '../AccordionSection';
 
 // Mirrors core/dataEngine FILTER_OPS. Labelled in the words a person would use,
 // and narrowed per column type so a date never offers "contains".

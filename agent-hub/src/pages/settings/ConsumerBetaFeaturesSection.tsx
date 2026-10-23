@@ -97,7 +97,7 @@ const ConsumerBetaFeaturesSection = () => {
 
             {allowedFeatures.length === 0 ? (
                 <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-8 text-center">
-                    <Sparkles className="w-8 h-8 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+                    <Sparkles className="w-8 h-8 mx-auto mb-3 text-[var(--text-muted)]" />
                     <p className="text-sm font-medium text-[var(--text-primary)] mb-1">{t('settings.consumer_beta.empty_title', 'No beta features yet')}</p>
                     <p className="text-xs text-[var(--text-muted)]">
                         {t('settings.consumer_beta.empty_body', "New experimental features will appear here when they're available for your account.")}

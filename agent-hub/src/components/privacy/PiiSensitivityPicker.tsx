@@ -124,7 +124,7 @@ export function PiiSensitivityPicker({ value, onChange, disabled = false, t, var
         >
             <div className="flex items-center gap-2 mb-2 flex-wrap">
                 {card && (
-                    <Gauge className="w-[15px] h-[15px] shrink-0" aria-hidden="true" style={{ color: 'var(--text-secondary)' }} />
+                    <Gauge className="w-[15px] h-[15px] shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
                 )}
                 <label
                     className={card ? 'text-[13px] font-semibold' : 'text-xs font-medium text-muted'}

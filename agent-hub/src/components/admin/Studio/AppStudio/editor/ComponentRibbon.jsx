@@ -4,17 +4,17 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PALETTE_PREFIX, buildNode } from './dnd';
+import useTranslation from '../../../../../hooks/useTranslation';
+import scopedStorage from '../../../../../utils/scopedStorage';
+import AnchoredMenu from '../../../../shared/AnchoredMenu';
+import { kindColorVar } from '../../../../shared/kindColors';
+import CmdButton from '../../../../shared/ribbon/CmdButton';
+import RibbonCluster from '../../../../shared/ribbon/RibbonCluster';
+import Tabs from '../../../../shared/Tabs';
 import { useCatalogComponents } from '../inspector/panels/SpecPanel';
 import { APP_COMPONENT_TYPES, PALETTE_CATEGORIES, PALETTE_STARTERS } from '../runtime/componentRegistry';
 import { useAppEditor } from '../state/AppEditorContext';
 import { findNode, findScreen, insertNode } from '../state/definitionOps';
-import AnchoredMenu from '../../../../shared/AnchoredMenu';
-import { kindColorVar } from '../../../../shared/kindColors';
-import RibbonCluster from '../../../../shared/ribbon/RibbonCluster';
-import CmdButton from '../../../../shared/ribbon/CmdButton';
-import Tabs from '../../../../shared/Tabs';
-import useTranslation from '../../../../../hooks/useTranslation';
-import scopedStorage from '../../../../../utils/scopedStorage';
 
 const RIBBON_TAB_KEY = 'appStudioRibbonTab';
 const RIBBON_COLLAPSED_KEY = 'appStudioRibbonCollapsed';
@@ -513,8 +513,7 @@ function RibbonScrollEdge({ side, active, onScroll }) {
                 aria-label={label}
                 title={label}
                 aria-disabled={!active}
-                className={`pointer-events-auto flex h-6 w-6 items-center justify-center rounded-md hover:bg-[var(--bg-tertiary)] ${active ? '' : 'opacity-30'}`}
-                style={{ color: 'var(--text-secondary)' }}
+                className={`pointer-events-auto flex h-6 w-6 items-center justify-center rounded-md hover:bg-[var(--bg-tertiary)] ${active ? '' : 'opacity-30'} text-[var(--text-secondary)]`}
             >
                 <Chevron className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -618,7 +617,7 @@ function CategoryChip({ icon, label, entries, disabled, onAdd }) {
             >
                 <Icon className="h-[13px] w-[13px] shrink-0" aria-hidden="true" />
                 {label}
-                <ChevronDown className="h-3 w-3" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                <ChevronDown className="h-3 w-3 text-[var(--text-tertiary)]" aria-hidden="true" />
             </button>
             <AnchoredMenu
                 open={open}
@@ -640,7 +639,7 @@ function CategoryChip({ icon, label, entries, disabled, onAdd }) {
                             onClick={() => { setOpen(false); onAdd(type); }}
                             className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
                         >
-                            {EntryIcon ? <EntryIcon className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" /> : null}
+                            {EntryIcon ? <EntryIcon className="h-3.5 w-3.5 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" /> : null}
                             {entry.label}
                         </button>
                     );

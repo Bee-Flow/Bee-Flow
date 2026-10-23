@@ -6,12 +6,12 @@ import { AlertTriangle, Database, LayoutGrid, Link2, Trash2 } from 'lucide-react
 import React, { useCallback, useMemo, useState } from 'react';
 import '@xyflow/react/dist/style.css';
 
-import useTranslation from '../../../../../hooks/useTranslation';
-
 import {
     addRelation, fillersOfRelation, layoutTables, LAYOUT,
     relationsOf, removeRelation, renameRelation, retargetRelation,
 } from './relationOps';
+import useTranslation from '../../../../../hooks/useTranslation';
+
 
 /**
  * App Studio — how the tables hang together, as a map you can edit.
@@ -62,7 +62,7 @@ function TableNode({ data }) {
                 title={t('studio_apps_tables.rel.open_in_designer', 'Open this table in the designer')}
             >
                 <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--text-primary)]">
-                    <Database className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                    <Database className="h-3.5 w-3.5 shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
                     <span className="truncate">{table.name || table.key}</span>
                 </span>
                 <span className="mt-0.5 block truncate text-[11px] text-[var(--text-tertiary)]">
@@ -233,7 +233,7 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }) {
                 {selected && from && to ? (
                     <div className="rounded-lg border p-3 flex flex-col gap-2 border-[var(--border-default)] bg-[var(--bg-secondary)]">
                         <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
-                            <Link2 className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                            <Link2 className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
                             {tr('studio_apps_tables.rel.the_link', 'The link')}
                         </p>
                         <p className="text-xs text-[var(--text-primary)]">

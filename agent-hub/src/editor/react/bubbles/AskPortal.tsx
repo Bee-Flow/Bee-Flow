@@ -38,12 +38,12 @@ export default function AskPortal({ ask, query, setQuery, onSubmit, onClose, t }
       onMouseDown={(e) => e.stopPropagation()}>
       {preview && (
         <div className="px-3 pt-2 pb-1.5 text-[10px] border-b" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-          <div className="text-[9px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: 'var(--text-tertiary)' }}>{tt('notebooks.selected_text', 'Selected text')}</div>
+          <div className="text-[9px] font-semibold uppercase tracking-wide mb-0.5 text-[var(--text-tertiary)]">{tt('notebooks.selected_text', 'Selected text')}</div>
           <p className="italic line-clamp-3">{preview}</p>
         </div>
       )}
       <div className="flex items-center gap-2 px-3 py-1.5">
-        <Wand2 className="w-3 h-3" style={{ color: 'var(--accent-primary)' }} />
+        <Wand2 className="w-3 h-3 text-[var(--accent-primary)]" />
         <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tt('notebooks.ask_ai_placeholder', 'Ask me…')}
           onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); onSubmit(); } else if (e.key === 'Escape') onClose(); }}
           className="bg-transparent border-none outline-none text-[11px] w-[200px] text-[var(--text-primary)]" />

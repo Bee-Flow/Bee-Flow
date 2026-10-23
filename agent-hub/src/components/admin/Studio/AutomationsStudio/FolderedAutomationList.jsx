@@ -1,8 +1,8 @@
 import { ChevronDown, ChevronRight, FolderPlus, Pencil, Trash2, X } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import RecentlyDeletedSection from './RecentlyDeletedSection';
 import AutomationRow from './AutomationRow';
 import { isSharedWithMe } from './automationStatus';
+import RecentlyDeletedSection from './RecentlyDeletedSection';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import scopedStorage from '../../../../utils/scopedStorage';
 import Modal from '../../../shared/Modal';

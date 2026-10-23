@@ -1,5 +1,5 @@
-import React from 'react';
 import { Building, MapPin, Phone, FileText, ArrowLeft, ArrowRight, User } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 
 const SignupStepOrg = ({ signupData, setSignupData, signupOrgs, handleSignupNext, resetSignup, inputClass, inputClassSimple, labelClass, deploymentMode, allowOrgSignups = true, allowConsumerSignups = true, embedded = false, onAdvance }) => {

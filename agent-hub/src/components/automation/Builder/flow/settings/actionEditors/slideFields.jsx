@@ -1,10 +1,10 @@
 // The slide editor: one slide as a value — its title and content, the visual
 // it carries (chart, KPI tiles, image or timeline) and its layout.
+import { useTranslation } from '../../../../../../hooks/useTranslation';
 import TemplateField from '../../../mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
 import { FormRow, inputClass, SectionNote } from '../formPrimitives';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
 
 const SLIDE_LAYOUT_OPTIONS = [
     ['auto', 'Pick from the content'],

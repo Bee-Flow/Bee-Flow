@@ -57,16 +57,7 @@ const TemplatesPage = lazy(() => import('./pages/TemplatesPage'));
 const AppRunPage = lazy(() => import('./pages/apps/AppRunPage'));
 const AgentDesigner = lazy(() => import('./components/agents/AgentDesigner/index'));
 
-import { API_BASE, authFetch, setSessionToken } from './utils/helpers';
-import { parseStudioUrl, parseStudioQuery } from './components/admin/Studio/studioRoutes';
-import { parseProjectUrl, projectRoutePath } from './utils/projectRoutes';
 import { queryClient } from './api/queryClient';
-import { identityKey, shouldResetCache } from './utils/identityCache';
-import { useTranslation } from './hooks/useTranslation';
-import { useViewport } from './hooks/useViewport';
-import { capturePendingPlanFromUrl } from './components/billing/pendingPlan';
-import { useAppHeight } from './hooks/useAppHeight';
-import { clearSessionCaches } from './hooks/sessionCaches';
 // The route table, the URL parsers, the full-screen gates and the two big
 // hook groups (auth bootstrap, navigateToPage) live in ./authedApp/*. They are
 // verbatim extractions — this file keeps the same public surface.
@@ -76,6 +67,15 @@ import { projectHistoryMode } from './authedApp/projectNavigation';
 import { AppBackdrop, LoadingScreen, NoOrganizationScreen, PendingApprovalScreen, RouteFallback, ServerUnavailableScreen } from './authedApp/shellScreens';
 import { useAuthSession } from './authedApp/useAuthSession';
 import { useNavigateToPage } from './authedApp/useNavigateToPage';
+import { parseStudioUrl, parseStudioQuery } from './components/admin/Studio/studioRoutes';
+import { capturePendingPlanFromUrl } from './components/billing/pendingPlan';
+import { clearSessionCaches } from './hooks/sessionCaches';
+import { useAppHeight } from './hooks/useAppHeight';
+import { useTranslation } from './hooks/useTranslation';
+import { useViewport } from './hooks/useViewport';
+import { API_BASE, authFetch, setSessionToken } from './utils/helpers';
+import { identityKey, shouldResetCache } from './utils/identityCache';
+import { parseProjectUrl, projectRoutePath } from './utils/projectRoutes';
 // Storage identity plumbing for the effect below: pin the scoped namespace to
 // the signed-in user, then run the version-gated browser-state schema passes.
 import scopedStorage from './utils/scopedStorage';

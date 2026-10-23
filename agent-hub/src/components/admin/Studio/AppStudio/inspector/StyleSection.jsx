@@ -1,5 +1,4 @@
 import React from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
 import { SelectField, NumberField } from './panels/kit';
 import {
     STYLE_KNOBS,
@@ -14,6 +13,7 @@ import {
     valueLabel,
 } from './styleKnobMeta';
 import TokenColorField from './TokenColorField';
+import useTranslation from '../../../../../hooks/useTranslation';
 import Disclosure from '../../../../shared/Disclosure';
 import FormField from '../../../../shared/FormField';
 import SegmentedControl from '../../../../shared/SegmentedControl';

@@ -777,12 +777,12 @@ export default function AcademyContentEditor() {
             <div className="flex items-center justify-between gap-3 mb-4">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <BookOpen className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
-                        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        <BookOpen className="w-5 h-5 text-[var(--accent-primary)]" />
+                        <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                             {t('org.academy.content.title', 'Custom courses')}
                         </h2>
                     </div>
-                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-sm text-[var(--text-muted)]">
                         {t('org.academy.content.subtitle', 'Author your own Academy courses. Drafts stay private until you publish them to your members.')}
                     </p>
                 </div>

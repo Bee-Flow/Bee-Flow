@@ -183,7 +183,7 @@ export function NoOrganizationScreen({ handleLogout }: { handleLogout: () => voi
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                         </svg>
                     </div>
-                    <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>{t('app.shell_no_org_title', 'No Organisation Found')}</h2>
+                    <h2 className="text-lg font-bold mb-2 text-[var(--text-primary)]">{t('app.shell_no_org_title', 'No Organisation Found')}</h2>
                     <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
                         {t('app.shell_no_org_body', 'Your account is not linked to any organisation yet. Please ask your administrator to create an account for you, or sign up with a new organisation.')}
                     </p>
@@ -225,7 +225,7 @@ export function PendingApprovalScreen({ user, handleLogout }: { user: { isConsum
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>{t('app.shell_awaiting_approval_title', 'Awaiting Approval')}</h2>
+                    <h2 className="text-lg font-bold mb-2 text-[var(--text-primary)]">{t('app.shell_awaiting_approval_title', 'Awaiting Approval')}</h2>
                     <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
                         {user?.isConsumerAccount
                             ? t('app.shell_awaiting_approval_consumer', 'Your account has been created and is being reviewed. An administrator will approve your access shortly.')

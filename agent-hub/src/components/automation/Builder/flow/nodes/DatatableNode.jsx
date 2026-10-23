@@ -1,9 +1,9 @@
-import React from 'react';
 import { Table2, Search, Plus, RefreshCw, Trash2 } from 'lucide-react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import React from 'react';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
-import { datatableSummary } from '../nodeSummaries';
+import useTranslation from '../../../../../hooks/useTranslation';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
+import { datatableSummary } from '../nodeSummaries';
 
 // One icon per operation, so "this one deletes" is legible at canvas zoom
 // without reading the summary line.

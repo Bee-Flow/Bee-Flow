@@ -160,7 +160,7 @@ export default function OrgAzureConfigPanel({ user }: OrgAzureConfigPanelProps) 
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <Loader2 size={24} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+                <Loader2 size={24} className="animate-spin text-[var(--text-muted)]" />
             </div>
         );
     }

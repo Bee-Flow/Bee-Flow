@@ -3,12 +3,12 @@ import { Home, MoreHorizontal, PanelsTopLeft, Pencil, Plus, Trash2 } from 'lucid
 import { useEffect, useRef, useState } from 'react';
 import { screenTabDroppableId } from './dnd';
 import NavGroupsDialog from './NavGroupsDialog';
+import useTranslation from '../../../../../hooks/useTranslation';
 import AppIcon from '../../../../icons/AppIcon';
 import AnchoredMenu from '../../../../shared/AnchoredMenu';
 import ConfirmDialog from '../../../../shared/ConfirmDialog';
 import { useAppEditor } from '../state/AppEditorContext';
 import { addScreen, removeScreen, updateScreen } from '../state/definitionOps';
-import useTranslation from '../../../../../hooks/useTranslation';
 
 /**
  * A screen pill wrapped as a drop target: dragging a canvas node (or a palette

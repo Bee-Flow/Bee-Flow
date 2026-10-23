@@ -154,9 +154,9 @@ export default function PublicFormRenderer({ form, onSubmit = null, onUpload = n
                 style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', background: 'var(--bg-card, var(--bg-secondary))' }}
             >
                 <header className="flex flex-col gap-1.5">
-                    <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>{form.title}</h1>
+                    <h1 className="text-xl font-semibold text-[var(--text-primary)]">{form.title}</h1>
                     {form.description ? (
-                        <FormRichText className="text-sm" style={{ color: 'var(--text-secondary)' }}>{form.description}</FormRichText>
+                        <FormRichText className="text-sm text-[var(--text-secondary)]">{form.description}</FormRichText>
                     ) : null}
                 </header>
 
@@ -471,12 +471,12 @@ export function FormEndingView({ form, downloadHref = null, onOpenInNotebooks = 
                 >
                     <Check size={22} />
                 </span>
-                <p className={`text-base font-medium ${isLong ? 'self-center text-center' : ''}`} style={{ color: 'var(--text-primary)' }}>
+                <p className={`text-base font-medium ${isLong ? 'self-center text-center' : ''} text-[var(--text-primary)]`}>
                     {form?.title || 'Thanks — we got your answer.'}
                 </p>
                 {description ? (
                     <>
-                        <FormRichText className="text-sm" style={{ color: 'var(--text-secondary)' }}>{description}</FormRichText>
+                        <FormRichText className="text-sm text-[var(--text-secondary)]">{description}</FormRichText>
                         {/* The generic fallback: whatever produced this text is
                             otherwise gone the moment the tab closes. FormExportBar
                             itself decides whether description is substantial
