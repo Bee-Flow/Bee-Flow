@@ -108,7 +108,9 @@ jobs:
 
       - name: Summary
         if: always()
-        run: cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo 'The gate produced no summary: see the log.' >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null \
+            || echo 'The gate produced no summary: see the log.' >> "$GITHUB_STEP_SUMMARY"
 
       # Also when the gate is red: that is exactly when the alerts matter.
       # The gate writes the SARIF before it decides, so a red gate has one.
