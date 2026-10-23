@@ -178,10 +178,8 @@ async function _accessToken({ force = false } = {}) {
 async function _defaultConnectParams() {
     const out = { license_token: null, product_version: null, hostname: null, contact_email: null };
     try { out.hostname = require('os').hostname(); } catch (_) { /* leave null */ }
+    // The stamped release version only; the frozen server/package.json version would misreport it.
     out.product_version = process.env.APP_VERSION || null;
-    if (!out.product_version) {
-        try { out.product_version = require('../../package.json').version || null; } catch (_) { /* leave null */ }
-    }
     try {
         const lic = require('../license/store');
         const active = await lic.getActiveLicenseForServer();

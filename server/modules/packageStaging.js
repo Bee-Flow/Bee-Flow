@@ -53,7 +53,9 @@ function _compatCheck(manifest, signedPayload = null) {
     if (Number.isFinite(need) && need > HOST_API_VERSION) {
         throw _incompatible(`host_api_version ${need} > ${HOST_API_VERSION}`);
     }
-    const appVer = process.env.APP_VERSION || (safeRequireVersion());
+    // Only a version a release stamped (APP_VERSION) is graded: server/package.json is frozen at 1.0.0
+    // (see server/version.js), so an unstamped build skips the semver bounds rather than refusing modules.
+    const appVer = process.env.APP_VERSION || null;
     const minApp = sp.min_app_version
         || manifest.min_app_version
         || manifest.minAppVersion
@@ -69,9 +71,6 @@ function _compatCheck(manifest, signedPayload = null) {
     if (maxApp && appVer && !semver.satisfiesMax(appVer, maxApp)) {
         throw _incompatible(`requires product <= ${maxApp} (have ${appVer})`);
     }
-}
-function safeRequireVersion() {
-    try { return require('../../package.json').version || null; } catch (_) { return null; }
 }
 
 // ── Atomic extraction ──────────────────────────────────────────────────────
