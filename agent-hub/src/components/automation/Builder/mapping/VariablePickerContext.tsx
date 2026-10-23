@@ -1,20 +1,20 @@
 import React, { createContext, useContext } from 'react';
 import type { FlowDefinition } from '../flow/types';
-import type { UpstreamGroup } from './deepFields';
+import type { Group } from './upstream/upstream.types';
 
 export interface VariablePickerValue {
-    groups: UpstreamGroup[];
+    groups: Group[];
     previewSample: unknown;
     stepLabelById: Map<string, string>;
-    stepTypeById: Map<string, string>;
+    stepTypeById: Map<string, string | undefined>;
     definition: FlowDefinition | null;
 }
 
 interface VariablePickerProviderProps {
-    groups?: UpstreamGroup[] | null;
+    groups?: Group[] | null;
     previewSample?: unknown;
     stepLabelById?: Map<string, string> | null;
-    stepTypeById?: Map<string, string> | null;
+    stepTypeById?: Map<string, string | undefined> | null;
     definition?: FlowDefinition | null;
     children?: React.ReactNode;
 }

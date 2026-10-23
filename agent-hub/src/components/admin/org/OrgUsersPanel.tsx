@@ -42,7 +42,7 @@ export interface OrgUsersPanelUser {
     /** Group ids. */
     groups?: string[];
     isAdmin?: boolean;
-    orgRole?: string;
+    orgRole?: string | null;
     ncOrg?: { instanceId?: string | null } | null;
     [key: string]: unknown;
 }

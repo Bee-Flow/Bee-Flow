@@ -53,7 +53,7 @@ vi.mock('../admin/Studio/AppStudio/studioAppsApi', () => ({
     },
 }));
 
-import Sidebar from './Sidebar.jsx';
+import Sidebar from './Sidebar';
 import { queryWrapper } from '../../test/queryWrapper';
 
 // The hooks under this tree read through React Query, so every render needs

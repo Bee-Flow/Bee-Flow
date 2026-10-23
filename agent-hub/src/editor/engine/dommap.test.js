@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { markdownToAst } from '../serialization/mdToAst.js';
+import { markdownToAst } from '../serialization/mdToAst';
 import { createState } from './state.js';
-import { renderDoc } from './render.js';
+import { renderDoc } from './render';
 import { posFromDOM, domFromPos } from './dommap.js';
 import { pos } from './selection.js';
 

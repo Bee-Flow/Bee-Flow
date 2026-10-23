@@ -19,7 +19,7 @@ export interface SolutionDetailDialogsProps {
     role: SolutionRole;
     currentUserId?: string | null;
     completeness: ExportCompleteness | null | undefined;
-    availability: { blueprintId?: string | null; latestVersion?: number | string | null };
+    availability: { blueprintId?: string | null; latestVersion?: number | null };
     onBack: () => void;
     refresh: Record<'fetchMembers' | 'fetchBlueprints' | 'fetchReleases' | 'fetchResources' | 'fetchGraph' | 'fetchCompleteness', () => void>;
 }
@@ -61,8 +61,8 @@ export default function SolutionDetailDialogs({
                 open={dialog === 'upgrade'}
                 onClose={() => setDialog(null)}
                 projectId={project.id}
-                blueprintId={availability.blueprintId as null | undefined}
-                latestVersion={availability.latestVersion as null | undefined}
+                blueprintId={availability.blueprintId}
+                latestVersion={availability.latestVersion}
                 onDone={() => {
                     refresh.fetchResources();
                     refresh.fetchGraph();

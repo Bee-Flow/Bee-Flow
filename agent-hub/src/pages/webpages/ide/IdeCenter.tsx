@@ -1,7 +1,7 @@
 import { useMemo, useRef, type RefObject } from 'react';
 import useTranslation from '../../../hooks/useTranslation';
 import EditorTabs from '../EditorTabs';
-import WebpageCodeStrip, { fileDecorations } from '../WebpageCodeStrip';
+import WebpageCodeStrip, { fileDecorations, type MarksState } from '../WebpageCodeStrip';
 import WebpageEditor from '../WebpageEditor';
 import WebpagePreview from '../WebpagePreview';
 import { BinaryPreview, MissingFile, ResizeHandle } from './IdeChrome';
@@ -18,7 +18,7 @@ interface IdeCenterProps extends Pick<WebpageIDEProps, 'selected' | 'html' | 'cs
     extraFiles: NonNullable<WebpageIDEProps['extraFiles']>;
     extraContents: NonNullable<WebpageIDEProps['extraContents']>;
     dirtyFiles: Record<string, boolean>;
-    bfMarks: { marks?: unknown };
+    bfMarks: MarksState;
     files: { openFiles: FileKey[]; activeKey: FileKey | null; setActiveKey: (key: FileKey) => void; openFile: (key: FileKey) => void; closeFile: (key: FileKey) => void };
     activeView: ActiveView | null;
     onCursorChange: (cursor: { line: number; col: number }) => void;

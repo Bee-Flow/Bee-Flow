@@ -10,10 +10,10 @@ type Translate = (key: string, fallback?: string) => string;
 /** One conversation row as the sidebar reads it. */
 export interface SidebarConversation {
     id: string;
-    agent_id?: string;
+    agent_id?: string | null;
     agent_name?: string;
     project_id?: string | null;
-    pinned?: boolean;
+    pinned?: boolean | number;
     updated_at?: string | null;
     created_at?: string | null;
     /** 'direct' for a direct chat in the all-chats timeline. */
@@ -24,7 +24,7 @@ export interface SidebarConversation {
 export interface SidebarAgent {
     id: string;
     name?: string;
-    avatar?: string | null;
+    avatar?: string;
     [key: string]: unknown;
 }
 
@@ -111,12 +111,12 @@ export type DeleteResult = Promise<boolean | void> | boolean | void;
 export interface ConversationHandlers {
     chatHistoryMode: string;
     directChatMode?: boolean;
-    currentConversation?: { id: string } | null;
-    currentDirectConversation?: { id: string } | null;
+    currentConversation?: { id: string | null } | null;
+    currentDirectConversation?: { id: string | null } | null;
     onSelectConversation: (c: SidebarConversation) => unknown;
     onSelectDirectConversation: (c: SidebarConversation) => unknown;
     onSelectAllChatsConversation?: ((c: SidebarConversation) => unknown) | null;
-    onDeleteConversation: (id: string, agentId?: string) => DeleteResult;
+    onDeleteConversation: (id: string, agentId?: string | null) => DeleteResult;
     onDeleteDirectConversation?: ((id: string) => DeleteResult) | null;
 }
 

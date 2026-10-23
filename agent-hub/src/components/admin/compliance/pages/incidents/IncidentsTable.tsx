@@ -144,7 +144,7 @@ export function IncidentStatusPill({ status, testId }: { status: IncidentStatus;
 
 interface IncidentsTableProps {
     rows?: IncidentRecord[];
-    selectedId?: number | null;
+    selectedId?: string | number | null;
     onSelect?: (incident: IncidentRecord) => void;
     loading?: boolean;
     isMobile?: boolean;

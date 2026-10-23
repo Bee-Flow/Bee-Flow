@@ -22,7 +22,7 @@ const WEB = 'agent-hub/src/components/admin/compliance';
 
 describe('the sections', () => {
     it('are the web rail, in its order', () => {
-        const src = read(`${WEB}/sections.js`);
+        const src = read(`${WEB}/sections.ts`);
         const ids = [...src.matchAll(/(?:fw|reg)\('([a-z_0-9]+)'|id: '([a-z_]+)', group:/g)].map((m) => m[1] ?? m[2]);
         expect(SECTIONS.map((s) => s.id)).toEqual(ids);
     });

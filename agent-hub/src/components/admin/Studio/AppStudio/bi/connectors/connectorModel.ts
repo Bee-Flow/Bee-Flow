@@ -58,7 +58,7 @@ export interface CatalogAction {
 /** useIntegrationCatalog's answer, as far as the editor reads it. */
 export interface IntegrationCatalog {
     failed: boolean;
-    lookup: (toolName: string | undefined) => { app: { id?: string; label?: string; available?: boolean }; action: CatalogAction } | null;
+    lookup: (toolName: string | undefined) => { app: { id?: string; label?: string; available?: boolean | null }; action: CatalogAction } | null;
     siblingsOf: (toolName: string | undefined) => CatalogAction[];
 }
 

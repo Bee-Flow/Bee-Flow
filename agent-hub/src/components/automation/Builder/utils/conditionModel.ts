@@ -94,7 +94,7 @@ const TYPE_OPS: Record<string, string[]> = {
  * Operator options for a datatype. `currentKey` is always kept so a parsed operator round-trips.
  * `topics` (`{ available }`) adds "is about" (disabled when unavailable); `quantified` keeps what a quantifier can test.
  */
-export function operatorsForType(type: string, currentKey: string | null = null, { topics = null, quantified = false, t = null }: OperatorOptions = {}): OperatorOption[] {
+export function operatorsForType(type: string, currentKey: string | null | undefined = null, { topics = null, quantified = false, t = null }: OperatorOptions = {}): OperatorOption[] {
     let list = (TYPE_OPS[type] || TYPE_OPS.unknown).slice();
     if (topics && TOPIC_TYPES.has(type)) list.push('isAbout', 'notAbout');
     if (quantified) list = list.filter((k) => k in TEST_OF_OP);
@@ -126,10 +126,13 @@ function labelKey(key: string, type: string) {
 /**
  * The operator's words for a field of `type`; `t` translates (English without it).
  */
-export function labelFor(key: string, type: string, t: Translate | null = null): string {
+export function labelFor(key: string, type: string, t?: Translate | null): string;
+export function labelFor(key: string | undefined, type: string, t?: Translate | null): string | undefined;
+export function labelFor(key: string | undefined, type: string, t: Translate | null = null): string | undefined {
     const o = OP_BY_KEY.get(key);
     if (!o) return key;
-    const k = labelKey(key, type);
+    // Found in OP_BY_KEY, so `key` is that operator's own (string) key.
+    const k = labelKey(key as string, type);
     const en = VARIANT_EN[k] || o.label;
     return typeof t === 'function' ? t(`condition_node.op.${k}`, en) : en;
 }

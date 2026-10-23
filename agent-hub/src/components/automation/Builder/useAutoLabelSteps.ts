@@ -6,7 +6,7 @@ type Labels = Record<string, { label?: string; icon?: string }>;
 
 interface Props {
     def: FlowDefinition | null | undefined;
-    api: { labelSteps: (def: FlowDefinition, iconNames: unknown) => Promise<{ labels?: Labels } | null | undefined> };
+    api: { labelSteps: (def: FlowDefinition, iconNames: string[]) => Promise<unknown> };
     apply: (def: FlowDefinition) => void;
     enabled?: boolean;
     delayMs?: number;
@@ -109,7 +109,7 @@ export default function useAutoLabelSteps({ def, api, apply, enabled = true, del
             if (inFlightRef.current) return;
             inFlightRef.current = true;
             try {
-                const r = await apiRef.current.labelSteps(current, STEP_ICON_NAMES);
+                const r = await apiRef.current.labelSteps(current, STEP_ICON_NAMES) as { labels?: Labels } | null | undefined;
                 baselineRef.current = structuralSignature(defRef.current);
                 const labels = r?.labels || {};
                 if (Object.keys(labels).length) applyRef.current(applyLabels(defRef.current as FlowDefinition, labels));

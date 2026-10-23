@@ -6,7 +6,7 @@ import { buildLayout } from './layout';
  *
  * The four brancher nodes each draw a NAMED port per outgoing branch — a
  * condition's "match"/"otherwise", a guard's "personal data"/"clean", a
- * switch's case names, a loop's "Done"/"On error". `layout.js` was also
+ * switch's case names, a loop's "Done"/"On error". `layout.ts` was also
  * stamping that same name onto the edge as `kind`, so every branch carried two
  * labels a few pixels apart and a switch with three outputs read as a mess.
  *

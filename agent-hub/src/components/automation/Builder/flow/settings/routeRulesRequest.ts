@@ -50,7 +50,7 @@ export interface RulesApi {
         fields: { key: string | undefined; name: string | undefined; type: string }[];
         itemVar: string | undefined;
         perItem: boolean | undefined;
-    }) => Promise<{ rules?: unknown[]; problem?: unknown } | null | undefined>;
+    }) => Promise<unknown>;
 }
 
 export async function askModelForRules(api: RulesApi, { description, fields, itemVar, perItem }: AskModelArgs) {
@@ -64,7 +64,7 @@ export async function askModelForRules(api: RulesApi, { description, fields, ite
             .map((f: RuleField) => ({ key: f.path, name: f.label, type: f.type || '' })),
         itemVar,
         perItem,
-    });
+    }) as { rules?: unknown[]; problem?: unknown } | null | undefined;
     return {
         rules: Array.isArray(res?.rules) ? res.rules : [],
         problem: typeof res?.problem === 'string' ? res.problem : '',

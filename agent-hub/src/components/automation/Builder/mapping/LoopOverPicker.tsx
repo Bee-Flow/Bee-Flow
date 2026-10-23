@@ -45,7 +45,7 @@ interface ListChoiceProps {
     onPick: (path: string, sample: unknown) => void;
     previewSample: unknown;
     stepLabelById: Map<string, string>;
-    stepTypeById: Map<string, string>;
+    stepTypeById: Map<string, string | undefined>;
     t: TranslateFn;
 }
 

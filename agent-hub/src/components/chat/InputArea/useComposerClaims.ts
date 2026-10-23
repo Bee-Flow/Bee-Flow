@@ -32,11 +32,11 @@ interface ComposerClaimsArgs {
     t: TranslateFn;
     canShowPills: boolean;
     showTierSlider: boolean;
-    directMode: boolean;
-    modelTiers: ModelTierMap | null;
-    selectedTier: string | null;
-    selectedAgent: { model?: unknown } | null;
-    messages: ChatMessage[] | null;
+    directMode?: boolean;
+    modelTiers?: ModelTierMap | null;
+    selectedTier?: string | null;
+    selectedAgent?: { model?: unknown } | null;
+    messages?: ChatMessage[] | null;
     kbClaim: KbClaim | null;
     user: unknown;
     shieldApplies: boolean;

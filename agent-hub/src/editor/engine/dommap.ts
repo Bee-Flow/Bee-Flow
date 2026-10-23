@@ -4,7 +4,7 @@
  * Relies on render.js's `el.__bfNode` identity links + the view's nodeToPath /
  * domForNode maps, so it never counts sibling indices through wrapper elements.
  */
-import { getNode } from './doc.js';
+import { getNode } from './doc';
 import type { DocNode } from '../model/schema.js';
 import type { ModelPos } from './textIndex.js';
 

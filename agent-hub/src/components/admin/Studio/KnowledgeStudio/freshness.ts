@@ -155,7 +155,7 @@ export function freshnessOf(kb: FreshnessKb = {}, { sources = null, usageCount =
 }
 
 /** The i18n key for a refresh mode, as the source table's "Verversen" cell says it. */
-export function refreshModeKey(mode: string): string {
+export function refreshModeKey(mode: string | undefined): string {
     switch (mode) {
         case 'live': return 'knowledge.refresh.live';
         case 'on_change': return 'knowledge.refresh.on_change';

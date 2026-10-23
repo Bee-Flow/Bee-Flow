@@ -20,6 +20,7 @@ import { exportMemories, useMemories, useMemoryStats } from './useMemories';
 export interface MemoryPanelProps {
     onClose?: () => void;
     projectId?: string;
+    agentId?: string;
     /** false for a project VIEWER: project memory is a shared pool, so the role is the only thing between a read-only member and the delete button. */
     canEdit?: boolean;
     embedded?: boolean;

@@ -2,7 +2,7 @@
  * The react-mui light tier's preview document: pinned esm.sh runtime, import
  * map, the esbuild virtual-filesystem plugin, the runtime guard, the asset
  * resolver and the document shell. One source for the web editor's preview
- * (agent-hub/src/utils/buildWebpagePreview.js, esbuild-wasm in the browser,
+ * (agent-hub/src/utils/buildWebpagePreview.ts, esbuild-wasm in the browser,
  * through the generated mirror agent-hub/src/shared/webpage/) and the
  * server's twin (services/reactBundleServer.js, native esbuild, for the
  * headless screenshot, the public React share and the phone's draft
@@ -331,6 +331,7 @@ ${bodyHtml}
  * asset resolver, any `extraScripts` (one line each; the web preview passes
  * its selection relay, '' when it is off), then the bundle as one inline
  * module with every `</script` defanged.
+ * @param {{ bundle: string, assetMap?: unknown, headless?: boolean, extraScripts?: string[] }} opts
  */
 export function reactBodyHtml({ bundle, assetMap, headless = false, extraScripts = [] }) {
     return [

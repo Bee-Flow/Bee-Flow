@@ -1,16 +1,12 @@
 import React from 'react';
 import { CountChips, HealthChip, RunLine, StageTrack, SubLine, UpdateChip } from './SolutionCardParts';
-import { healthOf, updateOf } from './solutionOverviewModel';
+import { healthOf, updateOf, type OverviewRow } from './solutionOverviewModel';
 import { kindTileStyle } from '../../../shared/kindColors';
 
-type SolutionCardRow = {
-    id?: string;
-    name?: string;
+interface SolutionCardRow extends OverviewRow {
     icon?: string;
-    description?: string;
-    stages?: unknown;
     [field: string]: unknown;
-};
+}
 
 interface SolutionCardProps {
     row: SolutionCardRow;

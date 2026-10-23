@@ -43,7 +43,7 @@ function editorFiles() {
  * RETRY_FORM_TYPES, which this list is the editor-side half of.
  */
 const NO_RETRY = new Map([
-    ['setEditors.jsx', 'set steps compute from data already in hand — try 2 == try 1'],
+    ['setEditors.tsx', 'set steps compute from data already in hand — try 2 == try 1'],
 ]);
 
 describe('the retry row is mounted everywhere it is offered', () => {

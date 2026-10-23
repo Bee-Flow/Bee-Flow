@@ -11,7 +11,7 @@
 import { act, render, screen } from '@testing-library/react';
 import { createRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import BeeEditorJsx from './BeeEditor.jsx';
+import BeeEditorJsx from './BeeEditor';
 
 /* The editor module is untyped JS. */
 const BeeEditor = BeeEditorJsx as any;

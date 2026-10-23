@@ -17,7 +17,7 @@
  * A retry after a crash rebinds to the same session, so nothing shared is lost.
  */
 import React, { forwardRef } from 'react';
-import BeeEditor from './BeeEditor.jsx';
+import BeeEditor from './BeeEditor';
 import useTranslation from '../../hooks/useTranslation';
 import type { NotebookEditorHandle } from '../../pages/documents/notebook/detail/editorHandle';
 

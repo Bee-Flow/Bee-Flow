@@ -57,7 +57,7 @@ export interface TurnStreamHandlers {
     dispatch: (event: string, data: SseEventData, ids: SseDispatchIds) => void;
     isDirectMode: boolean;
     /** Direct chats report a created/renamed conversation to the page. */
-    onDirectConversation?: (info: { conversationId?: string; title?: string }) => void;
+    onDirectConversation?: (info: { conversationId?: string | null; title?: string | null }) => void;
 }
 
 /**

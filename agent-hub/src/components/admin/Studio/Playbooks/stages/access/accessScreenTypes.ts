@@ -1,8 +1,14 @@
-import type { AccessAudience, AccessMember, AccessRole, AccessTableRule } from '../accessApply';
+import type { AccessMember, AccessRole, AccessTableRule } from '../accessApply';
+
+/** Who may open the app: only `groups` carries group ids and names. */
+export type ScreenAudience =
+    | { kind: 'groups'; groupIds: string[]; groupNames: string[] }
+    | { kind: 'private' | 'organisation'; groupIds?: undefined; groupNames?: undefined };
+export type AudienceKind = ScreenAudience['kind'];
 
 /** The plan as the screen holds it: the hand-set and the proposed shape are the same. */
 export interface ScreenPlan {
-    audience: AccessAudience | null;
+    audience: ScreenAudience | null;
     roles: AccessRole[];
     tableRules?: AccessTableRule[];
     byGroup: Record<string, string>;
@@ -15,7 +21,7 @@ export interface ScreenPlan {
 
 export interface DirectoryGroup {
     id: string;
-    name: string;
+    name?: string;
 }
 
 export interface DirectoryUser {

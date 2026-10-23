@@ -9,6 +9,7 @@ import type { ListPickState, ForeachNoteState, ResolverState } from './ValueBuil
 import type { ListPickChoice } from './ListPickChooser';
 import type { ValuePart } from './valueParts';
 import type { DragEvent } from 'react';
+import type { ForEachConfig } from './itemRefs';
 
 /** The imperative handle of the inline pill text box (RefTokenInput). */
 interface InlineHandle {
@@ -21,7 +22,7 @@ interface InlineHandle {
 interface PickedRemedy {
     id: string;
     binding?: unknown;
-    forEach?: unknown;
+    forEach?: ForEachConfig;
 }
 
 interface PickOptions {
@@ -34,13 +35,13 @@ interface UndoState {
     value: unknown;
     custom?: (() => void) | null;
     forEach?: null;
-    request?: ((forEach: unknown) => void) | null;
+    request?: ((forEach: ForEachConfig | null | undefined) => void) | null;
 }
 
 interface UseValuePickArgs {
     value: unknown;
     onChange?: ((binding: unknown) => void) | null;
-    onRequestForEach: ((forEach: unknown) => void) | null;
+    onRequestForEach: ((forEach: ForEachConfig | null | undefined) => void) | null;
     deepenForEach: DeepenHandle | null;
     expectShape: string;
     expectKind: string | null;

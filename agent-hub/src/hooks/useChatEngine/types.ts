@@ -318,7 +318,7 @@ export interface SseEventData {
     paused?: boolean;
 
     // ── session and model ──────────────────────────────────────────────
-    conversationId?: string;
+    conversationId?: string | null;
     modelId?: string;
     tier?: string;
     /** A name on the model events, the provider record on the shield ones. */

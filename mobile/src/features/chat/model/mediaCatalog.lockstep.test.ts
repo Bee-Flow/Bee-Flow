@@ -46,7 +46,7 @@ it('offers the web’s image and video choices', () => {
 });
 
 it('translates the Lyria modes with the web’s own words', () => {
-    const src = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/MusicGenSettings.jsx`, 'utf8');
+    const src = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/MusicGenSettings.tsx`, 'utf8');
     for (const mode of catalog.LYRIA_MODES) expect(src).toContain(`t('${mode.i18nKey}', '${mode.name}')`);
 });
 

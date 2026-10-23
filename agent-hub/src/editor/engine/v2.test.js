@@ -1,16 +1,16 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { markdownToAst } from '../serialization/mdToAst.js';
+import { markdownToAst } from '../serialization/mdToAst';
 import { createState, applyTransform } from './state.js';
 import { textSelection, pos } from './selection.js';
 import { toggleMark, updateNodeAttrsAtPath, insertText, deleteBackward, deleteForward } from './transforms.js';
 import { isActive } from './queries.js';
-import { EditorView } from './view.js';
+import { EditorView } from './view';
 import { cellSelection } from './selection.js';
-import * as Tbl from './tables.js';
-import { astToMarkdown } from '../serialization/astToMd.js';
+import * as Tbl from './tables';
+import { astToMarkdown } from '../serialization/astToMd';
 import { astToHtml } from '../serialization/astToHtml.js';
-import { htmlToAst } from '../serialization/htmlToAst.js';
-import { normalizeDeep, normalizeLight } from './normalize.js';
+import { htmlToAst } from '../serialization/htmlToAst';
+import { normalizeDeep, normalizeLight } from './normalize';
 
 const hasBold = (block) => (block.content || []).some((n) => n.type === 'text' && (n.marks || []).some((m) => m.type === 'bold'));
 

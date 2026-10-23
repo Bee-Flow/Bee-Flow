@@ -32,7 +32,7 @@ interface ChannelOption {
 interface Props {
     channels?: string[];
     onToggle?: (key: string) => void;
-    caption?: string;
+    caption?: string | null;
     disabled?: boolean;
     className?: string;
     scope?: string;

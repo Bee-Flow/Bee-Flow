@@ -8,7 +8,7 @@ import type { AgentDesignerProps } from './AgentDesigner/index';
 interface AgentConfigHubUser {
     isAdmin?: boolean;
     role?: string;
-    permissions?: string[];
+    permissions?: string[] | null;
     allowedAgentTypes?: string[];
 }
 

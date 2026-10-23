@@ -31,7 +31,7 @@ export interface SignupData {
     orgWebsite: string;
     orgKvk: string;
     orgVat: string;
-    orgCountry: string;
+    orgCountry?: string;
     country?: string;
     orgAllowSignup: boolean;
     authMethod: string;
@@ -39,7 +39,7 @@ export interface SignupData {
     piiCategories: string[];
     piiAction: string;
     euModeEnabled: boolean;
-    selectedPlanId: string | null;
+    selectedPlanId?: string | null;
 }
 
 /** The state setter LoginPage hands to each signup step. */

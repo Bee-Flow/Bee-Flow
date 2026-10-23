@@ -40,7 +40,7 @@ function outputsWord(step: NodeStep, cases: SwitchCase[], stepLabelById: Map<str
  * List mode: the list on the first line, the outputs (or the keep-rest rule)
  * on the second, so neither truncates the other away. Whole run: one line.
  */
-function switchSubtitle(step: NodeStep, cases: SwitchCase[], stepLabelById: Map<string, string> | null | undefined, stepTypeById: Map<string, string> | null | undefined, t: TFn) {
+function switchSubtitle(step: NodeStep, cases: SwitchCase[], stepLabelById: Map<string, string> | null | undefined, stepTypeById: Map<string, string | undefined> | null | undefined, t: TFn) {
     const outputs = outputsWord(step, cases, stepLabelById, t);
     const listMode = typeof step.arrayRef === 'string';
     const list = listMode && step.arrayRef ? listPathLabel(step.arrayRef, stepLabelById, t, { compact: true, stepTypeById }) : '';

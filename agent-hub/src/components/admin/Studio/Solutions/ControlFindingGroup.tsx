@@ -7,7 +7,7 @@ export interface ControlFinding {
     blockedAt?: 'activate' | 'publish' | string | null;
     message?: string;
     remediation?: string | null;
-    deepLink?: unknown;
+    deepLink?: string;
     targetRef?: { id?: string } | null;
 }
 
@@ -28,7 +28,7 @@ export function isBlocking(finding: ControlFinding | null | undefined): boolean 
  * list, a visible "Show me" button instead of a clickable row, and the blockedAt
  * ladder that only means something here.
  */
-function SolutionFindingRow({ finding, onOpen, readOnly, t }: { finding: ControlFinding; onOpen?: (link: unknown) => void; readOnly: boolean; t: T }) {
+function SolutionFindingRow({ finding, onOpen, readOnly, t }: { finding: ControlFinding; onOpen?: (link: string) => void; readOnly: boolean; t: T }) {
     const blocking = isBlocking(finding);
     const ladder = finding.blockedAt ? BLOCKED_AT_LABEL[finding.blockedAt] : null;
     const Icon = blocking ? AlertCircle : AlertTriangle;
@@ -51,7 +51,7 @@ function SolutionFindingRow({ finding, onOpen, readOnly, t }: { finding: Control
             {Boolean(finding.deepLink) && !readOnly && (
                 <button
                     type="button"
-                    onClick={() => onOpen?.(finding.deepLink)}
+                    onClick={() => onOpen?.(finding.deepLink as string)}
                     className="inline-flex items-center gap-1 px-2.5 min-h-10 sm:min-h-8 rounded-[var(--radius-sm)] text-xs font-medium shrink-0 text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                     data-testid="solution-finding-open"
                 >
@@ -64,7 +64,7 @@ function SolutionFindingRow({ finding, onOpen, readOnly, t }: { finding: Control
 }
 
 /** One severity group: a heading with a count, then its findings. */
-export default function ControlFindingGroup({ title, findings, onOpen, readOnly, t }: { title: string; findings: ControlFinding[]; onOpen?: (link: unknown) => void; readOnly: boolean; t: T }) {
+export default function ControlFindingGroup({ title, findings, onOpen, readOnly, t }: { title: string; findings: ControlFinding[]; onOpen?: (link: string) => void; readOnly: boolean; t: T }) {
     if (findings.length === 0) return null;
     return (
         <section>

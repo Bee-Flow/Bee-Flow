@@ -1,9 +1,9 @@
 /** ImageBubble — alignment, text wrap, width and delete for the selected image. */
 import { AlignLeft, AlignCenter, AlignRight, Trash2, WrapText } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { AtomNode } from '../AtomRenderer';
+import type { DocNode } from '../../model/schema';
 
-interface Props { view: any; node: AtomNode }
+interface Props { view: any; node: DocNode }
 
 export default function ImageBubble({ view, node }: Props) {
   const rect = useNodeRect(view, node);
@@ -25,7 +25,7 @@ export default function ImageBubble({ view, node }: Props) {
       {[25, 50, 75, 100].map((p) => {
         const full = view.host ? view.host.clientWidth - 40 : 0;
         const cur = attrs.width || (full || null);
-        const activePct = !attrs.width ? 100 : (full ? Math.round((attrs.width / full) * 100) : null);
+        const activePct = !attrs.width ? 100 : (full ? Math.round((Number(attrs.width) / full) * 100) : null);
         const isActive = activePct != null && Math.abs(activePct - p) <= 4;
         return <button key={p} title={`${p}%`} onClick={() => width(p)} className={`px-1.5 py-1 rounded-lg text-[10px] font-semibold ${isActive ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}>{p}%</button>;
       })}
@@ -35,7 +35,7 @@ export default function ImageBubble({ view, node }: Props) {
   );
 }
 
-function useNodeRect(view: any, node: AtomNode) {
+function useNodeRect(view: any, node: DocNode) {
   const [rect, setRect] = useState<{ top: number; left: number } | null>(null);
   useEffect(() => {
     if (!view) return undefined;

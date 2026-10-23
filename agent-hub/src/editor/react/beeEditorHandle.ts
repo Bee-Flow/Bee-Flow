@@ -1,6 +1,6 @@
 import type { InsertableContent } from '../commands/index';
 import { rebaseDoc } from '../collab/rebaseDoc';
-import type { EditorView } from '../engine/view.js';
+import type { EditorView } from '../engine/view';
 import type { AstNode } from '../collab/ySchema';
 import type { BeeEditorProps, EditorShared } from './beeEditorTypes';
 import { canRebase, chainOf } from './beeEditorHelpers';

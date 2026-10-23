@@ -7,10 +7,10 @@
  * (focus, undo, redo, setContent, *Markdown) are handled in view.js.
  */
 import * as T from '../engine/transforms.js';
-import * as Tbl from '../engine/tables.js';
-import { markdownToAst } from '../serialization/mdToAst.js';
-import { htmlToAst } from '../serialization/htmlToAst.js';
-import { looksLikeHtml } from '../serialization/util.js';
+import * as Tbl from '../engine/tables';
+import { markdownToAst } from '../serialization/mdToAst';
+import { htmlToAst } from '../serialization/htmlToAst';
+import { looksLikeHtml } from '../serialization/util';
 import type { DocAttrs, DocNode } from '../model/schema.js';
 import type { EditorState } from '../engine/state.js';
 

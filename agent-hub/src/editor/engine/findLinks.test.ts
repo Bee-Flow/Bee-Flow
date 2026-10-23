@@ -3,8 +3,8 @@
  * both are built on.
  */
 import { describe, expect, it } from 'vitest';
-import { markdownToAst } from '../serialization/mdToAst.js';
-import { astToMarkdown } from '../serialization/astToMd.js';
+import { markdownToAst } from '../serialization/mdToAst';
+import { astToMarkdown } from '../serialization/astToMd';
 import { createState } from './state.js';
 import { textSelection, pos } from './selection.js';
 import { buildTextIndex, foldCase, offsetOfPos, posAtOffset, ATOM_CHAR } from './textIndex';

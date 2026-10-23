@@ -10,7 +10,8 @@ import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
 import { writeRoute } from '../routeModel';
 import { RouteFields as RouteFieldsJs } from './routeEditors';
 import type { RouteFollow, WholeRun } from './SourceNotices';
-import type { UpstreamGroup } from '../../mapping/deepFields';
+import type { Group } from '../../mapping/upstream/upstream.types';
+import type { RouteConfig } from './routeTypes';
 
 // routeEditors.jsx is untyped: its `= null` defaults would type those props as `null`.
 const RouteFields = RouteFieldsJs as unknown as ComponentType<Record<string, unknown>>;
@@ -42,7 +43,7 @@ type Saved = Record<string, unknown>;
 interface HarnessProps {
     step: Step;
     onSave: (fields: Saved) => void;
-    groups: UpstreamGroup[];
+    groups: Group[];
     previewSample: unknown;
     routeFollow?: RouteFollow | null;
     wholeRun?: WholeRun | null;
@@ -53,7 +54,7 @@ function Harness({ step, onSave, groups, previewSample, routeFollow = null, whol
     const [draft, setDraft] = useState<Record<string, unknown>>({});
     const set = (key: string, value: unknown) => {
         setDraft((d) => ({ ...d, [key]: value }));
-        if (key === 'route') onSave(writeRoute(value));
+        if (key === 'route') onSave(writeRoute(value as RouteConfig));
     };
     return (
         <VariablePickerProvider groups={groups} previewSample={previewSample} stepLabelById={new Map([['m', 'Read many']])} stepTypeById={new Map()}>

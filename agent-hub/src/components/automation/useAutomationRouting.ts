@@ -34,7 +34,7 @@ export interface UseAutomationRoutingOptions {
     initialStepId: string | null;
     /** Only the Studio shell owns the onNavigate → history bridge. */
     embedded: boolean;
-    onNavigate: ((path: string, opts?: { replace?: boolean }) => void) | null;
+    onNavigate: ((path: string, opts?: { replace?: boolean }) => void) | null | undefined;
     automations: AutomationListRow[];
     selectedAutomationId: string | null;
     builderAutomationId: string | null;

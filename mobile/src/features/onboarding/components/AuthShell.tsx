@@ -7,7 +7,7 @@
  * signed-out screen has one job, and centring that job on the page says so
  * better than a title bar with nothing in it.
  *
- * The shape is the web login's, deliberately (agent-hub/src/pages/LoginPage.jsx):
+ * The shape is the web login's, deliberately (agent-hub/src/pages/LoginPage.tsx):
  * a gradient backdrop with slow accent blobs, and the content in one centred
  * card with the Bee Flow mark at its head. This is the first screen anybody
  * sees, and it has to be recognisably the same product as the browser tab

@@ -5,7 +5,7 @@
  * ── WAAROM DEZE TEST BESTAAT ────────────────────────────────────────
  *
  * services/reactBundleServer.js draagt al jaren de regel "⚠️ KEEP IN SYNC met
- * agent-hub/src/utils/buildWebpagePreview.js … moeten byte-identiek blijven",
+ * agent-hub/src/utils/buildWebpagePreview.ts … moeten byte-identiek blijven",
  * en niets dwingt dat af. Het resultaat staat er vandaag: `window.beeflowAI`
  * heeft in reactBundleServer.js de namen `complete`/`ground`/`generate`, die in
  * geen van de twee andere brugbestanden bestaan, en mist de vier namen

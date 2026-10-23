@@ -1,39 +1,19 @@
-import { useApprovalsNav as useApprovalsNavJs } from './useApprovalsNav';
-import { useStudioSectionData as useStudioSectionDataJs } from './useStudioSectionData';
-import type { PublishedApp, PublishedForm, StudioSection } from './sidebarNav';
-import type { StudioCounts } from '../../../hooks/useStudioCounts';
+import { useApprovalsNav } from './useApprovalsNav';
+import { useStudioSectionData } from './useStudioSectionData';
 import { isOrgAdminLike as isOrgAdminUser } from '../../../utils/orgAdmin';
 import { STUDIO_APPS } from '../../admin/Studio/studioApps';
 import { canSeeStudio as canSeeStudioFor, studioGateContext, studioNavSections } from '../../admin/Studio/studioNav';
-import { useEntitlements as useEntitlementsJs } from '../../licensing/EntitlementsContext';
-import { useLicenseContext as useLicenseContextJs } from '../../licensing/LicenseContext';
+import type { StudioNavUser } from '../../admin/Studio/studioNav';
+import { useEntitlements } from '../../licensing/EntitlementsContext';
+import { useLicenseContext } from '../../licensing/LicenseContext';
 
 type Check = (id: string) => boolean;
 type LockReason = (id: string) => string | null;
 
-interface SidebarUser {
-    permissions?: string[];
+interface SidebarUser extends StudioNavUser {
+    permissions?: string[] | null;
     simpleMode?: boolean;
-    [key: string]: unknown;
 }
-
-// The licence and entitlement contexts are JavaScript; this is what the sidebar reads of them.
-const useLicenseContext = useLicenseContextJs as () => { hasFeature: Check; deploymentMode?: string };
-const useEntitlements = useEntitlementsJs as () => {
-    can: Check; lockReason?: LockReason | null; loading?: boolean; error?: unknown;
-};
-const useApprovalsNav = useApprovalsNavJs as (opts: { canBrowseApprovals: boolean; isOrgAdmin: boolean }) => {
-    pendingCount?: number; hasApprovals: boolean;
-};
-const useStudioSectionData = useStudioSectionDataJs as (opts: {
-    currentPage?: string; canUseCapability: Check; hasLicenseFeature: Check; user: unknown; countsEnabled: boolean;
-}) => {
-    runtimeStudioApps: StudioSection[];
-    publishedApps: PublishedApp[]; hasApps: boolean;
-    canSeeForms: boolean; publishedForms: PublishedForm[]; hasForms: boolean;
-    loadSectionItems: unknown; recentItemsFor: unknown;
-    studioCounts: StudioCounts | null;
-};
 
 /**
  * What this person may see in the sidebar: the licence, the entitlements and

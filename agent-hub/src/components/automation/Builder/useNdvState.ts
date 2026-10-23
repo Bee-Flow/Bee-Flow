@@ -11,7 +11,7 @@ export default function useNdvState() {
     // Node Detail View (NDV) — the focused Input|Parameters|Output editor for
     // ONE step. `ndvStepId` is the step being edited (null = closed). Replaces
     // the old node-anchored peek + multi-pin dock.
-    const [ndvStepId, setNdvStepId] = useState<any>(null);
+    const [ndvStepId, setNdvStepId] = useState<string | null>(null);
     // How much of the step to show: a single click opens the SMALL editor
     // (just the settings the step needs), a double click the full
     // Input|Parameters|Output workspace.
@@ -22,7 +22,7 @@ export default function useNdvState() {
     // drawer the ⤢ / shrink buttons and the column toggles switch freely,
     // and every switch updates the memory.
     const [ndvDensity, setNdvDensityState] = useState(() => (scopedStorage.getItem('ndvDensity') === 'full' ? 'full' : 'quick'));
-    const setNdvDensity = useCallback((d: any) => {
+    const setNdvDensity = useCallback((d: string | null | undefined) => {
         const next = d === 'full' ? 'full' : 'quick';
         setNdvDensityState(next);
         scopedStorage.setItem('ndvDensity', next);
@@ -30,7 +30,7 @@ export default function useNdvState() {
     // How much of the step's FORM exists (Simple / All options) — the user's
     // persisted choice, orthogonal to the gesture-owned density above.
     const { mode: ndvMode, setMode: setNdvMode } = useFormModePreference();
-    const openNdv = useCallback((id: any, density: any) => {
+    const openNdv = useCallback((id: string | null | undefined, density?: string) => {
         if (!id) return;
         setNdvStepId(id);
         setNdvDensity(densityForOpen(density, scopedStorage.getItem('ndvDensity')));

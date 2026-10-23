@@ -29,7 +29,7 @@ const read = (...parts: string[]) => fs.readFileSync(path.join(REPO, ...parts), 
 
 const ROUTE = read('server/routes/studio/aiRoute.js');
 const WEB_API = read('agent-hub/src/components/admin/Studio/studioAi/routeApi.ts');
-const WEB_PANEL = read('agent-hub/src/components/admin/Studio/studioAi/DescribeItPanel.jsx');
+const WEB_PANEL = read('agent-hub/src/components/admin/Studio/studioAi/DescribeItPanel.tsx');
 
 /** The text between `start` and the first `end` after it. */
 function block(src: string, start: string, end: string): string {

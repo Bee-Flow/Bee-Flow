@@ -5,11 +5,11 @@
  * individual converter internals. `htmlToAst` (paste + migration) is added in a
  * later phase; until then importing it throws a clear error.
  */
-export { markdownToAst } from './mdToAst.js';
-export { astToMarkdown } from './astToMd.js';
+export { markdownToAst } from './mdToAst';
+export { astToMarkdown } from './astToMd';
 export { astToHtml } from './astToHtml.js';
-export { htmlToAst } from './htmlToAst.js';
+export { htmlToAst } from './htmlToAst';
 export {
   encodeForAttr, decodeFromAttr,
   escapeHtml, escapeAttr, escapeMdText,
-} from './util.js';
+} from './util';

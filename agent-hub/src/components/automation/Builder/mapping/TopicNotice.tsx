@@ -21,7 +21,7 @@ const REASONS: Record<string, [string, string]> = {
     error: ['automations.builder.topics.reason_error', 'The topic classifier reported a problem. Ask an admin to check classify-service.'],
 };
 
-export default function TopicNotice({ topics, ops }: { topics?: TopicsCapability | null; ops: string[] }) {
+export default function TopicNotice({ topics, ops }: { topics?: TopicsCapability | null; ops: (string | undefined)[] }) {
     const { t } = useTranslation();
     if (!topics || !ops.some((op) => isTopicOp(op))) return null;
     const reason = topics && !topics.available ? REASONS[topics.reason || 'error'] || REASONS.error : null;

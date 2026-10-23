@@ -7,7 +7,7 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import type { CollabHandle } from '../collab/useCollab';
-import type { EditorView } from '../engine/view.js';
+import type { EditorView } from '../engine/view';
 import type { Selection } from '../engine/selection.js';
 import type { DocNode } from '../model/schema.js';
 import type { AtomNode } from './AtomRenderer';

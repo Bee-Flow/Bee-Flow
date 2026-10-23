@@ -2,7 +2,7 @@
  * What the module frontend manifest answers when it cannot read, and what it
  * accepts (routes/modulesFrontend.js).
  *
- * The SPA's module registry (agent-hub/src/moduleRuntime/registry.js) keeps
+ * The SPA's module registry (agent-hub/src/moduleRuntime/registry.ts) keeps
  * its last-good set of remote Studio apps on a 5xx and REPLACES it on a 200.
  * The route used to turn a failed module-state read into `200 { modules: [] }`,
  * so one database blip removed every remote Studio app tab from the screen.

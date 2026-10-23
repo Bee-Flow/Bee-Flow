@@ -1,5 +1,5 @@
 /**
- * Envelope encryption — a byte-for-byte port of agent-hub/src/lib/opaque.js's
+ * Envelope encryption — a byte-for-byte port of agent-hub/src/lib/opaque.ts's
  * key handling.
  *
  * The shape of Bee Flow's zero-knowledge story:

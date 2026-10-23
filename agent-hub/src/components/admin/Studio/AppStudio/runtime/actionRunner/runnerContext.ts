@@ -5,12 +5,13 @@
  */
 import type { EffectContext } from './applyEffects';
 import type { DataState } from '../DataContext';
+import type { BrowseEvent } from '../BrowserRunContext';
 import type { ActionEntry, ActionState, EffectObject, RunnableAction, RunStep, Translate, Vars } from './core';
 
 export type NavigateFn = (screenId: string, params?: unknown) => void;
 export type RefreshFn = (target?: { tableId: string | null; datasetId: string | null }) => unknown;
 export type ConfirmFn = (step: RunStep) => boolean | Promise<boolean>;
-export type BrowseEventSink = (actionId: string, evt: Record<string, unknown>) => void;
+export type BrowseEventSink = (actionId: string, evt: BrowseEvent) => void;
 export type BeforeServerStep = () => Promise<{ ok?: boolean; error?: string } | null | undefined | void>;
 
 export interface RunnerDefinition {
@@ -37,7 +38,7 @@ export interface LiveInputs {
 }
 
 export interface RunnerContext {
-    appId: string;
+    appId: string | null;
     draft: boolean;
     tr: Translate;
     live: { readonly current: LiveInputs };

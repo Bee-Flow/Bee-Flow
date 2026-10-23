@@ -32,7 +32,7 @@ vi.mock('./SettingsTab', () => ({ default: () => null }));
 vi.mock('./TriggerDiagnosePanel', () => ({ default: (p: any) => { diagnose = p; return null; } }));
 vi.mock('./settings/AiActQuestionsDialog', () => ({ default: (p: any) => { aiAct = p; return null; } }));
 
-import BuilderShellJsx from './BuilderShell.jsx';
+import BuilderShellJsx from './BuilderShell';
 import { queryWrapper } from '../../../test/queryWrapper';
 import { authFetch } from '../../../utils/helpers';
 

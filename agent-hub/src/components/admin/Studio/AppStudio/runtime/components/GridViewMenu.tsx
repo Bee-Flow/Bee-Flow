@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Settings2 } from 'lucide-react';
 import { VIEW_OPTIONS } from './gridViewPrefs';
-import type { ViewPrefs } from './gridViewPrefs';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../../../../hooks/useTranslation';
 
@@ -90,7 +89,7 @@ function Segmented({ groupKey, value, onChange }: {
 }
 
 interface GridViewMenuProps {
-    view: ViewPrefs;
+    view: Record<string, string | undefined>;
     onChange: (key: string, value: string) => void;
     onReset: () => void;
     hasOverrides: boolean;

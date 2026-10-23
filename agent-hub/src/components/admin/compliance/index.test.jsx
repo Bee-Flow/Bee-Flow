@@ -27,7 +27,7 @@ import path from 'node:path';
 // the claim is about every call site, so the scan covers the whole data
 // folder plus the hub file.
 const SRC = [
-    path.join(__dirname, 'index.jsx'),
+    path.join(__dirname, 'index.tsx'),
     ...fs.readdirSync(path.join(__dirname, 'data')).filter(f => /\.[jt]sx?$/.test(f) && !/\.test\./.test(f)).map(f => path.join(__dirname, 'data', f)),
 ].map(f => fs.readFileSync(f, 'utf8')).join('\n');
 

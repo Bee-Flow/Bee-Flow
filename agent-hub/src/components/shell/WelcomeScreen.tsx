@@ -14,6 +14,9 @@ interface WelcomeScreenProps {
     agent?: WelcomeAgent | null;
     onSendMessage?: (prompt: string) => void;
     children?: React.ReactNode;
+    user?: unknown;
+    shieldApplies?: boolean;
+    onNavigate?: (page: string) => void;
 }
 
 const WelcomeScreen = ({ agent, onSendMessage, children }: WelcomeScreenProps) => {

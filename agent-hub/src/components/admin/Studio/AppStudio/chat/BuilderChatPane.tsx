@@ -17,6 +17,7 @@ import type { BuildPhaseInfo } from '../editor/BuildCueContext';
 import { useEditorChrome } from '../editor/EditorChromeContext';
 import { useAppEditorState } from '../state/appEditorState';
 import { findNode, findScreen } from '../state/definitionOps';
+import type { ToolDraft } from '../editor/ghostCellDraft';
 
 export { canAutoSendApp } from './builderPaneModel';
 export { groupIssues } from './ValidationNotice';
@@ -159,7 +160,7 @@ export default function BuilderChatPane({ appId, initialPrompt = '', autoSend = 
 
     const showEmptyState = messages.length === 0 && !running && !pendingPlan;
     const currentPhase = phases.length ? phases[phases.length - 1] as BuildPhaseInfo : null;
-    const { waitingForFirstToken } = useBuildCue({ running, messages, turn, engine, toolDraft, todos, currentPhase, reveal, doneInfoRef, definitionRef, chromeRef });
+    const { waitingForFirstToken } = useBuildCue({ running, messages, turn, engine, toolDraft: toolDraft as ToolDraft | null, todos, currentPhase, reveal, doneInfoRef, definitionRef, chromeRef });
 
     return (
         <div className="flex h-full min-h-0 flex-col bg-[var(--bg-primary)]">

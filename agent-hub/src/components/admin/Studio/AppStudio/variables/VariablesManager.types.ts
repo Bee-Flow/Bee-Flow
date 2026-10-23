@@ -1,4 +1,5 @@
-import type { AppDefinition } from '../inspector/appDefinition';
+import type { AppDefinition, DefinitionVariable } from '../inspector/appDefinition';
+import type { UsageSite } from '../state/variableUsage';
 
 /** Where a variable is used: the node to jump to, on the screen it sits in. */
 export interface VariableRevealTarget {
@@ -6,15 +7,41 @@ export interface VariableRevealTarget {
     screenId?: string;
 }
 
-/**
- * Props of VariablesManager (VariablesManager.jsx). Every edit calls
- * `onCommit` without a guard, so it is required. The rest may be left out: the
- * variables are read through `listVariables`, which accepts no definition.
- */
+/** The place a usage row jumps to. */
+export interface RevealTarget {
+    nodeId: string;
+    screenId?: string;
+}
+
 export interface VariablesManagerProps {
-    definition?: AppDefinition | null;
-    onCommit: (next: AppDefinition) => void;
-    /** Makes the usage list clickable; absent = the sites are only listed. */
-    onRevealNode?: ((target: VariableRevealTarget) => void) | null;
+    definition: AppDefinition | null;
+    /** A method type, so a handler that takes a definition stays assignable. */
+    onCommit(definition: AppDefinition | null): void;
+    onRevealNode?: ((target: RevealTarget) => void) | null;
     disabled?: boolean;
+}
+
+/** The starting-value control, following the declared type. */
+export interface DefaultFieldProps {
+    variable: DefinitionVariable;
+    onChange: (value: unknown) => void;
+    disabled: boolean;
+}
+
+/**
+ * A JSON starting value, edited as text. The parsed value is only committed
+ * when it parses — typing `{` must not blow away what was there.
+ */
+export interface JsonDefaultFieldProps {
+    variable: DefinitionVariable;
+    onChange: (value: unknown) => void;
+    disabled: boolean;
+    label: string;
+    aria: string;
+}
+
+/** Where a variable is used, each row jumping to the place. */
+export interface UsageListProps {
+    sites: UsageSite[];
+    onRevealNode: (target: RevealTarget) => void;
 }

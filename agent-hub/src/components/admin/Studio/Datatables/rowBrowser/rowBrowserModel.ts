@@ -31,7 +31,7 @@ export interface DtRow {
 export interface DtTable {
     id: string;
     key?: string;
-    rowCount?: number;
+    rowCount?: number | null;
     grade?: string;
     retentionDays?: number | null;
     retentionField?: string | null;

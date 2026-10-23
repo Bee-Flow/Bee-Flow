@@ -27,7 +27,7 @@
  */
 import { MARK_SCHEMA, markOrder } from '../model/schema.js';
 import { mark as makeMark } from '../model/marks.js';
-import { safeUrl, safeCssColor, safeCssFont, safeAlign, safeTarget, safeRel } from '../serialization/util.js';
+import { safeUrl, safeCssColor, safeCssFont, safeAlign, safeTarget, safeRel } from '../serialization/util';
 
 /** Name of the shared type that holds a document's body (`ydoc.getXmlFragment(FRAGMENT_NAME)`). */
 export const FRAGMENT_NAME = 'content';

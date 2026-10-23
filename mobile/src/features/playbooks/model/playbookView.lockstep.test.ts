@@ -41,7 +41,7 @@ function loadWeb() {
         getItem: () => null,
         formatElapsed,
     });
-    const recipes = loadWebModule<Record<string, unknown>>(path.join(DIR, 'recipes.js'));
+    const recipes = loadWebModule<Record<string, unknown>>(path.join(DIR, 'recipes.ts'));
     return { view, recipes };
 }
 

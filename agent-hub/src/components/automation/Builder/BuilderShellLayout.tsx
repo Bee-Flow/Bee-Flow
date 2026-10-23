@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { BuilderTab } from './useBuilderTabUrl';
 import { readinessStamp } from '../../../api/queries/automation/readiness';
 import { BuilderConfirmProvider } from './BuilderConfirmContext';
 import BuilderHeader from './BuilderHeader';
@@ -22,8 +23,8 @@ export interface BuilderShellLayoutProps {
     retryAfterAiAct: () => void;
     serverAutomation: any;
     state: any;
-    tab: string;
-    setTab: (tab: string) => void;
+    tab: BuilderTab;
+    setTab: (tab: BuilderTab) => void;
     headerProps: any;
     diagnoseOpen: boolean;
     diagnoseResult: any;

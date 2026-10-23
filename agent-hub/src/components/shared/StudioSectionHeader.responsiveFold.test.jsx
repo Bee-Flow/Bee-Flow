@@ -24,7 +24,7 @@ import { describe, expect, it } from 'vitest';
 async function readSource() {
     const fs = await import('node:fs');
     const path = await import('node:path');
-    return fs.readFileSync(path.join(__dirname, 'StudioSectionHeader.jsx'), 'utf8');
+    return fs.readFileSync(path.join(__dirname, 'StudioSectionHeader.tsx'), 'utf8');
 }
 
 describe('StudioSectionHeader — the responsive fold stays wired', () => {

@@ -9,13 +9,13 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { createState, applyTransform } from './state.js';
 import { textSelection, cellSelection, pos } from './selection.js';
-import { markdownToAst } from '../serialization/mdToAst.js';
-import { EditorView } from './view.js';
-import * as Tbl from './tables.js';
+import { markdownToAst } from '../serialization/mdToAst';
+import { EditorView } from './view';
+import * as Tbl from './tables';
 import { evaluateTable, isFormulaCell, formulaSrc } from './formula.js';
 import { colLabel, colToIndex, parseAnyRef } from './formulaRefs.js';
 import { remapSrc } from './formulaRemap.js';
-import { normalizeDeep } from './normalize.js';
+import { normalizeDeep } from './normalize';
 import { runInputRules } from './inputRules.js';
 import { insertText } from './transforms.js';
 

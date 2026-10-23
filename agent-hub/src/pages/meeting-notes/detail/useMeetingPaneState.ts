@@ -4,13 +4,9 @@ import { parseTimestampToSeconds } from '../lib/format';
 import { buildMentionMarkers, buildTimelineMarkers } from '../lib/timelineMarkers';
 import * as api from '../lib/transcriptionsApi';
 import { TABS } from './MeetingHeader';
-import type { MeetingNote } from './meetingDetailTypes';
+import type { MeetingNote, SeriesPrevious } from './meetingDetailTypes';
+import type { CustomTemplate, SummaryTemplates } from './summaryTemplates.types';
 
-interface SummaryTemplates {
-    builtins?: unknown[];
-    canManageOrg?: boolean;
-    [key: string]: unknown;
-}
 
 /**
  * Custom summary templates (built-ins + the caller's user/org/group ones) are
@@ -20,13 +16,13 @@ interface SummaryTemplates {
 function useSummaryTemplates() {
     const [templates, setTemplates] = useState<SummaryTemplates | null>(null);
     const [templateEditorOpen, setTemplateEditorOpen] = useState(false);
-    const [editingTemplate, setEditingTemplate] = useState<unknown>(null);
+    const [editingTemplate, setEditingTemplate] = useState<CustomTemplate | null>(null);
     const reloadTemplates = useCallback(() => {
         api.listSummaryTemplates().then(setTemplates).catch(() => {});
     }, []);
     useEffect(() => { reloadTemplates(); }, [reloadTemplates]);
     const openNewTemplate = useCallback(() => { setEditingTemplate(null); setTemplateEditorOpen(true); }, []);
-    const openEditTemplate = useCallback((tpl: unknown) => { setEditingTemplate(tpl); setTemplateEditorOpen(true); }, []);
+    const openEditTemplate = useCallback((tpl: CustomTemplate) => { setEditingTemplate(tpl); setTemplateEditorOpen(true); }, []);
     return { templates, reloadTemplates, templateEditorOpen, setTemplateEditorOpen, editingTemplate, openNewTemplate, openEditTemplate };
 }
 
@@ -35,13 +31,13 @@ function useSummaryTemplates() {
  * room. Only fetched for completed notes that carry a series link.
  */
 function useSeriesPrevious(data: MeetingNote | null) {
-    const [seriesPrevious, setSeriesPrevious] = useState<unknown>(null);
+    const [seriesPrevious, setSeriesPrevious] = useState<SeriesPrevious | null>(null);
     useEffect(() => {
         if (!data?.id || data.status === 'processing' || data.status === 'failed') return undefined;
         if (!data.meetMeetingCode && !data.talkRoomToken) return undefined;
         let cancelled = false;
         api.getSeriesPrevious(data.id)
-            .then((prev: unknown) => { if (!cancelled) setSeriesPrevious(prev); })
+            .then((prev: SeriesPrevious | null) => { if (!cancelled) setSeriesPrevious(prev); })
             .catch(() => { /* context card is best-effort */ });
         return () => { cancelled = true; };
     }, [data?.id, data?.status, data?.meetMeetingCode, data?.talkRoomToken]);
@@ -84,7 +80,7 @@ function usePlayer(data: MeetingNote | null, currentUserName: string | undefined
  * would apply to the wrong meeting. `onReset` clears the caller's own
  * per-meeting flags (busy, regenerating) in the same pass.
  */
-export default function useMeetingPaneState(id: string, data: MeetingNote | null, currentUserName: string | undefined, onReset: () => void) {
+export default function useMeetingPaneState(id: string | null, data: MeetingNote | null, currentUserName: string | undefined, onReset: () => void) {
     const [chatOpen, setChatOpen] = useState(false);
     const [tab, setTab] = useState<string>(TABS.SUMMARY);
     const [speakerEditorOpen, setSpeakerEditorOpen] = useState(false);

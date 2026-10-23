@@ -46,6 +46,22 @@ interface RealtimeEvent {
     country?: string | null;
 }
 
+/** `/query/realtime`: Umami's realtime block, totals and the three count maps. */
+interface RealtimePayload {
+    series?: { views?: SeriesPoint[]; visitors?: SeriesPoint[] } | null;
+    totals?: { views?: number; visitors?: number; events?: number };
+    events?: RealtimeEvent[];
+    urls?: unknown;
+    referrers?: unknown;
+    countries?: unknown;
+}
+
+/** `/query/active`: the visitor count under `visitors` (or `x` on older builds). */
+interface ActivePayload {
+    visitors?: number;
+    x?: number;
+}
+
 /** Umami's per-minute series → a dense 30-minute strip ending now. */
 function toMinuteStrip(series: { views?: SeriesPoint[]; visitors?: SeriesPoint[] } | null | undefined): MinuteBucket[] {
     const views = new Map<number, number>();
@@ -71,8 +87,8 @@ function toMinuteStrip(series: { views?: SeriesPoint[]; visitors?: SeriesPoint[]
 
 export default function RealtimeSection({ scope, onDrill }: SectionProps) {
     const { t } = useTranslation();
-    const { payload, loading, error, reload } = useAnalyticsQuery('query', 'realtime', scope, { pollMs: POLL_MS });
-    const active = useAnalyticsQuery('query', 'active', scope, { pollMs: POLL_MS });
+    const { payload, loading, error, reload } = useAnalyticsQuery<RealtimePayload>('query', 'realtime', scope, { pollMs: POLL_MS });
+    const active = useAnalyticsQuery<ActivePayload>('query', 'active', scope, { pollMs: POLL_MS });
 
     const strip = useMemo(() => toMinuteStrip(payload?.series), [payload]);
 

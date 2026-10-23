@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
+import type { RowSelectionState } from '@tanstack/table-core';
 import useTranslation from '../../../../../../../hooks/useTranslation';
 import { ROLE_COLORS } from '../../styleResolver';
 import { describeFilter as describeFilterJs } from '../gridColumnFilters';
@@ -26,7 +27,7 @@ export interface GridSelectionBarProps {
     bulkActions: GridAction[];
     table: GridTable;
     runAction: RunAction;
-    setRowSelection: Dispatch<SetStateAction<Record<string, boolean>>>;
+    setRowSelection: Dispatch<SetStateAction<RowSelectionState>>;
 }
 
 export function GridSelectionBar({ boxed, selectedCount, isRun, bulkActions, table, runAction, setRowSelection }: GridSelectionBarProps) {
@@ -95,7 +96,7 @@ export interface GridChromeRowProps {
     table: GridTable;
     toolbarActions: GridAction[];
     runAction: RunAction;
-    view: Record<string, string>;
+    view: Record<string, string | undefined>;
     setViewKey: (key: string, value: string) => void;
     resetView: () => void;
     hasViewOverrides: boolean;

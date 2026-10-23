@@ -1,5 +1,5 @@
 import type { AstNode } from '../collab/ySchema';
-import type { EditorView } from '../engine/view.js';
+import type { EditorView } from '../engine/view';
 import type { DocNode } from '../model/schema.js';
 import type { EditorChain } from './editorFacade';
 

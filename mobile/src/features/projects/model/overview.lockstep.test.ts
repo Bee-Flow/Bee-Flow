@@ -11,7 +11,7 @@ import { chipsOf, healthOf, partitionSolutions, runsOf, tabOf, updateOf } from '
 import type { SolutionRow } from './solution';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const web = require(path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Solutions/solutionOverviewModel.js'));
+const web = require(path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Solutions/solutionOverviewModel.ts'));
 
 function row(over: Partial<SolutionRow>): SolutionRow {
     return {

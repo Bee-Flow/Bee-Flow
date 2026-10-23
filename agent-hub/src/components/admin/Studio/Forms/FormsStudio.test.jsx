@@ -363,14 +363,14 @@ describe('the copy matches what the server actually allows', () => {
     it('…so nothing on this screen calls the address public', () => {
         // Not a style rule: with the flag off, every one of these words is a
         // promise the product does not keep.
-        const ownSrc = readFileSync(resolve(__dirname, './FormsStudio.jsx'), 'utf8');
+        const ownSrc = readFileSync(resolve(__dirname, './FormsStudio.tsx'), 'utf8');
         for (const claim of ['public link', 'public address', 'Anyone with the link']) {
             expect(ownSrc, `FormsStudio.jsx still claims "${claim}"`).not.toContain(claim);
         }
     });
 
     it('…and the live pill says who can actually open it', () => {
-        const ownSrc = readFileSync(resolve(__dirname, './FormsStudio.jsx'), 'utf8');
+        const ownSrc = readFileSync(resolve(__dirname, './FormsStudio.tsx'), 'utf8');
         expect(ownSrc).toContain('after signing in');
     });
 });

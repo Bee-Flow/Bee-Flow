@@ -1,5 +1,14 @@
 # Handoff: agent-hub JavaScript → TypeScript conversion
 
+> **Wave 3 is paused midway:** see [wave3/STATUS.md](wave3/STATUS.md) for where it stands and how to resume.
+>
+> **Server:** see [SERVER.md](SERVER.md): the same inference, written as JSDoc (the server stays
+> CommonJS JavaScript). **Tooling-first pipeline for agent-hub** (used for the 157-file commit):
+> `scripts/ts-convert-codefix.mjs` (inference + quick fixes, `--observed` from
+> `scripts/ts-runtime-types.mjs collect`), agents for the rest, `scripts/ts-convert-gate.mjs`
+> (keeps only green files), `scripts/ts-convert-references.mjs`, `ts-move-types.mjs`,
+> `ts-merge-type-imports.mjs`, `ts-remove-unused-imports.mjs`.
+
 Working material for continuing the conversion in another Claude Code session (for
 example on a laptop with a local model doing the first draft). Claude Code stays the
 driver: it decides, verifies, repairs, reviews and commits. Any model that drafts a

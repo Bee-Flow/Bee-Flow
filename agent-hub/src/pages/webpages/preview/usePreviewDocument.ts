@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import composeWebpageDocument from '../../../utils/composeWebpageDocument';
+import composeWebpageDocument, { type PreviewExtraFile } from '../../../utils/composeWebpageDocument';
 import type { ExtraContents, ExtraFileMeta, PrimaryContent } from '../webpageEditorTypes';
 import { errorMessage, describeError } from '../../../utils/caughtError';
 
@@ -44,7 +44,7 @@ export interface PreviewDocumentInputs {
  * for vanilla pages or the rest of the app. Debounced so streaming edits don't
  * trigger a rebuild storm; cancel-guarded against races.
  */
-function useReactBuild(enabled: boolean, inputs: PreviewDocumentInputs, extras: unknown[]) {
+function useReactBuild(enabled: boolean, inputs: PreviewDocumentInputs, extras: PreviewExtraFile[]) {
     const [reactDoc, setReactDoc] = useState('');
     const [building, setBuilding] = useState(false);
     const { content: { html, css, js }, bridgeOn, dbToken, dbApiBase, webpageId, runtime, refreshKey, isStreaming } = inputs;

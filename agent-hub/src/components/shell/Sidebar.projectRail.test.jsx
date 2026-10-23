@@ -75,7 +75,7 @@ vi.mock('../admin/Studio/AppStudio/studioAppsApi', () => ({
     studioAppsApi: { listAccessible: vi.fn(), listMine: vi.fn() },
 }));
 
-import Sidebar from './Sidebar.jsx';
+import Sidebar from './Sidebar';
 import { testQueryClient, withQueryClient } from '../../test/queryWrapper';
 import { studioAppsApi } from '../admin/Studio/AppStudio/studioAppsApi';
 import { ProjectLiveProvider } from '../projects/workspace/ProjectLiveContext';

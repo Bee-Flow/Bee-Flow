@@ -20,10 +20,10 @@ interface FooterUser {
     id?: string;
     username?: string;
     displayName?: string;
-    avatar?: string;
-    avatarType?: string;
-    isAdmin?: boolean;
-    permissions?: string[];
+    avatar?: string | null;
+    avatarType?: string | null;
+    isAdmin?: boolean | null;
+    permissions?: string[] | null;
 }
 
 interface SidebarFooterProps {
@@ -38,7 +38,7 @@ interface SidebarFooterProps {
     currentPage?: string;
     showSettings?: boolean;
     onNavigate: (page: string) => void;
-    onLogout: React.MouseEventHandler<HTMLButtonElement>;
+    onLogout?: React.MouseEventHandler<HTMLButtonElement>;
 }
 
 const SidebarFooter = ({

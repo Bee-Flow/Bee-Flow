@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from './webpagesApi';
+import type { StripMark } from './WebpageCodeStrip';
 import { messageOf } from '../../utils/caughtError';
 
 /**
@@ -22,7 +23,7 @@ interface BfMarksCounts {
 
 interface BfMarksData {
     scanned?: boolean;
-    marks?: unknown[];
+    marks?: StripMark[];
     counts?: BfMarksCounts;
     unknownTags?: string[];
     truncated?: number;

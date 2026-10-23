@@ -1,4 +1,6 @@
 import type { RefObject } from 'react';
+import type { OrgGroup } from '../../api/queries/orgGroups';
+import type { RetryModelTiers } from '../../components/chat/MessageItem/MessageActionsRow';
 import type useWebpageChat from './hooks/useWebpageChat';
 import type { WebpageExtraFiles, useWebpageFileActions } from './hooks/useWebpageExtraFiles';
 import type { ContentSetter, PrimaryContent, WebpageRow } from './webpageEditorTypes';
@@ -6,6 +8,7 @@ import WebpageDataTab from './WebpageDataTab';
 import WebpageHistoryTab from './WebpageHistoryTab';
 import WebpageIDE from './WebpageIDE';
 import WebpagePreview from './WebpagePreview';
+import type { WebpageSource } from './WebpageSources';
 import WebpageUsedByTab from './WebpageUsedByTab';
 
 interface SaveView {
@@ -30,9 +33,9 @@ export interface WebpageEditorBodyProps {
     managed: unknown;
     content: PrimaryContent;
     edits: { html: ContentSetter; css: ContentSetter; js: ContentSetter; extra: (path: string, content: string) => void };
-    sources: unknown[];
-    setSources: (sources: unknown[]) => void;
-    visibleGroups: unknown[];
+    sources: WebpageSource[];
+    setSources: (sources: WebpageSource[]) => void;
+    visibleGroups: OrgGroup[];
     audience: AudienceHandlers;
     onRestoreVersion: (vid: string) => Promise<void>;
     onVersionsLoaded: (n: number) => void;
@@ -40,10 +43,10 @@ export interface WebpageEditorBodyProps {
     fileActions: ReturnType<typeof useWebpageFileActions>;
     chat: ReturnType<typeof useWebpageChat>;
     save: SaveView;
-    tiers: { modelTiers: unknown; selectedTier: string; onTierChange?: (tier: string) => void };
+    tiers: { modelTiers: RetryModelTiers; selectedTier: string; onTierChange?: (tier: string) => void };
     onTab: (id: string) => void;
     onDownloadZip: () => Promise<void>;
-    onShowInCode: (file: string) => void;
+    onShowInCode: (file?: string) => void;
     focusFile: { key: string; at: number } | null;
     idePaneRef: RefObject<HTMLDivElement | null>;
 }

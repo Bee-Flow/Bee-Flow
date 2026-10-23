@@ -1,0 +1,802 @@
+/**
+ * App Studio — pure, immutable operations over an app definition (editor facade).
+ *
+ * The ops the editor shares with the server (lookups, insert/move, props and
+ * style patches, theme/meta/design/nav, screens, sections, setAction) and the
+ * id helpers come from @shared/appDefinition: a GENERATED copy of
+ * server/shared/appDefinition/ (`npm run gen:shared`; never edit it by hand).
+ * This file adds the editor's own ops, and the ones whose editor behaviour
+ * differs from the server's on purpose: setNodeEvent (every NODE_EVENTS
+ * event), removeNode (strips modal references), removeScreen (strips navigate
+ * references) and removeAction (strips every event and row/column action).
+ * definitionOps.lockstep.test.ts pins what every op returns.
+ *
+ * Every op takes a definition and returns a NEW definition with structural
+ * sharing: only the screen/section/node objects on the path to the change are
+ * rebuilt — untouched screens and sections keep reference identity. Inputs
+ * are never mutated (fixtures may be deep-frozen). Ops that would change
+ * nothing return the SAME definition reference so callers can `!==`-check
+ * for dirtiness.
+ */
+
+import {
+    uniqueId,
+    emptySection,
+    isNoopPatch,
+    rewriteNode,
+    mapAllNodes,
+    findNode,
+    findScreen,
+    collectIds,
+} from '@shared/appDefinition/definitionOps.mjs';
+import { ID_RE } from '@shared/appDefinition/ids.mjs';
+import type { ActionResultBinding } from '../runtime/resolveBinding.types';
+import type { AppDefinition, FormulaValue, AppNode, CommonNodeProps, AppAction, AppSection, DefinitionVariable } from '../inspector/appDefinition';
+import type { LogicPatch } from '../inspector/logic/VisibilityControls';
+import type { Step } from './definitionOps.types';
+
+export { ID_PREFIXES, ID_RE, newId } from '@shared/appDefinition/ids.mjs';
+export {
+    findNode,
+    findScreen,
+    findSection,
+    findAction,
+    collectIds,
+    updateNodeProps,
+    updateNodeStyle,
+    insertNode,
+    moveNode,
+    updateTheme,
+    updateMeta,
+    updateDesign,
+    updateNav,
+    addScreen,
+    updateScreen,
+    addSection,
+    setAction,
+} from '@shared/appDefinition/definitionOps.mjs';
+
+/** JSON-shaped deep clone (definitions are plain data by contract). */
+export function deepClone<T>(value: T): T;
+export function deepClone(value: unknown): unknown {
+    if (Array.isArray(value)) return value.map(deepClone);
+    if (value && typeof value === 'object') {
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(value)) out[k] = deepClone(v);
+        return out;
+    }
+    return value;
+}
+
+/** Every id in a node's subtree (root included). */
+export function subtreeIds(node: AppNode) {
+    const ids = new Set<string | number | undefined>([node.id]);
+    const walk = (children: AppNode[] | undefined) => {
+        for (const child of children || []) { ids.add(child.id); walk(child.children); }
+    };
+    walk(node.children);
+    return ids;
+}
+
+// ---------------------------------------------------------------------------
+// Node ops
+// ---------------------------------------------------------------------------
+
+// The full event vocabulary a node may carry (mirror of EVENT_NAMES in
+// server/appStudio/componentSpecs.js). setNodeEvent accepts any of these; which
+// events a given component TYPE actually supports is governed by the inspector
+// (styleKnobMeta.TYPE_EVENT_LISTS) and validated server-side.
+//
+// `onDecided` hoorde hier al thuis en ontbrak. Serverzijdig bestaat het
+// (componentSpecs/screenSpec.js), approval_list staat het toe
+// (recordListSpecs.js), de inspector RENDERT het slot (styleKnobMeta.
+// TYPE_EVENT_LISTS + ActionsSection.EVENT_LABELS) en de runtime VOERT het uit
+// (runtime/components/AppApprovalList.jsx). Alleen deze lijst wist er niets
+// van, met vier stille gevolgen: setNodeEvent viel op de guard hieronder terug
+// en gaf de def ONGEWIJZIGD terug (een mens kon het slot dus niet bedraden —
+// klik, geen effect, geen fout), nodeLogicSummary/countLogicMarks telden de
+// bedrading niet mee, ActionsSection's eventRefsToAction liet bij het
+// verwijderen van een actie een onDecided-verwijzing hangen, en eventText zette
+// de rauwe identifier in een zin. Een event dat stil verdwijnt is precies wat
+// de Logica-tab moet uitsluiten, dus de lijst is nu compleet.
+export const NODE_EVENTS = ['onClick', 'onSubmit', 'onRowClick', 'onRowSelect', 'onCardMove', 'onChange', 'onDecided'];
+
+/** Wire (or clear, with null) a node's event to an action id. */
+export function setNodeEvent(def: AppDefinition, nodeId: string, event: string, actionIdOrNull: string | null) {
+    if (!NODE_EVENTS.includes(event)) return def;
+    const found = findNode(def, nodeId);
+    if (!found) return def;
+    const next = actionIdOrNull ?? null;
+    if ((found.node[event] ?? null) === next) return def;
+    const { def: out } = rewriteNode(def, nodeId, (node: AppNode) => {
+        const copy = { ...node };
+        if (next === null) delete copy[event];
+        else copy[event] = next;
+        return [copy];
+    });
+    return out;
+}
+
+// Node-level logic keys the inspector's Logic section edits (all v2 additive,
+// all optional). An "empty" value clears the key rather than persisting noise.
+const LOGIC_KEYS = new Set(['visible', 'visibleWhen', 'enabledWhen', 'readOnly', 'validations', 'computed', 'visibleToRoles']);
+
+function isEmptyLogicValue(key: string, value: boolean | string | { kind?: string; expr?: string; text?: { kind: string; expr: string }; label?: string } | null) {
+    if (value == null) return true;
+    if (typeof value === 'string') return value.trim() === '';
+    if (Array.isArray(value)) return value.length === 0;
+    if (key === 'computed' && typeof value === 'object') return Object.keys(value).length === 0;
+    return false;
+}
+
+/**
+ * Merge node-level logic keys (visible/visibleWhen/enabledWhen/readOnly/
+ * validations/computed/visibleToRoles). An empty value (null, blank string,
+ * empty array, empty computed map) DELETES the key. Structural sharing: an
+ * effective no-op returns the same def reference.
+ */
+export function updateNodeLogic(def: AppDefinition, nodeId: string, patch: LogicPatch | { computed: Record<string, FormulaValue>; }) {
+    if (!patch || typeof patch !== 'object') return def;
+    const found = findNode(def, nodeId);
+    if (!found) return def;
+    const node = found.node;
+    const next = { ...node };
+    let changed = false;
+    for (const [key, value] of Object.entries(patch)) {
+        if (!LOGIC_KEYS.has(key)) continue;
+        if (isEmptyLogicValue(key, value)) {
+            if (key in next) { delete next[key]; changed = true; }
+        } else if (next[key] !== value) {
+            next[key] = value;
+            changed = true;
+        }
+    }
+    if (!changed) return def;
+    const { def: out } = rewriteNode(def, nodeId, () => [next]);
+    return out;
+}
+
+/** Set (or clear, with an empty map) a node's computed-prop formulas. */
+export function setNodeComputed(def: AppDefinition, nodeId: string, computed: Record<string, FormulaValue>) {
+    return updateNodeLogic(def, nodeId, { computed: computed ?? {} });
+}
+
+/**
+ * Remove a component (and everything inside it).
+ *
+ * A `modal` node is also an ACTION TARGET: open_modal/close_modal name it by
+ * id. Deleting one used to leave those references behind, and a dangling
+ * modalId is a hard validation error server-side (validate.js checkModalRef) —
+ * so PUT /:id/definition 422s, useAppAutosave records the failure without
+ * advancing its baseline, and every later keystroke re-fires the same rejected
+ * save. The editor then refuses to close, because closing flushes. Deleting a
+ * dialog jammed the whole editor on an error about a component that no longer
+ * existed.
+ *
+ * So the modal references go with it, exactly as removeScreen already does for
+ * screens: an open/close_modal ACTION aimed at a removed dialog is removed
+ * (taking its event wiring with it), and modal steps inside sequences are
+ * stripped. Deleting a container removes the dialogs INSIDE it too, so the
+ * whole subtree is what gets cleaned up, not just the node named.
+ */
+export function removeNode(def: AppDefinition | null, nodeId: string | null) {
+    const found = findNode(def, nodeId);
+    const modalIds = found ? modalIdsIn(found.node) : [];
+    const { def: removed, hit } = rewriteNode(def, nodeId, () => []);
+    if (!hit) return def;
+    let next = removed;
+    for (const modalId of modalIds) next = stripModalRefs(next, modalId);
+    return next;
+}
+
+/** Every `modal` node id in this subtree — the node itself included. */
+function modalIdsIn(node: AppNode) {
+    const ids: string[] = [];
+    const walk = (n: AppNode | null | undefined) => {
+        if (!n || typeof n !== 'object') return;
+        if (n.type === 'modal' && typeof n.id === 'string') ids.push(n.id);
+        for (const child of n.children || []) walk(child);
+    };
+    walk(node);
+    return ids;
+}
+
+/** Drop every action reference to a dialog that is no longer there. */
+function stripModalRefs(def: AppDefinition, modalId: string) {
+    let next = def;
+    // A whole action whose only job was this dialog goes, with its wiring.
+    for (const [actionId, action] of Object.entries(next.actions || {})) {
+        if (action && (action.kind === 'open_modal' || action.kind === 'close_modal')
+            && action.modalId === modalId) {
+            next = removeAction(next, actionId);
+        }
+    }
+    let dirty = false;
+    const actions: Record<string, AppAction> = {};
+    for (const [id, action] of Object.entries(next.actions || {})) {
+        let copy = action;
+        if (action && typeof action === 'object') {
+            const steps = stripModalSteps(copy.steps as Step[] | undefined, modalId);
+            if (steps !== copy.steps) copy = { ...copy, steps };
+        }
+        if (copy !== action) dirty = true;
+        actions[id] = copy;
+    }
+    return dirty ? { ...next, actions } : next;
+}
+
+/** The same recursive walk stripNavigateSteps does, for modal steps. */
+function stripModalSteps(steps: Step[] | undefined, modalId: string): Step[] | undefined {
+    if (!Array.isArray(steps)) return steps;
+    let dirty = false;
+    const next: Step[] = [];
+    for (const step of steps) {
+        if (!step || typeof step !== 'object') { next.push(step); continue; }
+        if ((step.kind === 'open_modal' || step.kind === 'close_modal') && step.modalId === modalId) {
+            dirty = true;
+            continue;
+        }
+        let copy = step;
+        for (const key of ['then', 'else', 'steps', 'default'] as const) {
+            const branch = stripModalSteps(step[key], modalId);
+            if (branch !== step[key]) copy = { ...copy, [key]: branch };
+        }
+        if (Array.isArray(step.cases)) {
+            let casesDirty = false;
+            const cases = step.cases.map((c: { steps?: Step[] }) => {
+                if (!c || typeof c !== 'object') return c;
+                const branch = stripModalSteps(c.steps, modalId);
+                if (branch === c.steps) return c;
+                casesDirty = true;
+                return { ...c, steps: branch };
+            });
+            if (casesDirty) copy = { ...copy, cases };
+        }
+        if (copy !== step) dirty = true;
+        next.push(copy);
+    }
+    return dirty ? next : steps;
+}
+
+/**
+ * Deep-clone a node subtree, assigning a fresh, collision-free component id to
+ * every node in it. `taken` is a live Set of ids already in use (mutated as new
+ * ids are claimed) so many subtrees can be re-id'd against one definition
+ * without colliding with each other. Props are deep-cloned; style is shallow-
+ * copied; onClick/onSubmit action references are preserved (both copies fire the
+ * same action). Pure — the input node is never mutated.
+ */
+export function reIdSubtree(node: AppNode<CommonNodeProps>, taken = new Set()) {
+    const copy = { ...node, id: uniqueId('component', taken) };
+    if (node.props) copy.props = deepClone(node.props);
+    if (node.style) copy.style = { ...node.style };
+    if (Array.isArray(node.children)) copy.children = node.children.map((child) => reIdSubtree(child, taken));
+    return copy;
+}
+
+/**
+ * Duplicate a node (and its whole subtree) with fresh ids everywhere and
+ * insert the copy right after the original. Returns { def, nodeId } where
+ * nodeId is the duplicate's root id (null when the node doesn't exist).
+ */
+export function duplicateNode(def: AppDefinition | null, nodeId: string) {
+    const found = findNode(def, nodeId);
+    if (!found) return { def, nodeId: null };
+    const dup = reIdSubtree(found.node, collectIds(def));
+    const { def: next } = rewriteNode(def, nodeId, (node: AppNode) => [node, dup]);
+    return { def: next, nodeId: dup.id };
+}
+
+// ---------------------------------------------------------------------------
+// Roles / presentational visibility gating (v2)
+// ---------------------------------------------------------------------------
+//
+// The DEFINITION carries only role KEY references — screen.visibleToRoles and
+// node.visibleToRoles (arrays of role keys) plus def.roles ([{ id, name }], a
+// mirror of the authoritative data-model roles so validation resolves the
+// references). The actual role definitions + row-level security live server-
+// side in the data model; these ops only touch the presentational gate.
+
+/** Order-insensitive equality of two string-key arrays. */
+function sameKeys(a: string[], b: string[]) {
+    const A = Array.isArray(a) ? a : [];
+    const B = Array.isArray(b) ? b : [];
+    if (A.length !== B.length) return false;
+    const setB = new Set(B);
+    return A.every((k) => setB.has(k));
+}
+
+/** Dedupe + drop empties from a role-key list. */
+function cleanRoleKeys(roleKeys: string[]) {
+    if (!Array.isArray(roleKeys)) return [];
+    return [...new Set(roleKeys.filter((k) => typeof k === 'string' && k))];
+}
+
+/** The role keys currently gating a screen or node (empty = visible to all). */
+export function getVisibleToRoles(def: AppDefinition | null, id: string | undefined): string[] {
+    const screen = findScreen(def, id);
+    if (screen) return Array.isArray(screen.visibleToRoles) ? screen.visibleToRoles : [];
+    const found = findNode(def, id);
+    if (found) return Array.isArray(found.node.visibleToRoles) ? found.node.visibleToRoles : [];
+    return [];
+}
+
+/**
+ * Gate a screen or node (by id) to a set of role keys. An empty/blank list
+ * CLEARS the gate (deletes visibleToRoles → visible to everyone). Returns the
+ * same def reference when nothing changes, so callers can `!==`-check.
+ */
+export function setVisibleToRoles(def: AppDefinition, id: string | undefined, roleKeys: string[]) {
+    const keys = cleanRoleKeys(roleKeys);
+    // Screen?
+    const screens = def?.screens || [];
+    const sIdx = screens.findIndex((s) => s.id === id);
+    if (sIdx !== -1) {
+        const current = Array.isArray(screens[sIdx].visibleToRoles) ? screens[sIdx].visibleToRoles : [];
+        if (sameKeys(current, keys)) return def;
+        const nextScreen = { ...screens[sIdx] };
+        if (keys.length) nextScreen.visibleToRoles = keys;
+        else delete nextScreen.visibleToRoles;
+        const nextScreens = screens.slice();
+        nextScreens[sIdx] = nextScreen;
+        return { ...def, screens: nextScreens };
+    }
+    // Node?
+    const found = findNode(def, id);
+    if (!found) return def;
+    const current = Array.isArray(found.node.visibleToRoles) ? found.node.visibleToRoles : [];
+    if (sameKeys(current, keys)) return def;
+    const { def: next } = rewriteNode(def, id, (node: AppNode) => {
+        const copy = { ...node };
+        if (keys.length) copy.visibleToRoles = keys;
+        else delete copy.visibleToRoles;
+        return [copy];
+    });
+    return next;
+}
+
+/** The definition's mirrored role list ([{ id, name }]) or []. */
+export function listDefinitionRoles(def: AppDefinition | null) {
+    return Array.isArray(def?.roles) ? def.roles : [];
+}
+
+/**
+ * Mirror the authoritative data-model roles ([{ key, label }]) into
+ * def.roles ([{ id, name }]) so screen/node visibleToRoles references resolve
+ * (and the AI builder + validation see the same role vocabulary). Returns the
+ * same def reference when the mirror is already in sync.
+ */
+export function setDefinitionRoles(def: AppDefinition, roles: { key: string; label: string; }[]) {
+    const next = (Array.isArray(roles) ? roles : [])
+        .filter((r) => r && typeof r.key === 'string' && r.key)
+        .map((r) => ({ id: r.key, name: (typeof r.label === 'string' && r.label) ? r.label : r.key }));
+    const current = listDefinitionRoles(def);
+    const same = current.length === next.length
+        && current.every((r, i) => r && r.id === next[i].id && r.name === next[i].name);
+    if (same) return def;
+    return { ...def, roles: next };
+}
+
+// ── Variables (definition.variables) ────────────────────────────────────────
+// EMIT-WHEN-PRESENT, like design/nav: an app that declares none must round-trip
+// to exactly the bytes it had before the key existed, or every shipped
+// template's "no structural repairs" contract shifts on the next save.
+
+/** The definition's declared variables, or []. */
+export function listVariables(def: AppDefinition | null) {
+    return Array.isArray(def?.variables) ? def.variables : [];
+}
+
+/**
+ * Add or patch one variable, matched by `name`. A new name is appended; an
+ * existing one is shallow-merged in place so the list order survives an edit.
+ * Returns the same def reference when nothing actually changes.
+ */
+export function setVariable(def: AppDefinition | null, variable: DefinitionVariable) {
+    if (!variable || typeof variable.name !== 'string' || !variable.name) return def;
+    const current = listVariables(def);
+    const at = current.findIndex((v) => v?.name === variable.name);
+    const next = at === -1
+        ? [...current, variable]
+        : current.map((v, i) => (i === at ? { ...v, ...variable } : v));
+    const unchanged = at !== -1
+        && Object.keys(variable).every((k) => shallowSame(current[at][k], variable[k]));
+    if (unchanged) return def;
+    return { ...def, variables: next };
+}
+
+/**
+ * Rename a variable in place, keeping its position. Nothing REWRITES the
+ * formulas that read it — the manager only offers a rename while a variable is
+ * unused, for exactly that reason.
+ */
+export function renameVariable(def: AppDefinition | null, from: string, to: string) {
+    if (typeof to !== 'string' || !to || from === to) return def;
+    const current = listVariables(def);
+    if (!current.some((v) => v?.name === from)) return def;
+    if (current.some((v) => v?.name === to)) return def;   // a name is unique
+    return { ...def, variables: current.map((v) => (v?.name === from ? { ...v, name: to } : v)) };
+}
+
+/**
+ * Remove a variable. Removing the LAST one deletes the key entirely, so a
+ * created-then-deleted round trip is byte-clean (mirrors updateDesign(def, null)).
+ */
+export function removeVariable(def: AppDefinition | null, name: string) {
+    const current = listVariables(def);
+    const next = current.filter((v) => v?.name !== name);
+    if (next.length === current.length) return def;
+    if (next.length === 0) {
+        if (!def) return def;
+        const { variables: _dropped, ...rest } = def;
+        return rest;
+    }
+    return { ...def, variables: next };
+}
+
+/** Cheap equality for a variable field (defaults may be objects or arrays). */
+function shallowSame(a: unknown, b: unknown) {
+    if (a === b) return true;
+    if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false;
+    try { return JSON.stringify(a) === JSON.stringify(b); } catch { return false; }
+}
+
+/**
+ * Is a screen/node visible to `roleKey` under the presentational gate?
+ * A missing/empty visibleToRoles means "everyone"; a null/blank roleKey or the
+ * owner sentinel means "no gating" (full view). Pure — the renderer uses this
+ * for the editor's view-as-role preview (row security is the real boundary).
+ */
+export function isVisibleToRole(nodeOrScreen: { visibleToRoles?: string[] } | null | undefined, roleKey: string | null | undefined) {
+    if (!roleKey || roleKey === 'owner') return true;
+    const gate = nodeOrScreen && nodeOrScreen.visibleToRoles;
+    if (!Array.isArray(gate) || gate.length === 0) return true;
+    return gate.includes(roleKey);
+}
+
+// ---------------------------------------------------------------------------
+// AI browsing (theme/meta/design/nav are shared, see the header)
+// ---------------------------------------------------------------------------
+
+/**
+ * Turn AI browsing on or off for the app, and set the domains it may reach.
+ *
+ * Deliberately NOT reachable from the builder tool surface (see
+ * server/appStudio/builderTools/schemas.js): the AI that writes an app's steps
+ * must never be able to grant itself a browser. This is the human owner's
+ * switch, and it lives in App settings for that reason.
+ *
+ * Passing null removes the key entirely, so an app that never wanted browsing
+ * canonicalizes exactly as it did before the feature existed.
+ */
+export function updateAiBrowsing(def: AppDefinition, patch: { enabled?: boolean; allowedDomains?: string[]; }) {
+    if (patch === null) {
+        if (!('aiBrowsing' in def)) return def;
+        const { aiBrowsing: _dropped, ...rest } = def;
+        return rest;
+    }
+    if (!patch || typeof patch !== 'object' || isNoopPatch(def.aiBrowsing || {}, patch)) return def;
+    return { ...def, aiBrowsing: { ...(def.aiBrowsing || {}), ...patch } };
+}
+
+// ---------------------------------------------------------------------------
+// Screen / section ops
+// ---------------------------------------------------------------------------
+
+/**
+ * Drop the navigate steps that target `screenId` from a sequence's step list,
+ * recursing branch bodies (condition then/else, loop steps, switch cases and
+ * default) — same shapes canonicalize.js walks server-side.
+ */
+function stripNavigateSteps(steps: Step[] | undefined, screenId: string): Step[] | undefined {
+    if (!Array.isArray(steps)) return steps;
+    let dirty = false;
+    const next: Step[] = [];
+    for (const step of steps) {
+        if (!step || typeof step !== 'object') { next.push(step); continue; }
+        if (step.kind === 'navigate' && step.screenId === screenId) { dirty = true; continue; }
+        let copy = step;
+        for (const key of ['then', 'else', 'steps', 'default'] as const) {
+            const branch = stripNavigateSteps(step[key], screenId);
+            if (branch !== step[key]) copy = { ...copy, [key]: branch };
+        }
+        if (Array.isArray(step.cases)) {
+            let casesDirty = false;
+            const cases = step.cases.map((c: { steps?: Step[] }) => {
+                if (!c || typeof c !== 'object') return c;
+                const branch = stripNavigateSteps(c.steps, screenId);
+                if (branch === c.steps) return c;
+                casesDirty = true;
+                return { ...c, steps: branch };
+            });
+            if (casesDirty) copy = { ...copy, cases };
+        }
+        if (copy !== step) dirty = true;
+        next.push(copy);
+    }
+    return dirty ? next : steps;
+}
+
+/** Strip effects' navigateTo + sequence navigate steps aimed at `screenId`. */
+function stripScreenRefs(actions: Record<string, AppAction> | undefined, screenId: string) {
+    let dirty = false;
+    const next: Record<string, AppAction> = {};
+    for (const [id, action] of Object.entries(actions || {})) {
+        let copy = action;
+        if (action && typeof action === 'object') {
+            for (const slot of ['onSuccess', 'onError'] as const) {
+                const effects = copy[slot];
+                if (effects && typeof effects === 'object' && effects.navigateTo === screenId) {
+                    const { navigateTo: _gone, ...rest } = effects;
+                    copy = { ...copy, [slot]: rest };
+                }
+            }
+            const steps = stripNavigateSteps(copy.steps as Step[] | undefined, screenId);
+            if (steps !== copy.steps) copy = { ...copy, steps };
+        }
+        if (copy !== action) dirty = true;
+        next[id] = copy;
+    }
+    return dirty ? next : actions;
+}
+
+/**
+ * Remove a screen. Refuses (same reference) when it is the last one; repoints
+ * homeScreenId at the first remaining screen if it targeted the removed one,
+ * and strips every navigate reference to it — a navigate ACTION aimed at the
+ * screen goes (taking its event wiring with it, via removeAction), as do
+ * onSuccess/onError navigateTo and navigate steps inside sequences. A dangling
+ * screen reference is a hard validation error server-side, so leaving one
+ * behind makes every later save fail.
+ */
+export function removeScreen(def: AppDefinition, screenId: string) {
+    const screens = def.screens || [];
+    if (screens.length <= 1 || !screens.some((s) => s.id === screenId)) return def;
+    const remaining = screens.filter((s) => s.id !== screenId);
+    let next = { ...def, screens: remaining };
+    if (def.homeScreenId === screenId) next.homeScreenId = remaining[0].id;
+    for (const [actionId, action] of Object.entries(next.actions || {})) {
+        if (action && action.kind === 'navigate' && action.screenId === screenId) {
+            next = removeAction(next, actionId);
+        }
+    }
+    const actions = stripScreenRefs(next.actions, screenId);
+    return actions === next.actions ? next : { ...next, actions };
+}
+
+/**
+ * Remove a section. Screens always keep at least one section: removing the
+ * only section replaces it with a fresh empty one instead.
+ */
+export function removeSection(def: AppDefinition, sectionId: string) {
+    const screens = def.screens || [];
+    for (let s = 0; s < screens.length; s++) {
+        const screen = screens[s];
+        const sections = screen.sections || [];
+        if (!sections.some((sec: AppSection) => sec.id === sectionId)) continue;
+        const remaining = sections.filter((sec: AppSection) => sec.id !== sectionId);
+        const nextScreens = screens.slice();
+        nextScreens[s] = {
+            ...screen,
+            sections: remaining.length ? remaining : [emptySection(collectIds(def))],
+        };
+        return { ...def, screens: nextScreens };
+    }
+    return def;
+}
+
+// ---------------------------------------------------------------------------
+// Action ops
+// ---------------------------------------------------------------------------
+
+/**
+ * Remove an action and strip EVERY reference to it that a node can carry.
+ *
+ * Dat waren er lang maar twee: `onClick` en `onSubmit`. De overige vijf events
+ * (onRowClick, onRowSelect, onCardMove, onChange, onDecided) en de zes
+ * actie-oppervlakken (rowActions, itemActions, bulkActions, toolbarActions,
+ * props.addRowActionId, props.columns[].actionId) bleven hangen — en een
+ * hangende verwijzing is serverzijdig een HARDE fout (`event.action_unresolved`,
+ * validate/nodes.js), dus 422 op PUT /:id/definition, useAppAutosave dat zijn
+ * basislijn niet verzet, en elke volgende toetsaanslag die dezelfde afgewezen
+ * save opnieuw afvuurt. Precies de vastloper die de doc van `removeNode`
+ * hierboven zegt te hebben opgelost: een dialoog verwijderen jamde de hele
+ * editor met een fout over een component dat niet meer bestond.
+ *
+ * De lijst events komt uit NODE_EVENTS — één lijst, zodat een event dat daar
+ * bijkomt hier niet vergeten kan worden. De oppervlakken staan hieronder
+ * uitgeschreven in dezelfde volgorde als collectReferencedActions op de server.
+ */
+const NODE_ACTION_LISTS = ['rowActions', 'itemActions', 'bulkActions', 'toolbarActions'];
+
+/**
+ * De zes actie-oppervlakken van één node, zonder deze actie — of `null` als er
+ * niets naar wees.
+ *
+ * Een LIJST-entry gaat er HELEMAAL uit: een rijknop zonder actie is een knop die
+ * niets doet, en die stilletjes laten staan is dezelfde stilte als een hangende
+ * verwijzing. Een KOLOM blijft wel bestaan (hij toont een waarde) en raakt
+ * alleen zijn actie kwijt.
+ */
+function propsWithoutAction(props: Record<string, unknown> | null | undefined, actionId: string) {
+    if (!props || typeof props !== 'object') return null;
+    let dirty = false;
+    const next = { ...props };
+    for (const key of NODE_ACTION_LISTS) {
+        const list = Array.isArray(props[key]) ? props[key] : null;
+        if (!list || !list.some((e) => e && e.actionId === actionId)) continue;
+        next[key] = list.filter((e) => !e || e.actionId !== actionId);
+        dirty = true;
+    }
+    if (props.addRowActionId === actionId) { delete next.addRowActionId; dirty = true; }
+    const columns = Array.isArray(props.columns) ? props.columns : null;
+    if (columns && columns.some((c) => c && c.actionId === actionId)) {
+        next.columns = columns.map((col) => {
+            if (!col || col.actionId !== actionId) return col;
+            const { actionId: _gone, ...rest } = col;
+            return rest;
+        });
+        dirty = true;
+    }
+    return dirty ? next : null;
+}
+
+export function removeAction(def: AppDefinition, actionId: string | null) {
+    if (!def.actions || actionId === null || !(actionId in def.actions)) return def;
+    const actions = { ...def.actions };
+    delete actions[actionId];
+    return mapAllNodes({ ...def, actions }, (node: AppNode) => {
+        const events = NODE_EVENTS.filter((ev) => node[ev] === actionId);
+        const props = propsWithoutAction(node.props, actionId);
+        if (!events.length && !props) return node;
+        const copy = { ...node };
+        for (const ev of events) delete copy[ev];
+        if (props) copy.props = props;
+        return copy;
+    });
+}
+
+// ---------------------------------------------------------------------------
+// ensureIds — repair AI-generated / imported definitions
+// ---------------------------------------------------------------------------
+
+/**
+ * Guarantee every screen/section/component/action has a valid, globally
+ * unique id (missing, malformed or duplicate ids get regenerated; the FIRST
+ * occurrence of a duplicate keeps it). Internal references are rewritten
+ * when the mapping old→new is unambiguous: homeScreenId, node onClick/
+ * onSubmit, navigate.screenId (incl. effects navigateTo) and actionResult
+ * bindings' actionId. Returns { def, changed }; same reference when clean.
+ */
+export function ensureIds(def: AppDefinition) {
+    const seen = new Set<string>();
+    const AMBIGUOUS = Symbol('ambiguous');
+    const screenRemap = new Map<string, string | typeof AMBIGUOUS>(); // oldId -> newId | AMBIGUOUS
+    const actionRemap = new Map<string, string | typeof AMBIGUOUS>();
+    let changed = false;
+    const claim = (id: string | undefined, kind: string, remap: Map<string, string | typeof AMBIGUOUS> | null) => {
+        if (typeof id === 'string' && ID_RE.test(id) && !seen.has(id)) {
+            seen.add(id);
+            return id;
+        }
+        const fresh = uniqueId(kind, seen);
+        changed = true;
+        if (remap && typeof id === 'string' && id) {
+            remap.set(id, remap.has(id) ? AMBIGUOUS : fresh);
+        }
+        return fresh;
+    };
+
+    // Pass 1 — claim/regenerate ids top-down (structural sharing throughout).
+    const claimTree = (children: AppNode[] | undefined): AppNode[] | undefined => {
+        let dirty = false;
+        const next = (children || []).map((child) => {
+            const id = claim(child.id, 'component', null);
+            const kids = Array.isArray(child.children) ? claimTree(child.children) : child.children;
+            if (id === child.id && kids === child.children) return child;
+            dirty = true;
+            const node = { ...child, id };
+            if (kids !== child.children) node.children = kids;
+            return node;
+        });
+        return dirty ? next : children;
+    };
+    let screensDirty = false;
+    const claimedScreens = (def.screens || []).map((screen) => {
+        const id = claim(screen.id, 'screen', screenRemap);
+        let sectionsDirty = false;
+        const sections = (screen.sections || []).map((section) => {
+            const sid = claim(section.id, 'section', null);
+            const children = claimTree(section.children);
+            if (sid === section.id && children === section.children) return section;
+            sectionsDirty = true;
+            const next = { ...section, id: sid };
+            if (children !== section.children) next.children = children;
+            return next;
+        });
+        if (id === screen.id && !sectionsDirty) return screen;
+        screensDirty = true;
+        return { ...screen, id, sections: sectionsDirty ? sections : screen.sections };
+    });
+    let actionsDirty = false;
+    const actions: Record<string, AppAction> = {};
+    for (const [key, action] of Object.entries(def.actions || {})) {
+        const id = claim(key, 'action', actionRemap);
+        if (id !== key) actionsDirty = true;
+        actions[id] = action;
+    }
+
+    // A remap is only safe when the old id maps to exactly one new id AND is
+    // no longer in use (duplicates keep their first occurrence — references
+    // to a duplicated id still resolve, so they must not be rewritten).
+    const resolve = (remap: Map<string, string | typeof AMBIGUOUS>) => {
+        const out = new Map<unknown, string>();
+        for (const [oldId, mapped] of remap) {
+            if (mapped !== AMBIGUOUS && !seen.has(oldId)) out.set(oldId, mapped);
+        }
+        return out;
+    };
+    const screenMap = resolve(screenRemap);
+    const actionMap = resolve(actionRemap);
+
+    // Pass 2 — rewrite references (structural sharing continues: mapAllNodes
+    // and the loops below return original objects when nothing changes).
+    let next: AppDefinition = {
+        ...def,
+        screens: screensDirty ? claimedScreens : def.screens,
+        actions: actionsDirty ? actions : def.actions,
+    };
+    if (actionMap.size) {
+        next = mapAllNodes(next, (node: AppNode) => {
+            let copy = null as AppNode | null;
+            const ensure = () => (copy = copy || { ...node });
+            for (const event of ['onClick', 'onSubmit']) {
+                if (actionMap.has(node[event])) ensure()[event] = actionMap.get(node[event]);
+            }
+            // actionResult bindings live as direct prop values.
+            for (const [key, value] of Object.entries(node.props || {}) as [string, ActionResultBinding | string | number | boolean | null | undefined][]) {
+                if (value && typeof value === 'object' && value.kind === 'actionResult'
+                    && actionMap.has(value.actionId)) {
+                    ensure().props = { ...(copy?.props || node.props), [key]: { ...value, actionId: actionMap.get(value.actionId) } };
+                }
+            }
+            if (copy) changed = true;
+            return copy || node;
+        });
+    }
+    if (screenMap.size) {
+        let refDirty = false;
+        const rewritten: Record<string, AppAction> = {};
+        for (const [id, action] of Object.entries(next.actions || {})) {
+            let copy = action;
+            if (action.kind === 'navigate' && screenMap.has(action.screenId)) {
+                copy = { ...copy, screenId: screenMap.get(action.screenId) };
+            }
+            for (const slot of ['onSuccess', 'onError'] as const) {
+                if (copy[slot] && screenMap.has(copy[slot].navigateTo)) {
+                    copy = { ...copy, [slot]: { ...copy[slot], navigateTo: screenMap.get(copy[slot].navigateTo) } };
+                }
+            }
+            if (copy !== action) refDirty = true;
+            rewritten[id] = copy;
+        }
+        if (refDirty) {
+            next = { ...next, actions: rewritten };
+            changed = true;
+        }
+    }
+
+    // homeScreenId: follow the remap; if it still points nowhere, fall back
+    // to the first screen so imported apps always have a renderable home.
+    let homeScreenId = def.homeScreenId;
+    if (screenMap.has(homeScreenId)) homeScreenId = screenMap.get(homeScreenId);
+    const finalScreens = next.screens || [];
+    if (!finalScreens.some((s) => s.id === homeScreenId) && finalScreens.length) {
+        homeScreenId = finalScreens[0].id;
+    }
+    if (homeScreenId !== def.homeScreenId) {
+        next = { ...next, homeScreenId };
+        changed = true;
+    }
+    return changed ? { def: next, changed: true } : { def, changed: false };
+}

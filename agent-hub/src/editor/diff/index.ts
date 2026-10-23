@@ -21,8 +21,8 @@
  * HTML entry point takes the DOMParser like htmlToAst), bundled for the
  * server, which uses the statistics for version records.
  */
-import { markdownToAst } from '../serialization/mdToAst.js';
-import { htmlToAst } from '../serialization/htmlToAst.js';
+import { markdownToAst } from '../serialization/mdToAst';
+import { htmlToAst } from '../serialization/htmlToAst';
 import { canonicalAttrs, isBlockAtomType, isTextblockType, type AstNode } from '../collab/ySchema';
 import { diffHunks } from './sequence';
 import { flatten, shellOf, unitBag, unitTokens, type Unit } from './flatten';
@@ -94,7 +94,7 @@ export function diffDocs(before: AstNode | null | undefined, after: AstNode | nu
 }
 
 /** Compare two HTML bodies (as stored for notebooks and pages). */
-export function diffHtml(beforeHtml: string, afterHtml: string, DOMParserImpl?: unknown, opts?: DiffOptions): DocDiff {
+export function diffHtml(beforeHtml: string, afterHtml: string, DOMParserImpl?: typeof DOMParser, opts?: DiffOptions): DocDiff {
     return diffDocs(htmlToAst(beforeHtml || '', DOMParserImpl) as AstNode, htmlToAst(afterHtml || '', DOMParserImpl) as AstNode, opts);
 }
 

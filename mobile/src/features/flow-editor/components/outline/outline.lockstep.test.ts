@@ -27,7 +27,7 @@ const webResult = require(`${FLOW}/stepResultChip.ts`);
 // Loaded as text: the file imports lucide-react through nodeTypeColors, which
 // the app's own node_modules (all that CI installs for mobile) does not hold.
 // aiStepVariant uses none of its imports, so they are stubbed.
-const webAiTools = loadWebModule<{ aiStepVariant: (step: unknown) => string }>('components/automation/Builder/flow/aiToolNodes.js', {
+const webAiTools = loadWebModule<{ aiStepVariant: (step: unknown) => string }>('components/automation/Builder/flow/aiToolNodes.ts', {
     cardHeightForPorts: () => 0,
     CARD_H: 0,
     routePorts: () => [],
@@ -109,7 +109,7 @@ describe('the card glyphs', () => {
     });
 
     it('draws the datatable operations, the trigger kinds and the app events as TriggerNode and DatatableNode do', () => {
-        const table = read('nodes/DatatableNode.jsx');
+        const table = read('nodes/DatatableNode.tsx');
         for (const [op, icon] of Object.entries(DATATABLE_OP_ICON)) expect(table).toMatch(new RegExp(`${op}: ${icon},`));
         const trigger = read('nodes/TriggerNode.tsx');
         for (const [kind, icon] of Object.entries(TRIGGER_ICON)) expect(trigger).toMatch(new RegExp(`${kind}:\\s+${icon},`));

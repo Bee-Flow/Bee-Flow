@@ -34,7 +34,7 @@ import {
     writtenWords,
 } from './complianceView';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Playbooks/stages/complianceView.js');
+const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Playbooks/stages/complianceView.ts');
 const describeIfWeb = fs.existsSync(WEB) ? describe : describe.skip;
 
 type Fn = (...args: unknown[]) => unknown;

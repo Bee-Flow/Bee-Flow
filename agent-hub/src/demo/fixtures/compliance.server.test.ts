@@ -230,13 +230,13 @@ describe('compliance demo — collaborative projects in the processing register'
     it('recording a project re-judges its check and adds a link to the evidence chain; removing an absent record is a 404', () => {
         const c = ctx();
         const row = () => c.state.checks.find((x: Row) => x.check_id === 'GDPR-Art30-project-personal-data' && x.scope_id === 'project:prj_makelaars');
-        expect(row().status).toBe('warn');
+        expect(row()?.status).toBe('warn');
         const before = c.state.evidence.length;
         const bad = routes['PUT /api/compliance/ropa/projects/:projectId']({ ...c, params: { projectId: 'prj_makelaars' }, body: { lawful_basis: 'because' } }) as Response;
         expect(bad.status).toBe(400);
         const saved = routes['PUT /api/compliance/ropa/projects/:projectId']({ ...c, params: { projectId: 'prj_makelaars' }, body: { lawful_basis: 'legitimate_interests', purpose: 'Broker coordination' } }) as { registration: Row };
         expect(saved.registration).toMatchObject({ subject_id: 'prj_makelaars', lawful_basis: 'legitimate_interests' });
-        expect(row().status).toBe('pass');
+        expect(row()?.status).toBe('pass');
         expect(c.state.evidence.length).toBe(before + 1);
         expect((routes['GET /api/compliance/ropa'](c) as { activities: Row[] }).activities.some(a => a.activity_id === 'project:prj_makelaars')).toBe(true);
         expect((routes['DELETE /api/compliance/ropa/projects/:projectId']({ ...c, params: { projectId: 'prj_makelaars' } }) as Row).removed).toBe(true);
@@ -336,7 +336,7 @@ describe('compliance demo — the register findings of compliance/attention.js',
 
     it('an expired self-assessment cites the article its outcome rests on, Art. 6 by default', () => {
         const c = ctx();
-        const expired = (c.state.aiAct as Row[]).find(a => ms(a.expires_at) < Date.now()) as Row;
+        const expired = c.state.aiAct.find(a => ms(a.expires_at) < Date.now()) as (typeof c.state.aiAct)[number];
         const refOf = (outcome: string) => {
             expired.outcome = outcome;
             const item = attention(c).find(i => i.code === 'ai_act_attestation_expired');

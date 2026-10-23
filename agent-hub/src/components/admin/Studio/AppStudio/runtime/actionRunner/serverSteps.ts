@@ -7,6 +7,7 @@ import { parseSseStream } from '../sseStream';
 import { BROWSE_STEP_DEADLINE_MS, STEP_DEADLINE_MS, quotaToast, readJson } from './core';
 import type { EffectObject, Translate, Vars } from './core';
 import type { RunnerContext } from './runnerContext';
+import type { BrowseEvent } from '../BrowserRunContext';
 import { errorName } from '../../../../../../utils/caughtError';
 
 /** A running sequence's state, threaded (and mutated) through its steps. */
@@ -75,7 +76,7 @@ async function readBrowseStream(res: Response, actionId: string, publish: Runner
     let final: unknown = null;
     let failed: unknown = null;
     await parseSseStream(res, (raw) => {
-        const evt = raw as Record<string, unknown>;
+        const evt = raw as BrowseEvent & Record<string, unknown>;
         if (evt.type === 'result') {
             if (evt.ok) final = evt.result || {};
             else failed = evt.error || tr('studio_apps_runtime.actions.browse_failed', 'The browse step failed.');

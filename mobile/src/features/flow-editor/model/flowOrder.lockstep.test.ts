@@ -16,7 +16,7 @@ import type { FlowDefinition, FlowStep } from './types';
 const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
 const REPO = path.resolve(__dirname, '../../../../..');
 /* eslint-disable @typescript-eslint/no-require-imports */
-const webOrder = require(`${FLOW}/flowOrder.js`);
+const webOrder = require(`${FLOW}/flowOrder.ts`);
 const webLoop = require(`${FLOW}/loopBodyEdges.ts`);
 const webTerminal = require(`${FLOW}/terminalSteps.ts`);
 const serverConstants = require(path.join(REPO, 'server/automation/validate/constants.js'));

@@ -37,7 +37,7 @@ const PII_CATEGORIES = [
 
 const DEFAULT_PII = ['Person', 'Email', 'PhoneNumber', 'Address', 'BankAccountNumber'];
 
-const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud' }: { user: { organizationId?: string; email?: string } | null; orgName?: string; onComplete?: () => void; deploymentMode?: string }) => {
+const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud' }: { user: { organizationId?: string; email?: string } | null; orgName?: string | null; onComplete?: () => void; deploymentMode?: string }) => {
     const { t } = useTranslation();
     const orgId = user?.organizationId;
     const [stepIdx, setStepIdx] = useState(0);

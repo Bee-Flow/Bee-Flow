@@ -1,0 +1,51 @@
+import { nowLocalIso, todayIso } from './localDate';
+import useTranslation from '../../../../../../hooks/useTranslation';
+import { useFormField } from '../formContext';
+import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
+import type { NodeProps } from './appNode.types';
+
+/** App Studio runtime — 'input_datetime'. Spec: server/appStudio/componentSpecs.js. */
+
+/** Seed value for defaultValue null | 'now' | 'today' | an ISO literal. */
+function seedValue(defaultValue: string | null, withTime: boolean) {
+    if (defaultValue == null) return null;
+    if (defaultValue === 'now') return withTime ? nowLocalIso() : todayIso();
+    if (defaultValue === 'today') return withTime ? `${todayIso()}T00:00` : todayIso();
+    // An ISO literal (allowIsoDate) — trim to the control's shape.
+    return withTime ? String(defaultValue).slice(0, 16) : String(defaultValue).slice(0, 10);
+}
+
+interface InputDatetimeProps {
+    name?: string;
+    label?: string;
+    required?: boolean;
+    withTime?: boolean;
+    defaultValue?: string | null;
+}
+
+export default function AppInputDatetime({ node }: NodeProps<InputDatetimeProps>) {
+    const { t } = useTranslation();
+    const {
+        name, label = t('studio_apps_runtime.inputs.when', 'When'), required = false, withTime = true, defaultValue = null,
+    } = node.props || {};
+    const seeded = seedValue(defaultValue, withTime);
+    const { value, setValue, error } = useFormField<string>({ name, defaultValue: seeded, required, label });
+    const id = `${node.id}-input`;
+
+    return (
+        <Field id={id} label={label} required={required} error={error}>
+            <input
+                id={id}
+                name={name}
+                type={withTime ? 'datetime-local' : 'date'}
+                value={value ?? ''}
+                aria-required={required || undefined}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? `${id}-error` : undefined}
+                onChange={(e) => setValue(e.target.value || null)}
+                className={INPUT_CLASS}
+                style={inputStyle(error)}
+            />
+        </Field>
+    );
+}

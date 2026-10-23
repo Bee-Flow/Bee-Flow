@@ -6,7 +6,7 @@
  * ordinary transform: one undo step, and synced to co-editors like typing.
  */
 import { isCode } from '../model/schema.js';
-import { getNode, updateAt } from './doc.js';
+import { getNode, updateAt } from './doc';
 import { inlineToTokens, textTokens, tokensToInline } from './inline.js';
 import type { InlineToken } from './inline.js';
 import { buildTextIndex, foldCase, posAtOffset, type ModelPos } from './textIndex';

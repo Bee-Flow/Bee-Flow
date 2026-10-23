@@ -82,7 +82,7 @@ describe('EditorHeader — the responsive fold stays wired', () => {
     it('the publish pill folds through StatusActionPill, which knows "edhead"', async () => {
         const src = await readHeader();
         expect(src).toMatch(/containerName="edhead"/);
-        const pill = await readShared('StatusActionPill.jsx');
+        const pill = await readShared('StatusActionPill.tsx');
         expect(pill).toMatch(/edhead:\s*Object\.freeze\(\{[^}]*@max-\[1440px\]\/edhead:hidden/);
         expect(pill).toMatch(/edhead:\s*Object\.freeze\(\{[^}]*@max-\[1180px\]\/edhead:hidden/);
     });
@@ -90,7 +90,7 @@ describe('EditorHeader — the responsive fold stays wired', () => {
     it('row 2 wraps, so the unfolded ribbon takes its own line', async () => {
         const row = await readSource('EditorToolRow.tsx');
         expect(row).toMatch(/flex-wrap/);
-        const ribbon = await readSource('ComponentRibbon.jsx');
+        const ribbon = await readSource('ComponentRibbon.tsx');
         expect(ribbon).toMatch(/basis-full/);
     });
 

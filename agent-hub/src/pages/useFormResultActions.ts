@@ -6,7 +6,7 @@ type ResultAction = () => Promise<void>;
 interface Options {
     /** The form's own API base: `${VITE_API_URL}/api/automation/form`. */
     api: string;
-    token: string;
+    token: string | null;
     /** The journey's session id, kept after the closing page drops it from the URL. */
     sessionRef: RefObject<string | null>;
     /** The closing page; its title names the downloaded file. */
@@ -35,7 +35,7 @@ export default function useFormResultActions({ api, token, sessionRef, ending, a
     const resultUrl = useCallback((path: string) => {
         const sid = sessionRef.current;
         if (!sid) throw new Error('This result is no longer available.');
-        return `${api}/${encodeURIComponent(token)}/s/${encodeURIComponent(sid)}/${path}`;
+        return `${api}/${encodeURIComponent(String(token))}/s/${encodeURIComponent(sid)}/${path}`;
     }, [api, token, sessionRef]);
 
     /** POST, then go to what was made. A hard navigation: this page has no router of its own. */

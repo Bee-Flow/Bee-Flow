@@ -43,7 +43,7 @@ import { dataCacheKey } from './resolveBinding';
  * The shared expression-scope root: the object every formula evaluates
  * against, identical in shape on the client, in the inspector and on the server.
  */
-export interface ExpressionScope {
+export type ExpressionScope = {
     actions: Record<string, unknown>;
     form: Record<string, unknown>;
     forms: Record<string, unknown>;
@@ -58,7 +58,7 @@ export interface ExpressionScope {
     connectors: Record<string, unknown>;
     now: string;
     today: string;
-}
+};
 
 /** What buildScope reads; every part is optional. */
 export interface BuildScopeInput {

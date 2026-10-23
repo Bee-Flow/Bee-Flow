@@ -153,7 +153,7 @@ export function BadgeSlot({ badgeText, badge, badges }: { badgeText: string | nu
  * purpose: a warning-only node must not read as broken. The card itself stays
  * neutral; the message lives in the tooltip and in the step editor.
  */
-export function ValidationDot({ issues, errCount, stepLabelById }: { issues: StepIssues | undefined; errCount: number; stepLabelById: unknown }) {
+export function ValidationDot({ issues, errCount, stepLabelById }: { issues: StepIssues | undefined; errCount: number; stepLabelById: Map<string, string> | null | undefined }) {
     return (
         <span
             className="absolute rounded-full border-2 border-[var(--bg-primary)]"
@@ -183,7 +183,7 @@ export function ValidationDot({ issues, errCount, stepLabelById }: { issues: Ste
  * asks for, and this tooltip is the only place on the card with room for it;
  * deleting it would cap the power user to serve the beginner.
  */
-function validationDotTitle(issues: StepIssues | undefined, stepLabelById: unknown): string {
+function validationDotTitle(issues: StepIssues | undefined, stepLabelById: Map<string, string> | null | undefined): string {
     return [...(issues?.errors || []), ...(issues?.warnings || [])]
         .map((r: StepIssue) => {
             const sentence = humanizeIssueText(r.message, stepLabelById) || r.message || '';

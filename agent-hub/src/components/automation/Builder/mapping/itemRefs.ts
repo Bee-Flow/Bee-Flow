@@ -12,7 +12,7 @@ import type { Tok } from './pathTokens';
 import { suggestItemVar, uniqueItemVar } from './upstream/loops';
 
 export interface ForEachParent { itemVar: string; overRef: string }
-export interface ForEachConfig { overRef?: string; itemVar?: string; maxIterations?: number; parents?: ForEachParent[]; [k: string]: unknown }
+export interface ForEachConfig { overRef?: string; itemVar?: string; maxIterations?: number; parents?: ForEachParent[] }
 
 export type Binding = { kind?: string; path?: string; value?: unknown };
 

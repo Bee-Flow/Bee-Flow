@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { markdownToAst } from './mdToAst.js';
-import { astToMarkdown } from './astToMd.js';
+import { markdownToAst } from './mdToAst';
+import { astToMarkdown } from './astToMd';
 import { astToHtml } from './astToHtml.js';
 import { isFormulaCell } from '../engine/formula.js';
 

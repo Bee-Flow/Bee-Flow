@@ -4,6 +4,7 @@ import { setScopedGraph } from './flow/flowletScope';
 import { normalizeDefinitionShape } from './flow/normalizeDefinition';
 import useAutomationDraftHistory from './flow/useAutomationDraftHistory';
 import useVisualSave from './useVisualSave';
+import type { SavingState } from './header/LiveActions';
 
 
 // A fresh Step's root graph: a single layer_input trigger (its input contract)
@@ -65,7 +66,7 @@ export default function useAutomationPersistence({
     // Inline-rename saving state. Three transitions:
     //   idle → saving → saved → idle (after 1.5s)
     //   idle → saving → error
-    const [savingState, setSavingState] = useState('idle');
+    const [savingState, setSavingState] = useState<SavingState>('idle');
     const savedTimer = useRef<any>(null);
 
     // Unsaved-changes guard. The builder persists every mutation to the

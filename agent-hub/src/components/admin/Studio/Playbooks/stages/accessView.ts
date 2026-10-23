@@ -184,7 +184,7 @@ export const ASK_EXAMPLES = Object.freeze([
 ]);
 
 /** People worth showing without searching: the ones who already have a role. */
-export function peopleToShow(users: Named[] | null | undefined, { members = [], plan = null, query = '' }: { members?: AccessMember[]; plan?: AccessPlan | null; query?: string }, limit = 8): Named[] {
+export function peopleToShow(users: Named[] | null | undefined, { members = [], plan = null, query = '' }: { members?: { userId?: string }[]; plan?: AccessPlan | null; query?: string }, limit = 8): Named[] {
     const list = Array.isArray(users) ? users : [];
     const q = String(query || '').trim().toLowerCase();
     const has = new Set([

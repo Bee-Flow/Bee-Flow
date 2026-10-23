@@ -152,7 +152,7 @@ export interface UseEventWiringOptions {
     automations: WiredAutomation[] | null;
     setAutomations: (automations: WiredAutomation[]) => void;
     /** Automation id → its title, for the action labels. */
-    titleFor?: ((automationId?: string) => string | null) | null;
+    titleFor?: ((automationId?: string | null) => string | null) | null;
     /** Without it there is no whole appRef to point at — see below. */
     appId?: string | null;
 }

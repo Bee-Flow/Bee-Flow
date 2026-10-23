@@ -17,7 +17,7 @@ interface AutomationLike {
     liveAt?: string | null;
 }
 
-interface Props {
+export interface Props {
     automation: AutomationLike | null | undefined;
     /** Called with the updated automation row after a restore. */
     onRestored?: (automation: Record<string, unknown> | null) => void;

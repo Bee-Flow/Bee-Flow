@@ -121,7 +121,7 @@ describe('PublicFormRenderer.tsx and PublicFormPage.jsx', () => {
     });
 
     it('keeps the web’s pacing and thresholds', () => {
-        const page = readWeb('pages/PublicFormPage.jsx');
+        const page = readWeb('pages/PublicFormPage.tsx');
         expect(POLL_MIN_MS).toBe(Number(constText(page, 'POLL_MIN_MS')));
         expect(POLL_MAX_MS).toBe(Number(constText(page, 'POLL_MAX_MS')));
         expect(POLL_STEP_MS).toBe(Number(constText(page, 'POLL_STEP_MS')));
@@ -134,7 +134,7 @@ describe('PublicFormRenderer.tsx and PublicFormPage.jsx', () => {
 
 describe('App Studio themeVars.js', () => {
     it('maps a form’s corners and spacing as the web does', () => {
-        const src = readWeb('components/admin/Studio/AppStudio/runtime/themeVars.js');
+        const src = readWeb('components/admin/Studio/AppStudio/runtime/themeVars.ts');
         const radius = new Function(`return ${constText(src, 'RADIUS_PX')};`)() as Record<string, string>;
         const density = new Function(`return ${constText(src, 'DENSITY_MULT')};`)() as Record<string, string>;
         expect(Object.fromEntries(Object.entries(radius).map(([k, v]) => [k, parseInt(v, 10)]))).toEqual(RADIUS_PX);

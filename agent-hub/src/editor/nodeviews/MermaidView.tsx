@@ -3,9 +3,9 @@
  * Reuses the existing, TipTap-free MermaidBlock component verbatim.
  */
 import React from 'react';
-import MermaidBlock from '../../pages/documents/notebook/MermaidBlock.jsx';
+import MermaidBlock from '../../pages/documents/notebook/MermaidBlock';
 import type { DocNode } from '../model/schema.js';
-import type { EditorView } from '../engine/view.js';
+import type { EditorView } from '../engine/view';
 
 export default function MermaidView({ node, view, editable }: { node: DocNode; view: EditorView; editable?: boolean }) {
   return (

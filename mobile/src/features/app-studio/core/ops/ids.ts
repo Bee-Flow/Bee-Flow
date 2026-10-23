@@ -2,7 +2,7 @@
  * Id helpers and small shared plumbing for the definition ops.
  *
  * Port of the "Id helpers" and "Internal helpers" blocks of
- * agent-hub/src/components/admin/Studio/AppStudio/state/definitionOps.js,
+ * agent-hub/src/components/admin/Studio/AppStudio/state/definitionOps.ts,
  * which mirrors server/appStudio/componentSpecs.js (authoritative).
  * ops.lockstep.test.ts runs both on the same fixtures.
  */

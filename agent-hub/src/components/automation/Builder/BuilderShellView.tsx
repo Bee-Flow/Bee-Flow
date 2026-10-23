@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from 'react';
+import type { Props as VersionsTabProps } from './versions/VersionsTab';
 import type { BuildTabProps } from './build/buildTabTypes';
 import BuilderShellLayout from './BuilderShellLayout';
 import type { BuilderShellLayoutProps } from './BuilderShellLayout';
@@ -16,7 +17,7 @@ export interface BuilderShellViewProps {
      * import cycle, and a view importing them would join it.
      */
     BuildTab: ComponentType<BuildTabProps>;
-    VersionsTab: ComponentType<{ automation: unknown; onRestored: (row: unknown) => void }>;
+    VersionsTab: ComponentType<VersionsTabProps>;
     /** What the layout arranges (confirm, AI Act gate, diagnose panel, settings). */
     layout: LayoutBase;
     /** BuildTab's props that pass through unchanged. */
@@ -33,7 +34,7 @@ export interface BuilderShellViewProps {
     /** The Run history (or Step executions) view, ready-made; mounted hidden by the layout. */
     history: ReactNode;
     /** Version history: a restored row replaces the shell's. */
-    syncServerRow: (row: unknown) => void;
+    syncServerRow: NonNullable<VersionsTabProps['onRestored']>;
 }
 
 function noop() { /* the AI builder has no way in on a managed automation */ }

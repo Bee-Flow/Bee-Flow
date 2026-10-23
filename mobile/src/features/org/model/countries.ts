@@ -1,6 +1,6 @@
 /**
  * The billing-country picker's list: a port of the web's COUNTRIES
- * (agent-hub/src/components/admin/subscriptions/access/countries.js), ISO
+ * (agent-hub/src/components/admin/subscriptions/access/countries.ts), ISO
  * 3166-1 alpha-2 codes with English names, in the web's order. The code is
  * what PUT /auth/organizations/:id stores as `billingCountry`.
  * countries.lockstep.test.ts holds the codes and names to the web file.

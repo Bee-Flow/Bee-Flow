@@ -16,8 +16,8 @@
 
 import { describe, it, expect } from 'vitest';
 import { astToHtml } from './astToHtml.js';
-import { markdownToAst } from './mdToAst.js';
-import { htmlToAst } from './htmlToAst.js';
+import { markdownToAst } from './mdToAst';
+import { htmlToAst } from './htmlToAst';
 
 const BREAKOUT = 'a"><img src=x onerror=alert(1)>';
 

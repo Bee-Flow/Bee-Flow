@@ -3,7 +3,7 @@
  *
  * The web login is not a flat page: it is a 160° gradient from --bg-primary
  * through --bg-secondary to --bg-tertiary with four slow-pulsing accent blobs
- * over it (agent-hub/src/pages/LoginPage.jsx). Reproducing it here is not
+ * over it (agent-hub/src/pages/LoginPage.tsx). Reproducing it here is not
  * decoration for its own sake — the first screen of the app is the one that
  * says which product this is, and a flat `bgPrimary` fill reads as an
  * unfinished screen rather than as Bee Flow.

@@ -1,7 +1,7 @@
 import { errorName } from '../../utils/caughtError';
 import { createState } from '../engine/state.js';
-import { EditorView } from '../engine/view.js';
-import { htmlToAst } from '../serialization/htmlToAst.js';
+import { EditorView } from '../engine/view';
+import { htmlToAst } from '../serialization/htmlToAst';
 import type { AtomNode } from './AtomRenderer';
 import type { AtomHost, BeeEditorProps, EditorShared } from './beeEditorTypes';
 import { contentToDoc } from './contentPipeline';

@@ -56,7 +56,7 @@ const WEB: Record<string, string[]> = {
     ],
     loop: ['flow/settings/actionEditors/loopFields.jsx', 'mapping/LoopOverPicker.tsx'],
     ai: ['flow/settings/aiStepEditors.jsx', 'flow/settings/structuredOutputFields.tsx', 'flow/settings/agentStepFields.tsx', 'flow/settings/collectionEditors.jsx'],
-    shared: ['flow/settings/collectionEditors.jsx', 'mapping/FieldPicker.jsx', 'flow/settings/SetOperationsEditor.tsx'],
+    shared: ['flow/settings/collectionEditors.jsx', 'mapping/FieldPicker.tsx', 'flow/settings/SetOperationsEditor.tsx'],
     set: ['flow/settings/setEditors.jsx', 'flow/settings/SetOperationsEditor.tsx', 'flow/setOperations.ts', 'mapping/JsonTreePicker.tsx'],
     approval: [
         'flow/settings/approvalEditors.jsx',

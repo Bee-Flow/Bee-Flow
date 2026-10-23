@@ -128,12 +128,13 @@ export function toTimeseries(series: unknown): { period: string; value: number }
  * a dimension whose real value happens to BE "(none)" stays drillable.
  */
 export function toRows(arr: unknown) {
+    // `label` is null exactly when `isBlank`: the narrowing BreakdownRow states.
     return (Array.isArray(arr) ? arr : []).map((d: XYRow, i: number) => ({
         label: d.x || null,
         isBlank: !d.x,
         count: d.y || 0,
         _key: `${i}-${d.x ?? ''}`,
-    }));
+    })) as BreakdownRow[];
 }
 
 export function toDonut(arr: unknown) {
@@ -168,7 +169,6 @@ export function compare(current: unknown, previous: unknown, kind: CompareKind =
     const c = Number(current);
     const p = Number(previous);
     if (!Number.isFinite(c)) return { delta: null, display: null, state: 'none' };
-
     if (kind === 'rate' || kind === 'ratio') {
         if (!Number.isFinite(p)) return { delta: null, display: null, state: 'none' };
         const scale = kind === 'ratio' ? 100 : 1;

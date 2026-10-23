@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as Y from 'yjs';
-import { markdownToAst } from '../serialization/mdToAst.js';
-import { astToMarkdown } from '../serialization/astToMd.js';
+import { markdownToAst } from '../serialization/mdToAst';
+import { astToMarkdown } from '../serialization/astToMd';
 import { astToFragment, createYCache, fragmentToAst } from '../collab/yConvert';
 import { syncDocToFragment } from '../collab/ySync';
 import { posFromRelative, decodeRelpos } from '../collab/relpos';

@@ -5,11 +5,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { loadLearnManifest, resetLearnManifestCache } from '../../../components/onboarding/learnMedia';
 import CourseView from './CourseView';
+import type { TFn } from './bits';
+import type { LessonDoc } from '../../../components/onboarding/lessons.types';
 
-const t = (_key: string, fallback: string) => fallback;
+const t: TFn = (_key, fallback) => String(fallback);
 
-const lesson = {
+const lesson: LessonDoc = {
     id: 'video-course-lesson',
+    group: 'x', icon: 'x', gate: {},
     titleKey: 'x.title', titleFallback: 'Agents',
     descKey: 'x.desc', descFallback: 'What an agent is',
     estMinutes: 3,
@@ -24,7 +27,7 @@ function renderCourse() {
     render(
         <CourseView
             t={t} locale="en"
-            course={{ id: 'agents', titleKey: 'c.title', titleFallback: 'Agents', descKey: 'c.desc', descFallback: 'Course' }}
+            course={{ id: 'agents', titleKey: 'c.title', titleFallback: 'Agents', descKey: 'c.desc', descFallback: 'Course', icon: 'x', level: 'x', track: null, lessonIds: [], prereqCourseIds: [], badge: null }}
             lessons={[lesson]} progressMap={{}} completedMap={{}} masteredMap={{}}
             locked={false} lockedReason="" practiceableIds={new Set()} reviewBuilding={false}
             onBack={() => {}} onStartLesson={() => {}} onPractice={() => {}}

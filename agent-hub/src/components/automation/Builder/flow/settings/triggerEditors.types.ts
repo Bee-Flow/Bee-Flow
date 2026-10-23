@@ -25,13 +25,12 @@ export type SetDraftField = (key: string, value: unknown) => void;
 
 /** The saved automation as the trigger forms read it (its id and its triggers). */
 export interface TriggerAutomation {
-    id?: string;
+    id?: string | null;
     definition?: {
         trigger?: { id?: string; kind?: string; [key: string]: unknown } | null;
         triggers?: Array<{ id?: string; kind?: string; [key: string]: unknown }>;
         [key: string]: unknown;
     };
-    [key: string]: unknown;
 }
 
 /** One event an app can trigger on. */

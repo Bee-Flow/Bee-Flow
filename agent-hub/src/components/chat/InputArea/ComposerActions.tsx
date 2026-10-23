@@ -37,10 +37,10 @@ interface ComposerActionsProps {
     onMemoryModeChange: (next: MemoryMode) => void;
     memoryLock?: MemoryLock;
     dictation: ReturnType<typeof useDictation>;
-    simpleMode: boolean;
+    simpleMode?: boolean;
     compact: boolean;
-    isLoading: boolean;
-    onStopGenerating: () => void;
+    isLoading?: boolean;
+    onStopGenerating?: () => void;
     nothingToSend: boolean;
     voiceReady: boolean;
     onStartVoiceMode: () => void;

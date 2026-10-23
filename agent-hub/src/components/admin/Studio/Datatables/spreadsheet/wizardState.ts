@@ -95,10 +95,10 @@ export interface SheetSelection {
 
 /** A relation between two selected sheets, columns addressed by their 0-based `col`. */
 export interface SheetRelation {
-    from: SheetSelection;
-    localColumn: WizardColumn;
-    to: SheetSelection;
-    targetColumn: WizardColumn;
+    from: Pick<SheetSelection, 'provider' | 'fileId' | 'sheet'>;
+    localColumn: Pick<WizardColumn, 'col'>;
+    to: Pick<SheetSelection, 'provider' | 'fileId' | 'sheet'>;
+    targetColumn: Pick<WizardColumn, 'col'>;
 }
 
 /** A describe the dialog fetched: in flight, failed, or the server's answer. */

@@ -12,7 +12,7 @@ const web = loadWebFunctions<{
     resolveParts: (m: unknown) => ThinkingPart[];
     computeDurationMs: (parts: unknown, m: unknown) => number | null;
     formatDuration: (ms: number | null) => string;
-}>('components/chat/MessageItem/ThinkingPanel.jsx', ['resolveParts', 'computeDurationMs', 'formatDuration']);
+}>('components/chat/MessageItem/ThinkingPanel.tsx', ['resolveParts', 'computeDurationMs', 'formatDuration']);
 
 const PARTS: ThinkingPart[] = [
     { id: 'a', text: 'one', startedAt: 1000, endedAt: 4400 },

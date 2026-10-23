@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { logger } from '../utils/logger';
 import type { BootstrapDiagnostics } from './shellScreens';
+import type { PendingNcBinding } from '../components/integrations/nextcloud/NcBindingApprovalModal';
 
 /** The parts of /auth/user the session applier reads. */
 interface AuthUserResponse {
@@ -18,7 +19,7 @@ interface AuthUserResponse {
     mfaSetupRequired?: boolean;
     ncOnboardingNeeded?: boolean;
     ncOnboardingPending?: boolean;
-    pendingNcBinding?: unknown;
+    pendingNcBinding?: PendingNcBinding | null;
     enabledIntegrations?: unknown;
     isConsumerAccount?: boolean;
     ncOrg?: unknown;
@@ -37,14 +38,14 @@ interface PermissionsResponse {
 
 interface UseAuthSessionArgs {
     setDeploymentMode: (mode: string) => void;
-    setOrgLogo: (url: string) => void;
+    setOrgLogo: (url: string | null) => void;
     setEncryptionState: (state: 'setup' | 'pin') => void;
     setNoOrganization: (value: boolean) => void;
     setPendingApproval: (value: boolean) => void;
     setMfaSetupRequired: (value: boolean) => void;
     setNcOnboardingState: (state: 'admin' | 'pending' | null) => void;
-    setNcOrgName: (name: string) => void;
-    setPendingNcBinding: (binding: unknown) => void;
+    setNcOrgName: (name: string | null) => void;
+    setPendingNcBinding: (binding: PendingNcBinding | null) => void;
     setUser: (user: Record<string, unknown>) => void;
     setIsAuthenticated: (value: boolean) => void;
     setBootstrapDiagnostics: (diagnostics: BootstrapDiagnostics) => void;

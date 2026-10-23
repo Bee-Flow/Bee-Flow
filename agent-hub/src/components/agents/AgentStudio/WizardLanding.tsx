@@ -5,7 +5,7 @@ import type { TranslateFn } from '../../../hooks/useTranslation';
 interface Props {
     t: TranslateFn;
     user: unknown;
-    onClose: (() => void) | undefined;
+    onClose: (() => void) | null | undefined;
     onBack: () => void;
     onSwitchToManual: () => void;
     onPublished: (agent: { id?: string | null } | null | undefined) => Promise<void>;

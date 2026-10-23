@@ -86,7 +86,7 @@ export interface AdminOrganization {
 /** The caller — enough of `user` to gate actions and pre-fill "my organisation". */
 export interface AdminCurrentUser {
     id?: string;
-    permissions?: string[];
+    permissions?: string[] | null;
     isAdmin?: boolean;
     role?: string;
     organizations?: string[];

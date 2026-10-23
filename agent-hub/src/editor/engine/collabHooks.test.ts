@@ -5,9 +5,9 @@
  * Without a plugin or provider the editor must behave exactly as before.
  */
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { EditorView } from './view.js';
+import { EditorView } from './view';
 import { createState } from './state.js';
-import { markdownToAst } from '../serialization/mdToAst.js';
+import { markdownToAst } from '../serialization/mdToAst';
 import { textSelection, pos } from './selection.js';
 import * as T from './transforms.js';
 

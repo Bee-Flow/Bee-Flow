@@ -80,7 +80,7 @@ describe('ScoreRing — conic ring, token-only', () => {
     });
 
     it('carries no hex colour, no --status-* token, and no SVG stroke maths', () => {
-        const src = fs.readFileSync(path.join(here, 'ScoreRing.jsx'), 'utf8');
+        const src = fs.readFileSync(path.join(here, 'ScoreRing.tsx'), 'utf8');
         expect(src).not.toMatch(/#[0-9a-f]{3,8}\b/i);
         expect(src).not.toMatch(/--status-/);
         expect(src).not.toMatch(/<svg|strokeDasharray/);

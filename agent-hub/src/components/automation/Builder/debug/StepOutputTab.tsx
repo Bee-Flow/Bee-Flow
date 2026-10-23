@@ -51,7 +51,7 @@ export interface StepOutputTabProps {
     /** Step id → label, so a warning names the step it read from, not its id. */
     stepLabelById?: Map<string, string> | null;
     /** Step id → type, so a path into a Condition's outputs names the output. */
-    stepTypeById?: Map<string, string> | null;
+    stepTypeById?: Map<string, string | undefined> | null;
     /**
      * The step works through a list as a Condition: its unit and outputs, so
      * the output opens with "Kept 3 of 4 messages" or the per-output split.

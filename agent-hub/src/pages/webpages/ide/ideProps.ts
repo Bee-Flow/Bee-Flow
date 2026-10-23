@@ -1,7 +1,9 @@
 import type useChatEngine from '../../../hooks/useChatEngine';
 import type { ChatAttachment } from '../../../hooks/useChatEngine/historyAttachment';
 import type { ChatMessage } from '../../../hooks/useChatEngine/types';
+import type { RetryModelTiers } from '../../../components/chat/MessageItem/MessageActionsRow';
 import type { PreviewSelection } from '../preview/usePreviewToken';
+import type { WebpageSource } from '../WebpageSources';
 import type { ContentSetter, ExtraContents, ExtraFileMeta, WebpageRow } from '../webpageEditorTypes';
 
 type ChatEngine = ReturnType<typeof useChatEngine>;
@@ -32,12 +34,12 @@ export interface WebpageIDEProps {
     onRenameFile?: (oldPath: string, newPath: string) => unknown;
     onDeleteFile?: (path: string) => unknown;
     onUploadAsset?: (file: File, folder?: string) => unknown;
-    sources?: unknown[];
-    onSourcesChange?: (sources: unknown[]) => void;
+    sources: WebpageSource[];
+    onSourcesChange: (sources: WebpageSource[]) => void;
     // Chat
-    chatMessages?: ChatMessage[];
+    chatMessages: ChatMessage[];
     chatLoading?: boolean;
-    onChatSend?: (text: string, attachments: ChatAttachment[]) => void;
+    onChatSend: (text: string, attachments: ChatAttachment[]) => void;
     onChatStop?: () => void;
     onChatRetry?: ChatEngine['retryMessage'];
     onChatEdit?: ChatEngine['editAndRegenerate'];
@@ -49,7 +51,7 @@ export interface WebpageIDEProps {
     onSelectionAttach?: (selection: PreviewSelection) => void;
     attachedSelection?: { text: string } | null;
     onSelectionClear?: () => void;
-    modelTiers?: unknown;
+    modelTiers: RetryModelTiers;
     selectedTier?: string;
     onTierChange?: (tier: string) => void;
     // Save
@@ -76,7 +78,7 @@ export interface WebpageIDEProps {
     turnState?: (msgId: string) => TurnState;
     onKeepTurn?: (msgId: string) => void;
     onUndoTurn?: (msgId: string) => void;
-    onShowInCode?: (file: string) => void;
+    onShowInCode?: (file?: string) => void;
     /**
      * A file the caller wants opened in the editor ('html'|'css'|'js'|
      * 'extra:<path>'), as `{ key, at }`. `at` is a monotonically rising stamp

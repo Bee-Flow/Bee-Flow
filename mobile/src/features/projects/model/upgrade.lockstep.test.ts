@@ -16,7 +16,7 @@ import type { BlueprintMeta } from './package';
 import { COMPARED_KINDS, isNewer, planRows, planTouchesNothing, readReport, updateAvailability } from './upgrade';
 
 const REPO = path.resolve(__dirname, '../../../../..');
-const WEB = fs.readFileSync(path.join(REPO, 'agent-hub/src/components/admin/Studio/Solutions/upgradeClient.jsx'), 'utf8');
+const WEB = fs.readFileSync(path.join(REPO, 'agent-hub/src/components/admin/Studio/Solutions/upgradeClient.tsx'), 'utf8');
 const SERVER = fs.readFileSync(path.join(REPO, 'server/projects/packaging/upgrade.js'), 'utf8');
 
 const setLiteral = (src: string, name: string): string[] => {

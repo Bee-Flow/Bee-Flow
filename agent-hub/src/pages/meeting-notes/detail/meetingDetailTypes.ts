@@ -1,8 +1,25 @@
 import type { DestinationRecord } from '../lib/actionDestinations';
+import type { PlayerSegment } from './player/player.types';
+
+/** A speaker of a note: the id, how long they spoke, and whatever else the server stores. */
+export interface MeetingSpeaker {
+    id: string;
+    speakingSeconds?: number;
+    speakingTime?: string;
+    [key: string]: unknown;
+}
+
+/** A chapter of a note as the server stores it. */
+export interface MeetingChapter {
+    title?: string;
+    start?: string;
+    summary?: string;
+}
 
 /** One item of a meeting's action list (core/meetingNotes/actionItems.js). */
 export interface MeetingActionItem {
-    id: string;
+    /** Absent until the server has minted it, for an item added on the client. */
+    id?: string;
     text?: string;
     assignee?: string;
     timestamp?: string;
@@ -25,9 +42,9 @@ export interface MeetingNote {
     actionItems?: MeetingActionItem[];
     decisions?: MeetingActionItem[];
     questions?: MeetingActionItem[];
-    chapters?: unknown[];
-    segments?: unknown[];
-    speakers?: unknown[];
+    chapters?: MeetingChapter[];
+    segments?: PlayerSegment[];
+    speakers?: MeetingSpeaker[];
     durationSeconds?: number;
     isOwner?: boolean;
     isPublished?: boolean;

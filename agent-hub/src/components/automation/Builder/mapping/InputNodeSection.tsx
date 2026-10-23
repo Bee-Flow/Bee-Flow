@@ -35,7 +35,7 @@ export default function InputNodeSection({
 }: {
     group: InputGroup;
     family: string | null;
-    number: number | null;
+    number: number | string | null;
     used: number;
     usedPaths: Set<string> | null;
     previewSample: unknown;

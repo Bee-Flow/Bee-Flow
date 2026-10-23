@@ -11,7 +11,7 @@ export interface Linkable {
 
 /** One storage a spreadsheet could come from, as the probe lists it. */
 export interface StorageProbe {
-    provider?: string;
+    provider: string;
     connected?: boolean;
     reason?: string;
 }

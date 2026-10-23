@@ -80,15 +80,15 @@ export default function useMeetingEdits({ data, setLocal, refresh, onChanged, of
         }
     };
 
-    const updateItem = (itemId: string, patch: (ai: MeetingActionItem) => MeetingActionItem) =>
+    const updateItem = (itemId: string | undefined, patch: (ai: MeetingActionItem) => MeetingActionItem) =>
         (data?.actionItems || []).map((ai) => (ai.id === itemId ? patch(ai) : ai));
 
-    const handleToggleActionItem = async (itemId: string) => {
+    const handleToggleActionItem = async (itemId: string | undefined) => {
         if (!data) return;
         await saveActionItems(updateItem(itemId, (ai) => ({ ...ai, done: !ai.done })));
     };
 
-    const handleEditActionItem = async (itemId: string, nextText: string) => {
+    const handleEditActionItem = async (itemId: string | undefined, nextText: string) => {
         if (!data) return;
         const cleaned = String(nextText || '').trim();
         if (!cleaned) return;
@@ -102,7 +102,7 @@ export default function useMeetingEdits({ data, setLocal, refresh, onChanged, of
      * that has to be said out loud: the automation ran, and the note lost the
      * chip that says so.
      */
-    const handleSetActionDestination = async (itemId: string, destination: unknown) => {
+    const handleSetActionDestination = async (itemId: string | undefined, destination: unknown) => {
         if (!data) return;
         const ok = await saveActionItems(applyDestination(data.actionItems || [], itemId, destination));
         if (!ok) notifyDestinationNotSaved();

@@ -181,8 +181,8 @@ export default function useAutomationApi() {
         // Executions list — cursor-paginated + filterable. Returns
         // { runs, nextCursor }. listStepRuns is the same route (a Step's runs
         // are automation_runs with automation_id = the block id).
-        listRuns: (id: string, opts: RunQuery = {}) => get(`/${id}/runs${buildRunQuery(opts)}`),
-        listStepRuns: (stepId: string, opts: RunQuery = {}) => get(`/${stepId}/runs${buildRunQuery(opts)}`),
+        listRuns: (id: string | null | undefined, opts: RunQuery = {}) => get(`/${id}/runs${buildRunQuery(opts)}`),
+        listStepRuns: (stepId: string | null | undefined, opts: RunQuery = {}) => get(`/${stepId}/runs${buildRunQuery(opts)}`),
         listRecentRuns: (opts: RunQuery = {}) => get(`/_runs/recent${buildRunQuery(opts)}`),
         // Facet counts for the filter chips.
         getRunFacets: (opts: FacetQuery = {}) => get(`/_runs/facets${buildFacetQuery(opts)}`),
@@ -210,7 +210,7 @@ export default function useAutomationApi() {
             }
             await readEventStream(
                 r.body,
-                (evt: string, data: { type?: string } | null) => onEvent?.(data?.type || evt, data),
+                (evt: string, data: unknown) => onEvent?.((data as { type?: string } | null)?.type || evt, data),
                 signal,
             );
         },
@@ -322,7 +322,7 @@ export default function useAutomationApi() {
         // Auto-label + auto-icon: the FAST tier names steps that are still
         // unnamed (empty + not user-locked). `allowedIcons` is the client's
         // renderable icon-name set so the model can only return icons we draw.
-        labelSteps: (definition: unknown, allowedIcons: string[]) => send('POST', '/builder/label-steps', { definition, allowedIcons }),
+        labelSteps: (definition: unknown, allowedIcons: string[]) => send<{ labels?: Record<string, { label?: string; icon?: string }> } | null | undefined>('POST', '/builder/label-steps', { definition, allowedIcons }),
         // Design-time "Map with AI" for the parse_json step: sample + plain-
         // language instruction → deterministic field paths, verified server-
         // side against the sample. Returns { fields: [{ name, path,

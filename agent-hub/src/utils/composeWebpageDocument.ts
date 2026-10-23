@@ -53,7 +53,7 @@ export interface WebpageSlots {
 /** One extra project file, as the preview wants it (text inlined, binary as a data URL). */
 export interface PreviewExtraFile {
     path?: string;
-    isText?: unknown;
+    isText?: boolean;
     mimeType?: string;
     content?: string;
     dataUrl?: string;

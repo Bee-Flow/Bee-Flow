@@ -10,8 +10,8 @@ interface UseTranscriptionSettingsParams {
     setSavingPyannoteModel: (value: boolean) => void;
     voiceprintMatchingEnabled: boolean;
     setVoiceprintMatchingEnabled: (value: boolean) => void;
-    pyannoteIdentifyThreshold: number;
-    setPyannoteIdentifyThreshold: (value: number) => void;
+    pyannoteIdentifyThreshold: number | string;
+    setPyannoteIdentifyThreshold: (value: number | string) => void;
     setSavingVoiceprint: (value: boolean) => void;
     setMessage: (value: AdminMessage | null) => void;
 }

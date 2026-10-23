@@ -6,6 +6,7 @@ import Tabs from '../../components/shared/Tabs';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import type { SettingsUser } from './shell/settingsShellTypes';
 import AcademyContentEditor from './learning/admin/AcademyContentEditor';
 import RequiredTrainingPanel from './learning/admin/RequiredTrainingPanel';
 
@@ -286,7 +287,11 @@ function OrgAcademyOverview() {
     );
 }
 
-export default function OrgAcademyPanel() {
+interface OrgAcademyPanelProps {
+    user?: SettingsUser | null;
+}
+
+export default function OrgAcademyPanel(_props: OrgAcademyPanelProps) {
     const { t } = useTranslation();
     const canAuthor = useCan('learning_custom_content');
     const [tab, setTab] = useState<string>('overview');

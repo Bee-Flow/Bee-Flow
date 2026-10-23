@@ -21,7 +21,7 @@ interface FlightNode {
 
 /** The parts of the React Flow instance the ghost reads; each may be missing (the build test's spy). */
 interface FlightRf {
-    getNode?: (id: string) => { internals?: { positionAbsolute?: FlightPoint } } | undefined;
+    getNode?: (id: string) => { internals?: { positionAbsolute?: FlightPoint }; [key: string]: unknown } | undefined;
     flowToScreenPosition?: (position: FlightPoint) => FlightPoint;
     getZoom?: () => number;
 }
@@ -166,7 +166,7 @@ function Ghost({ ghost, rf, nodes }: { ghost: FlightGhost; rf?: FlightRf | null;
     );
 }
 
-export default function RibbonFlightLayer({ ghosts, rf, nodes = null }: { ghosts?: FlightGhost[] | null; rf?: FlightRf | null; nodes?: FlightNode[] | null }) {
+export default function RibbonFlightLayer({ ghosts, rf, nodes = null }: { ghosts?: readonly FlightGhost[] | null; rf?: FlightRf | null; nodes?: FlightNode[] | null }) {
     const list = Array.isArray(ghosts) ? ghosts : [];
     if (!list.length || typeof document === 'undefined') return null;
     return createPortal(

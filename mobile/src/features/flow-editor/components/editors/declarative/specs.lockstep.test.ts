@@ -71,7 +71,7 @@ const WEB: Record<string, string[]> = {
     untokenize: ['flow/settings/privacyEditors.jsx'],
     call_block: ['flow/settings/actionEditors/flowletCallFields.jsx', 'flow/CallContractFields.jsx'],
     call_layer: ['flow/settings/actionEditors/flowletCallFields.jsx', 'flow/CallContractFields.jsx'],
-    note: ['flow/nodes/NoteNode.jsx'],
+    note: ['flow/nodes/NoteNode.tsx'],
     integration_action: ['flow/settings/actionEditors/integrationActionFields.jsx'],
     flatten: ['flow/settings/FlattenFields.tsx', 'flow/settings/FlattenColumnsPanel.tsx', 'flow/settings/collectionEditors.jsx'],
 };
@@ -317,7 +317,7 @@ describe('against the web editors', () => {
     });
 
     it('the note’s colours', () => {
-        const list = /const COLOR_KEYS = \[([^\]]*)\]/.exec(read('flow/nodes/NoteNode.jsx'))?.[1] ?? '';
+        const list = /const COLOR_KEYS = \[([^\]]*)\]/.exec(read('flow/nodes/NoteNode.tsx'))?.[1] ?? '';
         expect([...NOTE_COLORS]).toEqual([...list.matchAll(/'([^']+)'/g)].map((m) => m[1]));
     });
 

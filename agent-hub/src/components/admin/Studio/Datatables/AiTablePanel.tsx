@@ -17,9 +17,9 @@ export interface AiTableChanges {
 /** The table as the AI sees it: sent along on a revise, and kept to undo one. */
 export interface AiTableCurrent {
     name?: string;
-    description?: string;
+    description?: string | null;
     fields?: unknown[];
-    rowCount?: number;
+    rowCount?: number | null;
     managedKind?: string | null;
     [key: string]: unknown;
 }

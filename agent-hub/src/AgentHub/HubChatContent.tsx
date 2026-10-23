@@ -2,6 +2,7 @@ import React from 'react';
 import beeFlowIcon from '../assets/BeeFlow-logo-Icon-2026.svg';
 import AgentChatView from './AgentChatView';
 import DirectChatView from './DirectChatView';
+import type { AgentLike } from './useAgentHubData';
 
 type Translate = (key: string, fallback?: string) => string;
 
@@ -10,8 +11,7 @@ type Translate = (key: string, fallback?: string) => string;
  * is selected, else the direct chat, else the welcome state. Everything here
  * is handed straight through from AgentHub, which owns the state.
  */
-export interface HubChatContentProps {
-    selectedAgent: { id: string } | null;
+interface HubChatContentBase {
     directChatMode: boolean;
     t: Translate;
     /** Mirrors AgentHub's setter; the pill's "leave" clears the chat context. */
@@ -20,10 +20,14 @@ export interface HubChatContentProps {
     [prop: string]: any;
 }
 
+/** With an agent selected the agent chat shows; without one, the direct chat or the welcome state. */
+export type HubChatContentProps = HubChatContentBase & ({ selectedAgent: AgentLike } | { selectedAgent: null });
+type AgentChatProps = HubChatContentBase & { selectedAgent: AgentLike };
+
 // Plain render functions rather than components: the element tree stays the one
 // AgentHub rendered inline (AgentChatView / DirectChatView / the welcome div
 // directly in the main column), so nothing remounts that did not before.
-function agentChat(p: HubChatContentProps) {
+function agentChat(p: AgentChatProps) {
     const {
         activeProjectLive, activeSkillIds, agentAttachedSkillIds, canUseWebpagesSide, chatInput, chatSignals,
         closeDocumentPanel, closeWebpagePanel, conversationStarted, coworkComposer, coworkMode,

@@ -46,7 +46,7 @@ const Pill = ({ label, icon, selected, onClick }: { label: string; icon?: string
 
 // ─── Component ──────────────────────────────────────────────────
 
-const VideoGenSettings = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+const VideoGenSettings = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void; anchorRef?: React.RefObject<HTMLElement | null> }) => {
     const { t } = useTranslation();
     const [settings, update] = useMediaGenSection('video', isOpen);
 

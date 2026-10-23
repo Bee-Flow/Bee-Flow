@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { markdownToAst } from '../serialization/mdToAst.js';
+import { markdownToAst } from '../serialization/mdToAst';
 import { createState, applyTransform } from '../engine/state.js';
 import { insertContentCmd } from './index.js';
 

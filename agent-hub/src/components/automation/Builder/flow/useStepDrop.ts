@@ -20,7 +20,7 @@ interface DropWiring {
 }
 
 /** A rendered edge as layout.js builds it: the definition row's identity rides in `data`. */
-type RenderedEdge = Edge<{ defLabel?: string; defCaseName?: string | null }>;
+type RenderedEdge = Edge<{ defLabel?: string | null; defCaseName?: string | null }>;
 
 interface StepDropArgs {
     editable?: boolean;
@@ -37,7 +37,7 @@ interface StepDropArgs {
     onNodeExpand?: ((id: string) => void) | null;
     onOpenLayer?: ((layerKey: string) => void) | null;
     hasInline?: boolean;
-    sidecar: Sidecar;
+    sidecar: Sidecar | null;
 }
 
 // ── Drag a step in from the ribbon / add-step menu ───────────────────
@@ -97,7 +97,7 @@ export function useStepDrop({
         // Double-clicking something drawn INSIDE an expanded flowlet means
         // "take me to this flowlet" — the same gesture, one level down.
         if (hasInline && isInlineId(node.id) && onOpenLayer) {
-            const owner = sidecar.get(parseInlineId(node.id).prefix);
+            const owner = (sidecar as Sidecar).get(parseInlineId(node.id).prefix);
             if (owner?.layerKey) { onOpenLayer(owner.layerKey as string); return; }
         }
         onNodeExpand?.(node.id);

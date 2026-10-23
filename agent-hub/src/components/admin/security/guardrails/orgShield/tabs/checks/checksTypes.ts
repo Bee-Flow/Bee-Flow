@@ -5,6 +5,7 @@
  */
 
 import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { ShieldFields } from '../../orgShieldDoc';
 
 type Setter<T> = (next: T) => void;
 
@@ -20,8 +21,8 @@ export interface ChecksFields {
     setApplyToAutomations: Setter<boolean>;
     dlpEnabled: boolean;
     setDlpEnabled: Setter<boolean>;
-    dlpMode: string;
-    setDlpMode: Setter<string>;
+    dlpMode: ShieldFields['dlpMode'];
+    setDlpMode: Setter<ShieldFields['dlpMode']>;
     dlpAlwaysReview: boolean;
     setDlpAlwaysReview: Setter<boolean>;
     euModeEnabled: boolean;

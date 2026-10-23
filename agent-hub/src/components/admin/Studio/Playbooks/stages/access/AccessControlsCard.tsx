@@ -2,26 +2,26 @@ import { Check, LayoutGrid, Lock, Search, Users } from 'lucide-react';
 import React from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '../../../../../../hooks/useTranslation';
-import type { DirectoryGroup, DirectoryUser, RoleOption, ScreenPlan } from './accessScreenTypes';
+import type { AudienceKind, DirectoryGroup, DirectoryUser, RoleOption, ScreenPlan } from './accessScreenTypes';
 
 const AUDIENCES = ['private', 'organisation', 'groups'] as const;
 
 interface AccessControlsCardProps {
     plan: ScreenPlan;
     setPlan: Dispatch<SetStateAction<ScreenPlan>>;
-    audienceKind: string | null;
+    audienceKind: AudienceKind | null;
     chosenGroups: string[];
-    setAudience: (kind: string, groupIds?: string[]) => void;
+    setAudience: (kind: AudienceKind, groupIds?: string[]) => void;
     toggleGroup: (id: string) => void;
     setGroupRole: (groupId: string, roleKey: string) => void;
     setMemberRole: (userId: string, roleKey: string) => void;
-    meansOf: (roleKey: string) => string;
+    meansOf: (roleKey: string | undefined) => string;
     roleOptions: RoleOption[];
     roles: { key: string }[];
     groups: DirectoryGroup[];
     users: DirectoryUser[];
     available: boolean;
-    members: { userId: string; roleKey: string }[];
+    members: { userId?: string; roleKey?: string }[];
     shownPeople: DirectoryUser[];
     peopleQuery: string;
     setPeopleQuery: (query: string) => void;

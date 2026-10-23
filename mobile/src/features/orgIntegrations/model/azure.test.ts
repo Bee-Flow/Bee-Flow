@@ -89,7 +89,7 @@ describe('a typed temperature', () => {
     });
 
     it('is bounded as the web field is', () => {
-        const web = fs.readFileSync(path.resolve(__dirname, '../../../../../agent-hub/src/components/integrations/azure/ChatModelsSection.jsx'), 'utf8');
+        const web = fs.readFileSync(path.resolve(__dirname, '../../../../../agent-hub/src/components/integrations/azure/ChatModelsSection.tsx'), 'utf8');
         const field = web.slice(web.indexOf("updateTier(tier.key, 'temperature'"));
         expect(/min=\{(\d+)\} max=\{(\d+)\}/.exec(field)?.slice(1).map(Number)).toEqual([TEMPERATURE_RANGE.min, TEMPERATURE_RANGE.max]);
     });

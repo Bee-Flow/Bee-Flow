@@ -43,7 +43,7 @@ export function useStepNodeRuntime({ nodeId, issues, familyProp, stepTypeProp }:
     // the very map the canvas validation pill humanises with) on every node's
     // data, so the card can pick it up without all 36 node files threading one
     // more prop through to here.
-    const stepLabelById = useStore((s) => (nodeId ? s.nodeLookup?.get?.(nodeId)?.data?.stepLabelById : null) || null);
+    const stepLabelById = useStore((s) => (nodeId ? s.nodeLookup?.get?.(nodeId)?.data?.stepLabelById as Map<string, string> | null | undefined : null) || null);
     // While the drawer edits a step (design 1h): the edited card reads as
     // selected, its direct source is drawn dashed in the family colour with
     // "· source" in the kicker, and what comes next is dimmed.

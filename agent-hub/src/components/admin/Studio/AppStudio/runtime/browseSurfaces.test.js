@@ -26,8 +26,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const read = (rel) => readFileSync(resolve(here, rel), 'utf8');
 
 const SURFACES = [
-    { name: 'standalone run page', file: '../../../../../pages/apps/AppRunPage.jsx' },
-    { name: 'Studio editor canvas (Preview)', file: '../editor/Canvas.jsx' },
+    { name: 'standalone run page', file: '../../../../../pages/apps/AppRunPage.tsx' },
+    { name: 'Studio editor canvas (Preview)', file: '../editor/Canvas.tsx' },
 ];
 
 describe('live-browse frame store is wired on every app-running surface', () => {

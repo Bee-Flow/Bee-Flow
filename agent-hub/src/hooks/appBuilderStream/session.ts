@@ -1,7 +1,7 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { BuilderMessage, BuilderTodo, BuilderTurn, BuilderValidation } from '../builderStream';
 import { finalizeStreaming, openTurn } from '../builderStream';
-import type { AppBuilderSendOptions } from './types';
+import type { AppBuilderSendOptions, BuilderToolDraft } from './types';
 
 /** The saved-session snapshot GET /builder/session/:appId hands back. */
 interface RestoredSnapshot {
@@ -89,7 +89,7 @@ export interface ActionStartSetters {
     setCheckpoints: Dispatch<SetStateAction<unknown[]>>;
     setContinuation: Dispatch<SetStateAction<{ phase: unknown; total: number | null } | null>>;
     setTurn: Dispatch<SetStateAction<BuilderTurn | null>>;
-    setToolDraft: Dispatch<SetStateAction<Record<string, unknown> | null>>;
+    setToolDraft: Dispatch<SetStateAction<BuilderToolDraft | null>>;
     setMessages: Dispatch<SetStateAction<BuilderMessage[]>>;
 }
 

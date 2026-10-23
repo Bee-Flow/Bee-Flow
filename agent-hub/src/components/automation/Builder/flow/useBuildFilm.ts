@@ -18,6 +18,7 @@ const spotKeysOf = spotlightKeysFor as (draft: unknown, catalog?: unknown) => st
 type BuildFilmCue = NonNullable<ChoreographyArgs['buildCue']> & {
     running?: boolean;
     lastCall?: { added?: Array<{ id?: string | null } | null> };
+    startedAt?: number | null;
 };
 
 interface BuildFilmArgs extends Omit<ChoreographyArgs, 'reducedMotion' | 'orderHint' | 'flightMs' | 'buildCue'> {

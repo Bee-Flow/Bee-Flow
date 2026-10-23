@@ -3,8 +3,8 @@
  * document that co-editors changed since: the rewrite lands, their work stays.
  */
 import { describe, expect, it } from 'vitest';
-import { markdownToAst } from '../serialization/mdToAst.js';
-import { astToMarkdown } from '../serialization/astToMd.js';
+import { markdownToAst } from '../serialization/mdToAst';
+import { astToMarkdown } from '../serialization/astToMd';
 import { rebaseDoc } from './rebaseDoc';
 import type { AstNode } from './ySchema';
 

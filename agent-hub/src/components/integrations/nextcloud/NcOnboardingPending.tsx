@@ -4,7 +4,7 @@ import beeFlowLogo from '../../../assets/bee-flow-logo.svg';
 import { useTranslation } from '../../../hooks/useTranslation';
 
 interface NcOnboardingPendingProps {
-    orgName?: string;
+    orgName?: string | null;
     onRefresh: () => void;
 }
 

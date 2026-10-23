@@ -4,9 +4,9 @@
  * parsers, so the legacy preprocessMermaidContent string pass is no longer
  * needed.
  */
-import { markdownToAst } from '../serialization/mdToAst.js';
-import { htmlToAst } from '../serialization/htmlToAst.js';
-import { looksLikeHtml } from '../serialization/util.js';
+import { markdownToAst } from '../serialization/mdToAst';
+import { htmlToAst } from '../serialization/htmlToAst';
+import { looksLikeHtml } from '../serialization/util';
 import { API_BASE } from '../../utils/helpers';
 import type { DocNode } from '../model/schema.js';
 

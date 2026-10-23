@@ -29,9 +29,9 @@ interface LoginFormProps {
     handleOAuthLogin: () => void;
     handleGoogleLogin: () => void;
     handleMicrosoftLogin: () => void;
-    isOAuthConfigured: boolean;
-    isGoogleConfigured: boolean;
-    isMicrosoftConfigured: boolean;
+    isOAuthConfigured: boolean | undefined;
+    isGoogleConfigured: boolean | undefined;
+    isMicrosoftConfigured: boolean | undefined;
     setSignupMode: ((signupMode: boolean) => void) | null;
     setError: (message: string) => void;
     onForgotPassword?: () => void;

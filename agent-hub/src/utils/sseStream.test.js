@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { readEventStream } from './sseStream.js';
+import { readEventStream } from './sseStream';
 
 function streamFrom(chunks) {
     const enc = new TextEncoder();

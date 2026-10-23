@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canAutoSend } from './BuilderShell.jsx';
+import { canAutoSend } from './BuilderShell';
 
 /**
  * "Build it directly" auto-fires a suggestion's spec into a fresh builder.

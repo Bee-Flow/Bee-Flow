@@ -17,11 +17,11 @@ type ListKeyProp = 'subtitleKey' | 'metaKey' | 'timestampKey' | 'badgeKey' | 'un
     | 'peekMatchKey' | 'peekRowKey' | 'peekTitleKey' | 'peekTextKey' | 'peekGroupKey' | 'peekCountKey';
 
 /** One row of a value-to-label (and optionally tone) table. */
-interface ListLabelRow {
+type ListLabelRow = {
     value?: string;
     label?: string;
     tone?: string;
-}
+};
 
 interface ListProps extends Partial<Record<ListKeyProp, string | null>> {
     source?: FieldKeyFieldProps['source'];

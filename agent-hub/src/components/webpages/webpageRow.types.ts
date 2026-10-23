@@ -9,11 +9,15 @@ export interface WebpageSettings {
 export interface WebpageRow {
     id: string;
     userId?: string;
-    name?: string;
+    name: string;
     isPublished?: boolean;
     sharedGroups?: string[];
     publishedVersionId?: string | null;
     settings?: WebpageSettings;
-    bridgeGrants?: { automations?: unknown[]; integrations?: unknown[] } | null;
+    bridgeGrants?: {
+        tables?: { datatableId: string; label?: string; name?: string }[];
+        automations?: { automationId: string; label?: string }[];
+        integrations?: unknown[];
+    } | null;
     [key: string]: unknown;
 }

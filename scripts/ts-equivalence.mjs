@@ -24,7 +24,12 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Loaded on first use: the policy job runs this file's unit tests with only the
 // root packages installed, and importing the module must not need server/.
 let esbuild;
-const loadEsbuild = () => (esbuild ??= createRequire(path.join(ROOT, 'server', 'package.json'))('esbuild'));
+export const ESBUILD_HINT = "server/'s esbuild is not installed: run `cd server && npm ci` first (a fresh worktree has no node_modules; the gate compiles with the esbuild server/ locks)";
+const loadEsbuild = () => {
+    if (esbuild) return esbuild;
+    try { esbuild = createRequire(path.join(ROOT, 'server', 'package.json'))('esbuild'); } catch (e) { throw new Error(`${ESBUILD_HINT}\n(${e.message.split('\n')[0]})`); }
+    return esbuild;
+};
 
 /** Whether server/'s esbuild is installed (the compile half of the gate needs it). */
 export function hasEsbuild() {

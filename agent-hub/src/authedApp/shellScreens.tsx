@@ -30,7 +30,7 @@ export function AppBackdrop() {
 
 interface BrandProps {
     useOrgBrand: boolean;
-    orgLogo?: string;
+    orgLogo?: string | null;
     t: TranslateFn;
 }
 
@@ -55,7 +55,7 @@ export function LoadingScreen({ useOrgBrand, orgLogo, t }: BrandProps) {
         <div className="h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
             <div className="flex flex-col items-center gap-4">
                 <img
-                    src={useOrgBrand ? orgLogo : beeFlowIcon}
+                    src={useOrgBrand ? orgLogo ?? undefined : beeFlowIcon}
                     alt={useOrgBrand ? 'Organization' : 'Bee Flow'}
                     className={`w-16 h-16 rounded-2xl animate-pulse ${useOrgBrand ? 'object-contain' : 'object-contain'}`}
                 />
@@ -94,7 +94,7 @@ export function ServerUnavailableScreen({ useOrgBrand, orgLogo, bootstrapDiagnos
                     background: 'linear-gradient(90deg, transparent, var(--border-default), transparent)',
                 }} />
                 <img
-                    src={useOrgBrand ? orgLogo : beeFlowIcon}
+                    src={useOrgBrand ? (orgLogo ?? undefined) : beeFlowIcon}
                     alt={useOrgBrand ? 'Organization' : 'Bee Flow'}
                     style={{
                         width: 64, height: 64, borderRadius: 18, margin: '0 auto 20px',

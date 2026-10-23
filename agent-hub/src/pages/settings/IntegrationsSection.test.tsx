@@ -41,7 +41,7 @@ function entitle(...ids: string[]) {
 const NO_NEXTCLOUD = { enabledIntegrations: [] as string[] };
 
 function renderPage(user: object = NO_NEXTCLOUD) {
-    return render(withQueryClient(<IntegrationsSection statuses={{}} onSaved={vi.fn()} user={user} />));
+    return render(withQueryClient(<IntegrationsSection statuses={{ githubConnected: false }} onSaved={vi.fn()} user={user} />));
 }
 
 /** Group headings in document order (the small uppercase labels). */
@@ -124,7 +124,7 @@ describe('IntegrationsSection (Settings → Connections)', () => {
         entitle('withings', 'linkedin');
         api.on('GET', '/api/integrations/withings/status', { body: { configured: true, connected: false } });
         const onSaved = vi.fn();
-        render(withQueryClient(<IntegrationsSection statuses={{}} onSaved={onSaved} user={{}} />));
+        render(withQueryClient(<IntegrationsSection statuses={{ githubConnected: false }} onSaved={onSaved} user={{}} />));
         await screen.findByText('Add a connection');
         const post = (data: object, origin: string) =>
             act(() => { window.dispatchEvent(new MessageEvent('message', { data, origin })); });

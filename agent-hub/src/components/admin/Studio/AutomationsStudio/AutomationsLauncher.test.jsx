@@ -35,7 +35,7 @@ vi.mock('./AutomationsOverview', () => ({
 // The runs panel is heavy (list + streaming); stub it. Activity gating is its own concern.
 vi.mock('../Executions/ExecutionsPanel', () => ({ default: () => <div data-testid="panel-executions">executions</div> }));
 
-import AutomationsLauncher from './AutomationsLauncher.jsx';
+import AutomationsLauncher from './AutomationsLauncher';
 
 const props = {
     segment: 'automation',

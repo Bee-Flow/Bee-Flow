@@ -13,7 +13,7 @@
 import { describe, it, expect } from 'vitest';
 import { createState, applyTransform } from './state.js';
 import { textSelection, cellSelection, pos } from './selection.js';
-import * as Tbl from './tables.js';
+import * as Tbl from './tables';
 
 const cell = (text, attrs = null) => ({
     type: 'tableCell',

@@ -36,9 +36,9 @@ export interface AccessAuditRow {
 }
 
 export interface OrgUser {
-    id: string | number;
-    displayName?: string | null;
-    email?: string | null;
+    id: string;
+    displayName?: string;
+    email?: string;
 }
 
 /** Actions the log writes, so the list reads as events rather than ids. */

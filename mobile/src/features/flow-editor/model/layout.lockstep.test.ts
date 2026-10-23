@@ -26,7 +26,7 @@ jest.mock('../../../../../agent-hub/src/components/automation/Builder/flow/inlin
 
 const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
 /* eslint-disable @typescript-eslint/no-require-imports */
-const webDagre = require(`${FLOW}/dagreLayout.js`);
+const webDagre = require(`${FLOW}/dagreLayout.ts`);
 const webArrange = require(`${FLOW}/arrange.js`);
 const webLayout = require(`${FLOW}/layout.js`);
 const webTools = require(`${FLOW}/aiToolNodes.js`);

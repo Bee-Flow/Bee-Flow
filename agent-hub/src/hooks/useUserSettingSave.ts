@@ -11,7 +11,7 @@
 //   };
 //   const handleDisconnect = async () => { … };
 // pattern that ~9 integration sub-components in
-// src/pages/settings/IntegrationsSection.jsx each hand-rolled (Fireflies,
+// src/pages/settings/IntegrationsSection.tsx each hand-rolled (Fireflies,
 // Gamma, YouTrack, SignRequest, AFAS, NMBRS, Nextcloud, GitHub, …).
 //
 // The copies had drifted: some only `console.error`d, some `alert()`d, some

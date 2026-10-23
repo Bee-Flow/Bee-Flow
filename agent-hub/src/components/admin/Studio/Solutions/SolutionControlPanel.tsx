@@ -50,7 +50,7 @@ interface SolutionControlPanelProps {
     completeness?: ControlCompleteness | null;
     loading?: boolean;
     error?: unknown;
-    onOpen?: (link: unknown) => void;
+    onOpen?: (link: string) => void;
     readOnly?: boolean;
 }
 

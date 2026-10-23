@@ -8,6 +8,7 @@ import DeadlineClockJs from '../../../../shared/DeadlineClock';
 import SideDrawerJs, { DrawerFooter as DrawerFooterJs } from '../../../../shared/SideDrawer';
 import RegisterStatePill from '../../shared/RegisterStatePill';
 import type { DrawerMode } from '../../shared/useDrawerMode';
+import type { OrgUser } from '../accessAuditLabels';
 
 /**
  * ObjectiveDrawer: one security objective (ISO/IEC 27001 clause 6.2) in the
@@ -36,12 +37,6 @@ export interface Objective {
     review_due_at?: string | null;
     status?: string | null;
     updated_at?: string | null;
-}
-
-export interface OrgUser {
-    id: string | number;
-    displayName?: string | null;
-    email?: string | null;
 }
 
 export interface ObjectiveDrawerProps {

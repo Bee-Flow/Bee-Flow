@@ -41,7 +41,6 @@ export interface RawTableColumn {
 export interface ToolInputSchema {
     properties?: Record<string, unknown>;
     required?: string[];
-    [key: string]: unknown;
 }
 
 /** A stored `values` input: whatever JSON the draft holds. */

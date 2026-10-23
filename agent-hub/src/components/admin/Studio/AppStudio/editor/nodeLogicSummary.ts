@@ -4,7 +4,7 @@ import type { AppAction, AppDefinition, AppNode } from '../inspector/appDefiniti
 import { NODE_EVENTS } from '../state/definitionOps';
 
 /** automation id → its title, or null when it has none. */
-export type TitleFor = (automationId: string | undefined) => string | null;
+export type TitleFor = (automationId: string | null | undefined) => string | null;
 
 /** describeAction, as its header describes it: its `= null` default is all TypeScript reads of titleFor. */
 type DescribeActionFn = (id: string, action: AppAction, definition: AppDefinition | null | undefined, titleFor?: TitleFor | null) => string;

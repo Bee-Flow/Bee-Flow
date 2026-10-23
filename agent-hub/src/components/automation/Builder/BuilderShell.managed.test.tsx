@@ -34,7 +34,7 @@ vi.mock('./SettingsTab', () => ({ default: () => null }));
 vi.mock('./AppRefBreadcrumb', () => ({ default: () => null }));
 vi.mock('./UsedByButtonsCapsule', () => ({ default: () => <div data-testid="capsule" /> }));
 
-import BuilderShellJsx from './BuilderShell.jsx';
+import BuilderShellJsx from './BuilderShell';
 import { liveStateOf } from './header/liveState';
 import { queryWrapper } from '../../../test/queryWrapper';
 import { authFetch } from '../../../utils/helpers';

@@ -32,7 +32,7 @@ import { API_BASE, authFetch } from '../utils/helpers';
 /** One "this depends on you" row. A legacy endpoint answers a different
  *  shape, adapted at the render side, so nothing beyond the list is claimed. */
 export interface UsageRow {
-    kind?: string;
+    kind?: string | null;
     id?: string | number | null;
     title?: string | null;
     role?: string;

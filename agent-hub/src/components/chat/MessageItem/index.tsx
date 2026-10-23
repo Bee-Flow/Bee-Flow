@@ -47,6 +47,7 @@ export interface MessageItemProps {
     onEditMessage?: ((idx: number, text: string) => void) | null;
     modelTiers?: RetryModelTiers;
     isLastAssistant?: boolean;
+    isUser?: boolean;
     sessionSkills?: SkillSummary[];
     liveActivatedSkillIds?: unknown[];
     liveCompletedSkillIds?: unknown;

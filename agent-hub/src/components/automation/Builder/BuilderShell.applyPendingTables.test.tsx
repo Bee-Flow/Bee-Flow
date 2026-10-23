@@ -24,7 +24,7 @@ vi.mock('./BuilderHeader', () => ({ default: () => null }));
 vi.mock('./BuildTab', () => ({ default: (p: unknown) => { buildTab = p; return null; } }));
 vi.mock('./SettingsTab', () => ({ default: () => null }));
 
-import BuilderShellJsx from './BuilderShell.jsx';
+import BuilderShellJsx from './BuilderShell';
 import { queryWrapper } from '../../../test/queryWrapper';
 import { authFetch } from '../../../utils/helpers';
 import { toast } from '../../shared/Toast';

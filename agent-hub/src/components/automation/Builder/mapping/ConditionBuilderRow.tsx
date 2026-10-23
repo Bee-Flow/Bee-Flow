@@ -16,7 +16,8 @@ import type { ComponentType } from 'react';
 import BindingFieldJs from './BindingField';
 import ConditionValueSlot, { type Binding } from './ConditionBuilderValueSlot';
 import FieldPickerJs from './FieldPicker';
-import { FileTypeSelect, QuantifierSelect, type Quantifier } from './RuleRowParts';
+import { FileTypeSelect, QuantifierSelect } from './RuleRowParts';
+import type { TopicsCapability } from './TopicNotice';
 import TopicValueSlot, { type TopicRowPatch } from './TopicValueSlot';
 import useTranslation from '../../../../hooks/useTranslation';
 import { walkPath } from '../../../../utils/bindingHelpers';
@@ -30,13 +31,14 @@ const FieldPicker = FieldPickerJs as unknown as ComponentType<Record<string, unk
 
 type Translate = (key: string, fallback: string, vars?: Record<string, unknown>) => string;
 
+/** A row as ConditionBuilder holds it (conditionModel's ConditionRow): saved rows may lack any member. */
 export interface RuleRow {
-    field: Binding;
-    op: string;
-    value: Binding;
-    threshold?: number;
-    quantifier?: Quantifier;
-    keepBlank?: true;
+    field?: Binding;
+    op?: string;
+    value?: Binding;
+    threshold?: unknown;
+    quantifier?: string;
+    keepBlank?: boolean;
 }
 
 export interface FieldOption { path: string; label?: string; sample?: unknown; group?: string }
@@ -51,7 +53,7 @@ interface Props {
     /** The author chose to type this row's field as an expression (Advanced only). */
     rawField: boolean;
     context: string;
-    topics?: { available?: boolean; reason?: string } | null;
+    topics?: TopicsCapability | null;
     placeholders?: { field?: string } | null;
     onFocusField?: unknown;
     canRemove: boolean;
@@ -60,7 +62,7 @@ interface Props {
     onUseExpression: () => void;
 }
 
-const RECORDS_OPS = new Set(['isEmpty', 'isNotEmpty', 'truthy']);
+const RECORDS_OPS = new Set<string | undefined>(['isEmpty', 'isNotEmpty', 'truthy']);
 
 const fieldText = (row: RuleRow): string => String(
     (row.field?.kind === 'ref' ? row.field.path : row.field?.kind === 'expr' ? row.field.value : '') || '',

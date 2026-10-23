@@ -12,7 +12,7 @@ import {
 import { Trash2 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { DocNode } from '../model/schema.js';
-import type { EditorView } from '../engine/view.js';
+import type { EditorView } from '../engine/view';
 
 /** The unvalidated JSON stored on a chart node. */
 interface ChartNodeSpec { type?: string; title?: string; labels?: unknown; series?: unknown }

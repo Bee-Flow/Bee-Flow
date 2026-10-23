@@ -1,6 +1,6 @@
 /**
  * The drawer's fixed rows — the web Sidebar's `coreNav` and `secondaryNav`
- * (agent-hub/src/components/shell/Sidebar.jsx), in its order, with its i18n
+ * (agent-hub/src/components/shell/Sidebar.tsx), in its order, with its i18n
  * keys and its Lucide glyphs. sidebarNav.lockstep.test.ts reads the web file
  * and fails when either list moves on without this one.
  *

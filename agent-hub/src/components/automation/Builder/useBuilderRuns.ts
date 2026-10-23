@@ -4,6 +4,7 @@ import { shouldAutoOpenFormOverlay, awaitingFormStepId, dismissKey } from './flo
 import { runWithCallerNotice } from './callerNotice';
 import { acknowledgeCallerNotice, fetchCallerNotice } from '../../../api/queries/automation/callerNotice';
 import { useTranslation } from '../../../hooks/useTranslation';
+import type { BuilderTab } from './useBuilderTabUrl';
 
 
 /** The live run's answer: a skip, a hand-off to the run history, or the finished run. */
@@ -11,7 +12,8 @@ interface LiveRunReply {
     skipped?: boolean;
     pending?: boolean;
     message?: string;
-    run?: { status?: string };
+    id?: string;
+    run?: { id?: string; status?: string };
     steps?: unknown;
 }
 
@@ -29,7 +31,7 @@ export interface UseBuilderRunsOptions {
     setBusy: (busy: boolean) => void;
     setError: (error: any) => void;
     confirm: (opts: any) => Promise<boolean>;
-    setTab: (tab: string) => void;
+    setTab: (tab: BuilderTab) => void;
     ndvStepId: string | null;
     openNdv: (id: string, density?: any) => void;
 }
@@ -85,7 +87,7 @@ export default function useBuilderRuns({
     // seeds the DAG from that node. Anything that is not a trigger id — the
     // hotkey and the split button hand over nothing or a click event — means
     // the primary.
-    const runBody = useCallback((triggerStepId = null) => {
+    const runBody = useCallback((triggerStepId: string | null = null) => {
         const from = typeof triggerStepId === 'string' && triggerStepId ? triggerStepId : null;
         const sample = from
             ? (secondaryTriggersRef.current.find(t => t?.id === from)?.pinnedOutput ?? null)
@@ -160,7 +162,7 @@ export default function useBuilderRuns({
         ? { form: effectiveDef.trigger.form, triggerStepId: effectiveDef.trigger.id }
         : null;
 
-    const onDryRun = async (fromTrigger = null) => {
+    const onDryRun = async (fromTrigger: string | null = null) => {
         setBusy(true); setError(null);
         liveFromBuilderRef.current = false;
         let stopWatch = () => {};
@@ -241,7 +243,7 @@ export default function useBuilderRuns({
      * is the one on screen — an author who just added a question expects to see
      * it, not the version the server last stored.
      */
-    const formForTrigger = (fromTrigger = null) => {
+    const formForTrigger = (fromTrigger: string | null = null) => {
         const t = (typeof fromTrigger === 'string' && fromTrigger)
             ? [effectiveDef?.trigger, ...(effectiveDef?.triggers || [])].find(x => x?.id === fromTrigger)
             : effectiveDef?.trigger;
@@ -286,7 +288,7 @@ export default function useBuilderRuns({
         });
     };
 
-    const onRunLive = async (fromTrigger = null) => {
+    const onRunLive = async (fromTrigger: string | null = null) => {
         const ok = await confirm({
             title: 'Run this automation for real?',
             description: 'Every step performs its action — sending messages, writing data, and anything else in the flow.',

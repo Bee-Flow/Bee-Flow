@@ -45,6 +45,6 @@ export interface SupportUser {
     id?: string;
     isAdmin?: boolean;
     role?: string;
-    orgRole?: string;
-    permissions?: string[];
+    orgRole?: string | null;
+    permissions?: string[] | null;
 }

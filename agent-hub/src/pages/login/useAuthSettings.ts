@@ -12,7 +12,7 @@ interface SetupStatus {
     allowSignups?: boolean;
     allowOrgSignups?: boolean;
     allowConsumerSignups?: boolean;
-    consumerLoginMethods?: unknown;
+    consumerLoginMethods?: string[];
     allowPasswordLogin?: boolean;
     deploymentMode?: string;
     branding?: { logo?: string };
@@ -36,7 +36,7 @@ export function useAuthSettings() {
     const [allowSignups, setAllowSignups] = useState<boolean | null>(null);
     const [allowOrgSignups, setAllowOrgSignups] = useState(true);
     const [allowConsumerSignups, setAllowConsumerSignups] = useState(true);
-    const [consumerLoginMethods, setConsumerLoginMethods] = useState<unknown[]>(['password', 'google', 'microsoft']);
+    const [consumerLoginMethods, setConsumerLoginMethods] = useState<string[]>(['password', 'google', 'microsoft']);
     const [allowPasswordLogin, setAllowPasswordLogin] = useState<boolean | null>(null);
     const [authSettingsLoaded, setAuthSettingsLoaded] = useState(false);
     const [deploymentMode, setDeploymentMode] = useState('cloud');

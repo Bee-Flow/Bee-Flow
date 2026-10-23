@@ -1,18 +1,25 @@
 import type { AppDefinition, AppNode } from './appDefinition';
-import type { UseEventWiringOptions } from './useEventWiring';
+import type { UseEventWiringOptions, WiredAutomation } from './useEventWiring';
 
-/**
- * Props of ActionsSection (ActionsSection.jsx). `onCommit` is called without a
- * guard; the rest may be left out. The section reads `node` and `definition`
- * through `?.` and renders nothing when the node has no events.
- */
+/** @param {import('./ActionsSection.types').ActionsSectionProps} props */
 export interface ActionsSectionProps {
     node?: AppNode | null;
-    definition?: AppDefinition | null;
-    onCommit: (next: AppDefinition) => void;
-    /** Receives the response of the "Test" run of a wired automation. */
-    onTestActionResult?: UseEventWiringOptions['onTestActionResult'];
+    definition: AppDefinition;
+    onTestActionResult?: ((actionId: string | null, body: unknown) => void) | null;
+    onCommit: (definition: AppDefinition) => void;
     disabled?: boolean;
-    /** Names this app in an automation made from here; absent = no back-pointer. */
+    appId?: string | null;
+}
+
+export interface EventWiringProps {
+    event: string;
+    node: AppNode | null | undefined;
+    definition: AppDefinition;
+    onTestActionResult?: ((actionId: string | null, body: unknown) => void) | null;
+    onCommit: (definition: AppDefinition) => void;
+    disabled: boolean;
+    automations: WiredAutomation[] | null;
+    setAutomations: (automations: WiredAutomation[]) => void;
+    titleFor: ((automationId?: string | null) => string | null) | null;
     appId?: string | null;
 }

@@ -14,8 +14,8 @@ interface InputDataPanelProps {
     groups?: InputGroup[];
     previewSample?: unknown;
     onPick: (path: string, opts?: { raw?: boolean }) => void;
-    stepTypeById?: Map<string, string> | null;
-    stepNumberById?: Map<string, number> | null;
+    stepTypeById?: Map<string, string | undefined> | null;
+    stepNumberById?: Map<string, number | string> | null;
     usedPaths?: Set<string> | null;
     loopIteration?: { index: number; total: number; truncated?: boolean; skipped?: number } | null;
     manualStart?: boolean;
@@ -48,7 +48,7 @@ interface InputDataPanelProps {
  *   manualStart    the automation starts by hand: say that little comes in, and
  *                  offer onAddStartQuestion (open the start step) when given
  */
-function familyOfGroup(group: InputGroup | undefined, stepTypeById: Map<string, string> | null | undefined): string | null {
+function familyOfGroup(group: InputGroup | undefined, stepTypeById: Map<string, string | undefined> | null | undefined): string | null {
     if (!group) return null;
     if (group.kind === 'loop' || String(group.basePath || '').startsWith('loop.')) return 'loop';
     if (group.kind === 'trigger' || String(group.basePath || '').startsWith('trigger.')) return 'trigger';

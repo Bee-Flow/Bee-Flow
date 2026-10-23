@@ -1,0 +1,393 @@
+import useTranslation from '../../../../../../hooks/useTranslation';
+import FormField from '../../../../../shared/FormField';
+import SegmentedControl from '../../../../../shared/SegmentedControl';
+import Slider from '../../../../../shared/Slider';
+import Toggle from '../../../../../shared/Toggle';
+import { RepeatableList, inputCls } from '../../../../product-website/fields';
+import BindingField from './BindingField';
+import { registerInspector } from '../registry';
+import { TextField, NumberField, INPUT_CLS, usePatch } from './kit';
+import type { BindingInput } from '../../runtime/resolveBinding.types';
+import type { AppDefinition, AppNode, PanelProps } from '../appDefinition';
+
+/**
+ * Content panels for the six input_* types. They share the common
+ * name/label(/placeholder/required) block and add their type-specific
+ * fields (prop tables mirrored from server/appStudio/componentSpecs.js,
+ * authoritative). Registered individually at the bottom.
+ */
+
+/** The name / label / placeholder block every input shares. */
+interface CommonInputProps {
+    name?: string;
+    label?: string;
+    placeholder?: string | null;
+}
+
+interface CommonFieldsProps {
+    props: CommonInputProps;
+    patch: (value: Record<string, unknown>) => void;
+    disabled: boolean;
+    placeholder?: boolean;
+}
+
+function CommonFields({ props, patch, disabled, placeholder = true }: CommonFieldsProps) {
+    const { t } = useTranslation();
+    return (
+        <>
+            <TextField
+                label={t('studio_apps_panels.common.field_name', 'Field name')}
+                value={props.name}
+                onChange={(v) => patch({ name: v })}
+                hint={t('studio_apps_panels.common.field_name_hint', 'The key this value submits as.')}
+                disabled={disabled}
+            />
+            <TextField label={t('studio_apps_panels.common.label', 'Label')} value={props.label} onChange={(v) => patch({ label: v })} disabled={disabled} />
+            {placeholder && (
+                <TextField
+                    label={t('studio_apps_panels.common.placeholder', 'Placeholder')}
+                    value={props.placeholder}
+                    onChange={(v) => patch({ placeholder: v || null })}
+                    placeholder={t('studio_apps_panels.common.optional', 'Optional')}
+                    disabled={disabled}
+                />
+            )}
+        </>
+    );
+}
+
+/**
+ * `valueFrom` — the binding that fills a field from OUTSIDE the form.
+ *
+ * Six input types declare it and the runtime has always honoured it, but no
+ * panel offered it: an "edit this record" form always opened blank and an "AI
+ * draft" button could only be wired by the AI builder. It is a full binding, so
+ * it gets the ordinary BindingField rather than a bespoke box.
+ */
+interface PrefillFieldProps {
+    node: AppNode<{ valueFrom?: BindingInput }>;
+    definition: AppDefinition;
+    patch: (value: Record<string, unknown>) => void;
+    disabled: boolean;
+}
+
+export function PrefillField({ node, definition, patch, disabled }: PrefillFieldProps) {
+    const { t } = useTranslation();
+    return (
+        <BindingField
+            label={t('studio_apps_panels.input_panels.prefill_from', 'Prefill from')}
+            value={node.props?.valueFrom}
+            onChange={(v) => patch({ valueFrom: v })}
+            definition={definition}
+            node={node}
+            hint={t('studio_apps_panels.input_panels.prefill_hint', 'Fills the field from a record, a variable or an action result. The person can still type over it.')}
+            placeholder={t('studio_apps_panels.input_panels.prefill_placeholder', 'Nothing — the field starts empty')}
+            disabled={disabled}
+        />
+    );
+}
+
+interface RequiredToggleProps {
+    props: { required?: boolean };
+    patch: (value: Record<string, unknown>) => void;
+    disabled: boolean;
+}
+
+function RequiredToggle({ props, patch, disabled }: RequiredToggleProps) {
+    const { t } = useTranslation();
+    return (
+        <Toggle
+            label={t('studio_apps_panels.common.required', 'Required')}
+            checked={!!props.required}
+            onChange={(v) => patch({ required: v })}
+            disabled={disabled}
+            size="sm"
+        />
+    );
+}
+
+// ── input_text ─────────────────────────────────────────────────────────────
+
+interface InputTextInspectorProps {
+    name?: string;
+    label?: string;
+    placeholder?: string | null;
+    defaultValue?: string | null;
+    inputType?: string;
+    required?: boolean;
+    valueFrom?: BindingInput;
+}
+
+export function InputTextInspector({ node, definition, onCommit, disabled = false }: PanelProps<InputTextInspectorProps>) {
+    const props = node.props || {};
+    const { t } = useTranslation();
+    const patch = usePatch(node, definition, onCommit);
+    const INPUT_TYPES_OPTS = [
+        { value: 'text', label: t('studio_apps_panels.input_text.type_text', 'Text') },
+        { value: 'email', label: t('studio_apps_panels.input_text.type_email', 'Email') },
+        { value: 'url', label: 'URL' },
+    ];
+    return (
+        <div className="flex flex-col gap-4">
+            <CommonFields props={props} patch={patch} disabled={disabled} />
+            <FormField label={t('studio_apps_panels.input_text.type', 'Type')}>
+                <SegmentedControl
+                    value={props.inputType ?? 'text'}
+                    onChange={(v) => patch({ inputType: v })}
+                    options={INPUT_TYPES_OPTS}
+                    size="sm"
+                    fullWidth
+                    disabled={disabled}
+                    ariaLabel={t('studio_apps_panels.input_text.type_aria', 'Input type')}
+                />
+            </FormField>
+            <TextField
+                label={t('studio_apps_panels.common.default_value', 'Default value')}
+                value={props.defaultValue}
+                onChange={(v) => patch({ defaultValue: v || null })}
+                placeholder={t('studio_apps_panels.common.optional', 'Optional')}
+                disabled={disabled}
+            />
+            <PrefillField node={node} definition={definition} patch={patch} disabled={disabled} />
+            <RequiredToggle props={props} patch={patch} disabled={disabled} />
+        </div>
+    );
+}
+
+// ── input_textarea ─────────────────────────────────────────────────────────
+
+interface InputTextareaInspectorProps {
+    name?: string;
+    label?: string;
+    placeholder?: string | null;
+    rows?: number;
+    required?: boolean;
+    valueFrom?: BindingInput;
+}
+
+export function InputTextareaInspector({ node, definition, onCommit, disabled = false }: PanelProps<InputTextareaInspectorProps>) {
+    const props = node.props || {};
+    const { t } = useTranslation();
+    const patch = usePatch(node, definition, onCommit);
+    return (
+        <div className="flex flex-col gap-4">
+            <CommonFields props={props} patch={patch} disabled={disabled} />
+            <Slider
+                label={t('studio_apps_panels.input_textarea.rows', 'Rows')}
+                value={typeof props.rows === 'number' && Number.isFinite(props.rows) ? props.rows : 4}
+                onChange={(v) => patch({ rows: Math.max(2, Math.min(10, Math.round(v))) })}
+                min={2}
+                max={10}
+                step={1}
+                disabled={disabled}
+            />
+            <PrefillField node={node} definition={definition} patch={patch} disabled={disabled} />
+            <RequiredToggle props={props} patch={patch} disabled={disabled} />
+        </div>
+    );
+}
+
+// ── input_number ───────────────────────────────────────────────────────────
+
+interface InputNumberInspectorProps {
+    name?: string;
+    label?: string;
+    min?: number | null;
+    max?: number | null;
+    step?: number | null;
+    defaultValue?: number | null;
+    required?: boolean;
+}
+
+export function InputNumberInspector({ node, definition, onCommit, disabled = false }: PanelProps<InputNumberInspectorProps>) {
+    const props = node.props || {};
+    const { t } = useTranslation();
+    const patch = usePatch(node, definition, onCommit);
+    return (
+        <div className="flex flex-col gap-4">
+            <CommonFields props={props} patch={patch} disabled={disabled} placeholder={false} />
+            <div className="grid grid-cols-2 gap-3">
+                <NumberField label={t('studio_apps_panels.input_number.min', 'Min')} value={props.min} onChange={(v) => patch({ min: v })} placeholder="—" disabled={disabled} />
+                <NumberField label={t('studio_apps_panels.input_number.max', 'Max')} value={props.max} onChange={(v) => patch({ max: v })} placeholder="—" disabled={disabled} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <NumberField label={t('studio_apps_panels.input_number.step', 'Step')} value={props.step} onChange={(v) => patch({ step: v ?? 1 })} step="any" disabled={disabled} />
+                <NumberField label={t('studio_apps_panels.input_number.default', 'Default')} value={props.defaultValue} onChange={(v) => patch({ defaultValue: v })} placeholder="—" disabled={disabled} />
+            </div>
+            {/* No "Prefill from" here: input_number is one of the two input
+                types whose spec does not declare valueFrom (checkbox is the
+                other), and offering a prop the validator rejects is worse than
+                not offering it. */}
+            <RequiredToggle props={props} patch={patch} disabled={disabled} />
+        </div>
+    );
+}
+
+// ── input_select ───────────────────────────────────────────────────────────
+
+interface InputSelectInspectorProps {
+    name?: string;
+    label?: string;
+    placeholder?: string | null;
+    options?: { value: string; label: string }[];
+    defaultValue?: string | null;
+    required?: boolean;
+    valueFrom?: BindingInput;
+}
+
+export function InputSelectInspector({ node, definition, onCommit, disabled = false }: PanelProps<InputSelectInspectorProps>) {
+    const props = node.props || {};
+    const { t } = useTranslation();
+    const patch = usePatch(node, definition, onCommit);
+    return (
+        <div className="flex flex-col gap-4">
+            <CommonFields props={props} patch={patch} disabled={disabled} />
+            <fieldset disabled={disabled} className="min-w-0">
+                <RepeatableList
+                    label={t('studio_apps_panels.common.options', 'Options')}
+                    items={props.options || []}
+                    onChange={(options) => patch({ options })}
+                    makeNew={() => ({ value: '', label: '' })}
+                    addLabel={t('studio_apps_panels.common.add_option', 'Add option')}
+                    itemLabel={(o) => o.label || o.value}
+                    renderItem={(opt, update) => (
+                        <div className="flex flex-col gap-2">
+                            <input
+                                type="text"
+                                className={inputCls}
+                                value={opt.value || ''}
+                                onChange={(e) => update({ ...opt, value: e.target.value })}
+                                placeholder={t('studio_apps_panels.common.option_value_submitted', 'Value (submitted)')}
+                                spellCheck={false}
+                            />
+                            <input
+                                type="text"
+                                className={inputCls}
+                                value={opt.label || ''}
+                                onChange={(e) => update({ ...opt, label: e.target.value })}
+                                placeholder={t('studio_apps_panels.common.option_label_shown', 'Label (shown)')}
+                            />
+                        </div>
+                    )}
+                />
+            </fieldset>
+            <TextField
+                label={t('studio_apps_panels.common.default_value', 'Default value')}
+                value={props.defaultValue}
+                onChange={(v) => patch({ defaultValue: v || null })}
+                hint={t('studio_apps_panels.input_select.default_hint', 'Must match one of the option values.')}
+                disabled={disabled}
+            />
+            <PrefillField node={node} definition={definition} patch={patch} disabled={disabled} />
+            <RequiredToggle props={props} patch={patch} disabled={disabled} />
+        </div>
+    );
+}
+
+// ── input_checkbox ─────────────────────────────────────────────────────────
+
+interface InputCheckboxInspectorProps {
+    name?: string;
+    label?: string;
+    defaultChecked?: boolean;
+}
+
+export function InputCheckboxInspector({ node, definition, onCommit, disabled = false }: PanelProps<InputCheckboxInspectorProps>) {
+    const props = node.props || {};
+    const { t } = useTranslation();
+    const patch = usePatch(node, definition, onCommit);
+    return (
+        <div className="flex flex-col gap-4">
+            <TextField
+                label={t('studio_apps_panels.common.field_name', 'Field name')}
+                value={props.name}
+                onChange={(v) => patch({ name: v })}
+                hint={t('studio_apps_panels.common.field_name_hint', 'The key this value submits as.')}
+                disabled={disabled}
+            />
+            <TextField label={t('studio_apps_panels.common.label', 'Label')} value={props.label} onChange={(v) => patch({ label: v })} disabled={disabled} />
+            <Toggle
+                label={t('studio_apps_panels.input_checkbox.checked_default', 'Checked by default')}
+                checked={!!props.defaultChecked}
+                onChange={(v) => patch({ defaultChecked: v })}
+                disabled={disabled}
+                size="sm"
+            />
+        </div>
+    );
+}
+
+// ── input_date ─────────────────────────────────────────────────────────────
+
+// defaultValue: null | 'today' | an ISO date (allowIsoDate in the spec).
+
+/** Today as YYYY-MM-DD in the EDITOR's timezone — toISOString() is UTC, which
+ *  seeds yesterday's date for anyone east of it. */
+export function todayLocalIso() {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+interface InputDateInspectorProps {
+    name?: string;
+    label?: string;
+    placeholder?: string | null;
+    defaultValue?: string | null;
+    required?: boolean;
+    valueFrom?: BindingInput;
+}
+
+export function InputDateInspector({ node, definition, onCommit, disabled = false }: PanelProps<InputDateInspectorProps>) {
+    const props = node.props || {};
+    const { t } = useTranslation();
+    const patch = usePatch(node, definition, onCommit);
+    const dv = props.defaultValue ?? null;
+    const mode = dv === null ? 'none' : (dv === 'today' ? 'today' : 'date');
+    const DATE_DEFAULTS = [
+        { value: 'none', label: t('studio_apps_panels.input_date.default_none', 'None') },
+        { value: 'today', label: t('studio_apps_panels.input_date.default_today', 'Today') },
+        { value: 'date', label: t('studio_apps_panels.input_date.default_pick', 'Pick a date') },
+    ];
+    return (
+        <div className="flex flex-col gap-4">
+            <CommonFields props={props} patch={patch} disabled={disabled} placeholder={false} />
+            <FormField label={t('studio_apps_panels.input_date.default', 'Default')}>
+                <div className="flex flex-col gap-2">
+                    <SegmentedControl
+                        value={mode}
+                        onChange={(m) => {
+                            if (m === 'none') patch({ defaultValue: null });
+                            else if (m === 'today') patch({ defaultValue: 'today' });
+                            else patch({ defaultValue: todayLocalIso() });
+                        }}
+                        options={DATE_DEFAULTS}
+                        size="sm"
+                        fullWidth
+                        disabled={disabled}
+                        ariaLabel={t('studio_apps_panels.input_date.default_aria', 'Default date')}
+                    />
+                    {mode === 'date' && (
+                        <input
+                            type="date"
+                            className={INPUT_CLS}
+                            value={dv ?? undefined}
+                            onChange={(e) => patch({ defaultValue: e.target.value || null })}
+                            disabled={disabled}
+                            aria-label={t('studio_apps_panels.input_date.default_value_aria', 'Default date value')}
+                        />
+                    )}
+                </div>
+            </FormField>
+            <PrefillField node={node} definition={definition} patch={patch} disabled={disabled} />
+            <RequiredToggle props={props} patch={patch} disabled={disabled} />
+        </div>
+    );
+}
+
+registerInspector('input_text', InputTextInspector);
+registerInspector('input_textarea', InputTextareaInspector);
+registerInspector('input_number', InputNumberInspector);
+registerInspector('input_select', InputSelectInspector);
+registerInspector('input_checkbox', InputCheckboxInspector);
+registerInspector('input_date', InputDateInspector);

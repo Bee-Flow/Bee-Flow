@@ -2,7 +2,7 @@
  * Lockstep proof for the App Studio definition model: one sample definition and
  * one scenario of op calls, run against the server facade
  * (server/appStudio/definitionOps.js) and the agent-hub one
- * (agent-hub/src/components/admin/Studio/AppStudio/state/definitionOps.js).
+ * (agent-hub/src/components/admin/Studio/AppStudio/state/definitionOps.ts).
  *
  * lockstep.golden.json holds what both copies returned BEFORE the shared logic
  * moved to server/shared/appDefinition/ (recorded from the two hand-kept copies),

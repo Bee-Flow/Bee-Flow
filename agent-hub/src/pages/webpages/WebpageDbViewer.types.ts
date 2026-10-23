@@ -82,4 +82,5 @@ export interface SqlTabProps {
 
 export interface Props {
     webpageId?: string;
+    theme?: string;
 }

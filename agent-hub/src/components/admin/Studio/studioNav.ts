@@ -21,10 +21,13 @@ interface EntrySection {
 
 type Sections<T> = ReadonlyArray<T | null | undefined> | null | undefined;
 
+/** `label(t, locale)`; the method-style signature keeps parameter bivariance, so a runtime module's `(t, locale: string)` fits. */
+type StudioLabelFn = { bivarianceHack(t: TranslateFn, locale?: string): string }['bivarianceHack'];
+
 /** What `studioSectionLabel` reads: a runtime module's `label(t, locale)`, or a built-in section's key. */
 export interface StudioLabelled {
     id?: string;
-    label?: ((t: TranslateFn, locale?: string) => string) | string;
+    label?: StudioLabelFn | string;
     labelKey?: string | null;
     labelFallback?: string | null;
 }

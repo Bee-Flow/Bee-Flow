@@ -5,12 +5,12 @@
  * Block rules ("# ", "- ", "1. ", "> ", "```") fire at the start of a plain
  * paragraph; typography rules ("--", "...", smart quotes) fire anywhere.
  */
-import { getNode, updateAt, parentPath } from './doc.js';
+import { getNode, updateAt, parentPath } from './doc';
 import { inlineToTokens, tokensToInline } from './inline.js';
 import { textSelection, pos, isText, isCollapsed } from './selection.js';
 import { isTextblock, isCode } from '../model/schema.js';
 import * as T from './transforms.js';
-import * as Tbl from './tables.js';
+import * as Tbl from './tables';
 import type { DocNode } from '../model/schema.js';
 import type { InlineToken } from './inline.js';
 import type { EditorState } from './state.js';

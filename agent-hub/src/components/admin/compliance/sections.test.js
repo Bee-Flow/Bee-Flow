@@ -150,7 +150,7 @@ describe('compliance sections registry', () => {
     });
 
     it('is a leaf: imports lucide-react and nothing else, and has no hex colours', () => {
-        const src = fs.readFileSync(path.join(here, 'sections.js'), 'utf8');
+        const src = fs.readFileSync(path.join(here, 'sections.ts'), 'utf8');
         const imports = [...src.matchAll(/^import[\s\S]*?from '([^']+)';/gm)].map(m => m[1]);
         expect(imports).toEqual(['lucide-react']);
         expect(src).not.toMatch(/#[0-9a-f]{3,8}\b/i);

@@ -4,6 +4,8 @@
 // safe default: the root folder for a folder or path, today for a date.
 // Never applied on its own: the drawer shows it, the author clicks it.
 import { humanizeFieldTail } from '../../displayHelpers';
+import type { InputSchema } from '../../../mapping/autoMapInputs.types';
+import type { UpstreamGroup } from '../../../mapping/deepFields';
 
 export interface Suggestion {
     binding: { kind: string; value?: unknown; path?: string };
@@ -12,7 +14,6 @@ export interface Suggestion {
 }
 
 interface SchemaProp { type?: string | string[]; format?: string; title?: string }
-interface InputSchema { properties?: Record<string, SchemaProp>; required?: string[] }
 interface Group { label: string; basePath: string }
 type Tr = (key: string, en: string, params?: Record<string, unknown>) => string;
 
@@ -55,7 +56,7 @@ export function buildParamSuggestions(
     schema: InputSchema | null,
     inputs: Record<string, unknown>,
     groups: Group[],
-    autoMap: (schema: unknown, inputs: unknown, groups: unknown) => Record<string, unknown>,
+    autoMap: (schema: InputSchema | null | undefined, inputs: Record<string, unknown> | null | undefined, groups: UpstreamGroup[] | null | undefined) => Record<string, unknown>,
     t: Tr,
 ): Record<string, Suggestion> {
     const props = schema?.properties || {};

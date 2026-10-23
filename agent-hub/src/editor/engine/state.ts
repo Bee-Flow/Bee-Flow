@@ -4,9 +4,9 @@
  * state = { doc, selection, storedMarks }. Transforms are pure (state) → state;
  * applyTransform runs the result through the selection-safe normalizer.
  */
-import { normalizeLight } from './normalize.js';
+import { normalizeLight } from './normalize';
 import { textSelection, pos, isText, isNode, isCell } from './selection.js';
-import { getNode } from './doc.js';
+import { getNode } from './doc';
 import { isTextblock } from '../model/schema.js';
 import type { DocMark, DocNode } from '../model/schema.js';
 import type { Selection } from './selection.js';

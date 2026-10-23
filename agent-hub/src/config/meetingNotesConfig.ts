@@ -35,7 +35,7 @@ export const LANGUAGES: readonly MeetingLanguage[] = [
  * Ten-colour palette for speaker identity across the meeting UI (timeline
  * rows, legend, transcript dots, tooltip, speaker editor). Assigned by
  * speaking-time RANK via `buildSpeakerColorMap` in
- * `pages/meeting-notes/lib/playerData.js` — the top-ranked speaker always
+ * `pages/meeting-notes/lib/playerData.ts` — the top-ranked speaker always
  * gets the first colour, so the assignment is collision-free for the main
  * speakers and survives renames. Ranks beyond the palette all share
  * `NEUTRAL_SPEAKER_COLOR` (deliberately no modulo-cycling: that would give

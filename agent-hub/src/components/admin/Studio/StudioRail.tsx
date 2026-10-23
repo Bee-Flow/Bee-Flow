@@ -5,6 +5,7 @@ import { groupStudioApps, studioLockHint } from './studioApps';
 import { studioSectionLabel } from './studioNav';
 import { STUDIO_START } from './studioStart';
 import type { StudioAppDescriptor } from './studioRegistry';
+import type { RuntimeDescriptor } from '../../../moduleRuntime/registry';
 import { countFor } from '../../../hooks/useStudioCounts';
 import type { StudioCounts } from '../../../hooks/useStudioCounts';
 import { useTranslation } from '../../../hooks/useTranslation';
@@ -87,10 +88,10 @@ interface RailRowProps {
 }
 
 /** A section as resolveStudioNav hands it over: the registry row plus its lock. */
-interface RailSection extends StudioAppDescriptor {
+type RailSection = (StudioAppDescriptor | RuntimeDescriptor) & {
     locked?: string | null;
     runtime?: boolean;
-}
+};
 
 /** The account footer is the sidebar's: its props arrive here unchanged. */
 type FooterProps = React.ComponentProps<typeof SidebarFooter>;

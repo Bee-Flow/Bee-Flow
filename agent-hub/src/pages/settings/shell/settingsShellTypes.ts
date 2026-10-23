@@ -2,7 +2,7 @@
 export type SettingsUser = {
     permissions?: string[] | null;
     isAdmin?: boolean;
-    orgRole?: string;
+    orgRole?: string | null;
     role?: string;
     username?: string;
     displayName?: string;

@@ -5,8 +5,10 @@ import { PrefillField } from './inputPanels';
 import { registerInspector } from '../registry';
 import { TextField, TextAreaField , usePatch } from './kit';
 import type { PanelProps } from '../appDefinition';
+import type { BindingInput } from '../../runtime/resolveBinding.types';
 
 interface InputRichtextProps {
+    valueFrom?: BindingInput;
     name?: string;
     label?: string;
     defaultValue?: string | null;

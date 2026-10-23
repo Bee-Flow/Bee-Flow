@@ -86,7 +86,7 @@ curl /api/auth/admin/beta-features
 | Admin API | `server/auth/adminRoutes.js` | `GET /beta-features`, `PUT /organizations/:orgId/beta-features` |
 | Session pipeline | `server/auth/loginRoutes.js` | `/my-permissions` returns `betaFeatures[]` |
 | Frontend state | `agent-hub/src/AuthedApp.jsx` | Hydrates `betaFeatures` onto the `user` object from `/auth/my-permissions` |
-| Frontend helper | `agent-hub/src/AgentHub.jsx` | `hasBetaFeature(id)` check |
+| Frontend helper | `agent-hub/src/AgentHub.tsx` | `hasBetaFeature(id)` check |
 
 ## How it works
 

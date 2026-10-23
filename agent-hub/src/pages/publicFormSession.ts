@@ -36,9 +36,9 @@ type SetState = (update: (s: PageState) => PageState) => void;
 type SetSession = (sid: string | null, opts?: { keepUrl?: boolean }) => void;
 
 /** GET the session. `null` means "gone" (404/network); the caller decides. */
-export async function fetchSession(token: string, sid: string): Promise<SessionPayload | null> {
+export async function fetchSession(token: string | null, sid: string): Promise<SessionPayload | null> {
     try {
-        const r = await fetch(`${FORM_API}/${encodeURIComponent(token)}/s/${encodeURIComponent(sid)}`, {
+        const r = await fetch(`${FORM_API}/${encodeURIComponent(String(token))}/s/${encodeURIComponent(sid)}`, {
             headers: { Accept: 'application/json' },
         });
         if (!r.ok) return null;

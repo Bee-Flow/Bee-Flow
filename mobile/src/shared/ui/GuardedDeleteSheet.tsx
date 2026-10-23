@@ -8,7 +8,7 @@
  * presses through.
  *
  * Typing the name is the price of breaking something, as in the web's
- * DangerZone (agent-hub/src/components/shared/DangerZone.jsx): asked when
+ * DangerZone (agent-hub/src/components/shared/DangerZone.tsx): asked when
  * something was found, when the answer was unreadable, or always when the
  * caller says so — recordings do, because on the web a meeting's title is typed
  * against the unchecked warning before `?confirm=1` goes out.

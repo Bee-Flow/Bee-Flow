@@ -34,7 +34,7 @@ vi.mock('./Playbooks/PlaybooksStudio', () => ({ default: (p) => <div data-testid
 // mounts it through the same lazy() + getProps shape.
 vi.mock('./StudioStart', () => ({ default: () => <div data-testid="app-start" /> }));
 
-import Studio from './index.jsx';
+import Studio from './index';
 import EntitlementsContext from '../../licensing/EntitlementsContext';
 
 // The entitlements have answered (nothing licensed, nothing effective), so the

@@ -2,8 +2,8 @@
 import { describe, it, expect } from 'vitest';
 import { findBlocks, getSectionRange, moveBlocks } from './sectionDrag.js';
 import { createState, applyTransform } from './state.js';
-import { astToMarkdown } from '../serialization/astToMd.js';
-import { markdownToAst } from '../serialization/mdToAst.js';
+import { astToMarkdown } from '../serialization/astToMd';
+import { markdownToAst } from '../serialization/mdToAst';
 
 const docFrom = (md) => createState(markdownToAst(md)).doc;
 

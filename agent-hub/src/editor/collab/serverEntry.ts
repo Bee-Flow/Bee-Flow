@@ -17,7 +17,7 @@
  * DOMParser from the caller (jsdom on the server), like editorSerialization.
  */
 export { markdownToAst, astToMarkdown, astToHtml, htmlToAst } from '../serialization/index.js';
-export { normalizeLight } from '../engine/normalize.js';
+export { normalizeLight } from '../engine/normalize';
 export { FRAGMENT_NAME } from './ySchema';
 export { astToFragment, fragmentToAst, createYCache, sameInY } from './yConvert';
 export { syncDocToFragment } from './ySync';

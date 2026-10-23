@@ -7,7 +7,7 @@ import { nodeDesc, nodeTypeLabel, stepFamily } from '../flow/nodeDefs';
 import { defaultTriggerLabel, triggerTypeLabel } from '../flow/triggerLabels';
 import type { DataSummary, FlowStep } from '../flow/types';
 
-type Catalog = { apps?: Array<{ label?: string; actions?: Array<{ name: string; label?: string; description?: string }> }> } | null;
+type Catalog = { apps?: Array<{ label?: string; actions?: Array<{ name: string; label?: string; description?: string }> }>; [key: string]: unknown } | null;
 
 /** The raw node-type label ("Schedule trigger", "Remove duplicates"). */
 export function stepTypeLabel(step: FlowStep | null, t: TranslateFn | null = null): string {

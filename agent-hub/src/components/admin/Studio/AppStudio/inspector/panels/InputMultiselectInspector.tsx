@@ -5,6 +5,7 @@ import { RepeatableList, inputCls } from '../../../../product-website/fields';
 import { PrefillField } from './inputPanels';
 import { registerInspector } from '../registry';
 import type { PanelProps } from '../appDefinition';
+import type { BindingInput } from '../../runtime/resolveBinding.types';
 import { TextField , usePatch } from './kit';
 
 /** One option of the list; the panel reads both members defensively. */
@@ -14,6 +15,7 @@ interface MultiselectOption {
 }
 
 interface InputMultiselectInspectorProps {
+    valueFrom?: BindingInput;
     name?: string;
     label?: string;
     options?: MultiselectOption[];

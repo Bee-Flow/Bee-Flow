@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { isAgentCallable } from './skillModel';
+import type { OrgGroup } from '../../../shared/VisibilityCapsule.types';
 import type { CallableAutomation } from './skillModel.types';
 
 /** An automation row as the picker reads it. */
@@ -13,7 +14,7 @@ export interface PickerKnowledgeBase { id: string | number; name?: string }
 export interface PickerDatatable { id: string | number; name?: string; key?: string }
 
 export interface PickerData {
-    orgGroups: unknown[];
+    orgGroups: OrgGroup[];
     automations: PickerAutomation[];
     knowledgeBases: PickerKnowledgeBase[];
     datatables: PickerDatatable[];
@@ -98,7 +99,7 @@ export default function useSkillPickerData(enabled = true): PickerData {
         let alive = true;
         (async () => {
             const [groups, automations, kbs, tables] = await Promise.all([
-                readList<unknown>('/auth/groups', (b) => b),
+                readList<OrgGroup>('/auth/groups', (b) => b),
                 readList<PickerAutomation>('/api/automation', (b) => b?.automations),
                 readList<PickerKnowledgeBase>('/api/kb?context=agent', (b) => (Array.isArray(b) ? b : b?.knowledgeBases)),
                 readList<PickerDatatable>('/api/datatables', (b) => b?.datatables),
