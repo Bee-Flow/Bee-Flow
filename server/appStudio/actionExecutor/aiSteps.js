@@ -569,7 +569,7 @@ async function aiGenerateStep(app, model, step, ctx) {
     const citations = (ground.chunks || []).map((c) => ({
         title: c?.title ?? null,
         score: c?.score ?? null,
-        knowledgeBaseId: c?.knowledgeBaseId ?? c?.kbId ?? null,
+        knowledgeBaseId: c?.kb_id ?? null,
     }));
     // The model wrote markdown and the app wants HTML — an e-mail body, a rich
     // text field. Converting here rather than asking the model for tags is both

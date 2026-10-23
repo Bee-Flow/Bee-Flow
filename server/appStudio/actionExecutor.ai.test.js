@@ -414,6 +414,17 @@ test('ai_generate returns citation TITLES, never the KB bodies', async () => {
     assert.ok(!JSON.stringify(r.result.citations).includes('policy body'));
 });
 
+test('ai_generate citations carry the knowledge base id from the chunk kb_id', async () => {
+    const saved = aiState.chunks;
+    aiState.chunks = [{ title: 'Handbook', content: 'x', score: 0.5, source_uri: '', kb_id: 'kb_1' }];
+    try {
+        const r = await actionExecutor.executeDataStep(app, model, {
+            kind: 'ai_generate', prompt: 'Draft.', knowledgeBaseIds: ['kb_1'], output: 'text', resultVar: 'draft',
+        }, ctx());
+        assert.strictEqual(r.result.citations[0].knowledgeBaseId, 'kb_1');
+    } finally { aiState.chunks = saved; }
+});
+
 // ── writeTo provenance ──────────────────────────────────────────────────────
 // Without constants an extracted row is an orphan: nothing records which ticket
 // or document it came from, so it cannot be shown in context and a retention
