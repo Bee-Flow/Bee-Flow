@@ -152,7 +152,7 @@ function makeLogger(moduleId) {
 // mutate licensing.
 const licenseView = Object.freeze({
     getLicenseStatus: (ctx) => license().getLicenseStatus(ctx),
-    hasFeature: (feature, ctx) => license().hasFeature(feature, ctx),
+    hasFeature: (feature, ctx) => license().hasFeature(ctx, feature),
     resolveTier: (ctx) => license().resolveTier(ctx),
     getServerLicenseTier: () => license().getServerLicenseTier(),
     serverLicenseGovernsOrgs: () => license().serverLicenseGovernsOrgs(),
