@@ -96,7 +96,7 @@ if (require.main === module) {
     up().then((r) => {
         console.log(r.added === 0
             ? 'All translations already exist. Nothing to do.'
-            : `✓ Done! Total NL translations: ${r.total}`);
+            : `✓ Done! Added ${r.added} NL translations.`);
         process.exit(0);
     }).catch(err => {
         console.error('Migration failed:', err);
