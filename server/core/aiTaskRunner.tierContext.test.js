@@ -54,7 +54,7 @@ const restore = installResolveStub({
         getIntegrationTools: async () => ({ tools: [] }),
         buildToolHint: async () => '',
     },
-    '../integrations/agentSearchTools': { buildAgentSearchTool: () => null },
+    '../integrations/agentSearchTools': { AGENT_SEARCH_TOOLS: [] },
     '../stores/notificationStore': { createNotification: async () => {} },
     // — de ECHTE modelResolver, met zijn eigen leveranciers gestubd —
     '../../stores/configStore': { getConfig: async (key) => CONFIGS[key] ?? null },

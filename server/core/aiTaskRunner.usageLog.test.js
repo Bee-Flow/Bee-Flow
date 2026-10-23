@@ -76,7 +76,7 @@ const restore = installResolveStub({
         buildToolHint: async () => '',
     },
     './tools/toolDispatcher': { executeTool: async () => 'ok' },
-    '../integrations/agentSearchTools': { buildAgentSearchTool: () => null },
+    '../integrations/agentSearchTools': { AGENT_SEARCH_TOOLS: [] },
     '../stores/notificationStore': { createNotification: async () => {} },
     '../utils/appPaths': { coworkTaskPath: (id) => `/app/cowork/${id}` },
     // DE sink. Async-body draait synchroon tot de eerste await, dus `logged`
