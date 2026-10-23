@@ -985,6 +985,7 @@ function inferLearned(ts, checker, sf, abs, imports, edits, report) {
             }
         }
         if (spreadIn || !types.length) continue;
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- dev-only converter run by hand on our own source files, no user input
         const t = unionText(ts, checker, types, d, abs, imports);
         if (!t) { report.push(`array ${d.name.text}: element type not writable [${unionText.why}]`); continue; }
         const text = /[|&]/.test(t.text) && !/^\(.*\)$/.test(t.text) ? `(${t.text})[]` : `${t.text}[]`;

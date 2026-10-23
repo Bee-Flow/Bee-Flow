@@ -87,6 +87,7 @@ export function lowerToJsDoc(text, edits) {
             // the same line as the previous token to the declaration only there
             // (a comment before `let` is the `{`'s trailing comment, and ignored).
             const kw = /^(let|const|var)\s+/.exec(text.slice(e.host));
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- dev-only converter run by hand on our own source files, no user input
             if (/^\s*$/.test(text.slice(ls, e.host))) out.push({ start: ls + ind.length, end: ls + ind.length, text: `/** @type {${sub(e.type)}} */\n${ind}` });
             else if (kw) out.push({ start: e.host + kw[0].length, end: e.host + kw[0].length, text: `/** @type {${sub(e.type)}} */ ` });
             else dropped.push('var (mid-line, no keyword)');

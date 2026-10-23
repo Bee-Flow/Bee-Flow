@@ -12,7 +12,13 @@
     "vite.runtime.config.js",
     "src/components/admin/Studio/AppStudio/runtime/components/pdfCompare/pdfEngine.stub.ts"
   ],
-  "project": ["src/**/*.{js,jsx,ts,tsx,mjs}", "scripts/**/*.mjs"],
+  "project": [
+    "src/**/*.{js,jsx,ts,tsx,mjs}",
+    "scripts/**/*.mjs"
+  ],
+  "ignore": [
+    "src/components/InitSetupWizard/**"
+  ],
   "vite": false,
   "vitest": false
 }

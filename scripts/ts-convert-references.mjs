@@ -34,6 +34,7 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 export const isFlat = (rel) => !rel.replace(/^src\//, '').includes('/');
 
 export function rewrite(text, file, pairs) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- dev-only converter run by hand on our own source files, no user input
     let out = text;
     const insideHub = file.startsWith('agent-hub/');
     for (const { file: oldRel, target: newRel } of pairs) {

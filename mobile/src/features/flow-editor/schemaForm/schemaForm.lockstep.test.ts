@@ -10,7 +10,6 @@
  */
 
 import fs from 'node:fs';
-
 import ts from 'typescript';
 
 import { buildSchemaFormModel, describeExample, isMultilineProp } from './model';

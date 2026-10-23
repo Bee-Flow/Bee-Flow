@@ -52,5 +52,6 @@ globalThis.__tcRec = (file, key, slots) => {
 globalThis.afterAll?.(() => {
     const dir = process.env.TS_RUNTIME_REC_DIR;
     if (!dir || !Object.keys(records).length) return;
+    // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_insecure_random_generator -- a temp file name for a dev-only recorder, not a secret
     fs.writeFileSync(path.join(dir, `${process.pid}-${Math.random().toString(36).slice(2)}.json`), JSON.stringify(records));
 });
