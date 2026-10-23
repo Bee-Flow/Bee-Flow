@@ -37,3 +37,36 @@ test('BFSF-461: data:, cid: and relative sources, and plain anchors, add nothing
     const html = '<img src="data:image/png;base64,AAAA?x=1"><img src="cid:logo@mail"><img src="logo.png?v=3"><a href="https://example.com/page#top">x</a>';
     assert.equal(htmlAttributeText(html), '');
 });
+
+test('outbound screen passes the org shield to the scan and blocks on a finding in block mode', async () => {
+    const { screenOutboundEmail } = require('./outboundEmailDlp');
+    const configStore = require('../../stores/configStore');
+    const orgShield = require('../../core/privacy/orgShield');
+    const dlpRunner = require('../../core/dlp/dlpRunner');
+    const saved = { g: configStore.getConfig, r: orgShield.resolveOrgShield, s: dlpRunner.scan };
+    let seen = null;
+    let findings = [{ label: 'IBAN' }];
+    configStore.getConfig = async () => 'block';
+    orgShield.resolveOrgShield = async () => ({ enabled: true, dlpEnabled: true, dlpScope: 'external' });
+    dlpRunner.scan = async (args) => {
+        seen = args;
+        return args.orgShieldConfig?.dlpEnabled
+            ? { scanStatus: 'ok', findings }
+            : { scanStatus: 'skipped', findings: [] };
+    };
+    try {
+        const app = { id: 'a1', organizationId: 'o1' };
+        const blocked = await screenOutboundEmail(app, { text: 'NL91ABNA0417164300', subject: 's' });
+        assert.deepEqual(blocked, { blocked: true, outcome: 'blocked' });
+        assert.equal(seen.orgShieldConfig.dlpEnabled, true);
+        assert.equal(seen.orgShieldConfig.dlpScope, 'all');
+
+        findings = [];
+        const clean = await screenOutboundEmail(app, { text: 'hello there', subject: 's' });
+        assert.deepEqual(clean, { blocked: false, outcome: 'clean' });
+    } finally {
+        configStore.getConfig = saved.g;
+        orgShield.resolveOrgShield = saved.r;
+        dlpRunner.scan = saved.s;
+    }
+});
