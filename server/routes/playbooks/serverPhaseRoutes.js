@@ -161,7 +161,7 @@ function register(router, ctx) {
         }
         // The designer's material: the goal in plain words, the table as it
         // is today (columns, count, two sample rows), whether approvals follow.
-        const spec = typeof recipe.phaseSpec === 'function' ? recipe.phaseSpec(key) : null;
+        const spec = typeof recipe.phaseSpec === 'function' ? recipe.phaseSpec(key, localeOf(pb)) : null;
         const goal = (cur.goal || (spec && spec.goal) || recipe.description || pb.title || '').trim();
         const tableArt = (firstOfKind(phases, 'table') || {}).artifacts || {};
         let table = null;
