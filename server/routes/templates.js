@@ -536,7 +536,7 @@ async function autoCreateTemplateKB(templateId, userId, fileName, text) {
             const { ingestLocally } = require('../core/kb/localKBIngest');
             const result = await ingestLocally(userId, kb.id, doc.id, text, {
                 title: fileName,
-                source_uri: fileName,
+                sourceUri: fileName,
             });
             await kbStore.updateChunkCount(doc.id, result.chunks_created || 0);
             await kbStore.bumpKBVersion(kb.id);
@@ -837,4 +837,5 @@ Respond with ONLY a valid JSON array, no other text:
     log.info(`[Templates] Template ${templateId} now has ${newParams.length} parameters after auto-parameterization`);
 }
 
+router._test_autoCreateTemplateKB = autoCreateTemplateKB;
 module.exports = router;
