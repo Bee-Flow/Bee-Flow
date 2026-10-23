@@ -311,6 +311,12 @@ async function executeKbSearchTool(toolName, args, context = {}) {
         const results = chunks
             .filter(c => (c.score || c.rerank_score || 0) >= scoreThreshold)
             .map((c, i) => ({
+                // Keep the ids (document_id, source_id, page_start, ...) so the
+                // citation can be opened and kb_fetch can resolve the passage.
+                ...c,
+                // kb_chunks.chunk_id is the passage's ordinal within its
+                // document; the row's own `id` is what kb_fetch looks up.
+                chunk_id: c.id ?? c.chunk_id ?? null,
                 result_number: i + 1,
                 title: c.title || c.source_uri || 'Knowledge Base',
                 source_url: c.source_uri || null,
