@@ -1,0 +1,4 @@
+{
+  "_comment": "HIGH/CRITICAL advisories that vuln-watch.yml (scripts/vuln-watch-gate.mjs) may report without turning red. Each entry: id (GHSA, CVE, PYSEC or RUNTIME-… id), reason, expires (YYYY-MM-DD); optional package and path (a path prefix) narrow it. An expired entry is red again. The `accepted` entries of audit-baseline.json count as well; do not copy them here.",
+  "accepted": []
+}

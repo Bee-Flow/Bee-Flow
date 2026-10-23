@@ -113,6 +113,7 @@ test('sync writes as the OWNER through the record-write choke point', async () =
         connector({ tableId: TABLE.id, mode: 'upsert', keyField: 'id' }), { _deps: h._deps });
 
     assert.strictEqual(res.inserted, 1);
+    assert.strictEqual(res.rowsWritten, 1, "the manual-refresh route reports this");
     // 'owner' is the only role with unconditional write scope (rlsGateway), and
     // going through writeRecordBatch is what applies the storage quotas.
     assert.deepStrictEqual(h.log.inserts[0].viewer, { id: 'owner-1', role: 'owner' });

@@ -5,6 +5,11 @@
  * returned the raw provider block, so a Claude or Gemini run logged 0 tokens at
  * 0 cost. The adapter here is the REAL one (only the SDK client is stubbed).
  *
+ * Also: when the owner's integration tools fail to load, a plain-prompt run
+ * falls back to the web search tools. The fallback used to require a
+ * `buildAgentSearchTool` that agentSearchTools never exported, so it silently
+ * left the run without any tool. The stub here has the REAL export shape.
+ *
  * Run: node --test core/aiTaskRunner.usageCache.test.js
  */
 const { test, after } = require('node:test');
@@ -16,6 +21,8 @@ const {
 
 const logged = [];
 let adapter = null;
+let integrationsDown = false;
+const SEARCH_TOOL = { type: 'function', function: { name: 'agent_search', parameters: { type: 'object' } } };
 
 const fakeStore = {
     markRunning: async () => {}, markCompleted: async () => {}, markError: async () => {},
@@ -40,11 +47,14 @@ const restore = installResolveStub({
     },
     './providers': { getAdapter: () => adapter },
     './integrations/integrationTools': {
-        getIntegrationTools: async () => ({ tools: [] }),
+        getIntegrationTools: async () => {
+            if (integrationsDown) throw new Error('integrations down');
+            return { tools: [] };
+        },
         buildToolHint: async () => '',
     },
     './tools/toolDispatcher': { executeTool: async () => 'ok' },
-    '../integrations/agentSearchTools': { buildAgentSearchTool: () => null },
+    '../integrations/agentSearchTools': { AGENT_SEARCH_TOOLS: [SEARCH_TOOL] },
     '../stores/notificationStore': { createNotification: async () => {} },
     '../utils/appPaths': { coworkTaskPath: (id) => `/app/cowork/${id}` },
     '../stores/usageStore': { logUsage: async (entry) => { logged.push(entry); } },
@@ -81,4 +91,22 @@ test('a Vertex run is accounted like a Gemini run', async () => {
     await flush();
     assert.strictEqual(logged.length, 1);
     assertGeminiEntry(logged[0]);
+});
+
+test('integration tools failing to load leaves the web search tool on the run', async () => {
+    const chatArgs = [];
+    adapter = {
+        chat: async (...args) => {
+            chatArgs.push(JSON.stringify(args));
+            return { content: 'Done.', usage: { prompt_tokens: 1, completion_tokens: 1 } };
+        },
+    };
+    integrationsDown = true;
+    try {
+        await executeTask(TASK, { store: fakeStore });
+    } finally {
+        integrationsDown = false;
+    }
+    assert.ok(chatArgs.length > 0, 'the adapter was called');
+    assert.ok(chatArgs[0].includes('agent_search'), 'the fallback search tool reached the model');
 });

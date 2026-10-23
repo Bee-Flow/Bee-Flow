@@ -142,7 +142,7 @@ const deps = {
     automationStore: { getAutomation: async (id) => state.automations[id] || null, getRun: async (id) => state.runs[id] || null },
     studioAppStore: {
         createStudioApp: async ({ userId, name }) => { state.createdApps += 1; const id = `app_${state.createdApps}`; state.apps[id] = { id, userId, name }; return state.apps[id]; },
-        getStudioApp: async (id) => state.apps[id] || null,
+        getStudioApp: async (id) => state.apps[id] || null, listPublicPages: async () => [],
     },
     userStore: { getUser: async (id) => ({ id, organizationId: 'orgA' }), getAllGroups: async () => [{ id: 'grp_fin', organizationId: 'orgA' }, { id: 'grp_other', organizationId: 'orgB' }] },
     db: { withTransaction: async (fn) => fn({ query: async () => ({ rows: [] }) }) },

@@ -127,13 +127,13 @@ async function executeBrowseStep(app, def, step, ctx, helpers) {
     // WHO watched, which app and where the agent went.
     try {
         usageStore.logUsage({
-            userId: app.userId,
-            organizationId: app.organizationId || null,
-            agentType: 'studio_app',
+            user_id: app.userId,
+            organization_id: app.organizationId || null,
+            agent_type: 'studio_app',
             source: 'studio_app_browse',
             model: null,
-            promptTokens: 0, completionTokens: 0, totalTokens: 0,
-            durationMs: Date.now() - t0,
+            prompt_tokens: 0, completion_tokens: 0, total_tokens: 0,
+            duration_ms: Date.now() - t0,
         }).catch(() => {});
     } catch { /* billing must never break a step */ }
     try {

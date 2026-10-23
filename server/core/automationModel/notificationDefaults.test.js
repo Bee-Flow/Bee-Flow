@@ -146,3 +146,8 @@ test('the hand-mirrored UI copy agrees on vocabulary and defaults', async () => 
     assert.deepEqual(mirror.CHANNEL_OPTIONS.map(o => o.key), ['inapp', 'email']);
     assert.ok(!mirror.CHANNEL_OPTIONS.some(o => o.comingSoon));
 });
+
+test('normalizeEventSettings rejects non-event keys such as digest with a clear error', () => {
+    assert.throws(() => normalizeEventSettings(undefined, 'digest'), /unknown notification event: digest/);
+    assert.throws(() => normalizeEventSettings({ enabled: true }, 'digest'), /unknown notification event: digest/);
+});

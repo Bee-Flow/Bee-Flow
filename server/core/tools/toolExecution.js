@@ -137,7 +137,7 @@ async function executeComponentTool(toolName, args, userAuth = {}, fixedParams =
         const workflowStore = require('../../stores/workflowStore');
 
         try {
-            const workflow = workflowStore.getWorkflowById(workflowId);
+            const workflow = await workflowStore.getWorkflowById(workflowId);
             if (!workflow) {
                 return { error: `Subworkflow '${workflowId}' not found` };
             }

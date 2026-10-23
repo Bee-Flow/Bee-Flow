@@ -12,6 +12,19 @@ import { applyAutoMapToStep } from '../mapping/autoMapInputs';
 import type { DiagramDefinition, DiagramStep, Rf, Sidecar } from './diagramPaneTypes';
 import type { NodeOpsInputs } from './useNodeOps';
 
+/**
+ * The pointer's client position for a drag event. React Flow hands over a
+ * TouchEvent on touch screens, which has no clientX/clientY (they sit on the
+ * touch), so reading them straight gave NaN. Null when the event has no point.
+ */
+export function dragClientPoint(event: unknown): { x: number; y: number } | null {
+    if (!event || typeof event !== 'object') return null;
+    const e = event as { touches?: ArrayLike<Touch>; changedTouches?: ArrayLike<Touch>; clientX?: number; clientY?: number };
+    const src = 'touches' in e ? (e.touches?.[0] ?? e.changedTouches?.[0]) : e;
+    if (!src || !Number.isFinite(src.clientX) || !Number.isFinite(src.clientY)) return null;
+    return { x: src.clientX as number, y: src.clientY as number };
+}
+
 /** What a dragged loose node would attach to (flow/nodeDropTarget.js). */
 export type NodeDropHit = NodeDropTarget;
 
@@ -111,7 +124,8 @@ export function useNodeDragWiring({
         setNodeDropTarget((prev: NodeDropHit | null) => (sameNodeDropTarget(prev, hit) ? prev : hit));
         if (!hit) { setDropHintPos(null); return; }
         const bounds = wrapperRef.current?.getBoundingClientRect();
-        if (bounds) setDropHintPos({ x: (event as MouseEvent).clientX - bounds.left, y: (event as MouseEvent).clientY - bounds.top });
+        const point = dragClientPoint(event);
+        if (bounds && point) setDropHintPos({ x: point.x - bounds.left, y: point.y - bounds.top });
     }, [editable, structuralEditsBlocked, rf, edges, definition, hasInline]);
 
     /**

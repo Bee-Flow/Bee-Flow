@@ -80,7 +80,7 @@ export default function useIntegrationsAdminState() {
     const [savingPyannoteModel, setSavingPyannoteModel] = useState(false);
     // Per-person voiceprint speaker identification (pyannote only)
     const [voiceprintMatchingEnabled, setVoiceprintMatchingEnabled] = useState(true);
-    const [pyannoteIdentifyThreshold, setPyannoteIdentifyThreshold] = useState<number | string>(50);
+    const [pyannoteIdentifyThreshold, setPyannoteIdentifyThreshold] = useState(50);
     const [savingVoiceprint, setSavingVoiceprint] = useState(false);
 
     // Service Email (Gmail API via OAuth)

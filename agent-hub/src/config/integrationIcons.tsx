@@ -109,7 +109,17 @@ const FallbackIcon = (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 3h6v4h4v6h-4v4h-6v-4H5v-6h4V3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
 );
 
-export function getIntegrationIcon(id?: string | null, _opts?: { size?: number }): React.ReactElement {
+export function getIntegrationIcon(id?: string | null, opts?: { size?: number }): React.ReactElement {
+    const icon = lookupIcon(id);
+    // The registry holds ready-made elements with a fixed `w-5 h-5` class; a
+    // requested size replaces that class with explicit dimensions.
+    if (!opts?.size) return icon;
+    return React.cloneElement(icon as React.ReactElement<React.SVGProps<SVGSVGElement>>, {
+        width: opts.size, height: opts.size, className: undefined,
+    });
+}
+
+function lookupIcon(id?: string | null): React.ReactElement {
     if (!id) return FallbackIcon;
     // Tool callers spell integration ids in either kebab- or snake_case
     // (`google-calendar` vs `google_calendar`) — normalise both directions

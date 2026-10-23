@@ -88,7 +88,7 @@ async function executeApiHandler({ webpageId, route, req }) {
         webpageId,
         authorUserId: ctx.authorUserId,
         authorOrgId: ctx.authorOrgId,
-        pageTitle: ctx.webpage?.title || null,
+        pageTitle: ctx.webpage?.name || null,
     });
 
     const bridges = {

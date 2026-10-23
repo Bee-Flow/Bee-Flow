@@ -1,10 +1,21 @@
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, type ComponentProps, type ComponentType, useCallback, useEffect, useRef, useState } from 'react';
+import type MonacoReact from '@monaco-editor/react';
 import type { Monaco } from '@monaco-editor/react';
 import type { editor as MonacoNs } from 'monaco-editor';
 import { useTranslation } from '../../hooks/useTranslation';
 import { lazy } from '../../utils/lazyWithReload';
 
-const MonacoEditor = lazy(() =>
+type MonacoProps = ComponentProps<typeof MonacoReact> & { onLoadFailed?: () => void };
+
+// Stands in for Monaco when its chunk cannot be loaded (blocked CDN, offline,
+// bad deploy). `React.lazy` must resolve to a component, so it reports the
+// failure upward and the editor swaps in the plain textarea.
+function MonacoUnavailable({ onLoadFailed }: MonacoProps) {
+    useEffect(() => { onLoadFailed?.(); }, [onLoadFailed]);
+    return null;
+}
+
+const MonacoEditor = lazy((): Promise<{ default: ComponentType<MonacoProps> }> =>
     import('@monaco-editor/react')
         .then(m => {
             if (!m.default) throw new Error('Monaco default export missing');
@@ -12,7 +23,7 @@ const MonacoEditor = lazy(() =>
         })
         .catch(err => {
             console.error('[WebpageEditor] Monaco failed to load:', err);
-            return { default: null };
+            return { default: MonacoUnavailable };
         })
 );
 
@@ -144,6 +155,7 @@ export default function WebpageEditor({
                             language={language}
                             value={value}
                             onChange={(v: string | undefined) => onChange?.(v ?? '')}
+                            onLoadFailed={() => setMonacoFailed(true)}
                             onMount={(editor: MonacoNs.IStandaloneCodeEditor, monaco: Monaco) => {
                                 if (!editor) { setMonacoFailed(true); return; }
                                 handleMount(editor, monaco);

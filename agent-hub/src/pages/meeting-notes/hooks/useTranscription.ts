@@ -12,6 +12,9 @@ export default function useTranscription(id: string | null | undefined) {
     // MeetingLoadError, which still reads it as an ApiError; read it with the caughtError helpers there.
     const [error, setError] = useState<unknown>(null);
     const mounted = useRef<boolean>(true);
+    // The id the view shows now; a refresh that started for an older one is dropped.
+    const idRef = useRef(id);
+    idRef.current = id;
 
     // React 18 Strict Mode runs effects mount → unmount → mount in dev. Resetting
     // `mounted.current` on every mount keeps the guard correct for the *current*
@@ -44,9 +47,9 @@ export default function useTranscription(id: string | null | undefined) {
         if (!id) return;
         try {
             const next = await api.getTranscription(id);
-            if (mounted.current) setData(next);
+            if (mounted.current && idRef.current === id) setData(next);
         } catch (err) {
-            if (mounted.current) setError(err);
+            if (mounted.current && idRef.current === id) setError(err);
         }
     }, [id]);
 
@@ -59,7 +62,12 @@ export default function useTranscription(id: string | null | undefined) {
     }, [data?.status, refresh]);
 
     const setLocal = useCallback((updater: LocalUpdate) => {
-        setData((prev) => (typeof updater === 'function' ? updater(prev as MeetingNote) : updater));
+        // A function updater has nothing to edit until the note has loaded (the id just
+        // changed and `data` is null): spreading null would build a half-filled note.
+        setData((prev) => {
+            if (typeof updater !== 'function') return updater;
+            return prev ? updater(prev) : prev;
+        });
     }, []);
 
     return { data, loading, error, refresh, setLocal };

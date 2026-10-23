@@ -162,7 +162,7 @@ function opsForType(type) {
                             className={inputClass()}
                             value={draft.datatableId || ''}
                             onChange={(e) => set('datatableId', e.target.value)}
-                            onFocus={() => onFocusField?.('datatableId')}
+                            onFocus={() => onFocusField?.(null)}
                         >
                             <option value="">{t('automations.datatable_editors.pick_a_table', 'Pick a table…')}</option>
                             {tables.map(t => (
@@ -183,7 +183,7 @@ function opsForType(type) {
                         className={inputClass()}
                         value={op}
                         onChange={(e) => set('op', e.target.value)}
-                        onFocus={() => onFocusField?.('op')}
+                        onFocus={() => onFocusField?.(null)}
                     >
                         {(ops.length ? ops : [{ op: 'find_rows', label: 'Find rows' }]).map(o => (
                             <option key={o.op} value={o.op}>{o.label}</option>

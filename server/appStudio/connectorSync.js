@@ -805,7 +805,7 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
         });
 
         return {
-            inserted, updated, skipped, rows: rows.length,
+            inserted, updated, skipped, rows: rows.length, rowsWritten: inserted + updated,
             ...(purged ? { purged } : {}),
             watermark, nextRunAt, reason,
             durationMs: Date.now() - started,

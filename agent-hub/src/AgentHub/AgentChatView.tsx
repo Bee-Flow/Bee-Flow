@@ -104,9 +104,11 @@ const AgentChatView = ({
     const { t } = useTranslation();
     // The empty state and the conversation render the same composer.
     const composerProps = {
-        onSendMessage: (text: string, attachments: ChatAttachment[], parentId: { id: string } | undefined) => {
+        // sendMessage is (text, attachments, isHidden, ...): the composer's third
+        // argument is the thread parent, which is not an isHidden flag.
+        onSendMessage: (text: string, attachments: ChatAttachment[]) => {
             shouldForceScrollRef.current = true;
-            sendMessage(text, attachments, parentId, false);
+            sendMessage(text, attachments, false);
         },
         onStopGenerating: stopGenerating,
         isLoading,

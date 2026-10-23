@@ -282,6 +282,7 @@ async function quickKBSearch(userId, kbIds, query, options = {}) {
         ...(c.row_start != null ? { row_start: c.row_start, row_end: c.row_end } : {}),
         ...(c.occurred_at ? { occurred_at: c.occurred_at } : {}),
         ...(c.source_id != null ? { source_id: c.source_id } : {}),
+        ...(c.kb_id != null ? { kb_id: c.kb_id } : {}),
         ...(Array.isArray(c.linked) && c.linked.length ? { linked: c.linked } : {}),
     }));
 }

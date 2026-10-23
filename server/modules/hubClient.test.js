@@ -96,6 +96,18 @@ test('connect persists install id + secret and returns tier/subject', async () =
     assert.strictEqual(await hubClient.isConnected(), true);
 });
 
+test('connect sends the stamped APP_VERSION as product version', async () => {
+    const saved = process.env.APP_VERSION;
+    process.env.APP_VERSION = '2.3.0';
+    try {
+        handler = () => jsonResponse(201, { install_id: 'i', install_secret: 's', tier: 'free', subject: null });
+        await hubClient.connect();
+        assert.strictEqual(calls[0].body.product_version, '2.3.0');
+    } finally {
+        if (saved === undefined) delete process.env.APP_VERSION; else process.env.APP_VERSION = saved;
+    }
+});
+
 test('connect twice ⇒ HubError(already_connected)', async () => {
     config.set(hubClient.INSTALL_ID_KEY, 'inst_1');
     await assert.rejects(() => hubClient.connect(), (e) => e.code === 'already_connected');

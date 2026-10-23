@@ -10,11 +10,20 @@
 #   suite  — run the bind-mounted spec via `playwright test`, write report.json
 #   serve  — launch a Chromium server and print its wsEndpoint for the worker
 #            to drive over the wire (explore / agent modes)
-#
+
+# The Playwright base ships Node 24.21.0, which has the bundled-Brotli
+# out-of-bounds write (CVE-2026-111497, fixed in 24.22.1). Same major, so only
+# the binary is swapped below. Drop this stage once a Playwright base ships
+# 24.22.1 or later, and keep the version assert in
+# scripts/check-release-container.sh in step.
+FROM node:24.22.1-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS node
+
 # IMPORTANT: this version MUST match the `playwright` version the server
 # installs (server/package.json). Playwright's connect() handshake rejects a
 # client/server minor-version mismatch (HTTP 428). Bump both together.
 FROM mcr.microsoft.com/playwright:v1.64.0-noble@sha256:06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f
+
+COPY --from=node /usr/local/bin/node /usr/bin/node
 
 WORKDIR /runner
 

@@ -359,4 +359,24 @@ describe('TranscriptionSection: pyannoteAI model and voiceprints', () => {
         await user.tab();
         expect(saveVoiceprintSettings).toHaveBeenCalledWith({ pyannoteIdentifyThreshold: 70 });
     });
+
+    it('does not save 0 when the threshold field is emptied', async () => {
+        const user = userEvent.setup();
+        renderSection({ voiceprintMatchingEnabled: true });
+        const input = within(panel('pyannoteAI')).getByRole('spinbutton');
+        await user.clear(input);
+        await user.tab();
+        expect(saveVoiceprintSettings).not.toHaveBeenCalled();
+        expect(input).toHaveValue(50);
+    });
+
+    it('clamps an out-of-range threshold to 0-100 before saving', async () => {
+        const user = userEvent.setup();
+        renderSection({ voiceprintMatchingEnabled: true });
+        const input = within(panel('pyannoteAI')).getByRole('spinbutton');
+        await user.clear(input);
+        await user.type(input, '250');
+        await user.tab();
+        expect(saveVoiceprintSettings).toHaveBeenCalledWith({ pyannoteIdentifyThreshold: 100 });
+    });
 });

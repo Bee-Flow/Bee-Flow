@@ -140,3 +140,14 @@ test('migrationPlan threads the dialect into every emitter it calls', () => {
     assert.match(joined, /TIMESTAMPTZ/, 'a plan compiled for pg must not carry sqlite column types');
     assert.doesNotMatch(joined, /created_at TEXT/);
 });
+
+test('compileKeyIndex binds bool keys in the caller dialect (not the array index)', () => {
+    const pg = qc.compileKeyIndex(TABLE, 'active', [true, false], ALLOW, { dialect: 'pg' });
+    assert.deepStrictEqual(pg.params, [true, false]);
+    const lite = qc.compileKeyIndex(TABLE, 'active', [true, false], ALLOW, { dialect: 'sqlite' });
+    assert.deepStrictEqual(lite.params, [1, 0]);
+});
+
+test('MAX_AGGREGATES is exported for callers that batch aggregates', () => {
+    assert.strictEqual(qc.MAX_AGGREGATES, 16);
+});

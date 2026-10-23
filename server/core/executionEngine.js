@@ -240,7 +240,7 @@ async function executeWorkflow(workflow, userAuth = {}) {
                         }
 
                         // Get previous state from SQLite
-                        const prevState = watcherStateStore.getWatcherState(watcherId);
+                        const prevState = await watcherStateStore.getWatcherState(watcherId);
                         const prevItems = prevState?.items || {};
                         const previousItems = Object.values(prevItems).map(p => p.data);
 
@@ -273,7 +273,7 @@ async function executeWorkflow(workflow, userAuth = {}) {
                         });
 
                         // Save current state to SQLite for next comparison
-                        watcherStateStore.saveWatcherState(watcherId, currentItemMap);
+                        await watcherStateStore.saveWatcherState(watcherId, currentItemMap);
 
                         // Update output with actual data
                         output.result.currentItems = currentItems;

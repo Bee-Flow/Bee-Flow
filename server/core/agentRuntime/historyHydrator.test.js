@@ -140,3 +140,24 @@ test('BFSF-307: hydration replaces slots, never mutates the caller\'s message ob
     assert.notStrictEqual(messages[0], durable[0],
         'prompt and durable must now hold different objects for this turn');
 });
+
+test('image attachment with only base64 content is lazily uploaded and replayed as image_url', async () => {
+    const kinds = require('./attachmentKinds');
+    assert.strictEqual(typeof kinds.uploadImageForInference, 'function', 'exported by attachmentKinds');
+    const original = kinds.uploadImageForInference;
+    const calls = [];
+    kinds.uploadImageForInference = async (...args) => { calls.push(args); return 'https://files.example/pic.png'; };
+    try {
+        const messages = [
+            { role: 'user', content: 'look', attachments: [{ name: 'pic.png', type: 'image/png', content: 'data:image/png;base64,AAAA' }] },
+            { role: 'user', content: 'current turn' },
+        ];
+        await hydrateHistoryAttachments(messages, { skipLast: false, userId: 'u1' });
+        assert.strictEqual(calls.length, 1);
+        const img = messages[0].content.find(b => b.type === 'image_url');
+        assert.ok(img, 'image_url block present');
+        assert.strictEqual(img.image_url.url, 'https://files.example/pic.png');
+    } finally {
+        kinds.uploadImageForInference = original;
+    }
+});

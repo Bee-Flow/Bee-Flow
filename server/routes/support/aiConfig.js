@@ -220,7 +220,7 @@ function register(router) {
         let result;
         result = await chatWithAgent(SUPPORT_AGENT_ID, previewUserId, userMessage, {});
 
-        const raw = (result && (result.content || result.response || result.message)) || '';
+        const raw = (result && result.message) || '';
         const escMatch = raw.match(/\[ESCALATE(?::\s*([^\]]+))?\]/i);
         const escalated = !!escMatch || (kbHits.length === 0 && raw.trim().length < 60);
         const cleaned = raw.replace(/\[ESCALATE(?::\s*[^\]]+)?\]/i, '').trim();

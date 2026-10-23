@@ -1,0 +1,120 @@
+# Vulnerability watch — every dependency and every runtime, every day.
+#
+# WHY NEXT TO dependency-audit.yml: that job is the required PR gate for six
+# hand-listed npm trees. This one answers a different question — "has
+# something we already ship become vulnerable overnight?" — and it covers
+# what the audit cannot see:
+#   - every lockfile in the repository, npm and pip (OSV-Scanner walks the
+#     tree, so a new service or package is scanned from the commit that adds
+#     it, with no list to update);
+#   - the runtimes themselves (scripts/runtime-watch.mjs): .nvmrc, every
+#     Dockerfile FROM and every compose image, against nodejs.org's security
+#     releases and endoflife.date. A Node.js core bug such as the 2026-10
+#     brotli decoder is invisible to every lockfile scanner.
+#
+# WHERE THE FINDINGS GO: the Security tab (code scanning, SARIF). In a public
+# repository those alerts are visible to maintainers only, they are deduplicated
+# across runs and they close themselves when the fix lands. The run summary
+# shows counts and advisory ids only — the same facts anyone can derive from
+# the public lockfiles.
+#
+# WHEN IT IS RED: a HIGH or CRITICAL in something that ships that is not in
+# .github/security/vuln-watch-accepted.json (or audit-baseline.json's
+# `accepted`), a runtime behind a security release or past EOL, an expired
+# acceptance, or a scan that could not run. GitHub mails a failed scheduled
+# run to whoever last changed the cron line. Rules: scripts/vuln-watch-gate.mjs.
+#
+# Not a pull-request check on purpose: the advisory database moves without a
+# commit, so a PR gate on it would block work for a reason the PR did not cause
+# (the expr-eval case in dependency-audit.yml). PRs keep the `audit` ratchet.
+name: Vulnerability watch
+
+on:
+  schedule:
+    # Daily, 05:15 UTC: before the working day in Europe, after the US
+    # advisory publications of the previous evening.
+    - cron: '15 5 * * *'
+  push:
+    branches: [main]
+    paths:
+      - '**/package-lock.json'
+      - '**/requirements*.txt'
+      - '**/Dockerfile*'
+      - '**/*compose*.yml'
+      - '.nvmrc'
+      - '.github/security/vuln-watch-accepted.json'
+      - '.github/security/audit-baseline.json'
+      - '.github/workflows/vuln-watch.yml'
+      - 'scripts/runtime-watch.mjs'
+      - 'scripts/vuln-watch-gate.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # A release older than two weeks, verified against the release's own
+  # SHA256SUMS below. Move both lines together.
+  OSV_SCANNER_VERSION: v2.6.0
+  OSV_SCANNER_SHA256: ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install OSV-Scanner
+        run: |
+          set -euo pipefail
+          curl -fsSL -o "$RUNNER_TEMP/osv-scanner" \
+            "https://github.com/google/osv-scanner/releases/download/${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SCANNER_SHA256}  $RUNNER_TEMP/osv-scanner" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/osv-scanner"
+
+      # Exit 1 means "vulnerabilities found" and is the normal case; the gate
+      # below decides what that means. Anything else (127 general error, 128
+      # no packages) is a scan that did not happen and stops the job here.
+      # The `|| code=$?` keeps bash -e from ending the step before the check.
+      # Lockfiles only: the scan reads them, it does not install anything.
+      - name: Scan every lockfile
+        run: |
+          code=0
+          "$RUNNER_TEMP/osv-scanner" scan source -r --format json --output-file "$RUNNER_TEMP/osv.json" . || code=$?
+          if [[ "$code" != 0 && "$code" != 1 ]]; then
+            echo "::error::OSV-Scanner exited with $code: the scan did not complete"
+            exit 1
+          fi
+
+      - name: Check runtimes
+        run: node scripts/runtime-watch.mjs --json "$RUNNER_TEMP/runtime.json"
+
+      - name: Gate
+        id: gate
+        run: |
+          node scripts/vuln-watch-gate.mjs \
+            --osv "$RUNNER_TEMP/osv.json" \
+            --runtime "$RUNNER_TEMP/runtime.json" \
+            --sarif "$RUNNER_TEMP/vuln-watch.sarif" \
+            --summary "$RUNNER_TEMP/summary.md"
+
+      - name: Summary
+        if: always()
+        run: cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo 'The gate produced no summary: see the log.' >> "$GITHUB_STEP_SUMMARY"
+
+      # Also when the gate is red: that is exactly when the alerts matter.
+      # The gate writes the SARIF before it decides, so a red gate has one.
+      - name: Upload to the Security tab
+        if: always() && (steps.gate.outcome == 'success' || steps.gate.outcome == 'failure')
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: ${{ runner.temp }}/vuln-watch.sarif
+          category: vuln-watch

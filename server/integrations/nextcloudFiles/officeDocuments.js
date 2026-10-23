@@ -83,7 +83,7 @@ function appendRows(ws, rows, columns) {
     const nextRow = { r: range.e.r + 1, c: range.s.c };
 
     if (rows.every((r) => Array.isArray(r))) {
-        XLSX.utils.sheet_add_aoa(ws, rows.map((r) => r.map(officegen.coerceCell)), { origin: nextRow });
+        XLSX.utils.sheet_add_aoa(ws, rows.map((r) => r.map((v) => officegen.coerceCell(v))), { origin: nextRow });
         return;
     }
 

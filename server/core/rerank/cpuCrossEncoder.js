@@ -107,6 +107,30 @@ function withTimeout(promise, ms, label) {
 function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
 
 /**
+ * One raw relevance logit per (query, document) pair.
+ *
+ * NOT `ranker(pairs)`: the text-classification pipeline hands its input to the
+ * tokenizer as `text` only, so `{ text, text_pair }` objects were never encoded
+ * as a pair, and it softmaxes the output, which for a single-logit cross-encoder
+ * is 1.0 for every document. The tokenizer is called with `text_pair` and the
+ * model's logits are read directly instead.
+ *
+ * @param {{ tokenizer: Function, model: Function }} ranker - a loaded pipeline
+ * @param {string} query
+ * @param {string[]} docs
+ * @returns {Promise<number[]>}
+ */
+async function scorePairs(ranker, query, docs) {
+    const inputs = ranker.tokenizer(docs.map(() => query), {
+        text_pair: docs,
+        padding: true,
+        truncation: true,
+    });
+    const { logits } = await ranker.model(inputs);
+    return logits.tolist().map(row => Number(Array.isArray(row) ? row[0] : row));
+}
+
+/**
  * Rerank `documents` against `query` using the in-process cross-encoder.
  *
  * @param {string} query - User search query.
@@ -124,28 +148,23 @@ async function rerankCpu(query, documents, topN = null) {
 
     const truncatedQuery = String(query).slice(0, CPU_RERANK_QUERY_CHARS);
     const limited = documents.slice(0, CPU_RERANK_MAX_DOCS);
-    const pairs = limited.map(d => ({
-        text: truncatedQuery,
-        text_pair: String(d || '').slice(0, CPU_RERANK_DOC_CHARS),
-    }));
+    const docs = limited.map(d => String(d || '').slice(0, CPU_RERANK_DOC_CHARS));
 
     try {
         const startedAt = Date.now();
-        const out = await runSerialized(() =>
-            withTimeout(ranker(pairs), CPU_RERANK_TIMEOUT_MS, 'cpu-rerank')
+        const logits = await runSerialized(() =>
+            withTimeout(scorePairs(ranker, truncatedQuery, docs), CPU_RERANK_TIMEOUT_MS, 'cpu-rerank')
         );
-        // Cross-encoder pipeline returns [{ label, score }, ...] aligned
-        // with the input order. BGE rerankers emit a single logit-ish
-        // score; normalise via sigmoid so callers can compare against
-        // Azure Cohere's already 0..1 relevance scores.
-        const scored = (Array.isArray(out) ? out : [out]).map((r, i) => ({
+        // BGE rerankers emit one raw logit per pair; normalise via sigmoid so
+        // callers can compare against Azure Cohere's already 0..1 scores.
+        const scored = logits.map((logit, i) => ({
             index: i,
-            relevance_score: typeof r?.score === 'number' ? sigmoid(r.score) : 0,
+            relevance_score: Number.isFinite(logit) ? sigmoid(logit) : 0,
         }));
         scored.sort((a, b) => b.relevance_score - a.relevance_score);
         const result = topN ? scored.slice(0, topN) : scored;
         const tookMs = Date.now() - startedAt;
-        log.info(`[CpuRerank] reranked ${pairs.length} docs in ${tookMs}ms (top=${result[0]?.relevance_score?.toFixed(3)})`);
+        log.info(`[CpuRerank] reranked ${docs.length} docs in ${tookMs}ms (top=${result[0]?.relevance_score?.toFixed(3)})`);
         return result;
     } catch (err) {
         log.warn(`[CpuRerank] inference failed (${err.message}); caller should fall back`);
@@ -169,6 +188,7 @@ async function warmup() {
 
 module.exports = {
     rerankCpu,
+    scorePairs,
     warmup,
     CPU_RERANK_MODEL_ID,
 };

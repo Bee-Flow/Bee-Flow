@@ -328,3 +328,10 @@ test('buildPresentation — a card with an icon carries the bitmap, a tile too; 
     const six = await zip.file('ppt/slides/slide4.xml').async('string');
     assert.strictEqual((six.match(/prst="roundRect"/g) || []).length, 6);
 });
+
+test('deckTheme keeps the emphasis variant so themeFor can recognise a slide on its own surface', () => {
+    const { slideVariant, resolveDeckTheme } = require('../deckThemeOptions');
+    const { deckTheme } = require('./officegen')._internal;
+    assert.strictEqual(deckTheme(slideVariant(resolveDeckTheme(null), 'dark')).variant, 'dark');
+    assert.strictEqual(deckTheme(resolveDeckTheme(null)).variant, null);
+});

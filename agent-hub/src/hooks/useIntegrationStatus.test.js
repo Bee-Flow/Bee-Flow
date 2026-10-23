@@ -120,17 +120,17 @@ describe('useIntegrationStatus', () => {
  * The invalidator existing is not the fix; being CALLED is. Logout is one
  * function in one file, and the regression is silent — nothing on screen looks
  * wrong when B reads A's payload — so the call is pinned here rather than left
- * to a manual read of AuthedApp.jsx.
+ * to a manual read of AuthedApp.tsx.
  */
 describe('logout drops the module-level caches', () => {
     const HERE = path.dirname(fileURLToPath(import.meta.url));
-    const AUTHED_APP = fs.readFileSync(path.resolve(HERE, '../AuthedApp.jsx'), 'utf8');
+    const AUTHED_APP = fs.readFileSync(path.resolve(HERE, '../AuthedApp.tsx'), 'utf8');
 
     it('handleLogout calls clearSessionCaches, next to queryClient.clear()', () => {
         const body = AUTHED_APP.slice(AUTHED_APP.indexOf('const handleLogout'));
         const end = body.indexOf('\n    };');
         const handler = body.slice(0, end > 0 ? end : 2000);
-        expect(handler, 'AuthedApp.jsx must import it').toContain('clearSessionCaches()');
+        expect(handler, 'AuthedApp.tsx must import it').toContain('clearSessionCaches()');
         expect(handler).toContain('queryClient.clear()');
         expect(AUTHED_APP).toContain("from './hooks/sessionCaches'");
     });

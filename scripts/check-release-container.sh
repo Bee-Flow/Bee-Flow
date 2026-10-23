@@ -45,6 +45,7 @@ elif [[ "$service" == pwt-runner ]]; then
         test -z "$(command -v npm || true)"
         test -z "$(command -v npx || true)"
         test ! -e /usr/lib/node_modules/npm
+        node -e '\''require("assert/strict").equal(process.version,"v24.22.1")'\''
         cd /runner && node -e '\''require("playwright"); require("@playwright/test")'\''
         node /runner/node_modules/@playwright/test/cli.js --version
     '

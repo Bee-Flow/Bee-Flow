@@ -252,6 +252,8 @@ function deckTheme(theme) {
     const hex = (k) => pptxHex(t[k], pptxHex(NEUTRAL_DECK_THEME[k], '1A1D21'));
     return {
         preset: t.preset,
+        // Set by slideVariant on an emphasis surface; themeFor compares it.
+        variant: t.variant === 'accent' || t.variant === 'dark' ? t.variant : null,
         accent: hex('accent'),
         accent2: hex('accent2'),
         background: hex('background'),
