@@ -25,7 +25,7 @@ function rfAt(x, y) {
         dest,
         flowToScreenPosition: vi.fn(() => ({ x: dest.x, y: dest.y })),
         getZoom: () => 1,
-        getNode: () => null,
+        getInternalNode: () => null,
     };
 }
 
@@ -107,5 +107,13 @@ describe('RibbonFlightLayer', () => {
         const ghost = document.querySelector('[data-testid="ribbon-flight-ghost"]');
         expect(() => { act(() => { vi.advanceTimersByTime(FLY_MS + 32); }); }).not.toThrow();
         expect(translateX(ghost)).toBe(from.left);
+    });
+
+    it('aims at the absolute position React Flow reports through getInternalNode', () => {
+        const rf = rfAt(500, 300);
+        rf.getInternalNode = () => ({ internals: { positionAbsolute: { x: 123, y: 456 } } });
+        render(<RibbonFlightLayer ghosts={[{ id: 'kid', from, startedAt: T0, glyph: { type: 'set', family: 'data', label: 'x', icon: Pencil } }]} rf={rf} nodes={nodes} />);
+        act(() => { vi.advanceTimersByTime(FLY_MS + 32); });
+        expect(rf.flowToScreenPosition).toHaveBeenLastCalledWith({ x: 123, y: 456 });
     });
 });

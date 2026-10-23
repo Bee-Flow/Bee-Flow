@@ -21,7 +21,7 @@ interface FlightNode {
 
 /** The parts of the React Flow instance the ghost reads; each may be missing (the build test's spy). */
 interface FlightRf {
-    getNode?: (id: string) => { internals?: { positionAbsolute?: FlightPoint } } | undefined;
+    getInternalNode?: (id: string) => { internals?: { positionAbsolute?: FlightPoint } } | undefined;
     flowToScreenPosition?: (position: FlightPoint) => FlightPoint;
     getZoom?: () => number;
 }
@@ -56,11 +56,11 @@ const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 /**
  * A node's absolute flow position: React Flow's own (a node inside an
  * expanded flowlet is stored parent-relative; `internals.positionAbsolute`
- * has the parents added back), else the layout's, walking parentId.
+ * has the parents added back; it lives on `getInternalNode`, `getNode`
+ * returns the public node without it), else the layout's, walking parentId.
  */
 function absolutePositionOf(id: string, rf: FlightRf | null | undefined, nodes: FlightNode[] | null | undefined) {
-    const rfNode = rf?.getNode?.(id);
-    const abs = rfNode?.internals?.positionAbsolute;
+    const abs = rf?.getInternalNode?.(id)?.internals?.positionAbsolute;
     if (abs && Number.isFinite(abs.x) && Number.isFinite(abs.y)) return { x: abs.x, y: abs.y };
     const byId = new Map<string, FlightNode>();
     for (const n of Array.isArray(nodes) ? nodes : []) if (n?.id != null) byId.set(n.id, n);
