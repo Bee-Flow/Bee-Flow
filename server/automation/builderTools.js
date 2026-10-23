@@ -601,10 +601,9 @@ async function _applyToolCallRaw(name, args, draftWrap, { sent = args } = {}) {
         case 'builder_request_dry_run':    return applyRequestDryRun(draftWrap, args, { persistDraft, annotate: dryRunHint });
         case 'builder_finalize': {
             const automation = await persistDraft(draftWrap, { finalize: true });
-            // Slim echo: the full automation row embeds the entire definition
-            // JSON the model already has in context. Callers only read
-            // `.automation.id` / `.title`; validation errors (when finalize
-            // was requested on an invalid draft) stay structured.
+            if (!automation?.id) return { ok: false, error: automation?.error || 'The automation could not be saved.' }; // store answered false
+            // Slim echo: the full automation row embeds the entire definition JSON the model already has in
+            // context. Callers only read `.automation.id` / `.title`; validation errors stay structured.
             return {
                 automation: { id: automation.id, title: automation.title },
                 ok: !automation.validationErrors,
