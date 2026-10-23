@@ -108,7 +108,7 @@ router.get('/providers', requireAuth, async (req, res) => {
     }));
     res.json({
         providers: maskedProviders,
-        defaultProvider: providerData.defaultProvider
+        defaultProvider: providerData.defaultProviderId
     });
 });
 

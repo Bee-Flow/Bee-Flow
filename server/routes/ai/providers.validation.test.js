@@ -30,7 +30,7 @@ const fx = { isAdmin: true, modelCalls: [] };
 
 const MOCKS = {
     '../../core/aiAgent': {
-        getProviders: async () => ({ providers: [{ id: 'p1', name: 'OpenAI', type: 'openai', url: 'https://api.openai.com/v1', apiKey: 'sk-real-1234' }], defaultProvider: 'p1' }),
+        getProviders: async () => ({ providers: [{ id: 'p1', name: 'OpenAI', type: 'openai', url: 'https://api.openai.com/v1', apiKey: 'sk-real-1234' }], defaultProviderId: 'p1' }),
         addProvider: async (p) => { touched.push({ what: 'addProvider', args: [p] }); return { id: 'p-new', ...p }; },
         updateProvider: async (id, u) => { touched.push({ what: 'updateProvider', args: [id, u] }); return true; },
         // The real one answers true whatever the id — which is the bug the route works around.
@@ -211,4 +211,10 @@ test('?refresh=true forces the refresh', async () => {
     const res = await dispatch({ method: 'GET', url: '/providers/p1/models', query: { refresh: 'true' } });
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(fx.modelCalls, [['p1', true]]);
+});
+
+test('GET /providers reports the default provider (getProviders calls it defaultProviderId)', async () => {
+    const res = await dispatch({ method: 'GET', url: '/providers' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.defaultProvider, 'p1');
 });
