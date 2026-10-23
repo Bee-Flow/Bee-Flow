@@ -74,6 +74,18 @@ const { fetchSources, _buildUserMessage, _extractCode, _extractManifest } = _int
         assert.strictEqual(errors[0].integration, 'youtrack');
     }
 
+    // ── fetchSources: argument names the tools actually read ─────
+    {
+        let ghArgs = null;
+        githubStub.executeGitHubTool = async (_tool, args) => { ghArgs = args; return { content: 'x' }; };
+        await fetchSources([{ type: 'github_file', owner: 'a', repo: 'b', path: 'src/x.ts', ref: 'dev' }], 'u1');
+        assert.strictEqual(ghArgs.branch, 'dev', 'github_get_file reads `branch`');
+        let ytArgs = null;
+        youtrackStub.executeYouTrackTool = async (_tool, args) => { ytArgs = args; return []; };
+        await fetchSources([{ type: 'youtrack_query', query: 'state: Open' }], 'u1');
+        assert.strictEqual(ytArgs.limit, 10, 'youtrack_search_issues reads `limit`');
+    }
+
     // ── _buildUserMessage shape ──────────────────────────────────
     {
         const msg = _buildUserMessage(
