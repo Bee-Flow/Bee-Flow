@@ -106,8 +106,8 @@ test('GET /sbom → 404 when the located file vanished between locate and stream
     assert.equal((await get('/sbom', ADMIN)).status, 404);
 });
 
-test('GET /sbom/meta describes the artefact without streaming it', async () => {
-    state.found = { ...artefact('sbom.cdx.json', '{}', 'cyclonedx'), parsed: { components: [{}, {}, {}] } };
+test('GET /sbom/meta describes the artefact without streaming it (count from the locator\'s component_count)', async () => {
+    state.found = { ...artefact('sbom.cdx.json', '{}', 'cyclonedx'), parsed: { component_count: 3 } };
     const res = await get('/sbom/meta', ADMIN);
     assert.equal(res.status, 200);
     const body = JSON.parse(res.text);
