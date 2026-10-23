@@ -1,7 +1,8 @@
 import React from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import DesignPresetGallery from './DesignPresetGallery';
 import { TextField, TextAreaField, IconField } from './panels/kit';
 import { SCREEN_DEFAULTS, SCREEN_ENUMS, THEME_ENUMS } from './styleKnobMeta';
+import useTranslation from '../../../../../hooks/useTranslation';
 import ColorPicker from '../../../../shared/ColorPicker';
 import FormField from '../../../../shared/FormField';
 import SegmentedControl from '../../../../shared/SegmentedControl';
@@ -9,7 +10,6 @@ import Toggle from '../../../../shared/Toggle';
 import { NAV_STYLES, NAV_DEFAULT_STYLE, DESIGN_ENUMS, DESIGN_DEFAULTS } from '../runtime/appDesign';
 import { APP_COLOR_PRESETS } from '../runtime/themeVars';
 import { updateTheme, updateMeta, updateScreen, updateNav, updateDesign, updateAiBrowsing } from '../state/definitionOps';
-import DesignPresetGallery from './DesignPresetGallery';
 
 /**
  * ThemePanel — shown when nothing is selected: the whole-app knobs.

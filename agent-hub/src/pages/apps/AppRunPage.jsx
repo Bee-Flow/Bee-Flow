@@ -1,24 +1,24 @@
 import { CircleSlash, RefreshCw, Users } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { rememberAppOpened } from './AppsHomePage';
 import AppDataScope from '../../components/admin/Studio/AppStudio/runtime/AppDataScope';
-import AppRenderer from '../../components/admin/Studio/AppStudio/runtime/AppRenderer';
-import AppShell from '../../components/admin/Studio/AppStudio/runtime/AppShell';
-import { buildScope } from '../../components/admin/Studio/AppStudio/runtime/RuntimeContext';
-import { CANVAS_GROUND, themeVars } from '../../components/admin/Studio/AppStudio/runtime/themeVars';
 import { appDesignProps } from '../../components/admin/Studio/AppStudio/runtime/appDesign';
 import AppFontLoader from '../../components/admin/Studio/AppStudio/runtime/AppFontLoader';
+import AppRenderer from '../../components/admin/Studio/AppStudio/runtime/AppRenderer';
+import AppShell from '../../components/admin/Studio/AppStudio/runtime/AppShell';
 import AppVersionBanner from '../../components/admin/Studio/AppStudio/runtime/AppVersionBanner';
 import { subscribeAppVersion } from '../../components/admin/Studio/AppStudio/runtime/appVersionSignal';
+import { BrowserRunProvider, useBrowserRunStore } from '../../components/admin/Studio/AppStudio/runtime/BrowserRunContext';
 import { mergeFormValues } from '../../components/admin/Studio/AppStudio/runtime/formValues';
+import { buildScope } from '../../components/admin/Studio/AppStudio/runtime/RuntimeContext';
+import { CANVAS_GROUND, themeVars } from '../../components/admin/Studio/AppStudio/runtime/themeVars';
 import useActionRunner from '../../components/admin/Studio/AppStudio/runtime/useActionRunner';
 import useConfirmDialog from '../../components/admin/Studio/AppStudio/runtime/useConfirmDialog';
-import { BrowserRunProvider, useBrowserRunStore } from '../../components/admin/Studio/AppStudio/runtime/BrowserRunContext';
 import { studioAppsApi } from '../../components/admin/Studio/AppStudio/studioAppsApi';
 import EmptyState from '../../components/shared/EmptyState';
 import RequiredConnectionsBanner from '../../components/shared/RequiredConnectionsBanner';
 import useTranslation from '../../hooks/useTranslation';
 import { API_BASE, authFetch, isNextcloudEmbed } from '../../utils/helpers';
-import { rememberAppOpened } from './AppsHomePage';
 
 // Stands in for "this viewer has no role in this app" so role gating stays
 // closed instead of falling back to the ungated full view.

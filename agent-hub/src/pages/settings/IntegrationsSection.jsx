@@ -1,18 +1,18 @@
 import React, { useMemo, useState } from 'react';
 import ConnectionsManager from './ConnectionsManager';
 import { Microsoft365Group } from './Microsoft365Integration';
+import OrgMcpConnections from './OrgMcpConnections';
 import ScalewayBillingIntegration from './ScalewayBillingIntegration';
 import SimpleApiKeyIntegration from './SimpleApiKeyIntegration';
+import NcScopeSection from '../../components/integrations/nextcloud/NcScopeSection';
+import { useEntitlements } from '../../components/licensing/EntitlementsContext';
 import { toast } from '../../components/shared/Toast';
 import { getIntegrationIcon } from '../../config/integrationIcons';
-import { useEntitlements } from '../../components/licensing/EntitlementsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import useUserSettingSave from '../../hooks/useUserSettingSave';
 import { openGoogleOAuthPopup } from '../../lib/googleOAuthPopup';
 import { isTrustedOAuthOrigin } from '../../lib/oauthMessageOrigin';
 import { API_BASE, authFetch } from '../../utils/helpers';
-import NcScopeSection from '../../components/integrations/nextcloud/NcScopeSection';
-import OrgMcpConnections from './OrgMcpConnections';
 
 // ── Shared UI helpers ─────────────────────────────────────────────────────────
 // Pull translations from the hook directly so parents don't have to thread `t`

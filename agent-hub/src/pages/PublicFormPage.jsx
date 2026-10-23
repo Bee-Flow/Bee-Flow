@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FORM_API as API, applySessionState, fetchSession, randomNonce, readSessionFromUrl, workingPatch, writeSessionToUrl } from './publicFormSession';
 import useFormResultActions from './useFormResultActions';
 import PublicFormRenderer, { FormEndingView, FormWaitingView } from '../components/forms/PublicFormRenderer';
 import useTranslation from '../hooks/useTranslation';
-import { FORM_API as API, applySessionState, fetchSession, randomNonce, readSessionFromUrl, workingPatch, writeSessionToUrl } from './publicFormSession';
 
 // Poll cadence while the automation works. Starts sub-second so a fast automation
 // feels instant, then eases off so a slow one is not hammered.

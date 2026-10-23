@@ -1,6 +1,6 @@
 import React from 'react';
-import MediaSettingsPopover from './settings/MediaSettingsPopover';
 import { Slider, Toggle, PillSelect } from './settings/mediaControls';
+import MediaSettingsPopover from './settings/MediaSettingsPopover';
 import useMediaGenSection from '../../hooks/useMediaGenSection';
 import useTranslation from '../../hooks/useTranslation';
 

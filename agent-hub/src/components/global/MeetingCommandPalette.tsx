@@ -141,7 +141,7 @@ export default function MeetingCommandPalette({ user, onNavigate }: MeetingComma
                 className="w-full rounded-2xl border shadow-2xl overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)] text-[var(--text-primary)]"
             >
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-subtle)]">
-                    <Search className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                    <Search className="w-4 h-4 text-[var(--text-muted)]" />
                     <input
                         ref={inputRef}
                         value={query}
@@ -178,7 +178,7 @@ export default function MeetingCommandPalette({ user, onNavigate }: MeetingComma
                                 const active = activeIdx === idx;
                                 return (
                                     <Row key={r.id} active={active} onMouseEnter={() => setActiveIdx(idx)} onClick={() => runItem({ kind: 'recent', payload: r })}>
-                                        <FileAudio className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                                        <FileAudio className="w-4 h-4 text-[var(--text-muted)]" />
                                         <span className="text-sm flex-1 truncate">{r.title || 'Untitled'}</span>
                                         <span className="text-[11px] text-[var(--text-muted)]">{formatRelativeDate(r.createdAt)}</span>
                                     </Row>

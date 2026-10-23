@@ -122,7 +122,7 @@ export default function FileBrowser({ t, scope, providers, files, onToggle, mark
                         </button>
                     </div>
                     <label className="relative block">
-                        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" aria-hidden="true" />
                         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('datatables.ss_search', 'Find a spreadsheet')}
                             aria-label={t('datatables.ss_search', 'Find a spreadsheet')} className={`${INPUT} pl-9`} style={INPUT_STYLE} />
                     </label>
@@ -248,7 +248,7 @@ function Listing({ t, page, provider, searching, q, rel, files, marks, onOpen, o
 function FolderRow({ item, rel, onOpen }) {
     return (
         <button type="button" onClick={() => onOpen(item.id)} className="w-full flex items-center gap-3 p-2.5 text-left focus-visible:outline focus-visible:outline-2" style={{ ...CARD, outlineColor: 'var(--accent-primary)' }}>
-            <Folder className="w-4 h-4 shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
+            <Folder className="w-4 h-4 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
             <span className="text-sm font-medium truncate min-w-0 text-[var(--text-primary)]">{item.name}</span>
             {item.modifiedAt && <span className="ml-auto text-[11px] shrink-0 text-[var(--text-tertiary)]">{rel(item.modifiedAt)}</span>}
             <ChevronRight className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)', marginLeft: item.modifiedAt ? 0 : 'auto' }} aria-hidden="true" />

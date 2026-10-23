@@ -1,13 +1,13 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Save, Sparkles, AlertTriangle, Send } from 'lucide-react';
-import AgentEditorUI from '../agents/AgentEditorUI';
-import MarkdownRenderer from '../renderers/MarkdownRenderer';
-import { tierLabel } from '../licensing/tierMeta';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { authFetch, API_BASE } from '../../utils/helpers';
-import SupportSlaPoliciesTab from './tabs/SupportSlaPoliciesTab';
+import AgentEditorUI from '../agents/AgentEditorUI';
+import { tierLabel } from '../licensing/tierMeta';
+import MarkdownRenderer from '../renderers/MarkdownRenderer';
 import SupportCannedResponsesTab from './tabs/SupportCannedResponsesTab';
-import SupportTagsTab from './tabs/SupportTagsTab';
 import SupportInsightsTab from './tabs/SupportInsightsTab';
+import SupportSlaPoliciesTab from './tabs/SupportSlaPoliciesTab';
+import SupportTagsTab from './tabs/SupportTagsTab';
 import SupportToolsTab from './tabs/SupportToolsTab';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -226,7 +226,7 @@ export default function SupportAIConfig() {
             {/* Sticky save bar */}
             <div className="px-4 py-2 border-b flex items-center justify-between border-[var(--border-default)] bg-[var(--bg-secondary)]">
                 <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                    <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} />
+                    <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                     <span>{t('support.support_aiconfig_singleton_agent_same_editor_as_agent', 'Singleton agent · same editor as Agent Studio')}</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -302,7 +302,7 @@ export default function SupportAIConfig() {
                             {t('support.support_aiconfig_preview', 'Preview')}
                         </div>
                         <div className="p-4 space-y-3">
-                            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-xs text-[var(--text-muted)]">
                                 {t('support.support_aiconfig_test_the_support_ai_without_creating_a', 'Test the support AI without creating a real thread. No emails, no notifications, no DB writes.')}
                             </p>
                             <textarea

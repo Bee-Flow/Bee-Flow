@@ -57,7 +57,7 @@ export function CoworkWelcomeHeader({ className = 'text-center mb-6' }: { classN
                 className="inline-flex items-center justify-center w-11 h-11 rounded-2xl mb-4"
                 style={{ background: 'color-mix(in srgb, var(--accent-primary) 12%, transparent)' }}
             >
-                <Handshake className="w-5 h-5" style={{ color: 'var(--accent-primary)' }} />
+                <Handshake className="w-5 h-5 text-[var(--accent-primary)]" />
             </div>
             <h1
                 className="font-semibold"

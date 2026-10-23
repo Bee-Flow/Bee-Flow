@@ -21,7 +21,7 @@ export function FillHeader({ fillTemplate, parameterizing, showSettings, setShow
     return (
         <div className="shrink-0 px-6 py-4 border-b flex items-center gap-3 border-[var(--border-subtle)]">
             <button onClick={() => onClose()} className="p-1 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors">
-                <ArrowLeft className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
+                <ArrowLeft className="w-5 h-5 text-[var(--text-secondary)]" />
             </button>
             <div className="flex-1 min-w-0">
                 <h2 className="text-base font-semibold truncate text-[var(--text-primary)]">

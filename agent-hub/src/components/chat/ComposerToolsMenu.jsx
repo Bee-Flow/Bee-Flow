@@ -48,8 +48,8 @@
  *     positioned panel, which is what every picker in this codebase already is.
  */
 
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Plus, ChevronRight } from 'lucide-react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import useOutsideDismiss from '../../hooks/useOutsideDismiss';
 import useTranslation from '../../hooks/useTranslation';
 

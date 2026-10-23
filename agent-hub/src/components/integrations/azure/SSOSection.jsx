@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
 import { AlertTriangle, RefreshCw, Loader2, Clock, CheckCircle2, XCircle, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState } from 'react';
+import { Input, Toggle, SectionCard, StatusBadge } from './components';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
-import { Input, Toggle, SectionCard, StatusBadge } from './components';
 
 export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecret, setSsoClientSecret, hasSsoClientSecret, ssoTenantId, setSsoTenantId, autoApproveSSO, setAutoApproveSSO, handleSave, saving, saved, orgId, groupSyncSettings, groupSyncStatus, onSyncSettingsChange, onSyncStatusChange }) {
     const { t } = useTranslation();
@@ -216,7 +216,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                         {status.lastSyncResult === 'success' ? <CheckCircle2 size={18} style={{ color: '#22c55e' }} /> :
                             status.lastSyncResult === 'partial' ? <AlertTriangle size={18} style={{ color: '#f59e0b' }} /> :
                                 status.lastSyncResult === 'error' ? <XCircle size={18} style={{ color: '#ef4444' }} /> :
-                                    <Clock size={18} style={{ color: 'var(--text-muted)' }} />}
+                                    <Clock size={18} className="text-[var(--text-muted)]" />}
                     </div>
                     <div className="flex-1">
                         <p className="text-[12px] font-medium text-[var(--text-primary)]">
@@ -288,7 +288,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                             <span className="text-[12px] font-medium flex-1" style={{ color: '#166534' }}>
                                 {t('azure.sync_groups_success', 'Sync completed')}: {syncResult.synced?.groups || 0} {t('azure.sso_group_s', 'group(s),')} {syncResult.synced?.users || 0} {t('azure.sso_new_user_s', 'new user(s)')}
                             </span>
-                            {showDetails ? <ChevronUp size={13} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={13} style={{ color: 'var(--text-muted)' }} />}
+                            {showDetails ? <ChevronUp size={13} className="text-[var(--text-muted)]" /> : <ChevronDown size={13} className="text-[var(--text-muted)]" />}
                         </div>
                         {showDetails && syncResult.details && (
                             <div className="px-3.5 py-2.5 text-[11px] font-mono space-y-0.5 max-h-[200px] overflow-y-auto" style={{ background: 'var(--bg-primary)', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-subtle)' }}>
@@ -311,7 +311,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                 {/* Not configured hint */}
                 {!ssoConfigured && (
                     <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-lg text-[12px]" style={{ background: 'rgba(100,116,139,0.06)', border: '1px solid rgba(100,116,139,0.15)' }}>
-                        <Info size={14} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                        <Info size={14} className="mt-0.5 flex-shrink-0 text-[var(--text-muted)]" />
                         <p className="text-[var(--text-secondary)]">
                             {t('azure.sync_requires_sso', 'Configure Microsoft SSO credentials above before using group sync.')}
                         </p>

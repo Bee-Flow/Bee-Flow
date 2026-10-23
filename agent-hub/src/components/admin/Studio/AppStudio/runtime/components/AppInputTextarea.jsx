@@ -135,10 +135,10 @@ export default function AppInputTextarea({ node }) {
                                     className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left"
                                     style={i === active ? { background: 'var(--app-primary-soft)' } : undefined}
                                 >
-                                    <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                                    <span className="text-sm font-medium text-[var(--text-primary)]">
                                         {String(walkPath(row, snippetLabel) ?? '')}
                                     </span>
-                                    <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                    <span className="text-[11px] text-[var(--text-muted)]">
                                         {String(walkPath(row, snippetKey) ?? '')}
                                     </span>
                                 </button>

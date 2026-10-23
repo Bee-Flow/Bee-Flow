@@ -1,4 +1,5 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
+import { Inbox } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
@@ -6,7 +7,6 @@ import { buildPeekIndex, peekBadgeLabel, peekBadgeTone, peekKey, peekSections } 
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { isFill, ROLE_COLORS, roleTextColor } from '../styleResolver';
-import { Inbox } from 'lucide-react';
 import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } from '../uiBits';
 
 /**
@@ -276,21 +276,21 @@ export default function AppList({ node }) {
                             {displayValue(walkPath(item, titleKey))}
                         </span>
                         {stamp ? (
-                            <span className="ml-auto shrink-0 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                            <span className="ml-auto shrink-0 text-[11px] text-[var(--text-muted)]">
                                 {stamp}
                             </span>
                         ) : null}
                     </div>
                     {badgeInMeta ? (
                         subtitle != null && subtitle !== '' ? (
-                            <div className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+                            <div className="text-xs truncate text-[var(--text-secondary)]">
                                 {displayValue(subtitle)}
                             </div>
                         ) : null
                     ) : (subtitle != null && subtitle !== '') || badgeEl ? (
                         <div className="flex items-baseline gap-2">
                             {subtitle != null && subtitle !== '' ? (
-                                <span className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+                                <span className="text-xs truncate text-[var(--text-secondary)]">
                                     {displayValue(subtitle)}
                                 </span>
                             ) : null}
@@ -302,7 +302,7 @@ export default function AppList({ node }) {
                             <div className="mt-1 flex items-center gap-1.5">
                                 {badgeEl}
                                 {meta != null && meta !== '' ? (
-                                    <span className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+                                    <span className="text-[11px] truncate text-[var(--text-muted)]">
                                         {displayValue(meta)}
                                     </span>
                                 ) : null}
@@ -310,7 +310,7 @@ export default function AppList({ node }) {
                         ) : null
                     ) : meta != null && meta !== '' ? (
                         <div className="mt-1 flex items-center gap-1.5">
-                            <span className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+                            <span className="text-[11px] truncate text-[var(--text-muted)]">
                                 {displayValue(meta)}
                             </span>
                         </div>

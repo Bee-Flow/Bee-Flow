@@ -120,7 +120,7 @@ const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
     };
 
     if (loading) {
-        return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-muted)' }} /></div>;
+        return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[var(--text-muted)]" /></div>;
     }
     if (!config) {
         return <div className="p-6 text-sm text-[var(--text-muted)]">{t('integ.org_nc_integrations_nextcloud_integrations_are_only', 'Nextcloud integrations are only available for organisations bound to a Nextcloud instance.')}</div>;

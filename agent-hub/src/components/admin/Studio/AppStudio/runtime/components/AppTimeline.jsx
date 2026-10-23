@@ -69,18 +69,18 @@ export default function AppTimeline({ node }) {
                 const meta = rawMeta == null || rawMeta === '' ? null : displayValue(rawMeta);
                 const body = (
                     <>
-                        <div className={`${size === 'sm' ? 'text-xs' : 'text-sm'} font-medium truncate`} {...hoverable(title)} style={{ color: 'var(--text-primary)' }}>
+                        <div className={`${size === 'sm' ? 'text-xs' : 'text-sm'} font-medium truncate text-[var(--text-primary)]`} {...hoverable(title)}>
                             {title}
                         </div>
                         {date != null || meta ? (
-                            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                            <div className="text-xs text-[var(--text-muted)]">
                                 {date}
                                 {date != null && meta ? ' · ' : null}
-                                {meta ? <span style={{ color: 'var(--text-secondary)' }}>{meta}</span> : null}
+                                {meta ? <span className="text-[var(--text-secondary)]">{meta}</span> : null}
                             </div>
                         ) : null}
                         {description != null && description !== '' ? (
-                            <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{displayValue(description)}</div>
+                            <div className="text-xs mt-0.5 text-[var(--text-secondary)]">{displayValue(description)}</div>
                         ) : null}
                     </>
                 );

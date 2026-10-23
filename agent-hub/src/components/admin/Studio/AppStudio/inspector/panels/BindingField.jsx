@@ -2,6 +2,7 @@ import { Calculator, Database, Pencil, Play, Plug, Sigma, Table2 } from 'lucide-
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { INPUT_CLS } from './kit';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import FormField from '../../../../../shared/FormField';
 import FilterRowsEditor from '../../bi/FilterRowsEditor';
 import QueryBuilder, { AGGS, DATE_BUCKETS } from '../../bi/QueryBuilder';
 import useAppTables, { fieldsForTable } from '../../bi/useAppTables';
@@ -9,7 +10,6 @@ import useConnectors from '../../bi/useConnectors';
 import useDatasets from '../../bi/useDatasets';
 import { useEditorChrome } from '../../editor/EditorChromeContext';
 import FormulaField from '../logic/FormulaField';
-import FormField from '../../../../../shared/FormField';
 
 /**
  * BindingField — editor for a `binding` prop value (server contract in

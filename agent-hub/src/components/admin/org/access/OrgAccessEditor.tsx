@@ -107,7 +107,7 @@ export default function OrgAccessEditor({ orgId, onChanged }: OrgAccessEditorPro
         });
     };
 
-    if (loading) return <div className="p-4"><Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-muted)' }} /></div>;
+    if (loading) return <div className="p-4"><Loader2 className="w-5 h-5 animate-spin text-[var(--text-muted)]" /></div>;
     if (!data) return null;
 
     return (

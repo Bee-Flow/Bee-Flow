@@ -146,7 +146,7 @@ export default function FormsHomePage({ onNavigate = null }: Pick<FormCardProps,
         <div className="flex flex-col h-full bg-[var(--bg-primary)]">
             <div className="shrink-0 px-4 py-3 border-b flex items-center gap-3 border-[var(--border-subtle)]">
                 <div className="flex-1 flex items-center gap-2 min-w-0">
-                    <ClipboardList className="w-5 h-5 shrink-0" style={{ color: 'var(--accent-primary)' }} />
+                    <ClipboardList className="w-5 h-5 shrink-0 text-[var(--accent-primary)]" />
                     <h1 className="text-lg font-semibold truncate text-[var(--text-primary)]">{t('forms.home_title', 'Forms')}</h1>
                 </div>
             </div>

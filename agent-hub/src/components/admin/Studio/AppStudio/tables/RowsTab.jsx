@@ -1,11 +1,11 @@
 import { AlertTriangle, ClipboardPaste, Loader2, Plus, Trash2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
 import PasteImportPanel from './PasteImportPanel';
 import { PAGE_SIZE, createRecord, deleteRecord, listRecords, updateRecord } from './recordsApi';
 import RowCellEditor from './RowCellEditor';
 import { cellText } from './rowValues';
 import { importableFields } from './spreadsheetPaste';
+import useTranslation from '../../../../../hooks/useTranslation';
 import ConfirmDialog from '../../../../shared/ConfirmDialog';
 import toast from '../../../../shared/Toast';
 
@@ -162,7 +162,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
             disabled={!!draft || columns.length === 0}
             className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-default)] text-[var(--text-primary)]"
         >
-            <Plus className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+            <Plus className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
             {t('studio_apps_tables.rows.add_row', 'Add a row')}
         </button>
     );
@@ -174,7 +174,7 @@ export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = fal
             disabled={columns.length === 0}
             className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-default)] text-[var(--text-primary)]"
         >
-            <ClipboardPaste className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+            <ClipboardPaste className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
             {t('studio_apps_tables.rows.paste', 'Paste from a spreadsheet')}
         </button>
     );

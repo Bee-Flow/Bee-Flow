@@ -2,6 +2,7 @@ import {
     ArrowDown, ArrowUp, Bot, Clock, Mail, MoreVertical, MousePointer2, Plus, Webhook, Workflow,
 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
+import { buildAutomationMenuItems } from './automationMenuItems';
 import ContextMenu from './ContextMenu';
 import {
     GROUPS, NO_FOLDER, SORTS, TRIGGER_KINDS, VIEWS,
@@ -10,7 +11,6 @@ import {
 } from './overviewModel';
 import OverviewToolbar from './OverviewToolbar';
 import StepStrip from './StepStrip';
-import { buildAutomationMenuItems } from './automationMenuItems';
 import useRelativeTime from '../../../../hooks/useRelativeTime';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import scopedStorage from '../../../../utils/scopedStorage';

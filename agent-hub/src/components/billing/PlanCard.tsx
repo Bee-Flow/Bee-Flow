@@ -104,7 +104,7 @@ export default function PlanCard({
             )}
 
             <div className="mt-3 flex items-baseline gap-1 flex-wrap">
-                <span className={`${amountSize} font-bold`} style={{ color: 'var(--text-primary)' }}>
+                <span className={`${amountSize} font-bold text-[var(--text-primary)]`}>
                     {price.amount}
                 </span>
                 {price.period && (
@@ -132,7 +132,7 @@ export default function PlanCard({
                 <ul className="mt-3 space-y-1.5 flex-1">
                     {plan.features.map((f, i) => (
                         <li key={i} className="flex items-start gap-2 text-xs text-[var(--text-secondary)]">
-                            <Check className="w-3.5 h-3.5 mt-px shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden />
+                            <Check className="w-3.5 h-3.5 mt-px shrink-0 text-[var(--accent-primary)]" aria-hidden />
                             <span className="min-w-0">{typeof f === 'string' ? f : f?.label}</span>
                         </li>
                     ))}

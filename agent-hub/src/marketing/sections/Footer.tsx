@@ -193,7 +193,7 @@ function FooterLocaleToggle() {
     return (
         <span className="footer-locale-toggle" style={{ display: 'inline-flex', gap: 6, fontSize: '0.85rem' }}>
             <a href="?locale=en" onClick={go('en')} style={cls('en')} aria-current={current === 'en' ? 'true' : undefined}>EN</a>
-            <span style={{ color: 'var(--text-muted)' }}>/</span>
+            <span className="text-[var(--text-muted)]">/</span>
             <a href="?locale=nl" onClick={go('nl')} style={cls('nl')} aria-current={current === 'nl' ? 'true' : undefined}>NL</a>
         </span>
     );

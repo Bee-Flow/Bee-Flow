@@ -97,8 +97,7 @@ function RowLine({ row: r, columns, pages, writes, table, mirror, canWrite, rete
                 </td>
             )}
             {columns.map(c => (
-                <td key={c.key} className={`px-3 py-2.5 align-top ${isEditing ? '' : 'max-w-[16rem] truncate'} ${columnTypeKind(c.type) === 'number' ? 'text-right tabular-nums' : ''}`}
-                    style={{ color: 'var(--text-primary)' }}
+                <td key={c.key} className={`px-3 py-2.5 align-top ${isEditing ? '' : 'max-w-[16rem] truncate'} ${columnTypeKind(c.type) === 'number' ? 'text-right tabular-nums' : ''} text-[var(--text-primary)]`}
                     title={isEditing ? undefined : cellText(r[c.key], c)}>
                     {isEditing && !c.derived && c.type !== 'relation' ? (
                         <RowCellEditor

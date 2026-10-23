@@ -1,7 +1,7 @@
-import React, { useId, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import React, { useId, useMemo, useState } from 'react';
 import { countdown, daysUntil, formatCalDate, resolveNow, splitByToday } from './calendarMath';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * RegulatoryCalendar — in-force dates, phases and transition ends of the

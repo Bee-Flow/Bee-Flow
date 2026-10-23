@@ -131,8 +131,7 @@ export default function CategoryField({ t, value, categories, onChange, onCreate
                             <ChevronDown
                                 size={12}
                                 aria-hidden="true"
-                                className="absolute right-1.5 pointer-events-none"
-                                style={{ color: 'var(--text-tertiary)' }}
+                                className="absolute right-1.5 pointer-events-none text-[var(--text-tertiary)]"
                             />
                         )}
                     </div>

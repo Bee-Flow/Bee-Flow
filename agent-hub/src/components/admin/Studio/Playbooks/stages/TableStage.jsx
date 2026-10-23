@@ -1,8 +1,8 @@
 import { Check, Cloud, Loader2, Table2 } from 'lucide-react';
 import React, { useEffect, useMemo, useRef } from 'react';
 import RowsPreview from './RowsPreview';
-import StageShell from './StageShell';
 import { heroCard, isBusy, stageType } from './stageChrome';
+import StageShell from './StageShell';
 import { revealSchedule } from '../../../../shared/builder/revealSchedule';
 
 const COL_STAGGER_MS = 350;

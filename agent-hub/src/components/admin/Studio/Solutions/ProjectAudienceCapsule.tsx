@@ -107,7 +107,7 @@ export default function ProjectAudienceCapsule({ members, groupNames = null, cla
                 color: 'var(--text-secondary)',
             }}
         >
-            <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
+            <Icon className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
             {label}
         </span>
     );

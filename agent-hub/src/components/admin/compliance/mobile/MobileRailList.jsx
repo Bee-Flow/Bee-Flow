@@ -82,7 +82,7 @@ export function MobileSectionRow({ section, meta, hint = null, active, onClick, 
                     {label}
                 </span>
                 <RailMetaText meta={meta} />
-                <ChevronRight size={16} aria-hidden="true" className="flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                <ChevronRight size={16} aria-hidden="true" className="flex-shrink-0 text-[var(--text-tertiary)]" />
             </button>
         </>
     );

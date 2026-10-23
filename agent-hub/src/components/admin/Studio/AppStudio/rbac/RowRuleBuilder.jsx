@@ -57,7 +57,7 @@ export default function RowRuleBuilder({ table, join = 'and', conditions = [], o
                     disabled={disabled}
                     className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-default)] text-[var(--text-primary)]"
                 >
-                    <Wand2 className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                    <Wand2 className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
                     {t('studio_apps_edit.rule_builder.own_rows', 'Only rows they added themselves')}
                 </button>
                 <button

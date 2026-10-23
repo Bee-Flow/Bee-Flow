@@ -1,7 +1,7 @@
 import React from 'react';
+import { Slider, Toggle } from './settings/mediaControls';
 import MediaSettingsPopover from './settings/MediaSettingsPopover';
 import SettingsDropdown from './settings/SettingsDropdown';
-import { Slider, Toggle } from './settings/mediaControls';
 import { TTS_MODELS, TTS_VOICES, DEFAULT_TTS_MODEL, DEFAULT_TTS_VOICE } from '../../constants/elevenLabsOptions';
 import useMediaGenSection from '../../hooks/useMediaGenSection';
 import useTranslation from '../../hooks/useTranslation';

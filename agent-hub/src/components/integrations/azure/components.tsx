@@ -230,7 +230,7 @@ export const SearchableModelSelect = ({ value, label, models, onChange }: Search
 
                     <div className="px-5 pb-3">
                         <div className="relative">
-                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                             <input
                                 ref={inputRef}
                                 type="text"

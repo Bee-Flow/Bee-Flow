@@ -22,7 +22,7 @@ function ModuleIcon({ icon }: { icon?: string | null }) {
         return <span className="text-2xl leading-none">{icon}</span>;
     }
     const Glyph = NAMED_ICONS[String(icon || '').toLowerCase()] || Package;
-    return <Glyph className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />;
+    return <Glyph className="w-6 h-6 text-[var(--text-muted)]" />;
 }
 
 export default function ModuleCard({ module, onImport, onRemoveRequest, busy }: ModuleCardProps) {

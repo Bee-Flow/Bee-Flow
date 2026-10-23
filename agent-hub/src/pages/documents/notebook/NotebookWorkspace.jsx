@@ -9,18 +9,18 @@
  * The "bold" distraction-free feel comes from the drawers collapsing away to
  * leave the centered editor canvas; the editor centres its own content.
  */
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
     PanelLeft, MessageSquare, Command as CommandIcon,
 } from 'lucide-react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import useDrawerState from './hooks/useDrawerState';
+import useResizableWidth from './hooks/useResizableWidth';
+import buildCommands from './shell/buildCommands';
+import CommandPalette from './shell/CommandPalette';
+import Drawer from './shell/Drawer';
 import StudioSectionHeader from '../../../components/shared/StudioSectionHeader';
 import useTranslation from '../../../hooks/useTranslation';
 import useViewport from '../../../hooks/useViewport';
-import useDrawerState from './hooks/useDrawerState';
-import useResizableWidth from './hooks/useResizableWidth';
-import Drawer from './shell/Drawer';
-import CommandPalette from './shell/CommandPalette';
-import buildCommands from './shell/buildCommands';
 
 const LEFT_WIDTH = 272;
 

@@ -208,7 +208,7 @@ export default function SupportConnectionsConfig() {
             {/* ── YouTrack ─────────────────────────────────────────────── */}
             <section className="flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                    <Link2 className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                    <Link2 className="w-4 h-4 text-[var(--text-secondary)]" />
                     <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('support.support_connections_config_youtrack', 'YouTrack')}</h3>
                 </div>
                 <p className="text-xs text-[var(--text-muted)]">
@@ -279,7 +279,7 @@ export default function SupportConnectionsConfig() {
             {/* ── What may leave ───────────────────────────────────────── */}
             <section className="flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                    <ShieldAlert className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                    <ShieldAlert className="w-4 h-4 text-[var(--text-secondary)]" />
                     <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('support.support_connections_config_what_leaves_bee_flow', 'What leaves Bee Flow')}</h3>
                 </div>
                 <p className="text-xs text-[var(--text-muted)]">
@@ -301,7 +301,7 @@ export default function SupportConnectionsConfig() {
             {/* ── Chat notifications ───────────────────────────────────── */}
             <section className="flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                    <MessageSquare className="w-4 h-4 text-[var(--text-secondary)]" />
                     <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('support.support_connections_config_tell_the_team_in_chat', 'Tell the team in chat')}</h3>
                 </div>
                 <p className="text-xs text-[var(--text-muted)]">

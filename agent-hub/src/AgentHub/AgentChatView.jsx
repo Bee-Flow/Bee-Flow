@@ -7,9 +7,9 @@ import ProjectContextPill from '../components/chat/ProjectContextPill';
 import SharedChatReadOnly, { isReadOnlySharedChat } from '../components/chat/SharedChatReadOnly';
 import CoworkModeToggle from '../components/cowork/CoworkModeToggle';
 import WelcomeScreen from '../components/shell/WelcomeScreen';
+import { useTranslation } from '../hooks/useTranslation';
 import { isImageAvatar, pickAgentAvatar, resolveAvatarSrc } from '../utils/agentAvatar';
 import { lazy } from '../utils/lazyWithReload';
-import { useTranslation } from '../hooks/useTranslation';
 
 const WebpagePickerPopover = lazy(() => import('../components/webpages/WebpagePickerPopover'));
 

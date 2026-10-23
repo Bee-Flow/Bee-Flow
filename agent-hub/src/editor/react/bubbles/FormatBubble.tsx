@@ -139,7 +139,7 @@ export default function FormatBubble({ view, editor, t, askAiEnabled, onAction, 
               ))}
             </div>
             <div className="flex items-center justify-between mb-2">
-              <label className="flex items-center gap-1.5 text-[10px] cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
+              <label className="flex items-center gap-1.5 text-[10px] cursor-pointer text-[var(--text-secondary)]">
                 <input type="color" value={currentColor || '#000000'} onChange={(e) => chain().setColor(e.target.value).run()} className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent p-0" />
                 {tt('notebooks.custom', 'Custom')}
               </label>

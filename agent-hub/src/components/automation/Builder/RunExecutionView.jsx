@@ -2,8 +2,8 @@ import React, { useMemo, useState } from 'react';
 import DiagramPane from './DiagramPane';
 import { buildRunStepLabelMap, runStepLabel } from './flow/displayHelpers';
 import OutputView from './OutputView';
-import { tokenForStep } from '../../shared/statusTokens';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { tokenForStep } from '../../shared/statusTokens';
 
 /**
  * Read-only execution view for ONE run, shared by the in-automation Run

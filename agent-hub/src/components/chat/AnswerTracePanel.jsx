@@ -58,10 +58,10 @@ import { Sparkles } from 'lucide-react';
 import React from 'react';
 
 import { answerTraceFor } from './answerTrace';
-import ToolsUsedTimeline from './MessageItem/ToolsUsedTimeline';
 import { DurationPill, StepBadge, TimelineRail } from './MessageItem/timelineParts';
-import { nOf } from '../admin/Studio/KnowledgeStudio/plural';
+import ToolsUsedTimeline from './MessageItem/ToolsUsedTimeline';
 import useTranslation from '../../hooks/useTranslation';
+import { nOf } from '../admin/Studio/KnowledgeStudio/plural';
 
 /** Regel-id → kop. De volgorde komt uit `answerTrace.js`, niet uit deze tabel. */
 const ROW_TITLES = {
@@ -211,7 +211,7 @@ function RowFacts({ row, tt }) {
                 {row.actions.map(action => (
                     <div key={action.key} data-testid="trace-held" data-status={action.status}>
                         <div className="flex items-center gap-1.5 flex-wrap">
-                            <code className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            <code className="text-[11px] font-semibold text-[var(--text-primary)]">
                                 {action.toolName || '—'}
                             </code>
                             {action.effect === 'sends' && (
@@ -344,13 +344,13 @@ const AnswerTracePanel = ({ msg = null, toolDecisions = {}, t = null, className 
                     />
                 )}
             </div>
-            <p className="text-[10px] mb-2" style={{ color: 'var(--text-tertiary)' }}>
+            <p className="text-[10px] mb-2 text-[var(--text-tertiary)]">
                 {tt('agent_studio.test.trace_subtitle',
                     'Only what the run recorded. A step that is missing says why.')}
             </p>
 
             {!trace ? (
-                <p className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-[11px] text-[var(--text-tertiary)]">
                     {tt('agent_studio.test.trace_none', 'Ask something to see how the answer was made.')}
                 </p>
             ) : (
@@ -370,8 +370,7 @@ const AnswerTracePanel = ({ msg = null, toolDecisions = {}, t = null, className 
                     {trace.tools.length > 0 && (
                         <details className="mt-2">
                             <summary
-                                className="text-[10px] cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden"
-                                style={{ color: 'var(--text-tertiary)' }}
+                                className="text-[10px] cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden text-[var(--text-tertiary)]"
                             >
                                 {tt('agent_studio.test.trace_tools', 'Tools this answer ran')}
                             </summary>

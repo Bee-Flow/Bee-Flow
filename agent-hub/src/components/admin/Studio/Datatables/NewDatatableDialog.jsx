@@ -400,7 +400,7 @@ export function TypeSelect({ t, value, onChange, disabled = false, ariaLabel, ty
             >
                 <ColumnKindIcon kind={kind} size={14} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
                 <span className="truncate">{kindWord(t, kind)}</span>
-                <ChevronDown className="w-3 h-3 ml-auto shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                <ChevronDown className="w-3 h-3 ml-auto shrink-0 text-[var(--text-tertiary)]" />
             </span>
             <select
                 value={value || 'text'}

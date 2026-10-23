@@ -92,7 +92,7 @@ export default function HelpSupportSection({ showLearningLink = true, onOpenLear
             <div className="mb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <LifeBuoy className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--accent-primary)' }} />
+                        <LifeBuoy className="w-5 h-5 flex-shrink-0 text-[var(--accent-primary)]" />
                         <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('settings.help_support.title', 'Help & Support')}</h2>
                     </div>
                     <p className="text-sm text-[var(--text-muted)]">

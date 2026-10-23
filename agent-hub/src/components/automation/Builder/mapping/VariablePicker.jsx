@@ -1,15 +1,15 @@
 import { ChevronDown, ChevronRight, Search, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { canonicalRefPath, previewValue, walkPath } from '../../../../utils/bindingHelpers';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { listBadgeClass } from '../flow/settings/formStyles';
-import { filterFields } from './filterFields';
 import { startPathDrag } from './bindingDnd';
+import { filterFields } from './filterFields';
 import { fieldListShape } from './listShape';
-import { humanizeFieldKey } from '../flow/displayHelpers';
 import { fieldValueLabel, friendlyBasePath } from './VariableTree';
+import { humanizeFieldKey } from '../flow/displayHelpers';
 import { fieldLabelText } from './upstream/routeFieldLabel';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import { canonicalRefPath, previewValue, walkPath } from '../../../../utils/bindingHelpers';
+import { listBadgeClass } from '../flow/settings/formStyles';
 
 /**
  * Portal-rendered popover that lists upstream variables, filterable by

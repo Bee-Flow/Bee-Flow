@@ -1,13 +1,13 @@
 import { Loader2, Rows3, Table2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import RowsPreview from './RowsPreview';
-import { StageHeader } from './StageShell';
 import { stagePadding, stageType } from './stageChrome';
+import { StageHeader } from './StageShell';
 import useCountUp from './useCountUp';
 import useRunFilm from './useRunFilm';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import { kindColorVar } from '../../../../shared/kindColors';
 import RunExecutionView from '../../../../automation/Builder/RunExecutionView';
+import { kindColorVar } from '../../../../shared/kindColors';
 
 const STEPS_POLL_MS = 1500;
 /**

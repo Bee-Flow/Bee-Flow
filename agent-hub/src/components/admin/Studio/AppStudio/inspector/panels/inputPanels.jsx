@@ -1,11 +1,11 @@
 import React from 'react';
+import BindingField from './BindingField';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import FormField from '../../../../../shared/FormField';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
 import Slider from '../../../../../shared/Slider';
 import Toggle from '../../../../../shared/Toggle';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
-import BindingField from './BindingField';
 import { registerInspector } from '../registry';
 import { TextField, NumberField, INPUT_CLS, usePatch } from './kit';
 

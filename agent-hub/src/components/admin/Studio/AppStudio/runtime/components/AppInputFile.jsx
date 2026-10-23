@@ -260,7 +260,7 @@ export default function AppInputFile({ node }) {
                                             {display}
                                         </a>
                                     ) : (
-                                        <span className="truncate" style={{ color: 'var(--text-primary)' }}>{display}</span>
+                                        <span className="truncate text-[var(--text-primary)]">{display}</span>
                                     )}
                                     <button
                                         type="button"

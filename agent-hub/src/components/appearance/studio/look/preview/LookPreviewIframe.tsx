@@ -117,7 +117,7 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }: P
 
             {status === 'loading' && (
                 <Overlay>
-                    <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--text-muted)' }} />
+                    <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
                     <p className="text-sm mt-3 text-[var(--text-muted)]">
                         {t('appearance.look_preview_iframe_loading_value_preview', 'Loading {value} preview…', { value: surface.label.toLowerCase() })}
                     </p>
@@ -136,7 +136,7 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }: P
 
             {status === 'session-expired' && (
                 <Overlay>
-                    <LogIn className="w-7 h-7" style={{ color: 'var(--text-muted)' }} />
+                    <LogIn className="w-7 h-7 text-[var(--text-muted)]" />
                     <p className="text-sm mt-3 max-w-xs text-center text-[var(--text-primary)]">
                         {t('appearance.look_preview_iframe_sign_in_expired_inside_the_preview', 'Sign-in expired inside the preview. Sign back in and reload.')}
                     </p>

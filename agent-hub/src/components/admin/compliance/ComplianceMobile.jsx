@@ -107,7 +107,7 @@ export default function ComplianceMobile({
         <div data-testid="compliance-mobile" data-view={homeTab ? 'tab' : atHome ? view : 'section'} className="flex flex-col h-full min-h-0 bg-[var(--bg-primary)]">
             {/* ── Top bar ── */}
             <div className="flex items-center gap-2.5 px-4 py-1.5 flex-shrink-0" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-default)' }}>
-                <button type="button" data-testid="mobile-back" onClick={goBack} className={`${ICON_BUTTON} -ml-2.5`} style={{ color: 'var(--text-secondary)' }}
+                <button type="button" data-testid="mobile-back" onClick={goBack} className={`${ICON_BUTTON} -ml-2.5 text-[var(--text-secondary)]`}
                     aria-label={atHome && !homeTab ? t('compliance.back_to_settings', 'Back to settings') : t('compliance.mob_back_home', 'Back to overview')}>
                     <ChevronLeft size={20} aria-hidden="true" />
                 </button>

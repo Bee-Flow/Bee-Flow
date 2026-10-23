@@ -129,8 +129,8 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
             <div ref={listRef} className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
                 {empty ? (
                     <div className="m-auto text-center px-4">
-                        <Sparkles className="w-5 h-5 mx-auto mb-2" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
-                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        <Sparkles className="w-5 h-5 mx-auto mb-2 text-[var(--accent-primary)]" aria-hidden="true" />
+                        <p className="text-sm text-[var(--text-secondary)]">
                             {props.greeting || t('studio_apps_runtime.ai_chat.greeting', 'Ask me anything.')}
                         </p>
                     </div>
@@ -141,7 +141,7 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
                             {m.content}
                         </div>
                     ) : (
-                        <div key={i} className="self-start max-w-[95%] text-sm" style={{ color: 'var(--text-primary)' }}>
+                        <div key={i} className="self-start max-w-[95%] text-sm text-[var(--text-primary)]">
                             {m.content
                                 ? <div className="flex flex-col gap-2"><MarkdownBlocks text={m.content} /></div>
                                 : <span className="opacity-60">…</span>}

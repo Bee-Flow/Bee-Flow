@@ -168,10 +168,10 @@ export default function AppCalendar({ node }) {
                             className="w-full flex items-center gap-3 border px-2.5 py-1.5 text-left disabled:cursor-default"
                             style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)' }}
                         >
-                            <span className="text-xs tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
+                            <span className="text-xs tabular-nums shrink-0 text-[var(--text-muted)]">
                                 {day.toLocaleDateString()}
                             </span>
-                            <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                            <span className="text-sm font-medium truncate text-[var(--text-primary)]">
                                 {displayValue(walkPath(row, titleKey))}
                             </span>
                         </button>
@@ -210,7 +210,7 @@ export default function AppCalendar({ node }) {
             data-app-calendar={isWeek ? 'week' : 'month'}
         >
             <div className={`flex items-center justify-between gap-2${fill ? ' shrink-0' : ''}`}>
-                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }} data-app-calendar-heading="true">
+                <span className="text-sm font-semibold text-[var(--text-primary)]" data-app-calendar-heading="true">
                     {headingLabel}
                 </span>
                 <div className="flex items-center gap-1">
@@ -232,7 +232,7 @@ export default function AppCalendar({ node }) {
             </div>
             <div className={`grid grid-cols-7 gap-px text-center${fill ? ' shrink-0' : ''}`}>
                 {WEEKDAYS.map((d) => (
-                    <span key={d} className="text-[11px] font-medium py-1" style={{ color: 'var(--text-muted)' }}>{WEEKDAY_LABELS[d]}</span>
+                    <span key={d} className="text-[11px] font-medium py-1 text-[var(--text-muted)]">{WEEKDAY_LABELS[d]}</span>
                 ))}
             </div>
             <div

@@ -1,7 +1,7 @@
 import { Loader2, Plus, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import useAppRoles, { useOrgDirectory } from './useAppRoles';
 import { resolveAccessEntry } from './rowRuleModel';
+import useAppRoles, { useOrgDirectory } from './useAppRoles';
 import useTranslation from '../../../../../hooks/useTranslation';
 import ConfirmDialog from '../../../../shared/ConfirmDialog';
 import toast from '../../../../shared/Toast';
@@ -300,7 +300,7 @@ export default function RolesManager({ appId, definition = null, onCommit = null
                         onClick={addRole}
                         className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)]"
                     >
-                        <Plus className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                        <Plus className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
                         {t('studio_apps_edit.roles.add_role', 'Add role')}
                     </button>
                 </SectionHeader>

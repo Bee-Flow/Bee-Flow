@@ -156,7 +156,7 @@ function StatusLine({ t, rel, sync, sourceName, compact = false }) {
     const cls = compact ? '' : 'text-sm';
     if (!sync || sync.status === 'running') {
         return (
-            <span className={`${cls} inline-flex items-center gap-1.5`} style={{ color: 'var(--text-secondary)' }}>
+            <span className={`${cls} inline-flex items-center gap-1.5 text-[var(--text-secondary)]`}>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
                 {t('datatables.src_status_running', 'Refreshing from {source}…', { source: sourceName })}
             </span>
@@ -173,7 +173,7 @@ function StatusLine({ t, rel, sync, sourceName, compact = false }) {
     // Live: the ⚡, always. "checked" is the last successful pass — the
     // moment the copy was proven equal to the source.
     return (
-        <span className={`${cls} inline-flex items-center gap-1.5`} style={{ color: 'var(--text-secondary)' }}>
+        <span className={`${cls} inline-flex items-center gap-1.5 text-[var(--text-secondary)]`}>
             <Zap className="w-3.5 h-3.5" style={{ color: 'var(--success)' }} aria-hidden="true" />
             {t('datatables.src_status_live', 'Live · in step with {source}', { source: sourceName })}
             <span className="text-[var(--text-tertiary)]">

@@ -196,7 +196,7 @@ export default function WebpagesList({
 
                     {loading ? (
                         <div className="flex items-center justify-center py-16">
-                            <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                            <Loader2 className="w-6 h-6 animate-spin text-[var(--accent-primary)]" aria-hidden="true" />
                         </div>
                     ) : search.trim() && filtered.length === 0 ? (
                         <EmptySearch t={t} />
@@ -241,7 +241,7 @@ function SearchField({ t, value, onChange }) {
                 border: '1px solid var(--border-default)', background: 'var(--bg-card)',
             }}
         >
-            <Search className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+            <Search className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
             <input
                 type="search"
                 value={value}
@@ -322,7 +322,7 @@ function ExampleCard({ t, onPick }) {
                 gap: 8, padding: 24, color: 'var(--text-secondary)',
             }}
         >
-            <LayoutTemplate size={22} aria-hidden="true" style={{ color: 'var(--text-tertiary)' }} />
+            <LayoutTemplate size={22} aria-hidden="true" className="text-[var(--text-tertiary)]" />
             <div className="font-semibold text-[var(--text-primary)]">
                 {t('webpages.examples.title', 'Start from an example')}
             </div>
@@ -347,7 +347,7 @@ function ExampleCard({ t, onPick }) {
 function EmptySearch({ t }) {
     return (
         <div className="flex flex-col items-center justify-center text-center py-20">
-            <Search className="w-10 h-10 mb-3" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+            <Search className="w-10 h-10 mb-3 text-[var(--text-tertiary)]" aria-hidden="true" />
             <h3 className="text-base font-semibold mb-1 text-[var(--text-primary)]">
                 {t('webpages.empty.no_matches', 'No matches')}
             </h3>

@@ -20,24 +20,24 @@
 import React from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
-import OverviewPage from '../pages/OverviewPage';
-import FrameworksPage from '../pages/FrameworksPage';
+import AccessAuditPage from '../pages/AccessAuditPage';
+import AuditsPage from '../pages/AuditsPage';
+import ConnectorsPage from '../pages/ConnectorsPage';
 import CustomFrameworksPage from '../pages/CustomFrameworksPage';
-import PortabilityPage from '../pages/PortabilityPage';
-import MachineryPage from '../pages/MachineryPage';
-import FrameworkPage from '../pages/FrameworkPage';
-import DsrPage from '../pages/DsrPage';
-import IncidentsPage from '../pages/IncidentsPage';
-import RopaPage from '../pages/RopaPage';
 import DpiaPage from '../pages/DpiaPage';
+import DsrPage from '../pages/DsrPage';
+import FrameworkPage from '../pages/FrameworkPage';
+import FrameworksPage from '../pages/FrameworksPage';
+import IncidentsPage from '../pages/IncidentsPage';
+import MachineryPage from '../pages/MachineryPage';
+import OverviewPage from '../pages/OverviewPage';
+import PoliciesPage from '../pages/PoliciesPage';
+import PortabilityPage from '../pages/PortabilityPage';
+import RisksPage from '../pages/RisksPage';
+import RopaPage from '../pages/RopaPage';
 import SettingsPage from '../pages/SettingsPage';
 import SoaPage from '../pages/SoaPage';
-import PoliciesPage from '../pages/PoliciesPage';
-import RisksPage from '../pages/RisksPage';
-import AuditsPage from '../pages/AuditsPage';
-import AccessAuditPage from '../pages/AccessAuditPage';
 import TrainingPage from '../pages/TrainingPage';
-import ConnectorsPage from '../pages/ConnectorsPage';
 
 export function PendingPage({ section }) {
     const { t } = useTranslation();

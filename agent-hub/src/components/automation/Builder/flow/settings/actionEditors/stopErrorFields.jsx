@@ -1,9 +1,9 @@
 // The stop_error editor: the message a deliberate halt records as the run's
 // reason.
+import { useTranslation } from '../../../../../../hooks/useTranslation';
 import TemplateField from '../../../mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
 import { FormRow } from '../formPrimitives';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
 
 function StopErrorFields({ draft, set, onFocusField, previewSample, errorSections = new Set() }) {
     const { t } = useTranslation();

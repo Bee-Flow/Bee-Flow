@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import studioFieldOptions from './studioFieldOptions';
 import StudioScopeProvider, { buildStudioScope } from './StudioScopeProvider';
-import ConditionBuilder from '../../../../../automation/Builder/mapping/ConditionBuilder';
 import useTranslation from '../../../../../../hooks/useTranslation';
+import ConditionBuilder from '../../../../../automation/Builder/mapping/ConditionBuilder';
 
 /**
  * ConditionField — the automations clickable ConditionBuilder, mounted inside a

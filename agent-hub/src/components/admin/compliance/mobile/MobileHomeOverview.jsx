@@ -145,7 +145,7 @@ export default function MobileHomeOverview({ data, navigate, onTab = undefined }
                                     {isNum(open) && open > 0 ? ` · ${t('compliance.mob_fw_open', '{n} open', { n: open })}` : ''}
                                 </span>
                             </span>
-                            <ChevronRight size={16} aria-hidden="true" className="flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                            <ChevronRight size={16} aria-hidden="true" className="flex-shrink-0 text-[var(--text-tertiary)]" />
                         </button>
                     );
                 })}
@@ -176,7 +176,7 @@ export default function MobileHomeOverview({ data, navigate, onTab = undefined }
                                 <span className="block text-[13px] font-medium truncate text-[var(--text-primary)]">{item.title}</span>
                                 {meta && <span className="block text-[11px] truncate text-[var(--text-tertiary)]">{meta}</span>}
                             </span>
-                            <ChevronRight size={16} aria-hidden="true" className="flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                            <ChevronRight size={16} aria-hidden="true" className="flex-shrink-0 text-[var(--text-tertiary)]" />
                         </button>
                     );
                 })}</div>}

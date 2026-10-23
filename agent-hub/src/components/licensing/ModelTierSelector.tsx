@@ -112,7 +112,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
                 {currentMeta.iconSrc ? (
                     <img src={currentMeta.iconSrc} alt="" className="w-4 h-4 object-contain" />
                 ) : currentMeta.Icon ? (
-                    <currentMeta.Icon className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} />
+                    <currentMeta.Icon className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                 ) : (
                     <AppEmoji id={tierCatalogId(value)} default={currentMeta.emoji} />
                 )}

@@ -188,7 +188,7 @@ export default function ComboBox({
                         className={`${INPUT_CLASS} pr-7`}
                         style={inputStyle(error)}
                     />
-                    <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
+                    <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]" aria-hidden="true" />
                     {open ? (
                         <div
                             className="absolute z-20 left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto border shadow-lg"
@@ -210,7 +210,7 @@ export default function ComboBox({
                                     {String(loadError)}
                                 </div>
                             ) : isLoading ? (
-                                <div className="px-2.5 py-2 text-xs" style={{ color: 'var(--text-muted)' }}>{t('studio_apps_runtime.inputs.loading', 'Loading…')}</div>
+                                <div className="px-2.5 py-2 text-xs text-[var(--text-muted)]">{t('studio_apps_runtime.inputs.loading', 'Loading…')}</div>
                             ) : filtered.length ? (
                                 filtered.map((c, i) => (
                                     <button
@@ -233,7 +233,7 @@ export default function ComboBox({
                                     </button>
                                 ))
                             ) : (
-                                <div className="px-2.5 py-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                                <div className="px-2.5 py-2 text-xs text-[var(--text-muted)]">
                                     {disabled ? (disabledText || emptyMessage) : emptyMessage}
                                 </div>
                             )}

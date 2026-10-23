@@ -105,7 +105,7 @@ function TableCard({ t, table }) {
         return (
             <Card>
                 <div className="flex items-center gap-2">
-                    <Table2 size={14} style={{ color: 'var(--text-secondary)' }} />
+                    <Table2 size={14} className="text-[var(--text-secondary)]" />
                     <span className="text-sm font-medium">
                         {t('webpages.data.table_unavailable', 'Table unavailable')}
                     </span>

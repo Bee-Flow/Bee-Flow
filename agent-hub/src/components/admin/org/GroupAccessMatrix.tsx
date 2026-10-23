@@ -157,7 +157,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
         return map;
     }, [data]);
 
-    if (loading) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-muted)' }} /></div>;
+    if (loading) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[var(--text-muted)]" /></div>;
     if (!data || !data.orgId) {
         return (
             <div className="rounded-2xl p-5 text-sm" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
@@ -211,7 +211,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                         <p className="text-sm font-medium truncate text-[var(--text-primary)]" title={cap.name}>{cap.name}</p>
-                        {locked ? <Lock className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--text-muted)' }} /> : null}
+                        {locked ? <Lock className="w-3 h-3 flex-shrink-0 text-[var(--text-muted)]" /> : null}
                     </div>
                     {inherited && !isEveryoneScope ? (
                         <p className="text-[11px]" style={{ color: BLUE }}>{t('admin_org.access_matrix_granted_all', 'Granted to all members')}</p>
@@ -270,7 +270,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                     </div>
                     {groups.length > 6 ? (
                         <div className="relative mb-2">
-                            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                             <input value={groupQuery} onChange={e => setGroupQuery(e.target.value)} placeholder={t('admin_org.access_matrix_search_groups', 'Search groups…')}
                                 className="w-full text-sm rounded-lg pl-8 pr-2 py-1.5 outline-none"
                                 style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }} />

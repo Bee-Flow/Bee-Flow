@@ -594,7 +594,7 @@ export default function RulesPanel({
             <div className="flex-1 overflow-y-auto px-3 pb-3">
                 {loading && (
                     <div className="flex items-center gap-2 px-3 py-6 justify-center">
-                        <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                        <Loader2 className="w-4 h-4 animate-spin text-[var(--text-tertiary)]" aria-hidden="true" />
                         <span className="text-xs text-[var(--text-secondary)]">{t('meetings.rules_loading', 'Loading rules…')}</span>
                     </div>
                 )}

@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
 import { Boxes, Loader2, RefreshCw, Store } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { useAdminModules, useImportModule, useRemoveModule } from '../../../api/queries/modules';
-import { useEntitlements } from '../../licensing/EntitlementsContext';
+import React, { useEffect, useRef, useState } from 'react';
+import MarketplaceTab from './MarketplaceTab';
 import ModuleCard from './ModuleCard';
 import RemoveModuleDialog from './RemoveModuleDialog';
-import MarketplaceTab from './MarketplaceTab';
+import { useAdminModules, useImportModule, useRemoveModule } from '../../../api/queries/modules';
+import { useTranslation } from '../../../hooks/useTranslation';
+import { useEntitlements } from '../../licensing/EntitlementsContext';
 
 export default function ModulesPanel() {
     const { t } = useTranslation();
@@ -137,7 +137,7 @@ export default function ModulesPanel() {
                 <MarketplaceTab flash={flash} reloadEntitlements={reloadEntitlements} />
             ) : isLoading ? (
                 <div className="flex items-center justify-center py-20" data-testid="modules-loading">
-                    <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--text-muted)' }} />
+                    <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
                 </div>
             ) : isError ? (
                 <div className="text-xs px-3 py-2 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-between gap-3" data-testid="modules-error">
@@ -148,7 +148,7 @@ export default function ModulesPanel() {
                 </div>
             ) : modules.length === 0 ? (
                 <div className="text-center py-12" data-testid="modules-empty">
-                    <Boxes className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
+                    <Boxes className="w-8 h-8 mx-auto mb-2 text-[var(--text-muted)]" />
                     <p className="text-sm text-[var(--text-muted)]">{t('modules.empty')}</p>
                 </div>
             ) : (

@@ -46,7 +46,7 @@ export function FileCard({ t, rel, table, mirror, canEdit }) {
                 {source?.webUrl ? (
                     <a href={source.webUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline-offset-2 hover:underline text-[var(--text-primary)]">
                         {source.fileName || source.fileId}
-                        <ExternalLink className="w-3 h-3" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                        <ExternalLink className="w-3 h-3 text-[var(--text-tertiary)]" aria-hidden="true" />
                     </a>
                 ) : <span>{source?.fileName || source?.fileId || ''}</span>}
             </h3>

@@ -34,11 +34,11 @@ export default function SimStep({ step, saved, onState }: SimStepProps) {
                     {step.icon || '🧩'}
                 </div>
                 <div className="pt-0.5">
-                    <h2 className="text-base font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>
+                    <h2 className="text-base font-bold leading-snug text-[var(--text-primary)]">
                         {t(step.titleKey, step.titleFallback)}
                     </h2>
                     {step.instructionFallback && (
-                        <p className="text-[13px] mt-1 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-[13px] mt-1 leading-relaxed text-[var(--text-secondary)]">
                             {t(step.instructionKey, step.instructionFallback)}
                         </p>
                     )}
@@ -342,7 +342,7 @@ function FlowBuildSim({ sim, t, onState }: { sim: SimConfig; t: TranslateFn; onS
                     {t('learn.sim.flow_task', 'Build it: task {n} of {total}')
                         .replace('{n}', String(scenarioIdx + 1)).replace('{total}', String(scenarios.length))}
                 </div>
-                <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>{t(scenario.briefKey, scenario.briefFallback)}</p>
+                <p className="text-[13px] leading-relaxed text-[var(--text-primary)]">{t(scenario.briefKey, scenario.briefFallback)}</p>
             </div>
 
             {/* The rail: trigger → steps → result */}
@@ -350,14 +350,14 @@ function FlowBuildSim({ sim, t, onState }: { sim: SimConfig; t: TranslateFn; onS
                 style={{ borderColor: solvedCurrent ? '#15803d' : 'var(--border-default)', background: 'var(--bg-card)' }}>
                 {node(
                     triggerId
-                        ? (<><Zap className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--accent-primary)' }} />
+                        ? (<><Zap className="w-3.5 h-3.5 flex-shrink-0 text-[var(--accent-primary)]" />
                             <span className="font-semibold">{(scenario.trigger?.options || []).find((o) => o.id === triggerId)?.label || triggerId}</span>
                             {!solvedCurrent && (
                                 <button type="button" onClick={() => { setTriggerId(null); setProblems(null); }} className="ml-auto" aria-label={t('learn.sim.remove', 'Remove')}>
-                                    <X className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
+                                    <X className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
                                 </button>
                             )}</>)
-                        : (<><Zap className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                        : (<><Zap className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-tertiary)]" />
                             <span className="text-[var(--text-tertiary)]">{t('learn.sim.flow_pick_trigger', 'Start with a trigger — pick one below')}</span></>),
                     'trigger',
                 )}
@@ -370,7 +370,7 @@ function FlowBuildSim({ sim, t, onState }: { sim: SimConfig; t: TranslateFn; onS
                                 {stepLabel(id)}
                                 {!solvedCurrent && (
                                     <button type="button" onClick={() => removeStep(id)} className="ml-auto" aria-label={t('learn.sim.remove', 'Remove')}>
-                                        <X className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
+                                        <X className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
                                     </button>
                                 )}</>),
                             'step',
@@ -417,7 +417,7 @@ function FlowBuildSim({ sim, t, onState }: { sim: SimConfig; t: TranslateFn; onS
                             <button key={p.id} type="button" onClick={() => addStep(p.id)} title={p.hint}
                                 className="px-3 py-1.5 rounded-lg border text-[12px] inline-flex items-center gap-1.5 transition-colors hover:bg-[var(--bg-tertiary)]"
                                 style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
-                                <Plus className="w-3 h-3" style={{ color: 'var(--text-tertiary)' }} /> {p.label}
+                                <Plus className="w-3 h-3 text-[var(--text-tertiary)]" /> {p.label}
                             </button>
                         ))}
                     </div>

@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronRight, ChevronDown, Search, Loader2, Folder, FolderOpen } from 'lucide-react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../../utils/helpers';
 import SegmentedControl from '../../shared/SegmentedControl';
 
 /**
@@ -92,8 +92,8 @@ const FolderNode = ({ path, label, depth, selected, onToggle, t }) => {
                         onChange={() => onToggle(path)}
                     />
                     {expanded
-                        ? <FolderOpen size={14} style={{ color: 'var(--text-tertiary)' }} className="flex-shrink-0" />
-                        : <Folder size={14} style={{ color: 'var(--text-tertiary)' }} className="flex-shrink-0" />}
+                        ? <FolderOpen size={14} className="flex-shrink-0 text-[var(--text-tertiary)]" />
+                        : <Folder size={14} className="flex-shrink-0 text-[var(--text-tertiary)]" />}
                     <span className="text-[13px] truncate text-[var(--text-primary)]">{label}</span>
                 </label>
             </div>
@@ -169,7 +169,7 @@ const ResourcePicker = ({ integrationId, resourceLabel, selected, onToggle, t })
         <div data-testid={`nc-scope-picker-${integrationId}`}>
             {resources.length > 8 && (
                 <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-lg" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
-                    <Search size={13} style={{ color: 'var(--text-tertiary)' }} />
+                    <Search size={13} className="text-[var(--text-tertiary)]" />
                     <input
                         value={query}
                         onChange={e => setQuery(e.target.value)}

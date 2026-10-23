@@ -36,8 +36,8 @@
  * ook de letterlijke `t()`-sleutels staan die de i18n-guard leest.
  */
 
-import { isAgentCallable } from '../../../admin/Studio/SkillsStudio/skillModel';
 import { READ } from './canUseFacts';
+import { isAgentCallable } from '../../../admin/Studio/SkillsStudio/skillModel';
 
 /** Sleutels van `config.tools` die GEEN app-id zijn (spiegel van toolPolicy.js). */
 export const RESERVED_TOOL_KEYS = Object.freeze(['automations', 'datatables']);

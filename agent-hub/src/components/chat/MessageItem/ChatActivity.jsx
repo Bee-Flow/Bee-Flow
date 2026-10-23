@@ -61,7 +61,7 @@ export default function ChatActivity({ msg, sessionSkills = [], t: tProp = null 
         >
             <div className="flex items-center gap-1.5 mb-1.5 text-[var(--text-secondary)]">
                 {streaming
-                    ? <Loader2 size={13} className="flex-shrink-0 animate-spin motion-reduce:animate-none" style={{ color: 'var(--accent-primary)' }} />
+                    ? <Loader2 size={13} className="flex-shrink-0 animate-spin motion-reduce:animate-none text-[var(--accent-primary)]" />
                     : <Wrench size={13} className="flex-shrink-0" />}
                 <span className="font-medium">
                     {streaming ? t('chat.act.working', 'Working') : t('chat.msg.tools_used', 'Tools Used')}
@@ -107,7 +107,7 @@ function ToolTile({ name, failed }) {
 }
 
 function StatusGlyph({ status }) {
-    if (status === 'running') return <Loader2 size={12} className="flex-shrink-0 animate-spin motion-reduce:animate-none" style={{ color: 'var(--accent-primary)' }} />;
+    if (status === 'running') return <Loader2 size={12} className="flex-shrink-0 animate-spin motion-reduce:animate-none text-[var(--accent-primary)]" />;
     if (status === 'failed') return <TriangleAlert size={12} className="flex-shrink-0" style={{ color: 'var(--warning)' }} />;
     if (status === 'interrupted') return <Minus size={12} className="flex-shrink-0 text-[var(--text-tertiary)]" />;
     return <Check size={12} className="flex-shrink-0 text-emerald-500" />;

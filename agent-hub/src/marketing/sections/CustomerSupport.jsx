@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ArrowRight, CheckCircle2, Bot, User, AlertTriangle, Loader2, Send } from 'lucide-react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { API_BASE } from '../../utils/helpers';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';

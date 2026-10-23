@@ -1,5 +1,15 @@
 import { Sparkles } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import CanUseCard from './CanUseCard';
+import ExamplesTab from './ExamplesTab';
+import FillInCard from './FillInCard';
+import OutputFieldsCard from './OutputFieldsCard';
+import RulesEditor from './RulesEditor';
+import { buildSavePayload, draftOf, refKindKey } from './skillModel';
+import { skillsApi } from './skillsApi';
+import SkillStepEditor from './SkillStepEditor';
+import TestTab from './TestTab';
+import useSkillPickerData, { refOptionsOf } from './useSkillPickerData';
 import useTranslation from '../../../../hooks/useTranslation';
 import useUsage from '../../../../hooks/useUsage';
 import DangerZone from '../../../shared/DangerZone';
@@ -8,17 +18,7 @@ import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '../../../shared/Studi
 import { toast } from '../../../shared/Toast';
 import UsedByTab, { usageHref } from '../../../shared/UsedByTab';
 import VisibilityCapsule from '../../../shared/VisibilityCapsule';
-import CanUseCard from './CanUseCard';
-import ExamplesTab from './ExamplesTab';
-import FillInCard from './FillInCard';
-import OutputFieldsCard from './OutputFieldsCard';
-import RulesEditor from './RulesEditor';
-import SkillStepEditor from './SkillStepEditor';
-import TestTab from './TestTab';
 import { nOf } from '../KnowledgeStudio/plural';
-import { buildSavePayload, draftOf, refKindKey } from './skillModel';
-import { skillsApi } from './skillsApi';
-import useSkillPickerData, { refOptionsOf } from './useSkillPickerData';
 
 const INSTRUCTION_LIMIT = 4000;
 const SAVE_DEBOUNCE_MS = 350;

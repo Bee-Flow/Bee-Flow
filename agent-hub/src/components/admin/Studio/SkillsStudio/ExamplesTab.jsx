@@ -1,10 +1,10 @@
 import { Loader2, MessageSquarePlus, Plus, Trash2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { newLocalId } from './skillModel';
+import { skillsApi } from './skillsApi';
 import useTranslation from '../../../../hooks/useTranslation';
 import Modal from '../../../shared/Modal';
 import { toast } from '../../../shared/Toast';
-import { newLocalId } from './skillModel';
-import { skillsApi } from './skillsApi';
 
 /**
  * "Examples" — what a good answer looks like (Skills artboard 1b).

@@ -3,10 +3,10 @@ import React, { useMemo, useRef, useState } from 'react';
 import AccordionSection from '../AccordionSection';
 import { inputClass, textareaClass, FormRow } from './formPrimitives';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
+import { useTranslation } from '../../../../../hooks/useTranslation';
 import { walkPath, walkRelativePath, previewValue, suggestKeyFromPath } from '../../../../../utils/bindingHelpers';
 import JsonTreePicker from '../../mapping/JsonTreePicker';
 import PathField from '../../mapping/PathField';
-import { useTranslation } from '../../../../../hooks/useTranslation';
 
 /**
  * Settings editor for the parse_json step.

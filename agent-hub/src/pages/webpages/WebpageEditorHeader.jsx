@@ -1,13 +1,13 @@
 import { Code2, Database, Download, Eye, History, Link2, Upload, Users } from 'lucide-react';
 import React from 'react';
 import { visibilityOf } from './webpageVisibility';
-import { managedOf } from '../../utils/managedPart';
 import ManagedPartBanner from '../../components/shared/ManagedPartBanner';
 import StatusActionPill from '../../components/shared/StatusActionPill';
 import statusOf from '../../components/shared/statusOf';
 import StudioSectionHeader, { OBJHEAD, OBJHEAD_FOLD } from '../../components/shared/StudioSectionHeader';
 import VisibilityCapsule from '../../components/shared/VisibilityCapsule';
 import useTranslation from '../../hooks/useTranslation';
+import { managedOf } from '../../utils/managedPart';
 
 /**
  * WebpageEditorHeader — the ONE 48px row an open webpage starts with (Bee Flow
@@ -91,7 +91,7 @@ function PublicLinkMarker({ t }) {
                 color: 'var(--text-primary)',
             }}
         >
-            <Link2 size={13} aria-hidden="true" style={{ color: 'var(--text-secondary)' }} />
+            <Link2 size={13} aria-hidden="true" className="text-[var(--text-secondary)]" />
             <span className={OBJHEAD_FOLD.label}>{t('webpages.visibility.public', 'Public')}</span>
         </span>
     );

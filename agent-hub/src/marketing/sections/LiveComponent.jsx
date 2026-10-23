@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import SectionFrame from '../components/SectionFrame';
 import { inlineTextStyle } from './textStyle';
+import SectionFrame from '../components/SectionFrame';
 
 /**
  * Live Component — pasted HTML/CSS/JS rendered in a sandboxed iframe.

@@ -23,12 +23,12 @@ function ConnectorRow({ c, active, catalog, disabled, onSelect, onRemove }: Conn
                 className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm"
                 style={{ background: active ? 'var(--bg-tertiary)' : 'transparent', color: 'var(--text-primary)' }}
             >
-                <Plug className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                <Plug className="h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                 <span className="truncate">{c.name || c.id}</span>
                 {connectorProblem(c, catalog.lookup(c.tool)?.action || null, t) ? (
                     <AlertTriangle className="ml-auto h-3 w-3 shrink-0" style={{ color: '#d97706' }} aria-label={t('studio_apps_bi.connectors.not_finished', 'Not finished yet')} />
                 ) : c.sync ? (
-                    <Database className="ml-auto h-3 w-3 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-label={t('studio_apps_bi.connectors.fills_table', 'Fills a table')} />
+                    <Database className="ml-auto h-3 w-3 shrink-0 text-[var(--accent-primary)]" aria-label={t('studio_apps_bi.connectors.fills_table', 'Fills a table')} />
                 ) : (
                     <span className="ml-auto text-[9px] uppercase tracking-wide text-[var(--text-tertiary)]">{labelForKind(c.kind, t)}</span>
                 )}
@@ -77,7 +77,7 @@ export default function ConnectorList({ list, grouped, selectedId, adding, choos
                 <div key={group.appId} className="flex flex-col gap-0.5">
                     <div className="flex items-center gap-1.5 px-1 pt-1.5">
                         <div className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
-                            {group.appId !== 'other' ? getIntegrationIcon(group.appId) : <Workflow className="h-3 w-3" style={{ color: 'var(--text-tertiary)' }} />}
+                            {group.appId !== 'other' ? getIntegrationIcon(group.appId) : <Workflow className="h-3 w-3 text-[var(--text-tertiary)]" />}
                         </div>
                         <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                             {group.label}

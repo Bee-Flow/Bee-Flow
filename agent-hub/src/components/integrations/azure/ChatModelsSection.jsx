@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import React, { useState } from 'react';
 import { SectionCard, SearchableModelSelect } from './components';
 import { TIERS, TIER_DEFAULTS, isReasoningCapable, isClaudeReasoning } from './constants';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 export default function ChatModelsSection({ chatModelTiers, setChatModelTiers, allModels, azureModels, handleSave, saving, saved }) {
     const { t } = useTranslation();

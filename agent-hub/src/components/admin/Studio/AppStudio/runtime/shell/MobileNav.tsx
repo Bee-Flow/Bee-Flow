@@ -75,7 +75,7 @@ export default function MobileNav({ model, activeScreen, onNavigate, variant = '
                 <span className="min-w-0">
                     <span className="block truncate">{screen.name}</span>
                     {screen.description ? (
-                        <span className="block text-xs font-normal mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                        <span className="block text-xs font-normal mt-0.5 text-[var(--text-tertiary)]">
                             {screen.description}
                         </span>
                     ) : null}
@@ -124,8 +124,7 @@ export default function MobileNav({ model, activeScreen, onNavigate, variant = '
                     {model.groups.map((group) => (
                         <div key={group.id} className="flex flex-col gap-0.5">
                             <div
-                                className="flex items-center gap-1.5 px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider"
-                                style={{ color: 'var(--text-muted)' }}
+                                className="flex items-center gap-1.5 px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]"
                             >
                                 {group.icon ? <AppIcon name={group.icon} className="w-3 h-3 shrink-0" /> : null}
                                 <span className="truncate">{group.label}</span>

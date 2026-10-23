@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Loader2, Check } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
-import { useTranslation } from '../../hooks/useTranslation';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { INTEGRATION_CATALOG, NEXTCLOUD_INTEGRATION_IDS, CATEGORY_ORDER } from '../../config/integrationCatalog';
 import { getIntegrationIcon, hasIntegrationIcon } from '../../config/integrationIcons';
+import { useTranslation } from '../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../utils/helpers';
 
 const SAVE_DEBOUNCE_MS = 400;
 const SAVED_FLASH_MS = 1500;

@@ -1,6 +1,6 @@
 import React from 'react';
-import AppActionPicker from '../../../shared/AppActionPicker';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import AppActionPicker from '../../../shared/AppActionPicker';
 
 /**
  * Tool picker for the AI step — which functions the step may call.

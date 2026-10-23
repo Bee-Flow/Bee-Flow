@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, X, Users, Lock } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 import { readOrgGroups } from '../../api/queries/orgGroups';
-import { API_BASE, authFetch } from '../../utils/helpers';
 import { SKILL_EMOJI_ICONS } from '../../constants/icons';
 import useTranslation from '../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../utils/helpers';
 import { managedOf, managedRefusalOf } from '../shared/managedPart';
 import ManagedPartBanner from '../shared/ManagedPartBanner';
 import Modal from '../shared/Modal';

@@ -122,9 +122,9 @@ function HeroHeader({ icon, title, subtitle, gap, kids }: HeaderParts) {
             <div className="flex flex-col items-center text-center" style={{ gap: spaceSteps(gap) }}>
                 <IconBadge icon={icon} size="h-11 w-11" />
                 <div className="min-w-0">
-                    <h1 className="text-3xl font-semibold break-words" style={{ color: 'var(--text-primary)' }}>{title}</h1>
+                    <h1 className="text-3xl font-semibold break-words text-[var(--text-primary)]">{title}</h1>
                     {subtitle ? (
-                        <p className="text-base mt-1.5 break-words" style={{ color: 'var(--text-secondary)' }}>{subtitle}</p>
+                        <p className="text-base mt-1.5 break-words text-[var(--text-secondary)]">{subtitle}</p>
                     ) : null}
                 </div>
                 {kids.length ? (
@@ -151,7 +151,7 @@ function SplitHeader({ icon, title, subtitle, gap, kids, showDivider }: HeaderPa
         >
             <div className="flex flex-wrap items-start" style={{ gap: spaceSteps(gap) }}>
                 <IconBadge icon={icon} />
-                <h1 className="text-xl font-semibold truncate min-w-0 basis-48 grow" title={title} style={{ color: 'var(--text-primary)' }}>{title}</h1>
+                <h1 className="text-xl font-semibold truncate min-w-0 basis-48 grow text-[var(--text-primary)]" title={title}>{title}</h1>
                 {subtitle ? (
                     <p className="text-sm mt-0.5 text-right line-clamp-2 min-w-0" title={subtitle} style={{ color: 'var(--text-muted)', maxWidth: '45%' }}>{subtitle}</p>
                 ) : null}
@@ -214,7 +214,7 @@ export default function AppPageHeader({ node, children }: NodeProps<PageHeaderPr
                     </span>
                 ) : null}
                 <div className={TITLE_FLOOR}>
-                    <h1 className="text-xl font-semibold truncate" title={shownTitle} style={{ color: 'var(--text-primary)' }}>{shownTitle}</h1>
+                    <h1 className="text-xl font-semibold truncate text-[var(--text-primary)]" title={shownTitle}>{shownTitle}</h1>
                     {shownSubtitle ? (
                         <p className={SUBTITLE_CLAMP} title={shownSubtitle} style={{ color: 'var(--text-secondary)' }}>{shownSubtitle}</p>
                     ) : null}

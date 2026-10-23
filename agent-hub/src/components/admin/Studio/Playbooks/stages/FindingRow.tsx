@@ -115,7 +115,7 @@ export default function FindingRow({
                         >
                             {TargetIcon && <TargetIcon className="w-3 h-3 shrink-0" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />}
                             <span className="truncate" style={{ maxWidth: 220 }}>{target.name}</span>
-                            <ExternalLink className="w-2.5 h-2.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                            <ExternalLink className="w-2.5 h-2.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                         </button>
                     ) : (
                         <span className="text-[11px] text-[var(--text-tertiary)]" data-testid="playbook-compliance-target">{target.name}</span>

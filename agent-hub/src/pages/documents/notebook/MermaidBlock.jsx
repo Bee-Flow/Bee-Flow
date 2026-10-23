@@ -9,9 +9,9 @@
  * - Smooth fade-in animation on render
  * - SVG export for PDF/Word
  */
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import mermaid from 'mermaid';
 import { Code, Eye, Maximize2, Minimize2, X, Download, Copy, Check, Loader2 } from 'lucide-react';
+import mermaid from 'mermaid';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import useTranslation from '../../../hooks/useTranslation';
 
 let blockCounter = 0;

@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { getAgentInitials, getAgentColor } from '../../utils/helpers';
-import { isImageAvatar, resolveAvatarSrc, pickAgentAvatar } from '../../utils/agentAvatar';
 import { ChevronDown, ChevronUp, X, Search, Heart, EyeOff, Pencil } from 'lucide-react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { isImageAvatar, resolveAvatarSrc, pickAgentAvatar } from '../../utils/agentAvatar';
+import { getAgentInitials, getAgentColor } from '../../utils/helpers';
 import scopedStorage from '../../utils/scopedStorage';
 
 const STATIC_CATEGORIES_BEFORE_KEYS = [
@@ -67,7 +67,7 @@ const AgentCard = React.memo(({ agentId, name, avatar, description, typeLabel, i
                     title={t('agent.agent_marketplace_edit_agent', 'Edit agent')}
                     data-testid={`agent-edit-${agentId}`}
                 >
-                    <Pencil className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
+                    <Pencil className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                 </button>
             )}
             {isOwner && onUnpublish && (
@@ -76,7 +76,7 @@ const AgentCard = React.memo(({ agentId, name, avatar, description, typeLabel, i
                     className="p-1.5 rounded-lg transition-opacity opacity-0 group-hover:opacity-100 bg-[var(--bg-tertiary)]"
                     title={t('agent.agent_marketplace_unpublish_agent', 'Unpublish agent')}
                 >
-                    <EyeOff className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
+                    <EyeOff className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                 </button>
             )}
             <button
@@ -284,7 +284,7 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
                 </div>
 
                 <div className="relative mb-3">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                     <input
                         type="text" placeholder={t('store.search_placeholder')} value={search}
                         onChange={(e) => setSearch(e.target.value)}

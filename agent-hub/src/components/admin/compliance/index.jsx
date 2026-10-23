@@ -34,25 +34,25 @@
  * never blank.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { useViewport } from '../../../hooks/useViewport';
-import StudioShell from '../../shared/StudioShell';
-import { movedTab, resolveSection, sectionById, SECTIONS_WITH_PICKERS } from './sections';
-import { API, downloadUrl } from './data/api';
+import ComplianceHeader from './ComplianceHeader';
+import ComplianceRail from './ComplianceRail';
 import { compliancePath, useUrlQueryParam } from './data/actions';
-import useComplianceCore from './data/useComplianceCore';
-import useComplianceCounts from './data/useComplianceCounts';
 import {
     useComplianceAttention, useComplianceDeadlines, useFrameworks, useCalendar,
 } from './data/aggregates';
+import { API, downloadUrl } from './data/api';
+import { pageFor } from './data/pages';
 import {
     useDsr, useRopa, useDpia, useIncidents, useSoa, usePolicies, useConnectors, useRisks, useAudit, useTraining, useAccessAudit, useOrgUsers,
 } from './data/registers';
-import { pageFor } from './data/pages';
-import ComplianceRail from './ComplianceRail';
-import ComplianceHeader from './ComplianceHeader';
+import useComplianceCore from './data/useComplianceCore';
+import useComplianceCounts from './data/useComplianceCounts';
 import AiActLadderModal from './ladder/AiActLadderModal';
 import { ladderTarget } from './ladder/ladderTarget';
+import { movedTab, resolveSection, sectionById, SECTIONS_WITH_PICKERS } from './sections';
+import { useTranslation } from '../../../hooks/useTranslation';
+import { useViewport } from '../../../hooks/useViewport';
+import StudioShell from '../../shared/StudioShell';
 import './compliance.css';
 
 export default function ComplianceHub({ activeSection = 'overview', focusCheckId = null, onNavigate, exportsEnabled = true, onBack = null }) {

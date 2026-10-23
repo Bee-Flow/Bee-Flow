@@ -129,7 +129,7 @@ export default function DatatableCard({ t, table, onOpen }: {
                         <AudienceIcon className="w-3 h-3" aria-hidden="true" />
                         {audienceLabel}
                     </span>
-                    <ChevronRight className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                    <ChevronRight className="w-3.5 h-3.5 text-[var(--text-tertiary)]" aria-hidden="true" />
                 </span>
             </button>
         </li>

@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BookOpen, CheckCircle2, Circle, Loader2, RefreshCw, ExternalLink, ShieldCheck, Download, Bot, Plus } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../utils/helpers';
 
 const SystemKnowledgeBasesPanel = () => {
     const { t } = useTranslation();

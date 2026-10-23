@@ -20,8 +20,8 @@ import TemplateField from '../../mapping/TemplateField';
 import AccordionSection from '../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
 import { FormRow, inputClass } from './formPrimitives';
-import useForEachRequest from '../../mapping/useForEachRequest';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import useForEachRequest from '../../mapping/useForEachRequest';
 
 /** Fallback list, so the panel still works if the catalog call failed. */
 const FALLBACK_STRATEGIES = [

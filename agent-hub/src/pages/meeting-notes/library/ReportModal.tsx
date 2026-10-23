@@ -143,7 +143,7 @@ export default function ReportModal({ open, onClose, meetings = [] }: ReportModa
                     >
                         <MarkdownRenderer content={result.report} />
                         {!result.usedTranscripts && (
-                            <p className="text-[11px] mt-3" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-[11px] mt-3 text-[var(--text-muted)]">
                                 {t('meeting_notes.report_summaries_note', 'Based on meeting summaries — the combined transcripts were too long to include in full.')}
                             </p>
                         )}

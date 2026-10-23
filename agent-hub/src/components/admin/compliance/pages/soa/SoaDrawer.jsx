@@ -1,16 +1,16 @@
-import React, { useMemo, useState } from 'react';
 import { ArrowUpRight, CircleCheck, CircleDashed, CircleX, Info, TriangleAlert, X } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import SideDrawer, { DrawerSection, DrawerFooter } from '../../../../shared/SideDrawer';
-import Tooltip from '../../../../shared/Tooltip';
-import { TONES, toneOfCheckStatus } from '../../../../shared/statusTone';
-import ArticleRef, { formatArticleRef } from '../../shared/ArticleRef';
-import { useDateFormat } from '../../shared/formatDates';
-import UserPicker from '../../shared/UserPicker';
-import { sectionForRegulation } from '../../sections';
+import React, { useMemo, useState } from 'react';
 import RadioCards from './RadioCards';
 import { ownerName } from './SoaTable';
 import { approvedBlocked, draftOf, justificationMissing, liveCheckOf, patchOf, DECISIONS } from './soaThemes';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import SideDrawer, { DrawerSection, DrawerFooter } from '../../../../shared/SideDrawer';
+import { TONES, toneOfCheckStatus } from '../../../../shared/statusTone';
+import Tooltip from '../../../../shared/Tooltip';
+import { sectionForRegulation } from '../../sections';
+import ArticleRef, { formatArticleRef } from '../../shared/ArticleRef';
+import { useDateFormat } from '../../shared/formatDates';
+import UserPicker from '../../shared/UserPicker';
 
 /**
  * SoaDrawer — one Annex A row, editable (artboard 1d right pane).

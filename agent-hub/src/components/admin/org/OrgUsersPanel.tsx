@@ -104,7 +104,7 @@ function RoleChangeErrorBanner({ message, onDismiss }: { message: string; onDism
             <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--error)' }} />
             <span>{message}</span>
             <button type="button" onClick={onDismiss} className="ml-auto shrink-0">
-                <X className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                <X className="w-4 h-4 text-[var(--text-muted)]" />
             </button>
         </div>
     );

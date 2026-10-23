@@ -57,8 +57,7 @@ export default function PresetCard({
                 </span>
                 {selected && (
                     <Check
-                        className="w-3.5 h-3.5 ml-auto"
-                        style={{ color: 'var(--accent-primary)' }}
+                        className="w-3.5 h-3.5 ml-auto text-[var(--accent-primary)]"
                     />
                 )}
             </div>

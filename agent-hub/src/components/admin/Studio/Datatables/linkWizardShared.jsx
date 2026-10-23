@@ -117,7 +117,7 @@ export function RelationsStep({ t, tables, locked = [], lockedLabel = '', sugges
             )}
             {locked.map((r) => (
                 <div key={r.key} className="flex items-center gap-2 p-2.5 text-sm" style={CARD}>
-                    <Lock className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                    <Lock className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                     <span className="min-w-0 truncate text-[var(--text-primary)]">
                         {r.from.name} · {r.columnTitle} → {r.targetName || t('datatables.nc_rel_unlinked', 'a table not selected')}
                     </span>
@@ -135,7 +135,7 @@ export function RelationsStep({ t, tables, locked = [], lockedLabel = '', sugges
             ))}
             {manual.map((r) => (
                 <div key={relKeyOf(r)} className="flex items-center gap-2 p-2.5 text-sm" style={CARD}>
-                    <Link2 className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                    <Link2 className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                     <span className="min-w-0 truncate text-[var(--text-primary)]">
                         {r.from.name} · {r.localColumn.title} {t('datatables.nc_relation_matches', 'matches')} {r.to.name} · {r.targetColumn.title}
                     </span>

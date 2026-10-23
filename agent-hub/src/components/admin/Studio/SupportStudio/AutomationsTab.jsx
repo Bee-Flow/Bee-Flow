@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
 import { Plus, Save } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE, GHOST_BTN } from './supportStyles';
 import useTranslation from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
-import Section from '../../../shared/Section';
-import FormField from '../../../shared/FormField';
 import ConfigToggle from '../../../shared/ConfigToggle';
-import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE, GHOST_BTN } from './supportStyles';
+import FormField from '../../../shared/FormField';
+import Section from '../../../shared/Section';
 
 const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
 const SLA_DEFAULTS = { low: [480, 2880], normal: [240, 1440], high: [60, 480], urgent: [30, 240] };

@@ -343,10 +343,10 @@ export default function AppMessageThread({ node }) {
                                 data-app-thread-meta={side}
                             >
                                 {author ? (
-                                    <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{author}</span>
+                                    <span className="text-xs font-medium text-[var(--text-secondary)]">{author}</span>
                                 ) : null}
                                 {stamp ? (
-                                    <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{stamp}</span>
+                                    <span className="text-[11px] text-[var(--text-muted)]">{stamp}</span>
                                 ) : null}
                             </div>
                         );

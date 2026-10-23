@@ -75,8 +75,8 @@ export default function ChartConfigModal({ columns, rows, t, onCreate, onClose }
     <Modal open onClose={onClose} variant="bare" size="auto" zIndex={10060} labelledBy={titleId} className="max-w-[420px]">
       <div className="w-full rounded-2xl border shadow-2xl" style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)' }} onMouseDown={(e: React.MouseEvent) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-          <h3 id={titleId} className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{tt('notebooks.create_chart', 'Create chart')}</h3>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-[var(--bg-tertiary)]" style={{ color: 'var(--text-secondary)' }}><X className="w-4 h-4" /></button>
+          <h3 id={titleId} className="text-sm font-semibold text-[var(--text-primary)]">{tt('notebooks.create_chart', 'Create chart')}</h3>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"><X className="w-4 h-4" /></button>
         </div>
 
         <div className="p-4 space-y-3">
@@ -92,13 +92,13 @@ export default function ChartConfigModal({ columns, rows, t, onCreate, onClose }
           </div>
 
           <label className="block">
-            <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>{tt('notebooks.chart_title', 'Title (optional)')}</span>
+            <span className="text-[11px] font-medium text-[var(--text-secondary)]">{tt('notebooks.chart_title', 'Title (optional)')}</span>
             <input value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} className="mt-1 w-full px-2.5 py-1.5 rounded-lg border text-[12px] outline-none"
               style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }} />
           </label>
 
           <label className="block">
-            <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>{tt('notebooks.chart_labels', 'Labels (X axis)')}</span>
+            <span className="text-[11px] font-medium text-[var(--text-secondary)]">{tt('notebooks.chart_labels', 'Labels (X axis)')}</span>
             <select value={labelCol} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLabelCol(+e.target.value)} className="mt-1 w-full px-2.5 py-1.5 rounded-lg border text-[12px] outline-none"
               style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}>
               {columns.map((c: string, i: number) => <option key={i} value={i}>{c || `Column ${i + 1}`}</option>)}
@@ -106,7 +106,7 @@ export default function ChartConfigModal({ columns, rows, t, onCreate, onClose }
           </label>
 
           <div>
-            <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+            <span className="text-[11px] font-medium text-[var(--text-secondary)]">
               {type === 'pie' ? tt('notebooks.chart_value', 'Values') : tt('notebooks.chart_series', 'Series (Y axis)')}
             </span>
             <div className="mt-1 flex flex-wrap gap-1.5">
@@ -122,7 +122,7 @@ export default function ChartConfigModal({ columns, rows, t, onCreate, onClose }
         </div>
 
         <div className="flex justify-end gap-2 px-4 py-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
-          <button onClick={onClose} className="px-3 py-1.5 rounded-lg text-[12px] font-medium hover:bg-[var(--bg-tertiary)]" style={{ color: 'var(--text-secondary)' }}>{tt('notebooks.cancel', 'Cancel')}</button>
+          <button onClick={onClose} className="px-3 py-1.5 rounded-lg text-[12px] font-medium hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">{tt('notebooks.cancel', 'Cancel')}</button>
           <button onClick={create} disabled={!valid} className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white disabled:opacity-40" style={{ background: 'var(--accent-primary)' }}>{tt('notebooks.create', 'Create')}</button>
         </div>
       </div>

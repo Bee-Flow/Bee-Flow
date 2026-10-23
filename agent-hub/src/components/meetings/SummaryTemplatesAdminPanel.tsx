@@ -47,7 +47,7 @@ export default function SummaryTemplatesAdminPanel() {
     return (
         <div>
             <div className="flex items-center gap-2 mb-2">
-                <FileText className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} />
+                <FileText className="w-4 h-4 text-[var(--accent-primary)]" />
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
                     {t('meeting_notes.template_org_title', 'Organization summary templates')}
                 </p>

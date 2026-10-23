@@ -1,8 +1,8 @@
 import { AlertTriangle, Braces, FunctionSquare, SlidersHorizontal } from 'lucide-react';
 import React from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
 import ConditionField from './ConditionField';
 import useExpressionEditing, { conditionCanHold, useConditionToggle } from './useExpressionEditing';
+import useTranslation from '../../../../../../hooks/useTranslation';
 import VariablePicker from '../../../../../automation/Builder/mapping/VariablePicker';
 import { FORMULA_SCOPE_ROOTS } from '../styleKnobMeta';
 

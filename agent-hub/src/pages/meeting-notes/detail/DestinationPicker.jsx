@@ -1,16 +1,5 @@
-import React, { useCallback, useRef, useState } from 'react';
 import { BookOpen, Loader2, Table, Trash2, Workflow } from 'lucide-react';
-import AnchoredMenu from '../../../components/shared/AnchoredMenu';
-import { kindColorVar, kindTint } from '../../../components/shared/kindColors';
-import useTranslation from '../../../hooks/useTranslation';
-import { datatablesApi } from '../../../components/admin/Studio/Datatables/datatablesApi';
-import knowledgeApi from '../../../components/admin/Studio/KnowledgeStudio/knowledgeApi';
-import {
-    buildAutomationPayload,
-    buildKbSource,
-    buildRowValues,
-    destinationRecord,
-} from '../lib/actionDestinations';
+import React, { useCallback, useRef, useState } from 'react';
 import {
     BranchList,
     ColumnMapping,
@@ -19,6 +8,17 @@ import {
     fieldLabels,
     useDestinationBranches,
 } from './destinationMenu';
+import { datatablesApi } from '../../../components/admin/Studio/Datatables/datatablesApi';
+import knowledgeApi from '../../../components/admin/Studio/KnowledgeStudio/knowledgeApi';
+import AnchoredMenu from '../../../components/shared/AnchoredMenu';
+import { kindColorVar, kindTint } from '../../../components/shared/kindColors';
+import useTranslation from '../../../hooks/useTranslation';
+import {
+    buildAutomationPayload,
+    buildKbSource,
+    buildRowValues,
+    destinationRecord,
+} from '../lib/actionDestinations';
 
 /**
  * "Bestemming kiezen ▾" — the destination menu on an action card (Meeting

@@ -31,7 +31,7 @@ function MoreMenuItem({ icon, label, hint = null, disabled = false, onClick }: M
             onClick={onClick}
             className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed disabled:opacity-50 text-[var(--text-primary)]"
         >
-            <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
+            <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
             <span className="flex-1">{label}</span>
             {hint ? (
                 <span className="text-[11px] text-[var(--text-tertiary)]">{hint}</span>
@@ -94,7 +94,7 @@ export function ViewAsMenu({ roles, previewRole, previewRoleName, setPreviewRole
                 <Eye className="h-3.5 w-3.5 shrink-0" style={{ color: previewRole ? 'var(--accent-primary)' : 'var(--text-tertiary)' }} aria-hidden="true" />
                 <span className="@max-6xl/edhead:hidden text-[var(--text-secondary)]">{t('app_studio.header.view_as', 'View as')}</span>
                 <span className="font-semibold">{previewRoleName || ownerLabel}</span>
-                <ChevronDown className="h-3 w-3" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                <ChevronDown className="h-3 w-3 text-[var(--text-tertiary)]" aria-hidden="true" />
             </button>
             <AnchoredMenu
                 open={open}

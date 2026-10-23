@@ -27,7 +27,7 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
     if (loading) {
         return (
             <div className="flex items-center justify-center py-10" role="status" aria-label={t('studio_apps_bi.list.loading_templates', 'Loading templates')}>
-                <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--accent-primary)' }} />
+                <Loader2 className="w-5 h-5 animate-spin text-[var(--accent-primary)]" />
             </div>
         );
     }

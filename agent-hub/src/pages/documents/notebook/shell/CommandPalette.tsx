@@ -79,7 +79,7 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
                 style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', maxHeight: '70vh' }}
             >
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-subtle)]">
-                    <Search className="w-4 h-4 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                    <Search className="w-4 h-4 shrink-0 text-[var(--text-tertiary)]" />
                     <input
                         ref={inputRef}
                         value={query}
@@ -119,10 +119,10 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
                                     className="w-full flex items-center gap-3 px-4 py-2 text-left text-sm transition-colors"
                                     style={{ background: active ? 'var(--bg-tertiary)' : 'transparent', color: 'var(--text-primary)' }}
                                 >
-                                    {Icon && <Icon className="w-4 h-4 shrink-0" strokeWidth={2} style={{ color: 'var(--text-secondary)' }} />}
+                                    {Icon && <Icon className="w-4 h-4 shrink-0 text-[var(--text-secondary)]" strokeWidth={2} />}
                                     <span className="flex-1 truncate">{cmd.label}</span>
                                     {cmd.hint && <span className="text-[10px] text-[var(--text-tertiary)]">{cmd.hint}</span>}
-                                    {active && <CornerDownLeft className="w-3 h-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} />}
+                                    {active && <CornerDownLeft className="w-3 h-3 shrink-0 text-[var(--text-tertiary)]" />}
                                 </button>
                             </React.Fragment>
                         );

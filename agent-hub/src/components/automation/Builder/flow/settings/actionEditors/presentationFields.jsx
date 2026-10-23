@@ -1,10 +1,10 @@
 // The presentation editor: slides in, a PowerPoint or PDF deck out — the
 // slide source, the file, and the deck's look.
 import { Plus, Trash2 } from 'lucide-react';
+import { useTranslation } from '../../../../../../hooks/useTranslation';
 import TemplateField from '../../../mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
 import { FormRow, inputClass } from '../formPrimitives';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
 
 const DECK_FONT_OPTIONS = ['Calibri', 'Arial', 'Helvetica', 'Verdana', 'Segoe UI', 'Trebuchet MS', 'Century Gothic', 'Georgia', 'Cambria', 'Times New Roman', 'Garamond', 'Consolas'];
 

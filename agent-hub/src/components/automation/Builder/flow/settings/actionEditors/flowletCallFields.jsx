@@ -1,11 +1,11 @@
 // Calling a reusable group of steps and returning from one: the call_layer and
 // call_block editors (one BindingField per declared param) and the layer_output
 // editor that names what a flowlet hands back.
+import { useTranslation } from '../../../../../../hooks/useTranslation';
 import CallContractFields from '../../CallContractFields';
 import { getLayerContract } from '../../flowletScope';
 import useInputMapping from '../../useInputMapping';
 import { FieldsSection } from '../collectionEditors';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
 
 /**
  * Editor for a call_layer step. The flowlet's contract derives LIVE from

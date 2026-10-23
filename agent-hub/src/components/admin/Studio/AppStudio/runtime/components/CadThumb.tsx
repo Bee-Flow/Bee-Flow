@@ -145,12 +145,12 @@ export default function CadThumb({ value, size = 44 }: { value: unknown; size?: 
         return () => document.removeEventListener('keydown', onKey);
     }, [open]);
 
-    if (!drawable) return <span style={{ color: 'var(--text-muted)' }}>—</span>;
+    if (!drawable) return <span className="text-[var(--text-muted)]">—</span>;
     if (state === 'loading' || state === 'idle') {
-        return <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />;
+        return <Loader2 className="h-4 w-4 animate-spin text-[var(--text-muted)]" aria-hidden="true" />;
     }
     if (state === 'failed' || !url) {
-        return <Box className="h-4 w-4" style={{ color: 'var(--text-muted)' }} aria-label={t('studio_apps_runtime.cad.no_preview', 'No 3D preview')} />;
+        return <Box className="h-4 w-4 text-[var(--text-muted)]" aria-label={t('studio_apps_runtime.cad.no_preview', 'No 3D preview')} />;
     }
 
     return (
@@ -164,7 +164,7 @@ export default function CadThumb({ value, size = 44 }: { value: unknown; size?: 
                 style={{ width: size, height: size, borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', background: 'var(--bg-primary)' }}
             >
                 {kind === 'pdf'
-                    ? <FileText className="mx-auto h-5 w-5" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
+                    ? <FileText className="mx-auto h-5 w-5 text-[var(--text-secondary)]" aria-hidden="true" />
                     : <img src={url} alt="" className="h-full w-full" style={{ objectFit: 'cover' }} />}
             </button>
 
@@ -181,7 +181,7 @@ export default function CadThumb({ value, size = 44 }: { value: unknown; size?: 
                     style={{ background: 'var(--bg-card)', borderRadius: 'var(--app-radius)', width: 'min(96vw, 1600px)', height: 'min(92vh, 1400px)' }}
                 >
                         <div className="flex shrink-0 items-center justify-between gap-3 px-3 py-2">
-                            <span className="truncate text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{name}</span>
+                            <span className="truncate text-sm font-medium text-[var(--text-primary)]">{name}</span>
                             <div className="flex shrink-0 items-center gap-1">
                                 {kind === 'pdf' ? null : <button
                                     type="button"

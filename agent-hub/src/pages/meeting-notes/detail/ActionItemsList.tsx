@@ -172,8 +172,7 @@ function ActionItemRow({ item, editing, draft, onDraftChange, onToggle, onStartE
                         type="button"
                         onClick={canEdit ? onStartEdit : undefined}
                         disabled={!canEdit}
-                        className={`text-left text-sm w-full ${item.done ? 'line-through opacity-60' : ''} ${canEdit ? 'cursor-text hover:bg-[var(--bg-tertiary)] rounded px-1 -mx-1 transition-colors' : ''}`}
-                        style={{ color: 'var(--text-primary)' }}
+                        className={`text-left text-sm w-full ${item.done ? 'line-through opacity-60' : ''} ${canEdit ? 'cursor-text hover:bg-[var(--bg-tertiary)] rounded px-1 -mx-1 transition-colors' : ''} text-[var(--text-primary)]`}
                         title={canEdit ? t('meetings.click_to_edit', 'Click to edit') : undefined}
                     >
                         {item.text}

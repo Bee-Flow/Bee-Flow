@@ -279,8 +279,7 @@ function CardField({ field, row }) {
     }
     return (
         <span
-            className="inline-flex items-center text-[11px] truncate max-w-[10rem]"
-            style={{ color: 'var(--text-secondary)' }}
+            className="inline-flex items-center text-[11px] truncate max-w-[10rem] text-[var(--text-secondary)]"
             title={title}
             data-app-kanban-field={field.key}
         >
@@ -303,7 +302,7 @@ function CardBody({ row, titleKey, subtitleKey, badgeKey, badgeToneMap, cardFiel
     return (
         <>
             <div className="flex items-start gap-1.5">
-                <div className="text-sm font-medium break-words min-w-0 flex-1" style={{ color: 'var(--text-primary)' }}>
+                <div className="text-sm font-medium break-words min-w-0 flex-1 text-[var(--text-primary)]">
                     {displayValue(walkPath(row, titleKey))}
                 </div>
                 {dot ? (
@@ -318,7 +317,7 @@ function CardBody({ row, titleKey, subtitleKey, badgeKey, badgeToneMap, cardFiel
                 ) : null}
             </div>
             {subtitle != null && subtitle !== '' ? (
-                <div className="text-xs mt-0.5 break-words" style={{ color: 'var(--text-secondary)' }}>
+                <div className="text-xs mt-0.5 break-words text-[var(--text-secondary)]">
                     {displayValue(subtitle)}
                 </div>
             ) : null}
@@ -670,7 +669,7 @@ export default function AppKanban({ node }) {
                 data-app-kanban-header={column.value}
             >
                 {dot ? <span className="h-2 w-2 rounded-full shrink-0" style={{ background: dot }} aria-hidden="true" /> : null}
-                <span className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{column.label}</span>
+                <span className="text-xs font-semibold truncate text-[var(--text-primary)]">{column.label}</span>
                 <span
                     className="text-[11px] ml-auto tabular-nums"
                     style={{ color: over ? ROLE_COLORS.danger : 'var(--text-muted)' }}
@@ -757,10 +756,10 @@ export default function AppKanban({ node }) {
                                 {lane.color && ROLE_COLORS[lane.color] ? (
                                     <span className="h-2 w-2 rounded-full shrink-0" style={{ background: ROLE_COLORS[lane.color] }} aria-hidden="true" />
                                 ) : null}
-                                <span className="text-[11px] font-semibold uppercase tracking-wide truncate" style={{ color: 'var(--text-secondary)' }}>
+                                <span className="text-[11px] font-semibold uppercase tracking-wide truncate text-[var(--text-secondary)]">
                                     {lane.label ?? t('studio_apps_runtime.kanban.no_lane', '(none)')}
                                 </span>
-                                <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                                <span className="text-[11px] tabular-nums text-[var(--text-muted)]">
                                     {cols.reduce((n, c) => n + cellOf(lane.value, c.value).length, 0)}
                                 </span>
                             </div>

@@ -136,7 +136,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
     return (
         <div className="mt-2 rounded border p-2 border-[var(--border-default)] bg-[var(--bg-secondary)]">
             <div className="flex items-center gap-1.5">
-                <Search className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-muted)' }} />
+                <Search className="w-3.5 h-3.5 shrink-0 text-[var(--text-muted)]" />
                 <input
                     autoFocus
                     value={query}
