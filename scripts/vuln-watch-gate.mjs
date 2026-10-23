@@ -108,7 +108,7 @@ export function acceptedErrors(list, where) {
         const errs = [];
         if (typeof a?.id !== 'string' || !a.id) errs.push(`${at}: needs an \`id\``);
         if (typeof a?.reason !== 'string' || !a.reason.trim()) errs.push(`${at}: needs a \`reason\``);
-        if (typeof a?.expires !== 'string' || !DATE.test(a.expires) || Number.isNaN(Date.parse(a.expires))) errs.push(`${at}: needs an \`expires\` date as YYYY-MM-DD`);
+        if (typeof a?.expires !== 'string' || !DATE.test(a.expires) || Number.isNaN(Date.parse(a.expires))) errs.push(`${at}: needs an \`expires\` date as YYYY-MM-DD`); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored fixed-width digit pattern, linear
         return errs;
     });
 }
