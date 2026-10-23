@@ -132,3 +132,33 @@ test('the screen runs once — the ingest is never asked to screen again', async
     await withModules(mods, (tool) => tool.executeKbIngestTool('knowledge_base_ingest', ARGS, CTX));
     assert.deepStrictEqual(seen, [null], 'the ingest receives no privacy context of its own');
 });
+
+test("the 'merge' strategy sends the SCREENED text to the merge model and the store, never the raw body", async () => {
+    const { calls, mods } = stubs({ shieldOutcome: 'pass' });
+    mods['../core/kb/ingestPrivacy'].applyShield = async () => ({ outcome: 'redacted', text: 'mail [EMAIL_1]', piiStatus: 'found', piiCategories: ['email'] });
+    mods['../core/kb/kbIngestionHelpers'].findDocumentBySourceUri = async () => null;
+    let first = true;
+    mods['../core/kb/kbIngestionHelpers'].ingestDocument = async (t, k, body) => {
+        calls.ingested.push(body);
+        if (first) { first = false; throw Object.assign(new Error('near dup'), { code: 'NEAR_DUPLICATE', documentId: 'doc-old' }); }
+        return { document: { id: 'doc-merged' }, chunks: 2, status: 'processed' };
+    };
+    mods['../stores/knowledgeBases'].getDocument = async () => EXISTING;
+    const prompts = [];
+    mods['../agents/providerAdapters'] = {
+        createChatCompletion: async ({ messages }) => {
+            prompts.push(messages[1].content);
+            return { choices: [{ message: { content: 'a merged article that is long enough' } }] };
+        },
+    };
+    mods['../core/llm/modelResolver'] = { resolveModelForTierName: async () => 'test-model' };
+    const raw = 'mail jan@example.com';
+    const res = await withModules(mods, (tool) => tool.executeKbIngestTool('knowledge_base_ingest',
+        { ...ARGS, content: raw, sourceUri: 'ticket:43', nearDuplicateStrategy: 'merge' }, CTX));
+
+    assert.strictEqual(res.merged, true);
+    assert.strictEqual(prompts.length, 1);
+    assert.ok(!prompts[0].includes('jan@example.com'), 'the merge model never sees the unscreened text');
+    assert.ok(prompts[0].includes('mail [EMAIL_1]'), 'it merges the screened text');
+    for (const body of calls.ingested) assert.ok(!body.includes('jan@example.com'));
+});
