@@ -14,7 +14,7 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
+const { preloadStubs } = require('../../testUtils/stubRequire');
 
 const executed = [];
 const workflows = {
@@ -27,23 +27,9 @@ const MOCKS = {
     '../../stores/workflowStore': { getWorkflowById: async (id) => workflows[id] || null },
 };
 
-const MOCK_IDS = {};
-for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:toolExecution:${request}`;
-    MOCK_IDS[request] = mockId;
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
-}
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /core[\\/]tools[\\/]toolExecution\.js$/.test(parent.filename)
-        && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
-        return MOCK_IDS[request];
-    }
-    return originalResolve.call(this, request, parent, ...rest);
-};
+preloadStubs(require, MOCKS);
 
 const { executeComponentTool } = require('./toolExecution');
-test.after(() => { Module._resolveFilename = originalResolve; });
 
 test('a subworkflow tool runs the stored workflow with the arguments on its trigger', async () => {
     const out = await executeComponentTool('subworkflow_wf1', { q: 'x' });
