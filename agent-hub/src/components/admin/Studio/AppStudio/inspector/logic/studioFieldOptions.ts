@@ -5,7 +5,7 @@ export interface StudioScopeField {
     key: string;
     path: string;
     label?: string;
-    sample?: unknown;
+    sample: unknown;
     children?: StudioScopeField[];
 }
 

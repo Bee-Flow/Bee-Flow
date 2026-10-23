@@ -4,12 +4,12 @@
  * Mirrors the slice of TipTap's API the existing UI uses: isActive(name, attrs?),
  * getAttributes(name). Implemented as pure reads over (doc, selection).
  */
-import { getNode } from './doc.js';
+import { getNode } from './doc';
 import { inlineToTokens, marksAt } from './inline.js';
 import { isText, isNode, isCollapsed, selRange, eqPath } from './selection.js';
 import { hasMark, getMark } from '../model/marks.js';
 import { MARK_SCHEMA, nodeDefaults, isTextblock } from '../model/schema.js';
-import { inTable } from './tables.js';
+import { inTable } from './tables';
 import type { DocAttrs, DocMark, DocNode } from '../model/schema.js';
 import type { EditorState } from './state.js';
 import type { ModelPos } from './textIndex.js';

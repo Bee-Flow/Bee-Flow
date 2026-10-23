@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { FlowDefinition } from './flow/types';
+import type { RowAnswer } from './unwrapRow';
 import type { BuilderSnapshot } from '../../../hooks/builderStream';
 import type { AutomationBuilderState } from '../../../hooks/useAutomationBuilderStream';
 import { API_BASE, authFetch } from '../../../utils/helpers';
@@ -20,8 +21,8 @@ export interface AutomationRow {
 }
 
 export interface BuilderHydration {
-    serverAutomation: AutomationRow | null;
-    setServerAutomation: Dispatch<SetStateAction<AutomationRow | null>>;
+    serverAutomation: AutomationRow | null | undefined;
+    setServerAutomation: Dispatch<SetStateAction<AutomationRow | null | undefined>>;
     /** True once the snapshot fetch has settled — the last-run restore waits for it. */
     hasHydrated: boolean;
 }
@@ -32,7 +33,7 @@ export interface UseBuilderHydrationOptions {
     /** api.getAutomation or api.getStep, picked by the caller from `isStep`. */
     apiGetOne: (id: string) => Promise<unknown>;
     /** Peels the `{ automation }` / `{ step }` envelope off a response. */
-    unwrapRow: (body: unknown) => AutomationRow | null;
+    unwrapRow: (body: RowAnswer | null | undefined) => AutomationRow | null | undefined;
     isStep: boolean;
     hydrate: (snapshot: BuilderSnapshot | null | undefined) => void;
     hydrateLastRun: (automationId?: string | null) => void;
@@ -52,7 +53,7 @@ export interface UseBuilderHydrationOptions {
 export default function useBuilderHydration({
     state, automationId, apiGetOne, unwrapRow, isStep, hydrate, hydrateLastRun, onAutomationIdResolved,
 }: UseBuilderHydrationOptions): BuilderHydration {
-    const [serverAutomation, setServerAutomation] = useState<AutomationRow | null>(null);
+    const [serverAutomation, setServerAutomation] = useState<AutomationRow | null | undefined>(null);
     const [hasHydrated, setHasHydrated] = useState(false);
 
     // Refetched on every dry run and finalize — and on every `metadata`
@@ -63,7 +64,7 @@ export default function useBuilderHydration({
         const aid = state.automationId || automationId;
         if (!aid) return;
         let alive = true;
-        apiGetOne(aid).then(d => { if (alive) setServerAutomation(unwrapRow(d)); }).catch(() => {});
+        apiGetOne(aid).then(d => { if (alive) setServerAutomation(unwrapRow(d as RowAnswer | null | undefined)); }).catch(() => {});
         return () => { alive = false; };
     }, [state.automationId, automationId, state.dryRun, state.finalizedId, state.metadataSeq]); // eslint-disable-line
 

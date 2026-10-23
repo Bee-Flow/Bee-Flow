@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { lazy } from '../utils/lazyWithReload';
 import { logger } from '../utils/logger';
+import type { HubUser } from './useAgentHubData';
 import type { GammaPreview } from '../hooks/useChatEngine/sse/gammaPreview';
 import type { PreviewSelection } from '../pages/webpages/preview/usePreviewToken';
 import type { WebpageRow } from '../pages/webpages/webpageEditorTypes';
@@ -10,7 +11,7 @@ const GammaPreviewPanel = lazy(() => import('../components/chat/GammaPreviewPane
 const SideWebpagePanel = lazy(() => import('../components/webpages/SideWebpagePanel'));
 const SideDocumentPanel = lazy(() => import('../components/documents/SideDocumentPanel'));
 
-interface IdRef { id?: string }
+interface IdRef { id?: string | null }
 
 interface ChatSidePanelsProps {
     mode: 'agent' | 'direct';
@@ -24,12 +25,12 @@ interface ChatSidePanelsProps {
     notebookContent: string;
     setNotebookContent: (content: string) => void;
     setNotebookSelection: (text: string) => void;
-    saveNotebook: () => void;
-    handleOpenInNotebook: () => void;
+    saveNotebook: (content: SetStateAction<string>, notebookId?: string | null) => unknown;
+    handleOpenInNotebook: (markdownContent: string, existingNotebookId?: string | null) => unknown;
     isLoading: boolean;
     selectedAgent: IdRef | null;
     sendMessage: (message: string, attachments: never[]) => void;
-    user: { id?: string } | null;
+    user: HubUser | null;
     currentConversation: IdRef | null;
     currentDirectConversation: IdRef | null;
     notebookLinkedId: string | null;

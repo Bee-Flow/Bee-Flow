@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { ToolDraft } from './ghostCellDraft';
 import type { RevealCue } from '../chat/useBuilderTurn';
 import type { BuilderEngine, BuilderTodo, BuilderTurn } from '../../../../../hooks/builderStream';
 
@@ -29,7 +30,7 @@ export interface BuildCueValue {
     phaseInfo: BuildPhaseInfo | null;
     engine: BuilderEngine | null;
     turn: BuilderTurn | null;
-    toolDraft: Record<string, unknown> | null;
+    toolDraft: ToolDraft | null;
     reveal: RevealCue | null;
     finalized: boolean;
     stopped: boolean;

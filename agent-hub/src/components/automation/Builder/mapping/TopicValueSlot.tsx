@@ -15,7 +15,7 @@ import { denseInputClass } from '../flow/settings/formStyles';
  * default, so a third level would promise a difference nobody measured.
  */
 
-type Binding = { kind?: string; value?: unknown; path?: string } | null | undefined;
+type Binding = { kind?: string; value?: unknown; path?: unknown } | null | undefined;
 
 export interface TopicRowPatch {
     value?: Binding;
@@ -24,7 +24,8 @@ export interface TopicRowPatch {
 
 interface Props {
     value: Binding;
-    threshold?: number | null;
+    /** The row's saved threshold; anything but a number reads as "normal". */
+    threshold?: unknown;
     onChange: (patch: TopicRowPatch) => void;
 }
 
@@ -33,7 +34,7 @@ export const TOPIC_LOOSE_THRESHOLD = 0.15;
 
 type Level = 'loose' | 'normal' | 'custom';
 
-function levelOf(threshold: number | null | undefined): Level {
+function levelOf(threshold: unknown): Level {
     if (typeof threshold !== 'number') return 'normal';
     return threshold === TOPIC_LOOSE_THRESHOLD ? 'loose' : 'custom';
 }

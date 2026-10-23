@@ -9,10 +9,13 @@ import useWebpageSave from './hooks/useWebpageSave';
 import SaveStatus from './SaveStatus';
 import WebpageEditorBody from './WebpageEditorBody';
 import WebpageEditorHeader from './WebpageEditorHeader';
+import type { WebpageSource } from './WebpageSources';
 import type { ExtraContents, ExtraFileMeta, PrimarySetters, WebpagePatch, WebpageRow } from './webpageEditorTypes';
 import { api } from './webpagesApi';
 import ExternalShareSection from '../../components/agents/AgentWizard/pickers/ExternalShareSection';
 import ShareLinksMenu from '../../components/agents/AgentWizard/pickers/ShareLinksMenu';
+import type { RetryModelTiers } from '../../components/chat/MessageItem/MessageActionsRow';
+import type { OrgGroup } from '../../api/queries/orgGroups';
 import { managedOf } from '../../utils/managedPart';
 import type { ChatMessage } from '../../hooks/useChatEngine/types';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -25,12 +28,10 @@ import downloadWebpageZip from '../../utils/downloadWebpageZip';
  */
 const OWNER_ONLY_TABS = ['code', 'history'];
 
-interface OrgGroup { id: string; organizationId?: string; [key: string]: unknown }
-
 export interface WebpageEditorPageProps {
     loaded: {
         webpage: WebpageRow;
-        sources: unknown[];
+        sources: WebpageSource[];
         files: { html: string; css: string; js: string };
         chatMessages: ChatMessage[];
         extraFiles: ExtraFileMeta[];
@@ -38,7 +39,7 @@ export interface WebpageEditorPageProps {
     };
     user?: { id?: string; organizationId?: string } | null;
     orgGroups?: OrgGroup[];
-    modelTiers?: unknown;
+    modelTiers?: RetryModelTiers;
     selectedTier?: string;
     onTierChange?: (tier: string) => void;
     initialEditMode?: boolean;
@@ -79,7 +80,7 @@ function useEditorTabs(initialEditMode: boolean, isOwner: boolean, managed: unkn
     }, [isOwner]);
     // "Change in code": open the Code section on the file the turn touched.
     const [focusFile, setFocusFile] = useState<{ key: string; at: number } | null>(null);
-    const handleShowInCode = useCallback((file: string) => {
+    const handleShowInCode = useCallback((file?: string) => {
         setActiveTab('code');
         if (file) setFocusFile({ key: file, at: Date.now() });
     }, []);
@@ -95,7 +96,7 @@ function useWebpageEditor({ loaded, user, orgGroups = [], selectedTier = 'fast',
     // code editor, no history (the header does not offer those tabs either).
     const managed = managedOf(page);
     const tabs = useEditorTabs(initialEditMode, isOwner, managed, managedOf(loaded.webpage));
-    const [sources, setSources] = useState<unknown[]>(loaded.sources);
+    const [sources, setSources] = useState<WebpageSource[]>(loaded.sources);
     const [html, setHtml] = useState(loaded.files.html);
     const [css, setCss] = useState(loaded.files.css);
     const [js, setJs] = useState(loaded.files.js);
@@ -108,7 +109,7 @@ function useWebpageEditor({ loaded, user, orgGroups = [], selectedTier = 'fast',
     const { flushNow, markPrimaryDirty, markExtraDirty, acceptServerSnapshot } = save;
     useFlushRegistration(flushRef, flushNow);
 
-    const onSourceAdded = useCallback((source: unknown) => setSources(prev => [...prev, source]), []);
+    const onSourceAdded = useCallback((source: unknown) => setSources(prev => [...prev, source as WebpageSource]), []);
     const chat = useWebpageChat({
         pageId, selectedTier, content: { html, css, js }, contentRef: save.contentRef, setters, markPrimaryDirty,
         initialMessages: loaded.chatMessages, extras, onSourceAdded,

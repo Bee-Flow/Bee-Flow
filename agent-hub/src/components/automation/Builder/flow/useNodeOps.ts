@@ -4,23 +4,24 @@ import { prefixAddedStep, parseInlineId } from './inlineFlowlets';
 import { seedPositions } from './layout';
 import { applyDeleteNodes, applyDuplicateNode, applyDetachNode, applyPatchStep } from './nodeOps';
 import type { FlowDefinition } from './types';
+import type { RealOutputMap } from '../../../../hooks/useUpstreamVariables';
 import type { DefinitionEmitter, DiagramDefinition, DiagramStep, RunByStep, StepId } from './diagramPaneTypes';
 
 /** The inputs the node operations read at call time (also read by useNodeDragWiring). */
 export interface NodeOpsInputs {
-    definition: DiagramDefinition | null | undefined;
+    definition: DiagramDefinition;
     editable: boolean;
     structuralEditsBlocked: boolean;
     onDefinitionChange: DefinitionEmitter;
     catalog: unknown;
-    realOutputById: unknown;
+    realOutputById: RealOutputMap | null | undefined;
     autoMapEnabled: boolean;
-    onAutoMapped: unknown;
+    onAutoMapped: ((stepId: string, mappedCount: number, forEachEnabled: boolean) => void) | null | undefined;
     inlineTriggerIds: Set<StepId>;
 }
 
 export interface NodeOps {
-    nodeOpsRef: MutableRefObject<NodeOpsInputs | null>;
+    nodeOpsRef: MutableRefObject<NodeOpsInputs>;
     onDeleteNode: (stepId: StepId) => void;
     onDetachNode: (stepId: StepId) => void;
     onDuplicateNode: (stepId: StepId) => void;
@@ -41,7 +42,7 @@ export interface NodeOps {
  * re-render all 23 node components each time.
  */
 export function useNodeOps(inputs: NodeOpsInputs, runByStep: RunByStep): NodeOps {
-    const nodeOpsRef = useRef<NodeOpsInputs | null>(null);
+    const nodeOpsRef = useRef<NodeOpsInputs | null>(null) as MutableRefObject<NodeOpsInputs>;
     nodeOpsRef.current = inputs;
 
     const onDeleteNode = useCallback((stepId: StepId) => {

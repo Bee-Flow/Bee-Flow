@@ -13,7 +13,7 @@
  */
 import { attr } from '../model/nodes.js';
 import { markDefaults } from '../model/schema.js';
-import { escapeHtml, escapeAttr, encodeForAttr, safeUrl, safeCssColor, safeCssFont, safeAlign, safeInt, safeTarget, safeRel } from './util.js';
+import { escapeHtml, escapeAttr, encodeForAttr, safeUrl, safeCssColor, safeCssFont, safeAlign, safeInt, safeTarget, safeRel } from './util';
 import { evaluateTable, displayResult, isFormulaCell, findFormulaAtom } from '../engine/formula.js';
 import type { FormulaResult } from '../engine/formula.js';
 import type { DocMark, DocNode } from '../model/schema.js';

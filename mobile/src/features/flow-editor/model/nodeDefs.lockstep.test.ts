@@ -16,7 +16,7 @@ import { EDGE_COLOR_KEYS, isStepType, KNOWN_EDGE_LABELS, SECONDARY_TRIGGER_KINDS
 
 const REPO = path.resolve(__dirname, '../../../../..');
 /* eslint-disable @typescript-eslint/no-require-imports */
-const web = require(path.join(REPO, 'agent-hub/src/components/automation/Builder/flow/nodeDefs.js'));
+const web = require(path.join(REPO, 'agent-hub/src/components/automation/Builder/flow/nodeDefs.ts'));
 const webTriggerLabels = require(path.join(REPO, 'agent-hub/src/components/automation/Builder/flow/triggerLabels.ts'));
 const server = require(path.join(REPO, 'server/automation/validate/constants.js'));
 /* eslint-enable @typescript-eslint/no-require-imports */

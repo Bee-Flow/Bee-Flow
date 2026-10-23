@@ -8,7 +8,7 @@ const { apiMock } = vi.hoisted(() => ({ apiMock: {} }));
 
 vi.mock('../../../../hooks/useAutomationApi', () => ({ default: () => apiMock }));
 
-import useExecutions, { statusFilterToServer, sanitizeStoredFilters } from './useExecutions.js';
+import useExecutions, { statusFilterToServer, sanitizeStoredFilters } from './useExecutions';
 import scopedStorage, { setCurrentUser } from '../../../../utils/scopedStorage';
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────

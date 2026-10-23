@@ -1,0 +1,344 @@
+// AI-step editor (prompt, tier, tool picker, structured output), extracted
+// verbatim from SettingsForm.jsx. Rendered by the SettingsForm dispatch.
+import { Plus, Sparkles, X } from 'lucide-react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { AgentStepFields } from './agentStepFields';
+import { AiStepAdvancedRows, ConcurrencyField } from './aiStepReliability/AiStepReliabilitySections';
+import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
+import { FormRow, inputClass, textareaClass } from './formPrimitives';
+import { ProblemRing, runStepProblem } from './runProblem';
+import { StructuredOutputFields } from './structuredOutputFields';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { lazyWithI18n } from '../../../../../utils/lazyWithReload';
+import { tierLabel, configuredTierKeys } from '../../../../licensing/tierMeta';
+import TemplateField from '../../mapping/TemplateField';
+import ToolInputForm from '../../mapping/ToolInputForm';
+import AccordionSection from '../AccordionSection';
+import { humanizeToolName } from '../displayHelpers';
+import FieldHint from '../FieldHint';
+import ToolPicker from '../ToolPicker';
+import type { FormRecord } from './formState/types';
+import type { SetField } from './agentStep/useAgentStepState';
+import type { ModelTierConfig } from '../../../../../hooks/useModelTierSelection';
+import type { Group } from '../../mapping/upstream/upstream.types';
+import type { OnFocusField } from '../../mapping/focusField.types';
+import type { TimelineStep } from '../../../../admin/Studio/Executions/RunStepTimeline';
+import type { StepIssues } from './../nodes/nodeProps';
+import type { ActionCatalog } from './actionEditors/integrationActionFields';
+import type { ToolApp } from '../../../../agents/AgentWizard/canUse/toolCatalogTypes';
+import type { AiStepFieldsProps, AiStepToolSelectProps, KnowledgeBaseRow, AiStepKbSelectProps } from './aiStepEditors.types';
+
+// The answer-checks section is the heaviest part of the AI step editor; load it when the editor opens.
+const AnswerChecksSection = lazyWithI18n(() => import('./aiStepReliability/AnswerChecksSection').then((m) => ({ default: m.AnswerChecksSection })));
+
+function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onFocusField, previewSample, errorSections = new Set(), runStep = null, stepIssues = null }: AiStepFieldsProps) {
+    const hasInputs = Object.keys(draft.inputs || {}).length > 0;
+    const hasOutput = (draft.outputFields || []).length > 0;
+    // Only the agent block is translated here; the rest of this editor is
+    // pre-retrofit English literals.
+    const { t } = useTranslation();
+    // The last run failed on the prompt or the model (errorInfo.settingKey):
+    // that setting rings red, and a ringed model opens Advanced.
+    const problem = runStepProblem(runStep, t);
+    const promptProblem = problem?.settingKey === 'prompt' ? problem.text : null;
+    const tierProblem = problem?.settingKey === 'modelTier' ? problem.text : null;
+    return (
+        <>
+            {/* Who does the thinking (handoff 5, round 3). Flat, not in an
+                accordion: picking an agent is the choice of what the step IS,
+                and the task field sits inside it because with an agent or a
+                skill the prompt is the brief for THIS step only. */}
+            <AgentStepFields
+                draft={draft}
+                set={set}
+                catalog={catalog}
+                renderTask={({ withAgentOrSkill }) => (
+                    <ProblemRing problem={promptProblem}>
+                    <FormRow
+                        label={withAgentOrSkill ? t('automations.agent_step.task_label', 'Task for this step') : 'Prompt'}
+                        required
+                        hint={withAgentOrSkill
+                            ? t('automations.agent_step.task_hint', 'Short: the skill already knows how. Drop in fields from earlier steps with the {} button.')
+                            : 'What the AI should do. Drag data from the Input panel (or use the {} button) to drop in a value from a previous step — it\'s filled in with the real value when the step runs.'}
+                    >
+                        <TemplateField
+                            value={draft.prompt || ''}
+                            onChange={(next) => set('prompt', next)}
+                            rows={4}
+                            onFocusField={onFocusField}
+                            previewSample={previewSample}
+                            placeholder={t('automations.ai_step_editors.summarise_this_email_and_decide_if', 'Summarise this email and decide if it needs an urgent reply.')}
+                            listAs="json"
+                        />
+                    </FormRow>
+                    </ProblemRing>
+                )}
+            />
+            {/* AccordionSection, not a bare CollapsibleSection: only the former
+                honours the quick/full density, and this block (system prompt,
+                model tier, tool allowlist) is the definition of "advanced".
+                Cost of the switch is one reset collapse preference. */}
+            {/* hasContent must test the keys the draft actually carries: the tier is
+    `modelTier` (`model` kept for legacy steps), `allowTools` is a boolean,
+    and the allowlist array is `tools` — testing draft.model/allowTools.length
+    hid a configured section in Simple mode with no way to reach it. Same
+    reasoning for `knowledgeBaseIds` (BFSF-410): a configured grounding list
+    must show as configured in Simple mode too, not just Advanced. */}
+            <AccordionSection stepType="ai_step" sectionKey="advanced" title={t('automations.ai_step_editors.advanced', 'Advanced')} forceOpen={errorSections.has('advanced') || !!tierProblem} hasContent={!!draft.systemPrompt || (!!draft.modelTier && draft.modelTier !== 'auto') || !!draft.model || !!draft.forEach || retryIsSet(draft) || !!draft.allowTools || (draft.tools?.length > 0) || (draft.knowledgeBaseIds?.length > 0) || !!draft.useMemory || draft.temperature != null || !!draft.askOnce}>
+                <FormRow label={t('automations.ai_step_editors.system_prompt', 'System prompt')} hint={t('automations.ai_step_editors.optional_overrides_the_default_you_are', 'Optional. Overrides the default \'You are a step inside a no-code automation\' framing — set a tone, role, or domain.')}>
+                    <textarea rows={3} value={draft.systemPrompt || ''} onChange={(e) => set('systemPrompt', e.target.value)} placeholder={t('automations.ai_step_editors.default_a_generic_automation_step_system', '(default: a generic automation-step system prompt)')} className={textareaClass()} />
+                </FormRow>
+                <ProblemRing problem={tierProblem}>
+                <FormRow label={t('automations.ai_step_editors.model_tier', 'Model tier')}>
+                    {(() => {
+                        // Only list the tiers the chat actually offers — same
+                        // configured-tier filter the ModelTierSelector uses, so
+                        // the two pickers never drift apart.
+                        const keys = configuredTierKeys(modelTiers || {});
+                        const current = draft.modelTier || 'auto';
+                        // Keep a previously-saved tier selectable even if it's no
+                        // longer offered (e.g. beta revoked) so we don't silently
+                        // change the step's model on open.
+                        const options = keys.includes(current) ? keys : [current, ...keys];
+                        return (
+                            <select value={current} onChange={(e) => set('modelTier', e.target.value)} className={inputClass()}>
+                                {options.length === 0 && (
+                                    <option value={current}>{current}</option>
+                                )}
+                                {options.map((id) => (
+                                    <option key={id} value={id}>{modelTiers?.[id]?.label || tierLabel(id, modelTiers) || id}</option>
+                                ))}
+                            </select>
+                        );
+                    })()}
+                </FormRow>
+                </ProblemRing>
+                <FormRow label={t('automations.ai_step_editors.tools', 'Tools')} hint={t('automations.ai_step_editors.choose_which_tools_the_ai_may', 'Choose which tools the AI may call during this step. Only tools you have permission for are listed. Leave empty for a pure text answer.')}>
+                    <AiStepToolSelect draft={draft} set={set} catalog={catalog} />
+                </FormRow>
+                <FormRow label={t('automations.ai_step_editors.personal_memory', 'Personal memory')} hint={t('automations.ai_step_editors.ground_this_step_in_what_you', 'Ground this step in what you have told the assistant about yourself, your preferences and your contacts. The memories closest to this step\'s prompt are added before the model answers. Good for steps that write in your name or decide on your behalf.')}>
+                    <label className="inline-flex items-center gap-2 text-sm text-[var(--text-primary)]">
+                        <input
+                            type="checkbox"
+                            checked={draft.useMemory === true}
+                            onChange={(e) => set('useMemory', e.target.checked)}
+                        />
+                        {t('automations.ai_step_editors.use_my_personal_memory', 'Use my personal memory')}
+                    </label>
+                </FormRow>
+                <FormRow label={t('automations.ai_step_editors.knowledge_bases', 'Knowledge bases')} hint={t('automations.ai_step_editors.ground_this_step_in_these_knowledge', 'Ground this step in these knowledge bases — searched once before the step runs and added to the prompt as reference material. Good for steerable content like a brand style guide or a positioning doc.')}>
+                    <AiStepKbSelect draft={draft} set={set} />
+                </FormRow>
+                <FormRow label={t('automations.ai_step_editors.iteration', 'Iteration')} hint={t('automations.ai_step_editors.off_by_default_the_ai_runs', 'Off by default: the AI runs once and sees all mapped data at once. Turn on to run the prompt once per item of an upstream list (then reference {{loop.item…}}).')}>
+                    <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField}>
+                        <ConcurrencyField draft={draft} set={set} />
+                    </ForEachSection>
+                </FormRow>
+                <RetrySection draft={draft} set={set} />
+                <AiStepAdvancedRows draft={draft} set={set} />
+            </AccordionSection>
+            {/* The band already names the section, so the field inside it
+                carries only its hint — repeating the name read as two
+                headings stacked on each other. */}
+            <AccordionSection
+                stepType="ai_step" sectionKey="inputs" title={t('automations.ai_step_editors.inputs', 'Inputs')}
+                defaultOpen={hasInputs} forceOpen={errorSections.has('inputs')}
+                meta={<FieldHint title={t('automations.ai_step_editors.about_inputs', 'About Inputs')}>{t('automations.ai_step_editors.named_values_the_ai_can_read', 'Named values the AI can read alongside the prompt. Mention a name in the prompt to use it.')}</FieldHint>}
+            >
+                <ToolInputForm
+                    inputs={draft.inputs || {}}
+                    onChange={(next) => set('inputs', next)}
+                    inputSchema={null}
+                    onFocusField={onFocusField}
+                    previewSample={previewSample}
+                />
+            </AccordionSection>
+            <AccordionSection
+                stepType="ai_step" sectionKey="output" title={t('automations.ai_step_editors.structured_output', 'Structured output')}
+                defaultOpen={hasOutput} forceOpen={errorSections.has('output')}
+                hasContent={!!(draft.outputFields?.length)}
+                meta={<FieldHint title={t('automations.ai_step_editors.about_structured_output', 'About Structured output')}>{t('automations.ai_step_editors.define_the_json_fields_the_ai', 'Define the JSON fields the AI should return. Downstream steps can then reference them by name. Leave empty for free-form text.')}</FieldHint>}
+            >
+                <StructuredOutputFields
+                    fields={draft.outputFields || []}
+                    onChange={(next) => set('outputFields', next)}
+                />
+            </AccordionSection>
+            <Suspense fallback={null}>
+                <AnswerChecksSection draft={draft} set={set} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} stepIssues={stepIssues} />
+            </Suspense>
+        </>
+    );
+}
+
+function AiStepToolSelect({ draft, set, catalog }: AiStepToolSelectProps) {
+    const { t } = useTranslation();
+    const [open, setOpen] = useState(false);
+
+    // Apps the user can actually use (catalog is already permission-gated
+    // server-side; `available === false` means hidden/not entitled).
+    const apps = useMemo(
+        () => (catalog?.apps || []).filter(a => a.available !== false && (a.actions || []).length > 0),
+        [catalog],
+    );
+    // Flat lookup: function name -> { action, app } for chip labels.
+    const actionIndex = useMemo(() => {
+        const m = new Map();
+        for (const app of apps) for (const a of (app.actions || [])) m.set(a.name, { action: a, app });
+        return m;
+    }, [apps]);
+    const allNames = useMemo(() => apps.flatMap(a => (a.actions || []).map(x => x.name)), [apps]);
+
+    // null/undefined `tools` + allowTools on = legacy "all tools".
+    const isExplicit = Array.isArray(draft.tools);
+    const legacyAll = !isExplicit && !!draft.allowTools;
+    const selected = isExplicit ? draft.tools : [];
+
+    const setSelected = (next: unknown) => set('tools', next);
+    const toggleTool = (name: string | undefined) => {
+        const base = isExplicit ? draft.tools : [];
+        setSelected(base.includes(name) ? base.filter((n: string|undefined) => n !== name) : [...base, name]);
+    };
+    const toggleApp = (app: ToolApp, on: boolean) => {
+        const names = (app.actions || []).map(a => a.name);
+        const base = new Set(isExplicit ? draft.tools : []);
+        if (on) names.forEach(n => base.add(n)); else names.forEach(n => base.delete(n));
+        setSelected([...base]);
+    };
+    // Converting legacy "all" → explicit: start from every available tool so the
+    // current behaviour is preserved and the user can untick what they don't need.
+    const chooseSpecific = () => { setSelected([...allNames]); setOpen(true); };
+
+    const chipLabel = (name: string) => {
+        const hit = actionIndex.get(name);
+        if (!hit) return humanizeToolName(name);
+        const app = hit.app.label || hit.action.integrationLabel || '';
+        const act = hit.action.label || humanizeToolName(name);
+        return app ? `${app}: ${act}` : act;
+    };
+
+    if (legacyAll) {
+        return (
+            <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-default)] px-2.5 py-1 text-xs">
+                        <Sparkles size={12} className="text-[var(--accent)]" />
+                        {t('automations.ai_step_editors.all_available_tools', 'All available tools')}
+                    </span>
+                </div>
+                <button
+                    type="button"
+                    onClick={chooseSpecific}
+                    className="text-xs font-medium text-[var(--accent)] hover:underline"
+                >
+                    {t('automations.ai_step_editors.choose_specific_tools', 'Choose specific tools…')}
+                </button>
+                {open && (
+                    <ToolPicker
+                        apps={apps}
+                        selected={selected}
+                        onToggleTool={toggleTool}
+                        onToggleApp={toggleApp}
+                        onClose={() => setOpen(false)}
+                    />
+                )}
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-2">
+            <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 py-1.5 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition"
+            >
+                <Plus size={14} />
+                {t('automations.ai_step_editors.browse_tools', 'Browse tools')}
+            </button>
+            {selected.length === 0 ? (
+                <p className="text-xs text-[var(--text-tertiary)]">
+                    {t('automations.ai_step_editors.no_tools_the_ai_step_answers', 'No tools — the AI step answers from its prompt only.')}
+                    {' '}{t('automations.ai_step_editors.you_can_also_drag_an_app', 'You can also drag an app from the ribbon onto this step\'s')}
+                    {' '}<span className="whitespace-nowrap">{t('automations.ai_step_editors.tools', 'Tools')}</span> {t('automations.ai_step_editors.port_on_the_canvas', 'port on the canvas.')}
+                </p>
+            ) : (
+                <div className="flex flex-wrap gap-1.5">
+                    {selected.map((name: string) => (
+                        <span
+                            key={name}
+                            className="inline-flex items-center gap-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-default)] pl-2.5 pr-1 py-0.5 text-xs text-[var(--text-primary)]"
+                        >
+                            <span className="truncate max-w-[180px]">{chipLabel(name)}</span>
+                            <button
+                                type="button"
+                                onClick={() => toggleTool(name)}
+                                className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                                aria-label={`Remove ${chipLabel(name)}`}
+                            >
+                                <X size={12} />
+                            </button>
+                        </span>
+                    ))}
+                </div>
+            )}
+            {open && (
+                <ToolPicker
+                    apps={apps}
+                    selected={selected}
+                    onToggleTool={toggleTool}
+                    onToggleApp={toggleApp}
+                    onClose={() => setOpen(false)}
+                />
+            )}
+        </div>
+    );
+}
+
+function AiStepKbSelect({ draft, set }: AiStepKbSelectProps) {
+    const { t } = useTranslation();
+    const [kbs, setKbs] = useState<KnowledgeBaseRow[] | null>(null); // null = loading
+    useEffect(() => {
+        let alive = true;
+        (async () => {
+            try {
+                const r = await authFetch(`${API_BASE}/api/kb?context=ai_step`);
+                const body = r.ok ? await r.json() : [];
+                const list = Array.isArray(body) ? body : (body?.knowledge_bases || body?.kbs || []);
+                if (alive) setKbs(list);
+            } catch { if (alive) setKbs([]); }
+        })();
+        return () => { alive = false; };
+    }, []);
+
+    const selected = new Set(Array.isArray(draft.knowledgeBaseIds) ? draft.knowledgeBaseIds : []);
+    const toggle = (id: string) => {
+        const next = new Set(selected);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        set('knowledgeBaseIds', [...next]);
+    };
+
+    if (kbs === null) return <p className="text-xs text-[var(--text-tertiary)]">{t('automations.ai_step_editors.loading', 'Loading…')}</p>;
+    if (kbs.length === 0) {
+        return <p className="text-xs text-[var(--text-tertiary)]">{t('automations.ai_step_editors.no_knowledge_bases_yet_add_one', 'No knowledge bases yet — add one under Knowledge Bases first.')}</p>;
+    }
+    return (
+        <div className="flex flex-col gap-1.5 max-h-40 overflow-auto">
+            {kbs.map((kb) => (
+                <label key={kb.id} className="flex items-center gap-2 text-xs text-[var(--text-secondary)] cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={selected.has(kb.id)}
+                        onChange={() => toggle(kb.id)}
+                        aria-label={`Ground in ${kb.name || kb.id}`}
+                    />
+                    <span className="truncate">{kb.name || kb.id}</span>
+                </label>
+            ))}
+        </div>
+    );
+}
+
+export { StructuredOutputFields };
+export { AiStepFields };

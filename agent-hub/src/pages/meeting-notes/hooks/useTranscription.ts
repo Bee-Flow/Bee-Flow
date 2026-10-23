@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import * as api from '../lib/transcriptionsApi';
 import type { MeetingNote } from '../detail/meetingDetailTypes';
 
-/** A new note, or a function of the current one (which is null until the first load lands). */
-type LocalUpdate = MeetingNote | null | ((prev: MeetingNote | null) => MeetingNote | null);
+/** A new note, or a function of the current one (the callers only run once a note has loaded). */
+type LocalUpdate = MeetingNote | ((prev: MeetingNote) => MeetingNote);
 
 export default function useTranscription(id: string | null | undefined) {
     const [data, setData] = useState<MeetingNote | null>(null);

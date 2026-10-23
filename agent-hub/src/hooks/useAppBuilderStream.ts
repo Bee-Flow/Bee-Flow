@@ -9,7 +9,7 @@ import type {
 import { finalizeStreaming, openTurn, useAbortOnUnmount, usePatchAssistant } from './builderStream';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { studioAppsApi } from '../components/admin/Studio/AppStudio/studioAppsApi';
-import type { AppBuilderSendOptions, AppBuilderStreamDeps, UseAppBuilderStreamOptions } from './appBuilderStream/types';
+import type { AppBuilderSendOptions, BuilderToolDraft, AppBuilderStreamDeps, UseAppBuilderStreamOptions } from './appBuilderStream/types';
 import { applyBuilderSnapshot, parseSendArgs, startBuilderAction } from './appBuilderStream/session';
 import { runBuilderTurn } from './appBuilderStream/turn';
 import type { RunTurnParams } from './appBuilderStream/turn';
@@ -129,7 +129,7 @@ export default function useAppBuilderStream({
     // card being typed, and the model's checklist.
     const [turn, setTurn] = useState<BuilderTurn | null>(null);
     const [engine, setEngine] = useState<BuilderEngine | null>(null);
-    const [toolDraft, setToolDraft] = useState<Record<string, unknown> | null>(null);
+    const [toolDraft, setToolDraft] = useState<BuilderToolDraft | null>(null);
     const [todos, setTodos] = useState<BuilderTodo[]>([]);
 
     const abortRef = useRef<AbortController | null>(null);

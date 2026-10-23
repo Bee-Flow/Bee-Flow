@@ -1,6 +1,6 @@
 import { render, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import GoogleAnalyticsTracker from './GoogleAnalyticsTracker.jsx';
+import GoogleAnalyticsTracker from './GoogleAnalyticsTracker';
 
 const SCRIPT_ID = 'bf-ga-tracker';
 const INIT_ID = 'bf-ga-init';

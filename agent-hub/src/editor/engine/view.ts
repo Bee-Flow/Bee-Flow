@@ -1,0 +1,1174 @@
+/**
+ * view.js — EditorView: owns the contenteditable host, runs the input loop,
+ * dispatches transforms, reconciles the DOM and bridges the browser selection.
+ *
+ * Design: React renders the chrome + one empty contentEditable host; this class
+ * owns the host's children imperatively (React never re-renders the editable
+ * subtree) which removes the whole "React fights contenteditable" bug class.
+ *
+ * Co-editing hooks. The view knows nothing about any sync engine; a binding
+ * (editor/collab/binding.ts) attaches through four seams:
+ *   - plugins (addPlugin): beforeChange / docChanged / selectionChanged /
+ *     compositionEnd / viewDestroyed callbacks around every state change;
+ *   - setSelection: the ONE place a selection is assigned outside dispatch, so
+ *     every caret move reaches the plugins (presence cursors);
+ *   - applyExternal: puts a document that arrived from elsewhere on screen
+ *     without touching the undo history, mapping the selection through the
+ *     caller and never stealing focus from an input;
+ *   - setUndoProvider: undo/redo/can() delegate to a per-user undo manager,
+ *     with the same "typing coalesces, everything else is its own step" rule.
+ * Without a binding every path below behaves exactly as it did before.
+ */
+import { renderDoc, type RenderCtx } from './render';
+import { reconcileChildren } from './reconcile';
+import { posFromDOM, domFromPos, type BfElement } from './dommap.js';
+import { applyTransform, firstTextblockPath, clampSelection, type EditorState } from './state.js';
+import { normalizeDeep, normalizeLight } from './normalize';
+import { getNode } from './doc';
+import * as T from './transforms.js';
+import * as Tbl from './tables';
+import { commands } from '../commands/index.js';
+import { isActive as qIsActive, getAttributes as qGetAttributes } from './queries.js';
+import { createHistory, record, undo as histUndo, redo as histRedo, canUndo, canRedo, type History } from './history.js';
+import { textSelection, nodeSelection, cellSelection, pos, isText, isNode, isCell, isCollapsed, selRange, eqSelection, eqPath, type NodeSelection, type CellSelection } from './selection.js';
+import { isCode, isTextblock, type DocNode, type DocAttrs, type DocMark } from '../model/schema.js';
+import { inlineToTokens } from './inline.js';
+import { runInputRules } from './inputRules.js';
+import { astToHtml } from '../serialization/astToHtml.js';
+import { astToMarkdown } from '../serialization/astToMd';
+import { selectionToFlat } from './flatpos.js';
+import type { TextSelection, Selection as ModelSelection } from './selection';
+import type { ModelPos } from './textIndex.js';
+import { now, keepScroll, docToText, resolveAtomIn } from './view.helpers';
+import type { HookArg, ViewPlugin, UndoProvider, RefPickHandlers, AtomNode, AtomResolution, EditorViewOptions } from './view.types';
+export type { AtomNode, EditorViewOptions } from './view.types';
+
+export class EditorView {
+  declare editable: boolean;
+  declare host: HTMLDivElement;
+  declare doc: Document;
+  declare contentEl: HTMLDivElement;
+  declare state: EditorState;
+  declare onUpdate: (meta?: { remote?: boolean }) => void;
+  declare onSelectionChange: (state: EditorState) => void;
+  declare onError: ((e: unknown) => void) | null;
+  declare history: History;
+  declare nodeToPath: Map<DocNode, number[]>;
+  declare domForNode: WeakMap<DocNode, HTMLElement>;
+  declare composing: boolean;
+  declare compStartSel: ModelSelection | null;
+  declare compStartStored: DocMark[] | null;
+  declare suppressSelectionSync: boolean;
+  declare htmlToAst: ((html: string) => DocNode) | null;
+  declare plugins: ViewPlugin[];
+  declare undoProvider: UndoProvider | null;
+  declare lastKind: string | null;
+  declare collaborative: boolean;
+  declare ctx: RenderCtx;
+  declare mo: MutationObserver | null;
+  declare selfWrittenRange: { an: Node | null; ao: number; fn: Node | null; fo: number } | null;
+  declare cellDragging: boolean;
+  declare _resizing: boolean;
+  declare refPick: RefPickHandlers | null;
+  declare _onBeforeInput: (e: InputEvent) => void;
+  declare _onKeyDown: (e: KeyboardEvent) => void;
+  declare _onCompStart: (e: CompositionEvent) => void;
+  declare _onCompEnd: (e: CompositionEvent) => void;
+  declare _onPaste: (e: ClipboardEvent) => void;
+  declare _onCopy: (e: ClipboardEvent) => void;
+  declare _onCut: (e: ClipboardEvent) => void;
+  declare _onSelChange: () => void;
+  declare _onChange: (e: Event) => void;
+  declare _onDrop: (e: DragEvent) => void;
+  declare _onMouseDown: (e: MouseEvent) => void;
+  declare _onHoverMove: (e: MouseEvent) => void;
+  constructor(host: HTMLDivElement, opts: EditorViewOptions = {}) {
+    this.host = host;
+    this.doc = host.ownerDocument;
+    this.contentEl = host;
+    this.state = opts.state || { doc: { type: 'doc', content: [] }, selection: textSelection(pos([0], 0)), storedMarks: null };
+    this.editable = opts.editable !== false;
+    this.onUpdate = opts.onUpdate || (() => {});
+    this.onSelectionChange = opts.onSelectionChange || (() => {});
+    this.onError = opts.onError || null;
+    this.history = createHistory();
+    this.nodeToPath = new Map();
+    this.domForNode = new WeakMap();
+    this.composing = false;
+    this.compStartSel = null;
+    this.suppressSelectionSync = false;
+    this.htmlToAst = opts.htmlToAst || null;
+    // Co-editing seams (see the header). Empty/null = the plain single-writer editor.
+    this.plugins = Array.isArray(opts.plugins) ? opts.plugins.slice() : [];
+    this.undoProvider = null;
+    this.lastKind = null;
+    this.collaborative = false;
+    this.ctx = {
+      document: this.doc,
+      nodeToPath: this.nodeToPath,
+      domForNode: this.domForNode,
+      mountAtom: opts.mountAtom || null,
+      unmountAtom: opts.unmountAtom || null,
+      remapAtom: opts.remapAtom || null,
+    };
+
+    host.setAttribute('contenteditable', this.editable ? 'true' : 'false');
+    host.setAttribute('role', 'textbox');
+    host.setAttribute('aria-multiline', 'true');
+    host.setAttribute('spellcheck', 'true');
+    host.setAttribute('autocapitalize', 'sentences');
+    host.setAttribute('autocorrect', 'on');
+    host.classList.add('bf-content');
+
+    this.fullRender();
+    this.bind();
+    this.installMutationGuard();
+  }
+
+  /* ── lifecycle ────────────────────────────────────────── */
+  bind() {
+    this._onBeforeInput = (e: InputEvent) => this.onBeforeInput(e);
+    this._onKeyDown = (e: KeyboardEvent) => this.onKeyDown(e);
+    this._onCompStart = (e: CompositionEvent) => this.onCompositionStart(e);
+    this._onCompEnd = (e) => this.onCompositionEnd(e);
+    this._onPaste = (e) => this.onPaste(e);
+    this._onCopy = (e) => this.onCopyCut(e, false);
+    this._onCut = (e) => this.onCopyCut(e, true);
+    this._onSelChange = () => this.onSelectionChangeEvt();
+    this._onChange = (e) => this.onChangeEvt(e);
+    this._onDrop = (e) => this.onDrop(e);
+    this._onMouseDown = (e) => this.onMouseDown(e);
+    this._onHoverMove = (e) => this.onHoverMove(e);
+    this.host.addEventListener('drop', this._onDrop);
+    this.host.addEventListener('mousedown', this._onMouseDown);
+    this.host.addEventListener('mousemove', this._onHoverMove);
+    this.host.addEventListener('beforeinput', this._onBeforeInput);
+    this.host.addEventListener('keydown', this._onKeyDown);
+    this.host.addEventListener('compositionstart', this._onCompStart);
+    this.host.addEventListener('compositionend', this._onCompEnd);
+    this.host.addEventListener('paste', this._onPaste);
+    this.host.addEventListener('copy', this._onCopy);
+    this.host.addEventListener('cut', this._onCut);
+    this.host.addEventListener('change', this._onChange);
+    this.doc.addEventListener('selectionchange', this._onSelChange);
+  }
+
+  destroy() {
+    this.host.removeEventListener('beforeinput', this._onBeforeInput);
+    this.host.removeEventListener('keydown', this._onKeyDown);
+    this.host.removeEventListener('compositionstart', this._onCompStart);
+    this.host.removeEventListener('compositionend', this._onCompEnd);
+    this.host.removeEventListener('paste', this._onPaste);
+    this.host.removeEventListener('copy', this._onCopy);
+    this.host.removeEventListener('cut', this._onCut);
+    this.host.removeEventListener('change', this._onChange);
+    this.host.removeEventListener('drop', this._onDrop);
+    this.host.removeEventListener('mousedown', this._onMouseDown);
+    this.host.removeEventListener('mousemove', this._onHoverMove);
+    this.doc.removeEventListener('selectionchange', this._onSelChange);
+    if (this.mo) { this.mo.disconnect(); this.mo = null; }
+    this.runHook('viewDestroyed');
+    this.plugins = [];
+    this.undoProvider = null;
+  }
+
+  /* ── co-editing seams ─────────────────────────────────── */
+
+  /** Attach a plugin; returns the function that detaches it again. */
+  addPlugin(plugin: ViewPlugin | null | undefined) {
+    if (!plugin) return () => {};
+    this.plugins.push(plugin);
+    return () => { this.plugins = this.plugins.filter((p) => p !== plugin); };
+  }
+
+  /**
+   * Call `name` on every plugin. A plugin's failure is reported through
+   * onError and never breaks the edit that triggered it.
+   */
+  runHook(name: string, ...args: HookArg[]) {
+    for (const p of this.plugins.slice()) {
+      const fn = p && p[name];
+      if (typeof fn !== 'function') continue;
+      try { fn.apply(p, args); } catch (e) {
+        try { this.onError && this.onError(e); } catch { /* noop */ }
+      }
+    }
+  }
+
+  /**
+   * Hand undo/redo to an external manager (per-user undo while co-editing).
+   * `provider` = { undo(), redo(), canUndo(), canRedo(), stopCapturing() };
+   * null restores the built-in snapshot history, starting empty.
+   */
+  setUndoProvider(provider: UndoProvider | null) {
+    this.undoProvider = provider || null;
+    this.lastKind = null;
+    if (!provider) this.history = createHistory();
+  }
+
+  /**
+   * While true, setDoc is an ordinary (undoable, synced) edit instead of a
+   * wholesale replace with a history reset: with other people in the
+   * document, replacing it would throw their work and everyone's undo away.
+   */
+  setCollaborative(on: boolean) { this.collaborative = !!on; }
+
+  /**
+   * The ONE place a selection is assigned outside dispatch. Callers keep
+   * their own writeSelection/onSelectionChange calls, so behaviour is exactly
+   * what it was; what this adds is that every caret move reaches the plugins.
+   * `opts.storedMarks` replaces the stored marks when given, else they stay.
+   */
+  setSelection(selection: TextSelection | NodeSelection | CellSelection, opts: { storedMarks?: DocMark[] | null; source?: string } = {}) {
+    const storedMarks = (Object.prototype.hasOwnProperty.call(opts, 'storedMarks') ? opts.storedMarks : this.state.storedMarks) as DocMark[] | null;
+    this.state = { ...this.state, selection, storedMarks };
+    this.runHook('selectionChanged', this.state, { source: opts.source || 'local' });
+  }
+
+  /** Whether the editable flow itself has focus (not an atom's own input). */
+  hasFocus() {
+    const ae = this.doc.activeElement;
+    return !!ae && (ae === this.host || (this.host.contains(ae) && !this.inAtom(ae)));
+  }
+
+  /**
+   * Show a document that arrived from elsewhere (a co-editor, an undo of the
+   * shared history, the first load of a shared document).
+   *
+   * Unlike dispatch it records no history (the undo manager owns that) and
+   * unlike setDoc it keeps the caret: `mapSelection(sel)` moves a selection
+   * from the old document to the new one, and is applied to the live
+   * selection and to a pending composition's start. The selection is written
+   * back to the DOM only when the editor has focus, so a remote keystroke can
+   * never pull the caret out of the Ask-AI box or a formula input.
+   *
+   * origin: 'remote' (someone else), 'undo' (our own undo/redo), or 'load'
+   * (first content: fresh history, caret at the start, full render).
+   */
+  applyExternal(doc: DocNode, { mapSelection = null, origin = 'remote' }: { mapSelection?: ((sel: ModelSelection) => ModelSelection | null | undefined) | null; origin?: string } = {}) {
+    const prev = this.state;
+    const nextDoc = normalizeLight(doc);
+    const map = (sel: ModelSelection) => {
+      if (!sel || !mapSelection) return sel;
+      try { return mapSelection(sel) || sel; } catch { return sel; }
+    };
+    if (origin === 'load') {
+      this.state = { doc: nextDoc, selection: textSelection(pos(firstTextblockPath(nextDoc), 0)), storedMarks: null };
+      this.history = createHistory();
+      this.lastKind = null;
+      this.compStartSel = null;
+      this.fullRender();
+    } else {
+      const selection = clampSelection(nextDoc, map(prev.selection));
+      if (this.compStartSel) this.compStartSel = clampSelection(nextDoc, map(this.compStartSel));
+      this.state = { doc: nextDoc, selection, storedMarks: prev.storedMarks };
+      if (nextDoc !== prev.doc) this.reconcile(prev.doc, nextDoc);
+      if (origin !== 'remote' || this.hasFocus()) this.writeSelection();
+      else this.paintCellSelection();
+    }
+    this.runHook('selectionChanged', this.state, { source: origin });
+    this.emitChange({ remote: origin !== 'undo' });
+  }
+
+  /** A DOM Range for two model positions (overlays, highlights), or null. */
+  rangeFor(from: ModelPos, to: ModelPos) {
+    try {
+      const a = domFromPos(this.domForNode, this.state.doc, from);
+      const b = domFromPos(this.domForNode, this.state.doc, to || from);
+      if (!a || !b) return null;
+      const r = this.doc.createRange();
+      r.setStart(a.node as Node, a.offset);
+      r.setEnd(b.node as Node, b.offset);
+      return r;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /* ── untracked-mutation safety net ────────────────────── */
+  installMutationGuard() {
+    const MO = this.doc.defaultView && this.doc.defaultView.MutationObserver;
+    if (!MO) return;
+    this.mo = new MO((records: MutationRecord[]) => {
+      if (this.composing) return; // IME resyncs itself on compositionend
+      // We disconnect the observer around our own DOM writes (applyDOM). Mutations
+      // inside atom hosts are React portals rendering — also expected. Anything
+      // left is an untracked mutation in the editable flow (drag-drop, extension,
+      // browser quirk) that diverged the DOM from the model → restore from model.
+      if (!records.some((r) => !this.inAtom(r.target))) return;
+       
+      console.warn('[BeeEditor] untracked DOM mutation — re-syncing from model');
+      this.fullRender();
+    });
+    this.observeDOM();
+  }
+
+  inAtom(node: EventTarget | null) {
+    let n = node as Node | null;
+    while (n && n !== this.host) {
+      if (n.nodeType === 1 && (n as Element).getAttribute && (n as Element).getAttribute('data-bf-atom') != null) return true;
+      n = n.parentNode;
+    }
+    return false;
+  }
+
+  observeDOM() {
+    if (this.mo) this.mo.observe(this.host, { childList: true, characterData: true, subtree: true });
+  }
+
+  /** Run a DOM-mutating fn without the MutationObserver treating it as untracked. */
+  applyDOM(fn: () => void) {
+    if (this.mo) this.mo.disconnect();
+    try { fn(); } finally { if (this.mo) { this.mo.takeRecords(); this.observeDOM(); } }
+  }
+
+  setEditable(v: boolean) {
+    this.editable = v;
+    this.host.setAttribute('contenteditable', v ? 'true' : 'false');
+  }
+
+  /* ── rendering ────────────────────────────────────────── */
+  fullRender() {
+    this.rebuildPaths(this.state.doc);
+    this.applyDOM(() => {
+      // Unmount existing atom hosts before clearing.
+      if (this.ctx.unmountAtom) this.host.querySelectorAll('[data-bf-atom]').forEach((a) => a.__bfAtomNode && (this.ctx.unmountAtom as (el: Element) => void)(a));
+      this.host.textContent = '';
+      this.host.appendChild(renderDoc(this.state.doc, this.ctx));
+    });
+    this.writeSelection();
+  }
+
+  rebuildPaths(doc: DocNode) {
+    this.nodeToPath.clear();
+    const walk = (n: DocNode, p: number[]) => {
+      this.nodeToPath.set(n, p);
+      if (isTextblock(n.type) || n.type === 'text') return;
+      (n.content || []).forEach((c, i) => { if (c.type !== 'text') walk(c, [...p, i]); });
+    };
+    (doc.content || []).forEach((c, i) => walk(c, [i]));
+  }
+
+  reconcile(oldDoc: DocNode, newDoc: DocNode) {
+    this.rebuildPaths(newDoc);
+    // Incremental, identity-aware patch (see reconcile.js): only the differing
+    // blocks are touched, and a changed textblock keeps its caret text node.
+    this.applyDOM(() => reconcileChildren(this.contentEl, oldDoc.content || [], newDoc.content || [], this.ctx, []));
+  }
+
+  /* ── dispatch ─────────────────────────────────────────── */
+  dispatch(fn: (state: EditorState) => EditorState | null | undefined, { kind = 'other' } = {}) {
+    // A binding applies anything it was still holding back first, so the
+    // transform below runs on the document everyone else already has.
+    this.runHook('beforeChange');
+    const prev = this.state;
+    const next = applyTransform(prev, fn);
+    if (next.doc === prev.doc) {
+      // selection / storedMarks only — no history, no DOM reconcile
+      this.state = next;
+      if (!eqSelection(next.selection, prev.selection)) this.writeSelection();
+      try { this.onSelectionChange(this.state); } catch { /* noop */ }
+      this.runHook('selectionChanged', this.state, { source: 'local' });
+      return false;
+    }
+    if (this.undoProvider) {
+      // Same grouping as the snapshot history: a run of typing is one step,
+      // every other kind of edit starts its own.
+      if (kind !== 'type' || this.lastKind !== 'type') {
+        try { this.undoProvider.stopCapturing(); } catch { /* noop */ }
+      }
+      this.lastKind = kind;
+    } else {
+      record(this.history, prev, kind, now());
+    }
+    this.state = next;
+    this.runHook('docChanged', prev, next, { kind });
+    // A plugin that could not take the change has put another document on
+    // screen already (a co-editing binding reloads the shared state): showing
+    // `next` now would draw the rejected edit over it.
+    if (this.state !== next) return this.state.doc !== prev.doc;
+    this.reconcile(prev.doc, next.doc);
+    this.writeSelection();
+    this.emitChange();
+    this.runHook('selectionChanged', this.state, { source: 'local' });
+    return true;
+  }
+
+  /**
+   * Tell the host the document changed.
+   *
+   * A throw in here (onUpdate serializes the doc) used to be swallowed
+   * silently — and because the host clears its save timer BEFORE serializing,
+   * that meant no save was ever scheduled again for that edit and the user got
+   * no indication at all. Surface it instead: the host can show "save failed"
+   * and the user can still copy their work out.
+   */
+  emitChange(meta?: { remote: boolean; }) {
+    try {
+      if (meta === undefined) this.onUpdate();
+      else this.onUpdate(meta);
+    } catch (e) {
+       
+      console.error('[BeeEditor] onUpdate failed — the document may not be saved', e);
+      try { this.onError && this.onError(e); } catch { /* noop */ }
+    }
+  }
+
+  /* ── selection bridge ─────────────────────────────────── */
+  writeSelection() {
+    const sel = this.state.selection;
+    const win = this.doc.defaultView as Window;
+    const dsel = win.getSelection();
+    if (!dsel) return;
+    // Ignore the selectionchange our own write triggers.
+    //
+    // This used to release the flag on the next MICROTASK, but selectionchange
+    // is delivered as a TASK — so the guard was already down by the time the
+    // event arrived and every self-write was read straight back through
+    // posFromDOM. Any imprecision in the mapping was laundered into the model,
+    // which is what turned a caret drawn in the wrong place into a keystroke
+    // inserted in the wrong place. Recording the exact range we wrote makes the
+    // check deterministic instead of a race against the event loop.
+    this.suppressSelectionSync = true;
+    Promise.resolve().then(() => { this.suppressSelectionSync = false; });
+    this.selfWrittenRange = null;
+    try {
+      if (isNode(sel)) {
+        const el = this.domForNode.get(getNode(this.state.doc, sel.path));
+        if (el) { const r = this.doc.createRange(); r.selectNode(el); dsel.removeAllRanges(); dsel.addRange(r); this.rememberWrite(dsel); }
+      } else if (isCell(sel)) {
+        // Collapse the caret into the anchor cell; the rectangle is shown via .selectedCell.
+        const a = domFromPos(this.domForNode, this.state.doc, pos([...sel.anchorCell, 0], 0));
+        if (a) { const r = this.doc.createRange(); r.setStart(a.node as Node, a.offset); r.collapse(true); dsel.removeAllRanges(); dsel.addRange(r); this.rememberWrite(dsel); }
+      } else {
+        const { from, to } = selRange(sel);
+        const a = domFromPos(this.domForNode, this.state.doc, from);
+        const b = domFromPos(this.domForNode, this.state.doc, to);
+        if (a && b) { const r = this.doc.createRange(); r.setStart(a.node as Node, a.offset); r.setEnd(b.node as Node, b.offset); dsel.removeAllRanges(); dsel.addRange(r); this.rememberWrite(dsel); }
+      }
+    } catch { /* selection write can race the DOM; ignore */ }
+    this.paintCellSelection();
+  }
+
+  /** Apply / clear the .selectedCell highlight for a cell-rectangle selection.
+   *  Class (attribute) mutations are not observed by the MutationObserver, so this
+   *  never trips the untracked-mutation safety net. */
+  paintCellSelection() {
+    if (!this.host || !this.host.querySelectorAll) return;
+    this.host.querySelectorAll('.selectedCell').forEach((c) => c.classList.remove('selectedCell'));
+    const sel = this.state.selection;
+    if (!isCell(sel)) return;
+    const rect = Tbl.cellRect(this.state.doc, sel);
+    if (!rect) return;
+    for (const cellPath of rect.cells) {
+      const el = this.domForNode.get(getNode(this.state.doc, cellPath));
+      if (el) el.classList.add('selectedCell');
+    }
+  }
+
+  syncSelectionFromDOM() {
+    const win = this.doc.defaultView as Window;
+    const dsel = win.getSelection();
+    if (!dsel || dsel.rangeCount === 0) return;
+    if (!this.contentEl.contains(dsel.anchorNode)) return;
+    const anchor = posFromDOM(this.contentEl, dsel.anchorNode, dsel.anchorOffset, this.nodeToPath);
+    const head = posFromDOM(this.contentEl, dsel.focusNode, dsel.focusOffset, this.nodeToPath);
+    if (!anchor) return;
+    if (anchor.atom) { this.setSelection(nodeSelection(anchor.path), { storedMarks: null }); return; }
+    if (!head) return;
+    this.setSelection(textSelection(pos(anchor.path, anchor.offset), head.atom ? pos(anchor.path, anchor.offset) : pos(head.path, head.offset)));
+  }
+
+  /** Snapshot the DOM range we just wrote, so we can recognise its echo. */
+  rememberWrite(dsel: Selection) {
+    if (!dsel || dsel.rangeCount === 0) return;
+    this.selfWrittenRange = {
+      an: dsel.anchorNode, ao: dsel.anchorOffset, fn: dsel.focusNode, fo: dsel.focusOffset,
+    };
+  }
+
+  isSelfWrite(dsel: Selection) {
+    const w = this.selfWrittenRange;
+    return !!w && w.an === dsel.anchorNode && w.ao === dsel.anchorOffset
+      && w.fn === dsel.focusNode && w.fo === dsel.focusOffset;
+  }
+
+  onSelectionChangeEvt() {
+    // Never touch the model from a DOM selection mid-composition or mid cell-drag:
+    // the DOM holds transient state (IME text, native drag highlight) not in the model.
+    if (this.suppressSelectionSync || this.composing || this.cellDragging) return;
+    const win = this.doc.defaultView as Window;
+    const dsel = win.getSelection();
+    if (!dsel || dsel.rangeCount === 0 || !this.contentEl.contains(dsel.anchorNode)) return;
+    // The echo of our own write carries no new information.
+    if (this.isSelfWrite(dsel)) { this.selfWrittenRange = null; return; }
+    this.syncSelectionFromDOM();
+    this.paintCellSelection(); // clears stale cell highlight when the caret moves out
+    try { this.onSelectionChange(this.state); } catch { /* noop */ }
+  }
+
+  /* ── input handling ───────────────────────────────────── */
+
+  /**
+   * The model selection an input event says it will affect.
+   *
+   * Browsers report the affected extent in `getTargetRanges()` for word/line
+   * deletes and for spellcheck replacements — the DOM selection at that moment
+   * is usually just the caret, so without this the extent is lost.
+   */
+  modelRangeFromEvent(e: InputEvent) {
+    try {
+      const ranges = e.getTargetRanges ? e.getTargetRanges() : null;
+      const r = ranges && ranges[0];
+      if (!r || !this.contentEl.contains(r.startContainer)) return null;
+      const from = posFromDOM(this.contentEl, r.startContainer, r.startOffset, this.nodeToPath);
+      const to = posFromDOM(this.contentEl, r.endContainer, r.endOffset, this.nodeToPath);
+      if (!from || !to || from.atom || to.atom) return null;
+      return textSelection(pos(from.path, from.offset), pos(to.path, to.offset));
+    } catch (err) {
+      return null;
+    }
+  }
+
+  /** Delete the event's target range if it gave us one, else fall back. */
+  rangeDeleteFn(e: InputEvent, fallback: (state: EditorState) => EditorState) {
+    const target = this.modelRangeFromEvent(e);
+    if (!target || eqSelection(target, this.state.selection)) return fallback;
+    return (s: EditorState) => T.deleteSelection({ ...s, selection: target });
+  }
+
+  onBeforeInput(e: InputEvent) {
+    // Events originating inside an atom host (a formula <input>, a chart's
+    // controls, …) belong to the atom's own React UI — handling them here
+    // dispatched the keystroke into the document at a stale caret (S1).
+    if (this.inAtom(e.target)) return;
+    if (this.composing) return;
+    if (isCell(this.state.selection)) return this.onBeforeInputCell(e);
+    const it = e.inputType;
+    let fn = null;
+    let kind = 'other';
+    switch (it) {
+      case 'insertText': { const data = e.data || ''; fn = (s: EditorState) => { const ns = T.insertText(s, data); return runInputRules(ns, data) || ns; }; kind = 'type'; break; }
+      // Spellcheck / autocorrect accept. The range to REPLACE is in
+      // getTargetRanges(); ignoring it inserted the correction and left the
+      // misspelling in place.
+      case 'insertReplacementText': {
+        const data = e.data || '';
+        const target = this.modelRangeFromEvent(e);
+        fn = (s: EditorState) => T.insertText(target ? { ...s, selection: target } : s, data);
+        kind = 'type';
+        break;
+      }
+      case 'deleteContentBackward': fn = T.deleteBackward; kind = 'delete'; break;
+      case 'deleteContentForward': fn = T.deleteForward; kind = 'delete'; break;
+      // Word/line deletes carry their extent in getTargetRanges(); mapping them
+      // to a single-grapheme delete made Ctrl+Backspace remove one character.
+      case 'deleteWordBackward': case 'deleteContentBackwardWord': case 'deleteSoftLineBackward': case 'deleteHardLineBackward':
+        fn = this.rangeDeleteFn(e, T.deleteBackward); kind = 'delete'; break;
+      case 'deleteWordForward': case 'deleteSoftLineForward': case 'deleteHardLineForward':
+        fn = this.rangeDeleteFn(e, T.deleteForward); kind = 'delete'; break;
+      case 'deleteByCut': case 'deleteContent': case 'deleteByDrag': fn = T.deleteSelection; kind = 'delete'; break;
+      case 'formatBold': fn = (s: EditorState) => T.toggleMark(s, 'bold'); kind = 'format'; break;
+      case 'formatItalic': fn = (s: EditorState) => T.toggleMark(s, 'italic'); kind = 'format'; break;
+      case 'formatUnderline': fn = (s: EditorState) => T.toggleMark(s, 'underline'); kind = 'format'; break;
+      case 'formatStrikeThrough': fn = (s: EditorState) => T.toggleMark(s, 'strike'); kind = 'format'; break;
+      case 'historyUndo': e.preventDefault(); this.undo(); return;
+      case 'historyRedo': e.preventDefault(); this.redo(); return;
+      // Split / line-break can also arrive without a keydown (voice, some mobile
+      // IMEs), so handle them here too rather than only in onKeyDown.
+      case 'insertParagraph': e.preventDefault(); this.enter(false); return;
+      case 'insertLineBreak': e.preventDefault(); this.enter(true); return;
+      case 'insertFromPaste': case 'insertFromDrop': return; // handled by paste/drop listeners
+      default: return;
+    }
+    e.preventDefault();
+    this.syncSelectionFromDOM();
+    this.dispatch(fn, { kind });
+  }
+
+  // Input while a cell rectangle is selected: delete clears the cells; typing
+  // clears them then drops the caret into the anchor cell and inserts.
+  onBeforeInputCell(e: InputEvent) {
+    const it = e.inputType || '';
+    e.preventDefault();
+    const anchor = (this.state.selection as CellSelection).anchorCell;
+    if (it.startsWith('delete')) return this.dispatch((s) => Tbl.clearCells(s), { kind: 'delete' });
+    if (it === 'insertText') {
+      this.dispatch((s) => Tbl.clearCells(s), { kind: 'delete' });
+      this.setSelection(textSelection(pos([...anchor, 0], 0)));
+      if (e.data) this.dispatch((s) => T.insertText(s, e.data as string), { kind: 'type' });
+    }
+  }
+
+  collapseCellSelection() {
+    if (!isCell(this.state.selection)) return;
+    this.setSelection(textSelection(pos([...this.state.selection.anchorCell, 0], 0)));
+    this.writeSelection();
+    try { this.onSelectionChange(this.state); } catch { /* noop */ }
+  }
+
+  onKeyDown(e: KeyboardEvent) {
+    if (this.inAtom(e.target)) return;
+    if (isCell(this.state.selection)) {
+      if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); return this.dispatch((s) => Tbl.clearCells(s), { kind: 'delete' }); }
+      if (e.key === 'Escape') { e.preventDefault(); return this.collapseCellSelection(); }
+    }
+    const mod = e.metaKey || e.ctrlKey;
+    if (mod && !e.altKey) {
+      const k = e.key.toLowerCase();
+      const m = (type: string) => { e.preventDefault(); this.syncSelectionFromDOM(); this.dispatch((s) => T.toggleMark(s, type), { kind: 'format' }); };
+      if (k === 'b') return m('bold');
+      if (k === 'i') return m('italic');
+      if (k === 'u') return m('underline');
+      if (k === 'z') { e.preventDefault(); return e.shiftKey ? this.redo() : this.undo(); }
+      if (k === 'y') { e.preventDefault(); return this.redo(); }
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      return this.enter(e.shiftKey);
+    }
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      this.syncSelectionFromDOM();
+      if (Tbl.inTable(this.state)) return this.dispatch((s) => Tbl.goToCell(s, e.shiftKey ? -1 : 1), { kind: 'structural' });
+      if (this.inListItem()) return this.dispatch(e.shiftKey ? T.liftListItem : T.sinkListItem, { kind: 'structural' });
+      return this.dispatch((s) => T.insertText(s, '  '), { kind: 'type' });
+    }
+  }
+
+  /* ── table cell selection + column resize (mouse) ─────── */
+  cellElFromPoint(target: EventTarget | null) {
+    let n = target as BfElement | null;
+    while (n && n !== this.host) {
+      if (n.nodeType === 1 && (n.tagName === 'TD' || n.tagName === 'TH') && n.__bfNode) return n;
+      n = n.parentNode as BfElement | null;
+    }
+    return null;
+  }
+
+  cellPathOfSelection() {
+    const sel = this.state.selection;
+    const path = isText(sel) ? sel.anchor.path : isCell(sel) ? sel.anchorCell : null;
+    if (!path) return null;
+    const ctx = Tbl.tableContext(this.state.doc, path);
+    return ctx ? [...ctx.tablePath, ctx.rowIdx, ctx.cellIdx] : null;
+  }
+
+  setCellSelection(anchorCell: number[], headCell: number[]) {
+    const sel = cellSelection(anchorCell, headCell);
+    if (!Tbl.cellRect(this.state.doc, sel)) return; // not a valid same-table rectangle
+    this.setSelection(sel, { storedMarks: null });
+    this.writeSelection();
+    try { this.onSelectionChange(this.state); } catch { /* noop */ }
+  }
+
+  onHoverMove(e: MouseEvent) {
+    if (this.cellDragging || this._resizing) return;
+    const cell = this.cellElFromPoint(e.target);
+    let resize = false;
+    if (cell) { const r = cell.getBoundingClientRect(); resize = (r.right - e.clientX <= 6 && r.right - e.clientX >= 0); }
+    this.host.style.cursor = resize ? 'col-resize' : '';
+  }
+
+  /* ── formula reference picking ────────────────────────── */
+
+  /**
+   * While a formula editor is open, clicking (or dragging across) cells inserts
+   * their A1 reference instead of moving the caret — the spreadsheet gesture.
+   *
+   * @param {object} h  { tablePath, onPick(ref) } — tablePath scopes picking to
+   *   the formula's own table, so a click in a different table still behaves
+   *   normally rather than producing a reference that cannot resolve.
+   */
+  beginRefPick(h: null) {
+    this.refPick = h || null;
+    try { this.host.classList.toggle('bf-picking-ref', !!this.refPick); } catch { /* noop */ }
+  }
+  endRefPick() {
+    this.refPick = null;
+    try { this.host.classList.remove('bf-picking-ref'); } catch { /* noop */ }
+  }
+
+  /** The table a formula atom lives in, so picking can be scoped to it. */
+  formulaTablePath(node: DocNode | null) {
+    const at = this.resolveAtom(node);
+    if (!at) return null;
+    return Tbl.tableContext(this.state.doc, at.path)?.tablePath || null;
+  }
+
+  /** Insert a reference for a drag between two cell paths. */
+  pickRefBetween(anchorPath: number[], headPath: number[]) {
+    const a = Tbl.cellCoordsVisual(this.state.doc, anchorPath);
+    const b = Tbl.cellCoordsVisual(this.state.doc, headPath);
+    if (!a || !b) return;
+    const ref = Tbl.rangeRef(a, b);
+    if (ref) this.refPick?.onPick?.(ref);
+  }
+
+  onMouseDown(e: MouseEvent) {
+    // A click inside an atom host (e.g. INSIDE the open formula input while
+    // ref-picking is armed) must place the input's own caret — not pick a
+    // self-reference or start a cell drag.
+    if (this.inAtom(e.target)) return;
+    if (e.button !== 0) return;
+    const cell = this.cellElFromPoint(e.target);
+
+    // Reference picking takes precedence over selection while it is armed.
+    if (this.refPick && cell) {
+      const cellPath = this.nodeToPath.get(cell.__bfNode);
+      const co = cellPath && Tbl.cellCoordsVisual(this.state.doc, cellPath);
+      if (co && (!this.refPick.tablePath || co.tablePath.join() === this.refPick.tablePath.join())) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.pickRefBetween(cellPath, cellPath);
+        this.beginRefDrag(cellPath);
+        return;
+      }
+    }
+
+    if (!cell) {
+      if (isCell(this.state.selection)) { this.setSelection(textSelection(pos([...this.state.selection.anchorCell, 0], 0))); this.paintCellSelection(); }
+      return;
+    }
+    const cellPath = this.nodeToPath.get(cell.__bfNode);
+    if (!cellPath) return;
+    const r = cell.getBoundingClientRect();
+    if (r.right - e.clientX <= 6 && r.right - e.clientX >= 0) { e.preventDefault(); this.startColumnResize(e, cellPath); return; }
+    if (e.shiftKey) {
+      const anchor = isCell(this.state.selection) ? this.state.selection.anchorCell : this.cellPathOfSelection();
+      if (anchor && anchor.join() !== cellPath.join()) { e.preventDefault(); this.setCellSelection(anchor, cellPath); return; }
+    }
+    this.beginCellDrag(cellPath);
+  }
+
+  /** Drag across cells while picking → the reference grows into a range. */
+  beginRefDrag(anchorPath: number[]) {
+    const onMove = (ev: MouseEvent) => {
+      const target = this.doc.elementFromPoint ? this.doc.elementFromPoint(ev.clientX, ev.clientY) : null;
+      const overEl = this.cellElFromPoint(target);
+      const headPath = overEl && this.nodeToPath.get(overEl.__bfNode);
+      if (!headPath) return;
+      ev.preventDefault();
+      this.pickRefBetween(anchorPath, headPath);
+    };
+    const onUp = () => {
+      this.doc.removeEventListener('mousemove', onMove);
+      this.doc.removeEventListener('mouseup', onUp);
+      this.refPick?.onCommitPick?.();
+    };
+    this.doc.addEventListener('mousemove', onMove);
+    this.doc.addEventListener('mouseup', onUp);
+  }
+
+  beginCellDrag(anchorPath: number[]) {
+    const onMove = (ev: MouseEvent) => {
+      const target = this.doc.elementFromPoint ? this.doc.elementFromPoint(ev.clientX, ev.clientY) : null;
+      const overEl = this.cellElFromPoint(target);
+      if (!overEl) return;
+      const headPath = this.nodeToPath.get(overEl.__bfNode);
+      if (!headPath) return;
+      if (headPath.join() === anchorPath.join()) {
+        // back in the anchor cell → let native text selection take over
+        if (isCell(this.state.selection)) { this.setSelection(textSelection(pos([...anchorPath, 0], 0))); this.paintCellSelection(); }
+        this.cellDragging = false;
+        return;
+      }
+      ev.preventDefault();
+      this.cellDragging = true;
+      const win = this.doc.defaultView as Window; const dsel = win && win.getSelection();
+      if (dsel) dsel.removeAllRanges(); // kill the native cross-cell text highlight
+      this.setCellSelection(anchorPath, headPath);
+    };
+    const onUp = () => {
+      this.doc.removeEventListener('mousemove', onMove);
+      this.doc.removeEventListener('mouseup', onUp);
+      this.cellDragging = false;
+    };
+    this.doc.addEventListener('mousemove', onMove);
+    this.doc.addEventListener('mouseup', onUp);
+  }
+
+  startColumnResize(e: MouseEvent, cellPath: number[]) {
+    const ctx = Tbl.tableContext(this.state.doc, cellPath);
+    if (!ctx) return;
+    const colIdx = ctx.cellIdx;
+    const cellEl = this.domForNode.get(getNode(this.state.doc, cellPath));
+    const startX = e.clientX;
+    const startW = cellEl ? cellEl.getBoundingClientRect().width : 120;
+    this._resizing = true;
+    const width = (ev: MouseEvent) => Math.max(40, Math.round(startW + (ev.clientX - startX)));
+    const onMove = (ev: MouseEvent) => { if (cellEl) cellEl.style.width = `${width(ev)}px`; }; // live preview (attr, not observed)
+    const onUp = (ev: MouseEvent) => {
+      this.doc.removeEventListener('mousemove', onMove);
+      this.doc.removeEventListener('mouseup', onUp);
+      this._resizing = false;
+      this.host.style.cursor = '';
+      this.setSelection(textSelection(pos([...cellPath, 0], 0)));
+      this.dispatch((s) => Tbl.setColumnWidth(s, colIdx, width(ev)), { kind: 'structural' });
+    };
+    this.doc.addEventListener('mousemove', onMove);
+    this.doc.addEventListener('mouseup', onUp);
+  }
+
+  // Block split / line break (from Enter keydown or an insertParagraph beforeinput).
+  enter(shift: boolean) {
+    this.syncSelectionFromDOM();
+    if (shift) return this.dispatch(T.insertHardBreak, { kind: 'type' });
+    const block = this.currentBlock();
+    if (block && isCode(block.type)) return this.dispatch((s) => T.insertText(s, '\n'), { kind: 'type' });
+    if (this.isEmptyListItem()) return this.dispatch(T.liftListItem, { kind: 'structural' });
+    // Keep table cells single-paragraph (GFM cells are inline-only): Enter is a
+    // line break, not a block split.
+    if (this.inTableCell()) return this.dispatch(T.insertHardBreak, { kind: 'type' });
+    return this.dispatch(T.splitBlock, { kind: 'structural' });
+  }
+
+  inTableCell() {
+    const sel = this.state.selection;
+    if (!isText(sel) || sel.anchor.path.length < 1) return false;
+    const parent = getNode(this.state.doc, sel.anchor.path.slice(0, -1));
+    return !!parent && parent.type === 'tableCell';
+  }
+
+  // Text drop. Image drops are intercepted by the React layer (capture phase); a
+  // plain-text drop reaches here — handle it through the model so the browser
+  // never performs an untracked DOM insertion.
+  onDrop(e: DragEvent) {
+    if (this.inAtom(e.target)) return;
+    const dt = e.dataTransfer;
+    const text = dt && dt.getData && dt.getData('text/plain');
+    if (!text) return;
+    e.preventDefault();
+    const win = this.doc.defaultView as Window;
+    const range = this.doc.caretRangeFromPoint ? this.doc.caretRangeFromPoint(e.clientX, e.clientY) : null;
+    if (range && win) { const dsel = win.getSelection() as Selection; dsel.removeAllRanges(); dsel.addRange(range); }
+    this.syncSelectionFromDOM();
+    this.dispatch((s) => commands.insertContent(text)(s), { kind: 'type' });
+  }
+
+  // Task-list checkbox toggle. The checkbox is rendered imperatively (not React),
+  // so we catch its native change here and flip the taskItem's `checked` attr.
+  onChangeEvt(e: Event) {
+    const box = e.target as HTMLElement | null;
+    if (!box || !box.getAttribute || box.getAttribute('data-bf-checkbox') == null) return;
+    const li = (box.closest && box.closest('[data-bf-block]')) as BfElement | null;
+    if (!li || !li.__bfNode) return;
+    const path = this.nodeToPath.get(li.__bfNode);
+    if (!path) return;
+    const checked = !li.__bfNode.attrs?.checked; // toggle the model value, not the DOM
+    this.dispatch((s) => T.updateNodeAttrsAtPath(s, path, { checked }), { kind: 'structural' });
+  }
+
+  onCompositionStart(e: CompositionEvent) {
+    if (e && this.inAtom(e.target)) return;
+    this.syncSelectionFromDOM();
+    this.composing = true;
+    this.compStartSel = this.state.selection;
+    this.compStartStored = this.state.storedMarks; // keep bold/italic etc. across IME
+  }
+
+  onCompositionEnd(e: CompositionEvent) {
+    if (this.inAtom(e.target)) return;
+    this.composing = false;
+    // A co-editing binding held remote changes back while the IME owned the
+    // DOM; they land now, and move compStartSel along with them.
+    this.runHook('compositionEnd');
+    const data = e.data || '';
+    // The browser mutated the DOM in place while composing. Restore the model
+    // selection + stored marks to the pre-composition point, then apply the
+    // committed string as one transaction so the DOM is reconciled to the model.
+    this.setSelection(this.compStartSel || this.state.selection, { storedMarks: this.compStartStored || null });
+    if (data) {
+      this.dispatch((s) => T.insertText(s, data), { kind: 'type' });
+    } else {
+      // Cancelled composition: the doc is unchanged, so reconcile is a no-op and
+      // can't undo any stray DOM the IME left behind — re-render from the model.
+      this.fullRender();
+    }
+    this.compStartStored = null;
+  }
+
+  onPaste(e: ClipboardEvent) {
+    if (this.inAtom(e.target)) return; // pasting into an atom's own input
+    e.preventDefault();
+    const cd = e.clipboardData;
+    if (!cd) return;
+    this.syncSelectionFromDOM();
+    const md = cd.getData('text/plain');
+    const html = cd.getData('text/html');
+    // The React layer can intercept image paste before this fires; here we handle text.
+    if (html && this.htmlToAst) {
+      // Route through insertContent, not insertBlocks: it inserts at the caret
+      // and replaces the selection. insertBlocks appends after the whole block.
+      const ast = this.htmlToAst(html);
+      this.dispatch((s) => commands.insertContent(ast)(s), { kind: 'type' });
+    } else if (md) {
+      this.dispatch((s) => commands.insertContent(md)(s), { kind: 'type' });
+    }
+  }
+
+  onCopyCut(e: ClipboardEvent, isCut: boolean) {
+    if (this.inAtom(e.target)) return; // copy/cut inside an atom's own input
+    const sel = this.state.selection;
+    // Cell rectangle → clean pipe/tab plaintext (never raw HTML on text/plain — BFSF-167).
+    if (isCell(sel)) {
+      const rect = Tbl.cellRect(this.state.doc, sel);
+      if (!rect) return;
+      e.preventDefault();
+      (e.clipboardData as DataTransfer).setData('text/plain', Tbl.cellRectToText(this.state.doc, rect));
+      if (isCut) this.dispatch((s) => Tbl.clearCells(s), { kind: 'delete' });
+      return;
+    }
+    if (!isText(sel) || isCollapsed(sel)) return;
+    e.preventDefault();
+    // Copy the SELECTION. This used to fall back to the whole document whenever
+    // the selection spanned more than one block, which leaked the entire
+    // notebook into whatever the user pasted into (and made cut duplicate it).
+    const slice = T.sliceSelection(this.state.doc, sel);
+    const text = slice ? docToText(slice) : '';
+    try { (e.clipboardData as DataTransfer).setData('text/html', astToHtml(slice)); } catch { /* noop */ }
+    (e.clipboardData as DataTransfer).setData('text/plain', text);
+    if (isCut) this.dispatch(T.deleteSelection, { kind: 'delete' });
+  }
+
+  /* ── history ──────────────────────────────────────────── */
+  undo() {
+    if (this.undoProvider) { this.runHook('beforeChange'); this.undoProvider.undo(); this.lastKind = null; return; }
+    const prev = histUndo(this.history, this.state);
+    if (!prev) return;
+    const old = this.state; this.state = prev;
+    this.reconcile(old.doc, prev.doc); this.writeSelection(); this.emitChange();
+  }
+  redo() {
+    if (this.undoProvider) { this.runHook('beforeChange'); this.undoProvider.redo(); this.lastKind = null; return; }
+    const next = histRedo(this.history, this.state);
+    if (!next) return;
+    const old = this.state; this.state = next;
+    this.reconcile(old.doc, next.doc); this.writeSelection(); this.emitChange();
+  }
+
+  /* ── atom node-view bridge ────────────────────────────── */
+
+  /**
+   * Resolve a node view's node to something addressable.
+   *
+   * nodeToPath only indexes BLOCKS — rebuildPaths stops descending at any
+   * textblock — so inline atoms (inline math, table-cell formulas, inline
+   * images) were never in it and every bridge call below silently returned.
+   * That is why editing a formula reverted and why the atom could not be
+   * selected or deleted. Inline atoms are resolved by identity instead and
+   * addressed as a one-token range in their block.
+   */
+  resolveAtom(node: AtomNode | null, fallbackAt: { path: number[]; offset: number } | null = null): AtomResolution | null {
+    return resolveAtomIn(this.nodeToPath, this.state.doc, node, fallbackAt);
+  }
+
+  /** Text selection covering exactly the inline atom at [path, offset]. */
+  static inlineAtomSelection(at: { path: number[]; offset: number }) {
+    return textSelection(pos(at.path, at.offset), pos(at.path, at.offset + 1));
+  }
+
+  /**
+   * @param {object} opts.kind history grouping — pass 'type' for per-keystroke
+   *   edits (a diagram's source, a chart title) so they coalesce into one undo
+   *   step instead of one per character.
+   * @param {object} opts.fallbackAt {path, offset} position hint used when the
+   *   node identity lookup misses (see resolveAtom).
+   * @returns {boolean} false when the atom cannot be resolved, otherwise
+   *   whether the dispatch changed the document — so node views can keep
+   *   their editor open instead of silently dropping the edit (S5).
+   */
+  updateAtom(node: AtomNode, attrs: DocAttrs, { kind = 'structural', fallbackAt = null }: { kind?: string; fallbackAt?: { path: number[]; offset: number } | null } = {}) {
+    const at = this.resolveAtom(node, fallbackAt);
+    if (!at) return false;
+    return this.dispatch((s) => (at.inline
+      ? T.updateInlineNodeAttrs(s, at.path, at.offset, attrs)
+      : T.updateNodeAttrsAtPath(s, at.path, attrs)), { kind });
+  }
+  selectAtom(node: AtomNode) {
+    const at = this.resolveAtom(node);
+    if (!at) return false;
+    const selection = at.inline ? EditorView.inlineAtomSelection(at) : nodeSelection(at.path);
+    this.setSelection(selection, { storedMarks: null });
+    this.writeSelection();
+    try { this.onSelectionChange(this.state); } catch { /* noop */ }
+    return true;
+  }
+  deleteAtom(node: AtomNode, { fallbackAt = null }: { fallbackAt?: { path: number[]; offset: number } | null } = {}) {
+    const at = this.resolveAtom(node, fallbackAt);
+    if (!at) return false;
+    const selection = at.inline ? EditorView.inlineAtomSelection(at) : nodeSelection(at.path);
+    return this.dispatch((s) => T.deleteSelection({ ...s, selection }), { kind: 'delete' });
+  }
+
+  /* ── public API (facade backing) ──────────────────────── */
+  focus() { try { this.host.focus(); } catch { /* noop */ } this.writeSelection(); }
+
+  /**
+   * Replace the whole document (switching notebooks, restoring a version, an AI
+   * rewrite). The undo stack MUST be dropped: it holds snapshots of the OUTGOING
+   * document, so a single Ctrl+Z after a switch would restore the previous
+   * notebook's content into this one — and the autosave, which captures the
+   * notebook id after the switch, would then persist it. Same reason the
+   * coalescing marker is reset: without it the first keystroke here can merge
+   * into the last keystroke there and never be recorded at all.
+   *
+   * `rebase(current, doc)`, used only while co-editing, returns what to write
+   * instead of `doc`: content made from an older snapshot must keep what the
+   * others changed since (see collab/rebaseDoc.ts).
+   */
+  setDoc(doc: DocNode, { emitUpdate = true, rebase = null }: { emitUpdate?: boolean; rebase?: ((current: DocNode, doc: DocNode) => DocNode) | null } = {}) {
+    // Co-editing: the new content is an edit like any other (undoable, the
+    // caret stays where it was), written as the difference from the document
+    // shown now, which already holds everyone's typing.
+    if (this.collaborative) {
+      const normalized = normalizeDeep(doc);
+      this.dispatch((s) => ({ ...s, doc: rebase ? normalizeDeep(rebase(s.doc, normalized)) : normalized }), { kind: 'structural' });
+      return;
+    }
+    const normalized = normalizeDeep(doc);
+    this.state = { doc: normalized, selection: textSelection(pos(firstTextblockPath(normalized), 0)), storedMarks: null };
+    this.history = createHistory();
+    this.fullRender();
+    if (emitUpdate) this.emitChange();
+  }
+
+  /**
+   * Replace the whole document as ONE undoable step (an AI edit, a restored
+   * version) where setDoc would start a fresh history: Ctrl+Z brings the
+   * previous text back. The caret stays where it was (clamped into the new
+   * document), only the blocks that differ are re-rendered, the scroll offsets
+   * of the host's scrolling ancestors are kept, and the caret is written back
+   * to the DOM only while the editor has focus, so the edit never pulls focus
+   * out of the chat box that asked for it. While co-editing it is the same
+   * ordinary shared edit as setDoc.
+   */
+  replaceDoc(doc: DocNode, { emitUpdate = true, rebase = null }: { emitUpdate?: boolean; rebase?: ((current: DocNode, doc: DocNode) => DocNode) | null } = {}) {
+    if (this.collaborative) { this.setDoc(doc, { emitUpdate, rebase }); return; }
+    const normalized = normalizeDeep(doc);
+    const restoreScroll = keepScroll(this.host);
+    this.runHook('beforeChange');
+    const prev = this.state;
+    const next = { doc: normalized, selection: clampSelection(normalized, prev.selection), storedMarks: null };
+    record(this.history, prev, 'replace', now());
+    this.lastKind = null;
+    this.state = next;
+    this.runHook('docChanged', prev, next, { kind: 'replace' });
+    this.reconcile(prev.doc, next.doc);
+    if (this.hasFocus()) this.writeSelection();
+    else this.paintCellSelection();
+    restoreScroll();
+    if (emitUpdate) this.emitChange();
+    this.runHook('selectionChanged', this.state, { source: 'local' });
+  }
+
+  isActive(name: string | DocAttrs, attrs?: DocAttrs | undefined) { return qIsActive(this.state, name, attrs); }
+  getAttributes(name: string) { return qGetAttributes(this.state, name); }
+  getSelectedNode() {
+    const sel = this.state.selection;
+    if (isNode(sel)) return getNode(this.state.doc, sel.path);
+    // An inline atom is selected as the one-token range covering it.
+    if (isText(sel) && !isCollapsed(sel)) {
+      const { from, to } = selRange(sel);
+      if (eqPath(from.path, to.path) && to.offset === from.offset + 1) {
+        const block = getNode(this.state.doc, from.path);
+        const tok = block ? inlineToTokens(block.content)[from.offset] : null;
+        if (tok?.node) return tok.node;
+      }
+    }
+    return null;
+  }
+  // The table containing the current selection (+ its DOM element), or null.
+  // Powers the on-hover add-row/add-column controls.
+  tableInfo() {
+    const sel = this.state.selection;
+    const path = isText(sel) ? sel.anchor.path : isNode(sel) ? sel.path : isCell(sel) ? sel.anchorCell : null;
+    if (!path) return null;
+    const ctx = Tbl.tableContext(this.state.doc, path);
+    if (!ctx) return null;
+    const node = getNode(this.state.doc, ctx.tablePath);
+    const el = this.domForNode.get(node);
+    if (!el) return null;
+    // ordinal = index among all tables in document order (stable collapse key).
+    const target = ctx.tablePath.join(',');
+    let ordinal = 0; let found = false;
+    const walk = (n: DocNode, p: number[]) => {
+      if (found) return;
+      if (n.type === 'table') { if (p.join(',') === target) found = true; else ordinal++; return; }
+      (n.content || []).forEach((c, i) => walk(c, [...p, i]));
+    };
+    walk(this.state.doc, []);
+    return { el, node, path: ctx.tablePath, ordinal };
+  }
+  // All tables in document order with their DOM elements (for collapse toggling).
+  allTables() {
+    const out: { el: HTMLElement | undefined; ordinal: number }[] = []; let ordinal = 0;
+    const walk = (n: DocNode, p: number[]) => {
+      if (n.type === 'table') { out.push({ el: this.domForNode.get(n), ordinal }); ordinal++; return; }
+      (n.content || []).forEach((c, i) => walk(c, [...p, i]));
+    };
+    walk(this.state.doc, []);
+    return out;
+  }
+  selectionFlat() { return selectionToFlat(this.state.doc, this.state.selection); }
+  can() {
+    const u = this.undoProvider;
+    return {
+      undo: () => (u ? !!u.canUndo() : canUndo(this.history)),
+      redo: () => (u ? !!u.canRedo() : canRedo(this.history)),
+    };
+  }
+
+  getHTML() { return astToHtml(this.state.doc); }
+  getMarkdown() { return astToMarkdown(this.state.doc); }
+  getText() { return docToText(this.state.doc); }
+
+  chain() {
+    const ops: [string, unknown[]][] = [];
+    const proxy = new Proxy({}, {
+      get: (_t, prop) => {
+        if (prop === 'run') return () => { this.runChain(ops); return true; };
+        return (...args: unknown[]) => { ops.push([prop as string, args]); return proxy; };
+      },
+    });
+    return proxy;
+  }
+
+  runChain(ops: [string, unknown[]][]) {
+    const fns: ((s: EditorState) => EditorState)[] = [];
+    let kind = 'other';
+    for (const [name, args] of ops) {
+      if (name === 'focus') { this.focus(); continue; }
+      if (name === 'undo') { this.undo(); return; }
+      if (name === 'redo') { this.redo(); return; }
+      const factory = (commands as Record<string, (...a: unknown[]) => (s: EditorState) => EditorState>)[name];
+      if (factory) {
+        fns.push(factory(...args));
+        if (name.startsWith('insert') || name === 'insertText') kind = 'type';
+      }
+    }
+    if (fns.length) this.dispatch((s) => fns.reduce((acc, f) => f(acc) || acc, s), { kind });
+  }
+
+  /* ── helpers ──────────────────────────────────────────── */
+  currentBlock() {
+    const sel = this.state.selection;
+    const path = isText(sel) ? sel.anchor.path : isNode(sel) ? sel.path : null;
+    return path ? getNode(this.state.doc, path) : null;
+  }
+  inListItem() {
+    const sel = this.state.selection;
+    if (!isText(sel)) return false;
+    const pPath = sel.anchor.path.slice(0, -1);
+    if (!pPath.length) return false;
+    const parent = getNode(this.state.doc, pPath);
+    return parent.type === 'listItem' || parent.type === 'taskItem';
+  }
+  isEmptyListItem() {
+    if (!this.inListItem()) return false;
+    const block = this.currentBlock();
+    return block && isTextblock(block.type) && inlineToTokens(block.content).length === 0;
+  }
+}
+
+export function createView(host: HTMLDivElement, opts?: EditorViewOptions) { return new EditorView(host, opts); }

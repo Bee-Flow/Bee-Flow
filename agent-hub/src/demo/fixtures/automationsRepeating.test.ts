@@ -74,9 +74,9 @@ describe('automations demo: find repeating work', () => {
         const res = await demo().post(`${BASE}/suggest`, { mode: 'patterns', sources: ['mail', 'beeflow'], focus: '', force: true });
         const events: string[] = [];
         let done: Json | null = null;
-        await readEventStream(res.body!, (event: string, data: Json) => {
+        await readEventStream(res.body!, (event: string, data: unknown) => {
             events.push(event);
-            if (event === 'done') done = data;
+            if (event === 'done') done = data as Json;
         });
         expect(events[0]).toBe('model');
         expect(events).toContain('source_step');

@@ -1,5 +1,6 @@
 import { AlertTriangle, Info, Search } from 'lucide-react';
 import React from 'react';
+import type { OperatedStage } from './pipeline/stagesApi';
 import SolutionCard from './SolutionCard';
 import SolutionCardSkeleton from './SolutionCardSkeleton';
 import { Strip, sectionNames } from './solutionNotices';
@@ -179,7 +180,7 @@ export function OverviewNotices({ summary, onRetry }: { summary: Row; onRetry?: 
  * point for someone who was given UAT or Production and nothing else. Built
  * from the `operatedStages` list of /summary, never from a fetch per row.
  */
-export function OperatedStages({ stages, onOpenStage }: { stages: Row[]; onOpenStage?: (s: Row) => void }) {
+export function OperatedStages({ stages, onOpenStage }: { stages: OperatedStage[]; onOpenStage?: (s: OperatedStage) => void }) {
     const { t } = useTranslation();
     if (stages.length === 0) return null;
     const stageName: Record<string, string> = {
@@ -192,7 +193,7 @@ export function OperatedStages({ stages, onOpenStage }: { stages: Row[]; onOpenS
                 {t('solution_stages.operated_title', 'Operated stages')}
             </h3>
             <ul className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {stages.map((s: Row) => (
+                {stages.map((s: OperatedStage) => (
                     <li key={s.projectId}>
                         <button
                             type="button"

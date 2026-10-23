@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { markdownToHtml, htmlToMarkdown } from './AppInputRichtext';
 
-function render(md: string): HTMLElement {
+function render(md: string): HTMLDivElement {
     const el = document.createElement('div');
     el.innerHTML = markdownToHtml(md);
     return el;

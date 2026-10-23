@@ -62,9 +62,9 @@ export default function RepeaterInspector({ node, definition, onCommit, disabled
     const actions = actionOptions(definition);
     const actionIds = actions.map((a) => a.id);
 
-    const setSource = (v: BindingInput) => {
+    const setSource = (v: unknown) => {
         let next = updateNodeProps(definition, node.id, { source: v });
-        next = mirrorForEach(next, node.id, v);
+        next = mirrorForEach(next, node.id, v as BindingInput);
         if (next !== definition) onCommit(next);
     };
     const patch = usePatch(node, definition, onCommit);

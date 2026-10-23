@@ -103,7 +103,7 @@ describe('nodeDefs — issue sections point at sections that exist', () => {
         // (RouteFields, GuardFields, the shared fields/contract editors) pass
         // a variable and are covered by the per-type assertion above plus the
         // SettingsForm.*.test.jsx suites. The per-type editors live in
-        // SettingsForm.jsx plus the flow/settings/*.jsx modules it renders,
+        // SettingsForm.tsx plus the flow/settings/*.jsx modules it renders,
         // INCLUDING the ones that moved into a per-file folder (`actionEditors/`
         // and any that follow). A flat readdir stops seeing those the moment
         // `x.jsx` becomes `x/index.jsx`, and this scan would go on passing while
@@ -115,7 +115,7 @@ describe('nodeDefs — issue sections point at sections that exist', () => {
             return /\.[jt]sx$/.test(e.name) && !e.name.includes('.test.') ? [p] : [];
         });
         const src = [
-            path.join(HERE, 'SettingsForm.jsx'),
+            path.join(HERE, 'SettingsForm.tsx'),
             ...editorFiles(settingsDir),
         ].map(p => fs.readFileSync(p, 'utf8')).join('\n');
         const found = new Map();

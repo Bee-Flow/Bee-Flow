@@ -28,7 +28,7 @@ export function requireWeb<T>(rel: string): T {
 
 /** A top-level `const NAME = <value>;` out of a source file, as its literal text. */
 export function constText(src: string, name: string): string {
-    const m = new RegExp(`\\bconst ${name} = ([^;]+);`).exec(src);
+    const m = new RegExp(`\\bconst ${name}(?:: [^=]+)? = ([^;]+);`).exec(src);
     if (!m) throw new Error(`const ${name} is gone`);
     return (m[1] as string).trim();
 }

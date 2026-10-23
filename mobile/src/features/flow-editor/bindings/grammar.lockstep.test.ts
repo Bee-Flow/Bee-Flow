@@ -143,7 +143,7 @@ describe('pills, conditions and the value model: phone = web', () => {
 });
 
 describe('every label names a path the way its pill does: phone = web', () => {
-    const webDisplay = requireWeb(`${BUILDER}/flow/displayHelpers.js`);
+    const webDisplay = requireWeb(`${BUILDER}/flow/displayHelpers.ts`);
     it.each([
         'from.emailAddress.address', 'value[*].toRecipients[*].emailAddress.address', 'items[0]', 'items[-1]', 'items[2]',
         'fields["Story Points"]', 'headers[name="Subject"].value', 'customer.id', 'results[*].from_email', 'subject',

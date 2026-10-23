@@ -6,7 +6,7 @@
  * the meeting — and also when it could not CHECK one of those. That payload
  * is the whole point of the guard, and the old `throw new Error('HTTP ' +
  * status)` threw it away, which is why the meeting delete could not talk to
- * `shared/DangerZone.jsx` at all.
+ * `shared/DangerZone.tsx` at all.
  *
  * These tests pin the two halves that have to line up: the error this module
  * throws, and the shape DangerZone's `inUsePayload` reads. They import the

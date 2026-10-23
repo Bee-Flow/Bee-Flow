@@ -16,6 +16,7 @@ export type IconType = ComponentType<{ size?: number; className?: string }>;
 export interface StepPayload {
     kind: string;
     label?: string;
+    tool?: string;
     [key: string]: unknown;
 }
 

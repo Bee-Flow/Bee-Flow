@@ -26,13 +26,13 @@ export interface BlockWarning {
     message: string;
 }
 
-export interface NormalizedBlock {
-    id: unknown;
+export type NormalizedBlock = {
+    id: string;
     type: string;
     enabled: boolean;
     content: Record<string, unknown>;
     style: Record<string, unknown>;
-}
+};
 
 export interface NormalizeResult {
     block: NormalizedBlock | null;
@@ -154,7 +154,7 @@ export function normalizeBlock(raw: unknown, index: number): NormalizeResult {
 
     const style = isPlainObject(raw.style) ? raw.style : {};
 
-    return { block: { id, type, enabled, content, style }, dropped: null, warnings };
+    return { block: { id: id as string, type, enabled, content, style }, dropped: null, warnings };
 }
 
 /**

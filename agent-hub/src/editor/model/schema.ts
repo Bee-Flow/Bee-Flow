@@ -23,7 +23,7 @@ export interface DocAttrs {
   header?: boolean;
   colspan?: number;
   rowspan?: number;
-  colwidth?: number[] | null;
+  colwidth?: number | null;
   src?: string | null;
   alt?: string | null;
   title?: string | null;

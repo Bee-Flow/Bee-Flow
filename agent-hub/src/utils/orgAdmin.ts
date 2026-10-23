@@ -3,7 +3,7 @@
 // server stays the judge of what an admin may actually do.
 
 export interface OrgAdminUserLike {
-    isAdmin?: boolean;
+    isAdmin?: boolean | null;
     orgRole?: string | null;
     permissions?: string[] | null;
 }

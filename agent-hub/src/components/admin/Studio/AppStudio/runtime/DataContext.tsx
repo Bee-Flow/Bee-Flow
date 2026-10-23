@@ -24,8 +24,8 @@ export interface DataEntry {
     error?: unknown;
     errorCode?: unknown;
     errorProvider?: unknown;
-    tableId?: string;
-    datasetId?: string;
+    tableId?: string | null;
+    datasetId?: string | null;
     connectorId?: string | null;
 }
 

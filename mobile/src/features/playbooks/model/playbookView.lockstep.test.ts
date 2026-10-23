@@ -29,19 +29,19 @@ import {
 import type { Phase } from './types';
 
 const DIR = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/Playbooks');
-const describeIfWeb = fs.existsSync(path.join(DIR, 'playbookView.js')) ? describe : describe.skip;
+const describeIfWeb = fs.existsSync(path.join(DIR, 'playbookView.ts')) ? describe : describe.skip;
 
 type Fn = (...args: unknown[]) => unknown;
 const t = (_k: string, en: string, p: Record<string, unknown> = {}) => en.replace(/\{(\w+)\}/g, (m, n: string) => (n in p ? String(p[n]) : m));
 
 function loadWeb() {
     const machine = loadWebModule<Record<string, Fn>>(path.join(DIR, 'phaseMachine.ts'));
-    const view = loadWebModule<Record<string, Fn>>(path.join(DIR, 'playbookView.js'), {
+    const view = loadWebModule<Record<string, Fn>>(path.join(DIR, 'playbookView.ts'), {
         kindOf: machine.kindOf,
         getItem: () => null,
         formatElapsed,
     });
-    const recipes = loadWebModule<Record<string, unknown>>(path.join(DIR, 'recipes.js'));
+    const recipes = loadWebModule<Record<string, unknown>>(path.join(DIR, 'recipes.ts'));
     return { view, recipes };
 }
 

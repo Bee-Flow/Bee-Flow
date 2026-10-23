@@ -16,7 +16,7 @@ const REPO = path.resolve(__dirname, '../../../../..');
 const read = (rel: string) => fs.readFileSync(path.join(REPO, rel), 'utf8');
 const MEMBERSHIP = read('server/projects/membership.js');
 const WEB_SECTIONS = read('agent-hub/src/components/admin/Studio/Solutions/solutionSections.ts');
-const WEB_BANDS = read('agent-hub/src/components/admin/Studio/Solutions/SolutionContentTable.jsx');
+const WEB_BANDS = read('agent-hub/src/components/admin/Studio/Solutions/SolutionContentTable.tsx');
 
 describe('the sections match the server registry', () => {
     // The phone's sections are a Solution's: a kind the registry keeps to

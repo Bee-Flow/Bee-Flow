@@ -92,7 +92,7 @@ export default function FormEditorModal({
     const form: Form | null = page ? (local[page.id] || page.form) : null;
     const triggerTheme = useMemo(() => {
         const trig = pages.find(p => p.kind === 'trigger');
-        return trig ? ((local[trig.id] || trig.form).theme as unknown) || null : null;
+        return trig ? ((local[trig.id] || trig.form).theme as Record<string, unknown> | undefined) || null : null;
     }, [pages, local]);
 
     const change = (id: string, next: Form) => {
@@ -110,7 +110,7 @@ export default function FormEditorModal({
         if (!page || !form) return null;
         return buildPreviewConfig({
             form,
-            theme: (form.theme as unknown) || triggerTheme || THEME_PRESETS[0].theme,
+            theme: (form.theme as Record<string, unknown> | null | undefined) || triggerTheme || THEME_PRESETS[0].theme,
             isEnding: page.kind === 'ending',
             allowVariables: page.allowVariables,
             previewSample,

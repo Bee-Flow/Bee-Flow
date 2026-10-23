@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
+import type { AssistantField } from '../useBuilderShellState';
 
-type AskAssistantField = (field: unknown) => unknown;
+type AskAssistantField = (field: AssistantField) => unknown;
 
 const AssistantFieldContext = createContext<AskAssistantField | null>(null);
 

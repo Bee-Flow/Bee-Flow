@@ -26,7 +26,7 @@ import { describe, it, expect } from 'vitest';
 // AgentHub/HubMainContent.tsx (the ternary). Read as one, in that order, so
 // the branch-order slice below only ever sees the ternary's branches.
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const SRC = ['AgentHub.jsx', 'AgentHub/hubOverlays.ts', 'AgentHub/HubMainContent.tsx']
+const SRC = ['AgentHub.tsx', 'AgentHub/hubOverlays.ts', 'AgentHub/HubMainContent.tsx']
     .map((file) => fs.readFileSync(path.join(HERE, file), 'utf8'))
     .join('\n');
 

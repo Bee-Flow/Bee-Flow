@@ -19,15 +19,6 @@ import { railScore } from '../../railMeta';
 import { sectionsInGroup } from '../../sections';
 import ScoreRingJs from '../../shared/ScoreRing';
 
-interface SectionLike {
-    id: string;
-    regulation?: string | null;
-    optional?: boolean;
-    icon?: React.ComponentType<{ size?: number; className?: string; 'aria-hidden'?: boolean }>;
-    labelKey: string;
-    labelFallback: string;
-}
-
 type Tone = keyof typeof TONES;
 
 export interface OtherFrameworkRow {
@@ -64,8 +55,8 @@ export function otherFrameworkRows({ counts, frameworks, overview, checks, t }: 
     checks: ReadonlyArray<CheckLike | null> | null | undefined;
     t: Translate;
 }): OtherFrameworkRow[] {
-    const all = sectionsInGroup('frameworks') as unknown as SectionLike[];
-    const visible = visibleSections(all, { counts, frameworks }) as SectionLike[];
+    const all = sectionsInGroup('frameworks');
+    const visible = visibleSections(all, { counts, frameworks });
     return visible
         .filter((s) => s.optional && s.regulation)
         .map((s) => {

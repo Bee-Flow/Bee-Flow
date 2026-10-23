@@ -18,7 +18,7 @@ import { Avatar } from './workspaceUi';
 export interface ProjectRailProps {
     projectId: string;
     /** null while the URL has no tab (= overview). */
-    activeTab: WorkspaceTabId | null;
+    activeTab: string | null;
     onSelectTab: (tab: WorkspaceTabId) => void;
     /** "All projects". */
     onBack: () => void;

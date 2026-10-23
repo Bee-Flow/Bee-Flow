@@ -99,7 +99,7 @@ export function useRouteEdits({ route, rules, set, previewSample, wiredCaseNames
      * empty branch, arriving through the one door in this box that adds a
      * step. Whole-run plans carry no source and this is `applySuggestion`.
      */
-    const applyHandoff = (plan: { rules: SuggestedRule[]; source?: string }) => {
+    const applyHandoff = (plan: { rules: SuggestedRule[]; source?: string | null }) => {
         applySuggestion(plan.rules, plan.source ? { source: plan.source } : null);
     };
 

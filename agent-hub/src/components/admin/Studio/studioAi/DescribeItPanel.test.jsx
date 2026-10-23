@@ -42,7 +42,7 @@ vi.mock('../../../../hooks/useTranslation', () => {
 });
 
 import { STUDIO_APPS, resolveStudioNav } from '../studioApps';
-import DescribeItPanel from './DescribeItPanel.jsx';
+import DescribeItPanel from './DescribeItPanel';
 import { takeSeed } from './handoff';
 
 const allOpen = () => resolveStudioNav(STUDIO_APPS, {

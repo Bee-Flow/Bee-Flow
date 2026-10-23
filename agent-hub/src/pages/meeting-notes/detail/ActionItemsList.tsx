@@ -12,10 +12,10 @@ import type { MeetingActionItem, MeetingNote } from './meetingDetailTypes';
 interface ActionItemsListProps {
     items?: MeetingActionItem[];
     meeting?: MeetingNote | null;
-    onToggle?: (id: string) => void;
-    onEdit?: (id: string, text: string) => void;
+    onToggle?: (id: string | undefined) => void;
+    onEdit?: (id: string | undefined, text: string) => void;
     onSeek?: (seconds: number) => void;
-    onSetDestination?: (id: string, destination: DestinationRecord | null) => void;
+    onSetDestination?: (id: string | undefined, destination: DestinationRecord | null) => void;
 }
 
 interface ActionItemRowProps {
@@ -30,7 +30,7 @@ interface ActionItemRowProps {
     onSeek?: (seconds: number) => void;
     canEdit: boolean;
     meeting: MeetingNote | null;
-    onSetDestination?: (id: string, destination: DestinationRecord | null) => void;
+    onSetDestination?: (id: string | undefined, destination: DestinationRecord | null) => void;
     t: TranslateFn;
 }
 
@@ -38,7 +38,7 @@ interface ActionItemMetaProps {
     item: MeetingActionItem;
     onSeek?: (seconds: number) => void;
     meeting: MeetingNote | null;
-    onSetDestination?: (id: string, destination: DestinationRecord | null) => void;
+    onSetDestination?: (id: string | undefined, destination: DestinationRecord | null) => void;
     t: TranslateFn;
 }
 
@@ -56,7 +56,7 @@ interface ActionItemMetaProps {
  */
 export default function ActionItemsList({ items = [], meeting = null, onToggle, onEdit, onSeek, onSetDestination }: ActionItemsListProps) {
     const { t } = useTranslation();
-    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editingId, setEditingId] = useState<string | null | undefined>(null);
     const [draft, setDraft] = useState('');
 
     // When any item carries a spoken deadline, dated items float up in due

@@ -17,8 +17,8 @@ const REPO = path.resolve(__dirname, '../../../../..');
 // the mobile CI filter, so the store's use of it is what is pinned here.
 describe('the HTML sniff is the web’s, where the store decides', () => {
     it('matches the web editor’s looksLikeHtml', () => {
-        const web = fs.readFileSync(`${AGENT_HUB_SRC}/editor/serialization/util.js`, 'utf8');
-        expect(web).toContain(`export const looksLikeHtml = (s) => ${HTML_LIKE.toString()}.test(s || '');`);
+        const web = fs.readFileSync(`${AGENT_HUB_SRC}/editor/serialization/util.ts`, 'utf8');
+        expect(web).toContain(`export const looksLikeHtml = (s: string) => ${HTML_LIKE.toString()}.test(s || '');`);
     });
 
     it('is where the store decides Markdown from HTML', () => {

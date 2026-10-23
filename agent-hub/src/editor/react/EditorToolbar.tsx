@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useViewport } from '../../hooks/useViewport';
 import type { TranslateFn } from '../../hooks/useTranslation';
-import { fullColumnSelection } from '../engine/tables.js';
+import { fullColumnSelection } from '../engine/tables';
 import type { EditorFacade } from './editorFacade.js';
 import type { InsertItem } from './insertItems';
 import {

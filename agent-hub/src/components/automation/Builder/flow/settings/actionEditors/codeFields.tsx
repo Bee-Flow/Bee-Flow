@@ -23,6 +23,8 @@ import { upstreamFieldsFrom, type InputsMap } from '../codeStep/codeParams';
 import CodeSourceBlock, { codeInputsRoundTrip } from '../codeStep/CodeSourceBlock';
 import FindingsBanner from '../codeStep/FindingsBanner';
 import { useLargeEditorRequest } from '../codeStep/largeEditorSignal';
+import type { Group } from '../../../mapping/upstream/upstream.types';
+import type { OnFocusField } from '../../../mapping/focusField.types';
 import type { LargeEditorTab } from '../codeStep/CodeLargeEditor';
 
 const CodeLargeEditor = lazyWithI18n(() => import('../codeStep/CodeLargeEditor'));
@@ -43,8 +45,8 @@ export interface CodeDraft extends Obj {
 export interface CodeFieldsProps {
     draft: CodeDraft;
     set: (key: string, value: unknown) => void;
-    groups?: unknown[];
-    onFocusField?: unknown;
+    groups?: Group[];
+    onFocusField?: OnFocusField | null;
     errorSections?: Set<string>;
     step?: { id?: string; code?: string; label?: string; allowedTools?: string[] } & Obj | null;
     automation?: { id?: string } & Obj | null;

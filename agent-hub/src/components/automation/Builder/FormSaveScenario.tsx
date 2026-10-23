@@ -7,7 +7,7 @@ import { scenarioErrorText } from './runs/runChecksErrors';
  * After a test run of a form: keep its answers as a named scenario, so the same
  * path can be tried again without typing it. The name is the only question.
  */
-export default function FormSaveScenario({ automationId, runId }: { automationId: string; runId: string }) {
+export default function FormSaveScenario({ automationId, runId }: { automationId: string | null | undefined; runId: string }) {
     const { t } = useTranslation();
     const create = useCreateFormScenario(automationId);
     const [open, setOpen] = useState(false);

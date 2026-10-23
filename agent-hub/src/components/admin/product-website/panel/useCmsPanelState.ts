@@ -62,7 +62,7 @@ export default function useCmsPanelState() {
 
     // ── server state ────────────────────────────────────────────────
     const [loading, setLoading]               = useState(true);
-    const [error, setError]                   = useState<string | null>(null);
+    const [error, setError]                   = useState<string | null | undefined>(null);
     // liveSiteId is the *globally* live project id (or null). The Live
     // toggle in the panel reflects whether this site === liveSiteId,
     // since at most one project can be live at a time.

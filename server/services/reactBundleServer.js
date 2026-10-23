@@ -3,7 +3,7 @@
  *
  * This is the SERVER side of the react-mui preview: it produces the SAME
  * single-inline-module + esm.sh import-map document the web editor's preview
- * renders (agent-hub/src/utils/buildWebpagePreview.js), but with NATIVE
+ * renders (agent-hub/src/utils/buildWebpagePreview.ts), but with NATIVE
  * esbuild (not esbuild-wasm) so headless Chromium
  * (server/services/webpageRender.js) can screenshot a react-mui page exactly
  * as the user sees it.

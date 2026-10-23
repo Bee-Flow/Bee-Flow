@@ -4,7 +4,7 @@ import { toast } from '../../../components/shared/Toast';
 import type { TranslateFn } from '../../../hooks/useTranslation';
 import * as api from '../lib/transcriptionsApi';
 import type { RegenerateArg } from '../lib/transcriptionsApi.types';
-import type { MeetingActionItem, MeetingNote, MeetingRowPatch, SetMeeting } from './meetingDetailTypes';
+import type { MeetingActionItem, MeetingChapter, MeetingNote, MeetingRowPatch, SetMeeting } from './meetingDetailTypes';
 import { errorCode, errorMessage } from '../../../utils/caughtError';
 
 interface RegenerateAnswer {
@@ -12,7 +12,7 @@ interface RegenerateAnswer {
     actionItems?: unknown;
     decisions?: MeetingActionItem[];
     questions?: MeetingActionItem[];
-    chapters?: unknown[];
+    chapters?: MeetingChapter[];
     summaryTemplateId?: string | null;
     summaryTemplateVersion?: number | null;
     artifactsRegenerated?: boolean;

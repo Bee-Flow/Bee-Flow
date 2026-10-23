@@ -15,7 +15,7 @@ const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
 /* eslint-disable @typescript-eslint/no-require-imports */
 const webMatch = require(`${FLOW}/matchValidationToStep.ts`);
 const webSection = require(`${FLOW}/sectionForIssue.ts`);
-const webDisplay = require(`${FLOW}/displayHelpers.js`);
+const webDisplay = require(`${FLOW}/displayHelpers.ts`);
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const rec = (path: string, code = 'x.y') => ({ code, severity: 'error' as const, path, message: `Step ${path} is wrong` });

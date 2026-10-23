@@ -1,6 +1,6 @@
 import { CircleSlash } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { RunSurface } from './AppRunPage';
+import { RunSurface, type ShellDefinition } from './AppRunPage';
 import { appDesignProps } from '../../components/admin/Studio/AppStudio/runtime/appDesign';
 import AppFontLoader from '../../components/admin/Studio/AppStudio/runtime/AppFontLoader';
 import { createPublicAppTransport } from '../../components/admin/Studio/AppStudio/runtime/publicAppTransport';
@@ -17,7 +17,7 @@ type PublicAppError = Error & { status?: number };
 interface PublicAppPayload {
     visitorToken?: string;
     entryScreenId?: string;
-    definition?: { homeScreenId?: string; theme?: unknown } | null;
+    definition?: ShellDefinition | null;
     app?: { id?: string; name?: string };
 }
 

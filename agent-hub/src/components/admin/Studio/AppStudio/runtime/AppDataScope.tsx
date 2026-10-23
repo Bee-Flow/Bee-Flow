@@ -49,7 +49,7 @@ type Visitable = ScreenNodeLike | Visitable[] | string | number | boolean | null
 /** A node or binding as the scan reads it. */
 interface ScreenNodeLike {
     kind?: string;
-    props: { liveSeconds?: unknown; liveWhile?: BindingInput };
+    props?: { liveSeconds?: unknown; liveWhile?: BindingInput };
     [key: string]: unknown;
 }
 
@@ -91,7 +91,7 @@ export interface BindingEntry {
 
 /** What the render prop gets beside the data. */
 export interface DataScopeControls {
-    refresh: (scopeArg?: { tableId?: string; datasetId?: string } | null) => Promise<void>;
+    refresh: (scopeArg?: { tableId?: string | null; datasetId?: string | null } | null) => Promise<void>;
 }
 
 /** The screen the renderer would show — same fallback chain as AppRenderer. */
@@ -160,7 +160,7 @@ export function collectDataBindings(definition: ScopeDefinition | null | undefin
         // A node's own liveSeconds applies to every binding underneath it, and
         // a child that asks for its own keeps it.
         const own = Number(value?.props?.liveSeconds) || 0;
-        const inherited = own ? { seconds: own, when: value.props.liveWhile ?? null } : liveSeconds;
+        const inherited = own ? { seconds: own, when: value.props?.liveWhile ?? null } : liveSeconds;
         for (const v of Object.values(value) as Visitable[]) visit(v, inherited);
     };
     for (const section of screen.sections || []) visit(section, null);
@@ -271,7 +271,7 @@ function DataConsumer({ appId, children }: {
      * narrowing matters on a polling screen: reloading eight bindings because
      * one record changed is what makes an app feel like it flickers.
      */
-    const refresh = useCallback((scopeArg?: { tableId?: string; datasetId?: string } | null) => {
+    const refresh = useCallback((scopeArg?: { tableId?: string | null; datasetId?: string | null } | null) => {
         if (!queryClient) return Promise.resolve();
         const s = (scopeArg && typeof scopeArg === 'object') ? scopeArg : null;
         const tableId = s?.tableId || null;

@@ -115,7 +115,7 @@ export interface KeyedPlaybookEvent {
     artifacts?: PhaseArtifacts;
     summary?: string;
     error?: string;
-    nextKey?: string;
+    nextKey?: string | null;
     feedback?: unknown;
     extra?: Record<string, unknown>;
 }

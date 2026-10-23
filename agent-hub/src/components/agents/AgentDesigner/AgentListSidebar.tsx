@@ -12,7 +12,7 @@ export interface DesignerAgent {
     [key: string]: unknown;
 }
 
-export interface DesignerUser { id?: string; orgRole?: string; [key: string]: unknown }
+export interface DesignerUser { id?: string; orgRole?: string | null; [key: string]: unknown }
 
 export interface AgentListSidebarProps {
     agents: DesignerAgent[];

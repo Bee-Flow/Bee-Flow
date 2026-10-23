@@ -47,7 +47,7 @@ export const runCheckKeys = {
     all: ['automation-run-checks'] as const,
     compare: (a: string, b: string, stepId: string | null) => ['automation-run-checks', 'compare', a, b, stepId] as const,
     goldens: (automationId: string) => ['automation-run-checks', 'goldens', automationId] as const,
-    scenarios: (automationId: string) => ['automation-run-checks', 'scenarios', automationId] as const,
+    scenarios: (automationId: string | null | undefined) => ['automation-run-checks', 'scenarios', automationId] as const,
     scenario: (automationId: string, id: string) => ['automation-run-checks', 'scenario', automationId, id] as const,
 };
 
@@ -133,7 +133,7 @@ export function useReplayGoldens(automationId: string) {
 
 // ── Form scenarios ─────────────────────────────────────────────────────────
 
-export function useFormScenarios(automationId: string | null, enabled = true) {
+export function useFormScenarios(automationId: string | null | undefined, enabled = true) {
     return useQuery<ScenarioList, Error>({
         queryKey: runCheckKeys.scenarios(automationId || ''),
         queryFn: async ({ signal }) => parseScenarioList(await request(`/${enc(automationId as string)}/form-scenarios`, 'Scenarios', undefined, signal)),
@@ -144,7 +144,7 @@ export function useFormScenarios(automationId: string | null, enabled = true) {
 }
 
 /** One scenario WITH its answers; fetched only when `scenarioId` is set. */
-export function useFormScenario(automationId: string | null, scenarioId: string | null) {
+export function useFormScenario(automationId: string | null | undefined, scenarioId: string | null) {
     return useQuery<ScenarioDetail | null, Error>({
         queryKey: runCheckKeys.scenario(automationId || '', scenarioId || ''),
         queryFn: async ({ signal }) => {
@@ -157,11 +157,11 @@ export function useFormScenario(automationId: string | null, scenarioId: string 
     });
 }
 
-export function useCreateFormScenario(automationId: string) {
+export function useCreateFormScenario(automationId: string | null | undefined) {
     const qc = useQueryClient();
     return useMutation<ScenarioItem | null, Error, { name: string; fromRunId: string }>({
         mutationFn: async ({ name, fromRunId }) => {
-            const out = await request(`/${enc(automationId)}/form-scenarios`, 'Save scenario', sendJson('POST', { name, fromRunId }));
+            const out = await request(`/${enc(String(automationId))}/form-scenarios`, 'Save scenario', sendJson('POST', { name, fromRunId }));
             return parseScenario(isRecord(out) ? out.scenario : null);
         },
         onSuccess: () => { qc.invalidateQueries({ queryKey: runCheckKeys.scenarios(automationId) }); },

@@ -94,7 +94,7 @@ async function runTests() {
         assert.strictEqual(result, null, 'should return null with wrong key');
     });
 
-    // The browser wrapper (agent-hub/src/lib/opaque.js) writes the SAME
+    // The browser wrapper (agent-hub/src/lib/opaque.ts) writes the SAME
     // wrappedDEK column with hex-encoded fields, while this module writes
     // base64. Reading a hex envelope as base64 used to yield garbage, so
     // unwrap returned null and the caller charged the user a failed password

@@ -1,4 +1,8 @@
 import type { studioAppForKind } from '../studioNav';
+import type { TranslateParams } from '../../../../hooks/useTranslation';
+import type { LucideIcon } from 'lucide-react';
+import type { Translate } from '../studioGates';
+import type { StudioCounts } from '../../../../hooks/useStudioCounts';
 
 type StudioApp = NonNullable<ReturnType<typeof studioAppForKind>>;
 
@@ -77,3 +81,62 @@ export interface BlockMeta {
 
 /** The state of one box's counter. */
 export type CountState = { state: 'unknown' | 'not_counted' | 'pending' } | { state: 'known'; value: number };
+
+export interface LaneBandsProps {
+    t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
+}
+
+/** The line of one edge, with its arrow head and its verb(s). */
+export interface EdgeProps {
+    edge: MapEdge;
+    geometry: EdgeGeometry | null;
+    t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
+    selected: string | null;
+}
+
+/** One box: a real button, at its hand-placed spot. */
+export interface MapTileProps {
+    node: MapNode;
+    label: string | null;
+    count: CountState;
+    selected: boolean;
+    dimmed: boolean;
+    onToggle: () => void;
+    Icon: LucideIcon | null;
+    t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
+}
+
+/** The counter of the chosen box, in words. Exactly one of the four. */
+export interface CountLineProps {
+    count: { state: string; value?: number };
+    scope: string | null;
+    countKey: string | null;
+    t: Translate;
+}
+
+/** The explanation under the plate: name, lane, counter, and how many hang off it. */
+export interface DetailPanelProps {
+    node: MapNode | null;
+    label: string | null;
+    count: CountState;
+    countKey: string | null;
+    scope: string | null;
+    edgeCount: number;
+    t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
+}
+
+/**
+  * The eleven connections in words. Always visible: this is the plate without
+  * the plate, and at the same time the legend next to it.
+ */
+export interface EdgeSentencesProps {
+    selected: string | null;
+    t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
+}
+
+export interface StudioMapProps {
+    counts: StudioCounts | null;
+    countsFailed?: boolean;
+    scope?: string | null;
+    locale?: string;
+}

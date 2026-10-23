@@ -72,11 +72,11 @@ interface AgentsState {
     kbs: DemoKb[];
 }
 
-interface RefineBody {
+type RefineBody = {
     plan?: { name?: string; description?: string; avatar?: string; systemPrompt?: string; capabilities?: unknown };
     current?: { model?: string | null; enabledIntegrations?: string[]; attachedSkills?: string[]; knowledge_base_ids?: string[] };
     refinement?: string;
-}
+};
 
 /**
  * BuilderSplit reads the agent as SNAKE_CASE top-level fields —

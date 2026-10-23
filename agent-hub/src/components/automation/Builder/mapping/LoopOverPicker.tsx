@@ -1,3 +1,4 @@
+import type { OnFocusField } from './focusField.types';
 import { getPath } from '@shared/expr/path.mjs';
 import { Repeat, ChevronRight, ChevronDown, Check } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
@@ -33,7 +34,7 @@ interface LoopOverPickerProps {
     parents?: ForEachParent[];
     onChange?: (patch: LoopPatch) => void;
     groups?: Group[];
-    onFocusField?: (field: { id: string; label: string; insert: (path: string) => void }) => void;
+    onFocusField?: OnFocusField | null;
     bindings?: unknown;
     onRebind?: ((bindings: unknown) => void) | null;
     container?: boolean;
@@ -45,7 +46,7 @@ interface ListChoiceProps {
     onPick: (path: string, sample: unknown) => void;
     previewSample: unknown;
     stepLabelById: Map<string, string>;
-    stepTypeById: Map<string, string>;
+    stepTypeById: Map<string, string | undefined>;
     t: TranslateFn;
 }
 

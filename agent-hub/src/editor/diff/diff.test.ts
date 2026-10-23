@@ -2,7 +2,7 @@
  * editor/diff — block + word compare of two document versions.
  */
 import { describe, it, expect } from 'vitest';
-import { markdownToAst } from '../serialization/mdToAst.js';
+import { markdownToAst } from '../serialization/mdToAst';
 import { diffDocs, diffHtml, diffMarkdown, type DiffBlock } from './index';
 import { diffWords, blockTokens } from './words';
 import type { AstNode } from '../collab/ySchema';

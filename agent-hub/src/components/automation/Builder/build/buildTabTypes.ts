@@ -1,17 +1,18 @@
 /**
  * The builder state as BuildTab and its pieces read it. Only the members read
- * here are named; an index signature carries the rest through untouched —
- * BuilderShell owns the full shape.
+ * here are named; BuilderShell owns the full shape.
  */
-import type { RefObject, UIEvent } from 'react';
+import type { MouseEvent, RefObject, UIEvent } from 'react';
 import type { BuilderMessage as StreamMessage, DryRun } from '../../../../hooks/builderStream';
 import type { FlowletAgentState } from '../../../../hooks/useFlowletAgentStream';
 import type { BuilderWebSearchStatus } from '../../../../hooks/useAutomationBuilderStream';
 import type { PlanTodo } from '../BuilderPlanChecklist';
 import type { BuilderHeaderProps } from '../BuilderHeader';
+import type { BuilderSendOptions } from '../builderSend';
+import type { AssistantField } from '../useBuilderShellState';
 import type { ReviewPlan } from '../chat/PlanReview';
 import type { PendingTable } from '../chat/pendingTables';
-import type { BuilderQuestion } from '../chat/QuestionsCard';
+import type { FormDef } from '../../../forms/PublicFormRenderer.types';
 import type { FlowDefinition, FlowStep, RunStepRow } from '../flow/types';
 
 /** One message of the builder chat: the stream hook's shape, plus the tool calls this builder adds to it. */
@@ -37,7 +38,7 @@ export interface BuilderTabState {
     summary?: string;
     todos?: PlanTodo[];
     reviewPlan?: BuilderPlan | null;
-    reviewQuestions?: BuilderQuestion[] | null;
+    reviewQuestions?: unknown[] | null;
     proposal?: BuilderProposal | null;
     webSearch?: BuilderWebSearchStatus | null;
     turn?: { firstEventAt?: unknown } | null;
@@ -46,15 +47,15 @@ export interface BuilderTabState {
     pendingExternalDraft?: unknown;
     validation?: unknown;
     executingStepId?: string | null;
-    aborted?: boolean;
+    aborted?: Record<string, unknown> | boolean | null;
     automationId?: string | null;
-    [key: string]: unknown;
+    error?: unknown;
 }
 
 /** The step a chat mention or the assistant's context points at. */
 export interface AssistantContext {
     id: string;
-    label: string;
+    label: string | undefined;
 }
 
 /**
@@ -90,7 +91,7 @@ export interface BuildTabProps {
     setWorkMode?: Fn<[string]>;
     assistantContext?: AssistantContext | null;
     onClearAssistantContext?: Fn;
-    onAskAssistant?: Fn<[stepId?: string, field?: unknown]>;
+    onAskAssistant?: Fn<[stepId?: string, field?: AssistantField | null]>;
     onApplyProposal: (excluded: Set<string>) => void;
     onDiscardProposal?: () => void;
     onApprovePlan?: Fn<[pauseAfterStep: boolean]>;
@@ -100,11 +101,11 @@ export interface BuildTabProps {
     /** Bumped by the shell after Apply created tables (refetch the catalog). */
     catalogNonce?: number;
     chatWidth: number;
-    onChatResizeStart: (event: unknown) => void;
+    onChatResizeStart: (event: MouseEvent<HTMLElement>) => void;
     /** The form-test overlay: `{ form, runId }` while open. */
-    formTest?: { form?: unknown; runId?: string | null } | null;
-    onFormTestRun?: Fn<[answers: unknown], unknown>;
-    onCloseFormTest?: Fn;
+    formTest?: { form?: FormDef; runId?: string | null } | null;
+    onFormTestRun: (answers: Record<string, unknown>) => Promise<{ run?: { id?: string }; id?: string } | null | undefined>;
+    onCloseFormTest: (e?: MouseEvent<HTMLButtonElement>) => void;
     /** (runId) — open that form overlay attached to a run parked on a page. */
     onOpenFormOverlay?: Fn<[runId: string]>;
     /** (runId) — open that run in Runs (the failed-run banner's "View run"). */
@@ -122,7 +123,7 @@ export interface BuildTabProps {
     selectedTier: unknown;
     setSelectedTier: unknown;
     user: unknown;
-    onSend: (text: string, attachments?: unknown[], opts?: { answers?: unknown; approvedPlanId?: string | null; pauseAfterStep?: boolean }) => unknown;
+    onSend: (text: string, attachments?: unknown[], opts?: BuilderSendOptions) => unknown;
     onStopBuild?: Fn;
     messagesContainerRef: RefObject<HTMLDivElement | null>;
     messagesBodyRef?: RefObject<HTMLDivElement | null> | null;
@@ -132,7 +133,7 @@ export interface BuildTabProps {
     ndvDensity?: string;
     setNdvDensity?: Fn<[density: string]>;
     ndvMode?: string | null;
-    onNdvModeChange?: Fn<[mode: string | null]>;
+    onNdvModeChange?: Fn<[mode: string]>;
     openNdv: (id: string, density?: string) => void;
     closeNdv: () => void;
     stepById: (id: string | undefined) => FlowStep | null;

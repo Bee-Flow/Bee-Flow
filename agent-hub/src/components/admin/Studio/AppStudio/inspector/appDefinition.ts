@@ -93,7 +93,7 @@ export interface AppSection {
 }
 
 export interface AppScreen {
-    id?: string;
+    id: string;
     name?: string;
     sections?: AppSection[];
     /** Role keys gating the screen (absent or empty = everyone). */
@@ -167,7 +167,7 @@ export interface AppAction {
     kind: string;
     /** A `sequence` action's steps, each of which is a step kind of its own. */
     steps?: unknown[];
-    automationId?: string;
+    automationId?: string | null;
     screenId?: string;
     modalId?: string;
     message?: string;

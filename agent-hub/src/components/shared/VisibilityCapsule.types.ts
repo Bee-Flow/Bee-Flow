@@ -31,9 +31,9 @@ export interface AudienceActionsOptions {
     sharedGroups?: unknown;
     nameOf?: GroupNamer | null;
     confirmWidening?: boolean;
-    onSetPersonal?: () => void;
-    onSetEntireOrg?: () => void;
-    onToggleGroup?: (groupId: string) => void;
+    onSetPersonal?: (() => void) | null;
+    onSetEntireOrg?: (() => void) | null;
+    onToggleGroup?: ((groupId: string) => void) | null;
     /** What to do when the LAST group is unticked; default is `onSetPersonal`. */
     onLastGroup?: (() => void) | null;
 }
@@ -48,9 +48,9 @@ export interface AudienceProps {
     orgGroups?: readonly OrgGroup[];
     /** overrides orgGroups for labels */
     groupNames?: GroupNames | null;
-    onSetPersonal?: () => void;
-    onSetEntireOrg?: () => void;
-    onToggleGroup?: (groupId: string) => void;
+    onSetPersonal?: (() => void) | null;
+    onSetEntireOrg?: (() => void) | null;
+    onToggleGroup?: ((groupId: string) => void) | null;
     confirmWidening?: boolean;
     disabled?: boolean;
     className?: string;

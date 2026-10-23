@@ -6,6 +6,7 @@ import { stepPayload } from './flow/stepPayload';
 import { isInlineId, parseInlineId } from './flow/inlineFlowlets';
 import { matchValidationToStep } from './flow/matchValidationToStep';
 import type { Validation } from './flow/matchValidationToStep';
+import type { StepIssues } from './flow/nodes/nodeProps';
 import { routeContextOf, routeSummaryOf } from './output/routeNote';
 import { routeFollowOf, wholeRunNoticeOf, type RouteFollow, type WholeRunNotice } from './flow/routeFollowNotes';
 import type { DataSummary, FlowDefinition, FlowEdge, FlowStep, RunStepRow } from './flow/types';
@@ -27,10 +28,7 @@ export interface ToolCatalog {
 }
 
 /** What the validator said about ONE step. */
-export interface StepIssues {
-    errors: unknown[];
-    warnings: unknown[];
-}
+export type { StepIssues };
 
 /**
  * "1 of 4", and "runs 4× · one per <list>". Every member comes off the loop

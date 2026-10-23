@@ -24,7 +24,7 @@ import { describe, expect, it } from 'vitest';
 async function readSource() {
     const fs = await import('node:fs');
     const path = await import('node:path');
-    return fs.readFileSync(path.join(__dirname, 'StudioSectionHeader.jsx'), 'utf8');
+    return fs.readFileSync(path.join(__dirname, 'StudioSectionHeader.tsx'), 'utf8');
 }
 
 describe('StudioSectionHeader — the responsive fold stays wired', () => {
@@ -66,7 +66,7 @@ describe('StudioSectionHeader — the responsive fold stays wired', () => {
         expect(src).toMatch(/compact: '@max-\[900px\]\/objhead:hidden'/);
         // …and the default every Studio caller still gets.
         expect(src).toMatch(/default: Object\.freeze\(\{ strip: 'flex-shrink-0 @max-\[1180px\]\/objhead:hidden', menu: 'hidden @max-\[1180px\]\/objhead:block' \}\)/);
-        expect(src).toMatch(/TAB_FOLD\[fold\] \|\| TAB_FOLD\.default/);
+        expect(src).toMatch(/TAB_FOLD\[fold(?: as string)?\] \|\| TAB_FOLD\.default/);
         // titleMin keeps the name from collapsing; without it the name may shrink.
         expect(src).toMatch(/titleMin \? 'shrink-0' : 'min-w-0'/);
     });

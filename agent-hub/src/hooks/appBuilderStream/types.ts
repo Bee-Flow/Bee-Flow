@@ -7,6 +7,17 @@ import type {
     BuilderValidation,
 } from '../builderStream';
 
+/** The server's `tool_draft` event: what the model is typing right now. */
+export interface BuilderToolDraft {
+    name?: string | null;
+    items: unknown[];
+    count: number;
+    parentId?: string | null;
+    chars?: number;
+    iter?: number | null;
+    at?: number;
+}
+
 /** What one turn finished with; the caller adopts the drafts and unlocks. */
 export interface AppBuilderDoneInfo {
     appId?: string;
@@ -72,7 +83,7 @@ export interface AppBuilderStreamDeps {
     setPhases: Dispatch<SetStateAction<unknown[]>>;
     setCheckpoints: Dispatch<SetStateAction<unknown[]>>;
     setEngine: Dispatch<SetStateAction<BuilderEngine | null>>;
-    setToolDraft: Dispatch<SetStateAction<Record<string, unknown> | null>>;
+    setToolDraft: Dispatch<SetStateAction<BuilderToolDraft | null>>;
     setTodos: Dispatch<SetStateAction<BuilderTodo[]>>;
     patchAssistant: (fn: (m: BuilderMessage) => BuilderMessage) => void;
     patchTurn: (fn: (t: BuilderTurn) => Partial<BuilderTurn>) => void;

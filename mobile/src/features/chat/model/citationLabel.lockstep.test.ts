@@ -16,7 +16,7 @@ const text = require(`${AGENT_HUB_SRC}/pages/documents/notebook/citationText.ts`
 const web = loadWebFunctions<{
     chipLabel: (s: unknown, i: number, t: unknown) => string;
     chipTitle: (s: unknown, label: string) => string;
-}>('pages/documents/notebook/CitationChips.jsx', ['ordinal', 'rowsLabel', 'tableLabel', 'chipParts', 'chipLabel', 'chipTitle'], {
+}>('pages/documents/notebook/CitationChips.tsx', ['ordinal', 'rowsLabel', 'tableLabel', 'chipParts', 'chipLabel', 'chipTitle'], {
     whenLabel: text.whenLabel,
     passageCountOf: text.passageCountOf,
 });

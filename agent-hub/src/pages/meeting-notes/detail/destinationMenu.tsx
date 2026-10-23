@@ -1,3 +1,4 @@
+import type { MirrorTable } from '../../../components/admin/Studio/Datatables/sourceMirrors';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { kindColorVar } from '../../../components/shared/kindColors';
@@ -36,7 +37,7 @@ interface AutomationRow {
     definition?: { trigger?: { kind?: string } };
 }
 
-interface DatatableRow {
+interface DatatableRow extends MirrorTable {
     id: string;
     name?: string;
     key?: string;

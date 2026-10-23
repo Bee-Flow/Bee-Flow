@@ -49,7 +49,7 @@ function opsForType(type) {
     return OPS;
 }
 
-export default function DatatableFields({
+/** @param {{ draft: unknown, set: unknown, groups: unknown, onFocusField?: unknown, previewSample?: unknown, errorSections?: Set<string>, catalog?: object | null }} props */ export default function DatatableFields({
     draft, set, groups, onFocusField, previewSample,
     errorSections = new Set(), catalog = null,
 }) {

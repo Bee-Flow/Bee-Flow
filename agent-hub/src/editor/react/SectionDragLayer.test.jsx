@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import React, { useRef } from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import SectionDragLayer from './SectionDragLayer.jsx';
+import SectionDragLayer from './SectionDragLayer';
 
 // A switchable dictionary layered over the REAL useTranslation, off by default
 // so the plain runs read the shipped English. Switched on below to prove the

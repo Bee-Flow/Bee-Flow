@@ -15,7 +15,7 @@ import { findNode } from '../state/definitionOps';
 export interface EditorChrome {
     commitTurn?: (definition: AppDefinition | null | undefined) => void;
     markSaved?: (definition: AppDefinition | null | undefined, version: unknown) => void;
-    flush?: () => unknown;
+    flush?: () => Promise<{ ok?: boolean; error?: string } | null | undefined | void>;
     undoTurn?: () => void;
     publishBuildCue?: (cue: BuildCueValue | null) => void;
     focusAiChat?: () => void;

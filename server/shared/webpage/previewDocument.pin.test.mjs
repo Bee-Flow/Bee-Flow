@@ -72,7 +72,7 @@ function reactFiles(extras) {
 /** The web modules, bundled for node: esbuild-wasm is the native esbuild here. */
 async function loadWeb() {
     const entry = `export { default as composeWebpageDocument } from ${JSON.stringify(path.join(WEB_UTILS, 'composeWebpageDocument.ts'))};
-export { composeReactPreview } from ${JSON.stringify(path.join(WEB_UTILS, 'buildWebpagePreview.js'))};`;
+export { composeReactPreview } from ${JSON.stringify(path.join(WEB_UTILS, 'buildWebpagePreview.ts'))};`;
     const out = await esbuild.build({
         stdin: { contents: entry, resolveDir: WEB_UTILS, loader: 'js' },
         bundle: true, write: false, format: 'cjs', platform: 'node', logLevel: 'silent',

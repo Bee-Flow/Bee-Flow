@@ -69,7 +69,7 @@ export default function PerAutomationTab({ onOpenLadder, isMobile = false, testI
     const { formatDay: formatDayIn } = useDateFormat();
     // A row without a readable date shows a dash, never "Invalid Date".
     const formatDay = (value: DateLike) => formatDayIn(value) || '—';
-    const { assessments, failed } = useAiActAssessments({ enabled: true });
+    const { assessments, failed } = useAiActAssessments<AiActAssessment>({ enabled: true });
     const rows: AiActAssessment[] = Array.isArray(assessments) ? assessments : [];
     const loading = !failed && assessments === null;
 

@@ -20,7 +20,7 @@ interface PaletteUser {
     featureFlags?: { meeting_notes?: boolean };
     betaFeatures?: unknown[];
     isAdmin?: boolean;
-    permissions?: string[];
+    permissions?: string[] | null;
 }
 
 interface PaletteAction {

@@ -21,7 +21,7 @@ function rows(src: string, marker: RegExp): { id: string; labelKey: string }[] {
 
 describe('the organisation sections', () => {
     const shared = fs.readFileSync(path.join(WEB, 'components/admin/org/orgInfo/orgInfoShared.tsx'), 'utf8');
-    const settings = fs.readFileSync(path.join(WEB, 'pages/AdvancedSettings.jsx'), 'utf8');
+    const settings = fs.readFileSync(path.join(WEB, 'pages/AdvancedSettings.tsx'), 'utf8');
     const web = [
         // Typed (`const SECTIONS: OrgSettingsSection[] = [`) since the TS move.
         ...rows(shared, /const SECTIONS(?:\s*:[^=]*)?\s*=\s*\[([\s\S]*?)\];/),

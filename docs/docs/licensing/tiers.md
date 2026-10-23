@@ -135,7 +135,7 @@ never appears on a self-hosted install, so it carries no tier flag.
 Community keeps the **Integrations** tab on purpose: an operator needs it to
 wire up OAuth credentials and (later) install MCP servers — without it the free
 built-in integrations couldn't be configured. The gate lives in
-[`agent-hub/src/pages/AdminDashboard.jsx`](https://github.com/Bee-Flow/beeflow/blob/main/agent-hub/src/pages/AdminDashboard.jsx)
+[`agent-hub/src/pages/AdminDashboard.tsx`](https://github.com/Bee-Flow/beeflow/blob/main/agent-hub/src/pages/AdminDashboard.tsx)
 (`minTier` per tab, enforced in `checkTabAccess`).
 
 ## Feature-flag names

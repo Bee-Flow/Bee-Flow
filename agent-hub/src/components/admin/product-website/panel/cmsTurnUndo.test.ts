@@ -43,7 +43,7 @@ describe('revertBuilderTurn', () => {
     it('deletes what the turn created and restores chrome, page settings, order, homepage and pages at the revisions stored now', async () => {
         const turn: BuilderTurn = {
             preSite: { id: 'pj_site', rev: 2, name: 'Before', homepageId: 'pg_a', pages: [entry('pg_a', 'a'), entry('pg_b', 'b', 'B')] },
-            prePages: [{ id: 'pg_a', rev: 1, title: 'A' }, { id: 'pg_b', rev: 1, title: 'B' }],
+            prePages: [{ id: 'pg_a', rev: 1, title: 'A', blocks: [] }, { id: 'pg_b', rev: 1, title: 'B', blocks: [] }],
             created: ['pg_new'],
             touched: new Set(['pg_new', 'pg_b']),
             draftsSeen: 3,

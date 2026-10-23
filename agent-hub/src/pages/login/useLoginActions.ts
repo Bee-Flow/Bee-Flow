@@ -21,7 +21,7 @@ interface LoginActionsDeps {
     setAdminRecoveryKey: Setter<string | null>;
     setSetupMode: Setter<boolean>;
     setIsSetupComplete: Setter<boolean | undefined>;
-    setMfaMethods: Setter<unknown[]>;
+    setMfaMethods: Setter<string[]>;
     setMfaRequired: Setter<boolean>;
     setVerifyEmail: Setter<string>;
     setResendDone: Setter<boolean>;

@@ -1,7 +1,7 @@
 import { Activity, Loader2, PlayCircle } from 'lucide-react';
 import React from 'react';
 import { kindBarClass, kindInkClass } from './kindBar';
-import { SECTIONS } from './solutionSections';
+import { SECTIONS, type SolutionItem } from './solutionSections';
 import { ROW, TabCard, TabNote, TabSpinner } from './TabParts';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
@@ -33,11 +33,10 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 
 const COMPACT_ACTIVITY = 8;
 
-interface ApprovalLike { status?: string }
-type SectionItems = ApprovalLike[] | null | undefined;
+type SectionItems = SolutionItem[] | null | undefined;
 type Resources = Record<string, SectionItems>;
 
-interface ActiveRun {
+export interface ActiveRun {
     runId: string;
     automationTitle?: string;
 }
@@ -59,7 +58,7 @@ function countOf(items: SectionItems): number | null {
 /** Approvals count what is still waiting, not how many ever existed. */
 function pendingCount(items: SectionItems): number | null {
     if (items === null || items === undefined) return null;
-    return items.filter((a: ApprovalLike) => (a.status || 'pending') === 'pending').length;
+    return items.filter((a: SolutionItem) => (a.status || 'pending') === 'pending').length;
 }
 
 function CountTiles({ resources, onOpenTab }: { resources?: Resources | null; onOpenTab?: (tab: string) => void }) {

@@ -4,6 +4,7 @@ import useTranslation from '../../../../../hooks/useTranslation';
 import { DrawerSection as DrawerSectionJs } from '../../../../shared/SideDrawer';
 import { useDateFormat } from '../../shared/formatDates';
 import { reportingRowsOf } from './incidentClocks';
+import type { IncidentRecord } from './IncidentsTable';
 
 const DrawerSection = DrawerSectionJs;
 
@@ -144,7 +145,7 @@ export function StepAction({ step, primary = false, busy = false, onRun, testId 
     );
 }
 
-export function ReportingList({ incident, testId }: { incident: Record<string, unknown>; testId: string }) {
+export function ReportingList({ incident, testId }: { incident: IncidentRecord; testId: string }) {
     const { t } = useTranslation();
     const { formatDayTime } = useDateFormat();
     const rows = reportingRowsOf(incident);

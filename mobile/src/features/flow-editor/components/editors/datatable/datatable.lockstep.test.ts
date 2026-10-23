@@ -17,7 +17,7 @@ import { DATATABLE_FORM, OPS, opChoices, opNeeds, opsForType, opTakesNoValue, se
 const AGENT_HUB = path.resolve(__dirname, '../../../../../../../agent-hub/src');
 const src = fs.readFileSync(path.join(AGENT_HUB, 'components/automation/Builder/flow/settings/datatableEditors.jsx'), 'utf8');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
-const display = require(path.join(AGENT_HUB, 'components/admin/Studio/Datatables/datatableDisplay.js'));
+const display = require(path.join(AGENT_HUB, 'components/admin/Studio/Datatables/datatableDisplay.ts'));
 
 const between = (start: string, end: string) => {
     const at = src.indexOf(start);

@@ -412,7 +412,7 @@ function ensureFontsLink(
     const legacy = doc.getElementById(LEGACY_FONTS_LINK_ID);
     if (legacy) legacy.remove();
 
-    const families = new Set();
+    const families = new Set<string>();
     const add = (raw: unknown) => {
         if (typeof raw !== 'string') return;
         const f = raw.trim();

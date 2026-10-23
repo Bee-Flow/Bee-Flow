@@ -30,7 +30,7 @@ export interface CmsPageDoc {
     rev?: number;
     slug?: string;
     title?: string;
-    blocks?: CmsBlock[];
+    blocks: CmsBlock[];
     seo?: CmsPageSeo;
     [key: string]: unknown;
 }

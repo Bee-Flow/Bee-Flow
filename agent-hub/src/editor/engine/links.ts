@@ -6,9 +6,9 @@
  * find the whole link around the caret first, and insert the address as
  * linked text when there is nothing to put a link on.
  */
-import { safeUrl } from '../serialization/util.js';
+import { safeUrl } from '../serialization/util';
 import { isCode, isTextblock } from '../model/schema.js';
-import { getNode, updateAt } from './doc.js';
+import { getNode, updateAt } from './doc';
 import { inlineToTokens, textTokens, tokensToInline, toggleMarkTokens } from './inline.js';
 import { isText, isCollapsed, selRange, textSelection, pos } from './selection.js';
 import * as T from './transforms.js';

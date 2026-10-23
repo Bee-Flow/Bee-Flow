@@ -11,12 +11,12 @@ import { useCallback } from 'react';
  * list picked anyway gets an answer that keeps one run (mismatch.js
  * quietDefaultId), never a second forEach.
  */
-interface ForEach { overRef?: string; itemVar?: string; maxIterations?: number; [k: string]: unknown }
+interface ForEach { overRef?: string; itemVar?: string; maxIterations?: number; }
 type SetFn = (key: string, value: unknown) => void;
 
 export interface ForEachRequest {
     /** Sets (or, with null, clears) the step's forEach. Always there, so Undo works. */
-    request: (fe: ForEach | null) => void;
+    request: (fe: ForEach | null | undefined) => void;
     /** May a pick START a forEach? False while the step already runs per item. */
     allowed: boolean;
 }
@@ -26,7 +26,7 @@ export default function useForEachRequest(
     set: SetFn,
 ): ForEachRequest {
     const running = !!draft?.forEach?.overRef;
-    const request = useCallback((fe: ForEach | null) => {
+    const request = useCallback((fe: ForEach | null | undefined) => {
         set('forEach', fe ? { itemVar: 'item', maxIterations: 100, ...fe } : null);
     }, [set]);
     return { request, allowed: !running };

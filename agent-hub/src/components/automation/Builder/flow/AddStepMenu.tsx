@@ -343,7 +343,7 @@ function AppRow({ app, isOpen, onToggle, onAdd }: { app: RibbonApp; isOpen: bool
  * "Nextcloud Talk"; and the description is the LLM tool-schema text, which
  * carries instructions written at the model rather than at the author.
  */
-function ActionRow({ action, labels, onAdd }: { action: RibbonApp['actions'][number]; labels?: Map<string, string>; onAdd: AddFn }) {
+function ActionRow({ action, labels, onAdd }: { action: RibbonApp['actions'][number]; labels?: Map<string, string | undefined>; onAdd: AddFn }) {
     const descId = useId();
     // The payload keeps the catalog's full label — the node it creates sits on
     // a canvas with no app row above it to say which app this came from.

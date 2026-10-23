@@ -25,7 +25,7 @@ interface NewAppBody {
 const base = `${API_BASE}/api/studio-apps`;
 // Some callers still hold an id that may be undefined (it then reads "undefined",
 // as it always did), so the encoder is typed to take one.
-const enc = encodeURIComponent as (part: string | number | boolean | undefined) => string;
+const enc = encodeURIComponent as (part: string | number | boolean | null | undefined) => string;
 
 // One request helper for every call: JSON in and out, and on a non-2xx an
 // Error carrying the server's error text, status, code and body. A stage that
@@ -182,7 +182,7 @@ export const studioAppsApi = {
         request(`${base}/${enc(id)}/versions/${enc(versionId)}/restore`, { method: 'POST' }),
 
     // Run view payload ({ id, name, icon, accentColor, definition, draft? })
-    getRuntime: (id: string, { draft = false }: { draft?: boolean } = {}) =>
+    getRuntime: (id: string | null, { draft = false }: { draft?: boolean } = {}) =>
         request(`${base}/${enc(id)}/runtime${draft ? '?draft=1' : ''}`),
 
     // Actions (the run bridge; useActionRunner drives these in run mode)

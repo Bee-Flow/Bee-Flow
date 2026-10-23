@@ -179,7 +179,7 @@ function marketplaceSlot(props: HubMainContentProps) {
                Hidden on mobile entirely: phones are view/chat-only, the
                agent editor route is blocked there. */
             onEditAgent={(!isMobile && canManageAgentsOf(user))
-                ? (agent: { id: string } | null) => { setShowMarketplace(false); onNavigate(agent ? `agentDesigner:${agent.id}` : 'agentDesigner'); }
+                ? (agent?: { id: string } | null) => { setShowMarketplace(false); onNavigate(agent ? `agentDesigner:${agent.id}` : 'agentDesigner'); }
                 : undefined}
             user={user}
         />

@@ -221,15 +221,15 @@ describe('the chain that reaches this box', () => {
     });
 
     it('NodeDetailView narrows it to this step, and to the nodes it applies to', () => {
-        const src = read('NodeDetailView.jsx');
+        const src = read('NodeDetailView.tsx');
         // Same shape as onRenameField: bound to this step's id, null when the
         // shell handed nothing down or the node is not one that asks for it.
         expect(src).toMatch(/typeof onInsertStepBefore === 'function' && !isTrigger && isRouteStep\(step\)/);
-        expect(src).toMatch(/\(newStep\) => onInsertStepBefore\(step\.id, newStep\)/);
+        expect(src).toMatch(/\(newStep(?::[^)]*)?\) => onInsertStepBefore\(step\.id, newStep\)/);
         expect(src).toMatch(/onInsertUpstreamStep=\{onInsertUpstreamStep\}/);
     });
 
     it('SettingsForm forwards it to the Condition editor', () => {
-        expect(read('flow/SettingsForm.jsx')).toMatch(/onInsertUpstreamStep=\{onInsertUpstreamStep\}/);
+        expect(read('flow/SettingsForm.tsx')).toMatch(/onInsertUpstreamStep=\{onInsertUpstreamStep\}/);
     });
 });

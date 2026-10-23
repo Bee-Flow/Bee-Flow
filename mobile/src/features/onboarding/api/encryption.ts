@@ -10,7 +10,7 @@
  * Those two strings are load-bearing: get one wrong and the envelope simply
  * fails to open, with no error that says why.
  *
- * This is a port of agent-hub/src/lib/opaque.js (opaquePinRegister /
+ * This is a port of agent-hub/src/lib/opaque.ts (opaquePinRegister /
  * opaquePinLogin) and keeps its two-path structure:
  *
  *   1. OPAQUE first. The PIN never leaves the device; the server stores only

@@ -6,8 +6,8 @@
 import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 
 /** The base URL of one app's action routes. */
-export function actionsUrl(appId: string): string {
-    return `${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/actions`;
+export function actionsUrl(appId: string | null): string {
+    return `${API_BASE}/api/studio-apps/${encodeURIComponent(String(appId))}/actions`;
 }
 
 /** A JSON POST; `deadlineMs` aborts it with a TimeoutError when given. */
@@ -26,6 +26,6 @@ export function getAuthed(url: string): Promise<Response> {
 }
 
 /** The attachment route a download_file step reads, so the viewer's access is checked. */
-export function attachmentUrl(appId: string, fileId: string): string {
-    return `${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/data/attachments/${encodeURIComponent(fileId)}`;
+export function attachmentUrl(appId: string | null, fileId: string): string {
+    return `${API_BASE}/api/studio-apps/${encodeURIComponent(String(appId))}/data/attachments/${encodeURIComponent(fileId)}`;
 }

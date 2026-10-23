@@ -144,7 +144,7 @@ interface SolutionsOverviewProps {
     onOpen: (row: SummaryRow) => void;
     onCreated: (project: { id: string }) => void;
     onInstalled: (id: string) => void;
-    onOpenStage: (entry: Record<string, unknown>) => void;
+    onOpenStage: (entry: OperatedStage) => void;
     onRetry: () => void;
     focusCreate?: boolean;
 }

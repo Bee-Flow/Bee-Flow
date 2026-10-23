@@ -338,7 +338,7 @@ describe('cellValue — cell extensions (subtext, dot badge, flag, tabular digit
 it('introduces no hex colors in the component source', async () => {
     const fs = await import('node:fs');
     const path = await import('node:path');
-    const src = fs.readFileSync(path.join(__dirname, 'cellValue.jsx'), 'utf8');
+    const src = fs.readFileSync(path.join(__dirname, 'cellValue.tsx'), 'utf8');
     expect(src).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
 });
 

@@ -1,7 +1,7 @@
 /**
  * Differential test: this port against the web implementation it replaces.
  *
- * The reference is not a fixture file — it is agent-hub/src/lib/opaque.js's
+ * The reference is not a fixture file — it is agent-hub/src/lib/opaque.ts's
  * algorithm re-expressed here on Node's WebCrypto, which is the SAME API the
  * browser runs. So the assertions below compare @noble output against
  * WebCrypto output for the same inputs, which is exactly the property that

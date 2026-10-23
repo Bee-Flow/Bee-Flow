@@ -39,7 +39,7 @@ vi.mock('../../../../hooks/useTranslation', () => {
     return { default: useTranslation, useTranslation };
 });
 
-import AttentionList from './AttentionList.jsx';
+import AttentionList from './AttentionList';
 
 /** A run as attentionChecks.runAttentionChecks resolves it. */
 const run = (over = {}) => ({

@@ -15,7 +15,7 @@ import type { FlowDefinition, FlowStep } from './types';
 
 const BUILDER = '../../../../../agent-hub/src/components/automation/Builder';
 /* eslint-disable @typescript-eslint/no-require-imports */
-const webRoute = require(`${BUILDER}/flow/routeModel.js`);
+const webRoute = require(`${BUILDER}/flow/routeModel.ts`);
 const webRouteEdges = require(`${BUILDER}/flow/routeEdges.ts`);
 const webSwitch = require(`${BUILDER}/flow/switchCaseOps.ts`);
 const webCond = require(`${BUILDER}/utils/conditionModel.ts`);

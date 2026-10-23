@@ -1,6 +1,6 @@
 /**
  * Differential: the phone's Insights port and the web's own files
- * (agent-hub/src/pages/meeting-notes/lib/insightsMetrics.js, insightsData.ts,
+ * (agent-hub/src/pages/meeting-notes/lib/insightsMetrics.ts, insightsData.ts,
  * playerData.js, timelineMarkers.ts, format.ts) build the SAME model from the
  * same meetings — hand-written ones that hit the edges, and a few hundred
  * seeded random ones. When this fails the web side changed: update the port.
@@ -16,7 +16,7 @@ import { mergeTurns, normalizeChapters, toSeconds } from './turns';
 const LIB = 'pages/meeting-notes/lib';
 const markers: any = loadWebModule(`${LIB}/timelineMarkers.ts`);
 const format: any = loadWebModule(`${LIB}/format.ts`);
-const player: any = loadWebModule(`${LIB}/playerData.js`, {
+const player: any = loadWebModule(`${LIB}/playerData.ts`, {
     toSeconds: markers.toSeconds,
     SPEAKER_COLORS: ['#111111', '#222222'],
     NEUTRAL_SPEAKER_COLOR: '#999999',
@@ -26,7 +26,7 @@ const data: any = loadWebModule(`${LIB}/insightsData.ts`, {
     fuseSpans: player.fuseSpans,
     segmentSpeakerId: player.segmentSpeakerId,
 });
-const metrics: any = loadWebModule(`${LIB}/insightsMetrics.js`, {
+const metrics: any = loadWebModule(`${LIB}/insightsMetrics.ts`, {
     formatSpeakerLabel: format.formatSpeakerLabel,
     buildInteractivity: data.buildInteractivity,
     buildTalkStats: data.buildTalkStats,

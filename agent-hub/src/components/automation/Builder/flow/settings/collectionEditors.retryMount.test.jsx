@@ -43,7 +43,7 @@ function editorFiles() {
  * RETRY_FORM_TYPES, which this list is the editor-side half of.
  */
 const NO_RETRY = new Map([
-    ['setEditors.jsx', 'set steps compute from data already in hand — try 2 == try 1'],
+    ['setEditors.tsx', 'set steps compute from data already in hand — try 2 == try 1'],
 ]);
 
 describe('the retry row is mounted everywhere it is offered', () => {
@@ -71,7 +71,7 @@ describe('the retry row is mounted everywhere it is offered', () => {
         // reason the mount is per-editor. A regression here is invisible in a
         // unit render — the row still works, it just sits under a heading that
         // describes a different setting.
-        for (const base of ['aiStepEditors.jsx', 'datatableEditors.jsx', 'knowledgeWriteEditors.jsx']) {
+        for (const base of ['aiStepEditors.tsx', 'datatableEditors.jsx', 'knowledgeWriteEditors.jsx']) {
             const src = fs.readFileSync(path.join(here, base), 'utf8');
             const closeRow = src.indexOf('</FormRow>', src.indexOf('<ForEachSection'));
             const mount = src.indexOf('<RetrySection');

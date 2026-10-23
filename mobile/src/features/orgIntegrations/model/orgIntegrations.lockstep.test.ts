@@ -47,7 +47,7 @@ describe('Azure lockstep', () => {
         const server = readServer('routes/orgAzureConfig.js');
         const labels = Object.entries(PANEL_TIER_LABELS).map(([k, v]) => `${k}: '${v}'`).join(', ');
         expect(server).toContain(`const PANEL_TIERS = { ${labels} };`);
-        const sso = readWeb('components/integrations/azure/SSOSection.jsx');
+        const sso = readWeb('components/integrations/azure/SSOSection.tsx');
         const offered = [...sso.matchAll(/<option value=\{(\d+)\}>/g)].map((m) => Number(m[1]));
         expect(offered).toEqual([...SYNC_INTERVALS]);
     });
@@ -76,7 +76,7 @@ describe('Nextcloud lockstep (components/integrations/nextcloud/*)', () => {
         const pairing = readWeb('components/integrations/nextcloud/OrgNcPairingPanel.tsx');
         expect(pairing).toContain("`${min}m ${sec.toString().padStart(2, '0')}s remaining`");
         expect(pairing).toContain('occ app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <CODE>\nocc app_api:app:disable bee_flow\nocc app_api:app:enable bee_flow');
-        const sync = readWeb('components/integrations/nextcloud/NextcloudSyncPanel.jsx');
+        const sync = readWeb('components/integrations/nextcloud/NextcloudSyncPanel.tsx');
         expect(sync).toContain('< 30 * 60_000');
         expect(FRESH_MS).toBe(30 * 60_000);
         expect(sync).toContain("config.ncBaseUrl.replace(/^https?:\\/\\//, '')");

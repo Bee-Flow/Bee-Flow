@@ -18,10 +18,10 @@ import {
     CONTAINER_PAD,
     CONTAINER_HEADER,
     MAX_INLINE_DEPTH,
-} from './inlineFlowlets.js';
+} from './inlineFlowlets';
 import { buildLayout, seedPositions } from './layout';
 import { applyDeleteNodes } from './nodeOps';
-import { applyAddNode } from '../DiagramPane.jsx';
+import { applyAddNode } from '../DiagramPane';
 
 const DIMS = { width: 240, height: 96 };
 

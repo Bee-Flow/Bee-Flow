@@ -21,8 +21,8 @@ import { attentionLine, attentionSections, SOURCE_LABELS, SOURCE_SECTION } from 
 import { STUDIO_SECTIONS } from './registry';
 
 const DIR = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/attention');
-const CHECKS = fs.readFileSync(path.join(DIR, 'attentionChecks.js'), 'utf8');
-const LIST = fs.readFileSync(path.join(DIR, 'AttentionList.jsx'), 'utf8');
+const CHECKS = fs.readFileSync(path.join(DIR, 'attentionChecks.ts'), 'utf8');
+const LIST = fs.readFileSync(path.join(DIR, 'AttentionList.tsx'), 'utf8');
 
 /** `source: { kind: 'x', … }` inside `export const SOURCE_LABELS = Object.freeze({ … });`. */
 function webSourceKinds(): Record<string, string> {

@@ -337,6 +337,8 @@ export function buildStepFromPayload(payload: import('./applyAddNode.types').Add
  * the next definition. Used by both the drag-drop path and the slide-in
  * panel's click-to-add path so the result is identical either way.
  */
+export function applyAddNode(definition: import('./applyAddNode.types').FlowDefinition, payload: import('./applyAddNode.types').AddStepPayload | null | undefined, position?: import('./applyAddNode.types').Position | null, sourceId?: string | null, sourceHandle?: string | null): import('./applyAddNode.types').FlowDefinition;
+export function applyAddNode(definition: import('./applyAddNode.types').FlowDefinition | null | undefined, payload: import('./applyAddNode.types').AddStepPayload | null | undefined, position?: import('./applyAddNode.types').Position | null, sourceId?: string | null, sourceHandle?: string | null): import('./applyAddNode.types').FlowDefinition | null | undefined;
 export function applyAddNode(definition: import('./applyAddNode.types').FlowDefinition | null | undefined, payload: import('./applyAddNode.types').AddStepPayload | null | undefined, position?: import('./applyAddNode.types').Position | null, sourceId: string | null = null, sourceHandle: string | null = null) {
     const built = buildStepFromPayload(payload, position);
     if (!built) return definition;

@@ -26,10 +26,10 @@ jest.mock('../../../../../agent-hub/src/components/automation/Builder/flow/inlin
 
 const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
 /* eslint-disable @typescript-eslint/no-require-imports */
-const webDagre = require(`${FLOW}/dagreLayout.js`);
-const webArrange = require(`${FLOW}/arrange.js`);
-const webLayout = require(`${FLOW}/layout.js`);
-const webTools = require(`${FLOW}/aiToolNodes.js`);
+const webDagre = require(`${FLOW}/dagreLayout.ts`);
+const webArrange = require(`${FLOW}/arrange.ts`);
+const webLayout = require(`${FLOW}/layout.ts`);
+const webTools = require(`${FLOW}/aiToolNodes.ts`);
 const webColors = require(`${FLOW}/nodeTypeColors.ts`);
 const TEMPLATES_JS = path.resolve(__dirname, '../../../../../server/automation/templates.js');
 const TEMPLATES = templateDefinitions(fs.readFileSync(TEMPLATES_JS, 'utf8'), require(TEMPLATES_JS).getTemplate);

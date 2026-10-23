@@ -5,7 +5,7 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import katex from 'katex';
 import type { DocNode } from '../model/schema.js';
-import type { EditorView } from '../engine/view.js';
+import type { EditorView } from '../engine/view';
 
 const escapeHtml = (s: unknown): string => String(s).replace(/[&<>"']/g, (c: string) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c as '&' | '<' | '>' | '"' | "'"]));

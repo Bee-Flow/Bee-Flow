@@ -21,7 +21,7 @@ import type { RunIdentity } from './useFailedRunBanner';
 export interface DiagramOverlaysProps {
     definition: DiagramDefinition;
     // south-west
-    allowEdgeEdits: boolean;
+    allowEdgeEdits: boolean | undefined;
     handleArrange: (mode: string) => void;
     structuralEditsBlocked: boolean;
     reducedMotion: boolean;

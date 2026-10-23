@@ -19,7 +19,7 @@
  * the client spec bundle are unchanged.
  *
  * The frontend mirror is
- * agent-hub/src/components/admin/Studio/AppStudio/runtime/themeVars.js — keep
+ * agent-hub/src/components/admin/Studio/AppStudio/runtime/themeVars.ts — keep
  * the two in lockstep.
  */
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import { toast } from '../../shared/Toast';
+import type { SavingState } from './header/LiveActions';
 
 
 export interface UseVisualSaveOptions {
@@ -12,7 +13,7 @@ export interface UseVisualSaveOptions {
     adoptSaveValidation: (r: any) => void;
     adoptSaveRejection: (e: any) => void;
     noteManagedRefusal: (e: any) => boolean;
-    setSavingState: (s: string) => void;
+    setSavingState: (s: SavingState) => void;
     savedTimer: MutableRefObject<any>;
     readOnlyRef: MutableRefObject<boolean>;
     effectiveDef: any;

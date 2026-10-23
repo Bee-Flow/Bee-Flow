@@ -6,7 +6,7 @@
  * selection.
  */
 import { useState, useEffect } from 'react';
-import type { EditorView } from '../engine/view.js';
+import type { EditorView } from '../engine/view';
 
 export interface FloatingRect { top: number; left: number; bottom: number }
 

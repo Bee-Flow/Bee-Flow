@@ -8,6 +8,7 @@
 // FilterPills and RequireTier are TypeScript and pass through as they are.
 
 import type React from 'react';
+import type { UsageAdapter } from '../../shared/UsedByTab.types';
 import DangerZoneJsx from '../../shared/DangerZone';
 import FilterPillsJsx from '../../shared/FilterPills';
 import StudioSectionHeaderJsx from '../../shared/StudioSectionHeader';
@@ -18,7 +19,7 @@ type Glyph = React.ComponentType<Record<string, unknown>> | React.ReactElement;
 export interface StudioSectionHeaderTab {
     id: string;
     label: React.ReactNode;
-    count?: number | null;
+    count?: number | string | null;
     tone?: 'neutral' | 'error' | 'warning';
     icon?: Glyph;
     disabled?: boolean;
@@ -50,7 +51,9 @@ export const FilterPills = FilterPillsJsx;
 export interface DangerZoneProps {
     entityName: string;
     /** null = still checking, [] = nothing depends on it. */
-    usage: unknown[] | null;
+    usage?: unknown[] | null;
+    adapt?: UsageAdapter | null;
+    unchecked?: readonly string[];
     onDelete: (confirmedBreaking: boolean) => Promise<unknown> | unknown;
     kindLabel?: string;
     currentUserId?: string | null;

@@ -119,7 +119,7 @@ export default function railMeta(section: RailSection | null | undefined, counts
             if (Number.isFinite(dueMs)) {
                 // The shared DeadlineClock draws the number, so the rail rounds
                 // exactly like the register row and the Deadlines card.
-                const window = INCIDENT_WINDOW_MS[countFor(c, 'incidents.next_stage')] || INCIDENT_WINDOW_MS.authority;
+                const window = INCIDENT_WINDOW_MS[String(countFor(c, 'incidents.next_stage'))] || INCIDENT_WINDOW_MS.authority;
                 return {
                     kind: 'clock',
                     dueAt: due,

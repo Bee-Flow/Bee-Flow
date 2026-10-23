@@ -122,7 +122,7 @@ describe('AppTable — look variants', () => {
     it('introduces no hex colors in the component source', async () => {
         const fs = await import('node:fs');
         const path = await import('node:path');
-        const src = fs.readFileSync(path.join(__dirname, 'AppTable.jsx'), 'utf8');
+        const src = fs.readFileSync(path.join(__dirname, 'AppTable.tsx'), 'utf8');
         expect(src).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     });
 });

@@ -8,6 +8,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import ts from 'typescript';
 
 import type { CatalogDatatable } from '@/features/flow-editor/api';
 import type { FlowNode } from '@/features/flow-editor/bindings';
@@ -18,7 +19,7 @@ import type { Msg } from '../declarative/spec';
 
 const AGENT_HUB = path.resolve(__dirname, '../../../../../../../agent-hub/src');
 const SETTINGS = path.join(AGENT_HUB, 'components/automation/Builder/flow/settings');
-const src = fs.readFileSync(path.join(SETTINGS, 'actionEditors/httpRequestFields.jsx'), 'utf8');
+const src = fs.readFileSync(path.join(SETTINGS, 'actionEditors/httpRequestFields.tsx'), 'utf8');
 const cacheSrc = fs.readFileSync(path.join(SETTINGS, 'actionEditors/cacheIntoRow.tsx'), 'utf8');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const kinds = require(path.join(AGENT_HUB, 'utils/httpCredentialTypes.ts'));
@@ -33,11 +34,12 @@ const english = (m: Msg | null): string | null => {
 /** The web's own availability block, cut out and run with a draft. */
 const webAvailability = new Function(
     'draft',
-    `const HTTP_WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+    // The web source is TypeScript: transpile the cut to plain JavaScript before running it.
+    ts.transpileModule(`const HTTP_WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
      const method = (draft.method || 'GET').toUpperCase();
      const blockPrivateTargets = draft.blockPrivateTargets !== false;
      ${src.slice(src.indexOf('const writeCaution'), src.indexOf('const renameHeader'))}
-     return { askOnce, cacheInto };`,
+     return { askOnce, cacheInto };`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText,
 ) as (draft: Record<string, unknown>) => { askOnce: { disabled: boolean; disabledReason: string | null }; cacheInto: { disabled: boolean; disabledReason: string | null } };
 
 describe('the HTTP request editor against httpRequestFields.jsx', () => {

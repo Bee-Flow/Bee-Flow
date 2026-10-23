@@ -38,7 +38,7 @@ export interface MonitorHeroProps {
     value: React.ReactNode;
     valueColor?: string;
     valueSize?: number;
-    status?: { label: React.ReactNode; color: string };
+    status?: { label: React.ReactNode; color: string } | null;
     trend?: React.ReactNode;
     subline?: React.ReactNode;
     leftRatio?: number;

@@ -9,20 +9,25 @@ import { errorMessage } from '../utils/caughtError';
 /** One row of a conversation list, as the hub's lists carry it. */
 export interface ConversationRow {
     id: string;
-    title?: string;
+    title?: string | null;
     project_id?: string | null;
     agent_id?: string | null;
+    agent_name?: string;
     shared_scope?: string | null;
     pinned?: boolean | number;
     labels_json?: string | null;
+    updated_at?: string | null;
+    created_at?: string | null;
+    /** 'direct' for a direct chat in the all-chats timeline. */
+    _source?: string;
     [key: string]: unknown;
 }
 
 /** A conversation label (name + colour). */
 export interface ConversationLabel {
     id: string;
-    name?: string;
-    color?: string;
+    name: string;
+    color: string;
     [key: string]: unknown;
 }
 

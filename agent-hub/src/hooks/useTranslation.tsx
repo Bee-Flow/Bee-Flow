@@ -46,7 +46,7 @@ export type TranslateParams = Record<string, unknown>;
 
 /** A missing key falls back to the string fallback. A method type, so a `key: string` translator stays assignable. */
 export type TranslateFn = {
-    bivarianceHack(key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams): string;
+    bivarianceHack(key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null): string;
 }['bivarianceHack'];
 
 export interface TranslationValue {
@@ -288,7 +288,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
      *
      * Resolution order: server strings → EN catalogue (DEFAULTS) → string fallback → raw key.
      */
-    const t = useCallback((key: string, fallbackOrParams?: string | TranslateParams, paramsArg?: TranslateParams): string => {
+    const t = useCallback((key: string, fallbackOrParams?: string | TranslateParams, paramsArg?: TranslateParams | null): string => {
         const hasStringFallback = typeof fallbackOrParams === 'string';
         const params = hasStringFallback ? paramsArg : fallbackOrParams;
         let value: unknown = strings[key] || DEFAULTS[key];
@@ -338,7 +338,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
  * die bestaat omdat de naam rare tekens bevat, met de naam eruit gesloopt.
  * Een functie als tweede argument van `replace` kent die tekens niet.
  */
-export function interpolate(value: string, params?: TranslateParams | string): string {
+export function interpolate(value: string, params?: TranslateParams | string | null): string {
     if (!params || typeof params !== 'object') return value;
     let out = value;
     for (const [k, v] of Object.entries(params)) {
@@ -363,7 +363,7 @@ export function interpolate(value: string, params?: TranslateParams | string): s
  * renders; if the catalogue does not have them, the screen is English and so
  * is what gets built.
  */
-export function readingLocale(locale: string, strings: Catalogue | null | undefined, anchors: string[] = []): string {
+export function readingLocale(locale: string, strings: Catalogue | null | undefined, anchors: readonly string[] = []): string {
     if (!locale || locale === 'en') return 'en';
     const dict = strings && typeof strings === 'object' ? strings : null;
     if (!dict || Object.keys(dict).length === 0) return 'en';

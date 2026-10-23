@@ -13,7 +13,7 @@ vi.mock('../../../../utils/scopedStorage', () => ({
     },
 }));
 
-import AutomationsOverview from './AutomationsOverview.jsx';
+import AutomationsOverview from './AutomationsOverview';
 
 const row = (over = {}) => ({
     id: over.id || Math.random().toString(36).slice(2),

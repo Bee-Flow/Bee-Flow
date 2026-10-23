@@ -26,7 +26,7 @@ export function describeAction(
     id: string,
     action: AppAction | null | undefined,
     definition: AppDefinition | null | undefined,
-    titleFor: ((automationId?: string) => string | null) | null = null,
+    titleFor: ((automationId?: string | null) => string | null) | null = null,
     t: TranslateFn = plainEnglish,
 ): string {
     switch (action?.kind) {
@@ -112,7 +112,7 @@ function findModal(definition: AppDefinition | null | undefined, modalId: string
 /** `[{ id, label }]` for every action in the app — the shape a <select> wants. */
 export function actionOptions(
     definition: AppDefinition | null | undefined,
-    titleFor: ((automationId?: string) => string | null) | null = null,
+    titleFor: ((automationId?: string | null) => string | null) | null = null,
     t: TranslateFn | undefined = undefined,
 ): Array<{ id: string; label: string }> {
     const actions = definition?.actions && typeof definition.actions === 'object' ? definition.actions : {};

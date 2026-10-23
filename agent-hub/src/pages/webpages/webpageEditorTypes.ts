@@ -27,6 +27,7 @@ export interface ExtraFileMeta {
     path: string;
     mimeType?: string;
     size?: number;
+    isText?: boolean;
     [key: string]: unknown;
 }
 

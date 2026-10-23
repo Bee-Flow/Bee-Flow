@@ -18,7 +18,7 @@ import type { NodeRuntime } from './StepNodeBase.types';
  * A half that is not there yet is muted. `title` is the whole sentence,
  * "<list> · <rule>", on both lines.
  */
-function filterSubtitle(step: NodeStep | null | undefined, stepLabelById: Map<string, string> | null | undefined, stepTypeById: Map<string, string> | null | undefined, t: TFn) {
+function filterSubtitle(step: NodeStep | null | undefined, stepLabelById: Map<string, string> | null | undefined, stepTypeById: Map<string, string | undefined> | null | undefined, t: TFn) {
     const list = step?.arrayRef ? listPathLabel(step.arrayRef, stepLabelById, t, { compact: true, stepTypeById }) : '';
     const rule = describeRuleExpr(step?.expr || '', stepLabelById, t);
     const noList = t('condition_node.canvas.no_list', 'no list yet');

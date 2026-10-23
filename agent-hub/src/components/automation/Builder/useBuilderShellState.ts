@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import scopedStorage from '../../../utils/scopedStorage';
 import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { BuilderTab } from './useBuilderTabUrl';
 
-export type WorkMode = 'discuss' | 'approve' | 'plan' | 'build';
 const WORK_MODES: readonly string[] = ['discuss', 'approve', 'plan', 'build'];
 
 interface WorkModePrefsArgs {
@@ -16,10 +16,10 @@ interface WorkModePrefsArgs {
 /** The work mode and the "always plan large builds" choice, remembered per automation. */
 export function useWorkModePrefs({ automationId, streamAutomationId, startInBuild }: WorkModePrefsArgs) {
     const modeStorageKey = `automationWorkMode:${automationId || 'new'}`;
-    const [workMode, setWorkMode] = useState<WorkMode>(() => {
+    const [workMode, setWorkMode] = useState<string>(() => {
         if (startInBuild) return 'build';
         const saved = scopedStorage.getItem(modeStorageKey);
-        return saved !== null && WORK_MODES.includes(saved) ? saved as WorkMode : 'approve';
+        return saved !== null && WORK_MODES.includes(saved) ? saved : 'approve';
     });
     useEffect(() => { scopedStorage.setItem(`automationWorkMode:${streamAutomationId || automationId || 'new'}`, workMode); }, [workMode, streamAutomationId, automationId]);
     const [alwaysPlanLarge, setAlwaysPlanLarge] = useState(() => scopedStorage.getItem(`automationLargePlan:${automationId || 'new'}`) !== 'false');
@@ -36,9 +36,9 @@ interface AssistantStep {
 }
 
 /** The field a "help me map this" request is about. */
-interface AssistantField {
-    label?: string;
-    expectKind?: string;
+export interface AssistantField {
+    label?: string | null;
+    expectKind?: string | null;
     value?: unknown;
 }
 
@@ -50,7 +50,7 @@ export interface AssistantContext {
 interface AssistantAskArgs {
     readOnlyRef: { current: boolean };
     ndvStepId: string | null;
-    setTab: (tab: string) => void;
+    setTab: (tab: BuilderTab) => void;
     setAssistantOpen: (open: boolean) => void;
     setChatInput: (text: string) => void;
     t: TranslateFn;
@@ -84,7 +84,7 @@ export function useAssistantAsk({ readOnlyRef, ndvStepId, setTab, setAssistantOp
  * Activate / Make vN live sends the person to the AI Act section. Cleared when
  * they leave Settings.
  */
-export function useSettingsSection(tab: string, setTab: (tab: string) => void) {
+export function useSettingsSection(tab: string, setTab: (tab: BuilderTab) => void) {
     const [settingsSection, setSettingsSection] = useState<string | null>(null);
     useEffect(() => {
         if (tab !== 'settings') setSettingsSection(null);

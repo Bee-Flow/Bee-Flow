@@ -14,8 +14,8 @@ import type { FlowDefinition } from './types';
 
 const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
 /* eslint-disable @typescript-eslint/no-require-imports */
-const webSummaries = require(`${FLOW}/nodeSummaries.js`);
-const webDisplay = require(`${FLOW}/displayHelpers.js`);
+const webSummaries = require(`${FLOW}/nodeSummaries.ts`);
+const webDisplay = require(`${FLOW}/displayHelpers.ts`);
 const TEMPLATES_JS = path.resolve(__dirname, '../../../../../server/automation/templates.js');
 const TEMPLATES = templateDefinitions(fs.readFileSync(TEMPLATES_JS, 'utf8'), require(TEMPLATES_JS).getTemplate);
 /* eslint-enable @typescript-eslint/no-require-imports */

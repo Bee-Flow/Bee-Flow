@@ -4,6 +4,9 @@ import { Sparkles, X } from 'lucide-react';
 import type { ReactNode, RefObject, UIEvent } from 'react';
 import { isWaitingForFirstToken } from './buildTabTypes';
 import type { AssistantContext, BuilderTabState } from './buildTabTypes';
+import type { BuilderQuestion } from '../chat/QuestionsCard';
+import type { BuilderSendOptions } from '../builderSend';
+import type { AssistantField } from '../useBuilderShellState';
 import {
     AssistantWelcome, InputArea, MessageBubble, ProposalCard, WorkModePicker,
 } from './jsComponents';
@@ -18,7 +21,7 @@ import type { LiveRunFocus } from '../chat/toolCallDisplay';
 import type { OutputLookup } from '../chat/ProposalCard';
 import type { FlowDefinition, FlowStep } from '../flow/types';
 
-type SendFn = (text: string, attachments?: unknown[], opts?: { answers?: unknown }) => unknown;
+type SendFn = (text: string, attachments?: unknown[], opts?: BuilderSendOptions) => unknown;
 
 export interface AssistantColumnProps {
     state: BuilderTabState;
@@ -29,7 +32,7 @@ export interface AssistantColumnProps {
     stepById: (id: string | undefined) => FlowStep | null;
     assistantContext: AssistantContext | null;
     onClearAssistantContext?: (() => void) | null;
-    onAskAssistant?: ((stepId?: string, field?: unknown) => void) | null;
+    onAskAssistant?: ((stepId?: string, field?: AssistantField | null) => void) | null;
     setAssistantOpen: (open: boolean) => void;
     reviewOpen: boolean;
     setReviewOpen: (open: boolean) => void;
@@ -105,7 +108,7 @@ export default function AssistantColumn(p: AssistantColumnProps) {
                         <BuilderWaitingCard />
                     )}
                     {/* No `running` here: the questions event arrives while the stream is still closing (the turn ends right after the call), and a card mounted greyed-out and disabled read as unusable. Sending aborts what is left of that stream. */}
-                    <QuestionsCard key={state.reviewQuestions?.[0]?.id || 'questions'} questions={state.reviewQuestions} onAnswer={(text, answers) => p.composer.onSend(text, [], { answers })} />
+                    <QuestionsCard key={(state.reviewQuestions as BuilderQuestion[] | null | undefined)?.[0]?.id || 'questions'} questions={state.reviewQuestions as BuilderQuestion[] | null | undefined} onAnswer={(text, answers) => p.composer.onSend(text, [], { answers })} />
                     {!state.reviewQuestions?.length && <PlanInlineCard plan={state.reviewPlan} running={state.running} onOpen={() => p.setReviewOpen(true)} onApprove={approve} />}
                     <ProposalCard key={state.proposal?.id || 'preview'} realOutputById={p.realOutputById} proposal={state.proposal} running={state.running} applying={p.applyingProposal} onApply={p.onApplyProposal} onDiscard={p.onDiscardProposal} onPreview={p.onPreviewProposal} />
                     <div ref={p.messagesEndRef} />
@@ -130,7 +133,7 @@ export interface AssistantComposerProps {
     setAlwaysPlanLarge?: ((value: boolean) => void) | null;
     assistantContext: AssistantContext | null;
     onClearAssistantContext?: (() => void) | null;
-    onAskAssistant?: ((stepId?: string, field?: unknown) => void) | null;
+    onAskAssistant?: ((stepId?: string, field?: AssistantField | null) => void) | null;
     modelTiers: unknown;
     selectedTier: unknown;
     setSelectedTier: unknown;

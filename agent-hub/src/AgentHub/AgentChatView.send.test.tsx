@@ -20,7 +20,7 @@ describe('AgentChatView composer', () => {
             shouldForceScrollRef: { current: false }, messages: [{ id: 'm', role: 'user', content: 'hi' }], chatInput: '', setChatInput: noop,
             sendMessage, stopGenerating: noop, isLoading: false, conversationStarted: true, renderSidePanels: () => null,
         };
-        render(<AgentChatView {...(props as ComponentProps<typeof AgentChatView>)} />);
+        render(<AgentChatView {...(props as unknown as ComponentProps<typeof AgentChatView>)} />);
         expect(composer).not.toBeNull();
         composer?.onSendMessage('hello', [], { id: 'parent' });
         expect(sendMessage).toHaveBeenCalledWith('hello', [], false);

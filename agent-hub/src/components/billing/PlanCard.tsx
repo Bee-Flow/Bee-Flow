@@ -15,7 +15,7 @@ interface Props {
     disabled?: boolean;
     ctaLabel?: string;
     onSelect?: (plan: NormalizedPlan) => void;
-    seats: number;
+    seats?: number;
     footnote?: React.ReactNode;
 }
 
@@ -117,7 +117,7 @@ export default function PlanCard({
                     {t('billing.metered_note', 'Billed on actual usage')}
                 </p>
             )}
-            {plan.perSeat && seats > 0 && (
+            {plan.perSeat && (seats ?? 0) > 0 && (
                 <p className="mt-1 text-xs text-[var(--text-secondary)]">
                     {t('billing.seats_summary', '{seats} seats currently in use').replace('{seats}', String(seats))}
                 </p>

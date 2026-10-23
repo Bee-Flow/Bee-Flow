@@ -65,8 +65,8 @@ describe('chat signals: who can send the marker', () => {
 
     it('the screens that run the chat engine are the reviewed list', () => {
         expect(ENGINE_HOSTS).toEqual([
-            'AgentHub/useAgentHubData.js',
-            'pages/TemplatesPage.jsx',
+            'AgentHub/useAgentHubData.ts',
+            'pages/TemplatesPage.tsx',
             'pages/documents/notebook/detail/useNotebookChat.ts',
             'pages/meeting-notes/detail/AssistantSidebar.tsx',
             'pages/webpages/hooks/useWebpageChat.ts',
@@ -74,7 +74,7 @@ describe('chat signals: who can send the marker', () => {
     });
 
     it('only the Agent Hub chat, which shows the notice, hands the engine the marker getter', () => {
-        expect(MARKER_HOSTS).toEqual(['AgentHub/useAgentHubData.js']);
+        expect(MARKER_HOSTS).toEqual(['AgentHub/useAgentHubData.ts']);
     });
 
     it('the walk sees the tree (the guard is not vacuous)', () => {

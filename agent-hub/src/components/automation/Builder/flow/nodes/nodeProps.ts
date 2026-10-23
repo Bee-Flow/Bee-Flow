@@ -25,6 +25,8 @@ export interface StepIssue {
     path: string;
     message?: string;
     code?: string;
+    severity?: string;
+    hint?: string | null;
     [key: string]: unknown;
 }
 

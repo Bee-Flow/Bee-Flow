@@ -42,6 +42,16 @@ export interface NavItem {
     flyout?: { groups?: Array<{ key: string; label: string; children: NavItem[] }>; children?: NavItem[] };
 }
 
+type FlyoutGroups = NonNullable<NavItem['flyout']>['groups'];
+
+/** A top-level nav row as NavRow draws it: it always has an icon, and a flyout lists groups or a flat list. */
+export interface NavRowItem extends NavItem {
+    icon: NonNullable<NavItem['icon']>;
+    primary?: boolean;
+    kbd?: string;
+    flyout?: { groups: NonNullable<FlyoutGroups>; children?: undefined } | { groups?: undefined; children: NavItem[] };
+}
+
 /** A Studio section descriptor, as the registry (studioApps.jsx) declares it. */
 export interface StudioSection {
     id: string;
@@ -55,7 +65,6 @@ export interface StudioSection {
     descKey?: string;
     descFallback?: string;
     category?: string;
-    [key: string]: unknown;
 }
 
 const go = (onNavigate: Navigate, path: string) => () => onNavigate && onNavigate(path);
@@ -76,7 +85,7 @@ export interface CoreNavOptions {
 }
 
 /** The pinned rows at the top: New Chat, Cowork, Approvals, Search, Documents. */
-export function buildCoreNav(o: CoreNavOptions): NavItem[] {
+export function buildCoreNav(o: CoreNavOptions): NavRowItem[] {
     const { t, onNavigate, currentPage } = o;
     return [
         { key: 'new-chat', label: t('sidebar.new_chat', 'New Chat'), icon: PenLine, onClick: o.onDirectChat, active: o.newChatActive },
@@ -150,7 +159,7 @@ export function studioFlyoutRow(app: StudioSection, c: StudioRowContext): NavIte
  * flat: Build · AI · Bundle for the first-party sections, Add-ons for
  * installed modules (declared in the registry, studioApps.jsx).
  */
-function studioNavItem(sections: StudioSection[], user: StudioNavUser | null | undefined, c: StudioRowContext): NavItem {
+function studioNavItem(sections: StudioSection[], user: StudioNavUser | null | undefined, c: StudioRowContext): NavRowItem {
     return {
         key: 'studio',
         label: c.t('studio.sidebar_link', 'Studio'),
@@ -179,7 +188,7 @@ const pathIs = (test: (path: string) => boolean) => typeof window !== 'undefined
  * Apps — the published-apps directory PLUS every published app the user can
  * open, as its own flyout row. On phones the row navigates to the directory.
  */
-function appsNavItem(publishedApps: PublishedApp[], t: Translate, onNavigate: Navigate, currentPage?: string): NavItem {
+function appsNavItem(publishedApps: PublishedApp[], t: Translate, onNavigate: Navigate, currentPage?: string): NavRowItem {
     return {
         key: 'apps',
         label: t('sidebar.apps', 'Apps'),
@@ -222,7 +231,7 @@ function appsNavItem(publishedApps: PublishedApp[], t: Translate, onNavigate: Na
  * newest-published. Rows open the form in this tab: forms are signed-in only
  * now, so /f/<token> is just a redirect back here.
  */
-function formsNavItem(publishedForms: PublishedForm[], t: Translate, onNavigate: Navigate, currentPage?: string): NavItem {
+function formsNavItem(publishedForms: PublishedForm[], t: Translate, onNavigate: Navigate, currentPage?: string): NavRowItem {
     return {
         key: 'forms',
         label: t('sidebar.forms', 'Forms'),
@@ -276,9 +285,9 @@ export interface SecondaryNavOptions extends StudioRowContext {
  * the row is not shown. Meeting Notes lives inside Studio; notebooks are a
  * document type in Studio → Documents — neither has a row of its own.
  */
-export function buildSecondaryNav(o: SecondaryNavOptions): NavItem[] {
+export function buildSecondaryNav(o: SecondaryNavOptions): NavRowItem[] {
     const { t, onNavigate, currentPage } = o;
-    const items: NavItem[] = [
+    const items: NavRowItem[] = [
         { key: 'agents', label: t('sidebar.agents', 'Agents'), icon: Store, onClick: o.onOpenMarketplace, active: o.showMarketplace },
     ];
     if (o.studioSections) items.push(studioNavItem(o.studioSections, o.user, o));

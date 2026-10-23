@@ -84,7 +84,7 @@ function isTextBlock(value: unknown): value is { type: 'text'; text: string } {
 /**
  * Message text. A turn stored with provider content blocks (BFSF-307) arrives
  * as `[{type:'text',text}, {type:'image_url',…}]`; flattened the way the web's
- * messageContentToText does it (agent-hub/src/utils/messageShape.js).
+ * messageContentToText does it (agent-hub/src/utils/messageShape.ts).
  */
 function content(value: unknown): string {
     if (typeof value === 'string') return value;

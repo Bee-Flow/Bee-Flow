@@ -6,9 +6,9 @@
  */
 import { contentToDoc } from './contentPipeline.js';
 import { astToHtml } from '../serialization/astToHtml.js';
-import { markdownToAst } from '../serialization/mdToAst.js';
+import { markdownToAst } from '../serialization/mdToAst';
 import type { DocAttrs, DocNode } from '../model/schema.js';
-import type { EditorView } from '../engine/view.js';
+import type { EditorView } from '../engine/view';
 import type { commands } from '../commands/index.js';
 
 /** `editor.chain().focus().toggleBold().run()`: every command, then run(). */

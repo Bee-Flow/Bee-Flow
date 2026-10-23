@@ -48,7 +48,7 @@ export interface RunRow {
     status?: string;
     output?: unknown;
     finishedAt?: string;
-    piiSummary?: unknown;
+    piiSummary?: { categories?: Record<string, number>; groups?: Record<string, unknown> | null; degraded?: boolean } | null;
     [key: string]: unknown;
 }
 

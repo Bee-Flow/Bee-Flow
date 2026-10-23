@@ -14,11 +14,6 @@ import type { EdgeClick } from './useEdgeEditCallbacks';
 import type { NodeDropHit } from './useNodeDragWiring';
 import type { DropTarget } from './stepDrag';
 
-/** A run row with the PII summary the edge tooltip reads. */
-interface PiiRunRow extends RunRow {
-    piiSummary?: { categories?: Record<string, number>; degraded?: boolean };
-}
-
 interface RenderedGraphArgs {
     editable?: boolean;
     structuralEditsBlocked?: boolean;
@@ -40,15 +35,15 @@ interface RenderedGraphArgs {
     nodeDropTarget: NodeDropHit | null;
     catalog?: unknown;
     nodes: Node[];
-    runByStep: Map<string, PiiRunRow>;
+    runByStep: Map<string, RunRow>;
     runInFlight?: boolean;
     edgeColorMode?: string;
-    stepNumberById?: Map<string, number> | null;
+    stepNumberById?: Map<string, number | string> | null;
     fitCanvas?: ((options: { duration: number }) => void) | null;
     buildFxById?: Map<string, { delayMs: number }> | null;
     freshEdgeKeys?: Set<string> | null;
-    ghostNodes?: Node[] | null;
-    ghostEdges?: Edge[] | null;
+    ghostNodes?: readonly Node[] | null;
+    ghostEdges?: readonly Edge[] | null;
 }
 
 // The z React Flow gives a selected node when it is allowed to elevate them —

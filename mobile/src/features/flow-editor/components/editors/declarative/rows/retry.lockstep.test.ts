@@ -21,7 +21,7 @@ import {
 } from './retry';
 
 const REPO = path.resolve(__dirname, '../../../../../../../..');
-const SRC = fs.readFileSync(path.join(REPO, 'agent-hub/src/components/automation/Builder/flow/settings/collectionEditors.jsx'), 'utf8');
+const SRC = fs.readFileSync(path.join(REPO, 'agent-hub/src/components/automation/Builder/flow/settings/collectionEditors.tsx'), 'utf8');
 const numbers = (name: string) =>
     (new RegExp(`const ${name} = \\[([^\\]]*)\\]`).exec(SRC)?.[1] ?? '').split(',').map((n) => Number(n.trim().replace(/_/g, '')));
 

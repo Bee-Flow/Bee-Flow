@@ -144,7 +144,7 @@ export function CanUseRow({ icon, title, parts = [], note = null, muted = false,
  * ontbreekt. `role="status"` want het is een mededeling over de toestand van
  * het scherm, niet over de inhoud van de agent.
  */
-export function UnreadableNotice({ message, retryLabel, onRetry, testId }: { message: ReactNode; retryLabel?: ReactNode; onRetry?: () => void; testId?: string }) {
+export function UnreadableNotice({ message, retryLabel, onRetry, testId }: { message: ReactNode; retryLabel?: ReactNode; onRetry?: (() => void) | null; testId?: string }) {
     return (
         <div
             role="status"

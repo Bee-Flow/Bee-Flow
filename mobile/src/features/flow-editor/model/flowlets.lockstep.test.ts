@@ -10,7 +10,7 @@ import type { FlowDefinition } from './types';
 
 const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
 /* eslint-disable @typescript-eslint/no-require-imports */
-const web = require(`${FLOW}/flowletScope.js`);
+const web = require(`${FLOW}/flowletScope.ts`);
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const layer = (title: string, steps: FlowDefinition['steps'], edges: FlowDefinition['edges'] = []): FlowDefinition => ({

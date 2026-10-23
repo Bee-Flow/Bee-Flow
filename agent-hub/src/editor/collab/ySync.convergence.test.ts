@@ -8,9 +8,9 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as Y from 'yjs';
-import { markdownToAst } from '../serialization/mdToAst.js';
-import { astToMarkdown } from '../serialization/astToMd.js';
-import { normalizeLight } from '../engine/normalize.js';
+import { markdownToAst } from '../serialization/mdToAst';
+import { astToMarkdown } from '../serialization/astToMd';
+import { normalizeLight } from '../engine/normalize';
 import { inlineToTokens, tokensToInline } from '../engine/inline.js';
 import { astToFragment, createYCache, fragmentToAst, sameInY, type YCache } from './yConvert';
 import { syncDocToFragment } from './ySync';

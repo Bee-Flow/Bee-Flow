@@ -67,7 +67,7 @@ vi.mock('../../../hooks/useTranslation', () => {
 });
 
 import { STUDIO_APPS, resolveStudioNav } from './studioApps';
-import StudioHomeHeader from './StudioHomeHeader.jsx';
+import StudioHomeHeader from './StudioHomeHeader';
 import { queryWrapper } from '../../../test/queryWrapper';
 
 // The hooks under this tree read through React Query, so every render needs

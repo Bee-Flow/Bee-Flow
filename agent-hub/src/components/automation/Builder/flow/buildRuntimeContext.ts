@@ -173,7 +173,7 @@ export function buildRuntimeContext({
             definition?.trigger?.id,
             ...(definition?.triggers || []).map(t => t?.id),
             ...inlineTriggerIds,
-        ].filter(Boolean)),
+        ].filter(Boolean) as StepId[]),
         undeletableIds: inlineTriggerIds,
         // Expand/collapse a flowlet in place. Offered on a read-only canvas
         // too — looking inside a sub-flow isn't an edit.

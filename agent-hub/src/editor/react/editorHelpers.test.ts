@@ -3,7 +3,7 @@
  * catalogue and the highlight registry.
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { markdownToAst } from '../serialization/mdToAst.js';
+import { markdownToAst } from '../serialization/mdToAst';
 import { textSelection, pos } from '../engine/selection.js';
 import { anchorFromSelection, resolveAnchor, type RelResolver } from './anchors';
 import { activeHeadingIndex, collectHeadings, tocItems, tocSignature } from './toc';

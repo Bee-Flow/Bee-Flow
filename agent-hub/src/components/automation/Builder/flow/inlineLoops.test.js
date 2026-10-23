@@ -5,7 +5,7 @@ import {
     containerKind,
     CONTAINER_HEADER,
     CONTAINER_PAD,
-} from './inlineFlowlets.js';
+} from './inlineFlowlets';
 import { LOOP_ENTRY_ID } from './loopBodyEdges';
 import { applyDeleteNodes } from './nodeOps';
 

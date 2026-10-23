@@ -1,0 +1,690 @@
+// Shared sections (ForEachSection, RetrySection, FieldsSection,
+// SourceSummaryRow, CollectionArrayRefField, useElementSample) plus the small
+// collection / datetime / wait step editors, extracted verbatim from
+// SettingsForm.jsx.
+import { getList } from '@shared/expr/path.mjs';
+import { Repeat, RotateCw } from 'lucide-react';
+import { useMemo, useState, type JSX, type ChangeEvent } from 'react';
+import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
+import { walkPath } from '../../../../../utils/bindingHelpers';
+import FieldKeyCombobox from '../../mapping/FieldKeyCombobox';
+import { applyStepBindings, stepBindings } from '../../mapping/forEachBindings';
+import { listPathLabel } from '../../mapping/listPathLabel';
+import LoopOverPicker from '../../mapping/LoopOverPicker';
+import PathField from '../../mapping/PathField';
+import ToolInputForm from '../../mapping/ToolInputForm';
+import { collectArrayPaths, resolveElementSample, elementFieldOptions } from '../../mapping/upstream';
+import { fieldLabelText, routeFieldLabel } from '../../mapping/upstream/routeFieldLabel';
+import { useVariablePickerContext } from '../../mapping/VariablePickerContext';
+import AccordionSection from '../AccordionSection';
+import { datetimeTargetColumn, dateInputPatch } from '../datetimeTarget';
+import { humanizeFieldKey } from '../displayHelpers';
+import { WAIT_UNIT_FACTOR, clampWaitSeconds, waitUnitFor, type WaitUnit } from '../waitDuration';
+import { controlSurfaceClass, FormRow, inputClass } from './formPrimitives';
+import type { Group } from '../../mapping/upstream/upstream.types';
+import type React from 'react';
+import type { ForEachSpec } from '../../mapping/templateRemedies';
+import type { FormRecord } from './formState/types';
+import type { OnFocusField } from '../../mapping/focusField.types';
+import type { StepEditorProps, ForEachSectionProps, RetryWaitTotalProps, RetrySectionProps, FieldsSectionProps, SourceSummaryRowProps, CollectionArrayRefFieldProps, DateTimeFieldsProps, WaitFieldsProps, LimitFieldsProps, DedupeFieldsProps, AggregateFieldsProps, SummarizeFieldsProps } from './collectionEditors.types';
+export type { StepEditorProps } from './collectionEditors.types';
+
+function ForEachSection({ draft, set, groups, onFocusField, children = null }: ForEachSectionProps) {
+    const { t } = useTranslation();
+    const fe = draft.forEach || null;
+    const enabled = !!fe;
+    const { previewSample } = useVariablePickerContext();
+    const toggle = (on: boolean) => set('forEach', on
+        ? { overRef: fe?.overRef || '', itemVar: fe?.itemVar || 'item', maxIterations: fe?.maxIterations ?? 100 }
+        : null);
+    // How many times this step would actually run — resolved from the merged
+    // real/sample root, so it is the same number the run will produce.
+    const overCount = (() => {
+        if (!enabled || !fe?.overRef || !previewSample) return null;
+        const arr = walkPath(fe.overRef, previewSample);
+        return Array.isArray(arr) ? arr.length : null;
+    })();
+    return (
+        <div className="rounded-lg border border-[var(--border-default)] p-3 space-y-2">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" checked={enabled} onChange={(e) => toggle(e.target.checked)} />
+                <span className="inline-flex items-center gap-1.5 font-medium text-[var(--text-primary)]">
+                    <Repeat size={13} /> {t('automations.collection_editors.run_once_per_item', 'Run once per item')}
+                </span>
+            </label>
+            {/* Plain words first; the raw loop.<var> syntax is demoted to the
+                tooltip — it used to LEAD this sentence. */}
+            <p className="text-[11px] text-[var(--text-secondary)]" title={`Reference each one as loop.${fe?.itemVar || 'item'}`}>
+                {t('automations.collection_editors.each_row_is_available_to_this', 'Each row is available to this step as its current row.')}
+            </p>
+            {overCount != null && (
+                <p className="text-[11px] text-[var(--text-secondary)] font-medium">
+                    {overCount === 1 ? t('automations.collection_editors.will_run_once', 'This step will run 1 time, once for each row.') : t('automations.collection_editors.will_run_times', 'This step will run {count} times, once for each row.', { count: overCount })}
+                </p>
+            )}
+            {enabled && (
+                <div className="space-y-3 pt-1">
+                    <LoopOverPicker
+                        overRef={fe.overRef || ''}
+                        itemVar={fe.itemVar || 'item'}
+                        parents={fe.parents}
+                        onChange={(patch) => set('forEach', { ...fe, ...patch })}
+                        groups={groups}
+                        onFocusField={onFocusField ?? undefined}
+                        // Another list: the step's fields follow the item (or
+                        // are named when the new item lacks them), with Undo.
+                        bindings={stepBindings(draft)}
+                        onRebind={(next) => applyStepBindings(draft, next as Record<string, unknown>, set)}
+                    />
+                    <FormRow label={t('automations.collection_editors.max_iterations', 'Max iterations')} hint={t('automations.collection_editors.safety_cap_1_1000', 'Safety cap. 1–1000.')}>
+                        <input
+                            type="number" min={1} max={1000}
+                            value={fe.maxIterations ?? 100}
+                            onChange={(e) => set('forEach', { ...fe, maxIterations: Number(e.target.value) })}
+                            className={inputClass()}
+                        />
+                    </FormRow>{children}
+                </div>
+            )}
+        </div>
+    );
+}
+
+/**
+ * Whether this step's retry row counts as CONFIGURED — what the Advanced
+ * section's collapsed "has content" dot is asking. `max: 0` is the runner's
+ * own "do not retry" and reads as off here for the same reason it does in
+ * the row itself, so a step carrying one is not advertised as having a
+ * setting the author would open the section and fail to find.
+ */
+function retryIsSet(draft: FormRecord) {
+    return !!(draft && draft.retry && Number(draft.retry.max) > 0);
+}
+
+/** The try-again counts offered, as extra attempts AFTER the first one. */
+const RETRY_TRY_COUNTS = [1, 2, 3, 5];
+/** The waits offered, in the runner's own unit. */
+const RETRY_WAIT_MS = [0, 2000, 5000, 15000, 30000, 60_000];
+/** Two extra tries, five seconds apart — a rate limit's usual shape. */
+const RETRY_DEFAULT = { max: 2, backoffMs: 5000 };
+/** Half the default run budget (RUN_HARD_TIMEOUT_MS, 5 min) spent waiting. */
+const RETRY_LONG_WAIT_MS = 150_000;
+
+function retryTriesLabel(n: number) {
+    if (n === 1) return 'Once';
+    if (n === 2) return 'Twice';
+    return `${n} times`;
+}
+
+function retryWaitLabel(ms: number) {
+    if (!ms) return 'Straight away';
+    const s = Math.round(ms / 100) / 10;
+    if (s >= 60 && s % 60 === 0) return `After ${s / 60} minute${s === 60 ? '' : 's'}`;
+    return `After ${s} second${s === 1 ? '' : 's'}`;
+}
+
+/** The offered values, plus whatever is actually stored if it isn't one of them. */
+function retryChoices(offered: number[], stored: number) {
+    return offered.includes(stored) ? offered : [...offered, stored].sort((a, b) => a - b);
+}
+
+/**
+ * How many rows the waiting is paid on.
+ *
+ * NOT always one. When the same step also has "Run once per item" ticked the
+ * retry is owned PER ROW: execution.js hands a step with a `forEach.overRef`
+ * to execForEachStep and then stands back (§WS2.5, `err.foreachHandled`),
+ * because retrying the whole fan-out would re-run the rows that already
+ * succeeded — so execFlow.js sleeps `backoffMs` between the attempts of EACH
+ * row instead. Two tries five seconds apart is ten seconds on a plain step
+ * and up to a thousand over a default 100-row fan-out, and the fan-out is
+ * exactly where a rate-limited integration earns a retry in the first place.
+ * Summing this row on its own printed "10s" in calm grey for the run that was
+ * certain to be killed by the 5-minute budget first — the single case the
+ * line exists to warn about, and the two rows sit one above the other in the
+ * same Advanced section, so the author reads them as one setting.
+ *
+ * The cap is the runner's own — `Math.min(maxIterations || 100, 1000)`
+ * (execFlow.js) — and it counts only once `overRef` is set, because that is
+ * the condition execution.js dispatches per item on. A half-filled picker
+ * still reads as one step, which is what it still runs as.
+ */
+function retryRowCap(forEach: ForEachSpec | undefined) {
+    if (!forEach || !forEach.overRef) return 1;
+    return Math.min(Number(forEach.maxIterations) || 100, 1000);
+}
+
+function RetryWaitTotal({ tries, waitMs, rowCap }: RetryWaitTotalProps) {
+    const worstCaseMs = tries * waitMs * rowCap;
+    if (worstCaseMs <= 0) return null;
+    const long = worstCaseMs >= RETRY_LONG_WAIT_MS;
+    const seconds = Math.round(worstCaseMs / 1000);
+    return (
+        <p className={`text-[11px] font-medium ${long
+            ? 'text-amber-600 dark:text-amber-400'
+            : 'text-[var(--text-secondary)]'}`}>
+            {rowCap > 1
+                ? `Each row is tried again on its own, so waiting can add up to ${seconds}s across all ${rowCap} rows`
+                : `Waiting can add up to ${seconds}s to this run`}
+            {long
+                ? ' — long enough to run the automation out of time before the tries run out.'
+                : '.'}
+        </p>
+    );
+}
+
+function RetrySection({ draft, set }: RetrySectionProps) {
+    const { t } = useTranslation();
+    if (!draft || !('retry' in draft)) return null;
+    // `max: 0` is the runner's own "do not retry" (`retry.max > 0` gates the
+    // whole loop), so it reads as off here rather than as a broken on.
+    const stored = draft.retry && Number(draft.retry.max) > 0 ? draft.retry : null;
+    const enabled = !!stored;
+    const tries = Number(stored?.max) || 1;
+    const waitMs = Number(stored?.backoffMs) || 0;
+    const patch = (over: { max: number; } | { backoffMs: number; }) => set('retry', { max: tries, backoffMs: waitMs, ...over });
+    return (
+        <div className="rounded-lg border border-[var(--border-default)] p-3 space-y-2 mt-2">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" checked={enabled}
+                    onChange={(e) => set('retry', e.target.checked ? { ...RETRY_DEFAULT } : null)} />
+                <span className="inline-flex items-center gap-1.5 font-medium text-[var(--text-primary)]">
+                    <RotateCw size={13} /> {t('automations.collection_editors.try_again_if_this_step_fails', 'Try again if this step fails')}
+                </span>
+            </label>
+            <p className="text-[11px] text-[var(--text-secondary)]">
+                {t('automations.collection_editors.for_the_failures_that_pass_on', 'For the failures that pass on their own — a timeout, a service that is briefly busy, a “too many requests”. Not for a wrong password or a missing field: those fail the same way every time.')}
+            </p>
+            {enabled && (
+                <div className="space-y-3 pt-1">
+                    <FormRow label={t('automations.collection_editors.try_again', 'Try again')} htmlFor="retry-tries"
+                        hint={t('automations.collection_editors.how_many_more_times_to_run', 'How many more times to run this step after the first attempt fails.')}>
+                        <select
+                            id="retry-tries"
+                            value={tries}
+                            onChange={(e) => patch({ max: Number(e.target.value) })}
+                            className={inputClass()}
+                        >
+                            {retryChoices(RETRY_TRY_COUNTS, tries).map(n => (
+                                <option key={n} value={n}>{retryTriesLabel(n)}</option>
+                            ))}
+                        </select>
+                    </FormRow>
+                    <FormRow label={t('automations.collection_editors.wait_before_trying_again', 'Wait before trying again')} htmlFor="retry-wait"
+                        hint={t('automations.collection_editors.trying_again_immediately_usually_hits_the', 'Trying again immediately usually hits the same problem — a few seconds is enough for most of them to clear.')}>
+                        <select
+                            id="retry-wait"
+                            value={waitMs}
+                            onChange={(e) => patch({ backoffMs: Number(e.target.value) })}
+                            className={inputClass()}
+                        >
+                            {retryChoices(RETRY_WAIT_MS, waitMs).map(ms => (
+                                <option key={ms} value={ms}>{retryWaitLabel(ms)}</option>
+                            ))}
+                        </select>
+                    </FormRow>
+                    {/* The question every author asks next, answered before they
+                        have to run it to find out. */}
+                    <p className="text-[11px] text-[var(--text-secondary)]">
+                        {t('automations.collection_editors.if_the_last_try_fails_too', 'If the last try fails too, the step fails and the automation stops there — exactly as it does now. Every attempt is kept in the run history, so you can see how often it took more than one.')}
+                    </p>
+                    <RetryWaitTotal tries={tries} waitMs={waitMs} rowCap={retryRowCap(draft.forEach)} />
+                </div>
+            )}
+        </div>
+    );
+}
+
+function FieldsSection({
+    draft, set, stepType, title, hint, onFocusField, previewSample,
+    errorSections = new Set(), footer = null, inputProps = null,
+}: FieldsSectionProps) {
+    return (
+        <AccordionSection stepType={stepType} sectionKey="fields" title={title} defaultOpen forceOpen={errorSections.has('fields')}>
+            {/* The hint is a plain sentence, not a FormRow with a (?) icon: the
+                accordion header already carries the title, so a FormRow here
+                printed the same words twice and hid the explanation behind a
+                tooltip nobody opens. */}
+            {hint && <p className="text-[11px] text-[var(--text-tertiary)] mb-2">{hint}</p>}
+            <ToolInputForm
+                inputs={draft.fields || {}}
+                onChange={(next) => set('fields', next)}
+                inputSchema={null}
+                keepEmptyFields
+                onFocusField={onFocusField}
+                previewSample={previewSample}
+                {...(inputProps || {})}
+            />
+            {footer}
+        </AccordionSection>
+    );
+}
+
+function SourceSummaryRow({ hint, warning = null, source, maxItems, onPatch, groups, onFocusField, previewSample }: SourceSummaryRowProps) {
+    const pickerCtx = useVariablePickerContext();
+    const { t } = useTranslation();
+    const [open, setOpen] = useState(false);
+    const summary = useMemo(
+        () => describeSourceList(source, pickerCtx.groups, previewSample, t),
+        [source, pickerCtx.groups, previewSample, t],
+    );
+    // R10: never a raw path — an unreadable list shows its name and why it has no fields yet.
+    const unread = !summary && source ? listPathLabel(source, pickerCtx.stepLabelById, t, { stepTypeById: pickerCtx.stepTypeById }) : null;
+    return (
+        <FormRow label={t('automations.collection_editors.working_through', 'Working through')} hint={hint}>
+            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                {summary ? (
+                    <span className="truncate">
+                        <span className="text-[var(--text-primary)]">{summary.stepLabel}</span>
+                        {summary.fieldLabel && <span className="text-[var(--text-tertiary)]"> · </span>}
+                        {summary.fieldLabel && <span className="text-[var(--text-primary)]">{summary.fieldLabel}</span>}
+                        {summary.count != null && (
+                            <span className="text-[var(--text-tertiary)]"> — {summary.count} {t('automations.collection_editors.item', 'item')}{summary.count === 1 ? '' : 's'}</span>
+                        )}
+                    </span>
+                ) : unread ? (
+                    <span className="truncate" title={source}>
+                        <span className="text-[var(--text-primary)]">{unread}</span>
+                        <span className="text-[var(--text-tertiary)]"> · {t('condition_node.source.no_sample', 'no sample yet: run the step above to see its fields')}</span>
+                    </span>
+                ) : (
+                    <span className="text-amber-600 dark:text-amber-400 truncate">{t('automations.collection_editors.no_list_picked_yet', 'No list picked yet')}</span>
+                )}
+                <button
+                    type="button"
+                    onClick={() => setOpen(o => !o)}
+                    aria-label={open ? 'Done changing the source list' : 'Change the source list'}
+                    className="ml-auto shrink-0 text-[10px] text-[var(--accent)] hover:underline"
+                >
+                    {open ? 'done' : 'change'}
+                </button>
+            </div>
+            {/* Said in the open, not behind the hint icon: this is the reason
+                the step produced nothing, next to the control that fixes it. */}
+            {warning && (
+                <div className="mt-1 text-[11px] text-amber-600 dark:text-amber-400">{warning}</div>
+            )}
+            {open && (
+                <div className="mt-2">
+                    <CollectionArrayRefField
+                        draft={{ arrayRef: source || '', maxItems }}
+                        set={(k, v) => onPatch(k === 'arrayRef' ? { source: v } : { maxItems: v })}
+                        groups={groups}
+                        onFocusField={onFocusField}
+                        previewSample={previewSample}
+                    />
+                </div>
+            )}
+        </FormRow>
+    );
+}
+
+/**
+ * The one-line "Working through ‹gmail search› · Results — 10 items" summary.
+ * The list is read the way the run reads it (`getList`, R10), so a list held
+ * as JSON text is counted too; such a list, which the quick-picks do not
+ * offer, is named by `listPathLabel`. Returns null when the path resolves to
+ * nothing, so the form can name the list and say it has no sample yet. A
+ * Condition's output reads as its name ("pdf", "Otherwise"), never as its
+ * internal key (routeFieldLabel).
+ */
+function describeSourceList(source: string | undefined, groups: Group[], previewSample: unknown, t: ((key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) | null = null) {
+    const path = String(source || '').trim();
+    if (!path) return null;
+    // Count from the RESOLVED value: for a `[*]` path a quick-pick's sample is
+    // the first element (the collectionItemsFields convention), so its length
+    // was the first ROW's size, not the list's.
+    const arr = previewSample ? getList(previewSample, path) : null;
+    const match = collectArrayPaths(groups, previewSample).find(a => a.path === path);
+    if (!match) return arr ? { stepLabel: listPathLabel(path, stepLabels(groups)), fieldLabel: null, count: arr.length } : null;
+    const owner = (groups || []).find(g => g.basePath && path.startsWith(g.basePath));
+    const counted = arr || (Array.isArray(match.sample) ? match.sample : null);
+    return {
+        stepLabel: owner?.label || 'Previous step',
+        fieldLabel: (t && fieldLabelText(routeFieldLabel(path), t)) || humanizeFieldKey(match.key),
+        count: counted ? counted.length : null,
+    };
+}
+
+/** Step id → label, from the picker groups (`steps.<id>.output`). */
+function stepLabels(groups: Group[]) {
+    const out = new Map();
+    for (const g of groups || []) {
+        const m = typeof g?.basePath === 'string' ? g.basePath.split('.') : [];
+        if (m[0] === 'steps' && m[1]) out.set(m[1], g.label);
+    }
+    return out;
+}
+
+function CollectionArrayRefField({ draft, set, groups, onFocusField, previewSample }: CollectionArrayRefFieldProps) {
+    const { t } = useTranslation();
+    // Array-only picker over the SHARED PathField control: friendly quick-picks
+    // (nested + real-run arrays via collectArrayPaths), {} variable picker,
+    // drag-to-map, name chips, and a soft "isn't a list" warning.
+    const quickPicks = useMemo(() => collectArrayPaths(groups, previewSample), [groups, previewSample]);
+    return (
+        <>
+            <FormRow label={t('automations.collection_editors.source_list', 'Source list')} required hint={t('automations.collection_editors.pick_a_list_from_a_previous', 'Pick a list from a previous step — or type a path manually.')}>
+                <PathField
+                    value={draft.arrayRef || ''}
+                    onChange={(v: string|number) => set('arrayRef', v)}
+                    expectArray
+                    quickPicks={quickPicks}
+                    onFocusField={onFocusField}
+                    previewSample={previewSample}
+                    placeholder={t('automations.collection_editors.no_list_picked_yet', 'No list picked yet')}
+                />
+            </FormRow>
+            {/* Optional input cap (C19): read by the runner and validated by
+                the server, but previously editable only via the raw JSON
+                view — the router even pointed limit's maxItems errors at a
+                control that didn't exist. Blank = platform default. */}
+            <FormRow label={t('automations.collection_editors.max_input_items', 'Max input items')} hint={t('automations.collection_editors.optional_cap_on_input_size_the', 'Optional cap on input size — the run FAILS if the source list is larger (platform cap 10 000). Leave blank for the default.')}>
+                <input
+                    type="number" min={1} max={10000}
+                    value={draft.maxItems === '' || draft.maxItems == null ? '' : draft.maxItems}
+                    onChange={(e) => set('maxItems', e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="10000"
+                    className={inputClass()}
+                />
+            </FormRow>
+        </>
+    );
+}
+
+/**
+ * Resolve the current element shape of a collection op's source array so its
+ * sub-fields (keyField/field, filter's `item.*` conditions) get suggestions
+ * with real samples. previewSample is the NDV's merged root (design-time
+ * samples + real-run/pinned overlays), so a dry-run upgrades the options.
+ */
+function useElementSample(arrayRef: string | undefined, previewSample: unknown) {
+    return useMemo(() => resolveElementSample(arrayRef, previewSample), [arrayRef, previewSample]);
+}
+
+function DateTimeFields({ draft, set, groups, onFocusField, previewSample, errorSections = new Set() }: DateTimeFieldsProps) {
+    const { t } = useTranslation();
+    const op = draft.op || 'now';
+    const needsInput = op !== 'now';
+    const needsInput2 = op === 'diff';
+    const needsAmount = op === 'addDays' || op === 'addHours' || op === 'addMinutes';
+    // Same present-or-absent convention as the Condition and Edit data nodes.
+    const listMode = typeof draft.arrayRef === 'string';
+    const column = datetimeTargetColumn(draft);
+    return (
+        <AccordionSection stepType="datetime" sectionKey="config" title={t('automations.collection_editors.configuration', 'Configuration')} defaultOpen forceOpen={errorSections.has('config')}>
+            <FormRow label={t('automations.collection_editors.operation', 'Operation')}>
+                <select value={op} onChange={(e) => set('op', e.target.value)} className={inputClass()}>
+                    <option value="now">{t('automations.collection_editors.today_s_date_and_time', 'Today’s date and time')}</option>
+                    <option value="parse">{t('automations.collection_editors.read_a_date_out_of_text', 'Read a date out of text')}</option>
+                    <option value="format">{t('automations.collection_editors.reformat_a_date', 'Reformat a date')}</option>
+                    <option value="addDays">{t('automations.collection_editors.add_days', 'Add days')}</option>
+                    <option value="addHours">{t('automations.collection_editors.add_hours', 'Add hours')}</option>
+                    <option value="addMinutes">{t('automations.collection_editors.add_minutes', 'Add minutes')}</option>
+                    <option value="diff">{t('automations.collection_editors.time_between_two_dates', 'Time between two dates')}</option>
+                    <option value="extract">{t('automations.collection_editors.take_one_part_of_a_date', 'Take one part of a date')}</option>
+                </select>
+            </FormRow>
+            {/* One date, or a whole column of them. Dropping a column into
+                "Input date" switches this automatically — before, the array
+                reached the date parser whole and the step just failed. */}
+            {op !== 'now' && (
+                <FormRow label={t('automations.collection_editors.works_on', 'Works on')} hint={t('automations.collection_editors.set_automatically_when_you_drop_a', 'Set automatically when you drop a whole column into the input below.')}>
+                    <select
+                        value={listMode ? 'items' : 'single'}
+                        onChange={(e) => set('arrayRef', e.target.value === 'items' ? (draft.arrayRef ?? '') : null)}
+                        className={inputClass()}
+                    >
+                        <option value="single">{t('automations.collection_editors.one_date', 'One date')}</option>
+                        <option value="items">{t('automations.collection_editors.each_row_of_a_list', 'Each row of a list')}</option>
+                    </select>
+                </FormRow>
+            )}
+            {listMode && (
+                <CollectionArrayRefField
+                    draft={draft}
+                    set={set}
+                    groups={groups}
+                    onFocusField={onFocusField}
+                    previewSample={previewSample}
+                />
+            )}
+            {needsInput && (
+                <FormRow
+                    label={t('automations.collection_editors.input_date', 'Input date')}
+                    hint={listMode
+                        ? 'Which column of that list holds the date. Write it as item.<column>.'
+                        : 'Pick a date from a previous step, or type a fixed date like 2026-07-01.'}
+                >
+                    <PathField
+                        value={draft.input || ''}
+                        onChange={(v: unknown) => {
+                            // A dropped COLUMN switches the step to list mode —
+                            // see dateInputPatch for why.
+                            for (const [k, val] of Object.entries(dateInputPatch(v, { listMode }))) set(k, val);
+                        }}
+                        allowLiteral="date"
+                        onFocusField={onFocusField}
+                        previewSample={previewSample}
+                        placeholder={listMode ? 'item.updated' : 'trigger.output.timestamp'}
+                    />
+                </FormRow>
+            )}
+            {listMode && (
+                <FormRow
+                    label={t('automations.collection_editors.new_column', 'New column')}
+                    hint={`Every row keeps its own columns and gains this one. Leave empty to call it “${column}”.`}
+                >
+                    <input
+                        type="text"
+                        value={draft.target || ''}
+                        onChange={(e) => set('target', e.target.value)}
+                        placeholder={column}
+                        className={inputClass()}
+                    />
+                </FormRow>
+            )}
+            {needsInput2 && (
+                <FormRow label={t('automations.collection_editors.second_date', 'Second date')} hint={t('automations.collection_editors.difference_is_calculated_as_second_date', 'Difference is calculated as second date − input date.')}>
+                    <PathField
+                        value={draft.input2 || ''}
+                        onChange={(v) => set('input2', v)}
+                        allowLiteral="date"
+                        onFocusField={onFocusField}
+                        previewSample={previewSample}
+                        placeholder="trigger.output.endsAt"
+                    />
+                </FormRow>
+            )}
+            {needsAmount && (
+                <FormRow label={t('automations.collection_editors.amount_2', 'Amount')} hint={t('automations.collection_editors.positive_to_add_negative_to_subtract', 'Positive to add, negative to subtract.')}>
+                    <input type="number" value={draft.amount ?? 0} onChange={(e) => set('amount', Number(e.target.value))} className={inputClass()} />
+                </FormRow>
+            )}
+            {op === 'format' && (
+                <FormRow label={t('automations.collection_editors.format', 'Format')} hint={t('automations.collection_editors.how_the_date_should_be_written', 'How the date should be written. Building blocks: yyyy (year), MM (month), dd (day), HH, mm, ss.')}>
+                    <input type="text" value={draft.format || ''} onChange={(e) => set('format', e.target.value)} placeholder={t('automations.collection_editors.yyyy_mm_dd_hh_mm', 'yyyy-MM-dd HH:mm')} className={inputClass() + ' font-mono'} />
+                </FormRow>
+            )}
+            {op === 'extract' && (
+                <FormRow label={t('automations.collection_editors.part', 'Part')}>
+                    <select value={draft.part || 'year'} onChange={(e) => set('part', e.target.value)} className={inputClass()}>
+                        <option value="year">{t('automations.collection_editors.year', 'year')}</option>
+                        <option value="month">{t('automations.collection_editors.month', 'month')}</option>
+                        <option value="day">{t('automations.collection_editors.day', 'day')}</option>
+                        <option value="hour">{t('automations.collection_editors.hour', 'hour')}</option>
+                        <option value="minute">{t('automations.collection_editors.minute', 'minute')}</option>
+                        <option value="second">{t('automations.collection_editors.second', 'second')}</option>
+                        <option value="dayOfWeek">{t('automations.collection_editors.day_of_the_week', 'day of the week')}</option>
+                    </select>
+                </FormRow>
+            )}
+            {op === 'diff' && (
+                <FormRow label={t('automations.collection_editors.unit', 'Unit')}>
+                    <select value={draft.unit || 'days'} onChange={(e) => set('unit', e.target.value)} className={inputClass()}>
+                        <option value="days">{t('automations.collection_editors.days', 'days')}</option>
+                        <option value="hours">{t('automations.collection_editors.hours', 'hours')}</option>
+                        <option value="minutes">{t('automations.collection_editors.minutes', 'minutes')}</option>
+                        <option value="seconds">{t('automations.collection_editors.seconds', 'seconds')}</option>
+                    </select>
+                </FormRow>
+            )}
+        </AccordionSection>
+    );
+}
+
+// Moved to flow/waitDuration.js so the canvas card renders the SAME unit this
+// editor opens on — the node used to print "7200s" for a Wait set to 2 hours.
+function WaitFields({ draft, set, errorSections = new Set() }: WaitFieldsProps) {
+    const { t } = useTranslation();
+    const seconds = clampWaitSeconds(Number(draft.seconds ?? 5) || 5);
+    // Display unit is derived ONCE on mount and held locally — switching the
+    // unit only re-interprets the display; the stored value stays `seconds`
+    // and is never re-emitted on mount (no autosave churn on open).
+    const [unit, setUnit] = useState(() => waitUnitFor(seconds));
+    const factor = WAIT_UNIT_FACTOR[unit] || 1;
+    // While the field is being edited the user's raw text wins. Clamping on
+    // every keystroke made the field unusable: emptying it gives
+    // `Number('') === 0` — not NaN, so the old guard never fired — and
+    // `Math.max(1, 0)` snapped it straight back to 1, so you could never
+    // clear-and-retype (BFSF-345).
+    const [typed, setTyped] = useState<string | null>(null);
+    const display = typed ?? String(Math.round((seconds / factor) * 100) / 100);
+
+    const commit = (raw: string) => {
+        const n = Number(raw);
+        if (raw == null || String(raw).trim() === '' || !Number.isFinite(n) || n <= 0) return false;
+        set('seconds', clampWaitSeconds(n * factor));
+        return true;
+    };
+    const onValue = (e: ChangeEvent<HTMLInputElement, HTMLInputElement>) => {
+        setTyped(e.target.value);
+        commit(e.target.value);
+    };
+    // Dropping the raw text on blur is what restores the last stored value
+    // when the field was left empty or nonsense.
+    const onBlur = () => { setTyped(null); };
+    // Switching the unit keeps the number the user is looking at and
+    // re-interprets it (5 seconds → 5 minutes), instead of rescaling it into
+    // a rounded-to-zero 0.08 that sits below the field's own minimum.
+    const onUnit = (e: ChangeEvent<HTMLSelectElement, HTMLSelectElement>) => {
+        const next = e.target.value as WaitUnit;
+        const n = Number(display);
+        setUnit(next);
+        setTyped(null);
+        if (Number.isFinite(n) && n > 0) set('seconds', clampWaitSeconds(n * (WAIT_UNIT_FACTOR[next] || 1)));
+    };
+
+    // `inputClass()` bakes in `w-full`; adding `w-auto` next to it leaves two
+    // utilities racing for one property (won by stylesheet order, not class
+    // order — see formStyles.js), which let the unit select eat the whole row
+    // and collapsed the number field to its spinner. Both controls carry
+    // their own width instead.
+    const controlSize = 'px-2 py-1.5 text-sm';
+    return (
+        <AccordionSection stepType="wait" sectionKey="config" title={t('automations.collection_editors.configuration', 'Configuration')} defaultOpen forceOpen={errorSections.has('config')}>
+            <FormRow label={t('automations.collection_editors.wait_for', 'Wait for')} required hint={t('automations.collection_editors.up_to_24_hours_dry_run', 'Up to 24 hours. Dry-run skips the wait.')}>
+                <div className="flex items-stretch gap-1.5">
+                    <input
+                        type="number"
+                        min={unit === 'seconds' ? 1 : 0.01}
+                        step={unit === 'seconds' ? 1 : 'any'}
+                        value={display}
+                        onChange={onValue}
+                        onBlur={onBlur}
+                        aria-label={t('automations.collection_editors.wait_duration', 'Wait duration')}
+                        className={controlSurfaceClass(`flex-1 min-w-[5rem] ${controlSize}`)}
+                    />
+                    <select
+                        value={unit}
+                        onChange={onUnit}
+                        className={controlSurfaceClass(`w-auto shrink-0 ${controlSize}`)}
+                        aria-label={t('automations.collection_editors.duration_unit', 'Duration unit')}
+                    >
+                        <option value="seconds">{t('automations.collection_editors.seconds', 'seconds')}</option>
+                        <option value="minutes">{t('automations.collection_editors.minutes', 'minutes')}</option>
+                        <option value="hours">{t('automations.collection_editors.hours', 'hours')}</option>
+                    </select>
+                </div>
+            </FormRow>
+        </AccordionSection>
+    );
+}
+
+function LimitFields({ draft, set, groups, onFocusField, previewSample, errorSections = new Set() }: LimitFieldsProps) {
+    const { t } = useTranslation();
+    return (
+        <AccordionSection stepType="limit" sectionKey="config" title={t('automations.collection_editors.configuration', 'Configuration')} defaultOpen forceOpen={errorSections.has('config')}>
+            <CollectionArrayRefField draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} />
+            <FormRow label={t('automations.collection_editors.which_end', 'Which end')}>
+                <select value={draft.mode || 'first'} onChange={(e) => set('mode', e.target.value)} className={inputClass()}>
+                    <option value="first">{t('automations.collection_editors.keep_the_first_few', 'Keep the first few')}</option>
+                    <option value="last">{t('automations.collection_editors.keep_the_last_few', 'Keep the last few')}</option>
+                </select>
+            </FormRow>
+            <FormRow label={t('automations.collection_editors.how_many_to_keep', 'How many to keep')} hint={t('automations.collection_editors.0_keeps_nothing', '0 keeps nothing.')}>
+                <input type="number" min={0} value={draft.count ?? 10} onChange={(e) => set('count', Number(e.target.value))} className={inputClass()} />
+            </FormRow>
+        </AccordionSection>
+    );
+}
+
+function DedupeFields({ draft, set, groups, onFocusField, previewSample, errorSections = new Set() }: DedupeFieldsProps) {
+    const { t } = useTranslation();
+    const elementSample = useElementSample(draft.arrayRef, previewSample);
+    const options = useMemo(() => elementFieldOptions(elementSample), [elementSample]);
+    return (
+        <AccordionSection stepType="dedupe" sectionKey="config" title={t('automations.collection_editors.configuration', 'Configuration')} defaultOpen forceOpen={errorSections.has('config')}>
+            <CollectionArrayRefField draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} />
+            <FormRow label={t('automations.collection_editors.key_field', 'Key field')} hint={t('automations.collection_editors.optional_two_items_with_the_same', 'Optional. Two items with the same value here count as the same item. Leave it blank to drop only items that are identical all the way through.')}>
+                <FieldKeyCombobox value={draft.keyField || ''} onChange={(v) => set('keyField', v)} options={options} placeholder={t('automations.collection_editors.id', 'id')} label={t('automations.collection_editors.key_field', 'Key field')} onFocusField={onFocusField} />
+            </FormRow>
+        </AccordionSection>
+    );
+}
+
+function AggregateFields({ draft, set, groups, onFocusField, previewSample, errorSections = new Set() }: AggregateFieldsProps) {
+    const { t } = useTranslation();
+    const elementSample = useElementSample(draft.arrayRef, previewSample);
+    const options = useMemo(() => elementFieldOptions(elementSample), [elementSample]);
+    return (
+        <AccordionSection stepType="aggregate" sectionKey="config" title={t('automations.collection_editors.configuration', 'Configuration')} defaultOpen forceOpen={errorSections.has('config')}>
+            <CollectionArrayRefField draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} />
+            <FormRow label={t('automations.collection_editors.field', 'Field')} hint={t('automations.collection_editors.the_field_to_take_from_every', 'The field to take from every item. The result is a plain list of just those values. If no item has this field the step is skipped rather than handing on a list of blanks.')}>
+                <FieldKeyCombobox value={draft.field || ''} onChange={(v) => set('field', v)} options={options} placeholder={t('automations.collection_editors.email', 'email')} label={t('automations.collection_editors.field', 'Field')} onFocusField={onFocusField} />
+            </FormRow>
+        </AccordionSection>
+    );
+}
+
+function SummarizeFields({ draft, set, groups, onFocusField, previewSample, errorSections = new Set() }: SummarizeFieldsProps) {
+    const { t } = useTranslation();
+    const elementSample = useElementSample(draft.arrayRef, previewSample);
+    const options = useMemo(() => elementFieldOptions(elementSample), [elementSample]);
+    return (
+        <AccordionSection stepType="summarize" sectionKey="config" title={t('automations.collection_editors.configuration', 'Configuration')} defaultOpen forceOpen={errorSections.has('config')}>
+            <CollectionArrayRefField draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} />
+            {/* `count` ignores the field entirely (it counts items), so asking
+                for one there would be misleading. */}
+            {draft.op !== 'count' && (
+                <FormRow label={t('automations.collection_editors.field', 'Field')} hint={t('automations.collection_editors.the_number_to_work_with_read', 'The number to work with, read from every item. If no item has this field the step is skipped rather than reporting 0.')}>
+                    <FieldKeyCombobox value={draft.field || ''} onChange={(v) => set('field', v)} options={options} placeholder={t('automations.collection_editors.amount', 'amount')} label={t('automations.collection_editors.field', 'Field')} onFocusField={onFocusField} />
+                </FormRow>
+            )}
+            <FormRow label={t('automations.collection_editors.what_to_work_out', 'What to work out')}>
+                <select value={draft.op || 'sum'} onChange={(e) => set('op', e.target.value)} className={inputClass()}>
+                    <option value="sum">{t('automations.collection_editors.total_add_them_all_up', 'Total — add them all up')}</option>
+                    <option value="count">{t('automations.collection_editors.count_how_many_items', 'Count — how many items')}</option>
+                    <option value="avg">{t('automations.collection_editors.average', 'Average')}</option>
+                    <option value="min">{t('automations.collection_editors.lowest', 'Lowest')}</option>
+                    <option value="max">{t('automations.collection_editors.highest', 'Highest')}</option>
+                </select>
+            </FormRow>
+        </AccordionSection>
+    );
+}
+
+export {
+    ForEachSection, RetrySection, retryIsSet, FieldsSection, SourceSummaryRow, CollectionArrayRefField, useElementSample,
+    DateTimeFields, WaitFields, LimitFields, DedupeFields, AggregateFields, SummarizeFields,
+};

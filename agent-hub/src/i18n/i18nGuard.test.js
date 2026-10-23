@@ -259,14 +259,14 @@ const CARRIERS = [
  * value stays fine here: that is what a nested field name looks like.
  *
  * The boundary runs through AppStudio, not around it: the editor chrome
- * (`editor/ComponentRibbon.jsx` — `labelKey: 'app_studio.palette.chip_button'`)
+ * (`editor/ComponentRibbon.tsx` — `labelKey: 'app_studio.palette.chip_button'`)
  * carries real keys and is checked the normal way. Only the definition, sample
  * and fixture files flip.
  */
 const FIELD_SELECTOR_FILES = [
     'components/admin/Studio/AppStudio/runtime/componentRegistry.ts',
     'components/admin/Studio/AppStudio/state/sampleDefinitions.ts',
-    'demo/fixtures/appStudio.js',
+    'demo/fixtures/appStudio.ts',
 ];
 
 // t() under another name. `\bt(` does not match any of these — the character
@@ -386,14 +386,14 @@ function unknownTableKeys(rels, srcOf) {
 // `my-organization`, `sample-a`).
 const KEY_TABLE_FILES = [
     'components/admin/Studio/Executions/runLanguage.ts',
-    'components/admin/Studio/KnowledgeStudio/SourceDetail.jsx',
+    'components/admin/Studio/KnowledgeStudio/SourceDetail.tsx',
     'components/admin/Studio/KnowledgeStudio/freshness.ts',
     'components/admin/Studio/KnowledgeStudio/sourceKinds.ts',
     // Seven event labels in EVENT_LABELS. Reported by P5's own adversarial
     // round: the file uses the { key, en } shape but was not on this list, so
     // those keys travelled unchecked — an `en` beside a key is exactly what
     // hides a missing one, which is the reason this check exists.
-    'components/admin/Studio/AppStudio/inspector/ActionsSection.jsx',
+    'components/admin/Studio/AppStudio/inspector/ActionsSection.tsx',
     'components/admin/Studio/SkillsStudio/SkillStepEditor.tsx',
     'components/admin/Studio/SkillsStudio/SkillsOverview.tsx',
     // De statustabellen van de ISMS-registers (AUDIT_STATUS, FINDING_SEVERITY,
@@ -409,11 +409,11 @@ const KEY_TABLE_FILES = [
     // The Overview's deadline kinds and empty-register lines (KIND_LABEL in
     // DeadlinesCard, EMPTY_LINE in deadlineRows) and the phone's home tabs
     // (HOME_TABS in ComplianceMobile).
-    'components/admin/compliance/pages/overview/DeadlinesCard.jsx',
+    'components/admin/compliance/pages/overview/DeadlinesCard.tsx',
     'components/admin/compliance/pages/overview/deadlineRows.ts',
-    'components/admin/compliance/ComplianceMobile.jsx',
+    'components/admin/compliance/ComplianceMobile.tsx',
     // OBLIGATION_KINDS — de soorten opleidingsverplichting.
-    'components/admin/compliance/pages/TrainingPage.jsx',
+    'components/admin/compliance/pages/TrainingPage.tsx',
     // LEGAL_BASES, RESIDENCY, NIS2_ENTITY_CLASSES, CRA_ROLES,
     // CONFORMANCE_LEVELS, RELEVANCE_OPTIONS: de keuzelijsten van het
     // instellingenformulier reizen als DATA.
@@ -423,11 +423,11 @@ const KEY_TABLE_FILES = [
     // een stap ontbreekt, de weggelaten feiten en de fasenamen. Ze reizen als
     // DATA — `line(tt, entry)` roept t() met een variabele aan — dus geen enkele
     // andere controle hier ziet ze.
-    'components/chat/AnswerTracePanel.jsx',
+    'components/chat/AnswerTracePanel.tsx',
     'components/automation/Builder/mapping/fieldKinds.ts',
     // The automations launcher's tab labels (TABS).
-    'components/admin/Studio/AutomationsStudio/AutomationsLauncher.jsx',
-    'components/skills/SkillFormModal.jsx',
+    'components/admin/Studio/AutomationsStudio/AutomationsLauncher.tsx',
+    'components/skills/SkillFormModal.tsx',
     // De vier filterkoppen van de skills-grid (`{ id, key, en }`, gerenderd als
     // `{t(f.key, f.en)}`). Precies de bewaakte vorm, en tot nu toe niet op deze
     // lijst: een verzonnen sleutel in die tabel liet de guard groen.
@@ -436,7 +436,7 @@ const KEY_TABLE_FILES = [
     // het CHARTTYPE ('bar'|'line'|…) en stond het label er kaal naast; de tabel
     // is naar `{ id, key, en }` gebracht zodat `key` weer een sleutel is.
     'editor/react/ChartConfigModal.tsx',
-    'pages/settings/usage/OverviewTab.jsx',
+    'pages/settings/usage/OverviewTab.tsx',
     'pages/settings/usage/RangeControl.tsx',
 ];
 
@@ -469,7 +469,7 @@ const TEXT_HELPERS = [
     // translated one already exists: hooks/useRelativeTime.ts, whose four
     // keys are in BOTH dictionaries, so this cluster can be cleaned without a
     // dictionary turn. Only the pure modules need a t-taking variant.
-    { rel: 'components/cowork/coworkFormat.js', pending: 'CW — relativeTime/formatDuration/fullTimestamp, plus the browser locale' },
+    { rel: 'components/cowork/coworkFormat.ts', pending: 'CW — relativeTime/formatDuration/fullTimestamp, plus the browser locale' },
     { rel: 'components/projects/relativeTime.ts', pending: 'PRJ — the same five sentences, copied' },
     { rel: 'components/admin/Studio/AutomationsStudio/historyUtils.ts', pending: 'RUN — times, durations, expiry and the day buckets' },
     { rel: 'components/automation/taskFormatters.ts', pending: 'ROU — timeAgo/formatNextRun, plus the hard REPEAT_OPTIONS table' },
@@ -490,12 +490,12 @@ const TEXT_HELPERS = [
     // runLanguage.js that this register was built around.
     { rel: 'components/automation/Builder/flow/triggerLabels.ts', pending: 'BLD — TRIGGER_TYPE_LABEL/TRIGGER_NAME/APP_EVENT_TYPE_LABEL, read by four Builder files' },
     { rel: 'components/admin/Studio/AppStudio/rbac/rowRuleModel.ts' },
-    { rel: 'components/admin/Studio/Datatables/datatableDisplay.js', pending: 'DT — visibility sentences and GRADE_LABEL' },
-    { rel: 'components/admin/Studio/SupportStudio/auditMeta.js', pending: 'SUP — ACTION_LABEL, the whole ticket audit trail' },
+    { rel: 'components/admin/Studio/Datatables/datatableDisplay.ts', pending: 'DT — visibility sentences and GRADE_LABEL' },
+    { rel: 'components/admin/Studio/SupportStudio/auditMeta.ts', pending: 'SUP — ACTION_LABEL, the whole ticket audit trail' },
     { rel: 'components/admin/ai-config/ProviderCards/local/localRuntimeApi.ts', pending: 'A1 — TIER_LABELS plus the runtime error messages' },
     { rel: 'components/admin/ai-config/chatModelTiers/modelMeta.ts', pending: 'A1 — EFFORT_LABELS and the openAIEffortOptions labels' },
     { rel: 'components/admin/product-website/analytics/filters.ts', pending: 'CMS — analytics filter names' },
-    { rel: 'components/admin/product-website/analytics/heatmap/model.js', pending: 'CMS — block-type names in the heatmap' },
+    { rel: 'components/admin/product-website/analytics/heatmap/model.ts', pending: 'CMS — block-type names in the heatmap' },
     // Caught by the relative-time signature on the words "just now" in a
     // sentence that is not about time at all — which is the check doing its
     // job by accident and landing on real debt anyway. The two sentences here
@@ -981,7 +981,7 @@ describe('i18n guard — the scanners themselves bite', () => {
         // redesign (components/admin/compliance/data/registers.js) — seven
         // calls, every one nested behind `() => fetchJson(…)`, so the old
         // regex sees NONE of them. An empty source fails the second count.
-        const real = sourceOf('components/admin/compliance/data/registers.js')?.src || '';
+        const real = sourceOf('components/admin/compliance/data/registers.ts')?.src || '';
         expect([...real.matchAll(oldArgRx())].filter(m => m[1] === '_isoMutate')).toHaveLength(0);
         expect(keyArgCalls(real).filter(c => c.fn === '_isoMutate')).toHaveLength(7);
     });

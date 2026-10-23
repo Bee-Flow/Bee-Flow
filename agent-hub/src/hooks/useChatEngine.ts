@@ -59,7 +59,7 @@ export interface NotebookPayload {
 
 export interface UseChatEngineOptions {
     selectedAgent?: ChatAgent | null;
-    currentConversation?: { id?: string;[key: string]: unknown } | null;
+    currentConversation?: { id?: string | null;[key: string]: unknown } | null;
     /** Called when the stream creates or updates a conversation. */
     onConversationCreated?: (conversationId: string) => void;
     getNotebookPayload?: () => NotebookPayload | null;

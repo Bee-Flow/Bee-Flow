@@ -8,6 +8,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import ts from 'typescript';
 
 import type { FlowNode } from '@/features/flow-editor/bindings';
 import { buildPatch, extractFormState } from '@/features/flow-editor/formState';
@@ -20,7 +21,7 @@ const FLOW = path.resolve(__dirname, '../../../../../../../agent-hub/src/compone
 const webOps = require(path.join(FLOW, 'setOperations.ts'));
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const bindingHelpers = require(path.resolve(FLOW, '../../../../utils/bindingHelpers.ts'));
-const parseJsonSrc = fs.readFileSync(path.join(FLOW, 'settings/ParseJsonFields.jsx'), 'utf8');
+const parseJsonSrc = fs.readFileSync(path.join(FLOW, 'settings/ParseJsonFields.tsx'), 'utf8');
 
 function cut(src: string, name: string): string {
     const at = src.indexOf(`export function ${name}(`);
@@ -31,7 +32,8 @@ function cut(src: string, name: string): string {
 const re = /const FIELD_NAME_RE = (\/.+\/);/.exec(parseJsonSrc)?.[1] as string;
 const web = new Function(
     'suggestKeyFromPath',
-    `const FIELD_NAME_RE = ${re};\n${cut(parseJsonSrc, 'suggestFieldName')}\n${cut(parseJsonSrc, 'parseSampleSource')}\nreturn { suggestFieldName, parseSampleSource };`,
+    // The web source is TypeScript: transpile the cut to plain JavaScript before running it.
+    ts.transpileModule(`const FIELD_NAME_RE = ${re};\n${cut(parseJsonSrc, 'suggestFieldName')}\n${cut(parseJsonSrc, 'parseSampleSource')}\nreturn { suggestFieldName, parseSampleSource };`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText,
 )(bindingHelpers.suggestKeyFromPath);
 
 describe('the table tools against setOperations.ts', () => {

@@ -1,6 +1,6 @@
 /**
  * The design presets and number bounds held to the web's Design tab
- * (agent-hub/src/pages/documents/DocumentWorkspacePanel.jsx) — a textual
+ * (agent-hub/src/pages/documents/DocumentWorkspacePanel.tsx) — a textual
  * lockstep test: the web keeps them as literals in a component module, so
  * they are read out of the source rather than imported.
  *
@@ -12,7 +12,7 @@ import path from 'node:path';
 
 import { DESIGN_NUMBERS, DESIGN_PRESETS } from './design';
 
-const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/pages/documents/DocumentWorkspacePanel.jsx');
+const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/pages/documents/DocumentWorkspacePanel.tsx');
 const describeIfWeb = fs.existsSync(WEB) ? describe : describe.skip;
 
 /** `{neutral:{accent:'#334155',fontSize:11}}` → a plain object. */
@@ -25,7 +25,7 @@ describeIfWeb('the design controls match the web Design tab', () => {
     const source = fs.existsSync(WEB) ? fs.readFileSync(WEB, 'utf8') : '';
 
     it('has the same presets', () => {
-        const match = /const PRESETS = (\{.*?\}\});/.exec(source);
+        const match = /const PRESETS(?::[^=]*)? = (\{.*?\}\});/.exec(source);
         expect(match).not.toBeNull();
         expect(literal(match?.[1] ?? '{}')).toEqual(DESIGN_PRESETS);
     });

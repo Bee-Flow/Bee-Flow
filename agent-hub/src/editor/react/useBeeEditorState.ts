@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import useTranslation from '../../hooks/useTranslation';
-import type { EditorView } from '../engine/view.js';
+import type { EditorView } from '../engine/view';
 import type { AskState, AtomEntry, BeeEditorProps, ChartConfig, EditorShared, LinkEditState } from './beeEditorTypes';
 import type { EditorFacade } from './editorFacade';
 import { loadCollapsed, loadHiddenHeaders } from './tableViewState';

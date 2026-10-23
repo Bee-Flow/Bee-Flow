@@ -8,12 +8,12 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import * as Y from 'yjs';
-import { EditorView } from '../engine/view.js';
+import { EditorView } from '../engine/view';
 import { createState } from '../engine/state.js';
 import { textSelection, pos } from '../engine/selection.js';
 import * as T from '../engine/transforms.js';
-import * as Tbl from '../engine/tables.js';
-import { markdownToAst } from '../serialization/mdToAst.js';
+import * as Tbl from '../engine/tables';
+import { markdownToAst } from '../serialization/mdToAst';
 import { astToFragment } from './yConvert';
 import { bindEditor, type CollabBinding } from './binding';
 import { rebaseDoc } from './rebaseDoc';

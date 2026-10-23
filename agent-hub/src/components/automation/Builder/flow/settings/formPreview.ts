@@ -34,7 +34,7 @@ export function fillTemplate(text: unknown, sampleRoot: unknown): string {
 
 export interface BuildPreviewArgs {
     form: Loose | null | undefined;
-    theme: unknown;
+    theme: Record<string, unknown> | null | undefined;
     isEnding?: boolean;
     allowVariables?: boolean;
     previewSample?: unknown;

@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { createState } from './state.js';
-import { EditorView } from './view.js';
+import { EditorView } from './view';
 
 const cell = (text, attrs = null) => ({
     type: 'tableCell',

@@ -69,7 +69,7 @@ vi.mock('../../licensing/EntitlementsContext', () => ({
     }),
 }));
 
-import StudioStart from './StudioStart.jsx';
+import StudioStart from './StudioStart';
 import { queryWrapper } from '../../../test/queryWrapper';
 
 // The hooks under this tree read through React Query, so every render needs

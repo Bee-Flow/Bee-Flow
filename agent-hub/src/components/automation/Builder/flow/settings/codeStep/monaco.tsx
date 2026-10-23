@@ -47,7 +47,7 @@ export const MonacoEditor = lazy(() => import('@monaco-editor/react')
     .then((m: MonacoModule) => {
         if (!m.default) throw new Error('Monaco default export missing');
         m.loader?.config({ paths: { vs: monacoVsUrl() } });
-        return { default: m.default };
+        return { default: m.default as ComponentType<{ onUnavailable?: () => void }> };
     })
     .catch((err: unknown) => {
         console.error('[codeStep] Monaco failed to load:', err);

@@ -12,6 +12,7 @@ import SharingSection from './SharingSection';
 import StartSection from './StartSection';
 import { ReadOnlyFieldset, canEditAutomation, useQueuedSave } from './settingsUi';
 import type { SaveFn, SettingsAutomation } from './settingsUi';
+import type { BuilderTab } from '../useBuilderTabUrl';
 
 export type SettingsSectionId = 'general' | 'start' | 'notifications' | 'sharing' | 'ai-act' | 'advanced' | 'assistant';
 export const SETTINGS_SECTIONS: SettingsSectionId[] = ['general', 'start', 'notifications', 'sharing', 'ai-act', 'assistant', 'advanced'];
@@ -24,7 +25,7 @@ export interface SettingsPageProps {
     /** Section to scroll to on open (a deep link, or a click in the header/rail). */
     initialSection?: SettingsSectionId | string | null;
     /** Switch the builder to another tab ('build', 'runs', 'versions'). */
-    onOpenTab?: (tab: string) => void;
+    onOpenTab?: (tab: BuilderTab) => void;
     /** The automation row changed outside `onSave` (trash, restore). */
     onAutomationChange?: (next: SettingsAutomation) => void;
 }

@@ -26,7 +26,7 @@ export interface TranslationOverride { current: Record<string, string> | null }
 // kind an override needs to reach (a hardcoded English sentence and a
 // translated one are hardest to tell apart when both carry numbers), so the
 // substitute cannot be the one that drops them.
-function fill(text: string, params?: TranslateParams): string {
+function fill(text: string, params?: TranslateParams | null): string {
     return String(text).replace(/\{(\w+)\}/g, (m, k: string) => (params && k in params ? String(params[k]) : m));
 }
 

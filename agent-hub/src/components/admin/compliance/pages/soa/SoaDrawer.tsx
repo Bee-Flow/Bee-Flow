@@ -1,0 +1,312 @@
+import { ArrowUpRight, CircleCheck, CircleDashed, CircleX, Info, TriangleAlert, X, type LucideIcon } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import RadioCards from './RadioCards';
+import { ownerName, type SoaControl } from './SoaTable';
+import { approvedBlocked, draftOf, justificationMissing, liveCheckOf, patchOf, DECISIONS } from './soaThemes';
+import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
+import SideDrawer, { DrawerSection, DrawerFooter } from '../../../../shared/SideDrawer';
+import type { SideDrawerMode } from '../../../../shared/SideDrawer';
+import { TONES, toneOfCheckStatus } from '../../../../shared/statusTone';
+import Tooltip from '../../../../shared/Tooltip';
+import { sectionForRegulation } from '../../sections';
+import ArticleRef, { formatArticleRef } from '../../shared/ArticleRef';
+import { useDateFormat, type DateLike } from '../../shared/formatDates';
+import UserPicker from '../../shared/UserPicker';
+import type { OrgUser } from '../../shared/UserPicker';
+
+/**
+ * SoaDrawer — one Annex A row, editable (artboard 1d right pane).
+ *
+ * Two rules live here and nowhere else in the UI:
+ *   1. `approved` is disabled while the linked live check is warn/fail — a
+ *      human may not sign off a control the product can see is open.
+ *   2. `excluded` needs a written justification before Save enables.
+ * Both are pure predicates in soaThemes.js (`approvedBlocked`,
+ * `justificationMissing`) so the tests pin them without a DOM.
+ *
+ * The footer: the who/when stamp on one line (why it is stamped is its
+ * tooltip, reachable by keyboard), then the DrawerFooter with Save.
+ *
+ * props:
+ *   control        the SoA row ({ ref, titleKey, objectiveKey, checks, entry })
+ *   checksById     Map from soaThemes.indexChecks(core.checks)
+ *   orgUsers       [{ id, displayName, email }] | null — the picker renders nothing without them
+ *   busy           true while this ref is being saved
+ *   onSave(ref, patch), onClose(), navigate(sectionId, subId?)
+ *   mode           SideDrawer mode ('inline' | 'overlay')
+ */
+interface SoaEntry {
+    updated_at?: string | null;
+    updated_by?: string | null;
+}
+
+interface SoaDrawerControl extends SoaControl {
+    objectiveKey?: string | null;
+    entry?: (NonNullable<SoaControl['entry']> & SoaEntry) | null;
+}
+
+type LiveCheck = ReturnType<typeof liveCheckOf>;
+
+interface SoaDrawerProps {
+    control: SoaDrawerControl | null;
+    checksById?: Map<string, unknown> | null;
+    orgUsers: OrgUser[] | null;
+    onSave?: (ref: string, patch: ReturnType<typeof patchOf>) => unknown;
+    navigate?: (sectionId: string, subId?: string) => void;
+    busy?: boolean;
+    onClose: () => void;
+    mode?: SideDrawerMode;
+    testId?: string;
+}
+
+export default function SoaDrawer({ control, checksById, orgUsers, busy = false, onSave, onClose, navigate, mode = 'inline', testId = 'soa-drawer' }: SoaDrawerProps) {
+    const { t } = useTranslation();
+    const dates = useDateFormat();
+    const [draft, setDraft] = useState(() => draftOf(control));
+    // A fresh draft when another control opens or this one changed on the
+    // server — during render, so typing is never reset by a parent re-render.
+    const controlKey = `${control?.ref}:${control?.entry?.updated_at}`;
+    const [seenControl, setSeenControl] = useState(controlKey);
+    if (seenControl !== controlKey) {
+        setSeenControl(controlKey);
+        setDraft(draftOf(control));
+    }
+
+    const live = useMemo(() => liveCheckOf(control, checksById), [control, checksById]);
+    const blocked = approvedBlocked(live);
+    const missingJustification = justificationMissing(draft);
+    const saveDisabled = busy || missingJustification;
+
+    if (!control) return null;
+
+    const patch = (p: Partial<ReturnType<typeof draftOf>>) => setDraft(d => ({ ...d, ...p }));
+    const decisionOptions = DECISIONS.map(value => ({
+        value,
+        label: t(`compliance.soa_decision_${value}`, DECISION_FALLBACK[value]),
+        disabled: value === 'approved' && blocked,
+        title: value === 'approved' && blocked ? t('compliance.soa_approved_blocked', APPROVED_BLOCKED_EN) : undefined,
+    }));
+
+    const owner = ownerName(orgUsers, draft.owner_user_id);
+    const entry = control.entry;
+
+    const header = (
+        <div className="flex items-center gap-2 min-w-0">
+            <ArticleRef>{control.ref}</ArticleRef>
+            <div className="min-w-0 truncate text-[13px] font-semibold text-[var(--text-primary)]" title={control.titleKey ? t(control.titleKey, control.ref) : control.ref}>
+                {control.titleKey ? t(control.titleKey, control.ref) : control.ref}
+            </div>
+        </div>
+    );
+
+    const footer = (
+        <>
+            <StampNote entry={entry} orgUsers={orgUsers} t={t} formatDay={dates.formatDay} testId={`${testId}-stamp`} />
+            <DrawerFooter
+                onPrimary={() => onSave?.(control.ref, patchOf(draft))}
+                primaryDisabled={saveDisabled}
+                testId={`${testId}-actions`}
+            />
+        </>
+    );
+
+    return (
+        <SideDrawer open onClose={onClose} header={header} footer={footer} mode={mode} ariaLabel={t('compliance.soa_drawer_aria', 'SoA control')} testId={testId}>
+            {control.objectiveKey && (
+                <p className="text-[11px] text-[var(--text-secondary)] m-0">{t(control.objectiveKey, '')}</p>
+            )}
+
+            <LinkedCheckBox live={live} navigate={navigate} t={t} formatDayTime={dates.formatDayTime} testId={`${testId}-check`} />
+
+            <DrawerSection label={t('compliance.soa_col_status', 'Decision')}>
+                <RadioCards
+                    value={draft.status}
+                    onChange={(status) => patch({ status })}
+                    options={decisionOptions}
+                    ariaLabel={t('compliance.soa_col_status', 'Decision')}
+                    testId={`${testId}-decision`}
+                />
+                {blocked && (
+                    <p className="m-0 text-[11px]" style={{ color: TONES.warning.ink }} data-testid={`${testId}-approved-hint`}>
+                        {t('compliance.soa_approved_blocked', APPROVED_BLOCKED_EN)}
+                    </p>
+                )}
+            </DrawerSection>
+
+            <DrawerSection label={t('compliance.soa_how_met', 'How met')}>
+                <textarea
+                    value={draft.how_met}
+                    rows={3}
+                    onChange={e => patch({ how_met: e.target.value })}
+                    placeholder={t('compliance.soa_how_met_ph', 'How this control is satisfied — the sentence an auditor reads…')}
+                    className={TEXTAREA}
+                    data-testid={`${testId}-how-met`}
+                />
+            </DrawerSection>
+
+            <DrawerSection label={t('compliance.soa_col_owner', 'Owner')}>
+                <div className="flex items-center gap-2 text-xs">
+                    <span className={owner ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-tertiary)]'} data-testid={`${testId}-owner`}>
+                        {owner || t('compliance.soa_owner_none', 'No owner assigned')}
+                    </span>
+                    {draft.owner_user_id && (
+                        <button type="button" onClick={() => patch({ owner_user_id: '' })}
+                            className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                            aria-label={t('compliance.soa_owner_clear', 'Remove owner')}>
+                            <X size={11} aria-hidden="true" />
+                        </button>
+                    )}
+                </div>
+                <UserPicker
+                    users={orgUsers}
+                    mode="single"
+                    label=""
+                    placeholder={t('compliance.soa_owner_pick', 'Choose an owner…')}
+                    onSelect={(u) => patch({ owner_user_id: u.id })}
+                    disabled={busy}
+                />
+            </DrawerSection>
+
+            <DrawerSection
+                label={t('compliance.soa_justification', 'Justification')}
+                hint={t('compliance.soa_justification_required_excluded', 'required when excluded')}
+            >
+                <textarea
+                    value={draft.justification}
+                    rows={3}
+                    onChange={e => patch({ justification: e.target.value })}
+                    placeholder={t('compliance.soa_justification_ph2', 'Why this control does or does not apply to you…')}
+                    className={`${TEXTAREA} border-dashed`}
+                    aria-invalid={missingJustification || undefined}
+                    data-testid={`${testId}-justification`}
+                />
+                {missingJustification && (
+                    <p className="m-0 text-[11px]" style={{ color: TONES.warning.ink }} data-testid={`${testId}-justification-hint`}>
+                        {t('compliance.soa_justification_missing', 'Write down why this control is excluded before saving.')}
+                    </p>
+                )}
+            </DrawerSection>
+        </SideDrawer>
+    );
+}
+
+const DECISION_FALLBACK: Readonly<Record<string, string>> = Object.freeze({ todo: 'To review', reviewed: 'Reviewed', approved: 'Approved', excluded: 'Excluded' });
+const APPROVED_BLOCKED_EN = '"Approved" is not possible while the linked check needs attention — resolve the finding first, or justify why it does not count.';
+
+const TEXTAREA = 'w-full rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] px-2.5 py-2 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)] resize-y';
+
+const CHECK_GLYPH: Record<string, LucideIcon> = { pass: CircleCheck, warn: TriangleAlert, fail: CircleX };
+
+/** Check status → the platform's existing label key (`not_applicable` is `status_na`, not `status_not_applicable`). */
+const CHECK_STATUS_LABEL: Readonly<Record<string, readonly [string, string]>> = Object.freeze({
+    pass: ['compliance.status_pass', 'Passing'],
+    warn: ['compliance.status_warn', 'Needs attention'],
+    fail: ['compliance.status_fail', 'Failing'],
+    not_applicable: ['compliance.status_na', 'Not applicable'],
+    pending: ['compliance.status_pending', 'Not yet run'],
+});
+
+/** The linked-check box under the header: glyph in tone, status word, title · run time · also {other refs}, "Check ↗". */
+interface LinkedCheckBoxProps {
+    live: LiveCheck;
+    navigate?: (sectionId: string, subId?: string) => void;
+    t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
+    formatDayTime: (value: DateLike) => string;
+    testId: string;
+}
+
+function LinkedCheckBox({ live, navigate, t, formatDayTime, testId }: LinkedCheckBoxProps) {
+    if (!live || live.kind === 'none') {
+        return (
+            <div className="rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 py-2 text-[11px] text-[var(--text-tertiary)]" data-testid={testId}>
+                {t('compliance.soa_no_live_check', 'no live check')}
+            </div>
+        );
+    }
+    if (live.kind === 'pending') {
+        return (
+            <div className="rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 py-2 text-[11px] text-[var(--text-tertiary)] inline-flex items-center gap-1.5" data-testid={testId}>
+                <CircleDashed size={13} aria-hidden="true" />
+                {t('compliance.soa_not_checked', 'not yet checked')}
+                <span className="font-mono">· {live.ids.join(', ')}</span>
+            </div>
+        );
+    }
+    const { check, status, others } = live;
+    const tone = toneOfCheckStatus(status);
+    const Glyph = CHECK_GLYPH[status] || CircleDashed;
+    const statusWord = t(CHECK_STATUS_LABEL[status]?.[0] || 'compliance.status_pending', CHECK_STATUS_LABEL[status]?.[1] || status);
+    const title = check.titleKey ? t(check.titleKey, check.check_id) : (check.title || check.check_id);
+    const runAt = check.last_run_at || check.checked_at || null;
+    const alsoRefs = (others || []).map((o: { regulation?: string; article?: string }) => formatArticleRef(o.regulation, o.article, t)).filter(Boolean);
+    const target = sectionForRegulation(check.regulation);
+    return (
+        <div className="rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 py-2 flex items-start gap-2" data-testid={testId} data-status={status}>
+            <Glyph size={14} aria-hidden="true" className="shrink-0 mt-0.5" style={{ color: TONES[tone].ink }} />
+            <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-semibold" style={{ color: TONES[tone].ink }}>
+                    {t('compliance.soa_linked_check', 'Linked live check · {status}', { status: statusWord })}
+                </div>
+                <div className="text-[11px] text-[var(--text-secondary)] truncate">
+                    {title}
+                    {runAt && formatDayTime(runAt) && <> · {t('compliance.soa_check_run', 'run {time}', { time: formatDayTime(runAt) })}</>}
+                    {alsoRefs.length > 0 && <> · {t('compliance.soa_check_also', 'also {refs}', { refs: alsoRefs.join(', ') })}</>}
+                </div>
+            </div>
+            <button
+                type="button"
+                onClick={() => navigate?.(target, check.check_id)}
+                className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                data-testid={`${testId}-open`}
+            >
+                {t('compliance.soa_check_open', 'Check')} <ArrowUpRight size={11} aria-hidden="true" />
+            </button>
+        </div>
+    );
+}
+
+/**
+ * "Added 10 Jun (template) · never changed." / "Last changed 3 Sep by T. Smit",
+ * on one line. Why every change is stamped is the line's tooltip: a focusable
+ * trigger, so a keyboard reaches it too; the tooltip repeats the line, which
+ * may be cut short in a narrow drawer.
+ */
+interface StampNoteProps {
+    entry?: SoaEntry | null;
+    orgUsers: OrgUser[] | null;
+    t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
+    formatDay: (value: DateLike) => string;
+    testId: string;
+}
+
+function StampNote({ entry, orgUsers, t, formatDay, testId }: StampNoteProps) {
+    let line: string;
+    if (!entry) {
+        line = t('compliance.soa_stamp_none', 'No row yet — saving creates it.');
+    } else if (entry.updated_by) {
+        line = t('compliance.soa_stamp_changed', 'Last changed {date} by {by}', {
+            date: formatDay(entry.updated_at) || '—',
+            by: ownerName(orgUsers, entry.updated_by) || '—',
+        });
+    } else {
+        line = t('compliance.soa_stamp_template', 'Added {date} (template) · never changed.', { date: formatDay(entry.updated_at) || '—' });
+    }
+    const hint = t('compliance.soa_stamp_hint', 'Every change is stamped with who and when and travels into the SoA PDF; "Fill missing rows" never overwrites a decision.');
+    return (
+        <Tooltip
+            side="top"
+            className="w-full min-w-0"
+            content={(
+                <span className="block w-[260px] whitespace-normal leading-snug font-normal" data-testid={`${testId}-hint`}>
+                    <span className="block font-semibold">{line}</span>
+                    {hint}
+                </span>
+            )}
+        >
+            <button type="button" className="flex w-full min-w-0 items-center gap-1 text-left text-[11px] text-[var(--text-tertiary)] cursor-default rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]" data-testid={testId}>
+                <span className="truncate min-w-0">{line}</span>
+                <Info size={11} aria-hidden="true" className="shrink-0" />
+            </button>
+        </Tooltip>
+    );
+}

@@ -9,7 +9,7 @@ interface Props {
     selectedPlanId?: string | null;
     busyPlanId?: string | null;
     variant?: 'settings' | 'marketing' | 'compact';
-    seats: number;
+    seats?: number;
     onSelect?: (plan: NormalizedPlan) => void;
     ctaLabelFor?: (plan: NormalizedPlan) => string;
     emptyMessage?: string;

@@ -47,7 +47,7 @@ vi.mock('./BuilderHeader', () => ({ default: (p: HeaderProps) => { header = p; r
 vi.mock('./BuildTab', () => ({ default: (p: BuildTabProps) => { buildTab = p; header = p.headerProps; return null; } }));
 vi.mock('./SettingsTab', () => ({ default: (p: SettingsProps) => { settings = p; return null; } }));
 
-import BuilderShell from './BuilderShell.jsx';
+import BuilderShell from './BuilderShell';
 import { queryWrapper } from '../../../test/queryWrapper';
 import { authFetch } from '../../../utils/helpers';
 

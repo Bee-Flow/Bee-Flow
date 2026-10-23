@@ -101,7 +101,7 @@ export const getDisplayName = (model: ModelOption): string => {
     return formatModelId((model.id || model) as string);
 };
 
-export const isReasoningCapable = (modelId: string): boolean => {
+export const isReasoningCapable = (modelId: string | undefined): boolean => {
     if (!modelId) return false;
     if (/^o\d/.test(modelId)) return true;
     if (/^gpt-5/.test(modelId)) return true;
@@ -109,7 +109,7 @@ export const isReasoningCapable = (modelId: string): boolean => {
     return false;
 };
 
-export const isClaudeReasoning = (modelId: string): boolean => {
+export const isClaudeReasoning = (modelId: string | undefined): boolean => {
     if (!modelId) return false;
     return /^claude-(opus|sonnet|haiku)-4/.test(modelId);
 };

@@ -144,7 +144,7 @@ function useDeclaredVariables(definition: RunnerDefinition | null | undefined) {
 }
 
 export default function useActionRunner(
-    appId: string,
+    appId: string | null,
     definition: RunnerDefinition | null | undefined,
     {
         draft = false, onNavigate, confirm, onRefresh, currentUser = null, dataState = null,

@@ -40,7 +40,7 @@ export interface ComposerToolsProps {
     webSearchBlocked: boolean;
     webSearchUnavailable?: string | null;
     setWebSearchEnabled: (on: boolean) => void;
-    simpleMode: boolean;
+    simpleMode?: boolean;
     showTierSlider: boolean;
     memoryMode: MemoryMode;
     changeMemoryMode: (mode: MemoryMode) => void;

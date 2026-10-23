@@ -37,14 +37,14 @@ function webHelpers(): { humanizeFieldKey: (k: unknown) => string } {
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- agent-hub TS, compiled by jest's Babel
     return require(`${AGENT_HUB_SRC}/${HELPERS}`) as { humanizeFieldKey: (k: unknown) => string };
 }
-const describeIfWeb = webFileExists(`${DIR}/datatableDisplay.js`) ? describe : describe.skip;
+const describeIfWeb = webFileExists(`${DIR}/datatableDisplay.ts`) ? describe : describe.skip;
 
 /** The web module with its own three dependencies, each the web's implementation. */
 function loadDisplay(): Web {
     const helpers = webHelpers();
     const forms = loadWebModule<Record<string, unknown>>(`${DIR}/formAnswers.ts`);
-    const mirrors = loadWebModule<Record<string, unknown>>(`${DIR}/sourceMirrors.js`);
-    return loadWebModule<Web>(`${DIR}/datatableDisplay.js`, {
+    const mirrors = loadWebModule<Record<string, unknown>>(`${DIR}/sourceMirrors.ts`);
+    return loadWebModule<Web>(`${DIR}/datatableDisplay.ts`, {
         humanizeFieldKey: helpers.humanizeFieldKey,
         DEFINITION_MANAGED_KINDS: forms.DEFINITION_MANAGED_KINDS,
         isSourceMirror: mirrors.isSourceMirror,

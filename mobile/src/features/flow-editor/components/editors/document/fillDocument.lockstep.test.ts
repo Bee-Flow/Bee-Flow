@@ -29,7 +29,7 @@ import {
 import { specFor } from '../declarative/specs';
 
 const WEB = fs
-    .readFileSync(path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings/actionEditors/documentFields.jsx'), 'utf8')
+    .readFileSync(path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings/actionEditors/documentFields.tsx'), 'utf8')
     .replace(/\s+/g, ' ');
 
 const param = (over: Partial<DocumentParameter>): DocumentParameter => ({

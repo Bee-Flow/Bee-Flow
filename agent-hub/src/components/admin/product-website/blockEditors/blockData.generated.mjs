@@ -830,7 +830,7 @@ const BLOCK_TYPE_IDS = BLOCK_TYPES.map(t => t.type);
 // ── Live feature demos ───────────────────────────────────────────────
 //
 // The ids the `feature-demo` block may point at. The demos themselves live
-// in the frontend (agent-hub/src/demo/registry.js) because each one mounts a
+// in the frontend (agent-hub/src/demo/registry.ts) because each one mounts a
 // real React component behind lazy() — which is exactly why this list has to
 // be duplicated here: the AI builder and validate.js run server-side and
 // cannot import that module. The frontend half is pinned by

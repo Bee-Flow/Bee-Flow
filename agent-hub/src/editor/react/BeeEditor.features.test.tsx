@@ -9,7 +9,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import BeeEditorJsx from './BeeEditor.jsx';
+import BeeEditorJsx from './BeeEditor';
 import { textSelection, pos } from '../engine/selection.js';
 import * as T from '../engine/transforms.js';
 

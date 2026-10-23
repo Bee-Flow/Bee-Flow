@@ -4,8 +4,8 @@
  */
 import React from 'react';
 import ChartViewJs from '../nodeviews/ChartView.jsx';
-import FormulaViewJs from '../nodeviews/FormulaView.jsx';
-import ImageViewJs from '../nodeviews/ImageView.jsx';
+import FormulaViewJs from '../nodeviews/FormulaView';
+import ImageViewJs from '../nodeviews/ImageView';
 import MathViewJs from '../nodeviews/MathView.jsx';
 import MermaidViewJs from '../nodeviews/MermaidView.jsx';
 

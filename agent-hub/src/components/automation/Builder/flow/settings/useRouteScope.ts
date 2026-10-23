@@ -1,7 +1,7 @@
 import { getList } from '@shared/expr/path.mjs';
 import { useMemo } from 'react';
 import { sampleToFields } from '../../mapping/upstream';
-import type { UpstreamGroup } from '../../mapping/deepFields';
+import type { Group } from '../../mapping/upstream/upstream.types';
 import { humanizeFieldKey } from '../displayHelpers';
 import { useElementSample } from './collectionEditors';
 import { itemNameOf, ruleFieldMenu } from './routeEditorsModel';
@@ -11,11 +11,8 @@ import type { RouteConfig } from './routeTypes';
 type Translate = (key: string, fallback: string, vars?: Record<string, unknown>) => string;
 
 /** Named fields of every upstream step — the options in whole-run mode. */
-/** An option as the whole-run menu builds it: paths and group labels come straight from the upstream tree, where they are optional. */
-type UpstreamOption = Omit<FieldOption, 'path' | 'group'> & { path?: string; group?: string };
-
-function upstreamFieldOptions(groups: UpstreamGroup[] | null | undefined): UpstreamOption[] {
-    const out: UpstreamOption[] = [];
+function upstreamFieldOptions(groups: Group[] | null | undefined): FieldOption[] {
+    const out: FieldOption[] = [];
     for (const g of (groups || [])) {
         for (const f of (g.fields || [])) {
             out.push({ path: f.path, label: humanizeFieldKey(f.key), sample: f.sample, group: g.label });
@@ -36,7 +33,7 @@ interface Args {
     route: RouteConfig;
     items: boolean;
     previewSample: unknown;
-    pickerGroups: UpstreamGroup[];
+    pickerGroups: Group[];
     t: Translate;
 }
 

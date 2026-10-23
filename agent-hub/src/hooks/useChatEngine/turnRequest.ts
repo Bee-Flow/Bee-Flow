@@ -56,7 +56,7 @@ export interface TurnRequestInput {
         getExtraPayload?: () => Record<string, unknown>;
     } | null;
     agentId?: string;
-    conversationId?: string;
+    conversationId?: string | null;
     chatProjectId: string | null;
     getNotebookPayload?: () => Record<string, unknown> | null;
     activeSkillIds?: string[];

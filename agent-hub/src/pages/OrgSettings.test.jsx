@@ -33,7 +33,7 @@ import { describe, it, expect, vi } from 'vitest';
  */
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const ORG_SETTINGS = path.join(HERE, 'OrgSettings.jsx');
+const ORG_SETTINGS = path.join(HERE, 'OrgSettings.tsx');
 const REMOVED_SECTION = path.join(
     HERE, '..', 'components', 'agents', 'AgentDesigner', 'sections', 'KnowledgeBasesSection.jsx',
 );

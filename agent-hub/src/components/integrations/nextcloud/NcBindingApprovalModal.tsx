@@ -16,7 +16,7 @@ export interface PendingNcBinding {
 
 interface NcBindingApprovalModalProps {
     pending: PendingNcBinding | null;
-    organizationName?: string;
+    organizationName?: string | null;
     onResolved?: (action: 'approve' | 'deny') => void;
 }
 

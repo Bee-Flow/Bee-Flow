@@ -10,11 +10,11 @@ const AnchoredMenu = AnchoredMenuJs;
 
 /** The run log's filters, as useExecutions holds them. */
 export interface RunLogFilters {
-    status?: string;
-    range?: string;
-    trigger?: string | null;
-    mode?: string;
-    automationId?: string | null;
+    status: string;
+    range: string;
+    trigger: string | null;
+    mode: string;
+    automationId: string | null;
 }
 
 export interface AutomationOption { id: string; title?: string | null }

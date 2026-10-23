@@ -27,9 +27,9 @@ export interface CatalogAppAction extends CatalogAction {
 
 /** One platform app and its actions. */
 export interface CatalogApp {
-    id?: string;
+    id: string;
     label?: string;
-    available?: boolean;
+    available?: boolean | null;
     actions?: CatalogAppAction[];
     [key: string]: unknown;
 }

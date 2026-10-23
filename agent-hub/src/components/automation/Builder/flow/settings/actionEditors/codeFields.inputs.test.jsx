@@ -28,7 +28,7 @@
 import { describe, it, expect } from 'vitest';
 import { extractFormState, buildPatch, deepEqual } from '../formState';
 
-/** flushNow's actual test (SettingsForm.jsx:195), in one line. */
+/** flushNow's actual test (SettingsForm.tsx:195), in one line. */
 function wouldSend(step, draft) {
     return !deepEqual(buildPatch(step, draft), buildPatch(step, extractFormState(step)));
 }

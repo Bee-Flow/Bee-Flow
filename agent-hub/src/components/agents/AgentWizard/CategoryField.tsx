@@ -10,9 +10,9 @@ export interface CategoryFieldProps {
     value?: string | null;
     categories: CategoryRow[];
     onChange: (id: string | null) => void;
-    onCreate: (name: string) => Promise<CategoryResult>;
-    onRename: (id: string, name: string) => Promise<CategoryResult>;
-    onDelete: (id: string, reassignTo?: string) => Promise<CategoryResult>;
+    onCreate?: (name: string) => Promise<CategoryResult>;
+    onRename?: (id: string, name: string) => Promise<CategoryResult>;
+    onDelete?: (id: string, reassignTo?: string) => Promise<CategoryResult>;
     variant?: 'default' | 'tag';
 }
 
@@ -72,7 +72,7 @@ export default function CategoryField({ t, value, categories, onChange, onCreate
     const submit = async () => {
         const name = draft.trim();
         if (!name) { setCreating(false); return; }
-        const result = await onCreate(name);
+        const result = await (onCreate as NonNullable<CategoryFieldProps['onCreate']>)(name);
         if (result?.ok) {
             setDraft('');
             setCreating(false);
@@ -212,7 +212,7 @@ function ManageRow({ t, category, others, onRename, onDelete }: {
         const trimmed = name.trim();
         if (!trimmed || trimmed === category.name) { setEditing(false); setName(category.name); return; }
         setBusy(true); setError(null);
-        const result = await onRename(category.id, trimmed);
+        const result = await (onRename as NonNullable<CategoryFieldProps['onRename']>)(category.id, trimmed);
         setBusy(false);
         if (result?.ok) setEditing(false);
         else { setError(result?.error || 'Rename failed'); }
@@ -222,7 +222,7 @@ function ManageRow({ t, category, others, onRename, onDelete }: {
         setBusy(true); setError(null);
         // First a plain delete: empty categories go instantly; in-use ones
         // 409 with the count → guided step instead of a dead-end error.
-        const result = await onDelete(category.id);
+        const result = await (onDelete as NonNullable<CategoryFieldProps['onDelete']>)(category.id);
         setBusy(false);
         if (result?.ok) { setDeleting(null); return; }
         if (result?.code === 'category_in_use') { setDeleting({ count: result.count }); return; }
@@ -232,7 +232,7 @@ function ManageRow({ t, category, others, onRename, onDelete }: {
 
     const confirmGuidedDelete = async () => {
         setBusy(true); setError(null);
-        const result = await onDelete(category.id, mergeTarget);
+        const result = await (onDelete as NonNullable<CategoryFieldProps['onDelete']>)(category.id, mergeTarget);
         setBusy(false);
         if (!result?.ok) setError(result?.error || 'Delete failed');
         setDeleting(null);

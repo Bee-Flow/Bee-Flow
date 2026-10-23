@@ -122,7 +122,7 @@ describe('no hand-rolled control styles in the builder', () => {
         // ~13 --accent tints across mapping/ and flow/settings/ that other
         // stages own. This pins the file this round rebuilt so the two
         // stragglers cannot come back; it does not claim the drawer is clean.
-        const src = fs.readFileSync(path.join(BUILDER, 'mapping/ValueBuilder.jsx'), 'utf8');
+        const src = fs.readFileSync(path.join(BUILDER, 'mapping/ValueBuilder.tsx'), 'utf8');
         const offenders = src.split('\n')
             .map((line, i) => [i + 1, line])
             .filter(([, line]) => /(?:text|bg|border|ring)-\[var\(--accent\)/.test(line))

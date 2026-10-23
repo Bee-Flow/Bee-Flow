@@ -34,7 +34,7 @@ export interface StudioNavDescriptor {
     id?: string;
     category?: string;
     gate: (ctx: StudioGateCtx) => unknown;
-    gateCapability?: string;
+    gateCapability?: string | null;
     lockOn?: string;
     permission?: string | readonly string[];
     trainingArea?: string | null;

@@ -3,7 +3,7 @@ import { PII_CATEGORIES } from '../../config/piiCategories';
 import type { SignupData } from './signupValidation';
 
 /** The page's `onLogin` prop: the user the server returned, plus a recovery key when one was minted. */
-export type OnLogin = (user: unknown, recoveryKey?: string) => void;
+export type OnLogin = { bivarianceHack(user: unknown, recoveryKey?: string): void }['bivarianceHack'];
 
 /** A plain state setter (a value, not an updater). */
 export type Setter<T> = (value: T) => void;
@@ -20,7 +20,7 @@ export interface AuthAnswer {
     code?: string;
     useOpaque?: boolean;
     mfaRequired?: boolean;
-    mfaMethods?: unknown;
+    mfaMethods?: string[];
     emailVerificationRequired?: boolean;
 }
 

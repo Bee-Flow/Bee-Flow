@@ -1,6 +1,6 @@
 /**
  * The meeting player's turn and chapter rules the Insights math stands on —
- * a port of agent-hub/src/pages/meeting-notes/lib/playerData.js
+ * a port of agent-hub/src/pages/meeting-notes/lib/playerData.ts
  * (segmentSpeakerId, mergeTurns, fuseSpans, normalizeChapters),
  * timelineMarkers.js (toSeconds) and format.js (formatSpeakerLabel), pinned
  * to them by insights.lockstep.test.ts.

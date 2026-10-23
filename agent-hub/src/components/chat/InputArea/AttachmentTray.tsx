@@ -22,7 +22,7 @@ import React from 'react';
 import useTranslation from '../../../hooks/useTranslation';
 
 import { formatFileSize } from './attachmentFiles';
-import type { Attachment } from './attachmentFiles';
+import type { ComposerAttachment } from './useFileIntake';
 
 /** The family an attachment belongs to, as a glyph. */
 const getFileIcon = (type: string) => {
@@ -33,7 +33,7 @@ const getFileIcon = (type: string) => {
 };
 
 interface AttachmentTrayProps {
-    attachments: Attachment[];
+    attachments: ComposerAttachment[];
     onRemove: (index: number) => void;
     hasThreadBanner?: boolean;
 }
@@ -44,7 +44,7 @@ const AttachmentTray = ({ attachments, onRemove, hasThreadBanner }: AttachmentTr
 
     return (
         <div className={`flex flex-wrap gap-2 bg-[var(--bg-secondary)] px-3 py-2.5 border-x border-t border-[var(--border-subtle)] ${hasThreadBanner ? '' : 'rounded-t-xl'}`}>
-            {attachments.map((att: Attachment, idx: number) =>
+            {attachments.map((att: ComposerAttachment, idx: number) =>
                 att.type.startsWith('image/') ? (
                     // Image attachment — card with thumbnail + overlaid remove button
                     <div

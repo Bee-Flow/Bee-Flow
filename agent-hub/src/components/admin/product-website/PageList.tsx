@@ -17,6 +17,7 @@ import { toast } from '../../shared/Toast';
 import { BLOCK_DEFAULTS } from './editors';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { AppIcon } from './fieldKit/jsDeps';
+import type { ImportPayload } from './pageIO';
 import PageRow from './pageList/PageRow';
 import type { PageRowCallbacks } from './pageList/PageRow';
 import { AddPageDialog, TemplatesManagerDialog } from './pageList/TemplateDialogs';
@@ -43,7 +44,7 @@ interface PageListProps extends Omit<PageRowCallbacks, 'onExport'> {
     // input is shared by the header button and the per-row menu item
     // (both flows create a NEW page from the chosen file).
     onExportPage?: (id: string) => void;
-    onImportPage?: (parsed: unknown) => void;
+    onImportPage?: (parsed: ImportPayload) => void;
 }
 
 const ICON_BTN_CLS = 'w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]';
@@ -128,7 +129,7 @@ function PageListHeader({ templateCount, canImport, onOpenManager, onImportClick
  * "Import page…" menu item click this. Resetting value on every change so
  * the same file can be re-picked.
  */
-function ImportInput({ inputRef, onImportPage }: { inputRef: RefObject<HTMLInputElement | null>; onImportPage: (parsed: unknown) => void }) {
+function ImportInput({ inputRef, onImportPage }: { inputRef: RefObject<HTMLInputElement | null>; onImportPage: (parsed: ImportPayload) => void }) {
     return (
         <input
             ref={inputRef}

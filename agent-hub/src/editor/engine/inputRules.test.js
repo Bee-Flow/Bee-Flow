@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { markdownToAst } from '../serialization/mdToAst.js';
-import { astToMarkdown } from '../serialization/astToMd.js';
+import { markdownToAst } from '../serialization/mdToAst';
+import { astToMarkdown } from '../serialization/astToMd';
 import { createState, applyTransform } from './state.js';
 import { textSelection, pos } from './selection.js';
 import { insertText, setMarkAttrs } from './transforms.js';

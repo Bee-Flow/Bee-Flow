@@ -5,8 +5,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as Y from 'yjs';
-import { markdownToAst } from '../serialization/mdToAst.js';
-import { normalizeLight } from '../engine/normalize.js';
+import { markdownToAst } from '../serialization/mdToAst';
+import { normalizeLight } from '../engine/normalize';
 import { astToFragment, fragmentToAst } from './yConvert';
 import { syncDocToFragment } from './ySync';
 import { relativeFromPos, posFromRelative, encodeRelpos, decodeRelpos, pathOfElement } from './relpos';

@@ -4,6 +4,7 @@ import type { EditorChrome } from '../chat/builderPaneModel';
 /** The shell's handles: the chat pane's set, plus the app the editor is open on. */
 export interface EditorChromeValue extends EditorChrome {
     appId?: string | null;
+    openTables?: (() => void) | null;
 }
 
 /**

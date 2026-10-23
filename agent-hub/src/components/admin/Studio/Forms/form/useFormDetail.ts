@@ -51,7 +51,7 @@ export default function useFormDetail(automationId: string | null | undefined) {
     const api = useAutomationApi();
     const [detail, setDetail] = useState<FormDetail | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<unknown>(null);
+    const [error, setError] = useState<Error | null>(null);
     const [draft, setDraft] = useState<FormDraft | null>(null);
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState<unknown>(null);
@@ -71,7 +71,7 @@ export default function useFormDetail(automationId: string | null | undefined) {
             if (!keepDraft) setDraft(form?.definition?.trigger?.form ? JSON.parse(JSON.stringify(form.definition.trigger.form)) : null);
             return form;
         } catch (e) {
-            if (alive.current) setError(e);
+            if (alive.current) setError(e as Error);
             return null;
         } finally {
             if (alive.current) setLoading(false);

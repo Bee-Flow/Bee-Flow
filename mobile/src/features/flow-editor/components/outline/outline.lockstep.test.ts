@@ -27,7 +27,7 @@ const webResult = require(`${FLOW}/stepResultChip.ts`);
 // Loaded as text: the file imports lucide-react through nodeTypeColors, which
 // the app's own node_modules (all that CI installs for mobile) does not hold.
 // aiStepVariant uses none of its imports, so they are stubbed.
-const webAiTools = loadWebModule<{ aiStepVariant: (step: unknown) => string }>('components/automation/Builder/flow/aiToolNodes.js', {
+const webAiTools = loadWebModule<{ aiStepVariant: (step: unknown) => string }>('components/automation/Builder/flow/aiToolNodes.ts', {
     cardHeightForPorts: () => 0,
     CARD_H: 0,
     routePorts: () => [],
@@ -96,10 +96,10 @@ describe('the card glyphs', () => {
     // Handoff 5 split the AI step card into three variants, each with its own
     // glyph (AiStepNode's VARIANT_ICON), so its icon line names a variable.
     it('draws an AI step by its variant, as AiStepNode does', () => {
-        const node = read(`nodes/${componentFor('ai_step')}.jsx`);
+        const node = readNode(componentFor('ai_step') as string);
         expect(iconLine(node)).toMatch(/icon=\{<Icon size=\{14\} \/>\}/);
         expect(node).toMatch(/const Icon = VARIANT_ICON\[variant\];/);
-        const table = /const VARIANT_ICON = \{([^}]*)\};/.exec(node)?.[1] ?? '';
+        const table = /const VARIANT_ICON(?::[^=]+)? = \{([^}]*)\};/.exec(node)?.[1] ?? '';
         expect(Object.fromEntries([...table.matchAll(/(\w+): (\w+)/g)].map((m) => [m[1], m[2]]))).toEqual(AI_STEP_ICON);
         const steps: unknown[] = [
             null, {}, { agentId: 'a' }, { agentId: '' }, { agentId: 5, skillIds: ['s'] }, { skillIds: ['', 3] }, { skillIds: 's' },
@@ -109,7 +109,7 @@ describe('the card glyphs', () => {
     });
 
     it('draws the datatable operations, the trigger kinds and the app events as TriggerNode and DatatableNode do', () => {
-        const table = read('nodes/DatatableNode.jsx');
+        const table = read('nodes/DatatableNode.tsx');
         for (const [op, icon] of Object.entries(DATATABLE_OP_ICON)) expect(table).toMatch(new RegExp(`${op}: ${icon},`));
         const trigger = read('nodes/TriggerNode.tsx');
         for (const [kind, icon] of Object.entries(TRIGGER_ICON)) expect(trigger).toMatch(new RegExp(`${kind}:\\s+${icon},`));

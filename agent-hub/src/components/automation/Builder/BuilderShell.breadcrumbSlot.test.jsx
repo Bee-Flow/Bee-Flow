@@ -47,7 +47,7 @@ vi.mock('./UsedByButtonsCapsule', () => ({
     default: ({ automationId }) => <div data-testid="capsule">{automationId}</div>,
 }));
 
-import BuilderShell from './BuilderShell.jsx';
+import BuilderShell from './BuilderShell';
 import { queryWrapper } from '../../../test/queryWrapper';
 import { authFetch } from '../../../utils/helpers';
 

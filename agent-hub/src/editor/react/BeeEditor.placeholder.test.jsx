@@ -1,7 +1,7 @@
 import { render, cleanup } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import BeeEditor from './BeeEditor.jsx';
+import BeeEditor from './BeeEditor';
 
 /**
  * The empty-document placeholder is drawn by CSS from a custom property, so

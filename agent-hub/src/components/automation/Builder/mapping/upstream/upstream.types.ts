@@ -96,7 +96,7 @@ export interface Group {
     label: string;
     kind: string;
     basePath: string;
-    sample: unknown;
+    sample?: unknown;
     fields: Field[];
     forEach?: boolean;
     hasRealData?: boolean;

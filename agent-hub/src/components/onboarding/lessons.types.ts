@@ -4,7 +4,7 @@ import type { PermissionUser } from '../../hooks/usePermissionCheck';
 /** The slice of the signed-in user the Learning Center reads. */
 export interface LessonUser extends PermissionUser {
     id?: string;
-    orgRole?: string;
+    orgRole?: string | null;
     organizationId?: string | number | null;
     orgId?: string | number | null;
 }
@@ -232,6 +232,7 @@ export interface ServerCourse {
     level?: string;
     track?: string | null;
     lessonIds?: string[];
+    lessons?: ServerLessonDoc[];
     prereqCourseIds?: string[];
     badge?: { id?: string; icon?: string; title?: string; desc?: string } | null;
     source?: string;

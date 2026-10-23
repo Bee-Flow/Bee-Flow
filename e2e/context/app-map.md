@@ -6,7 +6,7 @@
 
 ## Global
 
-- SPA with a **custom pushState router** (`agent-hub/src/App.jsx`). Links are normal `<a>`/pushState;
+- SPA with a **custom pushState router** (`agent-hub/src/App.tsx`). Links are normal `<a>`/pushState;
   `page.goto()` works for every route listed below (the router parses `location.pathname` on load).
 - **Viewport**: `< 768px` wide = mobile mode — deny-by-default redirect to `/app` for every page
   except the eight keys in `MOBILE_ALLOWED_PAGES` (`agent-hub/src/authedApp/appRoutes.js`, frozen in
@@ -86,7 +86,7 @@ still defensively dismiss the recovery-key and reconsent gates if they appear af
 
 ## Sidebar & navigation
 
-Static testids (`components/shell/Sidebar.jsx`): `sidebar`, `main-navigation`, `toggle-sidebar`
+Static testids (`components/shell/Sidebar.tsx`): `sidebar`, `main-navigation`, `toggle-sidebar`
 (only when expanded; clicking a collapsed sidebar expands it), `sidebar-profile` (opens the profile
 menu), `profile-menu`, `profile-menu-admin` (admins only → `/app/admin`), `profile-menu-settings`,
 `sidebar-signout`.
@@ -211,7 +211,7 @@ route — `/app/studio/knowledge[/:id[/:tab[/:sourceId]]]`:
   `data-tour="knowledge-create"` (the onboarding tour anchors on it). It creates the base and opens
   it, so the URL becomes `/app/studio/knowledge/<id>/sources` — there is no `/new` form any more.
 - **Detail** (testid `kb-detail-page`, `data-kb-id`): the shared 48px Studio header
-  (`components/shared/StudioSectionHeader.jsx`, testid `studio-section-header`) — back arrow
+  (`components/shared/StudioSectionHeader.tsx`, testid `studio-section-header`) — back arrow
   `studio-section-back` ("Back to Knowledge"), kind tile `studio-section-kind`, the name as
   `studio-section-title` (a button; clicking it swaps in the input `studio-section-title-input`,
   aria-label "Rename" — type the new name and press Enter), the status chip
@@ -259,7 +259,7 @@ route — `/app/studio/knowledge[/:id[/:tab[/:sourceId]]]`:
   ``kb-surface-${id}`` toggle per surface — ids `agent` ("Agents"), `direct_chat` ("Chat"),
   `ai_step` ("Routines") — `kb-audience` ("Who may see and use it"), `kb-category`,
   `kb-duplicate` ("Make a copy") with `kb-duplicate-shell` and `kb-duplicate-sources`, and the
-  shared danger zone (testid `danger-zone`, `components/shared/DangerZone.jsx`), which may render
+  shared danger zone (testid `danger-zone`, `components/shared/DangerZone.tsx`), which may render
   `kb-delete-unchecked` when the usage list is incomplete.
 - **Deleting a knowledge base** is the danger zone, NOT a dialog: click the collapsed link
   "Delete this knowledge base", which arms an inline `role="group"` panel headed

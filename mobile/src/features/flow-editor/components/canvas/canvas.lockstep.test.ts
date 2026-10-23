@@ -31,8 +31,8 @@ jest.mock('lucide-react', () => new Proxy({}, { get: (_t, name) => (name === '__
 const BUILDER = path.resolve(__dirname, '../../../../../../agent-hub/src/components/automation/Builder');
 const FLOW = `${BUILDER}/flow`;
 /* eslint-disable @typescript-eslint/no-require-imports */
-const webLayout = require(`${FLOW}/layout.js`);
-const webInline = require(`${FLOW}/inlineFlowlets.js`);
+const webLayout = require(`${FLOW}/layout.ts`);
+const webInline = require(`${FLOW}/inlineFlowlets.ts`);
 const webColors = require(`${FLOW}/edgeColors.ts`);
 const webColoring = require(`${FLOW}/edgeColoring.ts`);
 const TEMPLATES_JS = path.resolve(__dirname, '../../../../../../server/automation/templates.js');
@@ -159,7 +159,7 @@ describe('what only the web components say', () => {
     });
 
     it('fans parallel lines out by the same pitches (edges.jsx)', () => {
-        const edges = read('flow/edges.jsx');
+        const edges = read('flow/edges.tsx');
         expect(edges).toContain(`const LANE_PITCH = ${LANE_PITCH};`);
         expect(edges).toContain(`const CHIP_PITCH = ${CHIP_PITCH};`);
         expect(edges).toContain('borderRadius: 12');

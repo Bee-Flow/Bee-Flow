@@ -16,12 +16,13 @@ import { useCallback, type Dispatch, type RefObject, type SetStateAction } from 
 
 import { buildAttachments } from './attachmentFiles';
 
-export interface ComposerAttachment {
+export type ComposerAttachment = {
     name: string;
     type: string;
     size: number;
-    content: string;
-}
+    content?: string;
+    source?: string;
+};
 
 interface UseFileIntakeArgs {
     setAttachments: Dispatch<SetStateAction<ComposerAttachment[]>>;

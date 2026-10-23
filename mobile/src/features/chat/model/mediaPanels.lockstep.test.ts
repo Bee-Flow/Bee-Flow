@@ -13,9 +13,9 @@ const read = (name: string) => fs.readFileSync(`${AGENT_HUB_SRC}/components/chat
 const WEB = {
     image: read('NanoBananaSettings.tsx') + read('ImageGenSettings.tsx'),
     video: read('VideoGenSettings.tsx'),
-    lyria: read('MusicGenSettings.jsx'),
-    elevenlabs: read('NanoBananaSettings.tsx') + read('ElevenLabsSettings.jsx'),
-    sfx: read('NanoBananaSettings.tsx') + read('ElevenLabsSettings.jsx'),
+    lyria: read('MusicGenSettings.tsx'),
+    elevenlabs: read('NanoBananaSettings.tsx') + read('ElevenLabsSettings.tsx'),
+    sfx: read('NanoBananaSettings.tsx') + read('ElevenLabsSettings.tsx'),
 };
 
 describe.each(MEDIA_PANELS.flatMap((panel) => panel.controls.map((c) => [`${c.section}.${c.key}`, c] as const)))('%s', (_name, control) => {

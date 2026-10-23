@@ -6,9 +6,9 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as Y from 'yjs';
-import { markdownToAst } from '../serialization/mdToAst.js';
-import { htmlToAst } from '../serialization/htmlToAst.js';
-import { normalizeLight } from '../engine/normalize.js';
+import { markdownToAst } from '../serialization/mdToAst';
+import { htmlToAst } from '../serialization/htmlToAst';
+import { normalizeLight } from '../engine/normalize';
 import { astToFragment, fragmentToAst, createYCache, sameInY } from './yConvert';
 import { FRAGMENT_NAME, type AstNode } from './ySchema';
 

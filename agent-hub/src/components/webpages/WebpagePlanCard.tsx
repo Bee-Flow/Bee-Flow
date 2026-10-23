@@ -20,8 +20,8 @@ interface WebpagePlanCardProps {
     plan?: WebpagePlan | null;
     status?: 'pending' | 'approved' | 'executed' | 'rejected';
     planId?: string;
-    onApprove?: (planId?: string) => void;
-    onReject?: (planId?: string) => void;
+    onApprove?(planId?: string): void;
+    onReject?(planId?: string): void;
 }
 
 const FILE_ICON: Record<string, LucideIcon> = { html: FileCode2, css: Palette, js: Cpu };

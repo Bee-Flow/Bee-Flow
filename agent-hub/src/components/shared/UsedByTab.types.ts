@@ -42,7 +42,7 @@ export interface UsedByTabProps {
     adapt?: UsageAdapter;
     /** The kind pills above the table (default true). */
     showSummary?: boolean;
-    unchecked?: string[];
+    unchecked?: readonly string[];
     className?: string;
 }
 

@@ -14,7 +14,7 @@ export function coversPage(s: ScenarioItem, stepId: string | null): boolean {
 }
 
 interface FormScenarioPickerProps {
-    automationId: string;
+    automationId: string | null | undefined;
     /** The form_page step the page belongs to; null for the first page (the start form). */
     stepId: string | null;
     /** The page's saved answers to fill in, or null to leave the form as it is. */

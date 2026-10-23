@@ -26,13 +26,13 @@ import { ANNEX_QUESTIONS, ART5_CHIPS, containsAiWords, outcomeText, step2Verdict
 
 const LADDER = 'components/admin/compliance/ladder';
 const WEB_DIR = path.resolve(__dirname, `../../../../../../agent-hub/src/${LADDER}`);
-const MODAL = fs.readFileSync(`${WEB_DIR}/AiActLadderModal.jsx`, 'utf8');
-const BLOCK = fs.readFileSync(`${WEB_DIR}/ComplianceBlock.jsx`, 'utf8');
+const MODAL = fs.readFileSync(`${WEB_DIR}/AiActLadderModal.tsx`, 'utf8');
+const BLOCK = fs.readFileSync(`${WEB_DIR}/ComplianceBlock.tsx`, 'utf8');
 
 const web = loadWebFunctions<{
     outcomeText: (v: Verdict, containsAi: boolean, t: unknown) => string;
     step2State: (s: Verdict['step2']) => string;
-}>(`${LADDER}/AiActLadderModal.jsx`, ['outcomeText', 'step2State']);
+}>(`${LADDER}/AiActLadderModal.tsx`, ['outcomeText', 'step2State']);
 
 const english = (_key: string, fallback: string, params?: Record<string, unknown>) =>
     fallback.replace(/\{(\w+)\}/g, (_, k: string) => String(params?.[k] ?? ''));

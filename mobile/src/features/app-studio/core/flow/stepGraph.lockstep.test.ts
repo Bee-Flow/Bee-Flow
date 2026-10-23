@@ -10,7 +10,7 @@ import { allFixtures } from '../testing/fixtures';
 import { loadWeb } from '../testing/loadWeb';
 
 type AnyFn = (...args: unknown[]) => unknown;
-const web = loadWeb<Record<string, unknown>>('flow/stepGraph.js');
+const web = loadWeb<Record<string, unknown>>('flow/stepGraph.ts');
 
 function both(name: string, ...args: unknown[]): unknown {
     const w = (web[name] as AnyFn)(...args);

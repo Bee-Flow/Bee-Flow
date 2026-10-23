@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode, RefAttributes } from 'react';
+import type { AssistantField } from '../useBuilderShellState';
 import type { AddStepPayload, AddStepOptions, Position } from './addStepModel';
 import type { BuilderMessage } from './buildTabTypes';
 import InputAreaJs from '../../../chat/InputArea';
@@ -48,7 +49,7 @@ export interface DiagramPaneProps {
     onRequestOpenPalette?: Callback;
     onAddTrigger?: Callback<[payload: AddStepPayload | null]>;
     onOpenAssistant?: Callback;
-    onAskAssistant?: Callback<[stepId?: string, field?: unknown]>;
+    onAskAssistant?: Callback<[stepId?: string, field?: AssistantField | null]>;
     editingStepId?: string | null;
     onRequestAddAfter?: Callback<[nodeId: string | null]>;
     onRequestInsertOnEdge?: Callback<[req: {
@@ -77,7 +78,7 @@ export interface DiagramPaneProps {
     onToggleFlowlets?: Callback;
     flowletCount?: number;
     fatalError?: unknown;
-    aborted?: boolean;
+    aborted?: Record<string, unknown> | boolean | null;
     onDismissFatal?: Callback;
     onFocusStep?: Callback<[stepId: string]>;
 }

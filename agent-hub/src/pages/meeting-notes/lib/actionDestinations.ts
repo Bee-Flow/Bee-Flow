@@ -249,7 +249,7 @@ export function destinationRecord(kind: string, { ref, label = '', itemRef = '' 
  * exists to protect. An id that is not in the list changes nothing and still
  * answers the whole list, so a stale card can never truncate it either.
  */
-export function applyDestination(items: MeetingActionItem[] | null | undefined, itemId: string, destination: unknown) {
+export function applyDestination(items: MeetingActionItem[] | null | undefined, itemId: string | undefined, destination: unknown) {
     const list = Array.isArray(items) ? items : [];
     return list.map((item) => {
         if (!item || item.id !== itemId) return item;

@@ -6,7 +6,7 @@
  */
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { markdownToAst } from '../serialization/mdToAst.js';
+import { markdownToAst } from '../serialization/mdToAst';
 import useEditorAnchors, { type AnchorSpec } from './useEditorAnchors';
 
 /** A document whose block list counts how often it is read (each full index reads it once). */

@@ -28,7 +28,7 @@ export interface TurnTarget {
  * supersedes the first.
  */
 export function turnTarget(
-    currentConversation: { id?: string; project_id?: string | null; projectId?: string | null } | null | undefined,
+    currentConversation: { id?: string | null; project_id?: string | null; projectId?: string | null } | null | undefined,
     directMode: { conversationId?: string } | null | undefined,
     activeProject: { id?: string } | null | undefined,
 ): TurnTarget {

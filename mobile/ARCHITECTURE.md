@@ -155,7 +155,7 @@ written into a `style` or `…Style` prop, including one inside a style array.
 
 ## Navigation
 
-The shell mirrors the web sidebar (agent-hub `components/shell/Sidebar.jsx`),
+The shell mirrors the web sidebar (agent-hub `components/shell/Sidebar.tsx`),
 natively:
 
 ```

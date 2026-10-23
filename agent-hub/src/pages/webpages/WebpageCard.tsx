@@ -22,7 +22,7 @@ import { API_BASE } from '../../utils/helpers';
 /** A list row, as far as the card reads it. */
 export interface WebpageCardData {
     id: string;
-    name?: string;
+    name: string;
     icon?: string;
     tagline?: string;
     thumbnailSha?: string | null;

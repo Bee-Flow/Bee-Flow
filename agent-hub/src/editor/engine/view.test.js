@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { EditorView } from './view.js';
+import { EditorView } from './view';
 import { createState } from './state.js';
-import { markdownToAst } from '../serialization/mdToAst.js';
+import { markdownToAst } from '../serialization/mdToAst';
 import { textSelection, pos } from './selection.js';
 
 let views = [];

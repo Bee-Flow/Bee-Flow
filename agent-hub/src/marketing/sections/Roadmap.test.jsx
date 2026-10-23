@@ -14,7 +14,7 @@
  */
 import { render, within } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import Roadmap, { groupByStatus, ROADMAP_STATUSES } from './Roadmap.jsx';
+import Roadmap, { groupByStatus, ROADMAP_STATUSES } from './Roadmap';
 
 const item = (over = {}) => ({ title: 'Thing', body: 'Does a thing', status: 'shipped', ...over });
 

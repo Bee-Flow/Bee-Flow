@@ -174,7 +174,7 @@ interface UnsupportedValueProps {
     chrome: ReactNode;
     formulaText: string;
     stepLabelById: LabelMap;
-    stepTypeById: LabelMap;
+    stepTypeById: Map<string, string | undefined>;
     example: string | null;
     onEdit: () => void;
     onReplace: () => void;

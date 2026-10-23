@@ -14,7 +14,7 @@ import { loadWebModule } from '@/shared/testing/webModule';
 import * as port from './ladderOutcome';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const web: any = loadWebModule('components/admin/compliance/ladder/ladderOutcome.js');
+const web: any = loadWebModule('components/admin/compliance/ladder/ladderOutcome.ts');
 
 const read = (raw: unknown): AiActSignals => readAssessment({ signals: raw }).signals;
 

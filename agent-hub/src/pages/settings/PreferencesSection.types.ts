@@ -1,6 +1,6 @@
 export interface PreferencesUser {
     simpleMode?: boolean;
-    orgRole?: string;
+    orgRole?: string | null;
     role?: string;
     displayName?: string;
     username?: string;

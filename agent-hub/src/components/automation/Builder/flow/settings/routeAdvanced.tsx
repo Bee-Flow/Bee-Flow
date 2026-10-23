@@ -3,6 +3,8 @@ import { FormRow, inputClass } from './formPrimitives';
 import { CollectionArrayRefField } from './collectionEditors';
 import type { RouteRule } from './routeEditorsModel';
 import type { RouteConfig } from './routeTypes';
+import type { Group } from '../../mapping/upstream/upstream.types';
+import type { OnFocusField } from '../../mapping/focusField.types';
 
 interface RouteAdvancedProps {
     route: RouteConfig;
@@ -10,8 +12,8 @@ interface RouteAdvancedProps {
     items: boolean;
     several: boolean;
     fanOut: boolean;
-    groups: unknown;
-    onFocusField: unknown;
+    groups: Group[] | null | undefined;
+    onFocusField: OnFocusField | null | undefined;
     previewSample: unknown;
     onPatch: (patch: RouteConfig) => void;
     onChangeSource: (source: string) => void;

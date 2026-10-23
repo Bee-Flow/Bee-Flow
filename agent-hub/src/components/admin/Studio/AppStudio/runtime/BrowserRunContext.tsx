@@ -17,7 +17,7 @@ import type { ReactNode } from 'react';
  */
 
 /** One wire event of an ai_browse step. */
-interface BrowseEvent {
+export interface BrowseEvent {
     type: string;
     queuePosition?: number | null;
     url?: string;

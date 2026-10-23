@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import type { MouseEvent as ReactMouseEvent, MutableRefObject, RefObject } from 'react';
+import type { MutableRefObject, RefObject } from 'react';
 import type { Edge, Node, XYPosition } from '@xyflow/react';
 
 import { spliceStepIntoEdge } from './branchEdges';
@@ -10,7 +10,7 @@ import type { NodeDropTarget } from './nodeDropTarget';
 import { isRouteStep, routePorts } from './routeModel';
 import { applyAutoMapToStep } from '../mapping/autoMapInputs';
 import type { DiagramDefinition, DiagramStep, Rf, Sidecar } from './diagramPaneTypes';
-import type { RealOutputMap } from '../../../../hooks/useUpstreamVariables';
+import type { NodeOpsInputs } from './useNodeOps';
 
 /**
  * The pointer's client position for a drag event. React Flow hands over a
@@ -27,16 +27,6 @@ export function dragClientPoint(event: unknown): { x: number; y: number } | null
 
 /** What a dragged loose node would attach to (flow/nodeDropTarget.js). */
 export type NodeDropHit = NodeDropTarget;
-
-/** The latest values the delayed commit reads (kept in a ref by the pane). */
-export interface NodeOps {
-    catalog?: unknown;
-    realOutputById?: RealOutputMap | null;
-    autoMapEnabled?: boolean;
-    onAutoMapped?: (stepId: string, mappedCount: number, forEachEnabled: boolean) => void;
-    definition: DiagramDefinition;
-    onDefinitionChange?: ((next: DiagramDefinition) => void) | null;
-}
 
 /** The position changes React Flow reports for a drag; other change kinds carry no position. */
 export interface NodePositionChange {
@@ -56,7 +46,7 @@ interface NodeDragWiringArgs {
     sidecar: Sidecar | null;
     shiftById: Map<string, { dx: number; dy: number }> | null;
     wrapperRef: RefObject<HTMLElement | null>;
-    nodeOpsRef: MutableRefObject<NodeOps>;
+    nodeOpsRef: MutableRefObject<NodeOpsInputs>;
     onDefinitionChange?: ((next: DiagramDefinition) => void) | null;
 }
 
@@ -119,7 +109,7 @@ export function useNodeDragWiring({
         return wired;
     }, []);
 
-    const onNodeDrag = useCallback((event: ReactMouseEvent, node: Node) => {
+    const onNodeDrag = useCallback((event: MouseEvent | TouchEvent, node: Node) => {
         if (!editable || structuralEditsBlocked) return;
         // Only offer to wire the dragged node to things in ITS graph — a node
         // inside an expanded flowlet can't connect to the flow around it.
@@ -148,7 +138,7 @@ export function useNodeDragWiring({
      * (leaving the ref unconsumed) we write the connection ourselves on the
      * next tick. Either order ends with both applied, exactly once.
      */
-    const onNodeDragStop = useCallback((_event: ReactMouseEvent, node?: Node | null) => {
+    const onNodeDragStop = useCallback((_event: MouseEvent | TouchEvent, node?: Node | null) => {
         const hit = nodeDropTarget;
         setNodeDropTarget(null);
         setDropHintPos(null);

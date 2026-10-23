@@ -2,7 +2,7 @@ import { useState, useEffect, useEffectEvent, useCallback, useMemo, useRef } fro
 import { describeClampsOnLoad, describeSaveResult } from './orgShieldClamps';
 import { dirtyStages as computeDirtyStages } from './orgShieldDirty';
 import { buildPayload, normaliseDoc } from './orgShieldDoc';
-import type { ShieldFields } from './orgShieldDoc';
+import type { ShieldFields, ToolPiiPolicy } from './orgShieldDoc';
 import useShieldEnvironment from './useShieldEnvironment';
 import type { ShieldOrg } from './useShieldEnvironment';
 import useShieldFields from './useShieldFields';
@@ -130,7 +130,8 @@ export function useOrgShield({ orgId: pinnedOrgId = null, allowOrgPicker = false
     // The settings as last loaded or saved: what the evidence on screen was
     // produced under, where the draft may already say something else.
     // Deps: snapshotVersion stands in for the ref
-    const saved = useMemo(() => snapshotRef.current, [snapshotVersion]);
+    // buildPayload writes `toolPiiPolicy` from the typed fields, so that one key has a known shape.
+    const saved = useMemo(() => snapshotRef.current as (Doc & { toolPiiPolicy?: Partial<ToolPiiPolicy> }) | null, [snapshotVersion]);
 
     // WHICH panes hold the pending edits — so the save bar can name them and
     // an admin who touched two panes can get back to both. Recomputed from the

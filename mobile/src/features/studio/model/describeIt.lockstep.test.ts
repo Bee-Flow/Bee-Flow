@@ -29,7 +29,7 @@ const read = (...parts: string[]) => fs.readFileSync(path.join(REPO, ...parts), 
 
 const ROUTE = read('server/routes/studio/aiRoute.js');
 const WEB_API = read('agent-hub/src/components/admin/Studio/studioAi/routeApi.ts');
-const WEB_PANEL = read('agent-hub/src/components/admin/Studio/studioAi/DescribeItPanel.jsx');
+const WEB_PANEL = read('agent-hub/src/components/admin/Studio/studioAi/DescribeItPanel.tsx');
 
 /** The text between `start` and the first `end` after it. */
 function block(src: string, start: string, end: string): string {
@@ -98,7 +98,7 @@ describe('the web client (studioAi/routeApi.js, DescribeItPanel.jsx)', () => {
     });
 
     it('says the same sentences under the same keys (the phone adds only "offline")', () => {
-        const web = block(WEB_PANEL, 'const ERROR_TEXT = {', '\n};');
+        const web = block(WEB_PANEL, 'const ERROR_TEXT', '\n};');
         const theirs = Object.fromEntries([...web.matchAll(/\n {4}(\w+): \['([\w.]+)', '([^']+)'\]/g)].map((m) => [m[1], [m[2], m[3]]]));
         const { offline, ...ours } = DESCRIBE_IT_WORDS;
         expect(Object.keys(theirs)).toHaveLength(7);

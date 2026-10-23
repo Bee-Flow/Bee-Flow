@@ -73,7 +73,7 @@ function onToolDraft(ctx: AppBuilderEventCtx, data: BuilderStreamData): void {
     ctx.setToolDraft({
         name: data.name || null,
         items: Array.isArray(data.items) ? data.items : [],
-        count: Number.isFinite(data.count) ? data.count : (Array.isArray(data.items) ? data.items.length : 0),
+        count: Number.isFinite(data.count) ? Number(data.count) : (Array.isArray(data.items) ? data.items.length : 0),
         parentId: data.parentId || null,
         chars: Number.isFinite(data.chars) ? data.chars : 0,
         iter: Number.isFinite(data.iter) ? data.iter : null,

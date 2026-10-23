@@ -107,7 +107,7 @@ export interface CoworkUpdate {
 
 /** The props of the Cowork page. */
 export interface CoworkPageProps {
-    user?: { simpleMode?: boolean } | null;
+    user?: { simpleMode?: boolean; id?: string } | null;
     isMobile?: boolean;
     initialCoworkId?: string | null;
     onNavigate?: (path: string) => void;

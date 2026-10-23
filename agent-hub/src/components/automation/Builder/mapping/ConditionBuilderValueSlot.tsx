@@ -7,7 +7,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 // A JS component: TypeScript reads every prop without a default as required.
 const ValueBuilder = ValueBuilderJs as unknown as ComponentType<Record<string, unknown>>;
 
-export type Binding = { kind?: string; value?: unknown; path?: string } | null | undefined;
+export type Binding = { kind?: string; value?: unknown; path?: unknown } | null | undefined;
 type LiteralBinding = { kind: 'literal'; value: unknown };
 
 const slotInputClass = denseInputClass('w-full');

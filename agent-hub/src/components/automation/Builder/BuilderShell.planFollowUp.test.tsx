@@ -27,7 +27,7 @@ vi.mock('./BuilderHeader', () => ({ default: () => null }));
 vi.mock('./BuildTab', () => ({ default: (p: BuildTabProps) => { buildTab = p; return null; } }));
 vi.mock('./SettingsTab', () => ({ default: () => null }));
 
-import BuilderShell from './BuilderShell.jsx';
+import BuilderShell from './BuilderShell';
 import { queryWrapper } from '../../../test/queryWrapper';
 import { authFetch } from '../../../utils/helpers';
 import scopedStorage, { setCurrentUser } from '../../../utils/scopedStorage';
