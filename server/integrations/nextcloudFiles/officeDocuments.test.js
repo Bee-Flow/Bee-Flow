@@ -118,6 +118,13 @@ test('append: array rows are appended verbatim', async () => {
     assert.deepStrictEqual(rowsOf(putOf(calls).body), [['vendor', 'amount'], ['Acme', 10], ['Row', 1], ['Another', 2]]);
 });
 
+test('append: array rows coerce every column alike (the column index is not a keepFormulas flag)', async () => {
+    const { ctx, calls } = makeCtx({ existing: await ledger() });
+    await run({ path: '/l.xlsx', rows: [[{ formula: 'A1' }, { formula: 'B1' }]], ifExists: 'append' }, ctx);
+    const last = rowsOf(putOf(calls).body)[2];
+    assert.deepStrictEqual(last, ['{"formula":"A1"}', '{"formula":"B1"}']);
+});
+
 test('append: 404 on GET creates the file fresh — header from the row keys, appended: 0', async () => {
     const { ctx, calls } = makeCtx({ existing: null });
     const res = await run({ path: '/new/ledger.xlsx', rows: [{ vendor: 'First', amount: 1 }], ifExists: 'append' }, ctx);
