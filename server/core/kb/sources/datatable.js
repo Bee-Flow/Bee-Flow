@@ -170,7 +170,7 @@ async function enumerate(source, ctx, deps) {
     }
 
     const { tableMeta, grade, scopeKey } = resolved;
-    const readFilter = accessFilter.compileAccessFilter(tableMeta, grade, { id: owner }, 'read', 'pg');
+    const readFilter = accessFilter.compileAccessFilter(tableMeta, grade, { id: owner }, 'read', { dialect: 'pg' });
 
     /**
      * Grouped or not is decided from the TABLE's own row count, before a
@@ -396,7 +396,7 @@ async function resolveRelationLabels(rows, relations, deps) {
 
         const labelKey = labelFieldFor(target.tableMeta);
         if (!labelKey) continue;
-        const readFilter = accessFilter.compileAccessFilter(target.tableMeta, target.grade, { id: principal.userId }, 'read', 'pg');
+        const readFilter = accessFilter.compileAccessFilter(target.tableMeta, target.grade, { id: principal.userId }, 'read', { dialect: 'pg' });
 
         const ids = [...idSet];
         for (let i = 0; i < ids.length; i += LABEL_BATCH) {

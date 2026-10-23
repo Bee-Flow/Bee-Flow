@@ -61,8 +61,9 @@ function deps(rows, calls = {}) {
             },
         },
         accessFilter: {
-            compileAccessFilter: (meta, grade, viewer, action) => {
+            compileAccessFilter: (meta, grade, viewer, action, opts) => {
                 calls.access.push({ grade, viewer, action });
+                (calls.accessOpts = calls.accessOpts || []).push(opts);
                 return { sql: 'owner_id = ?', params: ['owner1'] };
             },
         },
@@ -106,6 +107,8 @@ test('the table`s own row access filter is compiled, every pass', async () => {
     await adapter.enumerate(source(), ctx(), d);
     assert.strictEqual(d.calls.access.length, 1);
     assert.deepStrictEqual(d.calls.access[0], { grade: 'viewer', viewer: { id: 'owner1' }, action: 'read' });
+    // The dialect goes in the options object; a bare 'pg' string was ignored.
+    assert.deepStrictEqual(d.calls.accessOpts[0], { dialect: 'pg' });
     assert.ok(d.calls.queries[0].filter, 'and handed to the query, not computed and dropped');
 });
 
@@ -411,8 +414,9 @@ function relDeps(rows, suppliers, calls = {}) {
             },
         },
         accessFilter: {
-            compileAccessFilter: (meta, grade, viewer, action) => {
+            compileAccessFilter: (meta, grade, viewer, action, opts) => {
                 calls.access.push({ table: meta.key, grade, viewer, action });
+                (calls.accessOpts = calls.accessOpts || []).push(opts);
                 return { sql: 'owner_id = ?', params: ['owner1'] };
             },
         },
@@ -470,6 +474,7 @@ test('the target table is read as the OWNER, through ITS OWN access filter', asy
     assert.strictEqual(target.ctx.userId, 'owner1');
     assert.strictEqual(target.opts.needed, 'viewer');
     assert.deepStrictEqual(d.calls.access.map(a => a.table), ['orders', 'suppliers'], 'both filters compiled');
+    assert.deepStrictEqual(d.calls.accessOpts, [{ dialect: 'pg' }, { dialect: 'pg' }], 'both on the pg dialect');
     const labels = d.calls.queries.find(q => q.table === 'suppliers');
     assert.ok(labels.filter, 'and the target filter handed to the label query');
 });
