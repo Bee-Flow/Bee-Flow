@@ -9,3 +9,5 @@ pydantic==2.14.1
 pydantic-settings==2.15.0
 # TestClient's transport; not in the image.
 httpx==0.28.1
+certifi==2026.10.19
+anyio==4.15.1

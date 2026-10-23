@@ -59,6 +59,7 @@ const NO_POLICY = {
     'sast.yml': 'PR-only and not a required context: a superseded run costs minutes, and nothing waits on it',
     'secret-scan.yml':
         '23 s, 0 supersedes in 138 runs — nothing to save, and it produces the REQUIRED `scan` context, so leaving it alone sidesteps the non-unique-context hazard entirely',
+    'vuln-watch.yml': 'schedule and main-push only, ~1 min, reports to the Security tab; a superseded run saves nothing and nothing waits on it',
     'workflow-policy.yml': 'the gate itself; ~15 s',
 };
 

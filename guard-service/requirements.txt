@@ -14,6 +14,13 @@ httpx==0.28.1
 redis==8.1.0
 # certifi: GHSA-6q48-6c7w-9gw2 (compromised emSign intermediates), fixed in 2026.10.19.
 certifi==2026.10.19
+# anyio (via starlette and httpx): GHSA-82r6-8w77-94w6, fixed in 4.14.2.
+anyio==4.15.1
+# torch: the Dockerfile installs 2.14.0+cpu before this file. `==2.14.0`
+# ignores the +cpu local label (PEP 440), so pip finds it satisfied and never
+# fetches the CUDA build; listing it lets pip and the dependency scanners see
+# the version that ships. Move it together with the Dockerfile pin.
+torch==2.14.0
 # GLiNER multilingual PII NER (Apache 2.0) — CPU PII detection backend.
 # PINNED: every eval baseline records the library version in its provenance;
 # a floating floor let a rebuild silently drift the engine underneath the
@@ -30,7 +37,7 @@ gliner[onnx]==0.2.29
 # (measured on transformers 5.6.2; the image shipped 5.13.1 ungated). The
 # per-thread tokenizer fix (_ThreadLocalTokenizer) leans on transformers and
 # tokenizers internals, so these move only with a gate run too. torch is
-# pinned in the Dockerfile, where the CPU build is installed.
+# installed by the Dockerfile (CPU build) and mirrored above.
 transformers==5.16.1
 tokenizers==0.23.3
 huggingface_hub==1.33.0
