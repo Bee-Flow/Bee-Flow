@@ -1095,8 +1095,7 @@ module.exports = {
     compileDeleteOrphans,
     encodeCursor,
     decodeCursor,
-    // Exported so a route clamps with the compiler's own rule instead of
-    // re-deriving one that disagrees with it.
+    // Exported so a route clamps with the compiler's own rule, not a copy.
     clampLimit,
     CompileError,
     RowsLockedError,

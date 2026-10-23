@@ -300,10 +300,7 @@ async function executeKbSearchTool(toolName, args, context = {}) {
             }
         }
 
-        // Format results for the agent.
-        // Apply a minimum relevance threshold. Reranker scores below ~0.35 are
-        // usually noise — they clutter the UI, waste tokens in the LLM payload,
-        // and distract the agent. Override via KB_MIN_SCORE env var if needed.
+        // Reranker scores below ~0.35 are noise (UI clutter, wasted tokens); KB_MIN_SCORE overrides.
         const parsedMin = parseFloat(process.env.KB_MIN_SCORE);
         const scoreThreshold = Number.isFinite(parsedMin) ? parsedMin : 0.35;
 
@@ -311,11 +308,8 @@ async function executeKbSearchTool(toolName, args, context = {}) {
         const results = chunks
             .filter(c => (c.score || c.rerank_score || 0) >= scoreThreshold)
             .map((c, i) => ({
-                // Keep the ids (document_id, source_id, page_start, ...) so the
-                // citation can be opened and kb_fetch can resolve the passage.
-                ...c,
-                // kb_chunks.chunk_id is the passage's ordinal within its
-                // document; the row's own `id` is what kb_fetch looks up.
+                ...c, // keep the ids so the citation opens and kb_fetch resolves the passage
+                // kb_chunks.chunk_id is an ordinal within the document; kb_fetch looks up the row `id`.
                 chunk_id: c.id ?? c.chunk_id ?? null,
                 result_number: i + 1,
                 title: c.title || c.source_uri || 'Knowledge Base',

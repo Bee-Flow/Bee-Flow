@@ -188,19 +188,11 @@ function getUnlockClaim(req, shareId) {
 // success (email may be null for password/unlisted) or null when gated-out.
 function resolveSubResourceGate(req, share) {
     if (share.accessMode === 'unlisted') return { email: null };
-    // Cookie path (works for same-site top-level; kept as a fallback).
-    const unlock = getUnlockClaim(req, share.id);
-    if (unlock) {
-        if (share.accessMode === 'email' && !publicShareStore.isEmailAllowed(share, unlock.email)) return null;
-        return { email: unlock.email || null };
-    }
-    // View-token path (the opaque-origin sub-frame's actual authorization).
-    const view = publicShareToken.verifyViewToken(viewTokenOf(req), share.id);
-    if (view) {
-        if (share.accessMode === 'email' && !publicShareStore.isEmailAllowed(share, view.email)) return null;
-        return { email: view.email || null };
-    }
-    return null;
+    // Cookie (same-site top-level fallback), else the view token: the opaque-origin sub-frame's real authorization.
+    const claim = getUnlockClaim(req, share.id) || publicShareToken.verifyViewToken(viewTokenOf(req), share.id);
+    if (!claim) return null;
+    if (share.accessMode === 'email' && !publicShareStore.isEmailAllowed(share, claim.email)) return null;
+    return { email: claim.email || null };
 }
 
 // ── Chrome + iframe document composition ───────────────────────────

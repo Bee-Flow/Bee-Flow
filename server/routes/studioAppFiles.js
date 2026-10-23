@@ -389,8 +389,7 @@ router.get('/:id/data/attachments/:fileId/preview', requireAuth, readLimiter, va
     let png;
     try {
         ({ png } = format === 'dxf'
-            // No filename on the sheet: an attachment row carries no name
-            // (mapAttachmentRow), only its hash and type.
+            // No filename on the sheet: an attachment row (mapAttachmentRow) carries none.
             ? await renderDxfSheet(buffer)
             : await renderCadSheet(buffer, { format }));
     } catch (err) {
