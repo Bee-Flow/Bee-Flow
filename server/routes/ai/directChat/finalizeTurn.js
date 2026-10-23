@@ -109,8 +109,9 @@ async function persistTurn(t, conv) {
     // Memory extraction runs ONCE per turn, at the tail of
     // finalizeDirectChatTurn (the retired core/memoryExtractor used to fire
     // from here as well: two fast-tier calls and two dedupe-then-insert races).
-    const { pendingTitle } = await scheduleTitle({ ...t, conv, savedMessages, send });
-    return pendingTitle;
+    // Returned wrapped: an async function that returns a promise adopts it,
+    // and the caller's await would then wait for the title model call.
+    return scheduleTitle({ ...t, conv, savedMessages, send });
 }
 
 /**
@@ -140,7 +141,7 @@ async function finalizeDirectChatTurn(turn) {
     let pendingTitle = null;
     const conv = await agentStore.getDirectConversation(convId, turn.userId, encryptionOpts(turn.req));
     if (conv) {
-        pendingTitle = await persistTurn({ ...turn, convId, fullContent, generatedFiles }, conv);
+        ({ pendingTitle } = await persistTurn({ ...turn, convId, fullContent, generatedFiles }, conv));
     }
     await extractTurnMemories({ ...turn, convId });
     return { convId, pendingTitle };
