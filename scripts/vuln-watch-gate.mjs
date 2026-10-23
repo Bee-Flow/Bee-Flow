@@ -22,8 +22,14 @@
  * entries of .github/security/audit-baseline.json count too, so an advisory
  * reviewed for the npm audit ratchet is not reviewed twice.
  *
+ * ONE MAIL PER ADVISORY: the workflow runs hourly, and GitHub mails every red
+ * scheduled run. `--known` lists the vuln-watch alerts already in the Security
+ * tab (open or dismissed); a finding that is there was mailed when it first
+ * appeared and stays out of the verdict. The Security tab is the record, not
+ * an issue: this repository is public, its alerts are not.
+ *
  *   node scripts/vuln-watch-gate.mjs --osv osv.json --runtime runtime.json \
- *       [--sarif out.sarif] [--summary out.md]
+ *       [--known alerts.jsonl] [--hourly] [--sarif out.sarif] [--summary out.md]
  *
  * Zero dependencies: node:* only.
  */
@@ -158,13 +164,25 @@ export function runtimeFindings(report) {
     }));
 }
 
-export function evaluate(findings, accepted, today) {
+/** Key of a code-scanning alert, and of the finding that would raise it. */
+export const alertKey = (rule, file) => `${rule}|${file}`;
+
+/**
+ * `known`: keys of the vuln-watch alerts already in the Security tab (open or
+ * dismissed). Their mail went out when they first turned a run red, so they
+ * do not turn it red again. `hourly`: an in-between run, which leaves the
+ * daily reminders (expired acceptances, a feed that could not be read) to the
+ * daily run, so one outage or one lapsed date is one mail, not twenty-four.
+ */
+export function evaluate(findings, accepted, today, { known = new Set(), hourly = false } = {}) {
     const fail = [];
     const acceptedHits = [];
     const report = [];
+    const reported = [];
     for (const f of findings) {
         if (f.kind === 'runtime' && f.level === 'error') {
-            fail.push({ f, why: 'could not be checked' });
+            if (hourly) reported.push({ f, why: 'could not be checked; the daily run reports it' });
+            else fail.push({ f, why: 'could not be checked' });
             continue;
         }
         if (!f.gating) {
@@ -173,10 +191,12 @@ export function evaluate(findings, accepted, today) {
         }
         const a = acceptedFor(accepted, f);
         if (a && a.expires >= today) acceptedHits.push({ f, a });
+        else if (a && hourly) reported.push({ f, why: `acceptance expired on ${a.expires}; the daily run reports it` });
         else if (a) fail.push({ f, why: `accepted until ${a.expires}, expired` });
+        else if (known.has(alertKey(f.id, f.file))) reported.push({ f, why: 'already in the Security tab' });
         else fail.push({ f, why: 'new' });
     }
-    return { fail, acceptedHits, report };
+    return { fail, acceptedHits, report, reported };
 }
 
 export function toSarif(findings, version = '1') {
@@ -217,7 +237,7 @@ function label(f) {
     return `${sev} ${f.score.toFixed(1)} ${f.id} — ${f.package}@${f.version} in ${f.file}`;
 }
 
-export function summarize({ fail, acceptedHits, report }, runtime, errors) {
+export function summarize({ fail, acceptedHits, report, reported = [] }, runtime, errors) {
     const lines = ['### Vulnerability watch', ''];
     for (const e of errors) lines.push(`- ❌ ${e}`);
     if (fail.length) {
@@ -225,6 +245,11 @@ export function summarize({ fail, acceptedHits, report }, runtime, errors) {
         for (const { f, why } of fail) lines.push(`- ❌ ${label(f)} (${why})`);
     } else if (!errors.length) {
         lines.push('✅ No new HIGH or CRITICAL finding in anything that ships, and every runtime is on its latest security release.');
+    }
+    if (reported.length) {
+        lines.push('', `<details><summary>${reported.length} open, already reported (no new mail)</summary>`, '');
+        for (const { f, why } of reported) lines.push(`- ⏳ ${label(f)} (${why})`);
+        lines.push('', '</details>');
     }
     if (acceptedHits.length) {
         lines.push('', `<details><summary>${acceptedHits.length} accepted</summary>`, '');
@@ -243,6 +268,23 @@ export function summarize({ fail, acceptedHits, report }, runtime, errors) {
         lines.push('', '</details>');
     }
     return lines.join('\n');
+}
+
+/**
+ * The alerts file: one JSON object per line, { rule, path }, as the workflow
+ * writes it from the code-scanning API. Missing or unreadable means "nothing
+ * reported yet": the safe direction is one mail too many, never one too few.
+ */
+export function readKnown(file) {
+    if (!file) return new Set();
+    try {
+        return new Set(fs.readFileSync(file, 'utf8').split('\n').filter((l) => l.trim()).map((l) => {
+            const a = JSON.parse(l);
+            return alertKey(a.rule, a.path);
+        }));
+    } catch {
+        return new Set();
+    }
 }
 
 export function main(argv = process.argv.slice(2), { root = ROOT, today = new Date().toISOString().slice(0, 10), log = console.log } = {}) {
@@ -275,7 +317,10 @@ export function main(argv = process.argv.slice(2), { root = ROOT, today = new Da
     errors.push(...listErrors);
 
     const findings = [...(osv?.results ? osvFindings(osv, { root, registry }) : []), ...runtimeFindings(runtime)];
-    const verdict = evaluate(findings, listErrors.length ? [] : [...own, ...audit], today);
+    const verdict = evaluate(findings, listErrors.length ? [] : [...own, ...audit], today, {
+        known: readKnown(arg('--known')),
+        hourly: argv.includes('--hourly'),
+    });
     const summary = summarize(verdict, runtime, errors);
 
     if (arg('--sarif')) fs.writeFileSync(arg('--sarif'), JSON.stringify(toSarif(findings), null, 2));
