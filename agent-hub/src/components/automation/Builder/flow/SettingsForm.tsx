@@ -1,5 +1,5 @@
 import { RotateCcw, Save } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { isPrivacyStep } from './privacyModel';
 import { isRouteStep } from './routeModel';
 import { sectionsWithErrors } from './sectionForIssue';
@@ -19,7 +19,7 @@ import {
 } from './settings/collectionEditors';
 import DataStepFields, { DATA_STEP_TYPES } from './settings/DataStepFields';
 import DatatableFields from './settings/datatableEditors';
-import { sampleFromRunOf } from './settings/flattenEditorModel';
+import { sampleFromRunOf, type FlattenDraft } from './settings/flattenEditorModel';
 import FlattenFields from './settings/FlattenFields';
 import { useFormDensity, useFormMode } from './settings/formDensity';
 import { inputClass, controlSurfaceClass, hintTextClass, FormRow, ValidationLine } from './settings/formPrimitives';
@@ -34,37 +34,34 @@ import { SetFields } from './settings/setEditors';
 import { TriggerFields, FormPageFields } from './settings/triggerEditors';
 import { IconPicker } from './stepIcons';
 import { useTranslation } from '../../../../hooks/useTranslation';
+import type { ModelTierConfig } from '../../../../hooks/useModelTierSelection';
+import type { Group, UpstreamDefinition, UpstreamNode } from '../mapping/upstream/upstream.types';
+import type { OnFocusField } from '../mapping/focusField.types';
+import type { StepIssues } from './nodes/nodeProps';
+import type { ActionCatalog } from './settings/actionEditors/integrationActionFields';
+import type { FormRecord } from './settings/formState/types';
+import type { TriggerFieldsProps, TriggerAutomation } from './settings/triggerEditors.types';
+import type { TimelineStep } from '../../../admin/Studio/Executions/RunStepTimeline';
+import type { BlockCatalogEntry } from './settings/actionEditors/flowletCallFields';
+import type { FlowEdge } from './types';
+import type { OnRenameField } from './settings/fieldDesigner.types';
+import type { FormEditorContext } from './settings/FormPageEditor';
+import type { InsertUpstreamStep } from './settings/RouteAssist.types';
+import type { RouteFollow, WholeRun } from './settings/SourceNotices';
+import type { SettingsFormProps } from './SettingsForm.types';
 
 /**
  * Whether the Condition node may offer "is about" (the topic classifier), read
  * from the builder catalog: `{ available, reason }`, or null when the server
  * does not say (an older server), in which case the operator is not offered.
  */
-function topicsCapability(catalog) {
+function topicsCapability(catalog: ActionCatalog | null) {
     const flags = catalog?.flags;
     if (!flags || typeof flags.topics !== 'boolean') return null;
     return { available: flags.topics, reason: flags.topicsReason || null };
 }
 export { schemaToFields, fieldsToSchema } from './settings/formState';
 
-/**
- * Per-step-type form-based editor. Each subcomponent owns its own draft
- * state, computes a patch on Save, and dispatches via `onPatch(patch)`
- * which the inspector merges onto the existing step. Reset reverts to
- * whatever is currently persisted in the step.
- *
- * Field coverage by type:
- *   trigger             — label, kind, schedule (cron/tz), Gmail mail.new filter
- *   integration_action  — label, inputs (key/kind/value editor), tool (read-only)
- *   ai_step             — label, prompt, systemPrompt, modelTier, allowTools, inputs
- *   condition           — label, expr
- *   loop                — label, overRef, itemVar, maxIterations
- *   code                — label, code source
- *   notification        — label, title, body
- *
- * Validation banner + Save/Reset live at the bottom of the form so every
- * type shares the same chrome.
- */
 export default function SettingsForm({
     step, modelTiers, stepIssues, saving, saveError, onPatch,
     onFocusField = null, previewSample = null, catalog = null, groups = [],
@@ -134,7 +131,7 @@ export default function SettingsForm({
     // Edit data reads it to tell a source list that no longer resolves from
     // one that is fine (BFSF-363). Null everywhere else.
     runStep = null,
-}) {
+}: SettingsFormProps) {
     // Baseline ref tracks "what the server has". We diverge from baseline
     // when the user edits; we resync whenever the parent passes back step
     // content that matches a patch we just sent (= save round-tripped).
@@ -213,8 +210,8 @@ export default function SettingsForm({
 
     // A function value is an updater on the current value (and the whole
     // draft), for edits that must land after another one in the same event.
-    const set = (k, v) => setDraft(d => ({ ...d, [k]: typeof v === 'function' ? v(d[k], d) : v }));
-    const setNested = (parent, k, v) => setDraft(d => ({ ...d, [parent]: { ...(d[parent] || {}), [k]: v } }));
+    const set = (k: string, v: unknown) => setDraft(d => ({ ...d, [k]: typeof v === 'function' ? v(d[k], d) : v }));
+    const setNested = (parent: string, k: string, v: unknown) => setDraft(d => ({ ...d, [parent]: { ...(d[parent] || {}), [k]: v } }));
 
     const flushNow = () => {
         if (deepEqual(draftRef.current, baselineRef.current)) return false;
@@ -474,7 +471,7 @@ export default function SettingsForm({
                     <FormPageFields draft={draft} set={set} stepId={step.id} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} onRenameField={onRenameField} formEditor={formEditor} />
                 )}
                 {step.type === 'flatten' && (
-                    <FlattenFields draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} sampleFromRun={sampleFromRunOf(groups, draft.arrayRef)} errorSections={errorSections} />
+                    <FlattenFields draft={draft as FlattenDraft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} sampleFromRun={sampleFromRunOf(groups, draft.arrayRef)} errorSections={errorSections} />
                 )}
                 {DATA_STEP_TYPES.has(step.type) && (
                     <DataStepFields step={step} draft={draft} set={set} groups={groups} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} automationId={automation?.id ?? null} />

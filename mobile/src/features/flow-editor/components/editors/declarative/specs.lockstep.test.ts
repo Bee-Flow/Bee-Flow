@@ -50,30 +50,30 @@ const webPrivacy = require(path.join(BUILDER, 'flow/privacyModel.ts'));
 
 /** The web files each spec stands in for. */
 const WEB: Record<string, string[]> = {
-    wait: ['flow/settings/collectionEditors.jsx'],
-    limit: ['flow/settings/collectionEditors.jsx'],
-    dedupe: ['flow/settings/collectionEditors.jsx'],
-    aggregate: ['flow/settings/collectionEditors.jsx'],
-    summarize: ['flow/settings/collectionEditors.jsx'],
-    datetime: ['flow/settings/collectionEditors.jsx'],
-    notification: ['flow/settings/actionEditors/notificationFields.jsx', 'flow/settings/collectionEditors.jsx'],
-    stop_error: ['flow/settings/actionEditors/stopErrorFields.jsx'],
-    return_to_app: ['flow/settings/returnToAppEditor.jsx'],
-    layer_output: ['flow/settings/actionEditors/flowletCallFields.jsx'],
-    knowledge_write: ['flow/settings/knowledgeWriteEditors.jsx', 'flow/settings/collectionEditors.jsx'],
-    data_extraction: ['flow/settings/actionEditors/dataExtractionFields.jsx'],
-    generate_document: ['flow/settings/actionEditors/documentFields.jsx'],
-    fill_document: ['flow/settings/actionEditors/documentFields.jsx'],
-    slide: ['flow/settings/actionEditors/slideFields.jsx'],
-    presentation: ['flow/settings/actionEditors/presentationFields.jsx'],
-    guard: ['flow/settings/privacyEditors.jsx'],
-    tokenize: ['flow/settings/privacyEditors.jsx'],
-    untokenize: ['flow/settings/privacyEditors.jsx'],
-    call_block: ['flow/settings/actionEditors/flowletCallFields.jsx', 'flow/CallContractFields.jsx'],
-    call_layer: ['flow/settings/actionEditors/flowletCallFields.jsx', 'flow/CallContractFields.jsx'],
+    wait: ['flow/settings/collectionEditors.tsx'],
+    limit: ['flow/settings/collectionEditors.tsx'],
+    dedupe: ['flow/settings/collectionEditors.tsx'],
+    aggregate: ['flow/settings/collectionEditors.tsx'],
+    summarize: ['flow/settings/collectionEditors.tsx'],
+    datetime: ['flow/settings/collectionEditors.tsx'],
+    notification: ['flow/settings/actionEditors/notificationFields.tsx', 'flow/settings/collectionEditors.tsx'],
+    stop_error: ['flow/settings/actionEditors/stopErrorFields.tsx'],
+    return_to_app: ['flow/settings/returnToAppEditor.tsx'],
+    layer_output: ['flow/settings/actionEditors/flowletCallFields.tsx'],
+    knowledge_write: ['flow/settings/knowledgeWriteEditors.jsx', 'flow/settings/collectionEditors.tsx'],
+    data_extraction: ['flow/settings/actionEditors/dataExtractionFields.tsx'],
+    generate_document: ['flow/settings/actionEditors/documentFields.tsx'],
+    fill_document: ['flow/settings/actionEditors/documentFields.tsx'],
+    slide: ['flow/settings/actionEditors/slideFields.tsx'],
+    presentation: ['flow/settings/actionEditors/presentationFields.tsx'],
+    guard: ['flow/settings/privacyEditors.tsx'],
+    tokenize: ['flow/settings/privacyEditors.tsx'],
+    untokenize: ['flow/settings/privacyEditors.tsx'],
+    call_block: ['flow/settings/actionEditors/flowletCallFields.tsx', 'flow/CallContractFields.tsx'],
+    call_layer: ['flow/settings/actionEditors/flowletCallFields.tsx', 'flow/CallContractFields.tsx'],
     note: ['flow/nodes/NoteNode.tsx'],
-    integration_action: ['flow/settings/actionEditors/integrationActionFields.jsx'],
-    flatten: ['flow/settings/FlattenFields.tsx', 'flow/settings/FlattenColumnsPanel.tsx', 'flow/settings/collectionEditors.jsx'],
+    integration_action: ['flow/settings/actionEditors/integrationActionFields.tsx'],
+    flatten: ['flow/settings/FlattenFields.tsx', 'flow/settings/FlattenColumnsPanel.tsx', 'flow/settings/collectionEditors.tsx'],
 };
 /** The editor function a type's spec stands in for, where several share one file. */
 const FN: Record<string, string> = {
@@ -303,7 +303,7 @@ describe('against the web editors', () => {
     }
 
     it('the slide’s layouts, visuals and chart types', () => {
-        const src = read('flow/settings/actionEditors/slideFields.jsx');
+        const src = read('flow/settings/actionEditors/slideFields.tsx');
         const pairs = (list: typeof SLIDE_LAYOUTS) => list.map((o) => [o.value, (o.label as Msg)[1]]);
         expect(pairs(SLIDE_LAYOUTS)).toEqual(webPairs(src, 'SLIDE_LAYOUT_OPTIONS'));
         expect(pairs(SLIDE_VISUALS)).toEqual(webPairs(src, 'SLIDE_VISUAL_OPTIONS'));
@@ -311,7 +311,7 @@ describe('against the web editors', () => {
     });
 
     it('the deck’s typefaces', () => {
-        const src = read('flow/settings/actionEditors/presentationFields.jsx');
+        const src = read('flow/settings/actionEditors/presentationFields.tsx');
         const list = /const DECK_FONT_OPTIONS = \[([^\]]*)\]/.exec(src)?.[1] ?? '';
         expect([...DECK_FONTS]).toEqual([...list.matchAll(/'([^']+)'/g)].map((m) => m[1]));
     });

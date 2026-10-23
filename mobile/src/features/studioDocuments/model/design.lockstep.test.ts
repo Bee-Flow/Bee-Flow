@@ -25,7 +25,7 @@ describeIfWeb('the design controls match the web Design tab', () => {
     const source = fs.existsSync(WEB) ? fs.readFileSync(WEB, 'utf8') : '';
 
     it('has the same presets', () => {
-        const match = /const PRESETS = (\{.*?\}\});/.exec(source);
+        const match = /const PRESETS(?::[^=]*)? = (\{.*?\}\});/.exec(source);
         expect(match).not.toBeNull();
         expect(literal(match?.[1] ?? '{}')).toEqual(DESIGN_PRESETS);
     });

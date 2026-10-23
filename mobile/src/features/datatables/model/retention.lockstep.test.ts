@@ -24,7 +24,7 @@ import type { Column } from './types';
 
 const DIR = 'components/admin/Studio/Datatables';
 const PANEL = `${DIR}/RetentionPanel.tsx`;
-const DISPLAY = `${DIR}/datatableDisplay.js`;
+const DISPLAY = `${DIR}/datatableDisplay.ts`;
 const describeIfWeb = webFileExists(PANEL) && webFileExists(DISPLAY) ? describe : describe.skip;
 
 const t: TranslateFn = (_key, fallback) => fallback;

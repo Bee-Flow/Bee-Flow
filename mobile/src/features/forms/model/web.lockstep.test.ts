@@ -58,7 +58,7 @@ describe('answersRange.ts', () => {
 });
 
 describe('AiDraftPanel.jsx isBlankForm', () => {
-    const web = cut(`${FORMS}/form/AiDraftPanel.jsx`, ['isBlankForm'], `const DEFAULT_NAMES = ${constText(readWeb(`${FORMS}/form/AiDraftPanel.jsx`), 'DEFAULT_NAMES')};`);
+    const web = cut(`${FORMS}/form/AiDraftPanel.tsx`, ['isBlankForm'], `const DEFAULT_NAMES = ${constText(readWeb(`${FORMS}/form/AiDraftPanel.tsx`), 'DEFAULT_NAMES')};`);
     const three = [{ name: 'name' }, { name: 'email' }, { name: 'message' }];
     const FORMS_IN: unknown[] = [
         null, {}, { fields: [] }, { fields: three }, { fields: three, title: 'Get in touch' }, { fields: three, title: 'Leave request' },
@@ -70,7 +70,7 @@ describe('AiDraftPanel.jsx isBlankForm', () => {
 });
 
 describe('FormsStudio.jsx and FormPage.jsx', () => {
-    const web = cut(`${FORMS}/FormsStudio.jsx`, ['formLiveness', 'publicFormPath', 'canOpenAutomation', 'canOpenForm']);
+    const web = cut(`${FORMS}/FormsStudio.tsx`, ['formLiveness', 'publicFormPath', 'canOpenAutomation', 'canOpenForm']);
     const ROWS: unknown[] = [
         null, {}, { live: true }, { live: false }, { live: 'yes' },
         { id: 'abc', url: '/f/abc' }, { id: 'abc', url: '//evil' }, { id: 'abc' }, { url: 'https://x/f/1' },
@@ -85,7 +85,7 @@ describe('FormsStudio.jsx and FormPage.jsx', () => {
     });
 
     it('gives the owner and a colleague the web’s tabs', () => {
-        const src = readWeb(`${FORMS}/FormPage.jsx`);
+        const src = readWeb(`${FORMS}/FormPage.tsx`);
         const list = (name: string) => new Function(`return ${constText(src, name)};`)() as string[];
         expect([...TABS_OWNER]).toEqual(list('TABS_OWNER'));
         expect([...TABS_VIEWER]).toEqual(list('TABS_VIEWER'));

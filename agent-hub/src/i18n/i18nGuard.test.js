@@ -259,7 +259,7 @@ const CARRIERS = [
  * value stays fine here: that is what a nested field name looks like.
  *
  * The boundary runs through AppStudio, not around it: the editor chrome
- * (`editor/ComponentRibbon.jsx` — `labelKey: 'app_studio.palette.chip_button'`)
+ * (`editor/ComponentRibbon.tsx` — `labelKey: 'app_studio.palette.chip_button'`)
  * carries real keys and is checked the normal way. Only the definition, sample
  * and fixture files flip.
  */

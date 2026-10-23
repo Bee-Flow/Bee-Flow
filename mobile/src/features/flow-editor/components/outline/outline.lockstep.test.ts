@@ -96,10 +96,10 @@ describe('the card glyphs', () => {
     // Handoff 5 split the AI step card into three variants, each with its own
     // glyph (AiStepNode's VARIANT_ICON), so its icon line names a variable.
     it('draws an AI step by its variant, as AiStepNode does', () => {
-        const node = read(`nodes/${componentFor('ai_step')}.jsx`);
+        const node = readNode(componentFor('ai_step') as string);
         expect(iconLine(node)).toMatch(/icon=\{<Icon size=\{14\} \/>\}/);
         expect(node).toMatch(/const Icon = VARIANT_ICON\[variant\];/);
-        const table = /const VARIANT_ICON = \{([^}]*)\};/.exec(node)?.[1] ?? '';
+        const table = /const VARIANT_ICON(?::[^=]+)? = \{([^}]*)\};/.exec(node)?.[1] ?? '';
         expect(Object.fromEntries([...table.matchAll(/(\w+): (\w+)/g)].map((m) => [m[1], m[2]]))).toEqual(AI_STEP_ICON);
         const steps: unknown[] = [
             null, {}, { agentId: 'a' }, { agentId: '' }, { agentId: 5, skillIds: ['s'] }, { skillIds: ['', 3] }, { skillIds: 's' },

@@ -63,7 +63,7 @@ const MIRROR = path.join(CLIENT, 'bfElements.ts');
  */
 const CLIENT_COMPOSERS = [
     path.join(CLIENT, 'composeWebpageDocument.ts'),
-    path.join(CLIENT, 'buildWebpagePreview.js'),
+    path.join(CLIENT, 'buildWebpagePreview.ts'),
     path.join(CLIENT, 'bfElementsRuntime.ts'),
 ];
 /** De twee serverbruggen die het vocabulaire uitzenden, plus hun gedeelde motor. */

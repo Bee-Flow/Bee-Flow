@@ -1,8 +1,8 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { type ComponentProps, useCallback, useMemo, useRef, useState } from 'react';
 import ApprovalActionBar from './approvals/ApprovalActionBar';
 import { buildStepLabelMap } from './flow/displayHelpers';
 import { isRouteStep } from './flow/routeModel';
-import { FormDensityContext, resolveMode } from './flow/settings/formDensity';
+import { FormDensityContext, resolveMode, type FormDensity, type FormMode } from './flow/settings/formDensity';
 import FormModeToggle from './flow/settings/FormModeToggle';
 import SettingsHost from './flow/settings/SettingsHost';
 import InputDataPanel from './mapping/InputDataPanel';
@@ -25,6 +25,7 @@ import useNdvPanels from './useNdvPanels';
 import useNodeDetailData from './useNodeDetailData';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { walkPath } from '../../../utils/bindingHelpers';
+import type { RunStepRow, PlacedStep, BlockCatalogEntry, TriggerAutomation, Group, UpstreamDefinition, UpstreamNode, ModelTierConfig, Validation, ToolCatalog, NextSuggestion, FocusedField, ApprovalDecl, NodeDetailViewProps } from './NodeDetailView.types';
 
 /**
  * Node Detail View (NDV): the focused editor for a single step, at two
@@ -77,7 +78,7 @@ export default function NodeDetailView({
     // (stepId, 'loop' | 'datatable' | null) => void: the Continues-on column's
     // "what next?" buttons (BuildTab.onAddAfterStep). Omitted on read-only surfaces.
     onAddAfterStep = null,
-}) {
+}: NodeDetailViewProps) {
     const { t } = useTranslation();
     const {
         catalog, isSecondaryTrigger, wiredCaseNames, stepEdges, groups, previewSample,
@@ -91,10 +92,10 @@ export default function NodeDetailView({
 
     // Active field <-> Incoming tree wiring (click/drag a field to insert it).
     // `opts` rides along so an Alt-click can bypass the list chooser.
-    const activeFieldRef = useRef(null);
-    const [activeLabel, setActiveLabel] = useState(null);
-    const onFocusField = (handle) => { activeFieldRef.current = handle; setActiveLabel(handle?.label || null); };
-    const onInsertFromTree = (path, opts) => { activeFieldRef.current?.insert?.(path, opts); };
+    const activeFieldRef = useRef<FocusedField | null>(null);
+    const [activeLabel, setActiveLabel] = useState<string | null>(null);
+    const onFocusField = (handle: FocusedField | null) => { activeFieldRef.current = handle; setActiveLabel(handle?.label || null); };
+    const onInsertFromTree = (path: string, opts: { raw?: boolean; } | undefined) => { activeFieldRef.current?.insert?.(path, opts); };
 
     const quick = density === 'quick';
     const goFull = useCallback(() => onDensityChange?.('full'), [onDensityChange]);
@@ -106,7 +107,6 @@ export default function NodeDetailView({
     const { quickOutputOpen, setQuickOutputOpen, drawerH, onHResizeDown, onHResizeMove, onHResizeUp } = panels;
     // Which side columns fit, and how wide, by the drawer's OWN width (ndv/ndvLayout.ts).
     const { drawerRef, layout, onSide, sideProps, showOutputForTest, quickStacked } = useNdvLayout({ panels, quick, goFull });
-
     const { position, canNavigate, goPrev, goNext } = useNdvNavigation({ definition, step, onNavigate, onClose });
     const { saving, saveError, saveStatus, lastSavedAt, persistStepPatch, retrySave } = useStepPatchSave({ definition, step, onSaveStep, t });
 
@@ -138,12 +138,12 @@ export default function NodeDetailView({
     // pick another, open the setting) shows that setting: the one column 2
     // rings red from runStep.errorInfo.settingKey. False when nothing is
     // ringed, so the card explains in words instead.
-    const settingsRef = useRef(null);
+    const settingsRef = useRef<HTMLDivElement>(null);
     const onFixError = useCallback(() => {
         const ringed = settingsRef.current?.querySelector?.('[data-problem="true"]');
         if (!ringed) return false;
         ringed.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
-        const target = ringed.querySelector('input, textarea, select, button, [contenteditable="true"], [tabindex]:not([tabindex="-1"])');
+        const target = ringed.querySelector<HTMLElement>('input, textarea, select, button, [contenteditable="true"], [tabindex]:not([tabindex="-1"])');
         target?.focus?.({ preventScroll: true });
         return true;
     }, []);
@@ -159,15 +159,15 @@ export default function NodeDetailView({
     // BFSF-408(a): the form trigger's preview submits as an inline test run.
     // The honeypot is anti-bot plumbing, not an answer.
     const onTestSubmit = (canExecute && isTrigger && step.kind === 'form')
-        ? async ({ website_url: _honeypot, ...answers }) => { await onExecuteStep(step.id, { mode: 'only', triggerPayload: answers }); }
+        ? async ({ website_url: _honeypot, ...answers }: Record<string, unknown>) => { await onExecuteStep(step.id, { mode: 'only', triggerPayload: answers }); }
         : null;
     // Renaming a question's binding name, bound to THIS page's base (null when the shell cannot rewrite).
     const onRenameField = (typeof onRenameBinding === 'function' && (isTrigger ? step.kind === 'form' : step.type === 'form_page'))
-        ? (from, to) => onRenameBinding(isTrigger ? 'trigger.output' : `steps.${step.id}.output`, from, to)
+        ? (from: string, to: string) => onRenameBinding(isTrigger ? 'trigger.output' : `steps.${step.id}.output`, from, to)
         : null;
     // Putting a step in FRONT of a Condition (routeHandoff.js); null everywhere else.
     const onInsertUpstreamStep = (typeof onInsertStepBefore === 'function' && !isTrigger && isRouteStep(step))
-        ? (newStep) => onInsertStepBefore(step.id, newStep)
+        ? (newStep: PlacedStep) => onInsertStepBefore(step.id, newStep)
         : null;
 
     const { canPin, togglePin, pinTitle, menu } = stepPlumbing({
@@ -195,8 +195,8 @@ export default function NodeDetailView({
     // Who reads this step's output next: the Continues-on footer.
     const downstream = (definition?.edges || [])
         .filter(e => e?.from === step?.id && e?.to)
-        .map(e => stepLabelById?.get?.(e.to))
-        .filter(Boolean);
+        .map(e => stepLabelById?.get?.(e.to as string))
+        .filter(Boolean) as string[];
     // "A manual start passes little" (artboard 4b): only when the start IS manual.
     const triggerStep = definition?.trigger || null;
     const manualStart = !isTrigger && !!triggerStep && (triggerStep.kind || 'manual') === 'manual'
@@ -258,13 +258,13 @@ export default function NodeDetailView({
                     onClose={onClose}
                 />
 
-                {runStep?.status === 'awaiting_approval' && runStep?.runId && (
+                {runStep?.status === 'awaiting_approval' && (runStep?.runId as string | undefined) && (
                     <ApprovalActionBar
-                        runId={runStep.runId}
+                        runId={runStep.runId as string}
                         stepId={step?.id}
                         // The run's rendered question first; the raw prompt is the fallback.
-                        prompt={runStep?.output?.prompt || step?.prompt}
-                        fields={Array.isArray(step?.approval?.fields) ? step.approval.fields : null}
+                        prompt={(runStep?.output as { prompt?: unknown } | null | undefined)?.prompt || step?.prompt}
+                        fields={Array.isArray((step?.approval as ApprovalDecl | undefined)?.fields) ? (step.approval as ApprovalDecl).fields : null}
                     />
                 )}
 
@@ -323,12 +323,12 @@ export default function NodeDetailView({
                             </NdvColumnHeader>
                         )}
                         <FormDensityContext.Provider value={densityValue}>
-                            <VariablePickerProvider groups={groups} previewSample={previewSample} stepLabelById={stepLabelById} stepTypeById={stepTypeById} definition={definition}>
+                            <VariablePickerProvider groups={groups as Group[]} previewSample={previewSample} stepLabelById={stepLabelById} stepTypeById={stepTypeById} definition={definition}>
                                 <SettingsHost
                                     key={step.id}
                                     footerLeft={footerInfo}
                                     compactFooter={quick}
-                                    step={step}
+                                    step={step as UpstreamNode & { type: string }}
                                     modelTiers={modelTiers}
                                     stepIssues={stepIssues}
                                     saving={saving}
@@ -337,7 +337,7 @@ export default function NodeDetailView({
                                     onFocusField={onFocusField}
                                     previewSample={previewSample}
                                     catalog={catalog}
-                                    groups={groups}
+                                    groups={groups as Group[]}
                                     rootDefinition={rootDefinition || definition}
                                     automation={automation}
                                     blocksCatalog={blocksCatalog}

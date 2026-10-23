@@ -18,11 +18,21 @@ import AccordionSection from '../AccordionSection';
 import { humanizeToolName } from '../displayHelpers';
 import FieldHint from '../FieldHint';
 import ToolPicker from '../ToolPicker';
+import type { FormRecord } from './formState/types';
+import type { SetField } from './agentStep/useAgentStepState';
+import type { ModelTierConfig } from '../../../../../hooks/useModelTierSelection';
+import type { Group } from '../../mapping/upstream/upstream.types';
+import type { OnFocusField } from '../../mapping/focusField.types';
+import type { TimelineStep } from '../../../../admin/Studio/Executions/RunStepTimeline';
+import type { StepIssues } from './../nodes/nodeProps';
+import type { ActionCatalog } from './actionEditors/integrationActionFields';
+import type { ToolApp } from '../../../../agents/AgentWizard/canUse/toolCatalogTypes';
+import type { AiStepFieldsProps, AiStepToolSelectProps, KnowledgeBaseRow, AiStepKbSelectProps } from './aiStepEditors.types';
 
 // The answer-checks section is the heaviest part of the AI step editor; load it when the editor opens.
 const AnswerChecksSection = lazyWithI18n(() => import('./aiStepReliability/AnswerChecksSection').then((m) => ({ default: m.AnswerChecksSection })));
 
-function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onFocusField, previewSample, errorSections = new Set(), runStep = null, stepIssues = null }) {
+function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onFocusField, previewSample, errorSections = new Set(), runStep = null, stepIssues = null }: AiStepFieldsProps) {
     const hasInputs = Object.keys(draft.inputs || {}).length > 0;
     const hasOutput = (draft.outputFields || []).length > 0;
     // Only the agent block is translated here; the rest of this editor is
@@ -162,16 +172,7 @@ function AiStepFields({ draft, set, modelTiers, catalog = null, groups = [], onF
     );
 }
 
-/**
- * Tool selector for the AI step. Mirrors the agent editor's app picker but at
- * per-tool granularity: the user picks individual catalog actions, stored as
- * `tools` (function names). `allowTools` is derived from the selection.
- *
- * Legacy steps carry `allowTools: true` with no `tools` array — that means
- * "every permitted tool". We surface that as an "All available tools" state and
- * only convert it to an explicit list once the user opens the picker.
- */
-function AiStepToolSelect({ draft, set, catalog }) {
+function AiStepToolSelect({ draft, set, catalog }: AiStepToolSelectProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
 
@@ -194,12 +195,12 @@ function AiStepToolSelect({ draft, set, catalog }) {
     const legacyAll = !isExplicit && !!draft.allowTools;
     const selected = isExplicit ? draft.tools : [];
 
-    const setSelected = (next) => set('tools', next);
-    const toggleTool = (name) => {
+    const setSelected = (next: unknown) => set('tools', next);
+    const toggleTool = (name: string | undefined) => {
         const base = isExplicit ? draft.tools : [];
-        setSelected(base.includes(name) ? base.filter(n => n !== name) : [...base, name]);
+        setSelected(base.includes(name) ? base.filter((n: string|undefined) => n !== name) : [...base, name]);
     };
-    const toggleApp = (app, on) => {
+    const toggleApp = (app: ToolApp, on: boolean) => {
         const names = (app.actions || []).map(a => a.name);
         const base = new Set(isExplicit ? draft.tools : []);
         if (on) names.forEach(n => base.add(n)); else names.forEach(n => base.delete(n));
@@ -209,7 +210,7 @@ function AiStepToolSelect({ draft, set, catalog }) {
     // current behaviour is preserved and the user can untick what they don't need.
     const chooseSpecific = () => { setSelected([...allNames]); setOpen(true); };
 
-    const chipLabel = (name) => {
+    const chipLabel = (name: string) => {
         const hit = actionIndex.get(name);
         if (!hit) return humanizeToolName(name);
         const app = hit.app.label || hit.action.integrationLabel || '';
@@ -264,7 +265,7 @@ function AiStepToolSelect({ draft, set, catalog }) {
                 </p>
             ) : (
                 <div className="flex flex-wrap gap-1.5">
-                    {selected.map((name) => (
+                    {selected.map((name: string) => (
                         <span
                             key={name}
                             className="inline-flex items-center gap-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--border-default)] pl-2.5 pr-1 py-0.5 text-xs text-[var(--text-primary)]"
@@ -295,29 +296,9 @@ function AiStepToolSelect({ draft, set, catalog }) {
     );
 }
 
-/**
- * Knowledge Base grounding picker for the ai_step (BFSF-410) — a checkbox list
- * over GET /api/kb, same data source and interaction as App Studio's
- * KbMultiSelect (AiActionEditors.jsx), reimplemented locally rather than
- * imported: that one is styled with App Studio's FormField/INPUT_CLS, and the
- * automation Builder has its own FormRow/formPrimitives chrome the rest of this
- * file already uses — a straight import would mix two design systems on one
- * node. The runtime authority is server-side (execAiStep re-checks every id
- * against the running user/org before ever searching it); this list is
- * advisory — it shows every KB the /api/kb endpoint already scopes to the
- * signed-in user, same as every other KB picker in the product.
- *
- * `?context=ai_step` (K5) narrows it further, to the bases whose owner made
- * them available to AUTOMATIONS. Without it the picker offers bases that
- * activation will refuse — and the refusal arrives days later, on the step
- * that was supposed to go live, rather than here where the choice was made.
- * A base that never expressed a context still appears: a missing value means
- * everywhere, or this would empty the picker on every install predating the
- * column.
- */
-function AiStepKbSelect({ draft, set }) {
+function AiStepKbSelect({ draft, set }: AiStepKbSelectProps) {
     const { t } = useTranslation();
-    const [kbs, setKbs] = useState(null); // null = loading
+    const [kbs, setKbs] = useState<KnowledgeBaseRow[] | null>(null); // null = loading
     useEffect(() => {
         let alive = true;
         (async () => {
@@ -332,7 +313,7 @@ function AiStepKbSelect({ draft, set }) {
     }, []);
 
     const selected = new Set(Array.isArray(draft.knowledgeBaseIds) ? draft.knowledgeBaseIds : []);
-    const toggle = (id) => {
+    const toggle = (id: string) => {
         const next = new Set(selected);
         if (next.has(id)) next.delete(id); else next.add(id);
         set('knowledgeBaseIds', [...next]);

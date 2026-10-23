@@ -73,7 +73,7 @@ test('the playbook stage mirrors the pattern byte for byte', () => {
     // agent-hub seeds the automation's title from the brief before the first
     // build turn with the SAME regex; the two are in different packages, so
     // the pin reads the source — a drift here is an automation named two ways.
-    const stage = path.join(__dirname, '..', '..', '..', 'agent-hub', 'src', 'components', 'admin', 'Studio', 'Playbooks', 'stages', 'AutomationStage.jsx');
+    const stage = path.join(__dirname, '..', '..', '..', 'agent-hub', 'src', 'components', 'admin', 'Studio', 'Playbooks', 'stages', 'AutomationStage.tsx');
     const src = fs.readFileSync(stage, 'utf8');
     const m = /export const TITLE_IN_BRIEF_RE = \/(.*)\/([a-z]*);/.exec(src);
     assert.ok(m, 'AutomationStage.jsx exports TITLE_IN_BRIEF_RE as a literal');

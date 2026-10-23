@@ -1,7 +1,9 @@
 import { createAutomationDraft } from '../../../../api/queries/automation/createDraft';
 import { createFormAutomation, studioLockHint, type StudioCreateCtx, type Translate } from '../studioGates';
 import { studioAppForKind } from '../studioNav';
-import type { StudioAppDescriptor } from '../studioRegistry';
+
+// Derived from studioNav: a section folder never imports the registry (studioRegistry.boundary.test.ts).
+type StudioAppDescriptor = NonNullable<ReturnType<typeof studioAppForKind>>;
 
 /**
  * De OVERDRACHTSTABEL van de AI-router: van een gekozen soort naar de deur

@@ -21,7 +21,7 @@ import {
  * below in `wouldSend`.
  */
 
-/** flushNow's actual test, in one line (SettingsForm.jsx:195). */
+/** flushNow's actual test, in one line (SettingsForm.tsx:195). */
 function wouldSend(step, draft) {
     const baseline = extractFormState(step);
     return !deepEqual(buildPatch(step, draft), buildPatch(step, baseline));

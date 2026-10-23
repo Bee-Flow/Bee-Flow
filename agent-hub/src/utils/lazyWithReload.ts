@@ -1,4 +1,4 @@
-import { lazy as reactLazy } from 'react';
+import { lazy as reactLazy, type ComponentType, type ExoticComponent } from 'react';
 import { ensureI18nDefaults } from '../hooks/useTranslation';
 
 // After a redeploy, browsers that loaded the old index.html still hold
@@ -16,10 +16,12 @@ import { ensureI18nDefaults } from '../hooks/useTranslation';
 //   3. uses sessionStorage to break out of any reload loop — if the same
 //      chunk fails twice in a single tab, we re-throw so the error boundary
 //      can show a real message instead of reloading forever.
+type PropsOf<T> = T extends ComponentType<infer P> ? P : never;
+
 const RELOAD_FLAG = 'beeflow-chunk-reload';
 
-const isChunkLoadError = (err) => {
-    const msg = String(err?.message || err);
+const isChunkLoadError = (err: unknown) => {
+    const msg = String((err as { message?: string } | null)?.message || err);
     return /Failed to fetch dynamically imported module|Loading chunk|Loading CSS chunk|Importing a module script failed|error loading dynamically imported module/i.test(msg);
 };
 
@@ -34,11 +36,13 @@ const isChunkLoadError = (err) => {
  * catalogue is slower than the component chunk, which same-origin never is
  * by more than the difference in file size.
  */
-export function lazyWithI18n(importer) {
+export function lazyWithI18n<T>(importer: () => Promise<{ default: T }>): ExoticComponent<PropsOf<T>>;
+export function lazyWithI18n(importer: () => Promise<{ default: ComponentType }>): ExoticComponent {
     return lazy(() => Promise.all([importer(), ensureI18nDefaults()]).then(([m]) => m));
 }
 
-export function lazy(importer) {
+export function lazy<T>(importer: () => Promise<{ default: T }>): ExoticComponent<PropsOf<T>>;
+export function lazy(importer: () => Promise<{ default: ComponentType }>): ExoticComponent {
     return reactLazy(async () => {
         try {
             const mod = await importer();

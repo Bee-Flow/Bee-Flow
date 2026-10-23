@@ -1,5 +1,5 @@
 /**
- * TEXTUAL + evaluated lockstep for agent-hub `Builder/mapping/ToolInputForm.jsx`
+ * TEXTUAL + evaluated lockstep for agent-hub `Builder/mapping/ToolInputForm.tsx`
  * and the pieces it was split into (`mapping/toolInput/`).
  *
  * The components cannot be required here (they import React, lucide and the
@@ -11,12 +11,14 @@
 
 import fs from 'node:fs';
 
+import ts from 'typescript';
+
 import { buildSchemaFormModel, describeExample, isMultilineProp } from './model';
 import * as rows from './rows';
 import { BUILDER, requireWeb, webPath } from '../bindings/testing/web';
 import type { JsonSchemaProp } from '../bindings/types';
 
-const SRC = fs.readFileSync(webPath(`${BUILDER}/mapping/ToolInputForm.jsx`), 'utf8');
+const SRC = fs.readFileSync(webPath(`${BUILDER}/mapping/ToolInputForm.tsx`), 'utf8');
 // One user-named row (the field-name input, its reserved names and path test).
 const ROW_SRC = fs.readFileSync(webPath(`${BUILDER}/mapping/toolInput/GenericRow.tsx`), 'utf8');
 const webHelpers = requireWeb('utils/bindingHelpers.ts');
@@ -26,7 +28,7 @@ const webPartition = requireWeb(`${BUILDER}/mapping/partitionInputs.ts`);
 /** The source of the block that starts at `head`, through its matching brace. */
 function cut(head: string, src = SRC): string {
     const start = src.indexOf(head);
-    if (start < 0) throw new Error(`${src === SRC ? 'ToolInputForm.jsx' : 'GenericRow.tsx'} no longer contains: ${head}`);
+    if (start < 0) throw new Error(`${src === SRC ? 'ToolInputForm.tsx' : 'GenericRow.tsx'} no longer contains: ${head}`);
     const open = src.indexOf('{', start + head.length - 1);
     let depth = 0;
     for (let i = open; i < src.length; i++) {
@@ -40,7 +42,9 @@ type Fn = (...args: unknown[]) => unknown;
 
 /** Evaluate a cut-out declaration with the named values in scope, returning `name`. */
 function evaluate(source: string, name: string, scope: Record<string, unknown> = {}): Fn {
-    const factory = new Function(...Object.keys(scope), `${source}\nreturn ${name};`) as (...a: unknown[]) => Fn;
+    // The web source is TypeScript: strip the annotations, keep the behaviour.
+    const js = ts.transpileModule(`${source}\nreturn ${name};`, { compilerOptions: { target: ts.ScriptTarget.ES2022 }, reportDiagnostics: false }).outputText;
+    const factory = new Function(...Object.keys(scope), js) as (...a: unknown[]) => Fn;
     return factory(...Object.values(scope));
 }
 
@@ -116,21 +120,21 @@ describe('the state updaters cut from the component', () => {
         for (const keepEmptyFields of [false, true]) {
             let out: unknown = null;
             const scope = { inputs: INPUTS, keepEmptyFields, autoMappedKeys: [], aiMappedKeys: ['a'], setConsumed: () => {}, onChange: (n: unknown) => { out = n; }, isEmptyBinding: webPartition.isEmptyBinding };
-            const update = evaluate(`const updateField = ${cut('const updateField = (key, binding) =>').slice('const updateField = '.length)};`, 'updateField', scope);
+            const update = evaluate(`const updateField = ${cut('const updateField = (key: string, binding: unknown) =>').slice('const updateField = '.length)};`, 'updateField', scope);
             for (const binding of [null, { kind: 'literal', value: '' }, { kind: 'expr', value: 'x' }]) {
                 update('a', binding);
                 expect(rows.updateInput(INPUTS, 'a', binding, keepEmptyFields)).toStrictEqual(out);
             }
         }
         let renamed: unknown = null;
-        const rename = evaluate(`const renameField = ${cut('const renameField = (oldKey, newKey) =>').slice('const renameField = '.length)};`, 'renameField', { inputs: INPUTS, onChange: (n: unknown) => { renamed = n; } });
+        const rename = evaluate(`const renameField = ${cut('const renameField = (oldKey: string, newKey: string) =>').slice('const renameField = '.length)};`, 'renameField', { inputs: INPUTS, onChange: (n: unknown) => { renamed = n; } });
         for (const name of ['z', ' b ', '', 'a']) {
             renamed = null;
             rename('a', name);
             expect(rows.renameInput(INPUTS, 'a', name)).toStrictEqual(renamed);
         }
         let removed: unknown = null;
-        const remove = evaluate(`const removeField = ${cut('const removeField = (key) =>').slice('const removeField = '.length)};`, 'removeField', { inputs: INPUTS, onChange: (n: unknown) => { removed = n; } });
+        const remove = evaluate(`const removeField = ${cut('const removeField = (key: string) =>').slice('const removeField = '.length)};`, 'removeField', { inputs: INPUTS, onChange: (n: unknown) => { removed = n; } });
         remove('b');
         expect(rows.removeInput(INPUTS, 'b')).toStrictEqual(removed);
     });

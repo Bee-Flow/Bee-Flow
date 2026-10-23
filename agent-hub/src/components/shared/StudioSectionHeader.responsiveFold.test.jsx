@@ -66,7 +66,7 @@ describe('StudioSectionHeader — the responsive fold stays wired', () => {
         expect(src).toMatch(/compact: '@max-\[900px\]\/objhead:hidden'/);
         // …and the default every Studio caller still gets.
         expect(src).toMatch(/default: Object\.freeze\(\{ strip: 'flex-shrink-0 @max-\[1180px\]\/objhead:hidden', menu: 'hidden @max-\[1180px\]\/objhead:block' \}\)/);
-        expect(src).toMatch(/TAB_FOLD\[fold\] \|\| TAB_FOLD\.default/);
+        expect(src).toMatch(/TAB_FOLD\[fold(?: as string)?\] \|\| TAB_FOLD\.default/);
         // titleMin keeps the name from collapsing; without it the name may shrink.
         expect(src).toMatch(/titleMin \? 'shrink-0' : 'min-w-0'/);
     });

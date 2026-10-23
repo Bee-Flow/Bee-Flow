@@ -121,7 +121,7 @@ describe('the drawer is actually inside the provider that holds the labels', () 
      * hex ids again.
      */
     it('NodeDetailView wraps the settings host in VariablePickerProvider with stepLabelById', () => {
-        const src = fs.readFileSync(path.join(HERE, '..', '..', 'NodeDetailView.jsx'), 'utf8');
+        const src = fs.readFileSync(path.join(HERE, '..', '..', 'NodeDetailView.tsx'), 'utf8');
         expect(src).toMatch(/const stepLabelById = useMemo\(\(\) => buildStepLabelMap\(definition\)/);
         expect(src).toMatch(/<VariablePickerProvider[^>]*stepLabelById=\{stepLabelById\}/s);
     });

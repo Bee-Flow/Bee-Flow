@@ -64,7 +64,7 @@ import { queryClient } from './api/queryClient';
 import { PAGE_ROUTES, pageFromPath, parseAdminPath, parseAgentDesignerUrl, parseAgentUrl, parseCoworkUrl, parseDocumentUrl, parseDirectChatUrl, parseNcStudioAppParam, parseOrgSettingsPath } from './authedApp/appRoutes';
 import { MobileRouteGuard, SubscriptionGate } from './authedApp/guards';
 import { projectHistoryMode } from './authedApp/projectNavigation';
-import { AppBackdrop, LoadingScreen, NoOrganizationScreen, PendingApprovalScreen, RouteFallback, ServerUnavailableScreen } from './authedApp/shellScreens';
+import { AppBackdrop, LoadingScreen, NoOrganizationScreen, PendingApprovalScreen, RouteFallback, ServerUnavailableScreen, type BootstrapDiagnostics } from './authedApp/shellScreens';
 import { useAuthSession } from './authedApp/useAuthSession';
 import { useNavigateToPage } from './authedApp/useNavigateToPage';
 import { parseStudioUrl, parseStudioQuery } from './components/admin/Studio/studioRoutes';
@@ -80,6 +80,7 @@ import { parseProjectUrl, projectRoutePath } from './utils/projectRoutes';
 // the signed-in user, then run the version-gated browser-state schema passes.
 import scopedStorage from './utils/scopedStorage';
 import { runStorageMigrations, runUserStorageMigrations } from './utils/storageMigrations';
+import type { AuthedUser, HubUser, PendingNcBinding, StudioRoute } from './AuthedApp.types';
 
 // Kept exported from this module: the allow-list moved to ./authedApp/appRoutes
 // with the rest of the route table, but AuthedApp.jsx is still its address.
@@ -136,7 +137,7 @@ function App() {
     const [orgSettingsPath, setOrgSettingsPath] = useState(() => parseOrgSettingsPath(window.location.pathname));
     const [initialCoworkId, setInitialCoworkId] = useState(() => parseCoworkUrl(window.location.pathname));
     const [initialDocumentId, setInitialDocumentId] = useState(() => parseDocumentUrl(window.location.pathname));
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState<AuthedUser | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     // Keep scopedStorage pinned to the current user. When user logs out the
@@ -144,7 +145,7 @@ function App() {
     // login the one-time schema pass (utils/storageMigrations.js) moves any
     // pre-scoping bare keys into the user's scoped slots and prunes retired
     // ones — there is no lazy per-read migration anymore.
-    const _prevIdentityRef = useRef(null);
+    const _prevIdentityRef = useRef<string>(null);
     // A `?plan=<id>` deep link from the pricing page has to be captured before
     // the sign-in redirect throws the query string away. Stored for the session
     // and consumed once the billing surface renders.
@@ -171,15 +172,15 @@ function App() {
 
     const [isLoading, setIsLoading] = useState(true);
     const [deploymentMode, setDeploymentMode] = useState('cloud');
-    const [orgLogo, setOrgLogo] = useState(null);
-    const [serverAvailable, setServerAvailable] = useState(null); // null=unknown, true=ok, false=down
+    const [orgLogo, setOrgLogo] = useState<string | null>(null);
+    const [serverAvailable, setServerAvailable] = useState<boolean | null>(null); // null=unknown, true=ok, false=down
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const [showAgentDesigner, setShowAgentDesigner] = useState(() => pageFromPath(window.location.pathname) === 'agentDesigner');
     const [showAgentWizard, setShowAgentWizard] = useState(() => pageFromPath(window.location.pathname) === 'agentWizard');
     const [showStudio, setShowStudio] = useState(() => pageFromPath(window.location.pathname) === 'studio');
     // Path = which automation; query = what of it is open (?view/run/step), so a
     // run deep-link survives a cold load.
-    const [studioRoute, setStudioRoute] = useState(() => ({
+    const [studioRoute, setStudioRoute] = useState<StudioRoute>(() => ({
         ...parseStudioUrl(window.location.pathname),
         ...parseStudioQuery(window.location.search),
     }));
@@ -211,7 +212,7 @@ function App() {
     // destinations rather than one view that only appears after closing another.
     const [showProjects, setShowProjects] = useState(() => pageFromPath(window.location.pathname) === 'projects');
     const [initialProjectRoute, setInitialProjectRoute] = useState(() => parseProjectUrl(window.location.pathname));
-    const [encryptionState, setEncryptionState] = useState(null); // null | 'setup' | 'pin' | { recoveryKey: string }
+    const [encryptionState, setEncryptionState] = useState<'setup' | 'pin' | { recoveryKey: string } | null>(null); // null | 'setup' | 'pin' | { recoveryKey: string }
     const [noOrganization, setNoOrganization] = useState(false);
     const [pendingApproval, setPendingApproval] = useState(false);
     // Forced TOTP enrollment for username/password accounts (admin-required).
@@ -219,18 +220,18 @@ function App() {
     // NC App Store onboarding gate: 'admin' renders the 4-step wizard,
     // 'pending' shows the "Setup in progress" screen, null lets the SPA
     // mount normally.
-    const [ncOnboardingState, setNcOnboardingState] = useState(null);
-    const [ncOrgName, setNcOrgName] = useState(null);
+    const [ncOnboardingState, setNcOnboardingState] = useState<string | null>(null);
+    const [ncOrgName, setNcOrgName] = useState<string | null>(null);
     // Pending NC connector binding awaiting org-admin confirmation. When
     // present (and user is org_admin), <NcBindingApprovalModal/> takes
     // precedence over the onboarding wizard.
-    const [pendingNcBinding, setPendingNcBinding] = useState(null);
+    const [pendingNcBinding, setPendingNcBinding] = useState<PendingNcBinding | null>(null);
     // Connector-side bootstrap diagnostics, fetched from /setup/diagnostics
     // when the main SaaS calls fail. Surfaces categorised remediation
     // ("set BEEFLOW_NC_PUBLIC_URL", "SaaS unreachable", …) in the error
     // overlay so admins know what to fix instead of staring at a generic
     // retry button. Admin-only data — see info.xml route gating.
-    const [bootstrapDiagnostics, setBootstrapDiagnostics] = useState(null);
+    const [bootstrapDiagnostics, setBootstrapDiagnostics] = useState<BootstrapDiagnostics | null>(null);
     const profileMenuRef = useRef(null);
 
     // Parse initial agent/conversation from URL
@@ -345,7 +346,7 @@ function App() {
         return () => window.removeEventListener('beeflow:modules-changed', onModulesChanged);
     }, []);
 
-    const handleLogin = async (userData, recoveryKey) => {
+    const handleLogin = async (userData: AuthedUser, recoveryKey?: string) => {
         // Hydrate from /auth/user + /auth/my-permissions exactly like a page
         // refresh (checkAuth) via the shared applier, so the sidebar, org
         // branding, feature flags and capability gates reflect the user's real
@@ -438,7 +439,7 @@ function App() {
     // /auth/user reports unauthenticated; the connector's /setup/diagnostics
     // tells us a code was emailed to the org admin.
     if (!isAuthenticated && bootstrapDiagnostics?.state === 'awaiting_email_verification') {
-        return <EmailVerificationScreen verification={bootstrapDiagnostics.verification} t={t} />;
+        return <EmailVerificationScreen verification={(bootstrapDiagnostics as BootstrapDiagnostics & { verification?: { organizationName?: string } | null }).verification} t={t} />;
     }
 
     // Not authenticated → show login page directly
@@ -542,7 +543,7 @@ function App() {
     // boundary, leaving the rest of the app usable. Each lazy() chunk is
     // also wrapped so a network failure during code-split download falls
     // back to the same UI.
-    const routed = (label, node) => (
+    const routed = (label: string, node: React.JSX.Element) => (
         <ErrorBoundary label={label}>
             <Suspense fallback={<RouteFallback />}>{node}</Suspense>
         </ErrorBoundary>
@@ -579,14 +580,13 @@ function App() {
                     initialAgentId={initialDesignerAgentId}
                     user={user}
                     onClose={() => navigateToPage(initialDesignerAgentId ? `agentDesigner:${initialDesignerAgentId}` : 'agentDesigner')}
-                    hasPermission={(perm) => {
+                    hasPermission={(perm: string) => {
                         const perms = user?.permissions || [];
                         return perms.includes('all') || perms.includes(perm);
                     }}
                 />
             );
         }
-
 
 
         // Meeting Notes now renders inside Studio (see studio handler above).
@@ -609,7 +609,7 @@ function App() {
             return null;
         }
 
-        return <AgentHub onNavigate={navigateToPage} user={user} onUpdateUser={(patch) => setUser(prev => prev ? { ...prev, ...patch } : prev)} initialAgentId={initialUrlRef.current.agentId} initialConversationId={initialUrlRef.current.conversationId} initialDirectConvId={initialDirectConvRef.current} onLogout={handleLogout} currentPage={currentPage} showSettings={showSettings} onCloseSettings={() => {
+        return <AgentHub onNavigate={navigateToPage} user={user} onUpdateUser={(patch: Partial<HubUser>) => setUser(prev => prev ? { ...prev, ...patch } : prev)} initialAgentId={initialUrlRef.current.agentId} initialConversationId={initialUrlRef.current.conversationId} initialDirectConvId={initialDirectConvRef.current} onLogout={handleLogout} currentPage={currentPage} showSettings={showSettings} onCloseSettings={() => {
             setShowSettings(false);
             // Return the URL to the app root when the settings panel closes, so
             // the back button doesn't leave /app/settings stuck in the address bar.
@@ -637,7 +637,7 @@ function App() {
                 setCurrentPage('agents');
                 window.history.pushState({ page: 'agents' }, '', '/app');
             }
-        }} initialCoworkId={initialCoworkId} initialDocumentId={initialDocumentId} formViewToken={formViewToken} showProjects={showProjects} initialProjectRoute={initialProjectRoute} onProjectRouteChange={(projectId, tab, sub) => whenMayNavigate(() => {
+        }} initialCoworkId={initialCoworkId} initialDocumentId={initialDocumentId} formViewToken={formViewToken} showProjects={showProjects} initialProjectRoute={initialProjectRoute} onProjectRouteChange={(projectId: string | null, tab?: string | null, sub?: string | null) => whenMayNavigate(() => {
             // The workspace clears its dirty flag before its own confirmed moves,
             // so this guard refuses only moves started outside the workspace
             // (the rail, the switcher).
@@ -711,7 +711,7 @@ function App() {
 
             {/* Content */}
             <div className="flex-1 overflow-hidden">
-                {renderContent()}
+                {renderContent() as React.ReactNode}
             </div>
 
             {/* Pre-flight DLP preview modal — globally mounted, listens for

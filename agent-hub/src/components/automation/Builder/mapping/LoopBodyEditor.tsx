@@ -1,8 +1,11 @@
+import type { OnFocusField } from './focusField.types';
 import {
     AppWindow, Plus, Trash2, ChevronUp, ChevronDown, ChevronRight,
     Sparkles, Zap, GitBranch, Split, Repeat, Hourglass, OctagonX, Bell,
     Pencil, Clock, Filter, ChevronsDown, Copy, Layers, Sigma, Code, Box, Globe,
-    ClipboardList, FileText, FileSignature, ShieldCheck, BookOpen, ScanText, RectangleHorizontal, Presentation, Rows3 } from 'lucide-react';
+    ClipboardList, FileText, FileSignature, ShieldCheck, BookOpen, ScanText, RectangleHorizontal, Presentation, Rows3,
+    type LucideIcon,
+} from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 import { loopBodyPreview } from './loopBodyPreview';
 import { computeLoopBodyGroups } from './upstream';
@@ -12,12 +15,19 @@ import { buildStepFromPayload } from '../DiagramPane';
 import AddStepMenu from '../flow/AddStepMenu';
 import { FormDensityContext } from '../flow/settings/formDensity';
 import SettingsForm from '../flow/SettingsForm';
+import type { UpstreamNode, Group, UpstreamDefinition } from './upstream/upstream.types';
+import type { BlockCatalogEntry } from '../flow/settings/actionEditors/flowletCallFields';
+import type { ActionCatalog } from '../flow/settings/actionEditors/integrationActionFields';
+import type { PaletteCatalog } from '../flow/stepPalette.types';
+import type { FormDensityValue } from '../flow/settings/formDensity';
+import type { ModelTierConfig } from '../../../../hooks/useModelTierSelection';
+import type { StepPayload } from '../flow/ribbon/ribbonCategories';
 
 // The nested SettingsForm always renders every section — see the comment at
 // its mount. Module-level so the provider value is referentially stable.
-const FORCED_ADVANCED = { density: 'full', mode: 'advanced', onHiddenSection: null, onShownSection: null };
+const FORCED_ADVANCED: FormDensityValue = { density: 'full', mode: 'advanced', onHiddenSection: null, onShownSection: null };
 
-const TYPE_ICON = {
+const TYPE_ICON: Record<string, LucideIcon> = {
     ai_step: Sparkles, integration_action: Zap, condition: GitBranch, switch: Split,
     loop: Repeat, wait: Hourglass, stop_error: OctagonX, return_to_app: AppWindow, notification: Bell,
     set: Pencil, datetime: Clock, filter: Filter, limit: ChevronsDown, dedupe: Copy, flatten: Rows3,
@@ -33,7 +43,7 @@ const TYPE_ICON = {
     data_extraction: ScanText,
 };
 
-function rowLabel(step) {
+function rowLabel(step: UpstreamNode) {
     if (step.label) return step.label;
     if (step.type === 'integration_action' && step.tool) return step.tool;
     return String(step.type || 'step').replace(/_/g, ' ');
@@ -58,14 +68,26 @@ function rowLabel(step) {
  *                    to the nested SettingsForm/computeLoopBodyGroups
  *   onFocusField   — forwarded to nested picker fields
  */
+interface LoopBodyEditorProps {
+    loopStep: UpstreamNode;
+    onChange: (nextBody: UpstreamNode[]) => void;
+    outerGroups?: Group[] | null;
+    previewSample?: unknown;
+    catalog?: (ActionCatalog & PaletteCatalog) | null;
+    rootDefinition?: UpstreamDefinition | null;
+    blocksCatalog?: BlockCatalogEntry[] | null;
+    onFocusField?: OnFocusField | null;
+    modelTiers?: Record<string, ModelTierConfig>;
+}
+
 export default function LoopBodyEditor({
     loopStep, onChange, outerGroups = [], previewSample = null,
     catalog = null, modelTiers = {}, rootDefinition = null, blocksCatalog = [],
     onFocusField,
-}) {
+}: LoopBodyEditorProps) {
     const { t } = useTranslation();
     const body = Array.isArray(loopStep.body) ? loopStep.body : [];
-    const [expandedId, setExpandedId] = useState(null);
+    const [expandedId, setExpandedId] = useState<string | null>(null);
     const [addOpen, setAddOpen] = useState(false);
 
     // Fresh body for late-firing closures (B7): a nested SettingsForm's
@@ -84,7 +106,7 @@ export default function LoopBodyEditor({
         [loopStep, previewSample],
     );
 
-    const addStep = (payload) => {
+    const addStep = (payload: StepPayload) => {
         const scaffold = buildStepFromPayload(payload, { x: 0, y: 0 });
         // Triggers/meta-actions (create_layer → null) can't live in a body.
         // ALWAYS close the menu — a null payload used to leave it hanging
@@ -95,11 +117,11 @@ export default function LoopBodyEditor({
         setAddOpen(false);
         setExpandedId(step.id);
     };
-    const removeStep = (id) => {
+    const removeStep = (id: string) => {
         onChange(bodyRef.current.filter((s) => s.id !== id));
         if (expandedId === id) setExpandedId(null);
     };
-    const moveStep = (i, dir) => {
+    const moveStep = (i: number, dir: number) => {
         const cur = bodyRef.current;
         const j = i + dir;
         if (j < 0 || j >= cur.length) return;
@@ -107,7 +129,7 @@ export default function LoopBodyEditor({
         [next[i], next[j]] = [next[j], next[i]];
         onChange(next);
     };
-    const patchStepById = (id) => (patch) => {
+    const patchStepById = (id: string) => (patch: Record<string, unknown>) => {
         const cur = Array.isArray(bodyRef.current) ? bodyRef.current : [];
         const idx = cur.findIndex((s) => s.id === id);
         if (idx === -1) return; // step was deleted — drop the stale flush
@@ -125,7 +147,7 @@ export default function LoopBodyEditor({
             )}
             <div className="space-y-1.5">
                 {body.map((step, i) => {
-                    const Icon = TYPE_ICON[step.type] || Box;
+                    const Icon = TYPE_ICON[step.type as string] || Box;
                     const expanded = expandedId === step.id;
                     const bodyGroups = computeLoopBodyGroups(loopStep, i, outerGroups, bodyPreview, catalog, rootDefinition);
                     return (
@@ -160,7 +182,7 @@ export default function LoopBodyEditor({
                                         <FormDensityContext.Provider value={FORCED_ADVANCED}>
                                         <div className="max-h-[420px] overflow-y-auto">
                                             <SettingsForm
-                                                step={step}
+                                                step={step as UpstreamNode & { type: string }}
                                                 modelTiers={modelTiers}
                                                 stepIssues={{ errors: [], warnings: [] }}
                                                 saving={false}

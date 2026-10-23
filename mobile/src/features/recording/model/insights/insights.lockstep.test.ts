@@ -16,7 +16,7 @@ import { mergeTurns, normalizeChapters, toSeconds } from './turns';
 const LIB = 'pages/meeting-notes/lib';
 const markers: any = loadWebModule(`${LIB}/timelineMarkers.ts`);
 const format: any = loadWebModule(`${LIB}/format.ts`);
-const player: any = loadWebModule(`${LIB}/playerData.js`, {
+const player: any = loadWebModule(`${LIB}/playerData.ts`, {
     toSeconds: markers.toSeconds,
     SPEAKER_COLORS: ['#111111', '#222222'],
     NEUTRAL_SPEAKER_COLOR: '#999999',

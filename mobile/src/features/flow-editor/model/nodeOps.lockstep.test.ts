@@ -16,7 +16,7 @@ import type { FlowDefinition } from './types';
 
 const FLOW = '../../../../../agent-hub/src/components/automation/Builder/flow';
 /* eslint-disable @typescript-eslint/no-require-imports */
-const webEdges = require(`${FLOW}/branchEdges.js`);
+const webEdges = require(`${FLOW}/branchEdges.ts`);
 const webNormalize = require(`${FLOW}/normalizeDefinition.ts`);
 const webOps = require(`${FLOW}/nodeOps.ts`);
 const TEMPLATES_JS = path.resolve(__dirname, '../../../../../server/automation/templates.js');

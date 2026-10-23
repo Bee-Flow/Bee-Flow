@@ -98,7 +98,7 @@ describe('the web client (studioAi/routeApi.js, DescribeItPanel.jsx)', () => {
     });
 
     it('says the same sentences under the same keys (the phone adds only "offline")', () => {
-        const web = block(WEB_PANEL, 'const ERROR_TEXT = {', '\n};');
+        const web = block(WEB_PANEL, 'const ERROR_TEXT', '\n};');
         const theirs = Object.fromEntries([...web.matchAll(/\n {4}(\w+): \['([\w.]+)', '([^']+)'\]/g)].map((m) => [m[1], [m[2], m[3]]]));
         const { offline, ...ours } = DESCRIBE_IT_WORDS;
         expect(Object.keys(theirs)).toHaveLength(7);

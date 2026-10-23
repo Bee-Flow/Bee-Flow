@@ -15,7 +15,7 @@ import * as port from './index';
 import { collectIds } from './tree';
 
 type AnyFn = (...args: unknown[]) => unknown;
-const web = loadWeb<Record<string, unknown>>('state/definitionOps.js');
+const web = loadWeb<Record<string, unknown>>('state/definitionOps.ts');
 const fixtures = allFixtures();
 
 /** Functions this file exercises; checked against the web's export list below. */

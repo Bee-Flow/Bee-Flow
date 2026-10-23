@@ -246,7 +246,7 @@ describe('the fields a rule is built from', () => {
 
 describe('accepting "Suggest outputs"', () => {
     // The split moved the handler out of routeEditors.jsx into useRouteEdits.ts.
-    const WEB = ['routeEditors.jsx', 'useRouteEdits.ts']
+    const WEB = ['routeEditors.tsx', 'useRouteEdits.ts']
         .map((f) => fs.readFileSync(path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow/settings', f), 'utf8'))
         .join('\n');
 

@@ -189,7 +189,7 @@ function AdvancedSection({ draft, set, groups, onFocusField, errorSections, stra
     );
 }
 
-export default function KnowledgeWriteFields({
+/** @param {{ draft: unknown, set: unknown, groups: unknown, onFocusField?: unknown, previewSample?: unknown, errorSections?: Set<string>, catalog?: object | null }} props */ export default function KnowledgeWriteFields({
     draft, set, groups, onFocusField, previewSample,
     errorSections = new Set(), catalog = null,
 }) {

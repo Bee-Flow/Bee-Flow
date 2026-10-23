@@ -6,11 +6,24 @@ import LoopBodyEditor from '../../../mapping/LoopBodyEditor';
 import LoopOverPicker from '../../../mapping/LoopOverPicker';
 import AccordionSection from '../../AccordionSection';
 import { FormRow, inputClass } from '../formPrimitives';
+import type { StepEditorProps } from '../collectionEditors';
+import type { ModelTierConfig } from '../../../../../../hooks/useModelTierSelection';
+import type { UpstreamDefinition, UpstreamNode } from '../../../mapping/upstream/upstream.types';
+import type { ActionCatalog } from './integrationActionFields';
+import type { BlockCatalogEntry } from './flowletCallFields';
+
+interface LoopFieldsProps extends StepEditorProps {
+    catalog?: ActionCatalog | null;
+    modelTiers?: Record<string, ModelTierConfig>;
+    rootDefinition?: UpstreamDefinition | null;
+    blocksCatalog?: BlockCatalogEntry[] | null;
+    onExpandOnCanvas?: (() => void) | null;
+}
 
 function LoopFields({
     draft, set, groups, onFocusField, previewSample, catalog, modelTiers,
     rootDefinition, blocksCatalog, errorSections = new Set(), onExpandOnCanvas = null,
-}) {
+}: LoopFieldsProps) {
     const { t } = useTranslation();
     return (
         <>
@@ -58,8 +71,8 @@ function LoopFields({
                     )}
                 </div>
                 <LoopBodyEditor
-                    loopStep={draft}
-                    onChange={(nextBody) => set('body', nextBody)}
+                    loopStep={draft as UpstreamNode}
+                    onChange={(nextBody: UpstreamNode[]) => set('body', nextBody)}
                     outerGroups={groups}
                     previewSample={previewSample}
                     catalog={catalog}
