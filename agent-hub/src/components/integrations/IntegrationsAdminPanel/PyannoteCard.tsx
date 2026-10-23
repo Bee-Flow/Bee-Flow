@@ -1,12 +1,27 @@
 import { Check, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import type React from 'react';
 import { saveTranscriptionConfig } from '../../../api/transcriptionConfigApi';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { TranscriptionSectionProps } from './adminPanel.types';
 
 /** Provider 5: pyannoteAI (key, speech-to-text model, voiceprint speaker identification). */
-export default function PyannoteCard({ transcriptionProvider, pyannoteApiKey, setPyannoteApiKey, hasPyannoteKey, setHasPyannoteKey, savingPyannote, setSavingPyannote, pyannoteTranscriptionModel, saveTranscriptionModel, savingPyannoteModel, voiceprintMatchingEnabled, saveVoiceprintSettings, savingVoiceprint, pyannoteIdentifyThreshold, setPyannoteIdentifyThreshold, setMessage }: Pick<TranscriptionSectionProps, 'transcriptionProvider' | 'pyannoteApiKey' | 'setPyannoteApiKey' | 'hasPyannoteKey' | 'setHasPyannoteKey' | 'savingPyannote' | 'setSavingPyannote' | 'pyannoteTranscriptionModel' | 'saveTranscriptionModel' | 'savingPyannoteModel' | 'voiceprintMatchingEnabled' | 'saveVoiceprintSettings' | 'savingVoiceprint' | 'pyannoteIdentifyThreshold' | 'setPyannoteIdentifyThreshold' | 'setMessage'>) {
+export default function PyannoteCard({ transcriptionProvider, pyannoteApiKey, setPyannoteApiKey, hasPyannoteKey, setHasPyannoteKey, savingPyannote, setSavingPyannote, pyannoteTranscriptionModel, saveTranscriptionModel, savingPyannoteModel, voiceprintMatchingEnabled, saveVoiceprintSettings, savingVoiceprint, pyannoteIdentifyThreshold, setMessage }: Pick<TranscriptionSectionProps, 'transcriptionProvider' | 'pyannoteApiKey' | 'setPyannoteApiKey' | 'hasPyannoteKey' | 'setHasPyannoteKey' | 'savingPyannote' | 'setSavingPyannote' | 'pyannoteTranscriptionModel' | 'saveTranscriptionModel' | 'savingPyannoteModel' | 'voiceprintMatchingEnabled' | 'saveVoiceprintSettings' | 'savingVoiceprint' | 'pyannoteIdentifyThreshold' | 'setMessage'>) {
     const { t } = useTranslation();
+    // The input is a string while typing; the saved threshold stays a number.
+    const [thresholdDraft, setThresholdDraft] = useState(String(pyannoteIdentifyThreshold));
+    useEffect(() => { setThresholdDraft(String(pyannoteIdentifyThreshold)); }, [pyannoteIdentifyThreshold]);
+    const commitThreshold = () => {
+        const parsed = Number(thresholdDraft);
+        // An empty or non-numeric field is not a threshold: restore the saved one.
+        if (thresholdDraft.trim() === '' || !Number.isFinite(parsed)) {
+            setThresholdDraft(String(pyannoteIdentifyThreshold));
+            return;
+        }
+        const clamped = Math.min(100, Math.max(0, parsed));
+        setThresholdDraft(String(clamped));
+        if (clamped !== pyannoteIdentifyThreshold) saveVoiceprintSettings({ pyannoteIdentifyThreshold: clamped });
+    };
     return (
         <div className="rounded-2xl border overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)]">
             <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
@@ -110,9 +125,9 @@ export default function PyannoteCard({ transcriptionProvider, pyannoteApiKey, se
                             </label>
                             <input
                                 type="number" min={0} max={100}
-                                value={pyannoteIdentifyThreshold}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPyannoteIdentifyThreshold(e.target.value)}
-                                onBlur={() => saveVoiceprintSettings({ pyannoteIdentifyThreshold: Number(pyannoteIdentifyThreshold) })}
+                                value={thresholdDraft}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setThresholdDraft(e.target.value)}
+                                onBlur={commitThreshold}
                                 disabled={savingVoiceprint}
                                 className="w-20 px-3 py-1.5 rounded-lg border outline-none text-sm"
                                 style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
