@@ -8,6 +8,10 @@ import { fileURLToPath } from 'node:url';
 import { applyChanges, forbiddenInsert, targetName } from './ts-convert-codefix.mjs';
 import { applyEdits, inferFile, resetCaches } from './ts-callsite-types.mjs';
 
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+let ts = null;
+try { ts = createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript'); } catch { /* not installed */ }
+
 test('a quick fix that writes any, Function or a ts- comment is refused', () => {
     assert.equal(forbiddenInsert(': any'), true);
     assert.equal(forbiddenInsert(': { a: any[] }'), true);
@@ -17,7 +21,7 @@ test('a quick fix that writes any, Function or a ts- comment is refused', () => 
     assert.equal(forbiddenInsert(': Company'), false); // `any` only as a whole word
 });
 
-test('.jsx becomes .tsx; .js becomes .tsx only when it holds JSX', () => {
+test('.jsx becomes .tsx; .js becomes .tsx only when it holds JSX', { skip: !ts && 'agent-hub typescript not installed' }, () => {
     assert.equal(targetName('src/A.jsx', 'export const A = () => <div />;'), 'src/A.tsx');
     assert.equal(targetName('src/a.jsx', 'export const a = 1; // <Tag> in a comment'), 'src/a.ts');
     assert.equal(targetName('src/a.js', 'export const a = 1;'), 'src/a.ts');
@@ -37,9 +41,6 @@ test('text changes and edits apply back to front, so offsets stay valid', () => 
 
 // The inference itself needs a TypeScript; agent-hub's is the one the converter
 // uses. The policy job runs these tests with only the root packages: skip there.
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-let ts = null;
-try { ts = createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript'); } catch { /* not installed */ }
 
 function serviceOver(files) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-callsite-'));
