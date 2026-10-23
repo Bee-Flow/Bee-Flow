@@ -129,11 +129,11 @@ export default function ModuleDetailDrawer({ module, health = null, actions, onC
                                     title={t('modules.details_logs')}
                                     data-testid="drawer-logs"
                                 >
-                                    <ScrollText className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                                    <ScrollText className="w-4 h-4 text-[var(--text-muted)]" />
                                 </button>
                             )}
                             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)]" data-testid="drawer-close">
-                                <X className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                                <X className="w-4 h-4 text-[var(--text-muted)]" />
                             </button>
                         </div>
                     </div>
@@ -189,13 +189,13 @@ export default function ModuleDetailDrawer({ module, health = null, actions, onC
                 <div className="px-5 py-4 flex-1">
                     {detailQuery.isLoading ? (
                         <div className="flex items-center justify-center py-16">
-                            <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-muted)' }} />
+                            <Loader2 className="w-5 h-5 animate-spin text-[var(--text-muted)]" />
                         </div>
                     ) : tab === 'overview' ? (
                         <div className="space-y-4">
                             <MediaGallery moduleId={module.id} media={detail?.media} />
                             {readme ? (
-                                <Suspense fallback={<Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--text-muted)' }} />}>
+                                <Suspense fallback={<Loader2 className="w-4 h-4 animate-spin text-[var(--text-muted)]" />}>
                                     <MarkdownRenderer content={readme} className="text-sm" />
                                 </Suspense>
                             ) : (

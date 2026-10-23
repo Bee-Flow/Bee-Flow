@@ -33,7 +33,7 @@ export default function SeriesPreviousCard({ previous, onOpenNote }: SeriesPrevi
             className="rounded-xl border px-4 py-3 flex flex-col gap-2 bg-[var(--bg-secondary)] border-[var(--border-default)]"
         >
             <div className="flex items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold flex items-center gap-2 min-w-0" style={{ color: 'var(--text-primary)' }}>
+                <h2 className="text-sm font-semibold flex items-center gap-2 min-w-0 text-[var(--text-primary)]">
                     <History className="w-4 h-4 shrink-0" />
                     <span className="truncate">
                         {t('meeting_notes.series_previous', 'Previously in this series')}
@@ -55,7 +55,7 @@ export default function SeriesPreviousCard({ previous, onOpenNote }: SeriesPrevi
             </div>
 
             {preview && (
-                <p className="text-xs line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-xs line-clamp-2 text-[var(--text-secondary)]">
                     {preview}
                 </p>
             )}

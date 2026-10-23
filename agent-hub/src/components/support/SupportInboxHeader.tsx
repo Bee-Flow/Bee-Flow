@@ -16,7 +16,7 @@ export default function SupportInboxHeader({ activeTotal, resolved, view, setVie
     return (
         <div className="px-6 py-4 border-b flex items-center justify-between border-[var(--border-default)] bg-[var(--bg-secondary)]">
             <div className="flex items-center gap-3">
-                <Inbox className="w-5 h-5" style={{ color: 'var(--text-primary)' }} />
+                <Inbox className="w-5 h-5 text-[var(--text-primary)]" />
                 <h2 className="text-base font-semibold text-[var(--text-primary)]">{t('support.support_inbox_customer_support', 'Customer Support')}</h2>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
                     {t('support.support_inbox_active_counter_resolved', '{active} active · {resolved} resolved', { active: activeTotal, resolved })}

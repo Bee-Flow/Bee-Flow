@@ -1,7 +1,7 @@
 import { ArrowLeft, RotateCcw, Ban, Check, X, ExternalLink, Link2, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
 import { enteredTriggerLabel, errorClassLabel, runTitle, triggerLabel } from './runLanguage';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { formatDuration, formatRelative, formatExpiry } from '../AutomationsStudio/historyUtils';
 import { RunStatusBadge, DryRunBadge } from '../AutomationsStudio/RunStatusBits';
 

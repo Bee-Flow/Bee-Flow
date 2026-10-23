@@ -1,7 +1,7 @@
-import { getToolLabel, getToolIcon, toolNameToCatalogId } from '../../../utils/helpers';
-import AppEmoji from '../../icons/AppEmoji';
 import { DurationPill, StepBadge, TimelineRail } from './timelineParts';
 import useTranslation from '../../../hooks/useTranslation';
+import { getToolLabel, getToolIcon, toolNameToCatalogId } from '../../../utils/helpers';
+import AppEmoji from '../../icons/AppEmoji';
 
 /**
  * Tools Used — vertical timeline inside "How I got this answer".

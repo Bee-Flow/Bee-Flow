@@ -16,13 +16,13 @@
  *   now          test seam for the expiry comparison
  *   modalZIndex  lifts the ladder above a host drawer (the agent wizard's is z-1100)
  */
-import React, { useMemo, useState } from 'react';
 import { ClipboardCheck, PenLine, Sparkles } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import StatusPill from '../shared/StatusPill';
-import { formatCalDate } from '../shared/calendarMath';
-import useAiActAssessment from './useAiActAssessment';
+import React, { useMemo, useState } from 'react';
 import AiActLadderModal from './AiActLadderModal';
+import useAiActAssessment from './useAiActAssessment';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import { formatCalDate } from '../shared/calendarMath';
+import StatusPill from '../shared/StatusPill';
 
 export const OUTCOME_LABEL = Object.freeze({
     not_applicable: { key: 'compliance.ladder_outcome_chip_not_applicable', en: 'AI Act not applicable' },

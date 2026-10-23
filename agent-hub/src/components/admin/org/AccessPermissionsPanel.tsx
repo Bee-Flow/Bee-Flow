@@ -87,7 +87,7 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
     const orgName = useMemo(() => (orgs || []).find(o => o.id === orgId)?.name || orgId, [orgs, orgId]);
 
     if (isSuperAdmin && orgs === null) {
-        return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-muted)' }} /></div>;
+        return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[var(--text-muted)]" /></div>;
     }
 
     const noOrg = isSuperAdmin && (!orgs || orgs.length === 0);

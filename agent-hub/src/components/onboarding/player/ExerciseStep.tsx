@@ -129,7 +129,7 @@ export default function ExerciseStep({ step, saved, modelTier = 'fast', onState 
             {hint && (
                 <div className="mt-2 px-3.5 py-2.5 rounded-lg text-[13px] flex items-start gap-2"
                     style={{ background: 'color-mix(in srgb, var(--accent-primary) 10%, transparent)', color: 'var(--text-secondary)' }}>
-                    <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent-primary)' }} />
+                    <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--accent-primary)]" />
                     <span><span className="font-semibold text-[var(--text-primary)]">{t('learn.exercise.hint', 'Hint: ')}</span>{hint}</span>
                 </div>
             )}
@@ -212,7 +212,7 @@ export default function ExerciseStep({ step, saved, modelTier = 'fast', onState 
                                     <ul className="flex flex-col gap-1.5">
                                         {result.improvements.map((s, i) => (
                                             <li key={i} className="text-[12.5px] flex items-start gap-1.5 text-[var(--text-secondary)]">
-                                                <ArrowUpRight className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent-primary)' }} /> {s}
+                                                <ArrowUpRight className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-[var(--accent-primary)]" /> {s}
                                             </li>
                                         ))}
                                     </ul>

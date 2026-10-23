@@ -34,7 +34,7 @@ export function PreviewRoleBanner({ previewRole, previewRoleName, onExit }: Prev
                 color: 'var(--text-secondary)',
             }}
         >
-            <Eye className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+            <Eye className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
             <span>
                 {t('app_studio.header.previewing_as', 'Previewing as')}{' '}
                 <strong className="text-[var(--text-primary)]">{previewRoleName}</strong>

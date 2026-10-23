@@ -110,7 +110,7 @@ function HeroChip({ Icon, children, title, testId }: { Icon: LucideIcon; childre
             title={title}
             className="inline-flex items-center gap-1.5 h-6 px-2 rounded-lg text-[12px] whitespace-nowrap border border-[var(--border-default)] bg-[var(--bg-card,transparent)] text-[var(--text-secondary)]"
         >
-            <Icon size={12} aria-hidden="true" style={{ color: 'var(--text-tertiary)' }} />
+            <Icon size={12} aria-hidden="true" className="text-[var(--text-tertiary)]" />
             <span>{children}</span>
         </span>
     );

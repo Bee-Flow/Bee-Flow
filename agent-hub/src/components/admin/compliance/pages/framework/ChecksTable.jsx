@@ -1,16 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import DataTable from '../../../../shared/DataTable';
-import FilterPills from '../../../../shared/FilterPills';
-import SegmentedControl from '../../../../shared/SegmentedControl';
-import EmptyState from '../../../../shared/EmptyState';
-import CheckRow, { CheckCard } from './CheckRow';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import CheckExpansion from './CheckExpansion';
+import CheckRow, { CheckCard } from './CheckRow';
 import {
     PILL_TONE, SORT_MODES, countByStatus, filterByStatus, filterBySearch, sortChecks, rowKeyOf, focusRowKey,
     visiblePills, isBusyRow,
 } from './checkSort';
+import { useTranslation } from '../../../../../hooks/useTranslation';
+import DataTable from '../../../../shared/DataTable';
+import EmptyState from '../../../../shared/EmptyState';
+import FilterPills from '../../../../shared/FilterPills';
+import SegmentedControl from '../../../../shared/SegmentedControl';
 
 /**
  * ChecksTable — toolbar + the checks DataTable of a framework page (1b).

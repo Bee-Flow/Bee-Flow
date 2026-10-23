@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
 import { FileText, Check, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../utils/helpers';
 
 /**
  * Member-facing ISMS policy acknowledgements (ISO 27001 clause 7.3 awareness).

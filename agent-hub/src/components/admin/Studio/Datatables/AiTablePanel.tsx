@@ -148,7 +148,7 @@ export default function AiTablePanel({ mode = 'create', current = null, onApply,
         <section className={`rounded-xl border ${compact ? 'p-3 space-y-2' : 'p-4 space-y-3'}`}
             style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }} aria-labelledby={`${testId}-title`} data-testid={testId}>
             <div className="flex items-start gap-2">
-                <Sparkles className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
                     <h3 id={`${testId}-title`} className="text-sm font-semibold m-0 text-[var(--text-primary)]">{t('datatables.ai_title', 'Build it with AI')}</h3>
                     <p className="text-xs mt-0.5 m-0 text-[var(--text-secondary)]">

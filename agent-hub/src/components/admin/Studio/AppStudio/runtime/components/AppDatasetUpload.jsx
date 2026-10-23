@@ -6,8 +6,8 @@ import { useDataContext } from '../DataContext';
 import { useFormField } from '../formContext';
 import { useRuntime } from '../RuntimeContext';
 import { Field } from '../uiBits';
-import useInputChange from '../useInputChange';
 import useDatasetUpload from '../useDatasetUpload';
+import useInputChange from '../useInputChange';
 
 /**
  * App Studio runtime — 'input_dataset'. Spec: server/appStudio/componentSpecs.js.
@@ -184,7 +184,7 @@ export default function AppDatasetUpload({ node }) {
                         style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)' }}
                     >
                         <Dna className="w-3.5 h-3.5 shrink-0" aria-hidden="true" style={{ color: 'var(--app-primary)' }} />
-                        <span className="truncate" style={{ color: 'var(--text-primary)' }}>
+                        <span className="truncate text-[var(--text-primary)]">
                             {selected.name}{selected.build ? ` · ${selected.build}` : ''}
                         </span>
                         <button

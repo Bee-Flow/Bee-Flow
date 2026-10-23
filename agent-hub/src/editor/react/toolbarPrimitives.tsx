@@ -189,7 +189,7 @@ export function MenuDivider() {
 }
 
 export function MenuLabel({ children }: { children: React.ReactNode }) {
-  return <div className="px-3 pt-1.5 pb-0.5 text-[9px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{children}</div>;
+  return <div className="px-3 pt-1.5 pb-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">{children}</div>;
 }
 
 export function BubbleDivider() {
@@ -255,7 +255,7 @@ export function ColorFontPanel({ editor, t, onDone }: { editor: EditorFacade; t?
         ))}
       </div>
       <div className="flex items-center justify-between mb-2">
-        <label className="flex items-center gap-1.5 text-[10px] cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
+        <label className="flex items-center gap-1.5 text-[10px] cursor-pointer text-[var(--text-secondary)]">
           <input type="color" value={currentColor || '#000000'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => chain().setColor(e.target.value).run()} className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent p-0" />
           {tt('notebooks.custom', 'Custom')}
         </label>

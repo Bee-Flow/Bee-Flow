@@ -1,5 +1,5 @@
-import React from 'react';
 import { AlertCircle, ArrowLeft, ArrowRight } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 
 const SignupStepAuth = ({ signupData, setSignupData, handleSignupNext, setSignupStep, setError, allowedMethods = null, embedded = false }) => {

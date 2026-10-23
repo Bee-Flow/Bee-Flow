@@ -103,8 +103,7 @@ export default function AppTable({ node }) {
             </table>
             {hidden > 0 ? (
                 <p
-                    className="px-1 pt-1.5 text-xs"
-                    style={{ color: 'var(--text-secondary)' }}
+                    className="px-1 pt-1.5 text-xs text-[var(--text-secondary)]"
                     data-app-table-truncated={hidden}
                 >
                     {t('studio_apps_runtime.table.showing', 'Showing {shown} of {total}.', { shown: rows.length, total: allRows.length.toLocaleString() })}

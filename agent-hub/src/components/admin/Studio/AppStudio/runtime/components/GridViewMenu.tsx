@@ -54,7 +54,7 @@ function Segmented({ groupKey, value, onChange }: {
     const meta = labelsFor(t)[groupKey];
     return (
         <div className="flex flex-col gap-1">
-            <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+            <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
                 {meta.label}
             </span>
             <div className="flex" role="group" aria-label={meta.label}>
@@ -149,15 +149,14 @@ export default function GridViewMenu({ view, onChange, onReset, hasOverrides }: 
                         <Segmented key={key} groupKey={key} value={view[key]} onChange={(v) => onChange(key, v)} />
                     ))}
                     <div className="flex items-center justify-between gap-3 pt-1">
-                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                        <span className="text-[11px] text-[var(--text-muted)]">
                             {t('studio_apps_runtime.view_menu.only_you', 'Only changes how you see it.')}
                         </span>
                         <button
                             type="button"
                             onClick={onReset}
                             disabled={!hasOverrides}
-                            className="px-2 py-1 text-xs font-medium disabled:opacity-40"
-                            style={{ color: 'var(--text-secondary)' }}
+                            className="px-2 py-1 text-xs font-medium disabled:opacity-40 text-[var(--text-secondary)]"
                         >
                             {t('studio_apps_runtime.view_menu.reset', 'Reset')}
                         </button>

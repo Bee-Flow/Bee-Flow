@@ -147,8 +147,8 @@ export default function AppList({ onOpen }) {
                 style={{ borderColor: 'var(--border-subtle)' }}
             >
                 <div className="flex-1 flex items-center gap-2 min-w-0">
-                    <LayoutGrid className="w-5 h-5 shrink-0" style={{ color: 'var(--accent-primary)' }} />
-                    <h2 className="text-lg font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{t('studio_apps_bi.list.apps', 'Apps')}</h2>
+                    <LayoutGrid className="w-5 h-5 shrink-0 text-[var(--accent-primary)]" />
+                    <h2 className="text-lg font-semibold truncate text-[var(--text-primary)]">{t('studio_apps_bi.list.apps', 'Apps')}</h2>
                 </div>
                 <button
                     type="button"
@@ -202,8 +202,7 @@ export default function AppList({ onOpen }) {
                                     >
                                         <CardBody app={app} />
                                         <span
-                                            className="absolute top-2 right-2 inline-flex items-center gap-1 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity"
-                                            style={{ color: 'var(--text-secondary)' }}
+                                            className="absolute top-2 right-2 inline-flex items-center gap-1 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-secondary)]"
                                         >
                                             {t('studio_apps_bi.list.open', 'Open')} <ExternalLink className="w-3 h-3" />
                                         </span>

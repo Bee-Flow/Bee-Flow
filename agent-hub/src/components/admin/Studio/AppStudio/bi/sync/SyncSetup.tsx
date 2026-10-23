@@ -40,8 +40,8 @@ function TableSetProposal({ set }: { set: ProposedSetTable[] }) {
             {set.map((tb, i) => (
                 <div key={tb.table.id} className="flex flex-col gap-0.5" style={{ paddingLeft: i ? '1rem' : 0 }}>
                     <div className="flex items-center gap-1.5 text-sm text-[var(--text-primary)]">
-                        {i ? <CornerDownRight className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
-                            : <Table2 className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />}
+                        {i ? <CornerDownRight className="h-3.5 w-3.5 text-[var(--text-tertiary)]" aria-hidden="true" />
+                            : <Table2 className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />}
                         {tb.table.name}
                         <span className="text-xs text-[var(--text-tertiary)]">
                             {tb.rowCount === 1
@@ -78,7 +78,7 @@ function SingleTableProposal({ proposal }: { proposal: SyncProposal }) {
                     : t('studio_apps_bi.sync.got_rows', 'Got {n} rows back. Here’s the table that fits:', { n: proposal.rowCount })}
             </p>
             <div className="flex items-center gap-1.5 text-sm text-[var(--text-primary)]">
-                <Table2 className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                <Table2 className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
                 {proposal.suggestedTable.name}
                 <span className="text-xs text-[var(--text-tertiary)]">
                     {t('studio_apps_bi.sync.columns_summary', '— {cols} columns', { cols: proposal.suggestedTable.fields.length })}
@@ -108,7 +108,7 @@ function ProposalCard({ proposal, actions, disabled }: { proposal: SyncProposal;
             {set && set.length > 1 ? <TableSetProposal set={set} /> : <SingleTableProposal proposal={proposal} />}
             {copy ? (
                 <p className="flex items-start gap-1.5 text-xs text-[var(--text-secondary)]">
-                    <Zap className="mt-0.5 h-3 w-3 shrink-0" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                    <Zap className="mt-0.5 h-3 w-3 shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
                     <span>
                         <strong>{copy.title}.</strong>{' '}
                         {copy.body}
@@ -148,7 +148,7 @@ export default function SyncSetup({ connector, actions, appId, disabled, saved, 
     return (
         <div className="rounded-lg border p-3 border-[var(--border-default)] bg-[var(--bg-secondary)]">
             <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
-                <Database className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                <Database className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
                 {t('studio_apps_bi.sync.keep_in_table', 'Keep this in a table')}
             </div>
             <p className="text-xs text-[var(--text-tertiary)]">

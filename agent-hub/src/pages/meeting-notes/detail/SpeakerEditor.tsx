@@ -248,7 +248,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                 {onAutoDetect && rows.length > 0 && (
                     <div className="rounded-lg border p-3 mb-1" style={{ background: 'color-mix(in srgb, var(--accent-primary) 5%, var(--bg-secondary))', borderColor: 'var(--border-default)' }}>
                         <div className="flex items-center gap-1.5 text-[13px] font-semibold mb-1 text-[var(--text-primary)]">
-                            <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} />
+                            <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                             {t('meeting_notes.speaker_autodetect', 'Auto-detect names')}
                         </div>
                         <p className="text-[11px] mb-2 text-[var(--text-muted)]">

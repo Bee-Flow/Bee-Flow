@@ -90,7 +90,7 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
         }
     };
 
-    if (loading) return <div className="text-sm p-4" style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.loading_ellipsis', 'Loading…')}</div>;
+    if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_ai_config.loading_ellipsis', 'Loading…')}</div>;
 
     const KB_OPTIONS = [
         { id: 'auto', label: t('admin_ai_config.limits_kb_auto', 'Auto'), desc: t('admin_ai_config.limits_kb_auto_desc', 'Local KB when no SEARCH_SERVICE_URL is set, remote service when it is. Safe default for both fresh installs and upgrades.') },

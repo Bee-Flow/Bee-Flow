@@ -21,8 +21,8 @@
  * no logoUrl.
  */
 
-import { COMMON_ROUTES, daysAgo, minutesAgo } from './common';
 import { DEMO_CATALOG } from './appStudioCatalog';
+import { COMMON_ROUTES, daysAgo, minutesAgo } from './common';
 
 const APP_ID = 'app_demo_pipeline';
 

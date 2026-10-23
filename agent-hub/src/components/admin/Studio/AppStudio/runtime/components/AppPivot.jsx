@@ -311,8 +311,7 @@ export default function AppPivot({ node }) {
             {table}
             {hiddenCols > 0 ? (
                 <p
-                    className="px-1 pt-1.5 text-xs"
-                    style={{ color: 'var(--text-secondary)' }}
+                    className="px-1 pt-1.5 text-xs text-[var(--text-secondary)]"
                     data-app-pivot-truncated={hiddenCols}
                 >
                     {hiddenCols === 1

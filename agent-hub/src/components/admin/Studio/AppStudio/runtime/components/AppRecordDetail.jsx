@@ -22,7 +22,7 @@ function isHttpUrl(value) {
 
 /** Format one field value — mirrors the data_grid cell formats + datetime/markdown. */
 export function FieldValue({ value, format }) {
-    if (value == null || value === '') return <span style={{ color: 'var(--text-muted)' }}>{EM_DASH}</span>;
+    if (value == null || value === '') return <span className="text-[var(--text-muted)]">{EM_DASH}</span>;
     switch (format) {
         // The file itself, not its descriptor. Shared with the data_grid's
         // columns so a drawing opens the same way wherever it is shown.
@@ -149,12 +149,11 @@ export default function AppRecordDetail({ node }) {
                                 className={`flex ${isFile ? 'items-center' : 'items-baseline'} justify-between gap-3 py-1.5 min-w-0`}
                                 style={{ borderBottom: '1px solid var(--app-hairline, var(--border-default))' }}
                             >
-                                <dt className="shrink-0 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                                <dt className="shrink-0 text-xs text-[var(--text-secondary)]">
                                     {field.label || field.key}
                                 </dt>
                                 <dd
-                                    className={`text-sm text-right min-w-0${isFile ? '' : ' truncate'}`}
-                                    style={{ color: 'var(--text-primary)' }}
+                                    className={`text-sm text-right min-w-0${isFile ? '' : ' truncate'} text-[var(--text-primary)]`}
                                     title={plain}
                                 >
                                     <FieldValue value={value} format={field.format || 'text'} />
@@ -177,10 +176,10 @@ export default function AppRecordDetail({ node }) {
                 g.name ? heading(g.name) : null,
                 ...g.fields.map((field, i) => (
                     <div key={`${g.name}-${field.key}-${i}`} className="min-w-0">
-                        <dt className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                        <dt className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
                             {field.label || field.key}
                         </dt>
-                        <dd className="text-sm mt-0.5 break-words" style={{ color: 'var(--text-primary)' }}>
+                        <dd className="text-sm mt-0.5 break-words text-[var(--text-primary)]">
                             <FieldValue value={walkPath(record, field.key)} format={field.format || 'text'} />
                         </dd>
                     </div>

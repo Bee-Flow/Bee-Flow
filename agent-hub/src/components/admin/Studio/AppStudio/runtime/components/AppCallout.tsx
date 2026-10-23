@@ -71,7 +71,7 @@ export default function AppCallout({ node }: { node: AppNode<CalloutProps> }) {
             <Icon className={`w-4 h-4 shrink-0${collapsible ? '' : ' mt-0.5'}`} style={{ color }} aria-hidden="true" />
             <div className="min-w-0">
                 {title ? <div className="font-medium">{title}</div> : null}
-                <div className="app-callout__body" style={{ color: 'var(--text-secondary)' }}>
+                <div className="app-callout__body text-[var(--text-secondary)]">
                     {renderInlineMarkdown(shownText)}
                 </div>
                 {/* The hover panel repeats what the line above already carries in
@@ -85,8 +85,7 @@ export default function AppCallout({ node }: { node: AppNode<CalloutProps> }) {
             </div>
             {shownMeta ? (
                 <div
-                    className="ml-auto shrink-0 whitespace-nowrap text-xs mt-0.5"
-                    style={{ color: 'var(--text-muted)' }}
+                    className="ml-auto shrink-0 whitespace-nowrap text-xs mt-0.5 text-[var(--text-muted)]"
                     data-app-callout-meta="true"
                 >
                     {shownMeta}

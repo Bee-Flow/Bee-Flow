@@ -640,7 +640,7 @@ function ColumnRow({
                         </button>
                     ) : (canEdit || ncColumn) && (locked ? (
                         <span className="p-1 inline-flex" title={t('datatables.column_locked', 'Filled in automatically — this column cannot be removed, renamed or retyped.')}>
-                            <Lock className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                            <Lock className="w-3.5 h-3.5 text-[var(--text-tertiary)]" aria-hidden="true" />
                             <span className="sr-only">{t('datatables.column_locked', 'Filled in automatically — this column cannot be removed, renamed or retyped.')}</span>
                         </span>
                     ) : (

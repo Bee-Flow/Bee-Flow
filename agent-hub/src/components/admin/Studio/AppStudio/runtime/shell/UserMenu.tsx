@@ -98,11 +98,11 @@ export default function UserMenu({ viewer, onExit = null, collapsed = false, dir
                     className={`app-nav-popup absolute z-40 w-56 rounded-lg border py-1 shadow-xl ${popPosition}`}
                 >
                     <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-                        <div className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                        <div className="text-sm font-medium truncate text-[var(--text-primary)]">
                             {viewer.name || viewer.email}
                         </div>
                         {viewer.email ? (
-                            <div className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{viewer.email}</div>
+                            <div className="text-xs truncate text-[var(--text-muted)]">{viewer.email}</div>
                         ) : null}
                         {roleBadge ? (
                             <span

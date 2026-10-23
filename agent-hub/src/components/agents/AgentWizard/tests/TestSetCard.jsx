@@ -328,7 +328,7 @@ function TestRow({ t, test, item }) {
     const problem = item ? problemFor(item) : null;
     return (
         <div data-testid="agent-tests-question-row" data-status={item ? item.status : 'none'} className="flex items-start gap-3 px-4 py-2.5">
-            <span className="mt-0.5">{item ? <StatusDot status={item.status} /> : <FlaskConical size={14} aria-hidden="true" style={{ color: 'var(--text-tertiary)' }} />}</span>
+            <span className="mt-0.5">{item ? <StatusDot status={item.status} /> : <FlaskConical size={14} aria-hidden="true" className="text-[var(--text-tertiary)]" />}</span>
             <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-[13px] text-[var(--text-primary)] truncate">{test.name || test.question}</span>

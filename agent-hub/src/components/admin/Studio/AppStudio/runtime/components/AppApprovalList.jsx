@@ -167,7 +167,7 @@ export default function AppApprovalList({ node }) {
         return (
             <Frame>
                 {SAMPLE_ROWS.map((r) => <RowLine key={r.id} row={r} onOpen={null} open={false} />)}
-                <p className="text-[11px] mt-2" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-[11px] mt-2 text-[var(--text-tertiary)]">
                     {t('studio_apps_runtime.approvals.preview_note', 'Preview — signed-in viewers see their own approvals here.')}
                 </p>
             </Frame>
@@ -179,8 +179,8 @@ export default function AppApprovalList({ node }) {
         return (
             <Frame>
                 <div className="flex items-center gap-2.5 py-2">
-                    <LogIn size={16} style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
-                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    <LogIn size={16} className="text-[var(--text-tertiary)]" aria-hidden="true" />
+                    <span className="text-sm text-[var(--text-secondary)]">
                         {t('studio_apps_runtime.approvals.sign_in', 'Sign in to see and decide approvals.')}
                     </span>
                 </div>
@@ -189,13 +189,13 @@ export default function AppApprovalList({ node }) {
     }
 
     if (loading) {
-        return <Frame><div className="flex items-center gap-2 py-2 text-sm" style={{ color: 'var(--text-tertiary)' }}><Loader2 size={14} className="animate-spin" /> {t('studio_apps_runtime.approvals.loading', 'Loading approvals…')}</div></Frame>;
+        return <Frame><div className="flex items-center gap-2 py-2 text-sm text-[var(--text-tertiary)]"><Loader2 size={14} className="animate-spin" /> {t('studio_apps_runtime.approvals.loading', 'Loading approvals…')}</div></Frame>;
     }
     if (error) {
         return <Frame><div className="py-2 text-sm" style={{ color: 'var(--error)' }}>{error}</div></Frame>;
     }
     if (!rows.length) {
-        return <Frame><div className="py-2 text-sm" style={{ color: 'var(--text-tertiary)' }}>{emptyText}</div></Frame>;
+        return <Frame><div className="py-2 text-sm text-[var(--text-tertiary)]">{emptyText}</div></Frame>;
     }
 
     return (
@@ -218,7 +218,7 @@ function Frame({ children }) {
     const { t } = useTranslation();
     return (
         <div className="rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border-default, rgba(0,0,0,0.08))', background: 'var(--bg-primary, transparent)' }} data-component="approval_list">
-            <div className="flex items-center gap-1.5 mb-1 text-[11px] uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="flex items-center gap-1.5 mb-1 text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">
                 <ShieldCheck size={12} aria-hidden="true" /> {t('studio_apps_runtime.approvals.title', 'Approvals')}
             </div>
             {children}
@@ -235,15 +235,15 @@ function RowLine({ row, open, onOpen }) {
     const chain = row.status === 'pending' ? stageChainInfo(row) : null;
     const body = (
         <>
-            {onOpen ? (open ? <ChevronDown size={14} className="shrink-0" style={{ color: 'var(--text-tertiary)' }} /> : <ChevronRight size={14} className="shrink-0" style={{ color: 'var(--text-tertiary)' }} />) : null}
+            {onOpen ? (open ? <ChevronDown size={14} className="shrink-0 text-[var(--text-tertiary)]" /> : <ChevronRight size={14} className="shrink-0 text-[var(--text-tertiary)]" />) : null}
             <span className="flex-1 min-w-0 text-left">
-                <span className="block text-sm truncate" {...hoverable(row.prompt)} style={{ color: 'var(--text-primary)' }}>{row.prompt || t('studio_apps_runtime.approvals.requested', 'Approval requested')}</span>
-                <span className="block text-[11px] truncate" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="block text-sm truncate text-[var(--text-primary)]" {...hoverable(row.prompt)}>{row.prompt || t('studio_apps_runtime.approvals.requested', 'Approval requested')}</span>
+                <span className="block text-[11px] truncate text-[var(--text-tertiary)]">
                     {row.automationTitle || '—'}
                     {row.status === 'pending' && row.expiresAt ? <> · <Clock size={10} className="inline -mt-0.5" /> {formatWhen(row.expiresAt)}</> : <> · {formatWhen(row.createdAt)}</>}
                 </span>
                 {chain?.index && (
-                    <span className="block text-[11px] truncate" style={{ color: 'var(--text-secondary)' }} data-testid="approval-list-stage">
+                    <span className="block text-[11px] truncate text-[var(--text-secondary)]" data-testid="approval-list-stage">
                         {t('approvals.stage_of', 'Stage {n} of {m}', { n: String(chain.index), m: String(chain.total) })}
                         {chain.name ? ` · ${chain.name}` : ''}
                     </span>
@@ -263,7 +263,7 @@ function RowLine({ row, open, onOpen }) {
 function DetailPanel({ detail, onDecide }) {
     const { t } = useTranslation();
     if (!detail) {
-        return <div className="pb-2 pl-6 text-[12px]" style={{ color: 'var(--text-tertiary)' }}>{t('studio_apps_runtime.approvals.loading_detail', 'Loading…')}</div>;
+        return <div className="pb-2 pl-6 text-[12px] text-[var(--text-tertiary)]">{t('studio_apps_runtime.approvals.loading_detail', 'Loading…')}</div>;
     }
     if (detail.error && !detail.approval) {
         return <div className="pb-2 pl-6 text-[12px]" style={{ color: 'var(--error)' }}>{detail.error}</div>;
@@ -273,8 +273,8 @@ function DetailPanel({ detail, onDecide }) {
     return (
         <div className="pb-3 pl-6 space-y-3">
             {chain?.index && (
-                <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-                    <span style={{ color: 'var(--text-primary)' }}>
+                <div className="text-[12px] text-[var(--text-secondary)]">
+                    <span className="text-[var(--text-primary)]">
                         {t('approvals.stage_of', 'Stage {n} of {m}', { n: String(chain.index), m: String(chain.total) })}
                         {chain.name ? ` · ${chain.name}` : ''}
                     </span>
@@ -292,12 +292,11 @@ function DetailPanel({ detail, onDecide }) {
                         <a
                             key={att.fileId}
                             href={`${API_BASE}/api/automation/approvals/${encodeURIComponent(approval.id)}/files/${encodeURIComponent(att.fileId)}`}
-                            className="flex items-center gap-2 text-[13px] hover:underline"
-                            style={{ color: 'var(--text-primary)' }}
+                            className="flex items-center gap-2 text-[13px] hover:underline text-[var(--text-primary)]"
                         >
-                            <FileText size={13} className="shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                            <FileText size={13} className="shrink-0 text-[var(--text-tertiary)]" />
                             <span className="truncate" {...hoverable(att.label || att.filename)}>{att.label || att.filename}</span>
-                            <Download size={12} className="shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                            <Download size={12} className="shrink-0 text-[var(--text-tertiary)]" />
                         </a>
                     ))}
                 </div>
@@ -307,7 +306,7 @@ function DetailPanel({ detail, onDecide }) {
                 canDecide ? (
                     <ApprovalDecisionControls fields={approval.fields} onDecide={onDecide} />
                 ) : (
-                    <div className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+                    <div className="text-[12px] text-[var(--text-tertiary)]">
                         {chain?.index
                             ? t('approvals.waiting_stage', 'Waiting for {name} — stage {n} of {m}.', {
                                 name: chain.name || t('approvals.stage_unnamed', 'this stage'),
@@ -318,7 +317,7 @@ function DetailPanel({ detail, onDecide }) {
                     </div>
                 )
             ) : (
-                <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+                <div className="text-[12px] text-[var(--text-secondary)]">
                     {approvalStatusChip(approval.status).label}
                     {approval.decidedByName ? ` ${t('studio_apps_runtime.approvals.decided_by', 'by {name}', { name: approval.decidedByName })}` : ''}
                     {approval.decidedAt ? ` · ${formatWhen(approval.decidedAt)}` : ''}

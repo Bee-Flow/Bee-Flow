@@ -1,5 +1,5 @@
-import React, { Suspense, useMemo, useState } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import React, { Suspense, useMemo, useState } from 'react';
 import useTranslation from '../hooks/useTranslation';
 
 // Per-module host boundary for a runtime-loaded Studio app.
@@ -64,10 +64,10 @@ function ErrorCard({ label, onRetry }) {
     return (
         <div className="flex flex-col items-center justify-center w-full h-full py-16 px-6 text-center" data-testid="module-error-card">
             <AlertTriangle className="w-8 h-8 mb-3" style={{ color: '#f59e0b' }} />
-            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+            <p className="text-sm font-medium text-[var(--text-primary)]">
                 {t('modules.runtime_error_title', { name: label })}
             </p>
-            <p className="text-xs mt-1.5 max-w-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs mt-1.5 max-w-sm leading-relaxed text-[var(--text-muted)]">
                 {t('modules.runtime_error_body')}
             </p>
             <button

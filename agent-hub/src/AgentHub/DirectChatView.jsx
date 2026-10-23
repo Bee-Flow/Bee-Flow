@@ -9,8 +9,8 @@ import ProjectContextPill from '../components/chat/ProjectContextPill';
 import SharedChatReadOnly, { isReadOnlySharedChat } from '../components/chat/SharedChatReadOnly';
 import CoworkModeToggle from '../components/cowork/CoworkModeToggle';
 import CoworkWelcome from '../components/cowork/CoworkWelcome';
-import { lazy } from '../utils/lazyWithReload';
 import { useTranslation } from '../hooks/useTranslation';
+import { lazy } from '../utils/lazyWithReload';
 
 const WebpagePickerPopover = lazy(() => import('../components/webpages/WebpagePickerPopover'));
 
@@ -207,12 +207,12 @@ const DirectChatView = ({
                                         {attachedWebpageSelection && sidePanelWebpageId && (
                                             <div className="mx-4 mb-2 px-3 py-2 rounded-lg border flex items-start gap-2"
                                                  style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-                                                <div className="text-[11px] mt-0.5" style={{ color: 'var(--accent-primary)' }}>↳</div>
+                                                <div className="text-[11px] mt-0.5 text-[var(--accent-primary)]">↳</div>
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="text-[11px] font-medium mb-0.5" style={{ color: 'var(--text-secondary)' }}>
+                                                    <div className="text-[11px] font-medium mb-0.5 text-[var(--text-secondary)]">
                                                         {t('chat.direct_selection_from_page', 'Selection from page')}{attachedWebpageSelection.tagName ? ` · <${attachedWebpageSelection.tagName}>` : ''}
                                                     </div>
-                                                    <div className="text-[12px] truncate" style={{ color: 'var(--text-primary)' }}>
+                                                    <div className="text-[12px] truncate text-[var(--text-primary)]">
                                                         {attachedWebpageSelection.text.length > 140 ? attachedWebpageSelection.text.slice(0, 140) + '…' : attachedWebpageSelection.text}
                                                     </div>
                                                 </div>
@@ -221,7 +221,7 @@ const DirectChatView = ({
                                                     className="p-0.5 rounded hover:bg-[var(--bg-tertiary)]"
                                                     title={t('webpages.chat.selection_remove', 'Remove selection')}
                                                 >
-                                                    <X className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
+                                                    <X className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
                                                 </button>
                                             </div>
                                         )}

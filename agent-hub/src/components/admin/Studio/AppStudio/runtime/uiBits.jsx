@@ -55,8 +55,7 @@ export function EmptyText({ text, icon: Icon = null, title = null, art = null })
     if (!Icon && !title && !art) {
         return (
             <div
-                className="flex h-full min-h-0 items-center justify-center text-sm py-1 text-center"
-                style={{ color: 'var(--text-muted)' }}
+                className="flex h-full min-h-0 items-center justify-center text-sm py-1 text-center text-[var(--text-muted)]"
             >
                 {text || t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.')}
             </div>
@@ -65,7 +64,7 @@ export function EmptyText({ text, icon: Icon = null, title = null, art = null })
     return (
         <div className="flex h-full min-h-0 flex-col items-center justify-center gap-1.5 py-6 text-center">
             {art ? (
-                <span className="mb-1" style={{ color: 'var(--text-tertiary)' }}>
+                <span className="mb-1 text-[var(--text-tertiary)]">
                     <Illustration name={art} />
                 </span>
             ) : Icon ? (
@@ -78,9 +77,9 @@ export function EmptyText({ text, icon: Icon = null, title = null, art = null })
                 </span>
             ) : null}
             {title ? (
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{title}</span>
+                <span className="text-sm font-medium text-[var(--text-primary)]">{title}</span>
             ) : null}
-            <span className="text-sm max-w-xs" style={{ color: 'var(--text-muted)' }}>
+            <span className="text-sm max-w-xs text-[var(--text-muted)]">
                 {text || t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.')}
             </span>
         </div>
@@ -96,7 +95,7 @@ export function Field({ id, label, required, error, children }) {
     return (
         <div className="flex flex-col gap-1 text-left">
             {label ? (
-                <label htmlFor={id} className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                <label htmlFor={id} className="text-sm font-medium text-[var(--text-primary)]">
                     {label}
                     {required ? <span aria-hidden="true" style={{ color: 'var(--error)' }}> *</span> : null}
                 </label>
@@ -245,7 +244,7 @@ export function ErrorText({ error, errorCode = null, onRetry = null }) {
                     : t('studio_apps_runtime.ui.could_not_load', 'This could not be loaded.')}
             </span>
             {error ? (
-                <span className="text-xs max-w-xs" style={{ color: 'var(--text-muted)' }}>{String(error)}</span>
+                <span className="text-xs max-w-xs text-[var(--text-muted)]">{String(error)}</span>
             ) : null}
             {onRetry && !needsConnection ? (
                 <button

@@ -43,7 +43,7 @@ const SettingsDropdown = ({ label, options, value, onChange, accentColor = '#3B8
                 className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[11px] font-medium transition-all"
                 style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}>
                 <span>{selected.label}</span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} style={{ color: 'var(--text-muted)' }} />
+                <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''} text-[var(--text-muted)]`} />
             </button>
             {open && (
                 <div className="absolute top-full left-0 right-0 mt-1 rounded-lg border shadow-xl z-[60] max-h-40 overflow-y-auto bg-[var(--bg-secondary)] border-[var(--border-subtle)]">

@@ -153,7 +153,7 @@ export default function RetentionPanel({ table, canEdit, columns = [], onChanged
             <div className="grid gap-3 md:grid-cols-2">
                 <section style={CARD} className="p-4 flex flex-col gap-2.5">
                     <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
-                        <Timer className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
+                        <Timer className="w-3.5 h-3.5 text-[var(--text-secondary)]" aria-hidden="true" />
                         {t('datatables.retention_title', 'Rows are deleted after')}
                     </h3>
 
@@ -310,7 +310,7 @@ function ExpiringSoon({ t, table, columns }: { t: TranslateFn; table: RetentionT
     return (
         <section style={CARD} className="p-4 flex flex-col gap-2.5">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
-                <History className="w-3.5 h-3.5" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
+                <History className="w-3.5 h-3.5 text-[var(--text-secondary)]" aria-hidden="true" />
                 {t('datatables.expiring_title', 'About to expire')}
             </h3>
 

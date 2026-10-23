@@ -496,7 +496,7 @@ function BlockerList({ errors, warnings, revealTarget, onReveal, context = 'publ
             {warnings.length > 0 ? (
                 <IssuePanel
                     issues={warnings}
-                    icon={<Info className="h-4 w-4 shrink-0" aria-hidden="true" style={{ color: 'var(--text-tertiary)' }} />}
+                    icon={<Info className="h-4 w-4 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />}
                     title={warnings.length === 1
                         ? t('app_studio.publish.warnings_title', '{n} thing worth a look', { n: warnings.length })
                         : t('app_studio.publish.warnings_title_plural', '{n} things worth a look', { n: warnings.length })}

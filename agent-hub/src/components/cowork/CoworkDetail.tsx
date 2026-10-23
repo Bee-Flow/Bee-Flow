@@ -120,7 +120,7 @@ function DetailHeader({ item, status, t, busy, onEdit, onToggle, onDelete, onRun
             className="flex items-center gap-2.5 px-5 py-2.5 border-b flex-wrap border-[var(--border-subtle)]"
         >
             <div style={tile.tile}><AgentIcon aria-hidden="true" style={tile.glyph} /></div>
-            <h2 className="text-[14px] font-semibold truncate min-w-0" style={{ color: 'var(--text-primary)' }}>
+            <h2 className="text-[14px] font-semibold truncate min-w-0 text-[var(--text-primary)]">
                 {item.title || t('cowork.detail.untitled', 'Untitled cowork')}
             </h2>
             <span
@@ -190,8 +190,7 @@ function AssignmentCard({ item, agents, t }: { item: CoworkItem; agents?: Cowork
             data-testid="cowork-brief"
         >
             <h3
-                className="text-[10.5px] font-semibold uppercase tracking-wide"
-                style={{ color: 'var(--text-tertiary)' }}
+                className="text-[10.5px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]"
             >
                 {t('cowork.detail.assignment', 'The assignment')}
             </h3>
@@ -199,8 +198,7 @@ function AssignmentCard({ item, agents, t }: { item: CoworkItem; agents?: Cowork
                 typed, and a brief that opened with "# Weekly" is a sentence,
                 not a heading. */}
             <p
-                className="text-[13px] leading-[21px] max-w-[820px] whitespace-pre-wrap break-words"
-                style={{ color: 'var(--text-secondary)' }}
+                className="text-[13px] leading-[21px] max-w-[820px] whitespace-pre-wrap break-words text-[var(--text-secondary)]"
             >
                 {item.prompt}
             </p>
@@ -257,7 +255,7 @@ export default function CoworkDetail({
     if (editing) {
         return (
             <div className="h-full overflow-y-auto custom-scrollbar p-5" data-testid="cowork-detail">
-                <h2 className="text-[17px] font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
+                <h2 className="text-[17px] font-semibold mb-4 text-[var(--text-primary)]">
                     {t('cowork.detail.edit_heading', 'Edit cowork')}
                 </h2>
                 <CoworkEditForm

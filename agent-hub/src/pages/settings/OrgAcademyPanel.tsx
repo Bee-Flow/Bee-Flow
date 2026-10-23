@@ -193,7 +193,7 @@ function OrgAcademyOverview() {
                     {/* Filters */}
                     <div className="flex items-center gap-2 mb-3 flex-wrap">
                         <div className="relative flex-1 min-w-[200px]">
-                            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                             <input value={query} onChange={(e) => setQuery(e.target.value)}
                                 placeholder={t('org.academy.search', 'Search members…')}
                                 className="w-full pl-9 pr-3 py-2 rounded-lg border text-sm outline-none focus:border-[var(--accent-primary)]"

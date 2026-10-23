@@ -123,7 +123,7 @@ export default function SummaryView({
                     onClick={() => pick({ templateId: tpl.id })}
                     className="flex-1 min-w-0 text-left px-3 py-1.5 text-xs flex items-center gap-1.5 text-[var(--text-primary)]"
                 >
-                    {defaultTemplateId === tpl.id && <Star className="w-3 h-3 flex-shrink-0 fill-current" style={{ color: 'var(--accent-primary)' }} />}
+                    {defaultTemplateId === tpl.id && <Star className="w-3 h-3 flex-shrink-0 fill-current text-[var(--accent-primary)]" />}
                     <span className="truncate">{tpl.name}</span>
                     {tpl.scope === 'group' && (
                         <span className="ml-1 px-1 py-px rounded text-[9px] font-medium bg-[var(--bg-tertiary)] text-[var(--text-muted)]">
@@ -152,9 +152,9 @@ export default function SummaryView({
         <div className="flex flex-col gap-3 h-full">
             <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                    <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('meeting_notes.summary', 'Summary')}</h2>
+                    <h2 className="text-sm font-semibold text-[var(--text-primary)]">{t('meeting_notes.summary', 'Summary')}</h2>
                     {stampText && (
-                        <p className="mt-0.5 text-[11px] truncate" style={{ color: 'var(--text-muted)' }} data-testid="summary-template-stamp">
+                        <p className="mt-0.5 text-[11px] truncate text-[var(--text-muted)]" data-testid="summary-template-stamp">
                             {stampText}
                         </p>
                     )}

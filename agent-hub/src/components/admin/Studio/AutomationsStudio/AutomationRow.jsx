@@ -1,8 +1,8 @@
 import { Trash2, Mail, Clock, Webhook, Bot, MousePointer2, MoreVertical } from 'lucide-react';
 import React, { useState } from 'react';
-import ContextMenu from './ContextMenu';
 import { buildAutomationMenuItems } from './automationMenuItems';
 import { automationStatusParts, roleOf, roleLabel } from './automationStatus';
+import ContextMenu from './ContextMenu';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { describeCron } from '../../../automation/Builder/flow/scheduleBuilderUtils';
 import { STATUS_TOKENS, tokenFor } from '../../../shared/statusTokens';

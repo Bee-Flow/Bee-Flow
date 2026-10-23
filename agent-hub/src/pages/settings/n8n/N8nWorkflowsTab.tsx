@@ -87,7 +87,7 @@ export default function N8nWorkflowsTab({ configured, wfs }: { configured: boole
             {/* Search + Refresh */}
             <div className="flex items-center gap-2">
                 <div className="flex-1 relative">
-                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                     <input
                         type="text" value={wfs.wfSearch} onChange={e => wfs.setWfSearch(e.target.value)}
                         placeholder={t('settings.n8n.search_workflows', 'Search workflows...')}

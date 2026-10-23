@@ -108,7 +108,7 @@ export default function SideWebpagePanel({
     return (
         <div className="flex flex-col h-full bg-[var(--bg-primary)]">
             <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-[var(--border-subtle)]">
-                <Globe className="w-4 h-4 shrink-0" style={{ color: 'var(--accent-primary)' }} />
+                <Globe className="w-4 h-4 shrink-0 text-[var(--accent-primary)]" />
                 <span className="text-sm font-semibold truncate flex-1 text-[var(--text-primary)]">
                     {wp?.name || (state.loading ? 'Loading…' : 'Webpage')}
                 </span>
@@ -118,7 +118,7 @@ export default function SideWebpagePanel({
                         title={t('webpages.side_panel.open_in_editor', 'Open in editor')}
                         className="p-1 rounded hover:bg-[var(--bg-secondary)]"
                     >
-                        <Pencil className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                        <Pencil className="w-4 h-4 text-[var(--text-secondary)]" />
                     </button>
                 )}
                 <button
@@ -126,19 +126,19 @@ export default function SideWebpagePanel({
                     title={t('common.close', 'Close')}
                     className="p-1 rounded hover:bg-[var(--bg-secondary)]"
                 >
-                    <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                    <X className="w-4 h-4 text-[var(--text-secondary)]" />
                 </button>
             </div>
 
             <div className="flex-1 min-h-0">
                 {state.loading && (
                     <div className="h-full flex items-center justify-center">
-                        <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--accent-primary)' }} />
+                        <Loader2 className="w-5 h-5 animate-spin text-[var(--accent-primary)]" />
                     </div>
                 )}
                 {state.error && (
                     <div className="h-full flex flex-col items-center justify-center text-center px-6">
-                        <Globe className="w-8 h-8 mb-3" style={{ color: 'var(--text-tertiary)' }} />
+                        <Globe className="w-8 h-8 mb-3 text-[var(--text-tertiary)]" />
                         <div className="text-sm font-semibold mb-1 text-[var(--text-primary)]">
                             {t('webpages.side_panel.unavailable', 'Webpage unavailable')}
                         </div>

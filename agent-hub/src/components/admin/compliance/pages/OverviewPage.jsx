@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from 'react';
 import { ChevronRight } from 'lucide-react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import Disclosure from '../../../shared/Disclosure';
 import { sectionById } from '../sections';
@@ -7,13 +7,13 @@ import { splitByToday } from '../shared/calendarMath';
 import RegulatoryCalendar from '../shared/RegulatoryCalendar';
 import { OverviewSkeleton, CheckCardSkeleton } from '../shared/Skeleton';
 import { PAGE_FRAME } from './audits/auditForms';
-import FrameworkScoreCard from './overview/FrameworkScoreCard';
-import OtherFrameworksCard from './overview/OtherFrameworksCard';
 import AttentionList from './overview/AttentionList';
 import DeadlinesCard from './overview/DeadlinesCard';
-import UpcomingDatesCard from './overview/UpcomingDatesCard';
+import FrameworkScoreCard from './overview/FrameworkScoreCard';
+import OtherFrameworksCard from './overview/OtherFrameworksCard';
 import ReportsTab from './overview/ReportsTab';
 import SetupCard from './overview/SetupCard';
+import UpcomingDatesCard from './overview/UpcomingDatesCard';
 
 /**
  * OverviewPage — Compliance › Overview (artboard 1a + 1g, PLAN-FRONTEND C6/C13).

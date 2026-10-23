@@ -16,10 +16,10 @@ import useCopyToClipboard from '../../../../hooks/useCopyToClipboard';
 import useTranslation from '../../../../hooks/useTranslation';
 import AnchoredMenu from '../../../shared/AnchoredMenu';
 import DangerZone from '../../../shared/DangerZone';
+import { managedOf } from '../../../shared/managedPart';
+import ManagedPartBanner from '../../../shared/ManagedPartBanner';
 import Modal from '../../../shared/Modal';
 import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
-import ManagedPartBanner from '../../../shared/ManagedPartBanner';
-import { managedOf } from '../../../shared/managedPart';
 import UsedByTab from '../../../shared/UsedByTab';
 import AnswersDashboard from '../Forms/answers/AnswersDashboard';
 
@@ -502,14 +502,14 @@ function TableMenu({ t, table, canEdit, mirror = null, isMirror = false, onRenam
                 {onRename && (
                     <button type="button" role="menuitem" onClick={() => { setOpen(false); onRename(); }}
                         className={MENU_ITEM} style={{ color: 'var(--text-primary)' }} data-testid="menu-rename">
-                        <Pencil className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                        <Pencil className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                         {t('datatables.menu_rename', 'Rename table')}
                     </button>
                 )}
                 {onDuplicate && (
                     <button type="button" role="menuitem" onClick={duplicate} disabled={busy}
                         className={MENU_ITEM} style={{ color: 'var(--text-primary)' }} data-testid="menu-duplicate">
-                        <Copy className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                        <Copy className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                         <span className="min-w-0 flex-1 text-left">
                             <span className="block">{t('datatables.menu_duplicate', 'Duplicate')}</span>
                             <span className="block text-[11px] text-[var(--text-tertiary)]">{t('datatables.menu_duplicate_hint', 'columns only, no rows')}</span>
@@ -518,12 +518,12 @@ function TableMenu({ t, table, canEdit, mirror = null, isMirror = false, onRenam
                 )}
                 <button type="button" role="menuitem" onClick={exportCsv}
                     className={MENU_ITEM} style={{ color: 'var(--text-primary)' }}>
-                    <Download className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                    <Download className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                     {t('datatables.export_csv_menu', 'Export (CSV)')}
                 </button>
                 <button type="button" role="menuitem" onClick={() => copy(table.key)}
                     className={MENU_ITEM} style={{ color: 'var(--text-primary)' }}>
-                    <Tag className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                    <Tag className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                     <span className="min-w-0 flex-1 text-left">
                         <span className="block">{t('datatables.field_key', 'Technical name')}</span>
                         <code className="block text-[11px] font-mono truncate text-[var(--text-tertiary)]">{table.key}</code>
@@ -533,14 +533,14 @@ function TableMenu({ t, table, canEdit, mirror = null, isMirror = false, onRenam
                 {canEdit && (
                     <button type="button" role="menuitem" onClick={() => { setOpen(false); setHealth(true); }}
                         className={MENU_ITEM} style={{ color: 'var(--text-primary)' }}>
-                        <Stethoscope className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                        <Stethoscope className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                         {t('datatables.check_repair', 'Check & repair')}
                     </button>
                 )}
                 {sourceUrl && (
                     <a role="menuitem" href={sourceUrl} target={sourceTargetOf(table, mirror.source)} rel="noopener noreferrer"
                         onClick={() => setOpen(false)} className={MENU_ITEM} style={{ color: 'var(--text-primary)' }}>
-                        <ExternalLink className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                        <ExternalLink className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                         {t('datatables.src_open_in', 'Open in {source}', { source: sourceNameOf(table, mirror?.source) })}
                     </a>
                 )}

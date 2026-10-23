@@ -125,7 +125,7 @@ export default function AppStat({ node }) {
                 </span>
             ) : null}
             <div className="min-w-0 flex-1">
-                <div className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{label}</div>
+                <div className="text-xs font-medium text-[var(--text-secondary)]">{label}</div>
                 {error
                     ? <ErrorText error={error} errorCode={errorCode} />
                     : isLoading
@@ -163,7 +163,7 @@ export default function AppStat({ node }) {
                             </span>
                         ))}
                     </div>
-                ) : caption ? <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{caption}</div> : null}
+                ) : caption ? <div className="text-xs text-[var(--text-muted)]">{caption}</div> : null}
                 {sparkData.length >= 2 ? (
                     <div className="mt-1.5" data-app-stat-trend="true">
                         <LineChart width={96} height={28} data={sparkData}>

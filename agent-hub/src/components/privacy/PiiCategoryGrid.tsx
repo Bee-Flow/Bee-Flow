@@ -89,7 +89,7 @@ export function PiiCategoryGrid({ value, onChange, categories, label = 'Kinds of
                                 className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-[var(--accent-primary)] focus:ring-0"
                             />
                             {Icon
-                                ? <Icon className="w-4 h-4 shrink-0" aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
+                                ? <Icon className="w-4 h-4 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
                                 : <span aria-hidden="true">{cat.icon}</span>}
                             <span>{cat.label}</span>
                         </label>

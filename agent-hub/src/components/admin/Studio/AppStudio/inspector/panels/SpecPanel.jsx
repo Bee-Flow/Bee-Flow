@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import BindingField from './BindingField';
-import ExpressionInput from '../logic/ExpressionInput';
 import { TextField, TextAreaField, NumberField, IconField, usePatch } from './kit';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import FormField from '../../../../../shared/FormField';
@@ -9,6 +8,7 @@ import Toggle from '../../../../../shared/Toggle';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
 import { getComponentEntry } from '../../runtime/componentRegistry';
 import { studioAppsApi } from '../../studioAppsApi';
+import ExpressionInput from '../logic/ExpressionInput';
 
 /**
  * SpecPanel — the GENERIC inspector Content panel, rendered from the server

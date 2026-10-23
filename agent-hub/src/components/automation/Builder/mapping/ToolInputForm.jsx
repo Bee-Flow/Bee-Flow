@@ -7,10 +7,10 @@ import ToolParamField from './toolInput/ToolParamField';
 import useVariablePicker from './useVariablePicker';
 import VariablePicker from './VariablePicker';
 import { useVariablePickerContext } from './VariablePickerContext';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { canonicalRefPath, suggestKeyFromPath } from '../../../../utils/bindingHelpers';
 import { useFormMode } from '../flow/settings/formDensity';
 import { actionButtonClass, subLabelClass } from '../flow/settings/formStyles';
-import { useTranslation } from '../../../../hooks/useTranslation';
 
 /**
  * Schema-driven inputs editor for a step's `inputs` map.

@@ -115,7 +115,7 @@ export default function WallpaperPresets({ value, onChange, disabled = false }: 
                         />
                         <div className="flex items-center gap-2 mt-2">
                             <span className="text-sm font-medium text-[var(--text-primary)]">{p.label}</span>
-                            {active && <Check className="w-3.5 h-3.5 ml-auto" style={{ color: 'var(--accent-primary)' }} />}
+                            {active && <Check className="w-3.5 h-3.5 ml-auto text-[var(--accent-primary)]" />}
                         </div>
                         <p className="text-[11px] text-[var(--text-muted)]">{p.hint}</p>
                     </button>

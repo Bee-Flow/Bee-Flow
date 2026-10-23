@@ -1,8 +1,8 @@
-import React from 'react';
 import { CalendarDays, ChevronRight } from 'lucide-react';
+import React from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import RegulatoryCalendar from '../../shared/RegulatoryCalendar';
 import { formatCalDate } from '../../shared/calendarMath';
+import RegulatoryCalendar from '../../shared/RegulatoryCalendar';
 
 /**
  * UpcomingDatesCard — the Overview's "Upcoming dates" card (artboard 1a, C6).

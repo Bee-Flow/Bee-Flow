@@ -121,7 +121,7 @@ export default function SkillsGrid({
 
                     <div className="flex items-center gap-3 mb-4">
                         <div className="relative flex-1">
-                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-tertiary)' }} />
+                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-tertiary)]" />
                             <input
                                 value={search}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}

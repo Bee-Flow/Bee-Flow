@@ -1,9 +1,9 @@
 import { Building2, RefreshCw, Search, UserRound } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
 import ApprovalDetail from './ApprovalDetail';
 import { approvalOriginText, approvalStatusChip, formatWhen, STATUS_TABS } from './approvalDisplay';
 import useApprovals from './useApprovals';
+import useTranslation from '../../../../hooks/useTranslation';
 import { RequireTier } from '../../../licensing/LicenseContext';
 
 /**

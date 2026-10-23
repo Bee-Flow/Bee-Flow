@@ -1,9 +1,9 @@
 import { ArrowLeft, Check, Loader2, AlertTriangle, Upload, Trash2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import useTranslation from '../../hooks/useTranslation';
-import { getHouseStyle, saveHouseStyle, fileToDataUrl, previewDeckTheme } from './documentsApi';
-import DeckPreview from './DeckPreview';
 import DeckLookFields, { DECK_FALLBACK, DEFAULT_DECK } from './DeckLookFields';
+import DeckPreview from './DeckPreview';
+import { getHouseStyle, saveHouseStyle, fileToDataUrl, previewDeckTheme } from './documentsApi';
+import useTranslation from '../../hooks/useTranslation';
 
 /**
  * The organisation's letterhead: logo, colours, font and the company details
@@ -133,7 +133,7 @@ export default function HouseStylePanel({ onBack }) {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full">
-                <Loader2 className="animate-spin" size={22} style={{ color: 'var(--accent-primary)' }} />
+                <Loader2 className="animate-spin text-[var(--accent-primary)]" size={22} />
             </div>
         );
     }

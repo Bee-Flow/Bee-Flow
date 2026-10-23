@@ -52,7 +52,7 @@ function TableSizePicker({ tt, onPick }: { tt: ReturnType<typeof mkTt>; onPick: 
   const [hover, setHover] = useState<{ r: number; c: number }>({ r: 0, c: 0 });
   return (
     <div className="p-2" onMouseLeave={() => setHover({ r: 0, c: 0 })}>
-      <div className="text-[10px] mb-1.5 text-center" style={{ color: 'var(--text-secondary)' }}>
+      <div className="text-[10px] mb-1.5 text-center text-[var(--text-secondary)]">
         {hover.r > 0 ? `${hover.r} × ${hover.c}` : tt('notebooks.pick_table_size', 'Pick a size')}
       </div>
       <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${MAX_C}, 14px)` }}>
@@ -299,8 +299,8 @@ export default function EditorToolbar({
       <div className="flex-1 min-w-[8px]" />
       {onFind && <div className="shrink-0"><Btn onClick={onFind} icon={Search} title={tt('editor.find_label', 'Find in document')} /></div>}
       {onShowShortcuts && <div className="shrink-0"><Btn onClick={onShowShortcuts} icon={Keyboard} title={tt('editor.shortcuts_title', 'Keyboard shortcuts')} /></div>}
-      <span className="hidden sm:inline text-[10px] shrink-0" style={{ color: 'var(--text-tertiary)' }}>{wordCount} {tt('notebooks.words', 'Words')}</span>
-      {saving && <span className="text-[10px] animate-pulse ml-1 shrink-0" style={{ color: 'var(--accent-primary)' }}>{tt('notebooks.saving', 'Saving…')}</span>}
+      <span className="hidden sm:inline text-[10px] shrink-0 text-[var(--text-tertiary)]">{wordCount} {tt('notebooks.words', 'Words')}</span>
+      {saving && <span className="text-[10px] animate-pulse ml-1 shrink-0 text-[var(--accent-primary)]">{tt('notebooks.saving', 'Saving…')}</span>}
     </div>
   );
 }

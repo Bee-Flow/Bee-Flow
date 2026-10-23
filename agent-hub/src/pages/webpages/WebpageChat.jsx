@@ -266,7 +266,7 @@ export default function WebpageChat({
                         }}
                         title={t('webpages.chat.selection_hint', "This selection will be sent with your next message so the AI knows what you mean by 'this'.")}
                     >
-                        <MousePointer2 size={11} className="mt-0.5 shrink-0" style={{ color: 'var(--accent-primary)' }} />
+                        <MousePointer2 size={11} className="mt-0.5 shrink-0 text-[var(--accent-primary)]" />
                         <div className="flex-1 min-w-0">
                             <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--accent-primary)', opacity: 0.85 }}>
                                 {t('webpages.chat.selection_from_preview', 'Selection from preview')}{attachedSelection.tagName ? ` · <${attachedSelection.tagName}>` : ''}

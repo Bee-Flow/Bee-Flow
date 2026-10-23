@@ -132,7 +132,7 @@ export function BarRow({ label, fraction, value, color = 'var(--accent-primary)'
     );
     const className = 'w-full flex items-center gap-2 text-xs';
     return onClick ? (
-        <button type="button" onClick={onClick} title={title} className={`${className} hover:opacity-80 transition-opacity`} style={{ color: 'var(--text-secondary)' }}>
+        <button type="button" onClick={onClick} title={title} className={`${className} hover:opacity-80 transition-opacity text-[var(--text-secondary)]`}>
             {body}
         </button>
     ) : (

@@ -64,7 +64,7 @@ export default function UploadPanel({ onComplete }: { onComplete?: () => void })
 
             {(uploading || uploadStage) && (
                 <div className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">
-                    <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--accent-primary)' }} />
+                    <Loader2 className="w-4 h-4 animate-spin text-[var(--accent-primary)]" />
                     <span className="text-sm text-[var(--text-secondary)]">{uploadStage || t('meetings.upload_working', 'Working…')}</span>
                 </div>
             )}

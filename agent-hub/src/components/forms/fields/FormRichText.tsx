@@ -17,13 +17,13 @@ const FORM_MD_COMPONENTS = {
         <a {...props} target="_blank" rel="noopener noreferrer nofollow"
             style={{ color: 'var(--app-primary)', textDecoration: 'underline' }} />
     ),
-    h1: ({ node: _node, ...props }: MdProps<'h1'>) => <h2 {...props} className="text-lg font-semibold mt-5 mb-2" style={{ color: 'var(--text-primary)' }} />,
-    h2: ({ node: _node, ...props }: MdProps<'h2'>) => <h3 {...props} className="text-base font-semibold mt-5 mb-1.5" style={{ color: 'var(--text-primary)' }} />,
-    h3: ({ node: _node, ...props }: MdProps<'h3'>) => <h4 {...props} className="text-sm font-semibold mt-4 mb-1" style={{ color: 'var(--text-primary)' }} />,
+    h1: ({ node: _node, ...props }: MdProps<'h1'>) => <h2 {...props} className="text-lg font-semibold mt-5 mb-2 text-[var(--text-primary)]" />,
+    h2: ({ node: _node, ...props }: MdProps<'h2'>) => <h3 {...props} className="text-base font-semibold mt-5 mb-1.5 text-[var(--text-primary)]" />,
+    h3: ({ node: _node, ...props }: MdProps<'h3'>) => <h4 {...props} className="text-sm font-semibold mt-4 mb-1 text-[var(--text-primary)]" />,
     p: ({ node: _node, ...props }: MdProps<'p'>) => <p {...props} className="mb-3" />,
     ul: ({ node: _node, ...props }: MdProps<'ul'>) => <ul {...props} className="list-disc pl-5 mb-3 flex flex-col gap-1" />,
     ol: ({ node: _node, ...props }: MdProps<'ol'>) => <ol {...props} className="list-decimal pl-5 mb-3 flex flex-col gap-1" />,
-    strong: ({ node: _node, ...props }: MdProps<'strong'>) => <strong {...props} style={{ color: 'var(--text-primary)' }} />,
+    strong: ({ node: _node, ...props }: MdProps<'strong'>) => <strong {...props} className="text-[var(--text-primary)]" />,
     hr: ({ node: _node, ...props }: MdProps<'hr'>) => <hr {...props} className="my-5" style={{ borderColor: 'var(--border-subtle)' }} />,
     blockquote: ({ node: _node, ...props }: MdProps<'blockquote'>) => (
         <blockquote {...props} className="pl-3 my-3" style={{ borderLeft: '3px solid var(--border-default)' }} />
@@ -40,7 +40,7 @@ const FORM_MD_COMPONENTS = {
         </div>
     ),
     th: ({ node: _node, ...props }: MdProps<'th'>) => (
-        <th {...props} className="py-1 pr-6 last:pr-0 align-top font-semibold" style={{ color: 'var(--text-primary)' }} />
+        <th {...props} className="py-1 pr-6 last:pr-0 align-top font-semibold text-[var(--text-primary)]" />
     ),
     td: ({ node: _node, ...props }: MdProps<'td'>) => <td {...props} className="py-1 pr-6 last:pr-0 align-top" />,
 };

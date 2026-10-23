@@ -36,7 +36,7 @@ export default function AppCard({ node, children }) {
                 <div className={fill ? 'shrink-0' : undefined}>
                     {title ? <div className="font-medium">{title}</div> : null}
                     {description ? (
-                        <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>{description}</div>
+                        <div className="text-sm text-[var(--text-secondary)]">{description}</div>
                     ) : null}
                 </div>
             ) : null}

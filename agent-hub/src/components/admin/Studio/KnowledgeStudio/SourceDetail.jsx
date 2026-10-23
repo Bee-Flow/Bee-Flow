@@ -136,7 +136,7 @@ export default function SourceDetail({
                             {t('knowledge.sources.refresh_label', 'Refresh: {mode}', {
                                 mode: t(refreshModeKey(source?.refreshMode), source?.refreshMode || 'manual'),
                             })}
-                            <ChevronDown className="w-3 h-3" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                            <ChevronDown className="w-3 h-3 text-[var(--text-tertiary)]" aria-hidden="true" />
                         </button>
                         <ScheduleMenu
                             open={scheduleOpen}
@@ -153,7 +153,7 @@ export default function SourceDetail({
                 <div className="flex items-center gap-2.5">
                     <FilterChips t={t} value={filter} onChange={(v) => { setFilter(v); setOffset(0); }} source={source} />
                     <label className="relative block shrink-0 ml-auto" style={{ width: 220 }}>
-                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-tertiary)]" aria-hidden="true" />
                         <input
                             value={query}
                             onChange={(e) => { setQuery(e.target.value); setOffset(0); }}
@@ -283,7 +283,7 @@ function DocRow({ t, rel, doc, last, canManage, kbId, onChanged }) {
             data-status={doc.status || 'processed'}
         >
             <span className="flex items-center gap-2 min-w-0">
-                <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-secondary)' }} aria-hidden="true" />
+                <Icon className="w-3.5 h-3.5 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
                 <span className="min-w-0">
                     <span className="block font-medium truncate text-[var(--text-primary)]">{doc.title}</span>
                     <span className="block truncate text-[var(--text-tertiary)]">{sizeLine(t, doc)}</span>

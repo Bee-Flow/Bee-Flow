@@ -1,14 +1,14 @@
-import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, AlertCircle, Globe } from 'lucide-react';
-import { useTranslation } from '../../hooks/useTranslation';
-import beeFlowLogo from '../../assets/bee-flow-logo.svg';
+import React, { useState, useMemo, useEffect } from 'react';
 
-import SignupStepOrg from './SignupStepOrg';
-import SignupStepAuth from './SignupStepAuth';
-import SignupStepPrivacy from './SignupStepPrivacy';
 import SignupStepAccount from './SignupStepAccount';
-import PlanGrid from '../../components/billing/PlanGrid';
+import SignupStepAuth from './SignupStepAuth';
+import SignupStepOrg from './SignupStepOrg';
+import SignupStepPrivacy from './SignupStepPrivacy';
 import { validateStep } from './signupValidation';
+import beeFlowLogo from '../../assets/bee-flow-logo.svg';
+import PlanGrid from '../../components/billing/PlanGrid';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * SignupWizard — full-page onboarding wizard for new web signups.

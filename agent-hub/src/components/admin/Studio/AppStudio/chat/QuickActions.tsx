@@ -96,7 +96,7 @@ export default function QuickActions({ onAction, disabled = false, hasErrors = f
                         title={tr(a.title)}
                         className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-opacity hover:bg-[var(--bg-tertiary)] disabled:opacity-40 border-[var(--border-default)] text-[var(--text-secondary)]"
                     >
-                        <Icon className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                        <Icon className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
                         {tr(a.label)}
                     </button>
                 );

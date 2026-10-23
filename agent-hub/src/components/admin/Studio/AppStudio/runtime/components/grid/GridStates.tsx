@@ -102,10 +102,10 @@ export function GridNoMatchRow({ colSpan, activeFilterCount, clearFilters }: { c
     return (
         <tr>
             <td colSpan={colSpan} className="px-3 py-8 text-center">
-                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('studio_apps_runtime.grid.no_rows_match', 'No rows match')}</p>
+                <p className="text-sm font-medium text-[var(--text-primary)]">{t('studio_apps_runtime.grid.no_rows_match', 'No rows match')}</p>
                 {activeFilterCount > 0 ? (
                     <>
-                        <p className="mt-0.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
                             {activeFilterCount === 1
                                 ? t('studio_apps_runtime.grid.one_filter_hiding', 'One filter is hiding the rest.')
                                 : t('studio_apps_runtime.grid.n_filters_hiding', '{n} filters are hiding the rest.', { n: activeFilterCount })}

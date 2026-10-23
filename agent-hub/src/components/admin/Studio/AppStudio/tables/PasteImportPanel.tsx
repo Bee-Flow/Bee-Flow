@@ -202,7 +202,7 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
         <div className="flex min-h-[22rem] flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
-                    <ClipboardPaste className="h-4 w-4" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                    <ClipboardPaste className="h-4 w-4 text-[var(--accent-primary)]" aria-hidden="true" />
                     {t('studio_apps_tables.paste.title', 'Paste from a spreadsheet')}
                 </span>
                 <Button onClick={onClose} disabled={importing} className="ml-auto">{t('studio_apps_tables.paste.back', 'Back to rows')}</Button>
@@ -234,7 +234,7 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
                                 <span className="min-w-0 flex-1 truncate text-[var(--text-primary)]">
                                     {name || t('studio_apps_tables.paste.column_n', 'Column {n}', { n: index + 1 })}
                                 </span>
-                                <ArrowRight className="h-3 w-3 shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                                <ArrowRight className="h-3 w-3 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                                 <select
                                     className={SELECT_CLS}
                                     value={mapping[index] || NO_IMPORT}

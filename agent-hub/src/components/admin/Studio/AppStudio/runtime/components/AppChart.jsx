@@ -3,13 +3,13 @@ import {
     Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Line, LineChart,
     Pie, PieChart, ReferenceArea, ReferenceLine, Tooltip, XAxis, YAxis,
 } from 'recharts';
+import useMeasuredBox from '../../../../../shared/charts/useMeasuredBox';
+import { brandPalette } from '../appDesign';
 import {
     CHART_AXIS, CHART_GRID_STROKE, CHART_TOOLTIP_STYLE,
     PLACEHOLDER_DATA, PLACEHOLDER_SERIES_KEY, PLACEHOLDER_XKEY,
     makeValueFormatter, resolveSeriesColor,
 } from '../chartPalette';
-import useMeasuredBox from '../../../../../shared/charts/useMeasuredBox';
-import { brandPalette } from '../appDesign';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { isFill } from '../styleResolver';
@@ -538,7 +538,7 @@ export default function AppChart({ node }) {
             data-app-chart-xtype={isTime ? 'time' : 'category'}
         >
             {title ? (
-                <div className={`text-sm font-semibold mb-2${fitted ? ' shrink-0' : ''}`} style={{ color: 'var(--text-primary)' }}>{title}</div>
+                <div className={`text-sm font-semibold mb-2${fitted ? ' shrink-0' : ''} text-[var(--text-primary)]`}>{title}</div>
             ) : null}
             {/* overflow-hidden, not auto: when the plot is momentarily larger
                 than the room left (the frame before the first measurement) it

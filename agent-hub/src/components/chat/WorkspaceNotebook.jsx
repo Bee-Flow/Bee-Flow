@@ -1,13 +1,13 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react';
-import RichTextEditor from '../../editor/react/RichTextEditor.jsx';
-import { API_BASE, authFetch } from '../../utils/helpers';
-import { logger } from '../../utils/logger';
-import { useTranslation } from '../../hooks/useTranslation';
 import {
     X, ExternalLink, Copy, Download, FileDown,
     Check, Loader2, ChevronDown, FileText,
 } from 'lucide-react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
+import RichTextEditor from '../../editor/react/RichTextEditor.jsx';
+import { useTranslation } from '../../hooks/useTranslation';
 import { renderMermaidToSVG, svgToPngDataUrl } from '../../pages/documents/notebook/MermaidBlock';
+import { API_BASE, authFetch } from '../../utils/helpers';
+import { logger } from '../../utils/logger';
 
 /* ── Embed images as base64 for export ───────────────────────── */
 async function embedImagesAsBase64(html) {
@@ -383,7 +383,7 @@ export default function WorkspaceNotebook({
             >
                 <div className="flex items-center gap-2">
                     <span className="text-sm">📓</span>
-                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                         {t('notebooks.panel_title', 'Notebook')}
                     </h3>
                     {saving && (

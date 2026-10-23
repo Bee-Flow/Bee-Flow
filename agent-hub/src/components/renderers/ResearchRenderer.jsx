@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { useTranslation } from '../../hooks/useTranslation';
 import { ExternalLink, ChevronDown, ChevronRight, Lightbulb, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import React, { useState } from 'react';
 import MarkdownRenderer from './MarkdownRenderer';
+import { useTranslation } from '../../hooks/useTranslation';
 
 /**
  * ResearchRenderer — Renders structured deep research reports.

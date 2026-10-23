@@ -71,7 +71,7 @@ const RetryTierMenu = ({ idx, onRetry, setShowRetryMenu, retryMenuRef, retryMenu
                             {meta.iconSrc ? (
                                 <img src={meta.iconSrc} alt="" className="w-4 h-4 object-contain" />
                             ) : meta.Icon ? (
-                                <meta.Icon className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                                <meta.Icon className="w-4 h-4 text-[var(--text-secondary)]" />
                             ) : (
                                 <span className="text-lg">{meta.emoji}</span>
                             )}

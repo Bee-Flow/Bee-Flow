@@ -1,25 +1,25 @@
 import React, { useState, useEffect } from 'react';
+import ChatModelTiersConfig from './ChatModelTiersConfig';
 import DirectChatConfig from './DirectChatConfig';
 import EmbeddingsConfig from './EmbeddingsConfig';
 import LimitsConfig from './LimitsConfig';
-import ChatModelTiersConfig from './ChatModelTiersConfig';
 import AzureConfigCard from './ProviderCards/AzureCard';
 import ClaudeApiKeyCard from './ProviderCards/ClaudeCard';
+import ElevenLabsApiKeyCard from './ProviderCards/ElevenLabsCard';
 import EuGptApiKeyCard from './ProviderCards/EuGptCard';
 import GoogleApiKeyCard from './ProviderCards/GoogleCard';
+import GoogleVertexConfigCard from './ProviderCards/GoogleVertexCard';
+import LocalModelsCard from './ProviderCards/LocalModelsCard';
 import MistralApiKeyCard from './ProviderCards/MistralCard';
+import OpenAIApiKeyCard from './ProviderCards/OpenAICard';
 import ScalewayApiKeyCard from './ProviderCards/ScalewayCard';
+import RerankerConfig from './RerankerConfig';
+import WebSearchInferenceConfig from './WebSearchInferenceConfig';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { getModelMeta, CAT_COLORS } from '../../../utils/modelMeta';
 
-import WebSearchInferenceConfig from './WebSearchInferenceConfig';
 
-import OpenAIApiKeyCard from './ProviderCards/OpenAICard';
-import ElevenLabsApiKeyCard from './ProviderCards/ElevenLabsCard';
-import GoogleVertexConfigCard from './ProviderCards/GoogleVertexCard';
-import LocalModelsCard from './ProviderCards/LocalModelsCard';
-import RerankerConfig from './RerankerConfig';
 
 
 const AIConfigPanel = () => {
@@ -102,7 +102,7 @@ const AIConfigPanel = () => {
         return allModels.filter(m => m.providerName === providerName).length;
     };
 
-    if (loading) return <div className="text-sm p-4" style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.index_loading_providers', 'Loading providers...')}</div>;
+    if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_ai_config.index_loading_providers', 'Loading providers...')}</div>;
 
     const navItems = [
         { id: 'providers', label: t('admin.ai_api_keys'), icon: '🔑' },

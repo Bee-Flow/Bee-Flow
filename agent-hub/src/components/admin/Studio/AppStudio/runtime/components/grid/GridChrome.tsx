@@ -110,7 +110,7 @@ export function GridChromeRow({
             <div className={`flex flex-wrap items-center gap-x-3 gap-y-2${boxed ? ' shrink-0' : ''}`}>
                 {searchable ? (
                     <div className="relative min-w-[9rem] max-w-xs flex-1">
-                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
+                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
                         <input
                             value={globalFilter ?? ''}
                             onChange={(e) => setGlobalFilter(e.target.value)}
@@ -149,7 +149,7 @@ export function GridChromeRow({
                             style={{ background: 'var(--bg-primary)', borderColor: 'var(--app-primary)', color: 'var(--text-primary)', borderRadius: 'var(--app-radius)' }}
                         >
                             <span className="truncate">
-                                <span style={{ color: 'var(--text-secondary)' }}>{label} </span>
+                                <span className="text-[var(--text-secondary)]">{label} </span>
                                 <span className="font-medium">{text}</span>
                             </span>
                             <button
@@ -234,7 +234,7 @@ export interface GridFooterProps {
 export function GridFooter({ boxed, rangeFrom, rangeTo, filteredCount, pageSize, setPageSize, setPageIndex, pageSizeChoices, table }: GridFooterProps) {
     const { t } = useTranslation();
     return (
-            <div className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-xs${boxed ? ' shrink-0' : ''}`} style={{ color: 'var(--text-secondary)' }}>
+            <div className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-xs${boxed ? ' shrink-0' : ''} text-[var(--text-secondary)]`}>
                 {/*
                   * "Page 3 of 12" tells you where you are but not how much
                   * there IS — the number people actually want from a table.

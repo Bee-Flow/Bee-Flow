@@ -100,7 +100,7 @@ export default function AppFilterBar({ node }) {
                                         disabled={disabled}
                                         className="accent-[var(--app-primary)]"
                                     />
-                                    <span style={{ color: 'var(--text-primary)' }}>{label || name}</span>
+                                    <span className="text-[var(--text-primary)]">{label || name}</span>
                                 </label>
                             );
                         case 'date':
@@ -121,8 +121,7 @@ export default function AppFilterBar({ node }) {
                             return (
                                 <div className="relative">
                                     <Search
-                                        className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2"
-                                        style={{ color: 'var(--text-muted)' }}
+                                        className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
                                         aria-hidden="true"
                                     />
                                     <input
@@ -144,7 +143,7 @@ export default function AppFilterBar({ node }) {
                 return (
                     <div key={name} className="flex flex-col gap-1 min-w-0" data-app-filter={name}>
                         {label && type !== 'toggle' ? (
-                            <label htmlFor={id} className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                            <label htmlFor={id} className="text-xs font-medium text-[var(--text-secondary)]">
                                 {label}
                             </label>
                         ) : null}

@@ -92,7 +92,7 @@ export default function VersionHistory({ hubVersions, ledgerVersions, busy = fal
                 return (
                     <li key={row.version} className="py-2.5" data-testid={`version-row-${row.version}`}>
                         <div className="flex items-center gap-2 flex-wrap">
-                            <History className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
+                            <History className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                             <span className="text-xs font-semibold text-[var(--text-primary)]">v{row.version}</span>
                             {row.channel && row.channel !== 'stable' && (
                                 <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>

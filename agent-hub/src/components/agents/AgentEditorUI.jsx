@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import KnowledgePanel from '../knowledge/KnowledgePanel';
-import VersionHistory from './VersionHistory';
-import ModelTierSelector from '../licensing/ModelTierSelector';
-import { API_BASE, authFetch } from '../../utils/helpers';
-import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '../../utils/agentAvatar';
-import { useUrlQueryParam } from '../../hooks/useUrlTab';
 import AgentSkillsTab from './AgentSkillsTab';
+import VersionHistory from './VersionHistory';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useUrlQueryParam } from '../../hooks/useUrlTab';
+import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '../../utils/agentAvatar';
+import { API_BASE, authFetch } from '../../utils/helpers';
+import KnowledgePanel from '../knowledge/KnowledgePanel';
+import ModelTierSelector from '../licensing/ModelTierSelector';
 
 /**
  * AgentEditorUI - Reusable presentational component for editing agents

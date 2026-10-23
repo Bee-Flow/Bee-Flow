@@ -1,5 +1,6 @@
 // The notification editor: the message a run sends while it is going, and the
 // channels it goes out on.
+import { useTranslation } from '../../../../../../hooks/useTranslation';
 import ChannelPills from '../../../ChannelPills';
 import TemplateField from '../../../mapping/TemplateField';
 import useForEachRequest from '../../../mapping/useForEachRequest';
@@ -7,7 +8,6 @@ import { normalizeChannels, stepChannelsToUi } from '../../../notificationDefaul
 import AccordionSection from '../../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
 import { FormRow } from '../formPrimitives';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
 
 function NotificationFields({ draft, set, groups = [], onFocusField, previewSample, errorSections = new Set() }) {
     const { t } = useTranslation();

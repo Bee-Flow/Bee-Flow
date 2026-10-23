@@ -26,7 +26,7 @@ const VerifyEmailGate = ({ verifyEmail, setVerifyEmail, resending, resendDone, o
             <div className="w-full max-w-md">
                 <div className="rounded-2xl shadow-xl p-8 text-center bg-[var(--bg-secondary)]">
                     <div className="w-16 h-16 mx-auto mb-5 rounded-full flex items-center justify-center bg-[var(--bg-primary)]">
-                        <MailCheck className="w-8 h-8" style={{ color: 'var(--accent-primary)' }} />
+                        <MailCheck className="w-8 h-8 text-[var(--accent-primary)]" />
                     </div>
                     <h2 className="text-xl font-bold mb-2 text-[var(--text-primary)]">
                         {t('login.verify_title', 'Confirm your email address')}

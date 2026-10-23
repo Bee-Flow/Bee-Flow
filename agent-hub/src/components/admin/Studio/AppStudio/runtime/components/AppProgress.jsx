@@ -54,8 +54,7 @@ function ProgressRing({ dimSpec, pct, clamped, ceiling, color, caption, label })
                 </svg>
                 {caption ? (
                     <span
-                        className="absolute inset-0 flex items-center justify-center text-xs font-semibold"
-                        style={{ color: 'var(--text-primary)' }}
+                        className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-[var(--text-primary)]"
                         data-app-progress-caption="true"
                     >
                         {caption}
@@ -63,7 +62,7 @@ function ProgressRing({ dimSpec, pct, clamped, ceiling, color, caption, label })
                 ) : null}
             </div>
             {label ? (
-                <span className="text-xs font-medium truncate max-w-full" style={{ color: 'var(--text-secondary)' }}>{label}</span>
+                <span className="text-xs font-medium truncate max-w-full text-[var(--text-secondary)]">{label}</span>
             ) : null}
         </div>
     );
@@ -158,8 +157,8 @@ export default function AppProgress({ node }) {
                 data-app-progress-segments={parts.length}
             >
                 {label ? (
-                    <div className="flex items-baseline justify-between gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        <span className="truncate font-medium" style={{ color: 'var(--text-primary)' }}>{label}</span>
+                    <div className="flex items-baseline justify-between gap-2 text-xs text-[var(--text-secondary)]">
+                        <span className="truncate font-medium text-[var(--text-primary)]">{label}</span>
                     </div>
                 ) : null}
                 <div
@@ -196,8 +195,8 @@ export default function AppProgress({ node }) {
             data-app-progress-look={slim ? 'slim' : undefined}
         >
             {(label || caption) ? (
-                <div className="flex items-baseline justify-between gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    <span className="truncate font-medium" style={{ color: 'var(--text-primary)' }}>{label}</span>
+                <div className="flex items-baseline justify-between gap-2 text-xs text-[var(--text-secondary)]">
+                    <span className="truncate font-medium text-[var(--text-primary)]">{label}</span>
                     {caption ? <span data-app-progress-caption="true">{caption}</span> : null}
                 </div>
             ) : null}

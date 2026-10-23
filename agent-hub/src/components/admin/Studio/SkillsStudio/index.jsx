@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
-import { toast } from '../../../shared/Toast';
 import SkillDetail from './SkillDetail';
-import SkillsList from './SkillsList';
-import SkillsOverview from './SkillsOverview';
 import { filterSkills } from './skillModel';
 import { skillsApi } from './skillsApi';
+import SkillsList from './SkillsList';
+import SkillsOverview from './SkillsOverview';
+import useTranslation from '../../../../hooks/useTranslation';
+import { toast } from '../../../shared/Toast';
 
 /**
  * Studio → Skills (Bee Flow Builder redesign, Sep 2026; Skills.dc.html).

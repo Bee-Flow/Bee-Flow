@@ -1,10 +1,10 @@
 import React from 'react';
-import SectionHeader from '../components/SectionHeader';
+import { sectionBgClass } from './sectionBg';
+import { inlineTextStyle } from './textStyle';
 import AppIcon from '../../components/icons/AppIcon';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
-import { sectionBgClass } from './sectionBg';
-import { inlineTextStyle } from './textStyle';
+import SectionHeader from '../components/SectionHeader';
 
 /**
  * Public roadmap — items grouped into status buckets.

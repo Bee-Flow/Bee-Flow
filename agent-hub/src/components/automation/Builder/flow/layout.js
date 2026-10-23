@@ -1,11 +1,11 @@
-import { rowLayoutPositions } from './arrange';
-import { rowBands, rowIndexById } from './rowBands';
 import { toolLayoutHeights } from './aiToolNodes';
+import { rowLayoutPositions } from './arrange';
 import { edgeKey as defEdgeKey } from './branchEdges';
 import { isFinitePos, runDagre } from './dagreLayout';
 import { summariseEdgeData } from './dataSummary';
 import { buildStepLabelMap } from './displayHelpers';
 import { isInlineId, parseInlineId, toDisplayPosition } from './inlineFlowlets';
+import { rowBands, rowIndexById } from './rowBands';
 
 /**
  * Step types whose node draws a NAMED port per outgoing branch — ConditionNode

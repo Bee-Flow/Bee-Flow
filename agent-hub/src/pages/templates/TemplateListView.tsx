@@ -22,7 +22,7 @@ function ListHeader({ onBack, searchQuery, setSearchQuery, uploading, skipAiDete
     return (
         <div className="shrink-0 px-6 py-4 border-b flex items-center gap-4 border-[var(--border-subtle)]">
             <button onClick={onBack} className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors">
-                <ArrowLeft className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
+                <ArrowLeft className="w-5 h-5 text-[var(--text-secondary)]" />
             </button>
             <div className="flex-1">
                 <h1 className="text-lg font-bold text-[var(--text-primary)]">{t('templates.word_templates', 'Word Templates')}</h1>
@@ -31,7 +31,7 @@ function ListHeader({ onBack, searchQuery, setSearchQuery, uploading, skipAiDete
             <div className="flex items-center gap-2">
                 {/* Search */}
                 <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} />
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
                     <input
                         type="text"
                         value={searchQuery}
@@ -103,7 +103,7 @@ function ListContent({ loading, templates, searchQuery, dragOver, setDragOver, f
         >
             {loading ? (
                 <div className="flex items-center justify-center h-full">
-                    <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--text-muted)' }} />
+                    <Loader2 className="w-8 h-8 animate-spin text-[var(--text-muted)]" />
                 </div>
             ) : filtered.length === 0 ? (
                 <div className="flex items-center justify-center h-full">

@@ -66,7 +66,7 @@ export default function ModuleLogsDialog({ module, onClose }: ModuleLogsDialogPr
                         {LEVELS.map((l: string) => <option key={l} value={l}>{l}</option>)}
                     </select>
                     <button onClick={onClose} className="p-1 rounded hover:bg-[var(--bg-tertiary)]" aria-label={t('modules.close')}>
-                        <X className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                        <X className="w-4 h-4 text-[var(--text-muted)]" />
                     </button>
                 </div>
             }

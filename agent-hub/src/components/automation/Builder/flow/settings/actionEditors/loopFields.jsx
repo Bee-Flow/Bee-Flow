@@ -1,11 +1,11 @@
 // The loop editor: what to iterate over, how many items at a time, and the
 // steps that run once per item.
 import { Workflow } from 'lucide-react';
+import { useTranslation } from '../../../../../../hooks/useTranslation';
 import LoopBodyEditor from '../../../mapping/LoopBodyEditor';
 import LoopOverPicker from '../../../mapping/LoopOverPicker';
 import AccordionSection from '../../AccordionSection';
 import { FormRow, inputClass } from '../formPrimitives';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
 
 function LoopFields({
     draft, set, groups, onFocusField, previewSample, catalog, modelTiers,

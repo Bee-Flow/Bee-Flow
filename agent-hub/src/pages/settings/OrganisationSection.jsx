@@ -1,24 +1,24 @@
 import React, { useState } from 'react';
+import N8nSection from './N8nSection';
+import OrgAcademyPanel from './OrgAcademyPanel';
+import UsageSection from './UsageSection';
 import { settingsPathForTab } from '../../authedApp/settingsRoutes';
+import GroupAccessMatrix from '../../components/admin/org/GroupAccessMatrix';
 import OrgInfoPanel, { SECTIONS as INFO_SECTIONS } from '../../components/admin/org/OrgInfoPanel';
 import OrgUsersPanel from '../../components/admin/org/OrgUsersPanel';
-import OrgAcademyPanel from './OrgAcademyPanel';
-import N8nSection from './N8nSection';
-import UsageSection from './UsageSection';
 import GitHubSyncPanel from '../../components/integrations/github/GitHubSyncPanel';
 import NextcloudSyncPanel from '../../components/integrations/nextcloud/NextcloudSyncPanel';
-import OrgMcpAccessPanel from '../../components/mcpAccess/OrgMcpAccessPanel';
-import MeetingNotesAdminPanel from '../../components/meetings/MeetingNotesAdminPanel';
-import GoogleMeetAdminPanel from '../../components/meetings/GoogleMeetAdminPanel';
-import TeamsAdminPanel from '../../components/meetings/TeamsAdminPanel';
-import SummaryTemplatesAdminPanel from '../../components/meetings/SummaryTemplatesAdminPanel';
 import OrgNcIntegrationsPanel from '../../components/integrations/nextcloud/OrgNcIntegrationsPanel';
 import OrgNcPairingPanel from '../../components/integrations/nextcloud/OrgNcPairingPanel';
-import GroupAccessMatrix from '../../components/admin/org/GroupAccessMatrix';
+import OrgMcpAccessPanel from '../../components/mcpAccess/OrgMcpAccessPanel';
 import McpLibraryPage from '../../components/mcpLibrary/McpLibraryPage';
+import GoogleMeetAdminPanel from '../../components/meetings/GoogleMeetAdminPanel';
+import MeetingNotesAdminPanel from '../../components/meetings/MeetingNotesAdminPanel';
+import SummaryTemplatesAdminPanel from '../../components/meetings/SummaryTemplatesAdminPanel';
+import TeamsAdminPanel from '../../components/meetings/TeamsAdminPanel';
 import Tabs from '../../components/shared/Tabs';
-import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../utils/helpers';
 
 /* ── Google Maps integration card ────────────────────────────────────────── */
 const GoogleMapsRow = () => {

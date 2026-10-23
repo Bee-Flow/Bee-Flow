@@ -165,7 +165,7 @@ describe('AppTabs — tab badges', () => {
         const badge = container.querySelector('[data-app-tab-badge]');
         expect(badge.getAttribute('data-app-tab-badge')).toBe('neutral');
         expect(badge.textContent).toBe('3');
-        expect(badge.style.color).toBe('var(--text-muted)');
+        expect(badge.className).toContain('text-[var(--text-muted)]');
         expect(badge.className).not.toContain('rounded-full');
         expect(getByRole('tab', { name: /First/ }).contains(badge)).toBe(true);
     });

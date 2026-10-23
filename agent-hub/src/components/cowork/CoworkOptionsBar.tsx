@@ -147,8 +147,7 @@ function SheetOption({ selected, icon: Icon, label, hint, onClick }: SheetOption
             )}
             <span className="flex-1 min-w-0">
                 <span
-                    className={`block text-[13px] truncate ${selected ? 'font-semibold' : 'font-medium'}`}
-                    style={{ color: 'var(--text-primary)' }}
+                    className={`block text-[13px] truncate ${selected ? 'font-semibold' : 'font-medium'} text-[var(--text-primary)]`}
                 >
                     {label}
                 </span>
@@ -156,7 +155,7 @@ function SheetOption({ selected, icon: Icon, label, hint, onClick }: SheetOption
                     <span className="block text-[11px] truncate text-[var(--text-tertiary)]">{hint}</span>
                 )}
             </span>
-            {selected && <Check className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-primary)' }} strokeWidth={2.5} />}
+            {selected && <Check className="w-4 h-4 flex-shrink-0 text-[var(--text-primary)]" strokeWidth={2.5} />}
         </button>
     );
 }

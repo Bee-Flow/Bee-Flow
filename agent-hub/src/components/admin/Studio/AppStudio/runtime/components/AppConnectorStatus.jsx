@@ -43,9 +43,9 @@ function Row({ icon, tone, title, detail }) {
         <div className="flex items-start gap-2.5 min-w-0">
             <span className="shrink-0 mt-0.5" style={{ color: tone }} aria-hidden="true">{icon}</span>
             <span className="min-w-0">
-                <span className="block text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{title}</span>
+                <span className="block text-sm font-medium truncate text-[var(--text-primary)]">{title}</span>
                 {detail ? (
-                    <span className="block text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{detail}</span>
+                    <span className="block text-xs mt-0.5 text-[var(--text-tertiary)]">{detail}</span>
                 ) : null}
             </span>
         </div>
@@ -119,7 +119,7 @@ export default function AppConnectorStatus({ node }) {
 
     if (loading && !preview) {
         return (
-            <div className="app-connector-card flex items-center gap-2 rounded-lg border p-3 text-sm" style={{ color: 'var(--text-tertiary)' }}>
+            <div className="app-connector-card flex items-center gap-2 rounded-lg border p-3 text-sm text-[var(--text-tertiary)]">
                 <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                 {t('studio_apps_runtime.connector.checking', 'Checking the connection…')}
             </div>
@@ -178,7 +178,7 @@ export default function AppConnectorStatus({ node }) {
             <Row icon={icon} tone={tone} title={heading} detail={detail} />
             {showSync && data.syncable && !preview ? (
                 <div className="flex items-center gap-2 shrink-0">
-                    {note ? <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{note}</span> : null}
+                    {note ? <span className="text-xs text-[var(--text-tertiary)]">{note}</span> : null}
                     <button
                         type="button"
                         onClick={refresh}

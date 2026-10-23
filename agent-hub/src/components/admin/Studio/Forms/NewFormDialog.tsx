@@ -150,7 +150,7 @@ export default function NewFormDialog({ user = null, onClose, onNavigate }: NewF
                 {mode === 'collect' && (
                     <label className="block">
                         <span className="flex items-center gap-1.5 text-xs font-medium mb-1 text-[var(--text-secondary)]">
-                            <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                            <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
                             {t('forms.new.brief_label', 'Describe it (optional)')}
                         </span>
                         <textarea

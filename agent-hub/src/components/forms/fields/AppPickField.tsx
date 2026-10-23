@@ -140,10 +140,10 @@ export default function AppPickField({ field, value, disabled, onChange, onSearc
                         </span>
                     )}
                     {!searching && note && (
-                        <p className="px-1 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>{note}</p>
+                        <p className="px-1 py-1 text-xs text-[var(--text-muted)]">{note}</p>
                     )}
                     {!searching && !note && results.length === 0 && (
-                        <p className="px-1 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <p className="px-1 py-1 text-xs text-[var(--text-muted)]">
                             {onSearch ? 'Nothing found.' : 'The search runs on the live form.'}
                         </p>
                     )}

@@ -195,8 +195,7 @@ function SpeakerRows({ rows = [], others = null, colorMap = {}, duration = 0, se
                     return (
                         <div key={row.speakerId} className="flex items-center">
                             <span
-                                className={`${SPEAKER_LABEL_CLASS} shrink-0 pr-2 truncate text-[11px] leading-3`}
-                                style={{ color: 'var(--text-secondary)' }}
+                                className={`${SPEAKER_LABEL_CLASS} shrink-0 pr-2 truncate text-[11px] leading-3 text-[var(--text-secondary)]`}
                                 title={`${label} · ${formatDuration(row.speakingSeconds)}`}
                             >
                                 {label}

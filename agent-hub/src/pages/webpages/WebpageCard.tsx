@@ -232,7 +232,7 @@ export default function WebpageCard({
                         role="status"
                         aria-live="polite"
                     >
-                        <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                        <Loader2 className="w-6 h-6 animate-spin text-[var(--accent-primary)]" aria-hidden="true" />
                         <span className="sr-only">{t('webpages.card.opening', 'Opening…')}</span>
                     </div>
                 )}

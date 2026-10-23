@@ -10,10 +10,10 @@
  * hook object itself.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { toast } from '../../../shared/Toast';
 import { API, API_DSR, fetchJson, json, jsonInit, asArray } from './api';
 import useResource from './useResource';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import { toast } from '../../../shared/Toast';
 
 const noop = () => {};
 

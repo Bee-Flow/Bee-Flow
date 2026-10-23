@@ -4,8 +4,8 @@ import React from 'react';
  * IconButton — small icon-only action button with consistent touch target,
  * hover affordance, and a11y. Replaces the recurring inline pattern:
  *
- *   <button className="p-1 rounded hover:bg-white/10 transition-colors"
- *           style={{ color: 'var(--text-tertiary)' }}
+ *   <button className="p-1 rounded hover:bg-white/10 transition-colors text-[var(--text-tertiary)]"
+ *
  *           onClick={...}>
  *     <Icon />
  *   </button>

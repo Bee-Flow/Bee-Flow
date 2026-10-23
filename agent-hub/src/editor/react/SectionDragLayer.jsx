@@ -15,8 +15,8 @@
  * sits at their old index), to where the pointer is now, and asks `isLocked`
  * again; blocks that were changed or split up meanwhile are not moved.
  */
-import React, { useEffect, useRef, useState } from 'react';
 import { GripVertical } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { mkTt } from './toolbarPrimitives.jsx';
 import useTranslation from '../../hooks/useTranslation';
 import { findBlocks, getSectionRange, moveBlocks } from '../engine/sectionDrag.js';

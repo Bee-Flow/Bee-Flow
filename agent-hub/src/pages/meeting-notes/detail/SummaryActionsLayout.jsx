@@ -1,13 +1,13 @@
 import React from 'react';
-import UsedByTab from '../../../components/shared/UsedByTab';
-import useTranslation from '../../../hooks/useTranslation';
-import SummaryView from './SummaryView';
 import ActionItemsList from './ActionItemsList';
 import DecisionsQuestionsPanel from './DecisionsQuestionsPanel';
 import ExtractedPanel from './ExtractedPanel';
 import InsightsPanel from './InsightsPanel';
-import TranscriptView from './TranscriptView';
 import { TABS } from './MeetingHeader';
+import SummaryView from './SummaryView';
+import TranscriptView from './TranscriptView';
+import UsedByTab from '../../../components/shared/UsedByTab';
+import useTranslation from '../../../hooks/useTranslation';
 import useMediaQuery from '../hooks/useMediaQuery';
 
 /**

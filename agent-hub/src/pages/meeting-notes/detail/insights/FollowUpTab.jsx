@@ -1,6 +1,6 @@
 import React from 'react';
-import { formatDuration } from '../../lib/format';
 import { EmptyState, FLAG_AMBER, MetricRow, TabHeading } from './primitives';
+import { formatDuration } from '../../lib/format';
 
 /**
  * What the meeting actually produced, and how much of it is real work someone

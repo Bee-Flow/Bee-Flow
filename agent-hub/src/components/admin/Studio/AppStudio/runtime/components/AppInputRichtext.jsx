@@ -253,8 +253,7 @@ export default function AppInputRichtext({ node }) {
                     data-placeholder={placeholder || t('studio_apps_runtime.rich_text.richtext_placeholder', 'Write here…')}
                     onInput={commit}
                     onBlur={commit}
-                    className="app-richtext w-full px-2.5 py-2 text-sm outline-none min-h-[6rem] overflow-auto"
-                    style={{ color: 'var(--text-primary)' }}
+                    className="app-richtext w-full px-2.5 py-2 text-sm outline-none min-h-[6rem] overflow-auto text-[var(--text-primary)]"
                 />
                 {/* The markdown is what the form submits; the box above is only
                     how it is typed. Hidden rather than absent so a plain form

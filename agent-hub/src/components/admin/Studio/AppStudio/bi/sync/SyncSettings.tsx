@@ -167,7 +167,7 @@ export default function SyncSettings({ connector, sync, tableName, actions, appI
     return (
         <div className="rounded-lg border p-3 flex flex-col gap-2.5 border-[var(--border-default)] bg-[var(--bg-secondary)]">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
-                <Database className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+                <Database className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
                 {t('studio_apps_bi.sync.fills_table', 'Fills the table “{name}”', { name: tableName })}
             </div>
 

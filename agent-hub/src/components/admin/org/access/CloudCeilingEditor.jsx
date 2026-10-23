@@ -76,7 +76,7 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged })
         } finally { setSavingPlan(false); }
     };
 
-    if (loading) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-muted)' }} /></div>;
+    if (loading) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[var(--text-muted)]" /></div>;
 
     // Full-screen overlay for the (absolute inset-0) PlanEditor.
     if (editing && selectedPlan) {
@@ -126,7 +126,7 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged })
                             <option key={p.id} value={p.id}>{p.name}{p.is_default ? ' ★' : ''}</option>
                         ))}
                     </select>
-                    {assigning ? <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--text-muted)' }} /> : null}
+                    {assigning ? <Loader2 className="w-4 h-4 animate-spin text-[var(--text-muted)]" /> : null}
                     {selectedPlan ? (
                         <button
                             onClick={() => setEditing(true)}

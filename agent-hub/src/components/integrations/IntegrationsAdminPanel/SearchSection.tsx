@@ -24,10 +24,10 @@ export default function SearchSection({
                 {/* Global API Keys for Integrations */}
                 <div className="rounded-2xl border overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)]">
                     <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
-                        <h3 className="font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                        <h3 className="font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                             <Settings className="w-4 h-4" /> {t('integ.search_agent_search_configuration', 'Agent Search Configuration')}
                         </h3>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-xs mt-0.5 text-[var(--text-muted)]">
                             {t('integ.search_configure_your_self_hosted_agent', 'Configure your self-hosted Agent Search service.')}
                         </p>
                     </div>
@@ -66,7 +66,7 @@ export default function SearchSection({
                                     <option value="disabled">{t('integ.search_disabled', 'Disabled')}</option>
                                 </select>
                             </div>
-                            <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                            <p className="text-xs mt-1.5 text-[var(--text-muted)]">
                                 {t('integ.search_choose_which_search_provider_powers', 'Choose which search provider powers web search for AI agents. Select "Disabled" to turn off web search entirely.')}
                             </p>
                         </div>
@@ -117,8 +117,8 @@ export default function SearchSection({
                                             {t('integ.search_save', 'Save')}
                                         </button>
                                     </div>
-                                    <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
-                                        {t('integ.search_get_your_key_from', 'Get your key from')} <a href="https://portal.azure.com/#create/microsoft.bingsearch" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>{t('integ.search_azure_portal_bing_search_v7', 'Azure Portal → Bing Search v7')}</a>.
+                                    <p className="text-xs mt-1.5 text-[var(--text-muted)]">
+                                        {t('integ.search_get_your_key_from', 'Get your key from')} <a href="https://portal.azure.com/#create/microsoft.bingsearch" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('integ.search_azure_portal_bing_search_v7', 'Azure Portal → Bing Search v7')}</a>.
                                     </p>
                                 </div>
                                 <div>
@@ -133,7 +133,7 @@ export default function SearchSection({
                                         className="w-full px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 transition-all"
                                         style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent-primary)' } as React.CSSProperties}
                                     />
-                                    <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                                    <p className="text-xs mt-1.5 text-[var(--text-muted)]">
                                         {t('integ.search_set_the_market_for_locale_aware', 'Set the market for locale-aware results (e.g. nl-NL for Dutch). Leave empty for auto-detection.')}
                                     </p>
                                 </div>
@@ -151,7 +151,7 @@ export default function SearchSection({
                                     <div className="px-3 py-2 rounded-lg text-sm border bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]">
                                         {agentSearchUrl || <span className="text-[var(--text-muted)]">{t('integ.search_not_configured_set_search_service_url', 'Not configured — set SEARCH_SERVICE_URL env var')}</span>}
                                     </div>
-                                    <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                                    <p className="text-xs mt-1.5 text-[var(--text-muted)]">
                                         {t('integ.search_controlled_by_the', 'Controlled by the')} <code>SEARCH_SERVICE_URL</code> {t('integ.search_environment_variable_on_the_server', 'environment variable on the server.')}
                                     </p>
                                 </div>
@@ -211,9 +211,9 @@ export default function SearchSection({
                                             {t('integ.search_save', 'Save')}
                                         </button>
                                     </div>
-                                    <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
+                                    <p className="text-xs mt-1.5 text-[var(--text-muted)]">
                                         {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
-                                        {t('integ.search_get_your_api_key_from', 'Get your API key from')} <a href="https://serper.dev" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--accent-primary)' }}>serper.dev</a>{t('integ.search_used_by_the_search_service_for_google', '. Used by the search service for Google web search results.')}
+                                        {t('integ.search_get_your_api_key_from', 'Get your API key from')} <a href="https://serper.dev" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">serper.dev</a>{t('integ.search_used_by_the_search_service_for_google', '. Used by the search service for Google web search results.')}
                                     </p>
                                 </div>
                             </div>

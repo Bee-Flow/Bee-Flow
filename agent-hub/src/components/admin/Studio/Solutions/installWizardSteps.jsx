@@ -155,7 +155,7 @@ export function ContentsStep({ read, name, onName }) {
                     <ul className="space-y-1" data-testid="install-not-carried">
                         {read.notCarried.map((w, i) => (
                             <li key={i} className="flex items-start gap-2 px-3 py-2 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
-                                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+                                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-[var(--text-tertiary)]" />
                                 {w}
                             </li>
                         ))}
@@ -497,7 +497,7 @@ export function AccessStep({ people, groups, access, setAccess }) {
                                     onClick={() => setAccess(access.filter(a => !(a.type === entry.type && a.id === entry.id)))}
                                     aria-label={t('solutions.install_access_remove', 'Remove')}
                                 >
-                                    <Trash2 className="w-3.5 h-3.5" style={{ color: 'var(--text-tertiary)' }} />
+                                    <Trash2 className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
                                 </button>
                             </span>
                         </li>

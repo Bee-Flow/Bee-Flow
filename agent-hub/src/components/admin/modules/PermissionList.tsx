@@ -18,7 +18,7 @@ function PermissionRow({ perm, granted, isNew }: { perm: ModulePermission; grant
     const { t } = useTranslation();
     return (
         <li className="flex items-start gap-2.5 py-2" data-testid={`perm-${perm.id}`}>
-            <ShieldAlert className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+            <ShieldAlert className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--text-muted)]" />
             <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-medium text-[var(--text-primary)]">

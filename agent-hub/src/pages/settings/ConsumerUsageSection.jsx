@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, Zap, DollarSign, BarChart3, Bot, MessageSquare, BookOpen, Search, Code, LayoutTemplate } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { API_BASE, authFetch } from '../../utils/helpers';
 
 const fNum = (n) => {
     if (n == null) return '0';

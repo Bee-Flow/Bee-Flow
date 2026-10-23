@@ -53,10 +53,10 @@ class EditorErrorBoundary extends React.Component<BoundaryProps, BoundaryState> 
       return (
         <div className="flex flex-col items-center justify-center h-full gap-3 p-8 text-center"
           style={{ background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
-          <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">
             {L.title || 'The editor ran into a problem'}
           </p>
-          <p className="text-xs max-w-sm" style={{ color: 'var(--text-tertiary)' }}>
+          <p className="text-xs max-w-sm text-[var(--text-tertiary)]">
             {L.body || 'Your last saved version is safe. Try reloading the editor.'}
           </p>
           <button onClick={this.retry}

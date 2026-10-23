@@ -1,11 +1,11 @@
 import { Search, X, MessageSquare, Calendar, Bot, Clock } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { loadRecent, saveRecent } from './searchRecents';
 import { highlightSnippet } from './searchHighlight';
+import { loadRecent, saveRecent } from './searchRecents';
+import useTranslation from '../../hooks/useTranslation';
 import { isImageAvatar, resolveAvatarSrc } from '../../utils/agentAvatar';
 import { formatRelativeDate } from '../../utils/dateFormatters';
 import { API_BASE, authFetch } from '../../utils/helpers';
-import useTranslation from '../../hooks/useTranslation';
 
 
 const formatDate = (dateStr) => formatRelativeDate(dateStr, {

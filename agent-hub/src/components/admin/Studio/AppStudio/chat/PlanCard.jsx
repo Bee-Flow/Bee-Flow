@@ -298,7 +298,7 @@ function Section({ icon: Icon, title, children }) {
     return (
         <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-1.5 font-semibold text-[var(--text-secondary)]">
-                {Icon ? <Icon className="h-3.5 w-3.5" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" /> : null}
+                {Icon ? <Icon className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" /> : null}
                 {title}
             </div>
             <div className="flex flex-col gap-1">{children}</div>

@@ -120,7 +120,7 @@ export default function AppStudioSection({
                     role="status"
                     aria-live="polite"
                 >
-                    <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--accent-primary)' }} />
+                    <Loader2 className="w-6 h-6 animate-spin text-[var(--accent-primary)]" />
                     <span className="sr-only">{t('studio_apps_edit.index.opening', 'Opening…')}</span>
                 </div>
             )}

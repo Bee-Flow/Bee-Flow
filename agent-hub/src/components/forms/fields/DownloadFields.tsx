@@ -65,7 +65,7 @@ export function FormDownload({ field, href }: { field: FormFieldDef; href?: stri
                     {meta ? <span className="text-xs text-[var(--text-secondary)]">{meta}</span> : null}
                 </span>
             </a>
-            {field.help ? <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{field.help}</p> : null}
+            {field.help ? <p className="text-xs text-[var(--text-muted)]">{field.help}</p> : null}
         </div>
     );
 }
@@ -134,7 +134,7 @@ export function FormOpenInNotebooks({ field, onOpen }: { field: FormFieldDef; on
                 </span>
             </button>
             {error ? <p className="text-xs" role="alert" style={{ color: '#ef4444' }}>{error}</p> : null}
-            {field.help ? <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{field.help}</p> : null}
+            {field.help ? <p className="text-xs text-[var(--text-muted)]">{field.help}</p> : null}
         </div>
     );
 }
@@ -169,7 +169,7 @@ function FormDownloadUnavailable({ field, meta }: { field: FormFieldDef; meta: s
                     {meta ? <span className="text-xs">{meta}</span> : null}
                 </span>
             </div>
-            {field.help ? <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{field.help}</p> : null}
+            {field.help ? <p className="text-xs text-[var(--text-muted)]">{field.help}</p> : null}
         </div>
     );
 }

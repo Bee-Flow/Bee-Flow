@@ -21,10 +21,10 @@ function LocaleList({ locales, selectedLocale, setSelectedLocale, setShowAddModa
         <div className="w-64 border-r shrink-0 flex flex-col border-[var(--border-default)] bg-[var(--bg-secondary)]">
             <div className="p-3 border-b flex items-center justify-between border-[var(--border-default)]">
                 <span className="text-sm font-semibold flex items-center gap-2 text-[var(--text-primary)]">
-                    <Globe className="w-4 h-4" style={{ color: 'var(--accent-primary)' }} /> {t('admin_languages.title', 'Languages')}
+                    <Globe className="w-4 h-4 text-[var(--accent-primary)]" /> {t('admin_languages.title', 'Languages')}
                 </span>
                 <button onClick={() => setShowAddModal(true)} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('admin_languages.add_language_title', 'Add language')}>
-                    <Plus className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                    <Plus className="w-4 h-4 text-[var(--text-secondary)]" />
                 </button>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">

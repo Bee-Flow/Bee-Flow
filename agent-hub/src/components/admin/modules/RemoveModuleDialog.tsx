@@ -29,7 +29,7 @@ export default function RemoveModuleDialog({ module, busy, onCancel, onConfirm }
             }
             headerActions={
                 <button onClick={onCancel} disabled={busy} className="p-1 rounded hover:bg-[var(--bg-tertiary)]" aria-label={t('modules.cancel')}>
-                    <X className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                    <X className="w-4 h-4 text-[var(--text-muted)]" />
                 </button>
             }
             footer={

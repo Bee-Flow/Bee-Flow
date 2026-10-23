@@ -49,7 +49,7 @@ function LinkAddedCard({ links, t }: LinkAddedCardProps) {
                 border: '1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent)',
             }}
         >
-            <Link2 size={11} className="mt-0.5 shrink-0" aria-hidden="true" style={{ color: 'var(--accent-primary)' }} />
+            <Link2 size={11} className="mt-0.5 shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
             <div className="min-w-0">
                 <div
                     className="text-[10px] uppercase tracking-wider font-semibold"

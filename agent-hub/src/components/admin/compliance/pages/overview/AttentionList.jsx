@@ -1,12 +1,12 @@
-import React, { useId, useState } from 'react';
 import { ArrowUpRight, ChevronDown, CircleAlert, Loader2 } from 'lucide-react';
+import React, { useId, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { TONES, toneOfCheckStatus, glyphOfCheckStatus } from '../../../../shared/statusTone';
-import StatusPill from '../../shared/StatusPill';
+import { complianceActionPath, resolveTarget } from '../../data/actions';
 import ArticleRef from '../../shared/ArticleRef';
 import SeverityTag from '../../shared/SeverityTag';
+import StatusPill from '../../shared/StatusPill';
 import VerificationChip, { VERIFICATION_KINDS } from '../../shared/VerificationChip';
-import { complianceActionPath, resolveTarget } from '../../data/actions';
 
 /**
  * AttentionList — the "Needs attention" card on the Overview (artboard 1a,

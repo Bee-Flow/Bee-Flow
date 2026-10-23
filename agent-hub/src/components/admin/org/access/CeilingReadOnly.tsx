@@ -61,7 +61,7 @@ export default function CeilingReadOnly({ orgId = null }: { orgId?: string | nul
         return map;
     }, [data]);
 
-    if (loading) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-muted)' }} /></div>;
+    if (loading) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[var(--text-muted)]" /></div>;
     if (error) return <div className="rounded-2xl p-5 text-sm" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', color: '#dc2626' }}>{error}</div>;
 
     const mode = data?.mode;

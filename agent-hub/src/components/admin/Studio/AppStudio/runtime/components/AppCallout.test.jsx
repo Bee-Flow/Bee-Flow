@@ -108,7 +108,7 @@ describe('AppCallout — meta line', () => {
         expect(meta.textContent).toBe('Daniel · 22 aug');
         expect(meta.className).toContain('ml-auto');
         expect(meta.className).toContain('whitespace-nowrap');
-        expect(meta.style.color).toBe('var(--text-muted)');
+        expect(meta.className).toContain('text-[var(--text-muted)]');
     });
 
     it('metaFrom wins over the literal meta', () => {

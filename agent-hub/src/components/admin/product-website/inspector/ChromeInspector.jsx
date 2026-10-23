@@ -1,8 +1,8 @@
 import React from 'react';
 import AppIcon from '../../../icons/AppIcon';
-import { HeaderEditor, FooterEditor } from '../editors';
-import CookieBannerEditor from '../CookieBannerEditor';
 import AnnouncementEditor from '../blockEditors/AnnouncementEditor';
+import CookieBannerEditor from '../CookieBannerEditor';
+import { HeaderEditor, FooterEditor } from '../editors';
 import {
     HEADER_VIRTUAL_ID, FOOTER_VIRTUAL_ID, COOKIE_VIRTUAL_ID, ANNOUNCE_VIRTUAL_ID,
 } from '../sentinels';

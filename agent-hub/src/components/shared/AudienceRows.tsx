@@ -146,7 +146,7 @@ export default function AudienceRows({
                                     style={{ padding: '0 7px', borderRadius: 999, background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
                                 >
                                     {name}
-                                    <X size={11} aria-hidden="true" style={{ color: 'var(--text-tertiary)' }} />
+                                    <X size={11} aria-hidden="true" className="text-[var(--text-tertiary)]" />
                                 </button>
                             );
                         })}

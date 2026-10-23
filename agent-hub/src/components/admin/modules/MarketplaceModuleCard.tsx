@@ -39,7 +39,7 @@ export function ModuleIcon({ icon }: { icon?: string | null }) {
         return <span className="text-2xl leading-none">{icon}</span>;
     }
     const Glyph = NAMED_ICONS[String(icon || '').toLowerCase()] || Package;
-    return <Glyph className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />;
+    return <Glyph className="w-6 h-6 text-[var(--text-muted)]" />;
 }
 
 function formatPrice(amountCents?: number | null, currency?: string | null) {
@@ -171,7 +171,7 @@ export default function MarketplaceModuleCard({
             <div className="mt-auto pt-1">
                 {installing ? (
                     <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]" data-testid={`install-progress-${module.id}`}>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: 'var(--accent-primary)' }} />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--accent-primary)]" />
                         {t(PHASE_KEY[installProgress.phase] || 'modules.installing_download')}
                         {typeof installProgress.pct === 'number' && <span className="text-[var(--text-muted)]">{Math.round(installProgress.pct)}%</span>}
                     </div>

@@ -116,8 +116,7 @@ function RunRow({ run }) {
                 </span>
                 <ChevronRight
                     aria-hidden="true"
-                    className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}
-                    style={{ color: 'var(--text-tertiary)' }}
+                    className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${open ? 'rotate-90' : ''} text-[var(--text-tertiary)]`}
                 />
             </button>
             {open && (
@@ -127,7 +126,7 @@ function RunRow({ run }) {
                     {/* Who started it moved down here from the summary line.
                         It is the one fact that is about the RUN rather than
                         about the work, and the row had four of those already. */}
-                    <p className="text-[11px] pb-2" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="text-[11px] pb-2 text-[var(--text-tertiary)]">
                         {run.triggerKind === 'manual'
                             ? t('cowork.history.started_by_you', 'Started by you')
                             : t('cowork.history.started_on_schedule', 'Started on schedule')}
@@ -201,8 +200,8 @@ function HistoryCard({ t, children }) {
             <div
                 className="flex items-center gap-2.5 px-3.5 py-3 border-b border-[var(--border-subtle)]"
             >
-                <History aria-hidden="true" className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-                <h3 className="text-[12.5px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <History aria-hidden="true" className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-tertiary)]" />
+                <h3 className="text-[12.5px] font-semibold text-[var(--text-primary)]">
                     {t('cowork.history.heading', 'What happened')}
                 </h3>
             </div>
@@ -234,7 +233,7 @@ export default function CoworkRunHistory({ coworkId, reloadKey }) {
     }, [coworkId, key]);
 
     const note = (children, extra = {}) => (
-        <p className="text-[12px] px-3.5 py-3" style={{ color: 'var(--text-tertiary)' }} {...extra}>{children}</p>
+        <p className="text-[12px] px-3.5 py-3 text-[var(--text-tertiary)]" {...extra}>{children}</p>
     );
 
     let body;
@@ -254,7 +253,7 @@ export default function CoworkRunHistory({ coworkId, reloadKey }) {
             <div data-testid="cowork-run-list">
                 {state.runs.map(run => <RunRow key={run.id} run={run} />)}
                 {state.total > state.runs.length && (
-                    <p className="text-[11px] px-3.5 py-2.5" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="text-[11px] px-3.5 py-2.5 text-[var(--text-tertiary)]">
                         {t(
                             'cowork.history.truncated',
                             'Showing the {shown} most recent of {total} runs.',

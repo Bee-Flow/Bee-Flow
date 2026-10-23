@@ -1,11 +1,11 @@
-import React from 'react';
 import {
     Cpu, Wrench, Brain, BookOpen, FileText, Layers, Sparkles, Shield, Loader, History, ListTree
 } from 'lucide-react';
+import React from 'react';
+import { visibleToolHistory } from './chatToolCallDisplay';
 import useTranslation from '../../../hooks/useTranslation';
 import { getToolLabel, getToolIcon, toolNameToCatalogId } from '../../../utils/helpers';
 import AppEmoji from '../../icons/AppEmoji';
-import { visibleToolHistory } from './chatToolCallDisplay';
 
 const STAGE_ICONS = {
     tier_classify:          Cpu,
@@ -98,8 +98,7 @@ export function ActivityIndicator({ msg, sessionSkills = [] }) {
         label = translated === tkey ? fallback : translated;
         icon = (
             <Icon
-                className="w-3.5 h-3.5 animate-pulse"
-                style={{ color: 'var(--text-muted)' }}
+                className="w-3.5 h-3.5 animate-pulse text-[var(--text-muted)]"
             />
         );
         key = `phase:${phase.stage}`;

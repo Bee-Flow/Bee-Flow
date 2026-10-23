@@ -76,7 +76,7 @@ export default function CommandPalette({ open, onClose, actions = [] }: CommandP
         >
             <div className="flex flex-1 min-h-0 flex-col bg-[var(--bg-primary)] border-[var(--border-default)]">
                 <div className="flex items-center gap-2 border-b px-3 py-2 border-[var(--border-default)]">
-                    <Search size={14} style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                    <Search size={14} className="text-[var(--text-tertiary)]" aria-hidden="true" />
                     <input
                         autoFocus
                         value={query}

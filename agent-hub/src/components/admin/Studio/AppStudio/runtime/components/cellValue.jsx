@@ -308,7 +308,7 @@ function renderMainValue({ value, format, col, row, now, t }) {
             // is much harder to scan than a column of marks.
             return value
                 ? <Check className="w-3.5 h-3.5 inline" style={{ color: ROLE_COLORS.success }} aria-label={t('studio_apps_runtime.cell.yes', 'Yes')} />
-                : <Minus className="w-3.5 h-3.5 inline" style={{ color: 'var(--text-muted)' }} aria-label={t('studio_apps_runtime.cell.no', 'No')} />;
+                : <Minus className="w-3.5 h-3.5 inline text-[var(--text-muted)]" aria-label={t('studio_apps_runtime.cell.no', 'No')} />;
         case 'badge':
         case 'relation':
             return (
@@ -318,7 +318,7 @@ function renderMainValue({ value, format, col, row, now, t }) {
             );
         case 'tags': {
             const tags = asTags(value);
-            if (!tags.length) return <span style={{ color: 'var(--text-muted)' }}>{EM_DASH}</span>;
+            if (!tags.length) return <span className="text-[var(--text-muted)]">{EM_DASH}</span>;
             return (
                 <span className="inline-flex flex-wrap items-center gap-1">
                     {/* Relabel each chip the way a `badge` column does: the
@@ -340,7 +340,7 @@ function renderMainValue({ value, format, col, row, now, t }) {
         // what is being counted.
         case 'breakdown': {
             const parts = String(value).split(/\s*\+\s*/).map((s) => s.trim()).filter(Boolean);
-            if (!parts.length) return <span style={{ color: 'var(--text-muted)' }}>{EM_DASH}</span>;
+            if (!parts.length) return <span className="text-[var(--text-muted)]">{EM_DASH}</span>;
             return (
                 <span className="inline-flex flex-wrap items-center gap-1" data-app-cell-breakdown={parts.length}>
                     {parts.map((part, i) => {
@@ -357,7 +357,7 @@ function renderMainValue({ value, format, col, row, now, t }) {
                                 {m ? (
                                     <>
                                         <span className="font-semibold tabular-nums">{m[1]}×</span>
-                                        <span style={{ color: 'var(--text-secondary)' }}>{m[2]}</span>
+                                        <span className="text-[var(--text-secondary)]">{m[2]}</span>
                                     </>
                                 ) : part}
                             </span>
@@ -390,7 +390,7 @@ function renderMainValue({ value, format, col, row, now, t }) {
                             style={{ width: `${pct}%`, background: ROLE_COLORS[col?.tone] || 'var(--app-primary)' }}
                         />
                     </span>
-                    <span className="text-xs tabular-nums" style={{ color: 'var(--text-secondary)' }}>{fmtNumber(n)}</span>
+                    <span className="text-xs tabular-nums text-[var(--text-secondary)]">{fmtNumber(n)}</span>
                 </span>
             );
         }

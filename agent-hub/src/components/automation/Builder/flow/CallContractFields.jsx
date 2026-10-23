@@ -11,12 +11,12 @@
 import { Sparkles } from 'lucide-react';
 import React from 'react';
 import AccordionSection from './AccordionSection';
-import { FormRow } from './settings/formPrimitives';
-import ValueBuilder from '../mapping/ValueBuilder';
 import { humanizeFieldKey } from './displayHelpers';
+import { FormRow } from './settings/formPrimitives';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { expectedKindFor } from '../mapping/fieldKinds';
 import { expectedShapeFor } from '../mapping/listShape';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import ValueBuilder from '../mapping/ValueBuilder';
 
 export default function CallContractFields({
     step,

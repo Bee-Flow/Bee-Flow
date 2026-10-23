@@ -17,8 +17,8 @@
  * state (`error`) — never an empty result pretending to be "not assessed".
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { API, fetchJson, jsonInit, asObject } from '../data/api';
 import { fallbackSignals } from './aiSignals';
+import { API, fetchJson, jsonInit, asObject } from '../data/api';
 
 export const ASSESSMENT_KINDS = Object.freeze(['automation', 'agent']);
 

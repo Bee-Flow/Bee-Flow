@@ -1,23 +1,23 @@
-import React, { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { AlertTriangle, FileUp, Loader2, Plug, Search } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { useEntitlements } from '../../licensing/EntitlementsContext';
+import React, { useEffect, useEffectEvent, useMemo, useState } from 'react';
+import ConnectHubBanner from './ConnectHubBanner';
+import ConnectHubDialog from './ConnectHubDialog';
+import MarketplaceModuleCard from './MarketplaceModuleCard';
+import { useModuleActions } from './moduleActions';
+import { parseModuleDeepLink, searchWithModule, searchWithoutModule } from './moduleDeepLink';
+import ModuleDetailDrawer from './ModuleDetailDrawer';
+import ModuleLogsDialog from './ModuleLogsDialog';
+import PermissionConsentDialog from './PermissionConsentDialog';
+import { parsePurchaseReturn, stripPurchaseReturnParams } from './purchaseReturn';
+import SideloadDialog from './SideloadDialog';
 import {
     useConnectHub,
     useDisconnectHub,
     useMarketplace,
     useModulesHealth,
 } from '../../../api/queries/modules';
-import MarketplaceModuleCard from './MarketplaceModuleCard';
-import ConnectHubBanner from './ConnectHubBanner';
-import ConnectHubDialog from './ConnectHubDialog';
-import ModuleDetailDrawer from './ModuleDetailDrawer';
-import ModuleLogsDialog from './ModuleLogsDialog';
-import PermissionConsentDialog from './PermissionConsentDialog';
-import SideloadDialog from './SideloadDialog';
-import { useModuleActions } from './moduleActions';
-import { parsePurchaseReturn, stripPurchaseReturnParams } from './purchaseReturn';
-import { parseModuleDeepLink, searchWithModule, searchWithoutModule } from './moduleDeepLink';
+import { useTranslation } from '../../../hooks/useTranslation';
+import { useEntitlements } from '../../licensing/EntitlementsContext';
 
 // Marketplace (module hub) tab. Owns the connect/browse/buy/install lifecycle;
 // all wire calls go through the modules.ts hooks and the shared useModuleActions
@@ -223,7 +223,7 @@ export default function MarketplaceTab({ flash, reloadEntitlements }) {
     if (marketplace.isLoading) {
         return (
             <div className="flex items-center justify-center py-20" data-testid="marketplace-loading">
-                <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--text-muted)' }} />
+                <Loader2 className="w-6 h-6 animate-spin text-[var(--text-muted)]" />
             </div>
         );
     }
@@ -294,7 +294,7 @@ export default function MarketplaceTab({ flash, reloadEntitlements }) {
 
             {/* Search */}
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                 <input
                     value={q}
                     onChange={(e) => setQ(e.target.value)}

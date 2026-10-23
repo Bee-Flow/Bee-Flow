@@ -118,7 +118,7 @@ export default function TimelineStack({
                 <div className={`relative h-12 ${TRACK_INDENT_CLASS}`}>
                     {loading && (
                         <div className="absolute inset-0 flex items-center justify-center">
-                            <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--text-muted)' }} />
+                            <Loader2 className="w-4 h-4 animate-spin text-[var(--text-muted)]" />
                         </div>
                     )}
                     <canvas

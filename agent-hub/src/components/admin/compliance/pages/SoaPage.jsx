@@ -1,19 +1,19 @@
-import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, Search } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import FilterPills from '../../../shared/FilterPills';
-import Pager from '../../../shared/Pager';
-import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
-import EmptyState from '../../../shared/EmptyState';
-import { API, fetchJson, asArray, jsonInit } from '../data/api';
-import { useDateFormat } from '../shared/formatDates';
-import useDrawerMode from '../shared/useDrawerMode';
-import SoaTable, { DecisionPill } from './soa/SoaTable';
+import React, { useEffect, useMemo, useState } from 'react';
 import SoaDrawer from './soa/SoaDrawer';
+import SoaTable, { DecisionPill } from './soa/SoaTable';
 import {
     THEMES, DECISION_FILTERS, PAGE_LIMIT,
     countByDecision, countByTheme, filterControls, indexChecks, pageSlice, decisionOf,
 } from './soa/soaThemes';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
+import EmptyState from '../../../shared/EmptyState';
+import FilterPills from '../../../shared/FilterPills';
+import Pager from '../../../shared/Pager';
+import { API, fetchJson, asArray, jsonInit } from '../data/api';
+import { useDateFormat } from '../shared/formatDates';
+import useDrawerMode from '../shared/useDrawerMode';
 
 /**
  * SoaPage — Statement of Applicability register (artboard 1d).

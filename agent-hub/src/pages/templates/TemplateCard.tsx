@@ -86,14 +86,14 @@ export default function TemplateCard({ template, renamingId, setRenamingId, rena
                         className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
                         title={t('templates.download', 'Download')}
                     >
-                        <Download className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                        <Download className="w-4 h-4 text-[var(--text-muted)]" />
                     </button>
                     <button
                         onClick={() => { setRenamingId(template.id); setRenameValue(template.name ?? ''); }}
                         className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
                         title={t('templates.rename', 'Rename')}
                     >
-                        <Pencil className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                        <Pencil className="w-4 h-4 text-[var(--text-muted)]" />
                     </button>
                     <button
                         onClick={async () => { if (await confirm({ title: 'Delete this template?', confirmLabel: 'Delete', destructive: true })) handleDelete(template.id); }}

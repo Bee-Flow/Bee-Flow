@@ -1,9 +1,9 @@
 import React, { useState as useLocalState } from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '../../../../utils/agentAvatar';
 import ModelTierSelector from '../../../licensing/ModelTierSelector';
 import { toast } from '../../../shared/Toast';
 import VersionHistory from '../../VersionHistory';
-import { useTranslation } from '../../../../hooks/useTranslation';
 
 export const IdentitySection = ({
   selectedAgent, name, setName, description, setDescription,

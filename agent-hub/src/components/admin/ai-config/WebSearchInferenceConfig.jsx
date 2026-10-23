@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { getModelMeta, getModelDisplayName } from '../../../utils/modelMeta';
 import SearchableModelSelect from '../shared/SearchableModelSelect';
-import { useTranslation } from '../../../hooks/useTranslation';
 
 const getRerankMethods = (t) => [
     {
@@ -84,7 +84,7 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }) => {
         }
     };
 
-    if (loading) return <div className="text-sm p-4" style={{ color: 'var(--text-muted)' }}>{t('admin_ai_config.loading_ellipsis', 'Loading…')}</div>;
+    if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_ai_config.loading_ellipsis', 'Loading…')}</div>;
 
     // Filter to chat-completion models only — same exclusions ChatModelTiersConfig uses.
     const chatModels = (allModels || []).filter(m => {

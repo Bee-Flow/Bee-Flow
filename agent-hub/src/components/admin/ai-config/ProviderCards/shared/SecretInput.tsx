@@ -49,8 +49,7 @@ const SecretInput = ({ value, onChange, placeholder, onEnter, show, onToggleShow
             <button
                 type="button"
                 onClick={toggleShow}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10"
-                style={{ color: 'var(--text-muted)' }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 text-[var(--text-muted)]"
                 title={visible ? 'Hide' : 'Show'}
             >
                 {visible ? '👁️' : '👁️‍🗨️'}
