@@ -192,7 +192,7 @@ function copyEvent(e) {
  * approver), no throttle (the old runner had none) and direct delivery.
  */
 function normalizeEventSettings(raw, event) {
-    const base = NOTIFICATION_DEFAULTS[event];
+    const base = NOTIFICATION_EVENTS.includes(event) ? NOTIFICATION_DEFAULTS[event] : null;
     if (!base) throw new Error(`unknown notification event: ${event}`);
     if (!isPlainObject(raw) || !Object.keys(raw).length) return copyEvent(base);
 
