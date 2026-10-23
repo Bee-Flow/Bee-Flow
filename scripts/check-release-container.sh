@@ -34,6 +34,8 @@ elif [[ "$service" == classify || "$service" == guard ]]; then
         test -z "$(find /usr -xdev -type f \( -perm -4000 -o -perm -2000 \) -print)"
         test -z "$(find /usr -type f -path "*/Archive/Tar*" -print)"
         test ! -e /usr/lib/systemd/systemd-homed
+        # pip is removed after the installs (its vendored packages carry advisories).
+        if python -c "import pip" 2>/dev/null; then echo "Unexpected advisory entry point: pip" >&2; exit 1; fi
         # The libraries the service cannot start without, so a runtime
         # library lost to a purge fails here and not at a customer.
         if [ "$SERVICE" = guard ]; then python -c "import torch, onnxruntime, gliner"; else python -c "import torch, sklearn, gliclass"; fi

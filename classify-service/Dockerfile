@@ -40,10 +40,14 @@ ENV HF_HOME=/tmp/huggingface
 # SUID/SGID bit. The reviews in .github/security/container-exceptions.json
 # rely on this, and scripts/check-release-container.sh asserts it on the
 # exact release digest.
+# pip goes too: nothing installs after this, and pip vendors its own msgpack,
+# urllib3 and setuptools (listed in pip/_vendor/bom.cdx.json), whose advisories
+# trail every pip release.
 RUN useradd --uid 1000 --user-group --no-create-home --shell /usr/sbin/nologin app \
     && rm -f /usr/bin/mount /usr/bin/umount /usr/bin/nsenter /usr/bin/infocmp \
     && find /usr -type f -path '*/Archive/Tar*' -delete \
-    && find /usr -xdev -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} +
+    && find /usr -xdev -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} + \
+    && python -m pip uninstall -y pip
 
 # Bake the model into the image. Production pods are egress-blocked, so the
 # weights are never fetched at runtime; this layer is the only download.
