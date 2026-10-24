@@ -10,6 +10,7 @@
 
 const fsp = require('fs/promises');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** @param {any} deps  handles, localPathFor, dbKey, storage, runQuery, metaTable, entityLabel. */
 function createStorageOps({ handles, localPathFor, dbKey, storage, runQuery, metaTable, entityLabel }) {
@@ -32,7 +33,7 @@ function createStorageOps({ handles, localPathFor, dbKey, storage, runQuery, met
         try {
             const stat = await fsp.stat(localPathFor(id));
             return stat.size;
-        } catch (_) { log.debug('no local file, the cold-replica path follows', _); }
+        } catch (_) { bestEffort('stores/lib/sqliteBlobLifecycle:sizeBytes', _); /* no local file, the cold-replica path follows */ }
         // Cold replica: no handle and no local file, but the entity may be real
         // and LARGE — fall back to the last flushed metadata size so byte
         // quotas hold on every replica, not only the warm one. (This used to
@@ -112,7 +113,7 @@ function createCloseOps({ handles, localPathFor, flushNow, logPrefix, entityLabe
             // If a flush is in flight, let it finish so we don't tear it down
             // mid-upload — but we'll still drop the handle afterward.
             if (entry.flushing) {
-                try { await entry.flushing; } catch (_) { log.debug('in-flight flush failed, the handle is dropped anyway', _); }
+                try { await entry.flushing; } catch (_) { bestEffort('stores/lib/sqliteBlobLifecycle:invalidate', _); /* in-flight flush failed, the handle is dropped anyway */ }
             }
             try { entry.db.close(); } catch (_) { log.debug('database handle already closed', _); }
             handles.delete(id);

@@ -42,6 +42,7 @@ const { runDdl } = require('../lib/_ddl');
 const { encryptField, decryptField, isEnvelope } = require('../lib/fieldEnvelope');
 const { conversationKey, messageAad, PLAINTEXT_CONTEXT } = require('./messageCrypto');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const initMessagesTable = makeStoreInit('ConversationMessages', _initMessagesTable);
 
@@ -232,7 +233,7 @@ function rowToMessage(row, ctx = PLAINTEXT_CONTEXT) {
     let meta = {};
     // Only a malformed-JSON plaintext meta is tolerated here (that was always
     // survivable). A decrypt failure has already thrown above.
-    try { meta = JSON.parse(rawMeta || '{}'); } catch (e) { log.debug('ignore', e); }
+    try { meta = JSON.parse(rawMeta || '{}'); } catch (e) { fallback('stores/agent/conversationMessages:rowToMessage', e); /* ignore */ }
 
     const rawContent = decryptField(row.content, {
         key: convKey,

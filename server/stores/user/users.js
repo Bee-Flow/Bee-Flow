@@ -9,6 +9,7 @@ const log = require('../../telemetry/log');
 const { eraseSuggestionTraces, stagesRunBy, assertNotStageRunAs, eraseCmsUploadTickets, deleteUser } = require('./usersDelete');
 const { sanitizeUserNames, isNewCredential, createUser, SeatCapExceededError, createUserWithSeatCheck } = require('./usersCreate');
 const { setSeatSync } = require('./seatSyncPort');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Stripe seat sync for usersCreate.js / usersDelete.js (they must not require the
 // billing services: see seatSyncPort.js). Required lazily, as before.
@@ -305,7 +306,7 @@ async function updateUser(userId, updates) {
                     try {
                         const { syncSeatQuantityForOrg } = require('../../services/stripeService');
                         await syncSeatQuantityForOrg(existing.organizationId);
-                    } catch (err) { log.debug('best-effort', err); }
+                    } catch (err) { bestEffort('stores/user/users:updateUser', err); /* best-effort */ }
                 });
             }
         }

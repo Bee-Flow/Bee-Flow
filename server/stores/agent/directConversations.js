@@ -25,6 +25,7 @@ const { normaliseKbIds } = require('../../core/kb/kbIdList');
 const log = require('../../telemetry/log');
 const { _restoreTokensInMessages, _displayTokenMap } = require('./tokenDisplay');
 const { searchConversationRows, byUpdatedDesc, DIRECT_SEARCH } = require('../lib/conversationSearch');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /** What the shared search needs from this store's db and crypto modules. */
 const SEARCH_DEPS = {
@@ -487,7 +488,7 @@ async function setDirectConversationLabels(id, labels, userId) {
  * history. Those legitimately rewrite, so they fall back to replace.
  */
 async function _appendNewMessages(id, type, messages, ctx) {
-    const stored = await convMessages.getMessages(id, ctx).catch(() => null);
+    const stored = await convMessages.getMessages(id, ctx).catch((e) => fallback('stores/agent/directConversations:_appendNewMessages', e, null));
     const storedCount = Array.isArray(stored) ? stored.length : 0;
 
     if (!Array.isArray(messages) || messages.length < storedCount) {
@@ -615,7 +616,7 @@ async function deleteDirectConversation(id, userId) {
     // Drop any cached DLP state for this conversation. Also unscoped by id (it
     // nulls pii_token_map on BOTH conversation tables), hence likewise gated on
     // the ownership check above.
-    try { require('../../core/dlp/dlpRunner').clearConversationState(id); } catch (err) { log.debug('module not loaded yet', err); }
+    try { require('../../core/dlp/dlpRunner').clearConversationState(id); } catch (err) { bestEffort('stores/agent/directConversations:deleteDirectConversation', err); /* module not loaded yet */ }
     return rowCount > 0;
 }
 

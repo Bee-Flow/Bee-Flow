@@ -14,6 +14,7 @@ const { storeError } = require('../lib/managedParts');
 const { initDB } = require('./schema');
 const { mapMetaRow } = require('./rowMappers');
 const { recountRows } = require('./rowCounts');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // The data-model contract (appStudio/dataModel) sits in the server's import
 // cycle; the barrel hands it in through cycleDeps.
@@ -232,10 +233,10 @@ async function saveDataModelIn(io, appId, ownerId, model, { expectedVersion = nu
         await client.query('COMMIT');
         // Row counts can drift across a migration (table drops/recreates) —
         // take an authoritative recount, best-effort (the save is committed).
-        try { await io.recountRows(appId, ownerId, Array.isArray(model && model.tables) ? model.tables : []); } catch (err) { log.debug('advisory', err); }
+        try { await io.recountRows(appId, ownerId, Array.isArray(model && model.tables) ? model.tables : []); } catch (err) { bestEffort('stores/studioAppData/dataModel:saveDataModelIn', err); /* advisory */ }
         return { ok: true, version: nextVersion };
     } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
+        await client.query('ROLLBACK').catch((e) => bestEffort('stores/studioAppData/dataModel:saveDataModelIn#2', e));
         throw e;
     } finally {
         client.release();

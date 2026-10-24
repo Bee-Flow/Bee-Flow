@@ -8,6 +8,7 @@ const { initDB } = require('./schema');
 const { dynamicUpdate, parseJSON } = require('./shared');
 const { getPlan } = require('./plans');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Organization Subscriptions ─────────────────────────────
 async function getAllOrgSubscriptions() {
@@ -99,7 +100,7 @@ async function setOrgSubscription(orgId, data) {
         }
         // Bust the PAYG hot-path cache so the next usage event sees the new
         // plan / customer / status immediately instead of waiting for TTL.
-        try { require('../usage/payg').invalidatePaygCache(orgId, null); } catch (err) { log.debug('circular-load safe', err); }
+        try { require('../usage/payg').invalidatePaygCache(orgId, null); } catch (err) { bestEffort('stores/user/subscriptions:setOrgSubscription', err); /* circular-load safe */ }
         return true;
     } catch (e) { log.error('[UserStore] setOrgSubscription error:', e); return false; }
 }
@@ -257,7 +258,7 @@ async function setConsumerSubscription(userId, data) {
                     data.payment_status || 'none', data.billing_cycle_start || now,
                     data.trial_end_date || null, now, now]);
         }
-        try { require('../usage/payg').invalidatePaygCache(null, userId); } catch (err) { log.debug('circular-load safe', err); }
+        try { require('../usage/payg').invalidatePaygCache(null, userId); } catch (err) { bestEffort('stores/user/subscriptions:setConsumerSubscription', err); /* circular-load safe */ }
         return true;
     } catch (e) { log.error('[UserStore] setConsumerSubscription error:', e); return false; }
 }
@@ -343,7 +344,7 @@ async function setOrgSubscriptionWithLock(orgId, payload) {
         }
         await client.query('COMMIT');
     } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (err) { log.debug('ignore', err); }
+        try { await client.query('ROLLBACK'); } catch (err) { bestEffort('stores/user/subscriptions:setOrgSubscriptionWithLock', err); /* ignore */ }
         throw e;
     } finally {
         client.release();
@@ -374,7 +375,7 @@ async function setOrgSubscriptionRespectingOverride(orgId, fullUpdate, strippedU
             await client.query('COMMIT');
         }
     } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (err) { log.debug('ignore', err); }
+        try { await client.query('ROLLBACK'); } catch (err) { bestEffort('stores/user/subscriptions:setOrgSubscriptionRespectingOverride', err); /* ignore */ }
         throw e;
     } finally {
         client.release();
@@ -406,7 +407,7 @@ async function setConsumerSubscriptionRespectingOverride(userId, fullUpdate, str
             await client.query('COMMIT');
         }
     } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (err) { log.debug('ignore', err); }
+        try { await client.query('ROLLBACK'); } catch (err) { bestEffort('stores/user/subscriptions:setConsumerSubscriptionRespectingOverride', err); /* ignore */ }
         throw e;
     } finally {
         client.release();

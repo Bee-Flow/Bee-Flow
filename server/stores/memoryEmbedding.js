@@ -22,6 +22,7 @@ const { toV1BaseUrl } = require('../utils/azureUrl');
 const log = require('../telemetry/log');
 const { validateDim } = require('./memoryVectors');
 const { dep } = require('./memoryDeps');
+const { bestEffort } = require('../utils/bestEffort');
 const memoryIndex = dep('memoryIndex');
 const { resolveEmbedTarget } = dep('embedTarget');
 const { resolveWriteContext, sealEmbedding, hydrateRows, PLAINTEXT_WRITE } = dep('memoryCrypto');
@@ -84,7 +85,7 @@ async function getEmbedding(text, opts = {}) {
         const { cpuEmbed } = require('../core/embed/cpuEmbed');
         const vecs = await cpuEmbed([text], { kind: opts.kind || 'passage' });
         if (vecs.length > 0) return vecs[0];
-    } catch (err) { log.debug('try next tier', err); }
+    } catch (err) { bestEffort('stores/memoryEmbedding:getEmbedding', err); /* try next tier */ }
 
     // (3) Legacy self-hosted GPU service (`EMBED_API_URL`).
     if (EMBED_API_URL) {
@@ -99,7 +100,7 @@ async function getEmbedding(text, opts = {}) {
                 const data = /** @type {{ data?: Array<{ embedding?: number[] }> }} */ (await res.json());
                 return data?.data?.[0]?.embedding || null;
             }
-        } catch (err) { log.debug('fall through', err); }
+        } catch (err) { bestEffort('stores/memoryEmbedding:getEmbedding#2', err); /* fall through */ }
     }
 
     return null;
@@ -224,7 +225,7 @@ async function indexMemory(memoryId, content) {
         if (!(await _storeVector(memoryId, embedded.vector, wctx))) throw new Error('vector not stored');
         return { ok: true, dim: embedded.dim };
     } catch (e) {
-        await memoryIndex.noteEmbedFailure(memoryId).catch(() => {});
+        await memoryIndex.noteEmbedFailure(memoryId).catch((e) => bestEffort('stores/memoryEmbedding:indexMemory', e));
         return { ok: false };
     }
 }

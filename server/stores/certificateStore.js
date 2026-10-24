@@ -11,6 +11,7 @@
 
 const configStore = require('./configStore');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const userKey = (userId) => `learning_certificate_user_${userId}`;
 const lookupKey = (hash) => `learning_cert_lookup_${hash}`;
@@ -38,7 +39,7 @@ async function setLookup(tokenHash, userId, certId) {
 }
 
 async function clearLookup(tokenHash) {
-    try { await configStore.setConfig(lookupKey(tokenHash), null); } catch (err) { log.debug('best-effort', err); }
+    try { await configStore.setConfig(lookupKey(tokenHash), null); } catch (err) { bestEffort('stores/certificateStore:clearLookup', err); /* best-effort */ }
 }
 
 async function resolveByTokenHash(tokenHash) {

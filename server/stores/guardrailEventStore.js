@@ -8,6 +8,7 @@ const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 // Single-flight init with a warm-boot probe — see integrationActivityStore.js
 // for the rationale. The probe targets the NEWEST schema object this init
@@ -24,7 +25,7 @@ async function _doInit() {
             (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_guardrail_org_ts_live') AS live,
             (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_guardrail_type') AS last,
             (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_guardrail_org') AS retired
-    `).catch(() => null);
+    `).catch((e) => fallback('stores/guardrailEventStore:_doInit', e, null));
     if (probe && probe.live && probe.last && !probe.retired) return;
 
     await exec(`

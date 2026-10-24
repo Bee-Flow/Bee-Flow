@@ -118,7 +118,7 @@ async function _initDB() {
 // in the short-lived `migrateDb.js` runner (it process.exit()s before this).
 // Set INTEGRATION_CONNECTIONS_BACKFILL=0 to disable (e.g. tests).
 if (process.env.INTEGRATION_CONNECTIONS_BACKFILL !== '0') {
-    const t = setTimeout(() => { backfillFromLegacy().catch(() => {}); }, 8000);
+    const t = setTimeout(() => { backfillFromLegacy().catch((e) => bestEffort('stores/integrationConnectionStore:anon', e)); }, 8000);
     if (typeof t.unref === 'function') t.unref();
 }
 
@@ -182,7 +182,7 @@ async function createConnection({
     });
 
     if (mirror && created.is_default && secretObject) {
-        await _mirrorWriteLegacy(created, secretObject).catch(() => {});
+        await _mirrorWriteLegacy(created, secretObject).catch((e) => bestEffort('stores/integrationConnectionStore:createConnection', e));
     }
     return shapeConnection(created);
 }
@@ -287,7 +287,7 @@ async function setDefault(connectionId) {
     });
     // Re-mirror the new default's value to the legacy key.
     const full = await getConnectionWithSecret(connectionId);
-    if (full?.secret) await _mirrorWriteLegacy({ owner_user_id: conn.owner_user_id, provider: conn.provider, is_default: true }, full.secret).catch(() => {});
+    if (full?.secret) await _mirrorWriteLegacy({ owner_user_id: conn.owner_user_id, provider: conn.provider, is_default: true }, full.secret).catch((e) => bestEffort('stores/integrationConnectionStore:setDefault', e));
     return true;
 }
 
@@ -308,7 +308,7 @@ async function updateConnectionSecret(connectionId, secretObject, secretMeta = n
         );
     }
     if (row.is_default && secretObject) {
-        await _mirrorWriteLegacy(row, secretObject).catch(() => {});
+        await _mirrorWriteLegacy(row, secretObject).catch((e) => bestEffort('stores/integrationConnectionStore:updateConnectionSecret', e));
     }
     return true;
 }
@@ -372,7 +372,7 @@ async function deleteConnectionsForProvider({ provider, orgId }) {
 
 async function touchLastUsed(connectionId) {
     await initDB();
-    await run('UPDATE integration_connections SET last_used_at = NOW() WHERE id = $1', [connectionId]).catch(() => {});
+    await run('UPDATE integration_connections SET last_used_at = NOW() WHERE id = $1', [connectionId]).catch((e) => bestEffort('stores/integrationConnectionStore:touchLastUsed', e));
 }
 
 // ── Sharing ─────────────────────────────────────────────────────────
@@ -659,7 +659,7 @@ async function _mirrorWriteLegacy(row, secretObject) {
     for (const { prefix, field } of fields) {
         const val = secretObject[field];
         if (val === undefined || val === null || val === '') continue;
-        try { await configStore.setSecret(`${prefix}_user_${userId}`, String(val)); } catch (err) { log.debug('best effort', err); }
+        try { await configStore.setSecret(`${prefix}_user_${userId}`, String(val)); } catch (err) { bestEffort('stores/integrationConnectionStore:_mirrorWriteLegacy', err); /* best effort */ }
     }
 }
 
@@ -686,7 +686,7 @@ async function backfillFromLegacy() {
             if (!parsed) continue;
             const gk = `${parsed.userId}::${parsed.provider}`;
             if (!groups.has(gk)) groups.set(gk, { userId: parsed.userId, provider: parsed.provider, kind: parsed.kind, fields: {} });
-            const value = await configStore.getSecret(key).catch(() => null);
+            const value = await configStore.getSecret(key).catch((e) => fallback('stores/integrationConnectionStore:backfillFromLegacy', e, null));
             if (value !== null && value !== undefined && value !== '') groups.get(gk).fields[parsed.field] = value;
         }
         for (const g of groups.values()) {
@@ -697,7 +697,7 @@ async function backfillFromLegacy() {
             );
             if (existing) continue;
             let orgId = null;
-            try { orgId = (await userStore.getUser(g.userId))?.organizationId || null; } catch (err) { log.debug('sentinel', err); }
+            try { orgId = (await userStore.getUser(g.userId))?.organizationId || null; } catch (err) { fallback('stores/integrationConnectionStore:backfillFromLegacy#2', err); /* sentinel */ }
             await createConnection({
                 ownerUserId: g.userId, orgId, provider: g.provider, label: 'Default',
                 kind: g.kind, secretObject: g.fields, makeDefault: true, mirror: false,
@@ -709,7 +709,7 @@ async function backfillFromLegacy() {
         const oauthRows = await getAll(
             "SELECT user_id, org_id, provider, scope, expires_at, status FROM automation_credentials WHERE provider = ANY($1::text[])",
             [Array.from(OAUTH_AUTOMATION_PROVIDERS)]
-        ).catch(() => []);
+        ).catch((e) => fallback('stores/integrationConnectionStore:backfillFromLegacy#3', e, []));
         for (const r of oauthRows) {
             const existing = await getOne(
                 'SELECT id FROM integration_connections WHERE owner_user_id = $1 AND provider = $2 LIMIT 1',
@@ -772,4 +772,5 @@ module.exports = {
 // keys. configStore is the lower module, so we register instead of it requiring us.
 // Also registered lazily by boot/lateBoundPorts.js; a test may stub configStore without the setter.
 const _configStore = require('./configStore');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 if (typeof _configStore.setLegacySecretResolver === 'function') _configStore.setLegacySecretResolver(getLegacySecretValue);

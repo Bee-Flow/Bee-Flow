@@ -11,6 +11,7 @@ const fsp = require('fs/promises');
 const path = require('path');
 const Database = require('better-sqlite3');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * @param {any} deps  handles (the engine's Map), maybeEvict (from the
@@ -100,7 +101,7 @@ function createHandleLoader({ handles, maybeEvict, dbKey, workDir, storage, runQ
         // self-contained — no -wal/-shm to upload — but a process killed mid-write
         // may have left stragglers.
         for (const ext of ['', '-journal', '-wal', '-shm']) {
-            try { await fsp.unlink(localPath + ext); } catch (_) { log.debug('local file absent', _); }
+            try { await fsp.unlink(localPath + ext); } catch (_) { bestEffort('stores/lib/sqliteBlobHandles:openCold', _); /* local file absent */ }
         }
         await downloadIfExists(ownerId, id, localPath);
 

@@ -38,6 +38,7 @@
 
 const { defaultTier, invalidatePolicyCache } = require('./encryptionPolicy');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * Raise a freshly created organisation to the operator's configured default
@@ -102,7 +103,7 @@ async function applyDefaultEncryptionTier(orgId, deps = {}) {
         return NONE('update_threw');
     }
 
-    try { invalidatePolicyCache(orgId); } catch (err) { log.debug('non-fatal', err); }
+    try { invalidatePolicyCache(orgId); } catch (err) { bestEffort('stores/initialTier:applyDefaultEncryptionTier', err); /* non-fatal */ }
 
     // Same persistent trail the admin route writes, so "who put this org on
     // this tier" has one answer whether a human or the default did it.
@@ -114,7 +115,7 @@ async function applyDefaultEncryptionTier(orgId, deps = {}) {
             { tier: wanted, scope: null, source: 'BEEFLOW_DEFAULT_ENCRYPTION_TIER' },
             orgId,
         );
-    } catch (err) { log.debug('logAccessAudit already swallows; belt and braces', err); }
+    } catch (err) { bestEffort('stores/initialTier:applyDefaultEncryptionTier#2', err); /* logAccessAudit already swallows; belt and braces */ }
 
     log.info(`[Encryption] New org '${orgId}' starts on tier '${wanted}' (BEEFLOW_DEFAULT_ENCRYPTION_TIER).`);
     return { tier: wanted, applied: true, reason: 'applied' };

@@ -41,6 +41,7 @@ const webpageStore = require('./webpageStore');
 const { makeStoreInit } = require('./lib/storeInit');
 const log = require('../telemetry/log');
 const { parseJSONObject: parseJSON } = require('./lib/json');
+const { fallback } = require('../utils/bestEffort');
 
 const ACCESS_MODES = ['unlisted', 'password', 'email'];
 
@@ -222,7 +223,7 @@ async function createShare({ webpageId, createdBy, organizationId, accessMode, p
     // the legacy non-retrievable model (token shown once at create only).
     let tokenCipher = null;
     try { tokenCipher = configStore.encryptValue(rawToken, organizationId || null); }
-    catch (err) { log.debug('MASTER_ENCRYPTION_KEY unset — degrade to legacy non-retrievable', err); }
+    catch (err) { fallback('stores/webpagePublicShareStore:createShare', err); /* MASTER_ENCRYPTION_KEY unset — degrade to legacy non-retrievable */ }
     const passwordHash = accessMode === 'password'
         ? await argon2.hash(password, { type: argon2.argon2id })
         : null;

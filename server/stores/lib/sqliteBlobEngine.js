@@ -53,6 +53,7 @@ const { createFlusher } = require('./sqliteBlobFlush');
 const { createHandleLoader } = require('./sqliteBlobHandles');
 const { createReadApi, createWriteApi, normalizeParams } = require('./sqliteBlobStatements');
 const { createStorageOps, createCloseOps } = require('./sqliteBlobLifecycle');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Build one engine instance.
@@ -116,7 +117,7 @@ function createSqliteBlobEngine({ workDir, buildKey, metaTable, logPrefix, entit
         if (shutdownWired) return;
         shutdownWired = true;
         const handler = () => {
-            closeAll().catch(() => {}).finally(() => {
+            closeAll().catch((e) => fallback('stores/lib/sqliteBlobEngine:handler', e)).finally(() => {
                 // Don't process.exit() — let the rest of the app's shutdown finish.
             });
         };

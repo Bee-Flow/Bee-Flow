@@ -16,6 +16,7 @@
 const crypto = require('crypto');
 const { initDB, getClient } = require('./core');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const REMIND_WINDOW_MINUTES = 10;
 
@@ -65,7 +66,7 @@ async function claimApprovalReminder(approvalId, { byUserId = null, windowMinute
         await client.query('COMMIT');
         return { claimed: true, at: new Date(inserted.rows[0].ts).toISOString() };
     } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (err) { log.debug('the original error is the one to report', err); }
+        try { await client.query('ROLLBACK'); } catch (err) { bestEffort('stores/automationStore/approvalReminders:claimApprovalReminder', err); /* the original error is the one to report */ }
         throw e;
     } finally {
         client.release();

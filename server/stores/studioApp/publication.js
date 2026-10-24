@@ -10,6 +10,7 @@ const { dep } = require('./deps');
 const { initDB } = require('./schema');
 const { META_COLS, mapAppMetaRow } = require('./rowMappers');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const { run, getOne, getAll } = dep('db');
 
@@ -187,7 +188,7 @@ async function touchPublicPage(token) {
             'UPDATE studio_app_public_pages SET last_seen_at = NOW(), visits = visits + 1 WHERE id = $1',
             [token]
         );
-    } catch (err) { log.debug('advisory only', err); }
+    } catch (err) { bestEffort('stores/studioApp/publication:touchPublicPage', err); /* advisory only */ }
 }
 
 module.exports = {

@@ -58,6 +58,7 @@ const {
 } = require('./webpage/bridgeGrants');
 const managedParts = require('./managedPartsDefault');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * ── THE DEPENDENTS INDEX HANGS ON THE WRITER, NOT ON THE ROUTE ────────
@@ -88,7 +89,7 @@ function reindex(webpageId) {
     if (!webpageId) return;
     try {
         require('../core/webpages/webpageUsageSync').reconcileWebpageUsageDetached(webpageId);
-    } catch (err) { log.debug('Een index mag een schrijfactie nooit laten omvallen.', err); }
+    } catch (err) { bestEffort('stores/webpageStore:reindex', err); /* Een index mag een schrijfactie nooit laten omvallen. */ }
 }
 
 /*

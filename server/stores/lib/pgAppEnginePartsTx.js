@@ -14,6 +14,7 @@ const {
     MAX_RESULT_ROWS, MAX_BATCH_STATEMENTS, OWNERSHIP_TTL_MS,
     quoteIdent, validateSql, toDollarParams, normalizeParams, normalizeRows, mapPgError,
 } = require('./pgAppEngineHelpers');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** Ownership/interlock check + the app-scoped transaction wrapper. */
 function makeTx({ getClient, entityLabel, schemaFor, assertAccessFn, ownershipCache }) {
@@ -71,7 +72,7 @@ function makeTx({ getClient, entityLabel, schemaFor, assertAccessFn, ownershipCa
             await client.query('COMMIT');
             return out;
         } catch (err) {
-            try { await client.query('ROLLBACK'); } catch (err) { log.debug('connection-level failure', err); }
+            try { await client.query('ROLLBACK'); } catch (err) { bestEffort('stores/lib/pgAppEnginePartsTx:withAppTx', err); /* connection-level failure */ }
             throw mapPgError(err);
         } finally {
             client.release();
@@ -261,7 +262,7 @@ function makeMigration({ logPrefix, schemaIdent, assertOwnership, withAppTx }) {
                 // this transaction. A failure here is swallowed: if the
                 // transaction is already aborted the caller's error is the
                 // one that matters.
-                try { await client.query('SET LOCAL search_path = DEFAULT'); } catch (err) { log.debug('aborted tx', err); }
+                try { await client.query('SET LOCAL search_path = DEFAULT'); } catch (err) { bestEffort('stores/lib/pgAppEnginePartsTx:applyMigration', err); /* aborted tx */ }
             }
         }
         return withAppTx(ownerId, appId, {}, work);

@@ -61,6 +61,7 @@ const { getAvailableSkills, getSkill, getSkillScope, getSkillsByIds, canEditSkil
 const { listProjectSkills, countProjectSkills, setSkillProject, clearProjectFromSkills, writeManagedSkill } = require('./skill/projects');
 const { listSkillUsage, getUsageSummary } = require('./skill/usage');
 const { recordTestRun, listTestRuns, getLastTestBySkillIds, TEST_STATUSES } = require('./skill/testRuns');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ── GitHub Sync hook (fire-and-forget) ───────────────────────────
 // A skill in a Solution stage project is a deployed copy of a Dev skill: Dev
@@ -81,7 +82,7 @@ async function _notifySkillSync(orgId, skillId, action = 'pending', projectId = 
         if (config.autoSync === true) {
             require('../services/githubSyncService').autoSyncResource(orgId, 'skill', skillId, action);
         }
-    } catch (e) { log.debug('non-fatal', e); }
+    } catch (e) { bestEffort('stores/skillStore:_notifySkillSync', e); /* non-fatal */ }
 }
 
 /** Keep the last N test runs per skill (plan S1). */

@@ -55,6 +55,7 @@ const { run, getOne } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { createSecretBox } = require('../utils/secretBox');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const TABLE = 'integration_response_cache';
 
@@ -160,7 +161,7 @@ async function _doInit() {
                 (SELECT 1 FROM pg_attribute
                   WHERE attrelid = to_regclass('${TABLE}')
                     AND attname = 'payload_bytes' AND NOT attisdropped) AS c`,
-    ).catch(() => null);
+    ).catch((e) => fallback('stores/integrationCacheStore:_doInit', e, null));
     if (!(probe?.t && probe?.c)) {
         await require('../migrations/integration-response-cache-2026-09').up();
     }

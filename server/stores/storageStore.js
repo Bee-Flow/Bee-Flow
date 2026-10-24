@@ -19,6 +19,7 @@ const path = require('path');
 const log = require('../telemetry/log');
 const { s3ClientConfig } = require('./storageClientConfig');
 const { createUploadFileFromPath } = require('./storageUploadFromPath');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const BUCKET = process.env.S3_BUCKET || 'beeflow-media';
 const DEFAULT_EXPIRY = 3600; // 1 hour
@@ -187,7 +188,7 @@ async function init() {
  */
 function startHeartbeat() {
     if (heartbeat || !configured) return;
-    heartbeat = setInterval(() => { ensureAvailable().catch(() => {}); }, 60_000);
+    heartbeat = setInterval(() => { ensureAvailable().catch((e) => bestEffort('stores/storageStore:startHeartbeat', e)); }, 60_000);
     if (heartbeat.unref) heartbeat.unref();
 }
 
@@ -219,7 +220,7 @@ async function ensureAvailable() {
  */
 function isAvailable() {
     if (mode === null && configured && Date.now() >= nextRetryAt && !connecting) {
-        ensureAvailable().catch(() => {});
+        ensureAvailable().catch((e) => bestEffort('stores/storageStore:isAvailable', e));
     }
     return mode !== null;
 }
@@ -390,7 +391,7 @@ async function copyObject(sourceKey, destKey) {
         // same MIME on the copy. Best-effort — missing sidecars are fine.
         for (const ext of ['.meta', '.tags']) {
             if (fs.existsSync(src + ext)) {
-                try { fs.copyFileSync(src + ext, dst + ext); } catch (err) { log.debug('ignore', err); }
+                try { fs.copyFileSync(src + ext, dst + ext); } catch (err) { bestEffort('stores/storageStore:copyObject', err); /* ignore */ }
             }
         }
         return;
@@ -424,11 +425,11 @@ async function uploadFile(key, buffer, contentType, metadata = null) {
         // MIME without re-guessing from the extension.
         if (contentType) {
             try { fs.writeFileSync(filePath + '.meta', String(contentType), 'utf8'); }
-            catch (err) { log.debug('non-fatal — extension fallback covers this', err); }
+            catch (err) { bestEffort('stores/storageStore:uploadFile', err); /* non-fatal — extension fallback covers this */ }
         }
         if (metadata && typeof metadata === 'object' && Object.keys(metadata).length > 0) {
             try { fs.writeFileSync(filePath + '.tags', JSON.stringify(metadata), 'utf8'); }
-            catch (err) { log.debug('non-fatal', err); }
+            catch (err) { bestEffort('stores/storageStore:uploadFile#2', err); /* non-fatal */ }
         }
         log.info(`[StorageStore:local] Uploaded: ${key} (${(buffer.length / 1024).toFixed(1)} KB)`);
         return { key };
@@ -542,8 +543,8 @@ async function completeMultipartUpload(key, uploadId, parts) {
             out.end();
         }
         let contentType = 'application/octet-stream';
-        try { contentType = fs.readFileSync(path.join(dir, 'content-type'), 'utf8').trim() || contentType; } catch (err) { log.debug('default', err); }
-        try { fs.writeFileSync(filePath + '.meta', contentType, 'utf8'); } catch (err) { log.debug('non-fatal', err); }
+        try { contentType = fs.readFileSync(path.join(dir, 'content-type'), 'utf8').trim() || contentType; } catch (err) { fallback('stores/storageStore:completeMultipartUpload', err); /* default */ }
+        try { fs.writeFileSync(filePath + '.meta', contentType, 'utf8'); } catch (err) { bestEffort('stores/storageStore:completeMultipartUpload#2', err); /* non-fatal */ }
         fs.rmSync(dir, { recursive: true, force: true });
         log.info(`[StorageStore:local] Multipart complete: ${key} (${parts.length} parts)`);
         return { key };
@@ -610,8 +611,8 @@ async function deleteFile(key) {
     if (mode === 'local') {
         const filePath = localPathFor(key);
         try { fs.unlinkSync(filePath); } catch (e) { if (e.code !== 'ENOENT') throw e; }
-        try { fs.unlinkSync(filePath + '.meta'); } catch (err) { log.debug('ignore', err); }
-        try { fs.unlinkSync(filePath + '.tags'); } catch (err) { log.debug('ignore', err); }
+        try { fs.unlinkSync(filePath + '.meta'); } catch (err) { bestEffort('stores/storageStore:deleteFile', err); /* ignore */ }
+        try { fs.unlinkSync(filePath + '.tags'); } catch (err) { bestEffort('stores/storageStore:deleteFile#2', err); /* ignore */ }
         log.info(`[StorageStore:local] Deleted: ${key}`);
         return;
     }
@@ -654,7 +655,7 @@ async function streamFile(key, { range = null, signal = undefined } = {}) {
         try {
             const meta = fs.readFileSync(filePath + '.meta', 'utf8').trim();
             if (meta) contentType = meta;
-        } catch (err) { log.debug('no sidecar', err); }
+        } catch (err) { fallback('stores/storageStore:streamFile', err); /* no sidecar */ }
         if (contentType === 'application/octet-stream') {
             const ext = path.extname(filePath).toLowerCase();
             if (MIME_BY_EXT[ext]) contentType = MIME_BY_EXT[ext];
@@ -664,7 +665,7 @@ async function streamFile(key, { range = null, signal = undefined } = {}) {
             const raw = fs.readFileSync(filePath + '.tags', 'utf8');
             const parsed = JSON.parse(raw);
             if (parsed && typeof parsed === 'object') metadata = parsed;
-        } catch (err) { log.debug('no sidecar', err); }
+        } catch (err) { fallback('stores/storageStore:streamFile#2', err); /* no sidecar */ }
         // A byte range makes <audio> seeking work and is what Safari/iOS
         // require before they will start playing a media resource at all.
         const readOpts = range ? { start: range.start, end: range.end } : {};
@@ -723,7 +724,7 @@ async function headFile(key) {
         try {
             const meta = fs.readFileSync(filePath + '.meta', 'utf8').trim();
             if (meta) contentType = meta;
-        } catch (err) { log.debug('no sidecar', err); }
+        } catch (err) { fallback('stores/storageStore:headFile', err); /* no sidecar */ }
         if (contentType === 'application/octet-stream') {
             const ext = path.extname(filePath).toLowerCase();
             if (MIME_BY_EXT[ext]) contentType = MIME_BY_EXT[ext];

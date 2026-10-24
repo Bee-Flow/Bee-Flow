@@ -20,6 +20,7 @@ const { sealTitle, openTitle, openTitles } = require('./conversationTitle');
 const convMessages = require('./conversationMessages');
 const log = require('../../telemetry/log');
 const { searchConversationRows, byUpdatedDesc, AGENT_SEARCH } = require('../lib/conversationSearch');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** What the shared search needs from this store's db and crypto modules. */
 const SEARCH_DEPS = {
@@ -471,7 +472,7 @@ async function deleteConversationById(conversationId) {
     await run('DELETE FROM agent_conversations WHERE id = $1', [conversationId]);
     // Drop any DLP token map / remembered choice for this conversation so a new
     // conversation reusing the same ID (unlikely but possible) starts clean.
-    try { require('../../core/dlp/dlpRunner').clearConversationState(conversationId); } catch (err) { log.debug('module not loaded yet', err); }
+    try { require('../../core/dlp/dlpRunner').clearConversationState(conversationId); } catch (err) { bestEffort('stores/agent/agentConversations:deleteConversationById', err); /* module not loaded yet */ }
 }
 
 // ── Internal: read messages, preferring new table, lazy-migrating from blob ──

@@ -8,6 +8,7 @@ const { deleteUser, assertNotStageRunAs } = require('./users');
 const { setOrgSubscription } = require('./subscriptions');
 const { getDefaultOrgPlanId } = require('./billingLifecycle');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // ── Organizations ─────────────────────────────
 function parseOrg(o) {
@@ -216,11 +217,11 @@ async function createOrganization(orgData, { autoGrantTrial = true } = {}) {
             try {
                 const configStore = require('../configStore');
                 const key = `org_webhook_signing_key_${id}`;
-                const existing = await configStore.getSecret(key).catch(() => null);
+                const existing = await configStore.getSecret(key).catch((e) => fallback('stores/user/organizations:createOrganization', e, null));
                 if (existing && typeof existing === 'string' && existing.length >= 32) return;
                 const crypto = require('crypto');
                 const fresh = crypto.randomBytes(32).toString('hex');
-                await configStore.setSecret(key, fresh, { orgId: id, integration: 'webhook_signer' }).catch(() => {});
+                await configStore.setSecret(key, fresh, { orgId: id, integration: 'webhook_signer' }).catch((e) => bestEffort('stores/user/organizations:createOrganization#2', e));
             } catch (e) {
                 log.warn('[UserStore] failed to pre-generate webhook signing key:', e.message);
             }

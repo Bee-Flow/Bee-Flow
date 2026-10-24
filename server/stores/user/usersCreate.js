@@ -4,6 +4,7 @@ const { initDB } = require('./schema');
 const { getEffectiveLimits } = require('./subscriptions');
 const log = require('../../telemetry/log');
 const { syncSeatQuantity } = require('./seatSyncPort');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Strip markup from the three free-text name fields on a user row.
@@ -130,7 +131,7 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
     try {
         const limits = await getEffectiveLimits(orgId);
         max = limits?.max_users ?? null;
-    } catch (err) { log.debug('ignore', err); }
+    } catch (err) { fallback('stores/user/usersCreate:createUserWithSeatCheck', err); /* ignore */ }
     try {
         const seatCap = await require('../../license/seats').getMaxSeatsForOrg(orgId);
         if (seatCap != null && (max == null || seatCap < max)) max = seatCap;
@@ -207,12 +208,12 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
                 Promise.resolve().then(async () => {
                     try {
                         await syncSeatQuantity(orgId);
-                    } catch (err) { log.debug('best-effort', err); }
+                    } catch (err) { bestEffort('stores/user/usersCreate:createUserWithSeatCheck#2', err); /* best-effort */ }
                 });
             }
             return { created: true, reason: null };
         } catch (e) {
-            try { await client.query('ROLLBACK'); } catch (_) { log.debug('connection already broken, the original error is handled below', _); }
+            try { await client.query('ROLLBACK'); } catch (_) { bestEffort('stores/user/usersCreate:createUserWithSeatCheck#3', _); /* connection already broken, the original error is handled below */ }
             client.release();
             if (e && e.code === '40001' && attempt < 1) continue;
             if (e instanceof SeatCapExceededError) throw e;

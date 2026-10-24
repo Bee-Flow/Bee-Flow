@@ -70,7 +70,7 @@ async function _doInit() {
             (SELECT col_description(a.attrelid, a.attnum) FROM pg_attribute a
               WHERE a.attrelid = to_regclass('integration_activity_log')
                 AND a.attname = 'location_state') AS location_note
-    `).catch(() => null);
+    `).catch((e) => fallback('stores/integrationActivityStore:_doInit', e, null));
     if (probe && probe.col && probe.tbl && !probe.retired) {
         if (!schema.locationBackfillDone(probe.location_note)) schema.startLocationBackfill();
         return;
@@ -149,7 +149,7 @@ function _signalExternalTransfer({ orgId, operator, countryCode }) {
     // caller is the egress write path.
     _claimAndEmitTransferSignal(orgId, `external_transfer:${operator || 'unknown'}`, {
         orgId, operator: operator || null, country_code: countryCode || null,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('stores/integrationActivityStore:_signalExternalTransfer', e));
 }
 
 async function _claimAndEmitTransferSignal(orgId, signalKey, payload) {
@@ -177,7 +177,7 @@ async function _claimAndEmitTransferSignal(orgId, signalKey, payload) {
         // module scope here would create a boot cycle via runner → checks.
         const events = require('../compliance/events');
         events.emit(events.EVENTS.EXTERNAL_TRANSFER_DETECTED, payload);
-    } catch (err) { log.debug('compliance bus is best-effort', err); }
+    } catch (err) { bestEffort('stores/integrationActivityStore:_claimAndEmitTransferSignal', err); /* compliance bus is best-effort */ }
 }
 
 /**
@@ -738,6 +738,7 @@ async function getIntegrationOverview(filters = {}, interval = 'day', { normaliz
 
 // "Find repeating work" reads, per user (integrationManualActivity.js).
 const manualActivity = require('./integrationManualActivity').defaultReader(initDB);
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 module.exports = {
     logIntegrationActivity,

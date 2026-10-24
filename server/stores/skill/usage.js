@@ -9,6 +9,7 @@
 const { getAll } = require('../../db');
 const { initDB } = require('./schema');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * An agent carries its skills TWICE: `config` is the draft the Builder edits,
@@ -140,7 +141,7 @@ async function listSkillUsage(skillId, orgId) {
     let lastByAgent = {};
     try {
         lastByAgent = await require('../skillActivations').getLastActivationByAgent(skillId, (agents || []).map(a => a.id));
-    } catch (err) { log.debug('telemetry is optional', err); }
+    } catch (err) { fallback('stores/skill/usage:listSkillUsage', err); /* telemetry is optional */ }
     /** @type {Array<{kind: string, id: any, title: any, role: string, lastAt: any, ownerId?: any, siteLabel?: string, stepId?: any, [key: string]: any}>} */
     const rows = (agents || []).map(a => ({
         kind: 'agent',

@@ -19,6 +19,7 @@ const { rollback } = require('../utils/txRollback');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
 const { parseJSONObject: parseJSON } = require('./lib/json');
+const { fallback } = require('../utils/bestEffort');
 
 const initDB = makeStoreInit('PlaybookStore', async () => {
     const res = await runDdl('playbookStore', [
@@ -141,7 +142,7 @@ async function deletePlaybook(id, userId) {
 
 module.exports = {
     // Started on access, not at module load — see boot/storeSchemas.js.
-    get ready() { return initDB().catch(() => {}); },
+    get ready() { return initDB().catch((e) => fallback('stores/playbookStore:anon', e)); },
     initDB,
     newPlaybookId,
     createPlaybook,

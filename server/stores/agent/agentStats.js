@@ -6,6 +6,7 @@
 const { getOne, getAll, pool } = require('../../db');
 const { initDB } = require('./initSchema');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 async function getSystemStats(startDate = null, endDate = null) {
     await initDB();
@@ -30,7 +31,7 @@ async function getSystemStats(startDate = null, endDate = null) {
             const msgs = JSON.parse(row.messages_json || '[]');
             totalMessages += msgs.length;
             agentMessageCounts[row.agent_id] = (agentMessageCounts[row.agent_id] || 0) + msgs.length;
-        } catch (e) { log.debug('ignore parse errors', e); }
+        } catch (e) { fallback('stores/agent/agentStats:getSystemStats', e); /* ignore parse errors */ }
     }
 
     return { totalAgents, totalConversations, activeConversations, totalMessages, agentMessageCounts };
@@ -52,7 +53,7 @@ async function getAgentStats(agentId, startDate = null, endDate = null) {
     const conversationCount = startDate || endDate ? convs.length : (stats?.conversation_count ?? 0);
     let messageCount = 0;
     for (const row of convs) {
-        try { messageCount += JSON.parse(row.messages_json || '[]').length; } catch (e) { log.debug('messages_json is not valid JSON, the conversation adds no messages', e); }
+        try { messageCount += JSON.parse(row.messages_json || '[]').length; } catch (e) { fallback('stores/agent/agentStats:getAgentStats', e); /* messages_json is not valid JSON, the conversation adds no messages */ }
     }
 
     return { conversationCount, lastUpdated: stats?.last_updated, messageCount };

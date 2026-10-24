@@ -14,6 +14,7 @@ const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { buildUpdate } = require('./lib/sqlBuilder');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const initDB = makeStoreInit('AITaskStore', _initDB);
 
@@ -53,7 +54,7 @@ async function _initDB() {
     await exec(`
         ALTER TABLE ai_tasks ALTER COLUMN max_result_length SET DEFAULT 50000;
         UPDATE ai_tasks SET max_result_length = 50000 WHERE max_result_length <= 2000;
-    `).catch(() => { /* already migrated or column doesn't exist yet */ });
+    `).catch((e) => bestEffort('stores/aiTaskStore:_initDB', e));
     log.info('[AITaskStore] PostgreSQL initialized');
 }
 

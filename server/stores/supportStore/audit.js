@@ -9,6 +9,7 @@
 const { pool } = require('../../db');
 const { initDB } = require('./schema');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Precise actor kinds for the unified audit log. The legacy
 // support_thread_events CHECK only permits the first three; 'ai'/'automation'
@@ -96,7 +97,7 @@ function _decodeAuditCursor(cursor) {
     try {
         const obj = JSON.parse(Buffer.from(String(cursor), 'base64').toString('utf8'));
         if (obj && obj.t && obj.id) return obj;
-    } catch (err) { log.debug('ignore malformed cursor', err); }
+    } catch (err) { bestEffort('stores/supportStore/audit:_decodeAuditCursor', err); /* ignore malformed cursor */ }
     return null;
 }
 function _encodeAuditCursor(row) {

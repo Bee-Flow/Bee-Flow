@@ -12,6 +12,7 @@ const { planVersionWrite } = require('../../automation/diffSummary');
 // Handoff 5: every read carries pendingChanges, trashed rows are excluded, and
 // a working-copy write never moves the live copy (see lifecycle.js).
 const { AUTOMATION_SELECT, LIVE_INVARIANT_SQL, stripLiveFollowingFields } = require('./lifecycle');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * The managed-write guard (stores/lib/managedParts.js): an automation filed into a
@@ -612,7 +613,7 @@ async function updateAutomationWith(client, id, updates, savedByUserId, {
         await client.query('COMMIT');
         return rowToAutomation(fresh);
     } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
+        await client.query('ROLLBACK').catch((e) => bestEffort('stores/automationStore/automations:updateAutomationWith', e));
         throw e;
     }
 }

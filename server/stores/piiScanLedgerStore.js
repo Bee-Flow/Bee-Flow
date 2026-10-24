@@ -26,6 +26,7 @@
 const { exec, getAll, run } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 let _healthy = true;
 
@@ -80,7 +81,7 @@ async function getMany(keys) {
         // request must never wait on bookkeeping.
         if (out.size > 0) {
             run(`UPDATE pii_scan_ledger SET last_used_at = NOW() WHERE scan_key = ANY($1)`, [[...out.keys()]])
-                .catch(() => { /* bookkeeping only */ });
+                .catch((e) => bestEffort('stores/piiScanLedgerStore:getMany', e));
         }
     } catch (err) {
         log.warn(`[PiiScanLedger] read failed, treating as miss: ${err.message}`);

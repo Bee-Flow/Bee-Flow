@@ -12,6 +12,7 @@ const { projectOrgRun } = require('./orgRunRow');
 const { JOURNEY_LATERAL, ORG_SCOPE_JOIN, buildRunFilterWhere } = require('./runsFilter');
 const { RUN_FACET_AUTOMATIONS_CAP, getRunFacetsForUser, getRunFacetsForAutomation, getRunFacetsForOrg, getRunCountForUserSince, getRecentRunStatusesForUser, getRunCountsForProjects } = require('./runsStats');
 const { recordRunStep, recordRunStepWith, getRunSteps, getRunsInChain, getRunStepsForChain, getLatestRunInChain, getRunStepsForRuns } = require('./runsSteps');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Runs ───────────────────────────────────────────────
 
@@ -137,7 +138,7 @@ function decodeRunCursor(cursor) {
     try {
         const o = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
         if (o && o.s && o.i) return { startedAt: o.s, id: o.i };
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('stores/automationStore/runs:decodeRunCursor', err); /* fall through */ }
     return null;
 }
 
