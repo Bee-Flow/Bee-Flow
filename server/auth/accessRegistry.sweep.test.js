@@ -111,6 +111,10 @@ const BEWUST_OPEN = new Map([
     ['GET /api/integrations/gmail/messages/:messageId', 'als GET /api/integrations/gmail/messages — sessie-token-gescoped'],
     ['GET /api/integrations/gdrive/files', 'als gmail/messages: Drive-client komt uit req.session-tokens, anoniem → 401 NOT_CONNECTED (routes/integrations/googleDrive.js)'],
     ['GET /api/integrations/gdrive/export/:fileId', 'als GET /api/integrations/gdrive/files — sessie-token-gescoped'],
+    ['GET /api/support/csat/:threadId/done', {
+        reden: 'tokenloze bedankpagina na een CSAT-stem: vaste tekst uit het score-getal in de query, leest en schrijft geen thread. Bestaat zodat de stem-URL (mét token) na gebruik wordt vervangen door een URL zonder.',
+        bewijs: { file: 'routes/support/satisfaction.js', marker: "'/csat/:threadId/done'" },
+    }],
     ['GET /api/support/threads/mine', {
         reden: 'de eigen supporttickets van de ingelogde gebruiker. Geen keten-gate omdat /api/support ook anonieme marketing-intake draagt, maar de handler weigert zelf: geen userId → 401, en de query is gescoped op requesterUserId — er is niets van een ander te lezen. De handler-probe ziet dit patroon niet omdat getUserId(req) buiten haar werkwoordenlijst valt en er geen req.session in de body staat; dat is een gat in de PROBE, niet in de route.',
         bewijs: { file: 'routes/support/threads.js', marker: 'requesterUserId: userId' },

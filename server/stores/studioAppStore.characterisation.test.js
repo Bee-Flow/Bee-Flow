@@ -86,6 +86,7 @@ const db = {
     getAll: async (sql, params) => (await rec('getAll')(sql, params)).rows,
     exec: async () => undefined,
     getClient: async () => { TRACE.push({ ch: 'getClient' }); return client; },
+    withTransaction: (fn) => require('../testUtils/txFake').withTransactionVia(() => db.getClient())(fn),
     makeStoreInit: mock.db.makeStoreInit,
 };
 

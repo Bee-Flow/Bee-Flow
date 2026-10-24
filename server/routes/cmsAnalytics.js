@@ -22,6 +22,7 @@
 'use strict';
 
 const express = require('express');
+const { fetchConfiguredEndpoint } = require('../core/http/configuredEndpointFetch');
 const configStore = require('../stores/configStore');
 const cmsStore = require('../stores/cmsStore');
 const umamiClient = require('../core/umamiClient');
@@ -601,7 +602,7 @@ async function probeScript(publicUrl) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);
     try {
-        const r = await fetch(url, { redirect: 'manual', signal: controller.signal });
+        const r = await fetchConfiguredEndpoint(url, { redirect: 'manual', signal: controller.signal });
         const type = r.headers.get('content-type') || '';
         if (r.status >= 300 && r.status < 400) {
             return ['warn', `${url} redirects (${r.status}). Point the URL at the final origin.`];

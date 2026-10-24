@@ -13,6 +13,7 @@ const {
 } = require('../../../core/aiAgent');
 const configStore = require('../../../stores/configStore');
 const { isAdminUser } = require('./shared');
+const { safeFetch } = require('../../../utils/ssrfGuard');
 const { VALID_PII_ACTIONS } = require('../../../core/privacy/signupShield');
 const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
@@ -674,7 +675,7 @@ router.post('/config/test-reranker', requireAuth, async (req, res) => {
     let lastError = '';
     for (const path of PATHS) {
         const url = `${endpoint}${path}`;
-        const rerankerRes = await fetch(url, {
+        const rerankerRes = await safeFetch(url, {
             method: 'POST',
             headers,
             body: requestBody,

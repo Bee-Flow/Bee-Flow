@@ -181,6 +181,7 @@ const mockDb = {
     exec: async (sql) => { query(sql); },
     getClient: async () => ({ query: async (sql, params = []) => query(sql, params), release() {} }),
 };
+mockDb.withTransaction = require('../testUtils/txFake').withTransactionVia(() => mockDb.getClient());
 
 // The delete path purges the app's DATA too (per-app database + attachment
 // objects), so those two collaborators are stubbed as well — the suite stays

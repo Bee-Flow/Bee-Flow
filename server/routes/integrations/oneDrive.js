@@ -15,6 +15,23 @@ const { isMicrosoftConnected, graphFetch } = require('../../integrations/msGraph
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { safeFetch } = require('../../utils/ssrfGuard');
+
+// Graph hands out pre-authenticated download URLs on these hosts only; anything
+// else is not a Microsoft download and is never fetched (SSRF defence in depth,
+// on top of the private-address guard in safeFetch).
+const MS_DOWNLOAD_HOST_SUFFIXES = [
+    '.sharepoint.com', '.sharepoint.cn', '.sharepoint.us', '.sharepoint.de',
+    '.1drv.com', '.1drv.ms', '.onedrive.com', '.files.1drv.com',
+    '.microsoftpersonalcontent.com', '.office.net', '.live.com',
+];
+function isMicrosoftDownloadUrl(raw) {
+    let u;
+    try { u = new URL(String(raw)); } catch { return false; }
+    if (u.protocol !== 'https:' || u.username || u.password) return false;
+    const h = u.hostname.toLowerCase();
+    return MS_DOWNLOAD_HOST_SUFFIXES.some((s) => h.endsWith(s) || h === s.slice(1));
+}
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -126,7 +143,10 @@ router.get('/export/:fileId', requireAuth, validate({ params: ExportParams }), a
 
     if (isText && item.size < 500000) {
         // Download and return text content
-        const contentResponse = await fetch(item['@microsoft.graph.downloadUrl']);
+        if (!isMicrosoftDownloadUrl(item['@microsoft.graph.downloadUrl'])) {
+            return res.status(502).json({ error: 'Unexpected download host' });
+        }
+        const contentResponse = await safeFetch(item['@microsoft.graph.downloadUrl'], { redirect: 'error' });
         const text = await contentResponse.text();
         return res.json({
             id: item.id,
@@ -149,3 +169,4 @@ router.get('/export/:fileId', requireAuth, validate({ params: ExportParams }), a
 });
 
 module.exports = router;
+module.exports.isMicrosoftDownloadUrl = isMicrosoftDownloadUrl;

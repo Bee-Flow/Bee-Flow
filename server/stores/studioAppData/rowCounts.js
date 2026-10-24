@@ -5,7 +5,8 @@
  * authoritative recount against the per-app engine.
  */
 
-const { getOne, getClient } = require('../../db');
+const { getOne, withTransaction } = require('../../db');
+const { rollback } = require('../../txRollback');
 const queryCompiler = require('../../appStudio/queryCompiler');
 const { deps } = require('./cycleDeps');
 const { parseJSON } = require('../lib/json');
@@ -19,14 +20,12 @@ const { initDB } = require('./schema');
  */
 async function bumpDataVersion(appId, tableKey, ownerId) {
     await initDB();
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
+    return withTransaction(async (client) => {
         const cur = await client.query(
             `SELECT data_versions FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2 FOR UPDATE`,
             [appId, ownerId]
         );
-        if (cur.rows.length === 0) { await client.query('ROLLBACK'); return null; }
+        if (cur.rows.length === 0) { return rollback(null); }
         const versions = parseJSON(cur.rows[0].data_versions, {});
         const next = (parseInt(versions[tableKey]) || 0) + 1;
         versions[tableKey] = next;
@@ -35,14 +34,8 @@ async function bumpDataVersion(appId, tableKey, ownerId) {
              WHERE app_id = $2 AND owner_user_id = $3`,
             [JSON.stringify(versions), appId, ownerId]
         );
-        await client.query('COMMIT');
         return next;
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 /** row_counts map for the app (owner-scoped). {} when no meta row. */
@@ -61,14 +54,12 @@ async function getRowCounts(appId, ownerId) {
 // full map, or null when the app isn't owned / has no meta row yet.
 async function withRowCounts(appId, ownerId, mutate) {
     await initDB();
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
+    return withTransaction(async (client) => {
         const cur = await client.query(
             `SELECT row_counts FROM studio_app_data_meta WHERE app_id = $1 AND owner_user_id = $2 FOR UPDATE`,
             [appId, ownerId]
         );
-        if (cur.rows.length === 0) { await client.query('ROLLBACK'); return null; }
+        if (cur.rows.length === 0) { return rollback(null); }
         const counts = parseJSON(cur.rows[0].row_counts, {});
         mutate(counts);
         await client.query(
@@ -76,14 +67,8 @@ async function withRowCounts(appId, ownerId, mutate) {
              WHERE app_id = $2 AND owner_user_id = $3`,
             [JSON.stringify(counts), appId, ownerId]
         );
-        await client.query('COMMIT');
         return counts;
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 /** Set one table's row count (owner-scoped). Returns the full map, or null. */

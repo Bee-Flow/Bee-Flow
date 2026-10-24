@@ -18,7 +18,7 @@
  */
 
 const crypto = require('crypto');
-const { initDB, run, getAll, getClient } = require('./core');
+const { initDB, run, getAll, withTransaction } = require('./core');
 const { rowToAutomation } = require('./rowMappers');
 
 function rowToSchedule(r) {
@@ -106,9 +106,7 @@ async function listSchedulesForAutomation(automationId) {
  */
 async function claimDueSchedules(instanceId, limit = 20) {
     await initDB();
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
+    return withTransaction(async (client) => {
         const sel = await client.query(
             `SELECT s.*
                FROM automation_schedules s
@@ -155,16 +153,10 @@ async function claimDueSchedules(instanceId, limit = 20) {
                 [instanceId, claimedScheduleIds],
             );
         }
-        await client.query('COMMIT');
         return [...firstByAutomation.values()]
             .filter(s => claimedAutomations.has(s.automation_id))
             .map(s => ({ automation: rowToAutomation(claimedAutomations.get(s.automation_id)), schedule: rowToSchedule(s) }));
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 /**

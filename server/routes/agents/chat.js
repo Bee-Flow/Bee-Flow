@@ -2,6 +2,7 @@ const express = require('express');
 const agentStore = require('../../stores/agentStore');
 const agentRuntime = require('../../core/agentRuntime');
 const { getAIConfig } = require('../../core/aiAgent');
+const { fetchConfiguredEndpoint } = require('../../core/http/configuredEndpointFetch');
 require('../../stores/configStore');
 const { requireAuth } = require('../../auth');
 require('../../stores/memoryStore');
@@ -625,7 +626,7 @@ router.post('/describe-building', requireAuth, helperLimiter, validate({ body: D
         // Take the LAST 800 chars to see what's currently being generated
         const recentCode = code.slice(-800);
 
-        const response = await fetch(`${config.url.replace(/\/+$/, '')}/v1/chat/completions`, {
+        const response = await fetchConfiguredEndpoint(`${config.url.replace(/\/+$/, '')}/v1/chat/completions`, {
             method: 'POST',
             headers,
             body: JSON.stringify({

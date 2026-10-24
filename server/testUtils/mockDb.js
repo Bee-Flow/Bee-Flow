@@ -38,6 +38,7 @@
  *   optional escape hatch: return a result to fully override dispatch for a query
  */
 const log = require('../telemetry/log');
+const { TransactionRollback } = require('../txRollback');
 
 function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
     const calls = { run: [], getOne: [], getAll: [], client: [], exec: [] };
@@ -119,6 +120,10 @@ function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
             await client.query('BEGIN');
             try {
                 const result = await fn(client);
+                if (result instanceof TransactionRollback) {
+                    await client.query('ROLLBACK');
+                    return result.value;
+                }
                 await client.query('COMMIT');
                 return result;
             } catch (e) {

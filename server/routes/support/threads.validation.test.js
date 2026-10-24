@@ -125,7 +125,7 @@ function dispatch({ method, url, body = {} }) {
         };
         const res = {
             statusCode: 200, headersSent: false,
-            set() { return this; }, setHeader() {}, on() {},
+            set() { return this; }, setHeader() {}, append() {}, on() {},
             status(c) { this.statusCode = c; return this; },
             json(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
             send(b) { this.body = b; this.headersSent = true; resolve(this); return this; },

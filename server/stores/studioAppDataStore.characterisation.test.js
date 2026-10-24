@@ -21,6 +21,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const { withTransactionVia } = require('../testUtils/txFake');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -99,7 +100,7 @@ const db = {
     getAll: async (sql, params) => (await rec('getAll')(sql, params)).rows,
     exec: async (sql) => { TRACE.push({ ch: 'exec', sql: norm(sql) }); },
     getClient: async () => { TRACE.push({ ch: 'getClient' }); return client; },
-    withTransaction: async (fn) => fn(client),
+    withTransaction: (fn) => withTransactionVia(() => db.getClient())(fn),
     makeStoreInit: mock.db.makeStoreInit,
     pool: { connect: async () => client },
 };

@@ -121,7 +121,20 @@ const REQUEST_TYPES = [
 
 export default function DsrRequestPage({ search = typeof window !== 'undefined' ? window.location.search : '' }: { search?: string } = {}) {
     const { t, resolvedLocale, locale } = useTranslation();
-    const verify = readVerifyParams(search);
+    // Read once: the effect below removes the token from the address bar, and a
+    // later render must not lose the link it was opened with.
+    const [verify] = useState(() => readVerifyParams(search));
+    useEffect(() => {
+        // The token is single-use and already spent by the POST, but a URL
+        // lingers in history, tab-restore and (without it) the Referer.
+        if (!verify || typeof window === 'undefined') return;
+        try {
+            const params = new URLSearchParams(window.location.search);
+            params.delete('token');
+            const rest = params.toString();
+            window.history.replaceState(window.history.state, '', window.location.pathname + (rest ? `?${rest}` : '') + window.location.hash);
+        } catch { /* a locked-down history API: the token just stays in the URL */ }
+    }, [verify]);
     const [email, setEmail] = useState('');
     const [type, setType] = useState('access');
     const [notes, setNotes] = useState('');

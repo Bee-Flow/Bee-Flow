@@ -6,7 +6,7 @@
 const crypto = require('crypto');
 const { keepConnectionsPolicy } = require('./connectionsPolicy');
 const { buildAutomationUpdate } = require('./automationUpdate');
-const { initDB, run, getOne, getAll, getClient, pool } = require('./core');
+const { initDB, run, getOne, getAll, getClient, pool, withTransaction } = require('./core');
 const { rowToAutomation, safeParse } = require('./rowMappers');
 const { planVersionWrite } = require('../../automation/diffSummary');
 // Handoff 5: every read carries pendingChanges, trashed rows are excluded, and
@@ -189,9 +189,7 @@ async function getDueAutomations() {
  */
 async function claimDueAutomations(instanceId, limit = 20) {
     await initDB();
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
+    return withTransaction(async (client) => {
         const sel = await client.query(
             `SELECT id FROM automations
              WHERE is_active = TRUE
@@ -219,14 +217,8 @@ async function claimDueAutomations(instanceId, limit = 20) {
               RETURNING *`,
             [instanceId, ids],
         );
-        await client.query('COMMIT');
         return upd.rows.map(rowToAutomation);
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 /**
@@ -634,18 +626,10 @@ async function updateAutomationWith(client, id, updates, savedByUserId, {
  */
 async function deleteAutomation(id, { managedWrite = null, managedParts = null } = {}) {
     await initDB();
-    const client = await getClient();
-    try {
-        await client.query('BEGIN');
+    return withTransaction(async (client) => {
         const deleted = await deleteAutomationWith(client, id, { managedWrite, managedParts });
-        await client.query('COMMIT');
         return deleted;
-    } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 /**

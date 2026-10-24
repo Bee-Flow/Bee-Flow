@@ -15,6 +15,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const { withTransactionVia } = require('../testUtils/txFake');
 
 process.env.NODE_ENV = 'test';
 
@@ -163,6 +164,7 @@ const mockDb = {
     exec: async () => undefined,
     getClient: async () => ({ query: async (sql, params) => dispatch(sql, params), release() {} }),
 };
+mockDb.withTransaction = withTransactionVia(() => mockDb.getClient());
 
 // applyMigration spy — records the plans (+ options) handed to the SQLite
 // engine and mimics its PRAGMA user_version stamping so the reconcile flow is
