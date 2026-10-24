@@ -126,7 +126,7 @@ router.post('/:id/sources/file', requireAuth, asEditor, upload.single('file'), a
             });
             return { ...file, source };
         } catch (e) {
-            if (file.storageKey) await require('../stores/storageStore').deleteFile(file.storageKey).catch(() => undefined);
+            if (file.storageKey) await require('../stores/storageStore').deleteFile(file.storageKey).catch((e) => bestEffort('routes/notebooksSources:anon', e));
             throw e;
         }
     });
@@ -324,7 +324,7 @@ router.post('/:id/sources/drive', requireAuth, validate({ body: DriveBody }), as
 router.get('/:id/sources', requireAuth, asViewer, async (req, res) => {
     const nb = req.notebook;
 
-    await notebookStore.timeoutStuckSources(nb.id).catch(() => {});
+    await notebookStore.timeoutStuckSources(nb.id).catch((e) => bestEffort('routes/notebooksSources:anon#2', e));
     const sources = await notebookStore.getSources(nb.id);
     res.json({ sources });
 });
@@ -381,7 +381,7 @@ router.post('/:id/sources/:sid/retry', requireAuth, asEditor, async (req, res) =
                 source.id,
                 { status: 'error', stage: 'error', error: friendlyError(e) },
                 { onlyIfProcessing: true },
-            ).catch(() => {});
+            ).catch((e) => bestEffort('routes/notebooksSources:anon#3', e));
         }
     })();
 });
@@ -417,6 +417,7 @@ router.post('/:id/sources/:sid/cancel', requireAuth, asEditor, async (req, res) 
 // from a source, not just the first, so a re-ingested source doesn't leave
 // orphaned chunks behind after its row is gone.
 const { cleanupSourceArtifacts } = require('../core/kb/notebookCascade');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ── Source content (preview) ────────────────────────────────────
 router.get('/:id/sources/:sid/content', requireAuth, asViewer, async (req, res) => {

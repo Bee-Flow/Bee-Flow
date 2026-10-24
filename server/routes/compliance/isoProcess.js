@@ -43,6 +43,8 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 // ── The vocabulary, kept next to the routes that speak it ───────────
 //
@@ -307,7 +309,7 @@ router.post('/iso/risks/seed', requireAuth, requirePermission('admin_compliance'
                 category: 'compliance', likelihood: 3, impact: 3, source: 'seed',
             });
         }
-    } catch (err) { log.debug('best-effort', err); }
+    } catch (err) { fallback('routes/compliance/isoProcess:anon', err); /* best-effort */ }
     try {
         const settings = await complianceStore.getSettings(orgId);
         const attested = new Set((settings.scc_confirmed_operators || [])
@@ -328,7 +330,7 @@ router.post('/iso/risks/seed', requireAuth, requirePermission('admin_compliance'
                 category: 'confidentiality', likelihood: 3, impact: 4, source: 'seed',
             });
         }
-    } catch (err) { log.debug('table absent on fresh installs', err); }
+    } catch (err) { if (!isMissingTable(err)) throw err; log.debug('table absent on fresh installs', err); }
     seeds.push(
         { seed_key: 'universal:prompt-leak', title: 'Sensitive data leaves via AI prompts', description: 'Users paste customer or personal data into prompts that reach external model providers.', category: 'confidentiality', likelihood: 4, impact: 4, source: 'seed' },
         { seed_key: 'universal:account-takeover', title: 'Admin account takeover', description: 'A compromised administrator credential exposes every workspace and its data.', category: 'confidentiality', likelihood: 2, impact: 5, source: 'seed' },
@@ -355,9 +357,9 @@ router.get('/iso/audit', requireAuth, requirePermission('admin_compliance'), asy
         const [history, latest, riskStats, soaStats, incidents] = await Promise.all([
             complianceStore.getScoreHistory(orgId, 90),
             complianceStore.getLatestPerCheck(orgId),
-            _riskStore().getStats(orgId).catch(() => null),
-            soaStore.getStats(orgId).catch(() => null),
-            incidentStore.getDeadlineStats(orgId).catch(() => null),
+            _riskStore().getStats(orgId).catch((e) => fallback('routes/compliance/isoProcess:anon#2', e, null)),
+            soaStore.getStats(orgId).catch((e) => fallback('routes/compliance/isoProcess:anon#3', e, null)),
+            incidentStore.getDeadlineStats(orgId).catch((e) => fallback('routes/compliance/isoProcess:anon#4', e, null)),
         ]);
         mrInputs = {
             score_now: history.length ? history[history.length - 1].overall_score : null,
@@ -370,7 +372,7 @@ router.get('/iso/audit', requireAuth, requirePermission('admin_compliance'), asy
             soa_approved: soaStats ? `${soaStats.approved}/${soaStats.total}` : null,
             last_internal_audit: audits.filter(a => a.status === 'closed').map(a => a.closed_at).sort().pop() || null,
         };
-    } catch (err) { log.debug('agenda best-effort', err); }
+    } catch (err) { fallback('routes/compliance/isoProcess:anon#5', err); /* agenda best-effort */ }
     res.json({ audits, findings, reviews, ncs, objectives, mr_inputs: mrInputs });
 });
 
@@ -384,15 +386,15 @@ router.get('/iso/audit/independence/:userId', requireAuth, requirePermission('ad
     try {
         const soaOwned = (await soaStore.listEntries(orgId)).filter(e => e.owner_user_id === userId).length;
         if (soaOwned) conflicts.push(`owns ${soaOwned} SoA control row(s)`);
-    } catch (err) { log.debug('best-effort', err); }
+    } catch (err) { fallback('routes/compliance/isoProcess:anon#6', err); /* best-effort */ }
     try {
         const docsOwned = (await ismsDocStore.listDocs(orgId)).filter(d => d.owner_user_id === userId).length;
         if (docsOwned) conflicts.push(`owns ${docsOwned} policy document(s)`);
-    } catch (err) { log.debug('best-effort', err); }
+    } catch (err) { fallback('routes/compliance/isoProcess:anon#7', err); /* best-effort */ }
     try {
         const risksOwned = (await _riskStore().listRisks(orgId)).filter(r => r.owner_user_id === userId).length;
         if (risksOwned) conflicts.push(`owns ${risksOwned} risk(s)`);
-    } catch (err) { log.debug('store may not exist yet', err); }
+    } catch (err) { if (!isMissingTable(err)) throw err; log.debug('store may not exist yet', err); }
     res.json({ user_id: userId, independent: conflicts.length === 0, conflicts });
 });
 
@@ -458,9 +460,9 @@ router.get('/iso/training', requireAuth, requirePermission('admin_compliance'), 
                 SELECT id, username, "displayName", email FROM users
                 WHERE "organizationId" = $1 AND email IS NOT NULL AND email <> '' AND id <> 'admin'
                 ORDER BY LOWER(COALESCE(NULLIF("displayName", ''), username))
-            `, [orgId]).catch(() => []),
-        ismsDocStore.listDocs(orgId).then(d => d.filter(x => x.status === 'published')).catch(() => []),
-        _obligationStore().listObligations(orgId, { openOnly: true }).catch(() => []),
+            `, [orgId]).catch((e) => fallback('routes/compliance/isoProcess:anon#8', e, [])),
+        ismsDocStore.listDocs(orgId).then(d => d.filter(x => x.status === 'published')).catch((e) => fallback('routes/compliance/isoProcess:anon#9', e, [])),
+        _obligationStore().listObligations(orgId, { openOnly: true }).catch((e) => fallback('routes/compliance/isoProcess:anon#10', e, [])),
     ]);
     const ackRows = await getAll(`
             SELECT a.user_id, COUNT(*)::int AS n
@@ -469,14 +471,14 @@ router.get('/iso/training', requireAuth, requirePermission('admin_compliance'), 
                 AND d.slug = a.slug AND d.current_version = a.version
             WHERE a.organization_id = $1 AND d.status = 'published'
             GROUP BY a.user_id
-        `, [orgId]).catch(() => []);
+        `, [orgId]).catch((e) => fallback('routes/compliance/isoProcess:anon#11', e, []));
     const acksByUser = Object.fromEntries((ackRows || []).map(r => [r.user_id, r.n]));
     const attestRows = await getAll(`
             SELECT DISTINCT ON (subject_id) subject_id, captured_at, payload
             FROM compliance_evidence
             WHERE organization_id = $1 AND subject_type = 'training_attest'
             ORDER BY subject_id, captured_at DESC
-        `, [orgId]).catch(() => []);
+        `, [orgId]).catch((e) => fallback('routes/compliance/isoProcess:anon#12', e, []));
     const attestByUser = Object.fromEntries((attestRows || []).map(r => [r.subject_id, r]));
     const personnel = [];
     for (const m of members) {
@@ -486,7 +488,7 @@ router.get('/iso/training', requireAuth, requirePermission('admin_compliance'), 
             if (lp && typeof lp === 'object') {
                 learningDone = Object.values(lp).filter(v => v === true || v?.completed).length;
             }
-        } catch (err) { log.debug('stays null', err); }
+        } catch (err) { fallback('routes/compliance/isoProcess:anon#13', err); /* stays null */ }
         const attest = attestByUser[m.id] || null;
         personnel.push({
             user_id: m.id,

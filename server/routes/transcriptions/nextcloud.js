@@ -58,13 +58,14 @@ async function resolveEffectiveRecordingFolder(session, userId, configuredFolder
         const talk = require('../../integrations/nextcloudTalkTools');
         const cap = await talk.getTalkRecordingCapability(session, userId);
         if (cap.recordingFolder) return cap.recordingFolder;
-    } catch (err) { log.debug('fall through to the configured value', err); }
+    } catch (err) { bestEffort('routes/transcriptions/nextcloud:resolveEffectiveRecordingFolder', err); /* fall through to the configured value */ }
     return configuredFolder;
 }
 
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded, bodyOf, bool, NO_QUERY } = require('./schemas');
+const { bestEffort, fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 // ── What the Nextcloud routes may carry ────────────────────────────
 //
@@ -377,7 +378,7 @@ async function decorateRoomNames(rooms, session, userId) {
             const name = nameByToken.get(room.token);
             if (name) room.name = name;
         }
-    } catch (err) { log.debug('names are a nicety, the paths are the payload', err); }
+    } catch (err) { bestEffort('routes/transcriptions/nextcloud:decorateRoomNames', err); /* names are a nicety, the paths are the payload */ }
 }
 
 router.post('/from-nextcloud', requireAuth, validate({ body: FromNextcloudBody, query: NO_QUERY }), async (req, res) => {
@@ -451,7 +452,7 @@ router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (
             const roomsRes = await guardedNcCall('nextcloud_talk_list_rooms', {}, { userId, orgId: userOrgId, session: req.session },
                 () => talk.executeNextcloudTalkTool('nextcloud_talk_list_rooms', {}, userId, req.session));
             if (roomsRes && Array.isArray(roomsRes.rooms)) for (const r of roomsRes.rooms) roomsByToken[r.token] = r;
-        } catch (err) { log.debug('best-effort enrichment', err); }
+        } catch (err) { fallbackSwallowed('routes/transcriptions/nextcloud:anon', err); /* best-effort enrichment */ }
 
         // The per-meeting choice comes from meeting_prefs (M5). `excluded` is
         // here the EFFECTIVE state of the switch that the Scheduled list shows
@@ -501,7 +502,7 @@ router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (
             try {
                 const t = await transcriptionStore.getTranscriptionByTalkRoomToken(m.talkToken, userId);
                 if (t) recordedNoteId = t.id;
-            } catch (err) { log.debug('ignore', err); }
+            } catch (err) { fallbackSwallowed('routes/transcriptions/nextcloud:anon#2', err); /* ignore */ }
 
             let status;
             if (recordingNow) status = 'recording_now';

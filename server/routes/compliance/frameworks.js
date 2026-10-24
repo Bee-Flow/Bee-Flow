@@ -57,6 +57,7 @@ const runner = require('../../compliance/runner');
 const { scoresByFramework, computeScore } = require('../../compliance/score');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { requireOrgId } = require('./shared');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 const RECENTLY_IN_FORCE_DAYS = 60;
 
@@ -81,7 +82,7 @@ function _customStore() {
     try { return require('../../stores/customFrameworkStore'); } catch { return null; }
 }
 function _invalidateCounts(orgId) {
-    try { require('./counts').invalidate(orgId); } catch (err) { log.debug('not mounted', err); }
+    try { require('./counts').invalidate(orgId); } catch (err) { bestEffort('routes/compliance/frameworks:_invalidateCounts', err); /* not mounted */ }
 }
 
 function _recentlyInForce(fw, nowMs) {
@@ -155,7 +156,7 @@ function serialize(fw, state, scores, calendarCounts, nowMs, affects, machineryR
 async function _buildOne(orgId, id, req) {
     const [policy, latest] = await Promise.all([
         frameworkPolicy.resolve(orgId, { req }),
-        complianceStore.getLatestPerCheck(orgId).catch(() => []),
+        complianceStore.getLatestPerCheck(orgId).catch((e) => fallback('routes/compliance/frameworks:_buildOne', e, [])),
     ]);
     const state = policy.find(p => p.id === id) || null;
     const fw = frameworks.byId(id);
@@ -208,7 +209,7 @@ router.get('/frameworks', requireAuth, requirePermission('admin_compliance'), as
     try {
         const [policy, latest] = await Promise.all([
             frameworkPolicy.resolve(orgId, { req }),
-            complianceStore.getLatestPerCheck(orgId).catch(() => []),
+            complianceStore.getLatestPerCheck(orgId).catch((e) => fallback('routes/compliance/frameworks:anon', e, [])),
         ]);
         const byId = new Map(policy.map(p => [p.id, p]));
         const activeIds = new Set(policy.filter(p => p.enabled && !p.locked).map(p => p.id));

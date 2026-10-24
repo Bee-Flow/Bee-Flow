@@ -62,6 +62,7 @@ const captureRaw = express.json({
 // Shared with routes/nextcloudStudioApps.js — the scheme is documented (and
 // must stay byte-identical to the connector's signing side) in auth/connectorSig.
 const { verifyConnectorSig } = require('../auth/connectorSig');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * Per-task-type prompt construction.
@@ -375,7 +376,7 @@ router.post('/execute', captureRaw, requireConnectorSig, validate({ body: Execut
     const userStoreEarly = require('../stores/userStore');
     if (taskType === AGENT_TASK_TYPE) {
         const agentUser = ncUid
-            ? await userStoreEarly.getUserByNcUid(org.id, ncUid).catch(() => null)
+            ? await userStoreEarly.getUserByNcUid(org.id, ncUid).catch((e) => fallback('routes/nextcloudTaskProcessing:anon', e, null))
             : null;
         const out = await runAgentTurn({ input, org, user: agentUser, ncUid });
         return res.json({ output: out });
@@ -394,7 +395,7 @@ router.post('/execute', captureRaw, requireConnectorSig, validate({ body: Execut
 
     const userStore = require('../stores/userStore');
     const user = ncUid
-        ? await userStore.getUserByNcUid(org.id, ncUid).catch(() => null)
+        ? await userStore.getUserByNcUid(org.id, ncUid).catch((e) => fallback('routes/nextcloudTaskProcessing:anon#2', e, null))
         : null;
 
     const messages = [];

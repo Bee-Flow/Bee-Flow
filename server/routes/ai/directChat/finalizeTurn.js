@@ -26,6 +26,7 @@ const {
 } = require('./finalizeContent');
 const { persistenceBase, buildUserRow, resolveTokenisationInfo, buildAssistantRow, buildUpdateMeta } = require('./finalizeRows');
 const { scheduleTitle, extractTurnMemories } = require('./finalizeAftercare');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * ATTACHED KNOWLEDGE BASES. What is stored is `usableKbIds`: the ids
@@ -105,7 +106,7 @@ async function persistTurn(t, conv) {
     // what they last chose ("auto" stays "auto"); otherwise model_tier is
     // frozen at creation and never reflects mid-conversation switches.
     if (modelTier) {
-        await agentStore.updateDirectConversationModelTier(convId, modelTier, userId).catch(() => {});
+        await agentStore.updateDirectConversationModelTier(convId, modelTier, userId).catch((e) => bestEffort('routes/ai/directChat/finalizeTurn:persistTurn', e));
     }
     // Memory extraction runs ONCE per turn, at the tail of
     // finalizeDirectChatTurn (the retired core/memoryExtractor used to fire

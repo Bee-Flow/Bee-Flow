@@ -38,6 +38,7 @@ const { makeAutomationAccess } = require('../../automation/access');
 const aiActCheck = require('../../automation/aiActCheck');
 const { makeAiActAuto, loadBlocksWith } = require('../../automation/aiActAuto');
 const { computeReadiness } = require('../../automation/readiness');
+const { fallback } = require('../../utils/bestEffort');
 
 /** How many recent runs the checklist looks through for the last test. */
 const RUNS_FOR_LAST_TEST = 100;
@@ -98,7 +99,7 @@ function makeAiActRouter(overrides = {}) {
 
     /** The mail domains that count as inside: the owner's. Best effort. */
     async function internalDomainsOf(a) {
-        const owner = await Promise.resolve(getUser(a.userId)).catch(() => null);
+        const owner = await Promise.resolve(getUser(a.userId)).catch((e) => fallback('routes/automation/aiAct:internalDomainsOf', e, null));
         const email = typeof owner?.email === 'string' ? owner.email : '';
         const at = email.lastIndexOf('@');
         return at > 0 ? [email.slice(at + 1).toLowerCase()] : [];
@@ -219,7 +220,7 @@ function makeAiActRouter(overrides = {}) {
         let validation;
         try { validation = validateDefinition(def); }
         catch (e) { validation = { ok: false, errors: [{ code: 'shape.unreadable', path: '', message: e.message }] }; }
-        const runs = await Promise.resolve(store().getRunsForAutomation(a.id, { limit: RUNS_FOR_LAST_TEST })).catch(() => []);
+        const runs = await Promise.resolve(store().getRunsForAutomation(a.id, { limit: RUNS_FOR_LAST_TEST })).catch((e) => fallback('routes/automation/aiAct:makeAiActRouter', e, []));
         const state = await aiActState(a, def);
         res.json(computeReadiness({ automation: a, validation, runs, aiAct: aiActCheck.publicState(state) }));
     });

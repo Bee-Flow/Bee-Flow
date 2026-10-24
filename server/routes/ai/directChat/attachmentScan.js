@@ -7,6 +7,7 @@
 
 const configStore = require('../../../stores/configStore');
 const log = require('../../../telemetry/log');
+const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Resolve Privacy Shield once for the whole attachment loop so each extracted
@@ -16,7 +17,7 @@ const log = require('../../../telemetry/log');
  */
 async function resolveAttachmentShield(req) {
     const { resolveUserOrgIds } = require('../../../auth');
-    const userOrgIds = await resolveUserOrgIds(req).catch(() => null);
+    const userOrgIds = await resolveUserOrgIds(req).catch((e) => fallback('routes/ai/directChat/attachmentScan:resolveAttachmentShield', e, null));
     const userOrgId = (userOrgIds && userOrgIds.size > 0) ? Array.from(userOrgIds)[0] : null;
     const { resolveShieldFor } = require('../../../core/privacy/orgShield');
     let shield = await resolveShieldFor({ orgId: userOrgId, userId: req.session?.user?.id });
@@ -32,7 +33,7 @@ async function resolveAttachmentShield(req) {
                 shield = allCfg[shieldKeys[0]];
                 log.info(`[DirectChat] Attachment scanner: super-admin fallback → sole org shield ${shieldKeys[0]}`);
             }
-        } catch (err) { log.debug('non-fatal', err); }
+        } catch (err) { fallback('routes/ai/directChat/attachmentScan:resolveAttachmentShield#2', err); /* non-fatal */ }
     }
     return { userOrgId, shield };
 }
@@ -152,7 +153,7 @@ async function reportAttachmentBlock(attErr, { send, userOrgId, userId, conversa
             attachment_filename: attErr.filename,
             attachment_page: null,
         });
-    } catch (err) { log.debug('audit best-effort', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/attachmentScan:reportAttachmentBlock', err); /* audit best-effort */ }
 }
 
 /** Audit rows for tokenised, allowed and incompletely scanned attachments. */
@@ -176,7 +177,7 @@ async function auditScanSummaries(summaries, auditCtx) {
                 });
             }
         }
-    } catch (err) { log.debug('audit best-effort', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/attachmentScan:auditScanSummaries', err); /* audit best-effort */ }
 }
 
 /**
@@ -228,7 +229,7 @@ function surfaceScanSummaries(summaries, { send, shield, contentParts, modelId, 
         if (convMap && Object.keys(convMap).length > 0) {
             send('privacy_token_map', { tokenMap: convMap, source: 'privacy_shield' });
         }
-    } catch (err) { log.debug('transparency is best-effort', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/attachmentScan:surfaceScanSummaries', err); /* transparency is best-effort */ }
 }
 
 module.exports = {

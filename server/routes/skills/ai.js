@@ -50,6 +50,7 @@ const {
 } = require('../../core/skills/skillDraft');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * A drafting call is one model call on somebody's keystroke. Ten a minute is
@@ -72,7 +73,7 @@ async function resolveModel({ userId, userOrgId }) {
     try {
         const resolved = await resolveModelForTier('tier:fast', { userOrgId, userId, fallbackTier: 'fast' });
         if (resolved) return resolved;
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('routes/skills/ai:resolveModel', err); /* fall through */ }
     try {
         return await resolveModelWithGlobalFallback('tier:fast', { userOrgId, userId });
     } catch (_) {

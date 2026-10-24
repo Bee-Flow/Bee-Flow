@@ -52,6 +52,7 @@ const { loadVisibleApp, assertActionRoleAccess } = require('./studioAppRunGate')
 const { resolveAudienceContext } = require('../auth/audience');
 const { requireAuth } = require('../auth/permissions');
 const { browseStepLimiter, aiStepLimiter } = require('./studioAppRateLimits');
+const { bestEffort } = require('../utils/bestEffort');
 
 const MAX_BODY_BYTES = 64 * 1024;
 const jsonBody = express.json({ limit: MAX_BODY_BYTES });
@@ -197,7 +198,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
     } catch (err) {
         if (!res.headersSent) return next(err);
         log.error(`[StudioAppBrowse] ${err.message}`);
-        try { res.write(`data: ${JSON.stringify({ type: 'result', ok: false, error: 'Browse failed' })}\n\n`); } catch (err) { log.debug('gone', err); }
+        try { res.write(`data: ${JSON.stringify({ type: 'result', ok: false, error: 'Browse failed' })}\n\n`); } catch (err) { bestEffort('routes/studioAppBrowse:anon', err); /* gone */ }
         res.end();
     }
 });

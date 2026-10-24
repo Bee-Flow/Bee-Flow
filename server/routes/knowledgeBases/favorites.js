@@ -11,6 +11,7 @@ const { getUserId } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const KB_IDS = 'kbIds is a list of knowledge base ids.';
 const BulkFavoritesBody = z.object({
@@ -34,7 +35,7 @@ router.get('/favorites', requireAuth, async (req, res) => {
 router.post('/favorites/bulk', requireAuth, validate({ body: BulkFavoritesBody }), async (req, res) => {
     const userId = getUserId(req);
     for (const id of req.body.kbIds) {
-        try { await kbStore.addFavorite(userId, id); } catch (err) { log.debug('skip invalid', err); }
+        try { await kbStore.addFavorite(userId, id); } catch (err) { bestEffort('routes/knowledgeBases/favorites:anon', err); /* skip invalid */ }
     }
     const ids = await kbStore.listFavorites(userId);
     res.json(ids);

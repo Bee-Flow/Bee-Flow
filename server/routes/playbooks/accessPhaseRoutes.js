@@ -27,6 +27,8 @@ const { kindOf, firstOfKind, appBefore, localeOf } = require('./phaseList');
 // installation's (the rule and its history are in ./directory.js).
 const { directoryFor } = require('./directory');
 const log = require('../../telemetry/log');
+const { isMissingTable } = require('../../utils/isMissingTable');
+const { fallback } = require('../../utils/bestEffort');
 
 // The data digest handed to the access assistant (playbooks/accessPlan.js caps
 // the same numbers on its side).
@@ -69,7 +71,7 @@ async function readDataDigest(d, playbook, tableArt) {
                 .filter((v) => typeof v.value === 'string' && v.value.trim());
             if (!values.length || values.length > DIGEST_VALUES) continue;
             columns.push({ key: f.key, name: f.name || f.key, values });
-        } catch (err) { log.debug('one unreadable column is not a reason to give up on the rest', err); }
+        } catch (err) { if (!isMissingTable(err)) throw err; log.debug('one unreadable column is not a reason to give up on the rest', err); }
     }
     return columns.length ? { tableName: tableArt.datatableName || null, columns } : null;
 }
@@ -104,12 +106,12 @@ function register(router, ctx) {
             const tier = await phaseTier(req, res, pb);
             if (!tier) return;
 
-            const meta = await d.studioAppDataStore.getDataModel(appId, app.userId).catch(() => null);
+            const meta = await d.studioAppDataStore.getDataModel(appId, app.userId).catch((e) => fallback('routes/playbooks/accessPhaseRoutes:register', e, null));
             const model = (meta && meta.model) || null;
             const roles = (model && Array.isArray(model.roles)) ? model.roles : [];
             const [groups, users] = await Promise.all([
-                d.userStore.getAllGroups().catch(() => []),
-                d.userStore.getAllUsers().catch(() => []),
+                d.userStore.getAllGroups().catch((e) => fallback('routes/playbooks/accessPhaseRoutes:register#2', e, [])),
+                d.userStore.getAllUsers().catch((e) => fallback('routes/playbooks/accessPhaseRoutes:register#3', e, [])),
             ]);
 
             // The table this app reads, as the model names it: a row rule is

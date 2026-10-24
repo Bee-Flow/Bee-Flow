@@ -19,6 +19,7 @@ const userStore = require('../../stores/userStore');
 const isoControls = require('../../compliance/iso/controls');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { resolveOrgId, _isoChecksByControl, _recordSoaEvidence, _buildClauseConformity } = require('./shared');
+const { fallback } = require('../../utils/bestEffort');
 
 // SoA PDF — a render of the rows (the trail stays in the store + evidence chain).
 router.get('/iso/soa.pdf', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
@@ -28,7 +29,7 @@ router.get('/iso/soa.pdf', requireAuth, requirePermission('admin_compliance'), a
         soaStore.listEntries(orgId),
         soaStore.getStats(orgId),
         complianceStore.getLatestPerCheck(orgId),
-        userStore.getOrganization(orgId).catch(() => null),
+        userStore.getOrganization(orgId).catch((e) => fallback('routes/compliance/isoStatements:anon', e, null)),
     ]);
     const { GUI_DEFAULTS } = require('../../i18n/defaults/en');
     const byRef = new Map(entries.map(e => [e.control_ref, e]));
@@ -79,7 +80,7 @@ router.get('/iso/soa.pdf', requireAuth, requirePermission('admin_compliance'), a
 router.get('/iso/clause-conformity.pdf', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
-    const org = await userStore.getOrganization(orgId).catch(() => null);
+    const org = await userStore.getOrganization(orgId).catch((e) => fallback('routes/compliance/isoStatements:anon#2', e, null));
     const clauses = await _buildClauseConformity(orgId);
     const { buildClauseConformityPdf } = require('../../utils/compliancePdf');
     const { buffer, hash } = await buildClauseConformityPdf({

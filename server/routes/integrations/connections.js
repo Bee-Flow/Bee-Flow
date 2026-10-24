@@ -33,6 +33,7 @@ const shareLimit = perUserRateLimit({ windowMs: 60_000, max: 10 });
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../auth/permissions');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 function isAdmin(req) {
     return !!(req.session?.isAdmin || req.session?.user?.role === 'admin');
@@ -222,7 +223,7 @@ function sanitizeHttpMeta(kind, secretMeta) {
     }
     if (kind === 'oauth2_cc') {
         let parsed = null;
-        try { parsed = new URL(String(src.tokenUrl || '')); } catch (err) { log.debug('handled below', err); }
+        try { parsed = new URL(String(src.tokenUrl || '')); } catch (err) { fallback('routes/integrations/connections:sanitizeHttpMeta', err); /* handled below */ }
         if (!parsed || (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')) {
             return { error: 'secretMeta.tokenUrl must be a valid http(s) URL' };
         }
@@ -250,13 +251,13 @@ async function auditConnectionChange(action, conn, userId) {
             { provider: conn.provider, label: conn.label, kind: conn.kind, action },
             conn.orgId || null,
         );
-    } catch (err) { log.debug('non-fatal — auditing must never block a credential write', err); }
+    } catch (err) { bestEffort('routes/integrations/connections:auditConnectionChange', err); /* non-fatal — auditing must never block a credential write */ }
 }
 
 // Resolve the caller's org (sentinel-normalized) + group ids.
 async function callerContext(req) {
     const userId = req.session.user.id;
-    const user = await userStore.getUser(userId).catch(() => null);
+    const user = await userStore.getUser(userId).catch((e) => fallback('routes/integrations/connections:callerContext', e, null));
     const orgId = store.resolveOrgId(user?.organizationId);
     const groups = Array.isArray(user?.groups) ? user.groups : [];
     return { userId, orgId, groups, user };
@@ -278,12 +279,12 @@ async function decorateGrantees(grants) {
     }
     const users = new Map();
     await Promise.all([...userIds].map(async (id) => {
-        const u = await userStore.getUser(id).catch(() => null);
+        const u = await userStore.getUser(id).catch((e) => fallback('routes/integrations/connections:decorateGrantees', e, null));
         if (u) users.set(id, u.email || u.name || null);
     }));
     const groups = new Map();
     if (groupIds.size > 0) {
-        const all = await userStore.getAllGroups().catch(() => []);
+        const all = await userStore.getAllGroups().catch((e) => fallback('routes/integrations/connections:decorateGrantees#2', e, []));
         for (const grp of all) if (groupIds.has(grp.id)) groups.set(grp.id, grp.name || null);
     }
     return grants.map(g => ({
@@ -351,7 +352,7 @@ router.get('/required', requireAuth, validate({ query: RequiredQuery }), async (
             try {
                 const { viewerHasIntegration } = require('../../appStudio/mailboxIdentity');
                 legacyOk = await viewerHasIntegration(provider, { userId, orgId });
-            } catch (err) { log.debug('no legacy layer → the connection really is missing', err); }
+            } catch (err) { fallback('routes/integrations/connections:anon', err); /* no legacy layer → the connection really is missing */ }
             if (!legacyOk) requiresConnection.push({ provider });
         }
     }
@@ -423,7 +424,7 @@ router.post('/', requireAuth, writeLimit, validate({ body: CreateBody }), async 
         label: label ? label.slice(0, 120) : 'Default', kind,
         secretObject, secretMeta: meta, makeDefault: makeDefault === true,
     });
-    auditConnectionChange('create', conn, req.session.user.id).catch(() => {});
+    auditConnectionChange('create', conn, req.session.user.id).catch((e) => bestEffort('routes/integrations/connections:anon#2', e));
     res.status(201).json({ connection: conn });
 });
 
@@ -454,7 +455,7 @@ router.patch('/:id', requireAuth, writeLimit, validate({ body: PatchBody }), asy
             if (conn.kind === 'oauth2_cc') meta.clientIdHint = clientIdHintFor(s.secret.client_id);
             if (conn.kind === 'basic') meta.username = s.secret.username;
             await store.updateConnectionSecret(conn.id, s.secret, meta);
-            auditConnectionChange('rotate', conn, req.session.user.id).catch(() => {});
+            auditConnectionChange('rotate', conn, req.session.user.id).catch((e) => bestEffort('routes/integrations/connections:anon#3', e));
         } else if (newMeta) {
             // Meta-only update keeps server-derived display fields. Audited:
             // for oauth2_cc a tokenUrl change redirects where the client
@@ -462,11 +463,11 @@ router.patch('/:id', requireAuth, writeLimit, validate({ body: PatchBody }), asy
             if (conn.kind === 'oauth2_cc' && conn.secretMeta?.clientIdHint) newMeta.clientIdHint = conn.secretMeta.clientIdHint;
             if (conn.kind === 'basic' && !newMeta.username && conn.secretMeta?.username) newMeta.username = conn.secretMeta.username;
             await store.updateConnectionMeta(conn.id, newMeta);
-            auditConnectionChange('update_meta', conn, req.session.user.id).catch(() => {});
+            auditConnectionChange('update_meta', conn, req.session.user.id).catch((e) => bestEffort('routes/integrations/connections:anon#4', e));
         }
     } else if (hasSecret) {
         await store.updateConnectionSecret(conn.id, secret);
-        auditConnectionChange('rotate', conn, req.session.user.id).catch(() => {});
+        auditConnectionChange('rotate', conn, req.session.user.id).catch((e) => bestEffort('routes/integrations/connections:anon#5', e));
     }
     if (makeDefault === true) await store.setDefault(conn.id);
 
@@ -516,7 +517,7 @@ router.delete('/:id', requireAuth, writeLimit, validate({ query: DeleteQuery }),
     }
 
     const ok = await store.deleteConnection(conn.id); // ON DELETE CASCADE drops grants
-    if (ok) auditConnectionChange('delete', conn, req.session.user.id).catch(() => {});
+    if (ok) auditConnectionChange('delete', conn, req.session.user.id).catch((e) => bestEffort('routes/integrations/connections:anon#6', e));
     res.json({ deleted: ok, credentialRevoked: revoked });
 });
 
@@ -537,7 +538,7 @@ router.post('/:id/grants', requireAuth, shareLimit, validate({ body: GrantBody }
     const emailLookupUsed = granteeType === 'user' && !granteeId && !!granteeEmail;
     const NO_SUCH_TEAMMATE = 'No teammate with that email in your organization';
     if (emailLookupUsed) {
-        const byEmail = await userStore.getUserByEmail(granteeEmail).catch(() => null);
+        const byEmail = await userStore.getUserByEmail(granteeEmail).catch((e) => fallback('routes/integrations/connections:anon#7', e, null));
         if (!byEmail) return res.status(404).json({ error: NO_SUCH_TEAMMATE });
         granteeId = byEmail.id;
     }
@@ -550,7 +551,7 @@ router.post('/:id/grants', requireAuth, shareLimit, validate({ body: GrantBody }
     // ── Org isolation: the grantee must live in the connection's org ──
     if (granteeType === 'user') {
         if (!granteeId) return res.status(400).json({ error: 'granteeId required for a user grant' });
-        const grantee = await userStore.getUser(granteeId).catch(() => null);
+        const grantee = await userStore.getUser(granteeId).catch((e) => fallback('routes/integrations/connections:anon#8', e, null));
         if (!grantee) {
             return res.status(404).json({ error: emailLookupUsed ? NO_SUCH_TEAMMATE : 'Grantee user not found' });
         }
@@ -561,7 +562,7 @@ router.post('/:id/grants', requireAuth, shareLimit, validate({ body: GrantBody }
         }
     } else if (granteeType === 'group') {
         if (!granteeId) return res.status(400).json({ error: 'granteeId required for a group grant' });
-        const groups = await userStore.getAllGroups().catch(() => []);
+        const groups = await userStore.getAllGroups().catch((e) => fallback('routes/integrations/connections:anon#9', e, []));
         const group = groups.find(g => g.id === granteeId);
         if (!group) return res.status(404).json({ error: 'Grantee group not found' });
         if (store.resolveOrgId(group.organizationId) !== ownerOrg) {
@@ -576,7 +577,7 @@ router.post('/:id/grants', requireAuth, shareLimit, validate({ body: GrantBody }
         connectionId: conn.id, grantorUserId: req.session.user.id,
         granteeType, granteeId, resourceType, resourceId, expiresAt,
     });
-    auditConnectionChange('share', conn, req.session.user.id).catch(() => {});
+    auditConnectionChange('share', conn, req.session.user.id).catch((e) => bestEffort('routes/integrations/connections:anon#10', e));
     res.status(201).json({ grant });
 });
 

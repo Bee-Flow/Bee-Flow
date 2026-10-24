@@ -73,6 +73,7 @@ const {
 const { requireAdmin, SITE_ID_RE } = require('../cmsShared');
 const { validate } = require('../../core/http/validate');
 const { z, worded, bodyOf, closedObject, typeError } = require('../../core/http/schemaParts');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // ── What a caller may send ───────────────────────────────────────────
 // The body keys the builder reads, and nothing else: a misspelled
@@ -158,7 +159,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
     let priorSnapshot = null;
     const project = await cmsStore.getProject(siteId);
     if (!project) return res.status(404).json({ error: 'Site not found' });
-    priorSnapshot = await cmsStore.getBuilderSession(siteId).catch(() => null);
+    priorSnapshot = await cmsStore.getBuilderSession(siteId).catch((e) => fallback('routes/ai/cmsBuilder:anon', e, null));
     const payload = await cmsStore.getAdminPayload(siteId);
     const locales = new Set(Object.keys(payload.localeOverrides?.siteByLocale || {}));
     for (const perPage of Object.values(payload.localeOverrides?.pagesByLocale || {})) {
@@ -503,7 +504,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
                 updatedAt: new Date().toISOString(),
                 lastTier: resolvedTier,
             });
-        } catch (err) { log.debug('non-fatal', err); }
+        } catch (err) { bestEffort('routes/ai/cmsBuilder:anon#2', err); /* non-fatal */ }
 
         validationErrorCount = Array.isArray(lastValidation?.errors) ? lastValidation.errors.length : 0;
         const outcome = streamFailed ? 'transient_upstream'
@@ -525,7 +526,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
         // Still record the turn's usage — a turn that died mid-stream burned
         // tokens too. logTurnUsage is idempotent, so a done-path log that
         // already ran wins; this only fires when we never reached it.
-        try { logTurnUsage('internal'); } catch (err) { log.debug('never block cleanup', err); }
+        try { logTurnUsage('internal'); } catch (err) { bestEffort('routes/ai/cmsBuilder:anon#3', err); /* never block cleanup */ }
         stopHeartbeat();
         res.end();
     }

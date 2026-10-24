@@ -16,6 +16,7 @@ const log = require('../../telemetry/log');
 const { lazyProjectRoleGate } = require('./roleGate');
 const { forbidden, notFound } = require('../../core/http/errors');
 const { isAutomatic, presentThread } = require('./commentsPresent');
+const { fallback } = require('../../utils/bestEffort');
 
 /** The dependencies, each defaulting to the real module, required on first use. */
 function resolveCommentsDeps(deps) {
@@ -154,7 +155,7 @@ function makeCommentsContext(deps = {}) {
     async function memberMentions(projectId, ids) {
         const wanted = [...new Set((ids || []).filter((x) => typeof x === 'string' && x))];
         // A lookup that fails reads as "not a member".
-        const roles = await Promise.all(wanted.map((id) => Promise.resolve().then(() => ctx.getProjectRole(id, projectId)).catch(() => null)));
+        const roles = await Promise.all(wanted.map((id) => Promise.resolve().then(() => ctx.getProjectRole(id, projectId)).catch((e) => fallback('routes/projects/commentsContext:memberMentions', e, null))));
         return wanted.filter((_, i) => !!roles[i]);
     }
 

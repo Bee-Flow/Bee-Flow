@@ -59,6 +59,7 @@ const { z } = require('../../utils/zod');
 // (routes/notebooksGenerate.js records the same lesson).
 const { TIER_DEFAULTS } = require('../../core/llm/modelResolver');
 const { toCitations } = require('../../core/kb/citation');
+const { fallback } = require('../../utils/bestEffort');
 
 /** How many passages to retrieve. Eight is what the artboard's list shows. */
 const ASK_TOP_K = 8;
@@ -110,7 +111,7 @@ router.post('/:id/ask', requireAuth, validate({ body: AskBody }), async (req, re
         try {
             const rows = await require('../../stores/kbSources').listByKb(kb.id);
             sourcesById = new Map((rows || []).map(s => [s.id, s]));
-        } catch (err) { log.debug('no kb_sources on this install', err); }
+        } catch (err) { fallback('routes/knowledgeBases/ask:anon', err); /* no kb_sources on this install */ }
 
         const citations = toCitations(chunks, { kind: 'kb_chunk' }).map(c => ({
             ...c,

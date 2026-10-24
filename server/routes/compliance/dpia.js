@@ -19,6 +19,7 @@ const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { CHAT_MONITORING_DPIA_KEY } = require('../../stores/lib/chatMonitoringVocab');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Chat signals keep their org-wide DPIA under the key 'chat_monitoring'. A
@@ -101,7 +102,7 @@ router.get('/dpia/:agentId/pdf', requireAuth, requirePermission('admin_complianc
     try {
         const row = await getAll(`SELECT name FROM agents WHERE id = $1 LIMIT 1`, [req.params.agentId]);
         if (row?.[0]?.name) agentName = row[0].name;
-    } catch (err) { log.debug('keep id', err); }
+    } catch (err) { fallback('routes/compliance/dpia:anon', err); /* keep id */ }
     const { buildDpiaPdf } = require('../../utils/compliancePdf');
     const { buffer, hash } = await buildDpiaPdf({ agentName, dpia });
     // The PDF goes out either way, but a lost stamp makes the trail say the
@@ -137,7 +138,7 @@ router.post('/dpia/:agentId', requireAuth, requirePermission('admin_compliance')
     // AIA-Art26-human-oversight read this assessment). runOne with a subjectId
     // would write "Subject not found." into the Art-35 check's global slot for
     // an agent that is not on the high-risk list; see runner.runForSubject.
-    runner.runForSubject(orgId, [req.params.agentId], { runType: 'manual' }).catch(() => {});
+    runner.runForSubject(orgId, [req.params.agentId], { runType: 'manual' }).catch((e) => bestEffort('routes/compliance/dpia:anon#2', e));
     res.json(saved);
 });
 

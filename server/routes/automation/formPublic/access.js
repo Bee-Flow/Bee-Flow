@@ -11,6 +11,7 @@
 
 const automationStore = require('../../../stores/automationStore');
 const { audienceAdmits, needsGroups } = require('../../../automation/formAudience');
+const { fallback } = require('../../../utils/bestEffort');
 
 /**
  * Whether a form is servable to anonymous visitors.
@@ -135,7 +136,7 @@ async function currentRunFor(session) {
  */
 async function journeyRunIds(session) {
     if (!session?.runId) return [];
-    const runs = await automationStore.getRunsInChain(session.runId).catch(() => []);
+    const runs = await automationStore.getRunsInChain(session.runId).catch((e) => fallback('routes/automation/formPublic/access:journeyRunIds', e, []));
     return runs.map(r => r.id);
 }
 

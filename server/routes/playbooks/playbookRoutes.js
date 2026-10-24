@@ -21,6 +21,7 @@ const { userIdOf } = require('../studio/shared');
 const { z, sendErr, isObject, localeOfRequest, worded, closedObject, bodyOf, localeCode, tierName, check, MAX_TITLE, MAX_FOLDER, MAX_DESCRIPTION, MAX_BRIEF, TABLE_MODES, CLIENT_STATUSES, onUnknownKeys, typeError } = require('./contract');
 const { kindOf, localeOf, withClosingPhases, summarise } = require('./phaseList');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // Server-run phases whose POST owns the whole run: table (seconds), design
 // (90 s model budget), compliance (reads + a 12 s review budget). A phase of
@@ -178,7 +179,7 @@ function register(router, ctx) {
             const organizationId = await resolveOwnerOrgId(userId);
             let approverGroupId = null;
             if (typeof o.approverGroupId === 'string' && o.approverGroupId) {
-                const all = await d.userStore.getAllGroups().catch(() => []);
+                const all = await d.userStore.getAllGroups().catch((e) => fallback('routes/playbooks/playbookRoutes:register', e, []));
                 const g = (all || []).find((x) => x.id === o.approverGroupId);
                 if (!g || (organizationId && g.organizationId && g.organizationId !== organizationId)) return sendErr(res, 400, 'bad_options', 'That approver group is not in your organisation.');
                 approverGroupId = g.id;

@@ -61,6 +61,7 @@ const { batchTooLarge, rpcBatchTooLarge } = require('../auth/mcpAccess/batch');
 const { scopeAllowsTool, filterToolsByScope } = require('../auth/mcpAccess/scopes');
 
 const { NOTEBOOK_TOOLS } = require('../integrations/notebookToolNames');
+const { fallback } = require('../utils/bestEffort');
 
 const router = express.Router();
 
@@ -74,7 +75,7 @@ const router = express.Router();
 async function toolsForUser(userId) {
     const { loadSession } = require('../automation/triggerBus');
     const { getIntegrationTools } = require('../core/integrations/integrationTools');
-    const session = await loadSession(userId).catch(() => null);
+    const session = await loadSession(userId).catch((e) => fallback('routes/mcpServer:toolsForUser', e, null));
     return { tools: toolListFrom(await getIntegrationTools({ userId, session })), session };
 }
 

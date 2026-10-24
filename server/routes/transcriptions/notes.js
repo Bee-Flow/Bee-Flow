@@ -19,6 +19,7 @@ const { requireAuth } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { whole, NO_QUERY } = require('./schemas');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // The bookmark of the list, and nothing else. `.strict()`, because every other
 // parameter one would expect here — a filter on tag, on status, on period — came
@@ -33,7 +34,7 @@ router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) =>
     const offset = Math.max(req.query.offset ?? 0, 0);
     // Reap async jobs stuck in 'processing' (e.g. server restarted mid-run) so
     // the list stops spinning on them. Best-effort; never block the listing.
-    transcriptionStore.timeoutStuckTranscriptions().catch(() => {});
+    transcriptionStore.timeoutStuckTranscriptions().catch((e) => bestEffort('routes/transcriptions/notes:anon', e));
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
     const transcriptions = await transcriptionStore.getTranscriptions(userId, { limit, offset, orgIds, userGroupIds, isSuperAdmin });
     res.json({ transcriptions });

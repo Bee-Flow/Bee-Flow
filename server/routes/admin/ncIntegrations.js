@@ -25,6 +25,7 @@ const ncScope = require('../../core/integrations/ncScope');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -88,7 +89,7 @@ router.get('/admin/:orgId/nc-integrations', requireAuth, requireOrgAdmin('orgId'
     // a column nothing enforced.
     let enabled;
     let usingDefaults;
-    const scopeDoc = await ncScope.getOrgScopeDoc(o.id).catch(() => null);
+    const scopeDoc = await ncScope.getOrgScopeDoc(o.id).catch((e) => fallback('routes/admin/ncIntegrations:anon', e, null));
     if (scopeDoc?.integrations) {
         const scoped = ncScope.sanitizeIntegrations(scopeDoc.integrations);
         enabled = NC_INTEGRATION_IDS.filter(id => (scoped[id]?.mode ?? 'all') !== 'off');
@@ -139,7 +140,7 @@ router.put('/admin/:orgId/nc-integrations', requireAuth, requireOrgAdmin('orgId'
         direction: 'input',
         action_taken: `set:[${requested.join(',')}]`,
         source: 'org_admin',
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/admin/ncIntegrations:anon#2', e));
 
     res.json({ ok: true, enabled: requested });
 });
@@ -190,7 +191,7 @@ router.put('/admin/:orgId/nc-integrations/groups/:groupId', requireAuth, require
         direction: 'input',
         action_taken: `set:[${disabled.join(',')}]`,
         source: 'org_admin',
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/admin/ncIntegrations:anon#3', e));
 
     res.json({ ok: true, groupId, disabledIntegrations: disabled });
 });

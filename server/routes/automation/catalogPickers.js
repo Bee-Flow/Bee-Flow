@@ -9,6 +9,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // What a knowledge_write node can do about a near-duplicate,
 // declared once so the editor's dropdown and the runner cannot
@@ -94,7 +95,7 @@ async function loadKnowledgeBases(req, userId) {
         // Called with `req` it resolved to [], so filterByGroupAccess dropped
         // every group-restricted base out of the picker, including ones the
         // author manages and the save-time gate would have allowed.
-        const userGroups = await resolveUserGroups(userId).catch(() => []);
+        const userGroups = await resolveUserGroups(userId).catch((e) => fallback('routes/automation/catalogPickers:loadKnowledgeBases', e, []));
         // isOrgAdmin, like routes/knowledgeBases/list.js: without it an org
         // admin is shown fewer bases here than in the Knowledge Studio, and
         // the ones missing are exactly the unpublished ones they manage.

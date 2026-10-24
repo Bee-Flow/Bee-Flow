@@ -62,6 +62,7 @@ const { asToolExecutor } = require('../../../automation/patterns/scanReader');
 const { integrationOf } = require('../../../automation/patterns/ideation');
 const { fingerprintTitle } = require('../../../automation/suggestions');
 const { usageLogFields } = require('../../../core/providers/usageNormalizer');
+const { fallback: fallbackSwallowed, bestEffort } = require('../../../utils/bestEffort');
 
 const MODES = ['patterns', 'ideas'];
 const FOCUS_MAX_CHARS = 2000;
@@ -248,7 +249,7 @@ function createSuggestionsRouter(deps = null) {
             const scopeKey = d.scanCache.deriveScopeKey({ userId });
             const cacheKey = scanCacheKey({ userId, mode, sources: keyList, focus, now: d.now(), timeZone: mode === 'patterns' ? timeZone : null });
             let eu = false;
-            try { eu = !!(await d.isEUModeActive({ userOrgId: orgId, userId }))?.isEU; } catch (err) { log.debug('transparency only', err); }
+            try { eu = !!(await d.isEUModeActive({ userOrgId: orgId, userId }))?.isEU; } catch (err) { fallbackSwallowed('routes/ai/automationBuilder/suggestions:createSuggestionsRouter', err); /* transparency only */ }
 
             if (!force) {
                 const hit = await cachedScan({ scopeKey, cacheKey, mode, userId });
@@ -319,7 +320,7 @@ function createSuggestionsRouter(deps = null) {
                 sendEvent('error', { error: mode === 'ideas'
                     ? 'Could not generate ideas right now. Please try again.'
                     : 'Could not finish the scan right now. Please try again.' });
-            } catch (err) { log.debug('stream gone', err); }
+            } catch (err) { bestEffort('routes/ai/automationBuilder/suggestions:createSuggestionsRouter#2', err); /* stream gone */ }
             finish();
         }
     });

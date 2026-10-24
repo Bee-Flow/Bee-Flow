@@ -12,6 +12,7 @@ const log = require('../../telemetry/log');
 const kbStore = require('../../stores/knowledgeBases');
 const { getUserId } = require('./shared');
 const { MAX_UPLOAD_FILES, MAX_FILE_BYTES, QUEUED_REASON, helpers, resolveKb, resolveSource } = require('./sourcePolicy');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const uploadFiles = multer({
     storage: multer.memoryStorage(),
@@ -78,7 +79,7 @@ async function processUploadedFile(kb, source, doc, file) {
         log.warn(`[KB] Extraction failed for "${log.nameForLog(file.originalname)}": ${e.message}`);
         await kbStore.updateDocumentStatus(doc.id, {
             status: 'error', statusReason: friendlyError(e), chunkCount: 0,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/knowledgeBases/sourceUploads:processUploadedFile', e));
         return;
     }
 
@@ -172,7 +173,7 @@ async function addFiles(req, res, next) {
                     log.error(`[KB] Upload "${log.nameForLog(file.originalname)}" failed:`, e.message);
                     await kbStore.updateDocumentStatus(doc.id, {
                         status: 'error', statusReason: helpers().friendlyError(e), chunkCount: 0,
-                    }).catch(() => {});
+                    }).catch((e) => bestEffort('routes/knowledgeBases/sourceUploads:addFiles', e));
                 }
             }
         })());

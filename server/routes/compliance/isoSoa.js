@@ -31,6 +31,7 @@ const { resolveOrgId, _isoChecksByControl, _recordSoaEvidence, _buildClauseConfo
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { fallback } = require('../../utils/bestEffort');
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
@@ -200,9 +201,9 @@ router.get('/iso/readiness', requireAuth, requirePermission('admin_compliance'),
     const orgId = await resolveOrgId(req);
     const [latest, soaStats, history, docs] = await Promise.all([
         complianceStore.getLatestPerCheck(orgId),
-        soaStore.getStats(orgId).catch(() => null),
-        complianceStore.getScoreHistory(orgId, 365).catch(() => []),
-        ismsDocStore.listDocs(orgId).catch(() => []),
+        soaStore.getStats(orgId).catch((e) => fallback('routes/compliance/isoSoa:anon', e, null)),
+        complianceStore.getScoreHistory(orgId, 365).catch((e) => fallback('routes/compliance/isoSoa:anon#2', e, [])),
+        ismsDocStore.listDocs(orgId).catch((e) => fallback('routes/compliance/isoSoa:anon#3', e, [])),
     ]);
     const statusByCheck = {};
     for (const r of latest) {

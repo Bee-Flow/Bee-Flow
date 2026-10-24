@@ -23,6 +23,7 @@ const { hasPermission, resolveUserOrgIds, SystemRoles, Permissions, isOrgAdminRo
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 const { worded, choice } = require('../core/http/schemaParts');
+const { fallback } = require('../utils/bestEffort');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -135,7 +136,7 @@ router.get('/status', licenseLimiter, async (req, res) => {
     try {
         const resolved = await resolveUserOrgIds(req);
         if (resolved instanceof Set) orgIds = [...resolved];
-    } catch (err) { log.debug('ignore — fall back to direct org only', err); }
+    } catch (err) { fallback('routes/license:anon', err); /* ignore — fall back to direct org only */ }
     const status = await license.getLicenseStatus({ organizationId: orgId, userId, orgIds, superAdmin: isSuperAdmin(req) });
     res.json(status);
 });
@@ -267,7 +268,7 @@ router.get('/health', async (req, res) => {
         if (typeof userStore.getDunningCounts === 'function') {
             dunning = await userStore.getDunningCounts();
         }
-    } catch (_) { log.debug('dunning counts unavailable, omitted from the status', _); }
+    } catch (_) { fallback('routes/license:anon#2', _); /* dunning counts unavailable, omitted from the status */ }
 
     res.json({
         refresher: refresherHealth || { enabled: false },

@@ -61,6 +61,7 @@ const { buildAtomFeed } = require('../core/seo/blogAtom');
 const { listGalleryItems, integrationSitemapEntries } = require('../core/seo/integrationsDirectory');
 const { blogSitemap } = require('./publicRenderBlogSitemap');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const router = express.Router();
 
@@ -118,7 +119,7 @@ async function siteLocales() {
         extra = (available || [])
             .map(l => String(l.code).toLowerCase())
             .filter(code => code !== defaultLocale && LOCALE_PREFIXES.has(code));
-    } catch (err) { log.debug('a single-locale site is a fine fallback', err); }
+    } catch (err) { fallback('routes/publicRender:siteLocales', err); /* a single-locale site is a fine fallback */ }
     return { defaultLocale, locales: [defaultLocale, ...extra] };
 }
 

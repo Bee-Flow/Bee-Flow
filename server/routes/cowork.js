@@ -61,6 +61,7 @@ const configStore = require('../stores/configStore');
 const { executeCowork } = require('../core/cowork/coworkRunner');
 const { userHasBetaFeature } = require('../core/entitlements/betaFeatures');
 const { requireAuth } = require('../auth/permissions');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const DEFAULT_MAX_SCHEDULES = 10;
 
@@ -251,7 +252,7 @@ router.get('/', async (req, res) => {
                 try {
                     const a = await agentStore.getAgent(id);
                     if (a) agentMap.set(id, { name: a.name, avatar: a.avatar || a.config?.avatar || '🤖' });
-                } catch (err) { log.debug('missing agent → leave unenriched', err); }
+                } catch (err) { bestEffort('routes/cowork:anon', err); /* missing agent → leave unenriched */ }
             }));
             for (const s of schedules) {
                 const a = s.agentId && agentMap.get(s.agentId);
@@ -260,7 +261,7 @@ router.get('/', async (req, res) => {
         }
 
         // One query for all open runs of this user, not one query per row.
-        const openRuns = await coworkStore.getOpenRunStarts(userId).catch(() => ({}));
+        const openRuns = await coworkStore.getOpenRunStarts(userId).catch((e) => fallback('routes/cowork:anon#2', e, {}));
         for (const s of schedules) withCurrentRun(s, openRuns[s.id]);
 
         res.json({ schedules, maxSchedules: await getMaxSchedules() });
@@ -356,7 +357,7 @@ router.put('/:id', validate({ body: UpdateBody }), async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const schedule = await loadOwned(req.params.id, req.session.user.id);
-        const startedAt = await coworkStore.getOpenRunStart(req.params.id).catch(() => null);
+        const startedAt = await coworkStore.getOpenRunStart(req.params.id).catch((e) => fallback('routes/cowork:anon#3', e, null));
         res.json(withCurrentRun(schedule, startedAt));
     } catch (err) {
         fail(res, err, 'Get');
@@ -439,12 +440,12 @@ router.post('/compose', validate({ body: ComposeBody }), async (req, res) => {
                         name: a.name,
                         description: a.description || a.config?.description || null,
                     }));
-            } catch (err) { log.debug('compose still works without agents', err); }
+            } catch (err) { fallback('routes/cowork:anon#4', err); /* compose still works without agents */ }
         }
 
         const { composeCowork } = require('../core/cowork/coworkCompose');
         const { resolveEffectiveOrgId } = require('../core/llm/modelResolver');
-        const userOrgId = await resolveEffectiveOrgId(req, { userId }).catch(() => null);
+        const userOrgId = await resolveEffectiveOrgId(req, { userId }).catch((e) => fallback('routes/cowork:anon#5', e, null));
         const spec = await composeCowork({ brief, agents, timezone, userId, userOrgId });
         res.json(spec);
     } catch (err) {

@@ -24,6 +24,7 @@
  */
 
 /** The kinds "Bron kiezen" can name. An allow-list: anything else is a 400. */
+const { fallback } = require('../../utils/bestEffort');
 const CREATE_SOURCE_KINDS = new Set(['datatable', 'automation']);
 const MAX_CREATE_SOURCES = 10;
 const MAX_PROMPT_CHARS = 4000;
@@ -95,7 +96,7 @@ async function resolveCreateSources(req, sources) {
     if (automationIds.length) {
         const automationStore = require('../../stores/automationStore');
         for (const id of automationIds) {
-            const a = await automationStore.getAutomation(id).catch(() => null);
+            const a = await automationStore.getAutomation(id).catch((e) => fallback('routes/webpages/createBrief:resolveCreateSources', e, null));
             if (!a) throw badRequest(404, `Automation ${id} not found`);
             if (a.userId !== userId) throw badRequest(403, 'You can only build on your own automations');
             automationById.set(id, a);

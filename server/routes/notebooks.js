@@ -113,6 +113,7 @@ const UpdateBody = bodyOf({
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../auth/permissions');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Every notebook route requires the `use_notebooks` permission. Ownership
 // isolation is still enforced per-route via the user_id check in notebookStore.
@@ -156,7 +157,7 @@ router.get('/:id', requireAuth, asViewer, async (req, res) => {
 
     // Flip any sources that have been "processing" for > 10 min to errored.
     // Protects users from yellow rows stuck forever after a worker crash.
-    await notebookStore.timeoutStuckSources(notebook.id).catch(() => {});
+    await notebookStore.timeoutStuckSources(notebook.id).catch((e) => bestEffort('routes/notebooks:anon', e));
 
     const sources = await notebookStore.getSources(notebook.id);
     const project = await projectSummaryFor(notebook, userId);
@@ -209,7 +210,7 @@ router.delete('/:id/conversation', requireAuth, asViewer, async (req, res) => {
     // member's private chat, and one person starting over must not leave
     // the others' histories unreadable.
     if (!req.notebook.projectId) {
-        try { require('../core/dlp/dlpRunner').clearConversationState(req.params.id); } catch (err) { log.debug('best-effort', err); }
+        try { require('../core/dlp/dlpRunner').clearConversationState(req.params.id); } catch (err) { bestEffort('routes/notebooks:anon#2', err); /* best-effort */ }
     }
     res.json({ success: true });
 });
@@ -335,7 +336,7 @@ router.delete('/:id', requireAuth, asOwner, async (req, res) => {
     log.info(`[Notebooks] deleted ${req.params.id} (${result.sources} sources, ${result.kbs} auto-KBs)`);
     // Drop the in-process PII token map (the row's pii_token_map goes away with
     // the cascading notebook delete; this clears the cached copy + flag).
-    try { require('../core/dlp/dlpRunner').clearConversationState(req.params.id); } catch (err) { log.debug('best-effort', err); }
+    try { require('../core/dlp/dlpRunner').clearConversationState(req.params.id); } catch (err) { bestEffort('routes/notebooks:anon#3', err); /* best-effort */ }
 
     res.json({ success: true });
 });

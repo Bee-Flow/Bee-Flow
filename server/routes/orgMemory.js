@@ -21,6 +21,7 @@ const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { bestEffort } = require('../utils/bestEffort');
 
 // `.strict()`: a misspelled field must be refused, not dropped under a 200.
 // maxPerUser is clamped by the policy module (50..10000), but it has to be a
@@ -75,7 +76,7 @@ function createOrgMemoryRouter(deps = null) {
             await userStore.logAccessAudit(
                 action, 'organization', req.params.orgId, req.session?.user?.id || 'system', before, after, req.params.orgId,
             );
-        } catch (err) { log.debug('logAccessAudit already swallows; belt and braces', err); }
+        } catch (err) { bestEffort('routes/orgMemory:audit', err); /* logAccessAudit already swallows; belt and braces */ }
     }
 
     /**

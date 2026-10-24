@@ -102,6 +102,7 @@ const { ALL_TOOL_APPS, loadToolsResult } = require('../../automation/toolRegistr
 const { effectOf } = require('../../automation/sideEffectMap');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { fallback } = require('../../utils/bestEffort');
 
 // Bounded like every other user-facing list here: the registry is ours, but a
 // response is a response.
@@ -288,7 +289,7 @@ router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (re
             // two providers would be described by one of them. No registry
             // entry does that today.
             if (provider === null && providersKnown) {
-                try { provider = providerForTool(name) || null; } catch (err) { log.debug('stays null', err); }
+                try { provider = providerForTool(name) || null; } catch (err) { fallback('routes/agents/toolCatalog:anon', err); /* stays null */ }
             }
         }
 

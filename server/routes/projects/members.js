@@ -32,6 +32,7 @@ const { projectOrgOf, belongsToProjectOrg } = require('../../projects/projectOrg
 // Something a project compliance check reads changed (ids only).
 const { signalProjectChanged } = require('./complianceSignal');
 const { memberAvatar, makeMemberDirectory } = require('./memberDirectory');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * @param {object} deps
@@ -201,7 +202,7 @@ function makeMembersRouter(deps) {
             return { id: String(row.id), name, avatar: picture ? { type: picture.avatarType, value: picture.avatar } : null };
         });
 
-        const orgGroups = (await Promise.resolve(userStore.getAllGroups()).catch(() => []) || [])
+        const orgGroups = (await Promise.resolve(userStore.getAllGroups()).catch((e) => fallback('routes/projects/members:makeMembersRouter', e, [])) || [])
             .filter(g => String(g.organizationId || '') === orgId && matches(g.name || g.id))
             .slice(0, PRINCIPALS_MAX);
         let counts = new Map();

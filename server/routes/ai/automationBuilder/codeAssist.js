@@ -46,6 +46,7 @@ const { openSse } = require('../../../core/http/sseHelpers');
 const { streamWithRetry } = require('../builderShared');
 const { runCodeAssistTurn } = require('./codeAssistTurn');
 const { MAX_CODE_CHARS } = require('./codeAssistTools');
+const { fallback } = require('../../../utils/bestEffort');
 
 // One assistant turn is a short tool loop on the fast tier, repairs
 // included. 15/min/user is more than a person typing and reading answers
@@ -216,7 +217,7 @@ function makeCodeAssistRouter(overrides = {}) {
 
         const automationId = body.automationId || null;
         if (automationId) {
-            const automation = await Promise.resolve(deps.getAutomation(automationId)).catch(() => null);
+            const automation = await Promise.resolve(deps.getAutomation(automationId)).catch((e) => fallback('routes/ai/automationBuilder/codeAssist:makeCodeAssistRouter', e, null));
             if (!automation) return refuse(res, 404, 'Automation not found.', 'automation_not_found');
             if (!await deps.guardEdit(req, res, automation)) return;
         }

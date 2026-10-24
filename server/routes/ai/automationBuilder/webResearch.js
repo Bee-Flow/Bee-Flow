@@ -23,6 +23,7 @@
  */
 
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const WEB_RESEARCH_TOOL_NAMES = new Set(['agent_search', 'read_url']);
 // A search answer or a page can be ~60k characters; the builder prompt already
@@ -124,7 +125,7 @@ async function runWebResearchTool(name, args, { research, gate, ids }, deps = _d
                     organization_id: ids.orgId || null, user_id: ids.userId, automation_id: ids.automationId || null,
                     violation_type: 'pii', violation_categories: found, direction: 'input',
                     action_taken: block ? 'search_blocked' : 'pii_detected', source: 'automation_builder', model: ids.modelId || null,
-                })?.catch?.(() => {});
+                })?.catch?.((e) => bestEffort('routes/ai/automationBuilder/webResearch:runWebResearchTool', e));
                 if (block) return refuse(`Web search blocked: the query contains sensitive personal information (${found}). Rephrase it without personal data.`);
             }
         } catch (e) {

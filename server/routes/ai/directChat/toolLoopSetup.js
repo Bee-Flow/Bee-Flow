@@ -21,6 +21,7 @@ const {
 const { applyLoadTools, onSkillsActivated } = require('./toolRefresh');
 const { createToolContextFactory } = require('./toolContext');
 const { createUntokeniserSink } = require('./streamCallbacks');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Strip internal metadata (_mcp etc.) before sending tools to the LLM
@@ -60,7 +61,7 @@ function addTokenPreservationAddendum(turn) {
             const add = buildTokenPreservationAddendum(convMap);
             if (add) volatileMessage.content += add;
         }
-    } catch (err) { log.debug('addendum is best-effort; missing it just means the model may meta-comment on placeholders, not a runtime failure', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/toolLoopSetup:addTokenPreservationAddendum', err); }
 }
 
 /**

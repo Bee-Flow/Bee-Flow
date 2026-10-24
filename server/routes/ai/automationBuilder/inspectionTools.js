@@ -3,6 +3,7 @@
 // saved transcript before the PII detector has checked them. If the guard is
 // absent/degraded, the assistant gets types and shapes instead of raw values.
 const { canReadRunData } = require('../../../core/automationModel/callerRunVisibility');
+const { fallback } = require('../../../utils/bestEffort');
 
 const INSPECTION_NAMES = new Set(['builder_inspect_step', 'builder_inspect_mapping', 'builder_inspect_run']);
 const INSPECTION_TOOLS = [...INSPECTION_NAMES].map(name => ({ type: 'function', function: {
@@ -26,7 +27,7 @@ function shapeOnly(value, depth = 0) {
 async function maskedRunValues(values, { detectPii, tokenizeText }) {
     const encoded = JSON.stringify(values);
     if (encoded.length > 24000) return { values: shapeOnly(values), valuesAvailable: false, reason: 'Values exceed the inspection limit; shapes only.' };
-    const scan = await detectPii(encoded).catch(() => null);
+    const scan = await detectPii(encoded).catch((e) => fallback('routes/ai/automationBuilder/inspectionTools:maskedRunValues', e, null));
     if (!scan || scan.degraded) return { values: shapeOnly(values), valuesAvailable: false, reason: 'PII scanning unavailable; shapes only.' };
     if (scan.hasPii && !scan.entities?.length) return { values: shapeOnly(values), valuesAvailable: false, reason: 'Personal data could not be masked; shapes only.' };
     // Offsets refer to the complete serialized tree, not an individual leaf.

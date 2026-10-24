@@ -56,6 +56,7 @@ const { validate } = require('../../core/http/validate');
 const { lazyProjectRoleGate } = require('./roleGate');
 const { HttpError, badRequest, conflict, notFound } = require('../../core/http/errors');
 const S = require('./contentSchemas');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * @param {object} [deps]
@@ -183,7 +184,7 @@ function makeContentRouter(deps = {}) {
             try {
                 document = await documents().createDocument({ ...base, docType: 'spreadsheet', sheetTableId: table.id });
             } catch (err) {
-                await cells().dropSheetTable(userId, table.id).catch(() => undefined);
+                await cells().dropSheetTable(userId, table.id).catch((e) => bestEffort('routes/projects/content:makeContentRouter', e));
                 throw fromStoreError(err);
             }
         } else if (templateId) {

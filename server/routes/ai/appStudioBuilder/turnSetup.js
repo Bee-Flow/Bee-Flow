@@ -45,6 +45,7 @@ const { deriveScreenConstraints } = require('../../../core/llm/screenConstraints
 const { sanitizeInboundImages } = require('./inboundImages');
 const { sanitizeEditorContext } = require('./turnNotes');
 const { normalizeRowCounts } = require('./dataModelEvent');
+const { fallback } = require('../../../utils/bestEffort');
 
 const PLAN_MODES = ['auto', 'always', 'never'];
 
@@ -150,7 +151,7 @@ async function loadDraftWrap(req, { userId, requestedAppId, clientSession }) {
         const { def } = canonicalizeAppDefinition(
             app.definition && Object.keys(app.definition).length ? app.definition : emptyDefinition(app.name),
         );
-        priorSnapshot = await studioAppStore.getBuilderSession(app.id, userId).catch(() => null);
+        priorSnapshot = await studioAppStore.getBuilderSession(app.id, userId).catch((e) => fallback('routes/ai/appStudioBuilder/turnSetup:loadDraftWrap', e, null));
         draftWrap = {
             userId,
             orgId: app.organizationId || req.session?.user?.organizationId || null,

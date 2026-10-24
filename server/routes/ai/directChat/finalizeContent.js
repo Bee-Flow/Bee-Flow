@@ -14,6 +14,7 @@ const configStore = require('../../../stores/configStore');
 const { checkRegexPatterns } = require('../../../core/privacy/guardrails');
 const { applyTokenMapToMessages } = require('../../../core/dlp/applyTokenMapToOutbound');
 const log = require('../../../telemetry/log');
+const { bestEffort, fallback } = require('../../../utils/bestEffort');
 
 const RAW_BUFFER_MAX = 64 * 1024;
 
@@ -23,7 +24,7 @@ function settleStreamedContent({ fullContent, streamContentFlush, displaySegment
     // `restoreTokens` also fires a full `content_replace` as a final safety
     // net, but flushing here means a stable token sitting at the very end of
     // the stream gets replaced via the live content channel.
-    try { streamContentFlush(); } catch (err) { log.debug('best-effort', err); }
+    try { streamContentFlush(); } catch (err) { bestEffort('routes/ai/directChat/finalizeContent:settleStreamedContent', err); /* best-effort */ }
 
     // BFSF-261: make persistence match the live view: join the earlier rounds'
     // preamble text with the final round. Everything downstream (empty-check,
@@ -103,7 +104,7 @@ function applyOutputRegexGuard({ fullContent, displayContent, regexConfig, send 
         try {
             const regex = new RegExp(rule.pattern, 'gi');
             redacted = redacted.replace(regex, `[REDACTED: ${rule.name}]`);
-        } catch (e) { log.debug('skip', e); }
+        } catch (e) { fallback('routes/ai/directChat/finalizeContent:applyOutputRegexGuard', e); /* skip */ }
     }
     send('content_replace', { text: redacted });
     // redaction is destructive: replace storage too
@@ -116,7 +117,7 @@ async function retryWithoutThinking({ adapter, apiKey, apiUrl, modelId, convId, 
     try {
         const cs = await configStore.getConfig('claude_settings');
         if (cs && cs.autoRetryOnEmpty === false) autoRetryEnabled = false;
-    } catch (err) { log.debug('default true', err); }
+    } catch (err) { fallback('routes/ai/directChat/finalizeContent:retryWithoutThinking', err); /* default true */ }
     if (!autoRetryEnabled) return null;
     try {
         log.info('[DirectChat] Empty content with thinking — auto-retrying without thinking');
@@ -133,7 +134,7 @@ async function retryWithoutThinking({ adapter, apiKey, apiUrl, modelId, convId, 
         );
         const retryText = retryRes?.content;
         if (retryText && retryText.trim()) {
-            try { send('content_replace', { text: retryText }); } catch (err) { log.debug('ignore', err); }
+            try { send('content_replace', { text: retryText }); } catch (err) { bestEffort('routes/ai/directChat/finalizeContent:retryWithoutThinking#2', err); /* ignore */ }
             log.info(`[DirectChat] Auto-retry recovered ${retryText.length} chars`);
             return retryText;
         }
@@ -164,7 +165,7 @@ async function guardEmptyResponse(t) {
         ? 'I wrote the answer to your Notebook — open the Notebook panel to view it.'
         : 'The model returned no response. Please try rephrasing your question.';
     log.warn(`[DirectChat] Empty assistant content (toolsUsed=${collectedToolHistory.length > 0}, notebookWriteCommitted=${notebookWriteCommitted}) — surfacing fallback line.`);
-    try { send('content_replace', { text: fallbackText }); } catch (err) { log.debug('SSE may be closing', err); }
+    try { send('content_replace', { text: fallbackText }); } catch (err) { bestEffort('routes/ai/directChat/finalizeContent:guardEmptyResponse', err); /* SSE may be closing */ }
     return { fullContent: fallbackText, displayContent: fallbackText };
 }
 

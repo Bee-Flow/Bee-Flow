@@ -16,6 +16,7 @@ const router = express.Router();
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { fallback } = require('../../utils/bestEffort');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -96,7 +97,7 @@ const INTEGRATION_CATALOG = [
 // Compute the integrations actually available to this user — same gating
 // rules as agent-hub/src/components/admin/AgentDesigner/sections/ToolsSection.jsx
 async function getAvailableIntegrations(userId) {
-    const user = await userStore.getUser(userId).catch(() => null);
+    const user = await userStore.getUser(userId).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations', e, null));
     const orgId = user?.organizationId || null;
 
     let orgEnabled = null;
@@ -111,7 +112,7 @@ async function getAvailableIntegrations(userId) {
             // Super admins bypass — they always see everything the platform
             // allows in the wizard's suggestions.
             orgActiveSet = await resolveOrgActiveSet(orgId, { bypass: user?.role === 'admin' });
-        } catch (err) { log.debug('ignore', err); }
+        } catch (err) { fallback('routes/agents/wizard:getAvailableIntegrations#2', err); /* ignore */ }
     }
     // NC catalog — NC IDs aren't gated by the org-admin active list (they
     // run through the dedicated NC panel + per-group opt-out path), so
@@ -120,7 +121,7 @@ async function getAvailableIntegrations(userId) {
     try {
         const cat = require('../../core/integrations/ncIntegrationCatalog');
         ncIdSet = cat.NC_INTEGRATION_ID_SET || new Set(cat.NC_INTEGRATION_IDS || []);
-    } catch (_) { log.debug('integration catalog unavailable, no Nextcloud ids to gate', _); }
+    } catch (_) { fallback('routes/agents/wizard:getAvailableIntegrations#3', _); /* integration catalog unavailable, no Nextcloud ids to gate */ }
 
     const isGoogleUser = !!user?.oauthProvider && user.oauthProvider === 'google';
     const isMicrosoftUser = !!user?.oauthProvider && user.oauthProvider === 'microsoft';
@@ -134,26 +135,26 @@ async function getAvailableIntegrations(userId) {
         const rows = await automationCredentialStore.listProvidersForUser(userId);
         hasMicrosoftConnection = rows.some(r => r.provider === 'microsoft' && r.status === 'active');
         hasGoogleConnection = rows.some(r => r.provider === 'google' && r.status === 'active');
-    } catch (err) { log.debug('no vault → SSO-only gating, as before', err); }
-    const hasFirefliesKey = !!(await configStore.getSecret(`fireflies_api_key_user_${userId}`).catch(() => null));
-    const hasYouTrackConfig = !!(await configStore.getSecret(`youtrack_url_user_${userId}`).catch(() => null))
-        && !!(await configStore.getSecret(`youtrack_token_user_${userId}`).catch(() => null));
-    const hasGammaKey = !!(await configStore.getSecret(`gamma_api_key_user_${userId}`).catch(() => null));
-    const hasAfasConfig = !!(await configStore.getSecret(`afas_token_user_${userId}`).catch(() => null))
-        && !!(await configStore.getSecret(`afas_member_number_user_${userId}`).catch(() => null));
-    const hasNmbrsConfig = !!(await configStore.getSecret(`nmbrs_subdomain_user_${userId}`).catch(() => null))
-        && !!(await configStore.getSecret(`nmbrs_token_user_${userId}`).catch(() => null));
-    const hasVplanConfig = !!(await configStore.getSecret(`vplan_api_key_user_${userId}`).catch(() => null))
-        && !!(await configStore.getSecret(`vplan_api_env_user_${userId}`).catch(() => null));
-    const hasScalewayBillingConfig = !!(await configStore.getSecret(`scaleway_billing_secret_key_user_${userId}`).catch(() => null));
-    const hasLinkedInConfig = !!(await configStore.getSecret('linkedin_client_id').catch(() => null));
+    } catch (err) { fallback('routes/agents/wizard:getAvailableIntegrations#4', err); /* no vault → SSO-only gating, as before */ }
+    const hasFirefliesKey = !!(await configStore.getSecret(`fireflies_api_key_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#5', e, null)));
+    const hasYouTrackConfig = !!(await configStore.getSecret(`youtrack_url_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#6', e, null)))
+        && !!(await configStore.getSecret(`youtrack_token_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#7', e, null)));
+    const hasGammaKey = !!(await configStore.getSecret(`gamma_api_key_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#8', e, null)));
+    const hasAfasConfig = !!(await configStore.getSecret(`afas_token_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#9', e, null)))
+        && !!(await configStore.getSecret(`afas_member_number_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#10', e, null)));
+    const hasNmbrsConfig = !!(await configStore.getSecret(`nmbrs_subdomain_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#11', e, null)))
+        && !!(await configStore.getSecret(`nmbrs_token_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#12', e, null)));
+    const hasVplanConfig = !!(await configStore.getSecret(`vplan_api_key_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#13', e, null)))
+        && !!(await configStore.getSecret(`vplan_api_env_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#14', e, null)));
+    const hasScalewayBillingConfig = !!(await configStore.getSecret(`scaleway_billing_secret_key_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#15', e, null)));
+    const hasLinkedInConfig = !!(await configStore.getSecret('linkedin_client_id').catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#16', e, null)));
     let hasN8nConfig = false;
     if (orgId) {
         try {
             const url = await configStore.getConfig(`n8n_url_org_${orgId}`);
             const key = await configStore.getSecret(`n8n_api_key_org_${orgId}`);
             hasN8nConfig = !!(url && key);
-        } catch (err) { log.debug('ignore', err); }
+        } catch (err) { fallback('routes/agents/wizard:getAvailableIntegrations#17', err); /* ignore */ }
     }
 
     const status = { isGoogleUser, isMicrosoftUser, hasFirefliesKey, hasYouTrackConfig, hasGammaKey, hasAfasConfig, hasNmbrsConfig, hasVplanConfig, hasScalewayBillingConfig, hasLinkedInConfig, hasN8nConfig };
@@ -375,8 +376,8 @@ async function generatePlan({ userPrompt, priorPlan, refinement, modelTier, loca
     const tierConfig = await getTierConfig(tier, { userOrgId, userId });
 
     const [availableIntegrations, existingSkills] = await Promise.all([
-        getAvailableIntegrations(userId).catch(() => []),
-        userOrgId ? skillStore.getAvailableSkills(userOrgId, userId).catch(() => []) : Promise.resolve([]),
+        getAvailableIntegrations(userId).catch((e) => fallback('routes/agents/wizard:generatePlan', e, [])),
+        userOrgId ? skillStore.getAvailableSkills(userOrgId, userId).catch((e) => fallback('routes/agents/wizard:generatePlan#2', e, [])) : Promise.resolve([]),
     ]);
     const availableIds = availableIntegrations.map(i => i.id);
 
@@ -608,7 +609,7 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
     // ── Integrations: validate ids against the user's allow-list ──
     // (defensive — the LLM should already only pick from allowed ones,
     // but never trust the client to round-trip server-validated state)
-    const availableIntegrations = await getAvailableIntegrations(userId).catch(() => []);
+    const availableIntegrations = await getAvailableIntegrations(userId).catch((e) => fallback('routes/agents/wizard:anon', e, []));
     const availableIds = new Set(availableIntegrations.map(i => i.id));
     const requested = Array.isArray(plan.enabledIntegrations)
         ? plan.enabledIntegrations.filter(id => availableIds.has(id))

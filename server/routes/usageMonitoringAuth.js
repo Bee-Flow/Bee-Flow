@@ -32,6 +32,7 @@
 
 const { resolveUserOrgIds, isOrgAdminRole } = require('../auth');
 const userStore = require('../stores/userStore');
+const { fallback } = require('../utils/bestEffort');
 
 async function requireMonitoringScope(req, res, next) {
     if (!req.session?.isAuthenticated || !req.session?.user) {
@@ -58,7 +59,7 @@ async function requireMonitoringScope(req, res, next) {
         // deliberately org-blind for them), so "super admin with an org"
         // is only knowable from their own user record. Without this, the
         // platform operator got 403 on every monitoring dashboard.
-        const admin = await userStore.getUser(req.session.user.id).catch(() => null);
+        const admin = await userStore.getUser(req.session.user.id).catch((e) => fallback('routes/usageMonitoringAuth:requireMonitoringScope', e, null));
         orgId = admin?.organizationId || null;
     }
     if (!orgId) return res.status(403).json({ error: 'No organisation context' });

@@ -36,7 +36,7 @@ async function resolveEnabledSystemSlugs(req) {
     const enabled = [];
     for (const slug of SYSTEM_KB_BETA_SLUGS) {
         try { if (await userHasBetaFeature(userId, slug, req.session)) enabled.push(slug); }
-        catch (err) { log.debug('skip this slug on resolve failure', err); }
+        catch (err) { fallback('routes/knowledgeBases/shared:resolveEnabledSystemSlugs', err); /* skip this slug on resolve failure */ }
     }
     return enabled;
 }
@@ -157,6 +157,7 @@ function blockIfSystemKB(kb, res) {
  * it by the name they always have.
  */
 const { ensureKbSource } = require('../../core/kb/sources/ensureSource');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Add the K1 aggregates to KB rows for the list endpoints: numeric counters,

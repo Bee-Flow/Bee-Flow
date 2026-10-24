@@ -26,6 +26,7 @@
 
 const chatSignals = require('../../../core/privacy/chatSignals');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /** The marker and the switch the composer sent; anything else reads as absent. */
 function _fromBody(req) {
@@ -55,7 +56,7 @@ function _countLater(req, userId, turn) {
             orgId = await require('../../../core/llm/modelResolver').resolveEffectiveOrgId(req, { userId });
         } catch (_) { orgId = null; }
         chatSignals.countTurn({ ...turn, orgKey: chatSignals.directOrgKey(orgId), userId });
-    })().catch(() => {});
+    })().catch((e) => bestEffort('routes/ai/directChat/chatSignalsTurn:_countLater', e));
 }
 
 /**
@@ -90,7 +91,7 @@ function countDirectTurn({ req, userId, chatSignal, config }) {
             allowlistedHosts: hosts,
             dryRun: false,
         });
-    } catch (err) { log.debug('counting never touches the turn', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/chatSignalsTurn:countDirectTurn', err); /* counting never touches the turn */ }
     return undefined;
 }
 
@@ -115,7 +116,7 @@ function countFixedTurn({ req, userId, surface = 'direct', outcome = 'unscanned'
             allowlistedHosts: [],
             dryRun: false,
         });
-    } catch (err) { log.debug('counting never touches the turn', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/chatSignalsTurn:countFixedTurn', err); /* counting never touches the turn */ }
     return undefined;
 }
 

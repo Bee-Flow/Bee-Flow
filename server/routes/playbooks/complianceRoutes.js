@@ -70,6 +70,7 @@ const RegisterBody = bodyOf({
 });
 const { kindOf, firstOfKind, localeOf } = require('./phaseList');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /**
  * The six legal bases Art. 6 gives, and the cap the datatables route applies.
@@ -158,8 +159,8 @@ function register(router, ctx) {
             // `!orgId || !x.organizationId || …` read a consumer's playbook as
             // "no filter" and let consumers and global groups into every org's.
             const [groups, users] = await Promise.all([
-                d.userStore.getAllGroups().catch(() => []),
-                d.userStore.getAllUsers().catch(() => []),
+                d.userStore.getAllGroups().catch((e) => fallback('routes/playbooks/complianceRoutes:register', e, [])),
+                d.userStore.getAllUsers().catch((e) => fallback('routes/playbooks/complianceRoutes:register#2', e, [])),
             ]);
             const directory = directoryFor(pb, req.session, groups || [], users || []);
             // The automations' definitions, read once and only for the ids this
@@ -170,7 +171,7 @@ function register(router, ctx) {
                 try {
                     const row = await d.automationStore.getAutomation(a.id);
                     if (row && row.userId === pb.userId) defs.set(a.id, row.definition || null);
-                } catch (err) { log.debug('one unreadable automation is not the end of the plan', err); }
+                } catch (err) { bestEffort('routes/playbooks/complianceRoutes:register#3', err); /* one unreadable automation is not the end of the plan */ }
             }
 
             const out = await d.planResolve({

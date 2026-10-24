@@ -267,7 +267,7 @@ router.post('/n8n/test', requireOrgAdminForN8n, validate({ body: N8nConfigBody }
                 const arr = data.data || data;
                 activeWebhookCount = Array.isArray(arr) ? arr.length : null;
             }
-        } catch (err) { log.debug('non-fatal', err); }
+        } catch (err) { fallback('routes/ai/config/integrations:anon', err); /* non-fatal */ }
 
         res.json({ ok: true, activeWebhookCount });
     } catch (err) {
@@ -646,6 +646,7 @@ router.post('/mcp-servers/user-credentials', requireAuth, requireMcp, validate({
 const mcpRegistry = require('../../../integrations/mcpRegistryClient');
 const { createTtlCache } = require('../../../utils/ttlCache');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 const mcpRegistryCache = createTtlCache({ ttlMs: 5 * 60 * 1000, max: 200 });
 
 // GET /ai/mcp-registry/search?q=&cursor=&verifiedOnly=1

@@ -39,6 +39,8 @@ const RunBody = bodyOf({
 const { kindOf, firstOfKind, automationBefore, localeOf } = require('./phaseList');
 const { makeRunComplianceReview } = require('./complianceReview');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 function register(router, ctx) {
     const { d, flow, requireManageApps, runLimiter } = ctx;
@@ -108,7 +110,7 @@ function register(router, ctx) {
             playbook: pb, automationId, tableArtifacts,
             onRunCreated: (run) => {
                 if (!run || !run.id) return;
-                saveNow(phases.map((p) => (p.key === key ? { ...p, artifacts: { ...(p.artifacts || {}), runId: run.id, runStatus: 'running' } } : p))).catch(() => {});
+                saveNow(phases.map((p) => (p.key === key ? { ...p, artifacts: { ...(p.artifacts || {}), runId: run.id, runStatus: 'running' } } : p))).catch((e) => bestEffort('routes/playbooks/serverPhaseRoutes:onRunCreated', e));
             },
         }, d);
         if (!started.ok) {
@@ -175,7 +177,7 @@ function register(router, ctx) {
                 const resolved = await d.datatableRuntime.resolveForPrincipal(tableArt.datatableId, principal, { needed: 'viewer' });
                 const page = await d.datatableRuntime.readRows(resolved, { allowColumns: (tableArt.fields || []).map((f) => f.key), limit: 2 });
                 sampleRows = Array.isArray(page && page.rows) ? page.rows : [];
-            } catch (err) { log.debug('the designer works from the columns alone', err); }
+            } catch (err) { if (!isMissingTable(err)) throw err; log.debug('the designer works from the columns alone', err); }
         }
         const idx = phases.findIndex((p) => p.key === key);
         const approvals = phases.slice(idx + 1).some((p) => p.requires === 'approvals' && p.status !== 'locked');
@@ -189,7 +191,7 @@ function register(router, ctx) {
         // design exists yet, so this is the plain brief).
         let appBrief = (appPhase && appPhase.brief) || null;
         if (appPhase && !appBrief) {
-            try { appBrief = lifecycle.composeBriefFor(recipe, appPhase.key, { ...pb, phases }); } catch (err) { log.debug('not enough artifacts — the designer works from the goal', err); }
+            try { appBrief = lifecycle.composeBriefFor(recipe, appPhase.key, { ...pb, phases }); } catch (err) { fallback('routes/playbooks/serverPhaseRoutes:runDesign', err); /* not enough artifacts — the designer works from the goal */ }
         }
         const result = await d.runDesignPhase({
             tier,

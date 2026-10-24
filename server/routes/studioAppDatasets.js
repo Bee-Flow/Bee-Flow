@@ -135,6 +135,7 @@ const {
 } = require('./studioAppRateLimits');
 const { SHARD_COUNT, shardName } = require('../core/datasets/rsidIndex');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ── Sizing (env-tunable; a NEW quota axis, deliberately not MAX_ATTACHMENT_BYTES) ──
 const PART_BYTES = parseInt(process.env.DATASET_PART_BYTES, 10) || 32 * 1024 * 1024;
@@ -265,7 +266,7 @@ async function deleteArtifacts(app, ds) {
         }
     }
     for (const key of keys) {
-        try { await storageStore.deleteFile(key); } catch (err) { log.debug('best-effort — absent shards are normal', err); }
+        try { await storageStore.deleteFile(key); } catch (err) { bestEffort('routes/studioAppDatasets:deleteArtifacts', err); /* best-effort — absent shards are normal */ }
     }
 }
 
@@ -353,8 +354,8 @@ router.put('/:id/large-datasets/:datasetId/parts/:n', largeDatasets, requireAuth
     if (n === 0) {
         const sniff = sniffDatasetHead(body);
         if (!sniff.ok) {
-            await storageStore.abortMultipartUpload(ds.rawKey, ds.uploadState?.s3UploadId).catch(() => {});
-            await datasetFileStore.deleteDataset(ds.id, app.id, app.userId).catch(() => {});
+            await storageStore.abortMultipartUpload(ds.rawKey, ds.uploadState?.s3UploadId).catch((e) => bestEffort('routes/studioAppDatasets:anon', e));
+            await datasetFileStore.deleteDataset(ds.id, app.id, app.userId).catch((e) => bestEffort('routes/studioAppDatasets:anon#2', e));
             return res.status(415).json({ error: sniff.reason });
         }
     }
@@ -417,7 +418,7 @@ router.delete('/:id/large-datasets/:datasetId', largeDatasets, requireAuth, data
     if (!ds || !mayDelete(req, app, ds)) return res.status(404).json({ error: 'Dataset not found' });
 
     if (ds.status === 'uploading' && ds.uploadState?.s3UploadId) {
-        await storageStore.abortMultipartUpload(ds.rawKey, ds.uploadState.s3UploadId).catch(() => {});
+        await storageStore.abortMultipartUpload(ds.rawKey, ds.uploadState.s3UploadId).catch((e) => bestEffort('routes/studioAppDatasets:anon#3', e));
     }
     await deleteArtifacts(app, ds);
     await datasetFileStore.deleteDataset(ds.id, app.id, app.userId);

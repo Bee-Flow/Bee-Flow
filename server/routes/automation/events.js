@@ -20,6 +20,7 @@ const configStore = require('../../stores/configStore');
 const triggerBus = require('../../automation/triggerBus');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { verifyConnectorSig } = require('../../auth/connectorSig');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // ── PUBLIC routes (defined first; auth comes after) ────
 
@@ -154,7 +155,7 @@ router.post('/events/gmail', eventsLimiter, express.json({ limit: '128kb' }), as
     const data = req.body?.message?.data;
     if (!data) return res.status(204).end();
     let decoded = {};
-    try { decoded = JSON.parse(Buffer.from(data, 'base64').toString('utf8')); } catch (err) { log.debug('payload is not base64 JSON, handled as an empty event', err); }
+    try { decoded = JSON.parse(Buffer.from(data, 'base64').toString('utf8')); } catch (err) { fallback('routes/automation/events:anon', err); /* payload is not base64 JSON, handled as an empty event */ }
     // userId intentionally null until an emailAddress→userId mapping + OIDC
     // verification exist; dispatchEvent drops null-userId gmail events.
     await triggerBus.dispatchEvent({ provider: 'gmail', event: 'mail.new', payload: decoded, userId: null });
@@ -196,7 +197,7 @@ router.post('/events/nextcloud', eventsLimiter, captureRawNc, async (req, res) =
     // so the connector doesn't retry.
     const userStore = require('../../stores/userStore');
     const user = ncUid
-        ? await userStore.getUserByNcUid(org.id, ncUid).catch(() => null)
+        ? await userStore.getUserByNcUid(org.id, ncUid).catch((e) => fallback('routes/automation/events:anon#2', e, null))
         : null;
 
     // The event reaches only the actor's own subscriptions (userId below), so
@@ -279,9 +280,9 @@ router.post('/events/nextcloud', eventsLimiter, captureRawNc, async (req, res) =
         try {
             const subs = await automationStore.getSubscriptionsForUserAndEvent(user.id, 'nextcloud', event);
             for (const sub of subs) {
-                await automationStore.updateSubscription(sub.id, { lastPushAt: new Date().toISOString() }).catch(() => {});
+                await automationStore.updateSubscription(sub.id, { lastPushAt: new Date().toISOString() }).catch((e) => bestEffort('routes/automation/events:anon#3', e));
             }
-        } catch (err) { log.debug('best-effort', err); }
+        } catch (err) { bestEffort('routes/automation/events:anon#4', err); /* best-effort */ }
     }
     return res.status(202).end();
 });
@@ -305,7 +306,7 @@ router.post('/events/msgraph', eventsLimiter, express.json({ limit: '128kb' }), 
         // we fan out per-notification.
         try {
             const sub = n.subscriptionId
-                ? await automationStore.getSubscriptionByExternalRef('msgraph', n.subscriptionId).catch(() => null)
+                ? await automationStore.getSubscriptionByExternalRef('msgraph', n.subscriptionId).catch((e) => fallback('routes/automation/events:anon#5', e, null))
                 : null;
             if (sub && sub.clientState && sub.clientState !== n.clientState) {
                 log.warn(`[automation/events/msgraph] clientState mismatch for sub ${sub.id} — dropping`);

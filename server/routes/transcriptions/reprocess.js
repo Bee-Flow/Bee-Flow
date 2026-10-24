@@ -21,6 +21,7 @@ const { applySpeakerSummaries } = require('../../core/meetingNotes/summaryHelper
 const { transcribeStoredAudio, analyseTranscript } = require('./reprocessPipeline');
 const { validate } = require('../../core/http/validate');
 const { NOTHING, NO_QUERY } = require('./schemas');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Reprocess failed transcription ───────────────────────
 //
@@ -77,7 +78,7 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
                 ownerId: transcription.ownerId || userId,
                 audioPath: audioSource.path,
                 audioStorageKey: transcription.audioStorageKey,
-            }).catch(() => {});
+            }).catch((e) => bestEffort('routes/transcriptions/reprocess:anon', e));
         }
         const audioPath = audioSource.path;
 

@@ -54,6 +54,7 @@ const { memoryEnabledKey, memorySensitiveOptInKey, isMemoryEnabledForUser, getOr
 const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
 const memoryQueries = require('../../../stores/memoryQueries');
+const { bestEffort, fallback } = require('../../../utils/bestEffort');
 
 // One DNS label — the team part of <team>.signrequest.com, nothing else.
 const SIGNREQUEST_SUBDOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i;
@@ -154,13 +155,13 @@ router.get('/user-settings', requireAuth, async (req, res) => {
         try {
             const { hydrateGoogleSessionFromVault } = require('../../../auth/googleSessionHydration');
             await hydrateGoogleSessionFromVault(req.session);
-        } catch (err) { log.debug('non-fatal — the flags just stay false', err); }
+        } catch (err) { bestEffort('routes/ai/config/userSettings:anon', err); /* non-fatal — the flags just stay false */ }
     }
     if (!req.session.oauthProvider && userId) {
         try {
             const { hydrateMicrosoftSessionFromVault } = require('../../../auth/microsoftSessionHydration');
             await hydrateMicrosoftSessionFromVault(req.session);
-        } catch (err) { log.debug('non-fatal — the flags just stay false', err); }
+        } catch (err) { bestEffort('routes/ai/config/userSettings:anon#2', err); /* non-fatal — the flags just stay false */ }
     }
 
     const isGoogleUser = req.session.oauthProvider === 'google';
@@ -175,7 +176,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
             const automationCredentialStore = require('../../../stores/automationCredentialStore');
             const rows = await automationCredentialStore.listProvidersForUser(userId);
             hasMicrosoftConnection = rows.some(r => r.provider === 'microsoft' && r.status === 'active');
-        } catch (err) { log.debug('non-fatal — Outlook just stays SSO-gated', err); }
+        } catch (err) { fallback('routes/ai/config/userSettings:anon#3', err); /* non-fatal — Outlook just stays SSO-gated */ }
     }
     const enabledApps = await configStore.getConfig(`enabled_apps_user_${userId}`);
 
@@ -205,7 +206,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
             const { resolveOrgIntegrations } = require('../../../core/integrations/enabledIntegrations');
             orgEnabledIntegrations = await resolveOrgIntegrations(homeOrgId);
         }
-    } catch (e) { log.debug('ignore — null means "no org restriction"', e); }
+    } catch (e) { fallback('routes/ai/config/userSettings:anon#4', e); /* ignore — null means "no org restriction" */ }
 
     // Check n8n config for org (uses group-based fallback for super-admins)
     let hasN8nConfig = false;
@@ -215,7 +216,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
             const n8nKey = await configStore.getSecret(`n8n_api_key_org_${n8nOrgId}`);
             hasN8nConfig = !!(n8nUrl && n8nKey);
         }
-    } catch (e) { log.debug('ignore', e); }
+    } catch (e) { fallback('routes/ai/config/userSettings:anon#5', e); /* ignore */ }
 
     // Check org privacy shield for disableSearchOnUpload + EU mode
     let disableSearchOnUpload = false;
@@ -232,7 +233,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
                 orgEuModeForced = true;
             }
         }
-    } catch (e) { log.debug('ignore', e); }
+    } catch (e) { fallback('routes/ai/config/userSettings:anon#6', e); /* ignore */ }
 
     // Personal EU mode preference — the Privacy Shield panel
     // (user_privacy_shield_${userId}) is the canonical store. We still
@@ -249,7 +250,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
     // Memory master switch — the per-user "may this turn read/write memory"
     // decision. Defaults ON, so this is only ever false after an explicit choice.
     const memoryEnabled = await isMemoryEnabledForUser(userId);
-    const memorySensitiveOptIn = (await configStore.getConfig(memorySensitiveOptInKey(userId)).catch(() => null)) === true;
+    const memorySensitiveOptIn = (await configStore.getConfig(memorySensitiveOptInKey(userId)).catch((e) => fallback('routes/ai/config/userSettings:anon#7', e, null))) === true;
     // The organisation's side of it, so the SPA can say "turned off by your
     // organisation". Fail open like the policy: a config error reads as default.
     const orgMemory = await getOrgMemorySettings(homeOrgId || null).catch(() => ({ ...ORG_DEFAULTS }));
@@ -265,21 +266,21 @@ router.get('/user-settings', requireAuth, async (req, res) => {
     // readServerProgress so the legacy intro-tour flag is lazily migrated into a
     // real getting-started entry (same view the achievements endpoints use).
     let learningProgress = {};
-    try { learningProgress = await readServerProgress(userId); } catch (err) { log.debug('empty on failure', err); }
+    try { learningProgress = await readServerProgress(userId); } catch (err) { fallback('routes/ai/config/userSettings:anon#8', err); /* empty on failure */ }
 
     // Learning path (v2): the role/goal the learner picked on the Learning
     // Center home ('everyday' | 'builder' | 'admin' | 'skipped'). A preference,
     // not progress — stored beside the blob, never inside it (the progress
     // sanitizer whitelists lesson ids and would drop it).
     let learningPath = '';
-    try { learningPath = (await configStore.getConfig(`learning_path_user_${userId}`)) || ''; } catch (err) { log.debug('optional', err); }
+    try { learningPath = (await configStore.getConfig(`learning_path_user_${userId}`)) || ''; } catch (err) { fallback('routes/ai/config/userSettings:anon#9', err); /* optional */ }
 
     // Check if EU models are configured at all (admin must set these up)
     let hasEuModelsConfigured = false;
     try {
         const euTiers = await configStore.getConfig('chat_model_tiers_eu') || {};
         hasEuModelsConfigured = Object.values(euTiers).some(t => t?.modelId?.trim());
-    } catch (_) { log.debug('EU tier lookup failed, treating EU models as not configured', _); }
+    } catch (_) { fallback('routes/ai/config/userSettings:anon#10', _); /* EU tier lookup failed, treating EU models as not configured */ }
 
     res.json({
         hasFirefliesKey: !!(await configStore.getSecret(`fireflies_api_key_user_${userId}`)),

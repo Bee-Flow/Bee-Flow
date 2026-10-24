@@ -25,6 +25,7 @@ const { stableStringify } = require('../../../projects/stages/model');
 const {
     gate, authMw, logOn, notifyOwnerOfAdmin, deploymentView, isObject,
 } = require('./stageRoutes');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const STEERING_TYPES = Object.freeze(['url', 'email']);
 const VARIABLE_NAME_RE = /^[a-z][a-z0-9_]{0,62}$/;
@@ -124,7 +125,7 @@ function makeSettingsHandlers(d) {
         const groups = await cleanGroups(d, ctx.stage.organizationId || shape.organization_id || null, sharedGroups);
         const ok = await d.agentStore.setAgentPublished(shape.id, publishing, shape.owner_id, groups);
         if (!ok) throw new HttpError(500, 'audience_failed', 'The audience could not be changed.');
-        if (publishing) { try { d.emitAgentPublished(shape); } catch (err) { log.debug('the compliance bus is best effort', err); } }
+        if (publishing) { try { d.emitAgentPublished(shape); } catch (err) { bestEffort('routes/projects/stages/settingsRoutes:switchAgent', err); /* the compliance bus is best effort */ } }
         return { isPublished: publishing, ...(groups !== undefined ? { sharedGroups: groups } : {}) };
     }
 

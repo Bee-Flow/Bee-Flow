@@ -21,6 +21,7 @@ const { briefForSnapshot } = require('../../../appStudio/builderTools/appNaming'
 const { summariseApp } = require('../../../appStudio/builderPrompt');
 const { HISTORY_EVICT_BLOCK } = require('./turnMessages');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /** A plan proposed this turn: persist it, hand it over, and wait. */
 async function handleProposedPlan(turn, { draftWrap, send }) {
@@ -29,7 +30,7 @@ async function handleProposedPlan(turn, { draftWrap, send }) {
     //    which needs an app row, so create one for a still-fresh draft. ──
     let awaitingPlan = false;
     if (turn.proposedPlan) {
-        if (!draftWrap.appId) { try { await persistDraft(draftWrap); } catch (err) { log.debug('no persistence this turn', err); } }
+        if (!draftWrap.appId) { try { await persistDraft(draftWrap); } catch (err) { bestEffort('routes/ai/appStudioBuilder/turnClosing:handleProposedPlan', err); /* no persistence this turn */ } }
         send('plan', turn.proposedPlan);
         awaitingPlan = true;
     }
@@ -155,7 +156,7 @@ async function persistTurnSnapshot(turn, {
             // model saw survives between evictions (the automation builder's
             // builderSessions pattern).
             await studioAppStore.setBuilderSession(draftWrap.appId, userId, snapshotBody, { trimBlock: HISTORY_EVICT_BLOCK });
-        } catch (err) { log.debug('non-fatal', err); }
+        } catch (err) { bestEffort('routes/ai/appStudioBuilder/turnClosing:persistTurnSnapshot', err); /* non-fatal */ }
     }
 }
 

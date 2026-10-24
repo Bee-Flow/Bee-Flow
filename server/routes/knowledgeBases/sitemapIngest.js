@@ -30,6 +30,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { parseSitemap } = require('./sitemapParse');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** Upper bound on pages one sitemap ingest may walk (req.body.maxPages is clamped to it). */
 const MAX_SITEMAP_PAGES = 500;
@@ -138,10 +139,10 @@ router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowle
         if (matches) {
             matches.forEach(line => {
                 const smUrl = line.replace(/^sitemap:\s*/i, '').trim();
-                try { sitemapUrls.add(new URL(smUrl, baseUrl).href); } catch (err) { log.debug('not a valid sitemap URL, skipped', err); }
+                try { sitemapUrls.add(new URL(smUrl, baseUrl).href); } catch (err) { bestEffort('routes/knowledgeBases/sitemapIngest:anon', err); /* not a valid sitemap URL, skipped */ }
             });
         }
-    } catch (err) { log.debug('robots.txt unavailable, fall back to the default sitemap locations', err); }
+    } catch (err) { bestEffort('routes/knowledgeBases/sitemapIngest:anon#2', err); /* robots.txt unavailable, fall back to the default sitemap locations */ }
 
     const allPageUrls = new Set();
     const visitedSitemaps = new Set();

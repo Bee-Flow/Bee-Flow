@@ -13,6 +13,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const router = express.Router();
 
@@ -166,7 +167,7 @@ router.put('/currency-rates', validate({ body: CurrencyRatesBody }), async (req,
             await currency.setUsdToCurrencyRate(code, rate);
         }
         // Drop any PAYG-cache entries so freshly converted rates take effect now.
-        try { require('../../stores/usageStore').invalidatePaygCache(null, null); } catch (err) { log.debug('circular-load safe', err); }
+        try { require('../../stores/usageStore').invalidatePaygCache(null, null); } catch (err) { bestEffort('routes/subscriptions/platformConfig:anon', err); /* circular-load safe */ }
         const after = await currency.getAllConfiguredRates();
         await userStore.logSubscriptionAudit('update_currency_rates', 'currency_rates', 'global', getAdminId(req), before, after);
         res.json(after);

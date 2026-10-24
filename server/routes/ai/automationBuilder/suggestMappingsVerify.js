@@ -29,6 +29,7 @@ const {
 } = require('../../../automation/expr');
 const { interpolateTemplate } = require('../../../automation/bind');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 const MAX_TEMPLATE_CHARS = 1000;
 const MAX_EXPR_CHARS = 400;
@@ -245,7 +246,7 @@ function jsonOf(v, ctx) {
     if (v === null || typeof v !== 'object') return JSON.stringify(v);
     if (!ctx.json.has(v)) {
         let s = null;
-        try { s = JSON.stringify(v); } catch (err) { log.debug('not serialisable: equal to nothing', err); }
+        try { s = JSON.stringify(v); } catch (err) { fallback('routes/ai/automationBuilder/suggestMappingsVerify:jsonOf', err); /* not serialisable: equal to nothing */ }
         ctx.json.set(v, s);
     }
     return ctx.json.get(v);

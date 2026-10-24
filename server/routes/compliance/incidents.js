@@ -63,6 +63,7 @@ const DORA_CHECK_ID = 'DORA-Art30-incident-reporting-path';
 const CRA_EVENT = 'cra_vulnerability_reported';
 
 const crypto = require('crypto');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 function _recordIncidentEvidence(orgId, incidentId, payload, checkId = BREACH_CHECK_ID) {
     // The attestation the admin just made stands whatever the ledger does, but
     // a swallowed append leaves the trail claiming the attestation never
@@ -79,7 +80,7 @@ function _recordIncidentEvidence(orgId, incidentId, payload, checkId = BREACH_CH
 }
 
 function _rerun(orgId, checkId) {
-    runner.runOne(orgId, checkId, { runType: 'event' }).catch(() => {});
+    runner.runOne(orgId, checkId, { runType: 'event' }).catch((e) => bestEffort('routes/compliance/incidents:_rerun', e));
 }
 
 function _regimesOf(incident) {
@@ -248,7 +249,7 @@ router.post('/incidents', requireAuth, requirePermission('admin_compliance'), va
             : typeof body.actively_exploited === 'boolean' ? body.actively_exploited : undefined;
         let customerNoticeHours;
         if (regimes.includes('DORA')) {
-            const settings = await complianceStore.getSettings(orgId).catch(() => null);
+            const settings = await complianceStore.getSettings(orgId).catch((e) => fallback('routes/compliance/incidents:anon', e, null));
             customerNoticeHours = settings?.dora_customer_notice_hours ?? undefined;
         }
         const incident = await incidentStore.createIncident({

@@ -12,6 +12,7 @@
 const { classifyModel } = require('../../automation/builderModelProfiles');
 const { isLocalProviderType } = require('../../core/providers/localModels');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Transient provider errors (rate limits, 5xx, network blips) shouldn't kill
 // an entire builder turn — the user would lose their in-progress conversation.
@@ -224,11 +225,11 @@ async function streamWithRetry(adapter, cfg, modelId, messages, options, {
                 // 'tool_use'. Not counted in emittedAny — nothing the model
                 // said is on the wire yet, so a retry stays safe.
                 if (typeof onToolArgsDelta === 'function') {
-                    try { onToolArgsDelta(data || {}); } catch (err) { log.debug('a visualisation never kills a build', err); }
+                    try { onToolArgsDelta(data || {}); } catch (err) { bestEffort('routes/ai/builderShared:onEvent', err); /* a visualisation never kills a build */ }
                 }
             } else if (type === 'prompt_progress') {
                 if (typeof onPromptProgress === 'function') {
-                    try { onPromptProgress(data || {}); } catch (err) { log.debug('a visualisation never kills a build', err); }
+                    try { onPromptProgress(data || {}); } catch (err) { bestEffort('routes/ai/builderShared:onEvent#2', err); /* a visualisation never kills a build */ }
                 }
             }
         };

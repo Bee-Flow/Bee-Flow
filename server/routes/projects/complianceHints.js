@@ -28,6 +28,7 @@ const { validate } = require('../../core/http/validate');
 const { lazyProjectRoleGate } = require('./roleGate');
 const { HttpError } = require('../../core/http/errors');
 const hints = require('../../compliance/projectHints');
+const { fallback } = require('../../utils/bestEffort');
 
 const DAY_MS = 24 * 3600 * 1000;
 const NO_ORG_ORG_ID = 'default';
@@ -70,7 +71,7 @@ function makeComplianceHintsRouter(deps = {}) {
         const [active, rows, states] = await Promise.all([
             activeRegulations(orgId),
             store.getLatestForChecks(orgId, hints.HINT_CHECK_IDS),
-            store.listFindingStates(orgId).catch(() => []),
+            store.listFindingStates(orgId).catch((e) => fallback('routes/projects/complianceHints:currentCandidates', e, [])),
         ]);
         return hints.candidates({ projectId: String(project.id), role: req.projectRole, rows, active, states, now: now(), defs: defOf });
     }

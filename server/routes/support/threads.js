@@ -49,6 +49,7 @@ const { _isLikelySpam, loggedInRequester, anonymousRequester, openTicket } = req
 const H = require('./threadHandlers');
 const log = require('../../telemetry/log');
 const requesterSession = require('./requesterSession');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // ── What a body and a query may carry ───────────────────────────────
 
@@ -172,7 +173,7 @@ async function createThread(req, res) {
         try {
             const org = await userStore.getOrganization(r.orgId);
             if (org && org.name) r.orgName = org.name;
-        } catch (err) { log.debug('organization lookup failed, the name is omitted', err); }
+        } catch (err) { fallback('routes/support/threads:createThread', err); /* organization lookup failed, the name is omitted */ }
     }
 
     // Per-email submit cap (anonymous only). Mitigates enumeration by an
@@ -258,7 +259,7 @@ async function stream(req, res) {
         cleaned = true;
         try { if (heartbeat) heartbeat(); } catch (err) { log.debug('heartbeat already stopped', err); }
         try { if (listener) supportEvents.off('event', listener); } catch (err) { log.debug('listener already removed', err); }
-        try { markEnded(); } catch (err) { log.debug('stream already marked ended', err); }
+        try { markEnded(); } catch (err) { bestEffort('routes/support/threads:cleanup', err); /* stream already marked ended */ }
     };
     try {
         if (!(await _hasAdminSupport(req))) {

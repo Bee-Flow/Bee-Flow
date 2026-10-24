@@ -14,6 +14,7 @@ const { makeStreamCallback } = require('./toolExec');
 const { createDisplaySegments } = require('./displaySegments');
 const { extractPartialJsonString } = require('./shared');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 /**
  * The streaming un-tokeniser and the two sinks built on it.
@@ -121,7 +122,7 @@ function persistStreamedImage(turn, data) {
             require('fs').writeFileSync(require('path').join(genDir, filename), Buffer.from(data.data, 'base64'));
             imgEntry.url = `/uploads/generated/${filename}`;
         }
-    } catch (e) { log.debug('ignore', e); }
+    } catch (e) { fallback('routes/ai/directChat/streamCallbacks:persistStreamedImage', e); /* ignore */ }
 }
 
 function createStreamCallbacks(turn) {

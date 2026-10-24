@@ -7,6 +7,7 @@
 
 const { describePick } = require('../../../automation/formPickRecord');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 /**
  * Replace every `app_pick` answer with the record it points at, read as the
@@ -55,7 +56,7 @@ async function pickCaller(req) {
     // source's ACL is answered with exactly the context it expects.
     const { resolveAccessContext } = require('../../transcriptions/shared');
     let access = { orgIds: [], userGroupIds: [], isSuperAdmin: false };
-    try { access = await resolveAccessContext(req); } catch (err) { log.debug('narrower, never wider', err); }
+    try { access = await resolveAccessContext(req); } catch (err) { fallback('routes/automation/formPublic/picks:pickCaller', err); /* narrower, never wider */ }
     return {
         userId: user.id,
         session: req.session,

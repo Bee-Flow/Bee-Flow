@@ -73,6 +73,7 @@ const { executeApiHandler } = require('../integrations/webpageApiRuntime');
 const Ai = require('./webpagesPreviewAi');
 const Ask = require('./webpagesPreviewAsk');
 const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 // W3 — window.beeflowTables: `/:id/tables/:tid/query|insert|update`. A file
 // of its own because those routes run as THE LOGGED-IN VISITOR and not
@@ -153,7 +154,7 @@ router.all('/:id/app/*rest', requirePreviewToken, dbBridgeLimiter, async (req, r
     });
     if (out.headers) {
         for (const [k, v] of Object.entries(out.headers)) {
-            try { res.setHeader(k, v); } catch (err) { log.debug('ignore bad header', err); }
+            try { res.setHeader(k, v); } catch (err) { bestEffort('routes/webpagesPreview:anon', err); /* ignore bad header */ }
         }
     }
     res.status(out.status || 200).json(out.body);
@@ -176,7 +177,7 @@ router.get('/:id/automations', requirePreviewToken, async (req, res) => {
     // grants whose automation has since been deleted or transferred.
     const list = [];
     for (const g of grants) {
-        const a = await automationStore.getAutomation(g.automationId).catch(() => null);
+        const a = await automationStore.getAutomation(g.automationId).catch((e) => fallback('routes/webpagesPreview:anon#2', e, null));
         if (!a) continue;
         if (a.userId !== ctx.authorUserId) continue;
         list.push({
@@ -221,7 +222,7 @@ router.post('/:id/automations/:autoId/run', requirePreviewToken, sideEffectBridg
             // The logged-in visitor from the signed preview claims, if any.
             startedByUserId: viewerUserId || null,
         });
-        const steps = await automationStore.getRunSteps(run.id).catch(() => []);
+        const steps = await automationStore.getRunSteps(run.id).catch((e) => fallback('routes/webpagesPreview:anon#3', e, []));
         return res.json({ runId: run.id, status: run.status, output: run.output ?? null, error: run.error || null, steps });
     }
     // Async path: fire and respond with the run ID for polling.

@@ -13,6 +13,7 @@ const { buildTokenPreservationAddendum } = require('../../../core/dlp/tokenPrese
 const { startPrivacyScanPhase, messageText } = require('../../../core/agentRuntime/phaseEvents');
 const orgHealth = require('../../../services/orgHealth');
 const log = require('../../../telemetry/log');
+const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
 const auditInput = (g, violation_type, violation_categories, action_taken) => guardrailEventStore.logGuardrailEvent({
     organization_id: g.userOrgId || null,
@@ -24,7 +25,7 @@ const auditInput = (g, violation_type, violation_categories, action_taken) => gu
     action_taken,
     source: 'direct',
     model: g.modelId || null,
-}).catch(() => {});
+}).catch((e) => fallback('routes/ai/directChat/inputPrivacyGates:auditInput', e));
 
 /**
  * Hydrate the conversation-scoped PII token map from the DB before ANY
@@ -36,7 +37,7 @@ const auditInput = (g, violation_type, violation_categories, action_taken) => gu
 async function hydrateTokenMap(convId) {
     if (!convId) return;
     try { await require('../../../core/dlp/dlpRunner').getConversationTokenMapAsync(convId); }
-    catch (err) { log.debug('hydration is best-effort', err); }
+    catch (err) { bestEffort('routes/ai/directChat/inputPrivacyGates:hydrateTokenMap', err); /* hydration is best-effort */ }
 }
 
 /** Tokenize mode found PII: swap in the tokenised text and record what happened. */
@@ -52,7 +53,7 @@ function applyPiiTokens(g, piiResult) {
     // Register on the shared DLP conversation-token store so the streaming
     // un-tokeniser restores these values on the way back even when DLP itself
     // is disabled.
-    try { require('../../../core/dlp/dlpRunner').mergeTokenMap(convId, piiResult.tokenMap); } catch (err) { log.debug('non-fatal', err); }
+    try { require('../../../core/dlp/dlpRunner').mergeTokenMap(convId, piiResult.tokenMap); } catch (err) { bestEffort('routes/ai/directChat/inputPrivacyGates:applyPiiTokens', err); /* non-fatal */ }
     // Token names only, never the values they stand for.
     log.warn(`[DirectChat] 🔒 PII tokenized (${Object.keys(piiResult.tokenMap).length} tokens): ${Object.keys(piiResult.tokenMap).join(', ')}`);
 

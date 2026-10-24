@@ -13,6 +13,7 @@ const access = require('../../support/access');
 const supportMailer = require('../../services/supportMailer');
 const { runAiAutoResponder } = require('../../services/supportAiResponder');
 const { getUserId, emitInboxEvent, inboxToReplyConfig, loadThreadInScope } = require('./inboxScope');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 async function listThreads(req, res) {
     const inboxes = await access.accessibleInboxes(req);
@@ -61,10 +62,10 @@ async function threadContext(req, res) {
     const { executeSupportTool } = require('../../integrations/supportTools');
     const ctx = { supportThreadId: thread.id };
     const [profile, organization, subscription, recent] = await Promise.all([
-        executeSupportTool('support_get_requester_profile', {}, ctx).catch(() => null),
-        executeSupportTool('support_get_organization_info', {}, ctx).catch(() => null),
-        executeSupportTool('support_get_subscription_status', {}, ctx).catch(() => null),
-        executeSupportTool('support_list_recent_threads_for_requester', { limit: 5 }, ctx).catch(() => []),
+        executeSupportTool('support_get_requester_profile', {}, ctx).catch((e) => fallback('routes/support/inboxThreads:threadContext', e, null)),
+        executeSupportTool('support_get_organization_info', {}, ctx).catch((e) => fallback('routes/support/inboxThreads:threadContext#2', e, null)),
+        executeSupportTool('support_get_subscription_status', {}, ctx).catch((e) => fallback('routes/support/inboxThreads:threadContext#3', e, null)),
+        executeSupportTool('support_list_recent_threads_for_requester', { limit: 5 }, ctx).catch((e) => fallback('routes/support/inboxThreads:threadContext#4', e, [])),
     ]);
     res.json({ profile, organization, subscription, recentThreads: Array.isArray(recent) ? recent : [] });
 }
@@ -178,10 +179,10 @@ async function patchThread(req, res) {
         }
         const addr = String(thread.requester_email || '').toLowerCase().trim();
         if (addr) {
-            const inbox = await supportInboxStore.getInbox(thread.inbox_id).catch(() => null);
+            const inbox = await supportInboxStore.getInbox(thread.inbox_id).catch((e) => fallback('routes/support/inboxThreads:patchThread', e, null));
             const list = Array.isArray(inbox?.known_good_senders) ? inbox.known_good_senders : [];
             if (!list.includes(addr)) {
-                await supportInboxStore.updateInbox(thread.inbox_id, { known_good_senders: [...list, addr] }, thread.organization_id).catch(() => {});
+                await supportInboxStore.updateInbox(thread.inbox_id, { known_good_senders: [...list, addr] }, thread.organization_id).catch((e) => bestEffort('routes/support/inboxThreads:patchThread#2', e));
             }
         }
         await supportStore.recordThreadEvent({ threadId: thread.id, actorUserId: userId, actorKind: 'staff', action: 'restored_to_support' });
@@ -192,7 +193,7 @@ async function patchThread(req, res) {
 
     // On resolve, fire the internal automation trigger (fire-and-forget).
     if (status === 'resolved' && thread.status !== 'resolved') {
-        _dispatchResolved(updated, userId).catch(() => {});
+        _dispatchResolved(updated, userId).catch((e) => bestEffort('routes/support/inboxThreads:patchThread#3', e));
     }
     emitInboxEvent('thread_updated', thread.inbox_id, { threadId: thread.id });
     res.json({ thread: updated });
@@ -207,7 +208,7 @@ async function _dispatchResolved(thread, resolvedByUserId) {
     try {
         const { dispatchSupportEvent } = require('../../automation/triggerBus');
         if (typeof dispatchSupportEvent !== 'function') return;
-        const inbox = thread.inbox_id ? await supportInboxStore.getInbox(thread.inbox_id).catch(() => null) : null;
+        const inbox = thread.inbox_id ? await supportInboxStore.getInbox(thread.inbox_id).catch((e) => fallback('routes/support/inboxThreads:_dispatchResolved', e, null)) : null;
         const inboxAddress = inbox?.email_address || null;
         const msgs = await supportStore.getThreadMessages(thread.id, { includeInternal: false });
         // Only genuine customer conversations feed the KB (see supportTranscript).

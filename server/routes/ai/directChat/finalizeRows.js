@@ -9,6 +9,7 @@
 
 const { persistedMemoryUsed } = require('../../../core/memory/memoryUsed');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const TOKEN_CATEGORY = /^\[([a-z0-9_]+)_\d+\]$/;
 
@@ -20,7 +21,7 @@ function conversationRestorer(convId) {
         if (convMap && Object.keys(convMap).length > 0) {
             return (s) => (typeof s === 'string' ? restoreTokens(s, convMap) : s);
         }
-    } catch (err) { log.debug('render-layer best-effort', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/finalizeRows:conversationRestorer', err); /* render-layer best-effort */ }
     return (s) => s;
 }
 
@@ -187,7 +188,7 @@ function restoreToolHistory(collectedToolHistory, convId) {
                 }
             }
         }
-    } catch (err) { log.debug('render-layer best-effort', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/finalizeRows:restoreToolHistory', err); /* render-layer best-effort */ }
 }
 
 /** Media, drafts and tool history produced this turn, on the assistant row. */

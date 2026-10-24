@@ -15,6 +15,7 @@ const guardrailEventStore = require('../../../stores/guardrailEventStore');
 const { checkRegexPatterns } = require('../../../core/privacy/guardrails');
 const dlpRunner = require('../../../core/dlp/dlpRunner');
 const { canonicalHtml } = require('../../../agents/notebooks/aiDocWriter');
+const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Un-tokenise the final answer for display.
@@ -90,7 +91,7 @@ function buildPrivacyPanel({ _assistantTokenisationInfo, _untok, notebookId, mod
                 }
             }
         }
-    } catch (err) { log.debug('the panel is best-effort — never break the turn', err); }
+    } catch (err) { fallback('routes/ai/notebookChat/finalize:buildPrivacyPanel', err); /* the panel is best-effort — never break the turn */ }
     return _assistantTokenisationInfo;
 }
 
@@ -108,7 +109,7 @@ async function finishAiDocument({ doc, notebook, notebookId, userId, send, seams
     if (!doc.written) return;
     try {
         const { restoreTokensInRichText } = require('../../../core/privacy/piiDetection');
-        const _finalMap = (await dlpRunner.getConversationTokenMapAsync(notebookId).catch(() => null))
+        const _finalMap = (await dlpRunner.getConversationTokenMapAsync(notebookId).catch((e) => fallback('routes/ai/notebookChat/finalize:finishAiDocument', e, null)))
             || dlpRunner.getConversationTokenMap(notebookId) || {};
         if (Object.keys(_finalMap).length) {
             const realHtml = restoreTokensInRichText(doc.currentDocContent, _finalMap);
@@ -166,7 +167,7 @@ function checkOutputRegex({ regexConfig, displayContent, send, userOrgForTiers, 
                     try {
                         const regex = new RegExp(rule.pattern, 'gi');
                         redactedOutput = redactedOutput.replace(regex, `[REDACTED: ${rule.name}]`);
-                    } catch (e) { log.debug('skip invalid patterns', e); }
+                    } catch (e) { fallback('routes/ai/notebookChat/finalize:checkOutputRegex', e); /* skip invalid patterns */ }
                 }
                 send('content_redact', {
                     originalMessage: displayContent.slice(0, 500),
@@ -183,7 +184,7 @@ function checkOutputRegex({ regexConfig, displayContent, send, userOrgForTiers, 
                     direction: 'output',
                     action_taken: 'redacted',
                     source: 'notebook',
-                }).catch(() => {});
+                }).catch((e) => bestEffort('routes/ai/notebookChat/finalize:checkOutputRegex#2', e));
             } else {
                 // Block: emit violation warning
                 send('guardrail_violation', { rules: ruleNames, autoDeleteSeconds: 5 });
@@ -196,7 +197,7 @@ function checkOutputRegex({ regexConfig, displayContent, send, userOrgForTiers, 
                     direction: 'output',
                     action_taken: 'blocked',
                     source: 'notebook',
-                }).catch(() => {});
+                }).catch((e) => bestEffort('routes/ai/notebookChat/finalize:checkOutputRegex#3', e));
             }
         }
     }
@@ -240,7 +241,7 @@ async function persistTurn({ req, message, attachments, notebookId, userId, piiT
         const turn = [userMsg, assistantMsg];
         await notebookConversationStore.appendMessages(notebookId, userId, encryptionKey, turn);
         // Chat is activity: bump the card's recency so the overview reorders.
-        notebookStore.touchActivity(notebookId, 'chat').catch(() => {});
+        notebookStore.touchActivity(notebookId, 'chat').catch((e) => bestEffort('routes/ai/notebookChat/finalize:persistTurn', e));
     } catch (persistErr) {
         if (persistErr.code === 'HISTORY_LOCKED') {
             // Backstop for a stale client that sends despite the locked

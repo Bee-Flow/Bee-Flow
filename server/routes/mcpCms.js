@@ -40,6 +40,7 @@ const { gateRequest: authenticateMcpRequest, rpcDenied, evaluateAccessForOrgs } 
 const { batchTooLarge, rpcBatchTooLarge } = require('../auth/mcpAccess/batch');
 const { isActiveAccount } = require('../auth/accountStatusGate');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const rpcError = (id, code, message) => ({ jsonrpc: '2.0', id, error: { code, message } });
 
@@ -91,7 +92,7 @@ function buildRuntime() {
         },
         // Same best-effort analytics provisioning the REST publish does.
         afterPublish: async (siteId, ctx) => {
-            const project = await cmsStore.getProject(siteId).catch(() => null);
+            const project = await cmsStore.getProject(siteId).catch((e) => fallback('routes/mcpCms:afterPublish', e, null));
             await require('./cmsAnalytics').provisionAnalyticsForSite(siteId, {
                 name: project?.name || 'CMS site',
                 domain: ctx.host || undefined,

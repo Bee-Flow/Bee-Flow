@@ -66,6 +66,7 @@ const {
 } = require('./notebookChat/inputGates');
 const { buildToolList, buildChatOptions, makeNotebookToolExecutor, runToolLoop } = require('./notebookChat/toolLoop');
 const { restoreForDisplay, buildPrivacyPanel, finishAiDocument, checkOutputRegex, persistTurn } = require('./notebookChat/finalize');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Collaborators a test swaps on this object (testUtils/swaps.js). The
@@ -185,7 +186,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
         // Hydrate the notebook's persisted PII token map (keyed by notebookId)
         // BEFORE any tokenization this turn, so doc/KB/message tokens reuse tokens
         // minted on earlier turns and survive a server restart. Idempotent.
-        try { await dlpRunner.getConversationTokenMapAsync(notebookId); } catch (err) { log.debug('best-effort', err); }
+        try { await dlpRunner.getConversationTokenMapAsync(notebookId); } catch (err) { bestEffort('routes/ai/notebookChat:anon', err); /* best-effort */ }
         // Resolve the Privacy Shield ONCE — respect-the-shield: tokenization
         // only runs when it is enabled. The RESOLVED shape, never the stored
         // org document: a personal account (no org) has only a user-level

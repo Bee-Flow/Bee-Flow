@@ -30,6 +30,7 @@ const { z, typeError } = require('../../utils/zod');
 const { HttpError } = require('../../core/http/errors');
 const { worded } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const guard = [requireAuth, requirePermission('admin_compliance'), requireCapability('compliance_hub_machinery')];
 
@@ -74,9 +75,9 @@ router.get('/machinery/detections', ...guard, async (req, res) => {
     const detector = _detector();
     if (!detector) throw new HttpError(503, 'not_provisioned', 'Industrial-integration detector is not available on this deployment.');
     const result = await detector.detect(orgId);
-    const settings = await complianceStore.getSettings(orgId).catch(() => null);
+    const settings = await complianceStore.getSettings(orgId).catch((e) => fallback('routes/compliance/machinery:anon', e, null));
     const manual = Array.isArray(settings?.machinery_manual_subjects) ? settings.machinery_manual_subjects : [];
-    const latest = await customFrameworkStore.listLatestByPrefix(orgId, ART18_CHECK_ID).catch(() => []);
+    const latest = await customFrameworkStore.listLatestByPrefix(orgId, ART18_CHECK_ID).catch((e) => fallback('routes/compliance/machinery:anon#2', e, []));
     const bySubject = new Map();
     for (const a of latest || []) if (a.subject_id && !bySubject.has(a.subject_id)) bySubject.set(a.subject_id, a);
     const decorate = (subjectId) => {
@@ -123,7 +124,7 @@ function _subjectId(raw) {
     // Express has already decoded the param once; a second pass only helps a
     // client that double-encoded, and must never throw on a stray '%'.
     let s = String(raw || '');
-    try { s = decodeURIComponent(s); } catch (err) { log.debug('keep as-is', err); }
+    try { s = decodeURIComponent(s); } catch (err) { fallback('routes/compliance/machinery:_subjectId', err); /* keep as-is */ }
     s = s.trim();
     if (!SUBJECT_RE.test(s)) return null;
     return s;
@@ -167,9 +168,9 @@ router.post('/machinery/subjects/:id/attest', ...guard, validate({ body: AttestB
                 by: actorId,
                 at: attestedAt.toISOString(),
             },
-        }).catch(() => {});
-        runner.runOne(orgId, ART18_CHECK_ID, { runType: 'event', subjectId }).catch(() => {});
-        try { require('./counts').invalidate(orgId); } catch (err) { log.debug('counts router not shipped yet', err); }
+        }).catch((e) => bestEffort('routes/compliance/machinery:anon#3', e));
+        runner.runOne(orgId, ART18_CHECK_ID, { runType: 'event', subjectId }).catch((e) => bestEffort('routes/compliance/machinery:anon#4', e));
+        try { require('./counts').invalidate(orgId); } catch (err) { bestEffort('routes/compliance/machinery:anon#5', err); /* counts router not shipped yet */ }
         res.status(201).json({ ...attestation, classification: outcome });
     } catch (e) {
         throw new HttpError(400, 'bad_request', e.message);

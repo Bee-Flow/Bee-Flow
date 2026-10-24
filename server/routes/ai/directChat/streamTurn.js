@@ -47,6 +47,7 @@ const { finalizeDirectChatTurn } = require('./finalizeTurn');
 const { validate } = require('../../../core/http/validate');
 // Typed, not closed: see the header of ./turnSchema.js.
 const { DirectTurnBody } = require('./turnSchema');
+const { fallback } = require('../../../utils/bestEffort');
 
 const TITLE_HOLD_MS = 15_000;
 
@@ -110,7 +111,7 @@ async function runGates(turn, { message, attachments }) {
 async function holdForTitle(pendingTitle) {
     if (!pendingTitle) return;
     await Promise.race([
-        pendingTitle.catch(() => {}),
+        pendingTitle.catch((e) => fallback('routes/ai/directChat/streamTurn:holdForTitle', e)),
         new Promise(resolve => { const t = setTimeout(resolve, TITLE_HOLD_MS); if (t.unref) t.unref(); }),
     ]);
 }

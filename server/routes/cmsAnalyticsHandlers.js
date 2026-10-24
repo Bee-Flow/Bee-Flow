@@ -6,6 +6,7 @@ const { SITE_ID_RE, getLiveSiteId } = require('./cmsShared');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const { rangeToWindow, KEY_ANALYTICS_RECORDER_MAP, readMap, getAnalyticsSettings, getAnalyticsSiteMap, resolveAnalyticsTarget, getRecorderMap, windowFromReq, requireTarget, metricTypes, pickFilters, getDiagnoseHandler, probeScript, getAnalyticsSitesHandler, getAnalyticsStatusHandler, getAnalyticsOverviewHandler } = require('./cmsAnalyticsOverview');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const KEY_ANALYTICS_ENABLED = analyticsQueries.KEY_ANALYTICS_ENABLED;
 
@@ -163,13 +164,13 @@ async function putAnalyticsSettingsHandler(req, res) {
     // immediately so its public pages start tracking without waiting for the
     // next publish. Best-effort, fire-and-forget.
     if (settings.enabled && configured) {
-        const liveSiteId = await getLiveSiteId().catch(() => null);
+        const liveSiteId = await getLiveSiteId().catch((e) => fallback('routes/cmsAnalyticsHandlers:putAnalyticsSettingsHandler', e, null));
         if (liveSiteId) {
-            const project = await cmsStore.getProject(liveSiteId).catch(() => null);
+            const project = await cmsStore.getProject(liveSiteId).catch((e) => fallback('routes/cmsAnalyticsHandlers:putAnalyticsSettingsHandler#2', e, null));
             provisionAnalyticsForSite(liveSiteId, {
                 name: project?.name || 'CMS site',
                 domain: req.get('host'),
-            }).catch(() => {});
+            }).catch((e) => bestEffort('routes/cmsAnalyticsHandlers:putAnalyticsSettingsHandler#3', e));
         }
     }
     res.json({

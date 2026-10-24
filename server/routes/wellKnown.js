@@ -39,6 +39,7 @@ const express = require('express');
 const log = require('../telemetry/log');
 const router = express.Router();
 const { loadConfig } = require('../auth/permissions');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Which organisation's Compliance → Settings feed the optional Policy/Contact
 // lines of security.txt (see disclosurePolicyLines below). The file is served
@@ -69,7 +70,7 @@ async function resolveAppIds() {
         const config = await loadConfig();
         const clientId = config?.providers?.microsoft?.clientId;
         if (clientId && GUID_RE.test(clientId)) return [clientId];
-    } catch (err) { log.debug('fall through — nothing to associate', err); }
+    } catch (err) { bestEffort('routes/wellKnown:resolveAppIds', err); /* fall through — nothing to associate */ }
     return [];
 }
 

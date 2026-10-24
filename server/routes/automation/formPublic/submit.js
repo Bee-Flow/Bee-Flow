@@ -20,6 +20,7 @@ const { assertFormStartAllowed } = require('../../../automation/formCallerNotice
 const { ipLimiter, tokenLimiter, sessionLimiter, contentLengthGuard } = require('./limits');
 const { resolvePicks } = require('./picks');
 const { friendly } = require('./friendly');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 // Bots post the instant the DOM exists. A human needs at least a couple of
 // seconds. Both this and the honeypot answer 200 — never a 4xx that tells the
@@ -81,7 +82,7 @@ async function submitForm(req, res) {
     // email, the meeting note the question asked for.
     await resolvePicks(picks, values, req);
 
-    await automationStore.touchFormPage(found.token).catch(() => {});
+    await automationStore.touchFormPage(found.token).catch((e) => bestEffort('routes/automation/formPublic/submit:submitForm', e));
 
     // The signed-in submitter — every caller is one while PUBLIC_FORMS is
     // off; null is what an anonymous visitor will read as once it is on.
@@ -220,7 +221,7 @@ async function answerPage(req, res) {
     } catch (e) {
         // Not persisted, so not queued: the answer was never accepted, and
         // the page goes back up for the visitor to send again.
-        await automationStore.updateRun(run.id, { awaitingStepId: stepId }).catch(() => {});
+        await automationStore.updateRun(run.id, { awaitingStepId: stepId }).catch((e) => bestEffort('routes/automation/formPublic/submit:answerPage', e));
         throw e;
     }
     return undefined;

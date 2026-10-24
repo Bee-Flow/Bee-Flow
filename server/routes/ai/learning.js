@@ -76,7 +76,7 @@ router.post('/coach', requireAuth, coachLimiter, validate({ body: CoachBody }), 
     // the PUBLISHED lesson snapshot by `${lessonId}:${stepId}`, never drafts).
     let rubric = getRubric(exerciseId);
     if (!rubric && userOrgId) {
-        try { rubric = await learningContentStore.findRubric(userOrgId, exerciseId); } catch (err) { log.debug('404 below', err); }
+        try { rubric = await learningContentStore.findRubric(userOrgId, exerciseId); } catch (err) { fallback('routes/ai/learning:anon', err); /* 404 below */ }
     }
     if (!rubric) return res.status(404).json({ error: 'Unknown exercise' });
 
@@ -259,6 +259,7 @@ router.post('/tutor', requireAuth, coachLimiter, validate({ body: TutorBody }), 
 // and the client falls back to bundled quiz items.
 const { getPracticeTopic } = require('../../learning/practiceTopics');
 const { PRACTICE_TOOL, validatePracticeItems, publicPracticeItem, MAX_ITEMS } = require('../../learning/practiceValidation');
+const { fallback } = require('../../utils/bestEffort');
 
 const PRACTICE_KEY_CACHE_MAX = 300;
 // practiceId → { keys: { [itemId]: { correctChoiceIds, explanation } }, ts }

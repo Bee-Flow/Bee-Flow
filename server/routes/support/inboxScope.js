@@ -14,11 +14,12 @@ const access = require('../../support/access');
 // supportEvents is a shared bus; tenant events carry inboxId so the company
 // /api/support/stream skips them and the tenant /stream forwards only in-scope inboxes.
 const { supportEvents } = require('../support');
+const { bestEffort } = require('../../utils/bestEffort');
 
 function getUserId(req) { return req.session?.user?.id || null; }
 
 function emitInboxEvent(event, inboxId, data = {}) {
-    try { supportEvents.emit('event', { event, data: { ...data, inboxId } }); } catch (err) { log.debug('an event listener threw, the emit continues', err); }
+    try { supportEvents.emit('event', { event, data: { ...data, inboxId } }); } catch (err) { bestEffort('routes/support/inboxScope:emitInboxEvent', err); /* an event listener threw, the emit continues */ }
 }
 
 async function _hasSupportInbox(req) {

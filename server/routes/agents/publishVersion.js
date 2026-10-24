@@ -42,6 +42,7 @@ const publishable = require('../../agents/publishableConfig');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** No body at all (Express 5 leaves `req.body` undefined then) or an empty one. */
 const NoBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());
@@ -145,7 +146,7 @@ router.post('/:id/publish-version', validate({ body: NoBody, query: NoQuery }), 
                 orgId: agent.organization_id || 'default',
                 agentId: agent.id,
             });
-        } catch (err) { log.debug('compliance bus is best-effort', err); }
+        } catch (err) { bestEffort('routes/agents/publishVersion:anon', err); /* compliance bus is best-effort */ }
     }
 
     const rev = Number(result.row?.rev) || Number(agent.rev) || 1;

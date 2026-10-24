@@ -23,6 +23,7 @@ const { runAgentSearchWithEgress } = require('../../../integrations/agentSearchE
 const { executeScreenshotTool, isScreenshotTool } = require('../../../integrations/webpageScreenshotTools');
 const { executeBridgeTool, isBridgeTool } = require('../../../integrations/webpageBridgeTools');
 const { executeWebpageKBSearchTool } = require('../../../core/webpages/webpageKnowledgeSearch');
+const { fallback } = require('../../../utils/bestEffort');
 
 function slotFilename(slot) {
     return slot === 'html' ? 'index.html' : slot === 'css' ? 'style.css' : 'script.js';
@@ -110,7 +111,7 @@ function createToolDispatcher({
     async function dispatchToolCall(toolCall) {
         const toolName = toolCall.function?.name || toolCall.name;
         let toolArgs = {};
-        try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (e) { log.debug('tool arguments are not valid JSON, call the tool with none', e); }
+        try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (e) { fallback('routes/ai/webpageChat/tools:dispatchToolCall', e); /* tool arguments are not valid JSON, call the tool with none */ }
 
         // Restore DLP tokens before the tool runs, so a write-side tool gets
         // the real value instead of the `[email_1]` placeholder the model was
@@ -124,7 +125,7 @@ function createToolDispatcher({
                 if (_argMap && Object.keys(_argMap).length) {
                     toolArgs = require('../../../core/dlp/applyTokenMapToOutbound').untokeniseToolArgs(toolArgs, _argMap);
                 }
-            } catch (err) { log.debug('best-effort: leave args tokenized on error', err); }
+            } catch (err) { fallback('routes/ai/webpageChat/tools:dispatchToolCall#2', err); /* best-effort: leave args tokenized on error */ }
         }
 
         log.info(`[WebpageChat] Tool: ${toolName}(${JSON.stringify(toolArgs).substring(0, 160)})`);

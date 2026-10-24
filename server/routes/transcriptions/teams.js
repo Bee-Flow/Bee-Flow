@@ -21,6 +21,7 @@ const { HttpError } = require('../../core/http/errors');
 const { validate } = require('../../core/http/validate');
 const { worded, bodyOf, bool, NO_QUERY } = require('./schemas');
 const { lazyDeps } = require('../../core/meetingNotes/lazyDeps');
+const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 /** Collaborators, loaded on first use; tests swap them through `router.init()`. */
 const { deps: d, init } = lazyDeps({
@@ -65,7 +66,7 @@ async function resolveTeamsSession(req) {
     let credential = null;
     try {
         credential = await d.credentialStore.getCredential(userId, 'microsoft');
-    } catch (err) { log.debug('vault unavailable → session only', err); }
+    } catch (err) { fallbackSwallowed('routes/transcriptions/teams:resolveTeamsSession', err); /* vault unavailable → session only */ }
     const connection = d.settings.deriveConnectionStatus({ session: req.session, credential });
     let session = null;
     try {
@@ -228,8 +229,8 @@ router.get('/teams-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
                     { transcriptAllowed: connection.hasTranscriptScope });
                 if (artifact) recordingState = artifact.kind === 'recording' ? 'available' : 'transcript_only';
             }
-        } catch (err) { log.debug('best-effort — keep the default state', err); }
-        const job = await d.importStore.getJobForEvent(userId, m.eventId).catch(() => null);
+        } catch (err) { fallbackSwallowed('routes/transcriptions/teams:anon', err); /* best-effort — keep the default state */ }
+        const job = await d.importStore.getJobForEvent(userId, m.eventId).catch((e) => fallbackSwallowed('routes/transcriptions/teams:anon#2', e, null));
         items.push({
             eventId: m.eventId,
             title: m.title,

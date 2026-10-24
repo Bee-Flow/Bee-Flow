@@ -19,6 +19,7 @@ const { HttpError } = require('../../../core/http/errors');
 const log = require('../../../telemetry/log');
 const S = require('./stageSchemas');
 const { stageAuth } = require('../../../projects/stages/stageAuth');
+const { fallback } = require('../../../utils/bestEffort');
 
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 const BUSY_STATUSES = Object.freeze(['awaiting_approval', 'queued', 'approved', 'preparing', 'committing', 'converging', 'compensating']);
@@ -450,7 +451,7 @@ function makeStageHandlers(d) {
         try {
             const user = await d.userStore.getUser(stage.runAsUserId);
             if (user) runAs = { userId: stage.runAsUserId, name: user.name || user.displayName || user.email || null };
-        } catch (err) { log.debug('the id is enough', err); }
+        } catch (err) { fallback('routes/projects/stages/stageRoutes:getStage', err); /* the id is enough */ }
         res.json({
             stage: stage.stage,
             projectId: stage.projectId,

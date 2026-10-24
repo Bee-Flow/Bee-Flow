@@ -347,7 +347,7 @@ router.get('/:orgId', requireAuth, async (req, res) => {
         if (resolved?.stalenessWarnings?.length) {
             config.stalenessWarnings = resolved.stalenessWarnings;
         }
-    } catch (err) { log.debug('non-fatal', err); }
+    } catch (err) { fallback('routes/orgPrivacyShield:anon', err); /* non-fatal */ }
 
     // Tier-driven clamps: a community-tier read of a stored config
     // that pre-dates the tightening must surface the EFFECTIVE values
@@ -549,7 +549,7 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (req
     try {
         const events = require('../compliance/events');
         events.emit(events.EVENTS.DLP_CONFIG_CHANGED, { orgId });
-    } catch (err) { log.debug('compliance bus is best-effort', err); }
+    } catch (err) { bestEffort('routes/orgPrivacyShield:anon#2', err); /* compliance bus is best-effort */ }
 
     // NOTE: we used to copy this org's PII / Azure / severity settings into
     // the global `ai` configStore blob here. That caused a cross-org leak:
@@ -632,6 +632,7 @@ router.get('/:orgId/effective', requireAuth, async (req, res) => {
 // Secure by default (BFSF-289) — shared with the runtime resolver and the
 // consumer signup paths so the panel can never drift from what actually runs.
 const { USER_SHIELD_DEFAULTS } = require('../core/privacy/userShieldDefaults');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 // GET /user/guard-status — is PII detection actually able to run?
 //

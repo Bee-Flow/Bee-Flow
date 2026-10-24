@@ -53,6 +53,7 @@ const {
 } = require('../auth/permissions');
 const { BUILTIN_TEMPLATES, pickDefaultTemplate } = require('../core/meetingNotes/summaryTemplates');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 // The prompt is sent to an LLM; a generous but finite cap avoids abuse.
 const MAX_PROMPT_LEN = 20000;
@@ -108,10 +109,10 @@ async function resolveCtx(req) {
         const user = await userStore.getUser(userId);
         if (user) {
             if (Array.isArray(user.groups)) groupIds = user.groups;
-            else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (err) { log.debug('ignore', err); } }
+            else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (err) { fallback('routes/summaryTemplates:resolveCtx', err); /* ignore */ } }
             if (!primaryOrgId && user.organizationId) primaryOrgId = user.organizationId;
         }
-    } catch (err) { log.debug('best effort', err); }
+    } catch (err) { fallback('routes/summaryTemplates:resolveCtx#2', err); /* best effort */ }
     if (isSuperAdmin && primaryOrgId && !orgIds.includes(primaryOrgId)) orgIds = [primaryOrgId];
     return { userId, orgIds, groupIds, primaryOrgId, isSuperAdmin };
 }

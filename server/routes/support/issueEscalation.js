@@ -11,11 +11,12 @@ const ytc = require('../../integrations/youtrackClient');
 const { getUserId, _emit } = require('./shared');
 const { HttpError } = require('../../core/http/errors');
 const { ok, publicLink, credsFor } = require('./issueLinkHandlers');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /** Link the issue an escalation names, as `escalated`; a 404 answer when it does not exist. */
 async function linkEscalatedIssue(req, res, { thread, issueId, reason, userId }) {
     const creds = await credsFor(req);
-    const issue = creds ? await ytc.getIssue(creds, issueId).catch(() => null) : null;
+    const issue = creds ? await ytc.getIssue(creds, issueId).catch((e) => fallback('routes/support/issueEscalation:linkEscalatedIssue', e, null)) : null;
     if (creds && !issue) {
         res.status(404).json({ error: `${issueId} does not exist in YouTrack` });
         return { answered: true };
@@ -79,7 +80,7 @@ async function escalate(req, res) {
             event: 'escalation',
             detail: issueId ? `Linked issue: ${issueId}` : null,
         })
-        .catch(() => {});
+        .catch((e) => bestEffort('routes/support/issueEscalation:escalate', e));
 
     _emit('thread_updated', { threadId: thread.id });
     ok(res, { issue: link, priority: patch.priority || thread.priority });
@@ -123,7 +124,7 @@ async function saveNotifications(req, res) {
         actorKind: 'staff', actorUserId: getUserId(req),
         action: 'chat_notification_config_change',
         payload: { fields: Object.keys(req.body) },
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/support/issueEscalation:saveNotifications', e));
     ok(res, { settings: await chat.getPublicSettings() });
 }
 
@@ -141,7 +142,7 @@ async function followupDone(req, res) {
     supportStore.recordThreadEvent({
         threadId: req.params.id, actorUserId: getUserId(req), actorKind: 'staff',
         action: 'followup_cleared', payload: {},
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/support/issueEscalation:followupDone', e));
     _emit('thread_updated', { threadId: req.params.id });
     ok(res, {});
 }

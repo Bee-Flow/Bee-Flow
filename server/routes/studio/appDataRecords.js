@@ -11,6 +11,7 @@ const dataReadRunner = require('../../appStudio/dataReadRunner');
 const {
     handleErr, resolveDataContext, publicTable, parseListQuery, kickStaleSync, LINK_REFUSED, linkedTableFlags, readOne,
 } = require('./appDataContext');
+const { fallback } = require('../../utils/bestEffort');
 
 // GET /:id/data/tables — tables the viewer may READ (fields only).
 async function listTables(req, res) {
@@ -64,7 +65,7 @@ async function createRecord(req, res) {
         // such keys in `values` are dropped by the compiler.
         const { id } = await actionExecutor.writeRecord(ctx.app, ctx.model, ctx.table, values, { viewer: ctx.viewer });
 
-        const record = await readOne(ctx, id).catch(() => null);
+        const record = await readOne(ctx, id).catch((e) => fallback('routes/studio/appDataRecords:createRecord', e, null));
         res.json({ success: true, id, record });
     } catch (err) { handleErr(res, err, 'records.create'); }
 }
@@ -117,7 +118,7 @@ async function updateRecord(req, res) {
             // merge it); invisible ⇒ gone or out of scope, the uniform 404 that
             // never reveals which.
             if (expectedUpdatedAt) {
-                const current = await readOne(ctx, req.params.recordId).catch(() => null);
+                const current = await readOne(ctx, req.params.recordId).catch((e) => fallback('routes/studio/appDataRecords:updateRecord', e, null));
                 if (current) {
                     return res.status(409).json({
                         error: 'This record was changed by someone else — reload and try again.',
@@ -129,7 +130,7 @@ async function updateRecord(req, res) {
             return res.status(404).json({ error: 'Record not found' });
         }
 
-        const record = await readOne(ctx, req.params.recordId).catch(() => null);
+        const record = await readOne(ctx, req.params.recordId).catch((e) => fallback('routes/studio/appDataRecords:updateRecord#2', e, null));
         res.json({ success: true, record });
     } catch (err) { handleErr(res, err, 'records.update'); }
 }

@@ -30,6 +30,7 @@ const { emitPhase } = require('../../../core/agentRuntime/phaseEvents');
 const dlpRunner = require('../../../core/dlp/dlpRunner');
 const { createUntokeniser } = require('../../../core/dlp/untokeniseStream');
 const { applyTokenMapToMessages, untokeniseToolArgs } = require('../../../core/dlp/applyTokenMapToOutbound');
+const { fallback } = require('../../../utils/bestEffort');
 
 // What the model is told when a write is refused, in words it can pass on.
 const VIEWER_WRITE_REFUSAL = 'This user can view this notebook but not change it, so the document and its sources were left as they are. Answer in the chat instead.';
@@ -284,7 +285,7 @@ async function runToolLoop({
         for (const toolCall of roundToolCalls) {
             const toolName = toolCall.function?.name || toolCall.name;
             let toolArgs = {};
-            try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (_) { log.debug('tool arguments are not valid JSON, call the tool with none', _); }
+            try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (_) { fallback('routes/ai/notebookChat/toolLoop:runToolLoop', _); /* tool arguments are not valid JSON, call the tool with none */ }
             // The model passes tokens in tool args (e.g. find_text). Restore for
             // the CLIENT-facing tool_start/tool_end previews only — the model-facing
             // result fed back below stays tokenized (token-space consistency).

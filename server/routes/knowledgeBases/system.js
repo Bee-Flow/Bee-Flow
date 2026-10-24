@@ -17,6 +17,7 @@ const userStore = require('../../stores/userStore');
 const { requireAuth, resolveUserOrgIds } = require('../../auth');
 const { getUserId } = require('./shared');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // ── System-managed KBs (Bee Flow-provided content) ─────────────────
 // Lightweight status endpoint so the admin dashboard can show what's
@@ -41,7 +42,7 @@ router.get('/system', requireAuth, async (req, res) => {
         try {
             const all = await userStore.getAllOrganizations();
             if (Array.isArray(all) && all.length > 0) orgId = all[0].id;
-        } catch (err) { log.debug('no orgs', err); }
+        } catch (err) { fallback('routes/knowledgeBases/system:anon', err); /* no orgs */ }
     }
 
     // The org's real-world active set = intersection of super-admin

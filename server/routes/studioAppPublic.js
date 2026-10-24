@@ -89,6 +89,7 @@ const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { issueVisitorToken, verifyVisitorToken } = require('../auth/publicShareToken');
 const { flattenSteps, normalizeSequence, sanitizeBag } = require('../appStudio/actionSequence');
 const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const { assertAttachmentTotalBytes } = mailboxAttachments;
 
@@ -354,7 +355,7 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
         duration_ms: Date.now() - t0,
         source: 'studio_app_public',
         conversation_id: found.app.id,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/studioAppPublic:anon', e));
 
     if (result && result.ok) return res.json({ ok: true, result: result.result ?? null });
     return res.json({
@@ -380,8 +381,8 @@ router.get('/:token/data/tables/:tableId/records', ipLimiter, tokenLimiter, requ
 
         let filters;
         let sort;
-        if (typeof req.query.filter === 'string' && req.query.filter) { try { filters = JSON.parse(req.query.filter); } catch (err) { log.debug('compiler validates', err); } }
-        if (typeof req.query.sort === 'string' && req.query.sort) { try { sort = JSON.parse(req.query.sort); } catch (err) { log.debug('compiler validates', err); } }
+        if (typeof req.query.filter === 'string' && req.query.filter) { try { filters = JSON.parse(req.query.filter); } catch (err) { fallback('routes/studioAppPublic:anon#2', err); /* compiler validates */ } }
+        if (typeof req.query.sort === 'string' && req.query.sort) { try { sort = JSON.parse(req.query.sort); } catch (err) { fallback('routes/studioAppPublic:anon#3', err); /* compiler validates */ } }
         if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
 
         const out = await dataReadRunner.runRecordList(ctx, ctx.table, {
@@ -508,7 +509,7 @@ router.post('/:token/data/attachments', ipLimiter, uploadLimiter, guard, require
     await storageStore.uploadFile(key, file.buffer, file.mimetype, file.sanitized ? { sanitized: 'true' } : null);
     const scan = await scanBuffer(file.buffer);
     if (!scan.clean) {
-        try { await storageStore.deleteFile(key); } catch (err) { log.debug('best-effort', err); }
+        try { await storageStore.deleteFile(key); } catch (err) { bestEffort('routes/studioAppPublic:anon#4', err); /* best-effort */ }
         return res.status(422).json({ error: 'File failed a malware scan', signature: scan.signature || null });
     }
 
@@ -521,7 +522,7 @@ router.post('/:token/data/attachments', ipLimiter, uploadLimiter, guard, require
         size: file.size,
     });
     await studioAppDataStore.setAttachmentScan(attachment.id, found.app.id, found.app.userId, { scanned: true, quarantined: false })
-        .catch(() => { /* advisory */ });
+        .catch((e) => bestEffort('routes/studioAppPublic:anon#5', e));
 
     return res.json({
         success: true,
@@ -597,7 +598,7 @@ router.delete('/:token/data/attachments/:fileId', ipLimiter, uploadLimiter, requ
     await studioAppDataStore.deleteAttachment(attachment.id, found.app.id, found.app.userId);
     const stillUsed = await studioAppDataStore.countAttachmentsBySha(found.app.id, found.app.userId, attachment.sha256);
     if (stillUsed === 0 && attachment.sha256 && storageStore.isAvailable()) {
-        try { await storageStore.deleteFile(attachmentKey(found.app.userId, found.app.id, attachment.sha256)); } catch (err) { log.debug('swept later', err); }
+        try { await storageStore.deleteFile(attachmentKey(found.app.userId, found.app.id, attachment.sha256)); } catch (err) { bestEffort('routes/studioAppPublic:anon#6', err); /* swept later */ }
     }
     return res.json({ success: true });
 });

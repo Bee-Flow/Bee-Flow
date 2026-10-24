@@ -425,6 +425,7 @@ function rejectUnsafeConfigKeys(config) {
 // and its tests resolve them exactly as they did when the code lived in this
 // file.
 const publishable = require('../../agents/publishableConfig');
+const { fallback } = require('../../utils/bestEffort');
 
 function validateAgentConfigReferences(agent, config) {
     return publishable.validateAgentConfigReferences(agent, config, {
@@ -521,12 +522,12 @@ router.put('/:id/transfer', requirePermission('manage_agents'), validate({ body:
             if (me && me.organizationId === agent.organization_id && isOrgAdminRole(me.orgRole)) {
                 allowed = true;
             }
-        } catch (err) { log.debug('fall through', err); }
+        } catch (err) { fallback('routes/agents/crud:anon', err); /* fall through */ }
     }
     if (!allowed) return res.status(403).json({ error: 'Only the owner or an org admin can transfer this agent' });
 
     // The new owner must already exist and belong to the agent's org.
-    const target = await userStore.getUser(newOwnerId).catch(() => null);
+    const target = await userStore.getUser(newOwnerId).catch((e) => fallback('routes/agents/crud:anon#2', e, null));
     if (!target) return res.status(404).json({ error: 'New owner not found' });
     if (agent.organization_id && target.organizationId !== agent.organization_id) {
         // Don't leak cross-tenant info: treat as "not found in this org".

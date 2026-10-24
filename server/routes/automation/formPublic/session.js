@@ -18,6 +18,7 @@ const { typicalSeconds } = require('../../../automation/formTypicalDuration');
 const { privateHeaders, loadForm, loadSession, currentRunFor, journeyRunIds, pendingPageFor } = require('./access');
 const { ipLimiter, sessionLimiter } = require('./limits');
 const { friendly } = require('./friendly');
+const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
 // ── Multi-page: the visitor's session ─────────────────
 
@@ -46,7 +47,7 @@ async function resolveDownloadFields(form, session) {
     for (const f of fields) {
         if (!isFileField(f)) { resolved.push(f); continue; }
         if (!f.fileId || runIds.length === 0) continue;
-        const file = await automationStore.getGeneratedFileForRuns(f.fileId, runIds).catch(() => null);
+        const file = await automationStore.getGeneratedFileForRuns(f.fileId, runIds).catch((e) => fallback('routes/automation/formPublic/session:resolveDownloadFields', e, null));
         if (!file) continue;
         resolved.push({
             name: f.name,
@@ -144,7 +145,7 @@ async function pollSession(req, res) {
     if (loaded.expired) return res.json({ state: 'expired' });
 
     const { session } = loaded;
-    await automationStore.touchFormSession(session.id).catch(() => {});
+    await automationStore.touchFormSession(session.id).catch((e) => bestEffort('routes/automation/formPublic/session:pollSession', e));
 
     // Queued behind other submissions, or the run row is not written yet.
     const automationId = found.automation.id;

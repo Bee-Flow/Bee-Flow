@@ -97,6 +97,7 @@ function encryptionOpts(req) {
 }
 
 const orgHealth = require('../../../services/orgHealth');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 // A successful stream is proof the org-level chat blocks are gone — resolve
 // them (cheap: appends a timeline event only on an actual flip), throttled
@@ -133,7 +134,7 @@ function _resolveChatProblemsThrottled(orgId) {
             'chat.provider_error',
             'chat.budget_exhausted',
         ]);
-    } catch (err) { log.debug('must never break chat', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/shared:_resolveChatProblemsThrottled', err); /* must never break chat */ }
 }
 
 module.exports = {

@@ -64,7 +64,7 @@ async function getCustomerMarkup(req) {
             const plan = await userStore.getPlan(sub.plan_id);
             return Number(plan?.markup_percent) || 0;
         }
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('routes/usage:getCustomerMarkup', err); /* fall through */ }
     return 0;
 }
 
@@ -692,6 +692,7 @@ module.exports = router;
 // AZURE SERVICE COST MONITORING ENDPOINTS
 // ════════════════════════════════════════════════════════════════════════════
 const azureServiceUsageStore = require('../stores/azureServiceUsageStore');
+const { bestEffort } = require('../utils/bestEffort');
 
 // 28. Azure Service Summary
 router.get('/azure-services/summary', async (req, res) => {

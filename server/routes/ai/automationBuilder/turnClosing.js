@@ -20,6 +20,7 @@ const { persistDraftWrap } = require('./builderDraft');
 const { LARGE_CHANGE_STEPS, changedSteps, pendingProposal } = require('./workMode');
 const { proposalPreviewPayload, clientProposal } = require('./datatableTurn');
 const { sanitizeHistory, collectAssistantTurn } = require('./chatTurnLoop');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 async function closeTurn(turn) {
     const {
@@ -199,7 +200,7 @@ async function closeTurn(turn) {
                 ...(catalogOrder ? { catalogOrder } : {}),
                 updatedAt: new Date().toISOString(),
             }, { trimBlock: HISTORY_EVICT_BLOCK });
-        } catch (err) { log.debug('non-fatal', err); }
+        } catch (err) { bestEffort('routes/ai/automationBuilder/turnClosing:closeTurn', err); /* non-fatal */ }
     }
 
     if (usageTotals.rounds > 0) {

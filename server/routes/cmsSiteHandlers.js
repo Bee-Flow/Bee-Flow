@@ -19,6 +19,7 @@ const { provisionAnalyticsForSite } = require('./cmsAnalytics');
 const { clientRev } = require('../stores/cms/revision');
 const { mediaWarningFor } = require('../stores/cms/localeMedia');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 // ── Shared handler bodies ────────────────────────────────────────
 //
@@ -136,7 +137,7 @@ async function postSitePublish(req, res) {
         const result = await cmsStore.publishSite(req.siteId);
         // Best-effort: ensure this site has a Umami website so its public pages
         // have an id to report against. Fire-and-forget so publish stays fast.
-        const project = await cmsStore.getProject(req.siteId).catch(() => null);
+        const project = await cmsStore.getProject(req.siteId).catch((e) => fallback('routes/cmsSiteHandlers:postSitePublish', e, null));
         provisionAnalyticsForSite(req.siteId, {
             name: project?.name || 'CMS site',
             domain: req.get('host'),

@@ -44,6 +44,7 @@ const router = express.Router();
 const configStore = require('../../stores/configStore');
 const automationCredentialStore = require('../../stores/automationCredentialStore');
 const { OAUTH_PROVIDERS, MICROSOFT_SCOPES, loadConfig, requireAuth } = require('../../auth/permissions');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /**
  * The login scopes plus delegated shared-mailbox access.
@@ -219,7 +220,7 @@ router.get('/callback', async (req, res) => {
         } catch (err) { log.debug('non-fatal — status just shows no email', err); }
 
         const userStore = require('../../stores/userStore');
-        const user = await userStore.getUser(userId).catch(() => null);
+        const user = await userStore.getUser(userId).catch((e) => fallback('routes/integrations/microsoft365:anon', e, null));
         const orgId = resolveVaultOrgId({ ...user, id: userId });
         await automationCredentialStore.upsertCredential({
             userId,
@@ -281,7 +282,7 @@ router.get('/status', requireAuth, async (req, res) => {
     const { clientId, clientSecret } = await getMicrosoftClientConfig();
     const configured = !!(clientId && clientSecret);
 
-    const cred = await automationCredentialStore.getCredential(userId, 'microsoft').catch(() => null);
+    const cred = await automationCredentialStore.getCredential(userId, 'microsoft').catch((e) => fallback('routes/integrations/microsoft365:anon#2', e, null));
     // Microsoft-SSO users without an org have no vault row but ARE connected
     // for this session.
     const sessionConnected = req.session?.oauthProvider === 'microsoft' && !!req.session?.accessToken;
@@ -292,7 +293,7 @@ router.get('/status', requireAuth, async (req, res) => {
     // can read /me but will 403 on /users/{address}.
     const sharedMailboxGranted = hasSharedMailboxScopes(cred?.scope || req.session?.oauthScope);
 
-    let email = await configStore.getConfig(`microsoft365_email_user_${userId}`).catch(() => null);
+    let email = await configStore.getConfig(`microsoft365_email_user_${userId}`).catch((e) => fallback('routes/integrations/microsoft365:anon#3', e, null));
     if (!email && sessionConnected) email = req.session.user?.email || null;
 
     res.json({
@@ -316,7 +317,7 @@ router.post('/disconnect', requireAuth, async (req, res) => {
     const { revokeProviderCredential } = require('../../auth/oauthRoutes');
     const result = await revokeProviderCredential(userId, 'microsoft');
 
-    await configStore.deleteConfig(`microsoft365_email_user_${userId}`).catch(() => {});
+    await configStore.deleteConfig(`microsoft365_email_user_${userId}`).catch((e) => bestEffort('routes/integrations/microsoft365:anon#4', e));
 
     if (req.session.oauthProvider === 'microsoft') {
         delete req.session.accessToken;

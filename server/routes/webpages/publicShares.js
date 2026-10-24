@@ -22,6 +22,7 @@ const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice, NOTHING, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── What a share link may carry ────────────────────────────────────
 //
@@ -176,7 +177,7 @@ function register(router) {
             } catch (snapErr) {
                 // Roll back the share row so we don't leave a token pointing at
                 // a missing snapshot.
-                await publicShareStore.deleteShare(share.id, userId).catch(() => {});
+                await publicShareStore.deleteShare(share.id, userId).catch((e) => bestEffort('routes/webpages/publicShares:register', e));
                 throw snapErr;
             }
 
@@ -245,8 +246,8 @@ function register(router) {
         // Was this THE canonical share, then /w/<slug> is now an address with no page. The
         // pointer must go too — otherwise the screen keeps saying "public" about a link that
         // answers 404. On share id, so withdrawing a loose share does not touch the address.
-        await publicAddress.clearCanonicalShare(share.id).catch(() => {});
-        await publicShareStore.deleteShare(share.id, userId).catch(() => {});
+        await publicAddress.clearCanonicalShare(share.id).catch((e) => bestEffort('routes/webpages/publicShares:register#2', e));
+        await publicShareStore.deleteShare(share.id, userId).catch((e) => bestEffort('routes/webpages/publicShares:register#3', e));
         res.json({ success: true });
     });
 }

@@ -20,6 +20,7 @@ const { ledgerProcessors } = require('../../compliance/ropa/ledgerProcessors');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { resolveOrgId } = require('./shared');
 const { onEvidenceWriteFailed } = require('../../compliance/evidence/writeFailures');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // ───────────────── RoPA ─────────────────
 //
@@ -76,7 +77,7 @@ function _isThirdCountryProcessor(p) {
 
 async function _buildRopa(orgId) {
         const settings = await complianceStore.getSettings(orgId);
-        const org = await userStore.getOrganization(orgId).catch(() => null);
+        const org = await userStore.getOrganization(orgId).catch((e) => fallback('routes/compliance/ropa:_buildRopa', e, null));
         const assessments = await _assessments(orgId);
 
         let agents = [];
@@ -92,7 +93,7 @@ async function _buildRopa(orgId) {
                        is_published
                 FROM agents WHERE is_published = TRUE
             `);
-        } catch (err) { log.debug('fresh', err); }
+        } catch (err) { fallback('routes/compliance/ropa:_buildRopa#2', err); /* fresh */ }
         agents = agents.filter(a => !a.organization_id || a.organization_id === orgId);
 
         let processors = [];
@@ -100,7 +101,7 @@ async function _buildRopa(orgId) {
             // The ledger's processors over 180 days, the 'default' bucket
             // included (compliance/ropa/ledgerProcessors.js says why).
             processors = await ledgerProcessors(orgId);
-        } catch (err) { log.debug('fresh', err); }
+        } catch (err) { fallback('routes/compliance/ropa:_buildRopa#3', err); /* fresh */ }
 
         const activities = agents.map(a => ({
             activity_id: a.id,
@@ -268,7 +269,7 @@ async function _buildRopa(orgId) {
             try {
                 titles = await require('../../compliance/aiAct/signals')
                     .titlesFor(orgId, automationAssessments.map(r => ({ target_kind: 'automation', target_id: r.target_id })));
-            } catch (err) { log.debug('titles are a nicety, the register is not', err); }
+            } catch (err) { fallback('routes/compliance/ropa:_buildRopa#4', err); /* titles are a nicety, the register is not */ }
         }
         const ai_systems = automationAssessments
             .map(r => ({
@@ -335,7 +336,7 @@ router.post('/ropa/review', requireAuth, requirePermission('admin_compliance'), 
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     await complianceStore.markRopaReviewed(orgId, actorId);
-    runner.runOne(orgId, 'GDPR-Art30-ropa-reviewed').catch(() => {});
+    runner.runOne(orgId, 'GDPR-Art30-ropa-reviewed').catch((e) => bestEffort('routes/compliance/ropa:anon', e));
     res.json({ ok: true, reviewed_at: new Date().toISOString(), reviewer: actorId });
 });
 

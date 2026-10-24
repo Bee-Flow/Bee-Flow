@@ -61,6 +61,7 @@ const { buildSandboxTools, executeSandboxTool } = require('../../core/skills/ski
 const log = require('../../telemetry/log');
 const { openSse } = require('../../core/http/sseHelpers');
 const { HttpError } = require('../../core/http/errors');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** One test run is two model calls. Six a minute is a person pressing Run, not a script. */
 const limiter = perUserRateLimit({ windowMs: 60_000, max: 6 });
@@ -180,7 +181,7 @@ async function resolveModel(rawModel, { userId, userOrgId }) {
     try {
         const resolved = await resolveModelForTier(rawModel || 'tier:fast', { userOrgId, userId, fallbackTier: 'fast' });
         if (resolved) return resolved;
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('routes/skills/test:resolveModel', err); /* fall through */ }
     try {
         return await resolveModelWithGlobalFallback('tier:fast', { userOrgId, userId });
     } catch (_) {

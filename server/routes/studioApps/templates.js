@@ -17,6 +17,7 @@ const { requireAuth } = require('../../auth/permissions');
 const { DownloadQuery } = require('./schemas');
 const { requireManageApps, audienceFor, resolveOwnerOrgId } = require('./access');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const router = express.Router();
 
@@ -109,7 +110,7 @@ router.get('/templates/:templateId/export', requireAuth, requireManageApps, vali
             try {
                 const org = await userStore.getOrganization(orgId);
                 orgName = (org && typeof org.name === 'string') ? org.name : null;
-            } catch (err) { log.debug('a missing name is a missing courtesy, not a failed export', err); }
+            } catch (err) { fallback('routes/studioApps/templates:anon', err); /* a missing name is a missing courtesy, not a failed export */ }
         }
 
         const { envelope, warnings } = buildExport(template, {

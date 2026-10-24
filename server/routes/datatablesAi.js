@@ -54,6 +54,7 @@ const { validate } = require('../core/http/validate');
 const { choice } = require('./datatables/schemas');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
+const { bestEffort } = require('../utils/bestEffort');
 
 const NOTE_TEXT = `A change request is at most ${MAX_NOTE_CHARS} characters — shorten it, or split it into two.`;
 const BRIEF_TEXT = `A table description is at most ${MAX_BRIEF_CHARS} characters — shorten it, or leave out what the columns do not need.`;
@@ -94,7 +95,7 @@ async function resolveModel({ userId, userOrgId }) {
     try {
         const resolved = await resolveModelForTier('tier:fast', { userOrgId, userId, fallbackTier: 'fast' });
         if (resolved) return resolved;
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('routes/datatablesAi:resolveModel', err); /* fall through */ }
     try {
         return await resolveModelWithGlobalFallback('tier:fast', { userOrgId, userId });
     } catch (_) {

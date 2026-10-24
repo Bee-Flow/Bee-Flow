@@ -16,6 +16,7 @@ const {
     CREATABLE_KINDS, MAX_TEXT_CHARS, shapeTextOrigin, helpers, resolveKb, resolveCreators, mapSourceForApi,
     sourceForApi, maxSourcesFor, refreshPatchFor,
 } = require('./sourcePolicy');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Fetch a page for a webpage source.
@@ -66,7 +67,7 @@ async function fetchPageForSource(url) {
     }
 
     let hostname = url;
-    try { hostname = new URL(resolvedUrl).hostname; } catch (err) { log.debug('keep the raw url', err); }
+    try { hostname = new URL(resolvedUrl).hostname; } catch (err) { fallback('routes/knowledgeBases/sourceCreate:fetchPageForSource', err); /* keep the raw url */ }
     return { content, title: title || hostname, resolvedUrl };
 }
 

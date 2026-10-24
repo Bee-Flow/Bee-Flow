@@ -59,6 +59,7 @@ const { resolveModelForTier, TIER_DEFAULTS } = require('../core/llm/modelResolve
 const usageStore = require('../stores/usageStore');
 const { openSse } = require('../core/http/sseHelpers');
 const { publicAiLimiter, publicIpLimiter } = require('./publicShareBridgeRateLimits');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Distinct usage source so anonymous spend is isolated from the author's own
 // preview spend ('webpage_bridge_ai') and can be summed for the spend cap.
@@ -155,7 +156,7 @@ function logPublicUsage(ctx, webpageId, modelId, usage, t0) {
         duration_ms: Date.now() - t0,
         source: PUBLIC_USAGE_SOURCE,
         conversation_id: webpageId,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/publicShareBridge:logPublicUsage', e));
 }
 
 // ── POST /ai/chat ────────────────────────────────────────────────────

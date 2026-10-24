@@ -28,6 +28,7 @@ const router = express.Router();
 
 const { getUserAuth } = require('../utils/routeHelpers');
 const { requireAuth } = require('../auth');
+const { bestEffort } = require('../utils/bestEffort');
 
 const WORKFLOW_TEXT = 'workflow is the graph to run: { nodes: [...], edges: [...] }.';
 const Graph = z.object({
@@ -83,7 +84,7 @@ router.post('/execute', requireAuth, validate({ body: ExecuteBody }), async (req
 
         // Log failed execution
         if (executionId) {
-            await workflowStore.completeExecution(executionId, 'failed', 0, null, error.message).catch(() => { });
+            await workflowStore.completeExecution(executionId, 'failed', 0, null, error.message).catch((e) => bestEffort('routes/execute:anon', e));
         }
 
         next(error);

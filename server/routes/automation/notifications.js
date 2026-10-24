@@ -23,6 +23,7 @@ const { makeAutomationAccess } = require('../../automation/access');
 const {
     NOTIFICATION_DEFAULTS, normalizeNotificationSettings,
 } = require('../../automation/notificationDefaults');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * @param {object} [overrides]
@@ -44,14 +45,14 @@ function makeNotificationsRouter(overrides = {}) {
         ...(overrides.hasPermission ? { hasPermission: overrides.hasPermission } : {}),
     });
     const emailConfigured = overrides.emailConfigured || (async () => {
-        const cfg = await require('../../utils/emailService').getServiceEmailConfig().catch(() => null);
+        const cfg = await require('../../utils/emailService').getServiceEmailConfig().catch((e) => fallback('routes/automation/notifications:makeNotificationsRouter', e, null));
         return !!cfg?.configured;
     });
     const talkStatus = overrides.talkStatus || (async ({ orgId, settings }) => {
         const delivery = require('../../automation/approvalDelivery');
         const room = settings.onApproval.talkRoom || settings.onError.talkRoom || settings.onSuccess.talkRoom
-            || await delivery.resolveTalkRoom({ orgId }).catch(() => null);
-        const bot = orgId ? !!(await require('../../integrations/nextcloudTalkBot').getBotSecret(orgId).catch(() => null)) : false;
+            || await delivery.resolveTalkRoom({ orgId }).catch((e) => fallback('routes/automation/notifications:makeNotificationsRouter#2', e, null));
+        const bot = orgId ? !!(await require('../../integrations/nextcloudTalkBot').getBotSecret(orgId).catch((e) => fallback('routes/automation/notifications:makeNotificationsRouter#3', e, null))) : false;
         return { room: room || null, bot };
     });
 
@@ -62,7 +63,7 @@ function makeNotificationsRouter(overrides = {}) {
         if (!acc) return undefined;
 
         const settings = normalizeNotificationSettings(a.definition?.notificationSettings);
-        const owner = await Promise.resolve(getUser(a.userId)).catch(() => null);
+        const owner = await Promise.resolve(getUser(a.userId)).catch((e) => fallback('routes/automation/notifications:makeNotificationsRouter#4', e, null));
         const orgId = a.organizationId || owner?.organizationId || null;
 
         const [mail, talk, recent] = await Promise.all([

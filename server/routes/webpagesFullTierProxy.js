@@ -40,6 +40,7 @@ const webpageRuntimeManager = require('../services/webpageRuntimeManager');
 const { loadAuthorContext } = require('../core/webpages/webpageBridgeAuth');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
+const { fallback } = require('../utils/bestEffort');
 
 const MOUNT_PATH = '/api/webpages-preview/:id/full';
 const UPGRADE_URL_RE = /^\/api\/webpages-preview\/([^/?]+)\/full(?:\/|$)/;
@@ -111,7 +112,7 @@ function mountFullTierProxy(app, server) {
         const webpageId = decodeURIComponent(match[1]);
 
         let token = null;
-        try { token = new URL(req.url, 'http://internal').searchParams.get('token'); } catch (err) { log.debug('malformed URL', err); }
+        try { token = new URL(req.url, 'http://internal').searchParams.get('token'); } catch (err) { fallback('routes/webpagesFullTierProxy:mountFullTierProxy', err); /* malformed URL */ }
         const claims = verifyPreviewToken(token);
         if (!claims || claims.webpageId !== webpageId) {
             socket.destroy();

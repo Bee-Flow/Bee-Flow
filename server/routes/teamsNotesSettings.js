@@ -18,6 +18,7 @@ const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const teamsNotes = require('../core/meetingNotes/teamsNotesSettings');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
@@ -44,7 +45,7 @@ router.get('/user/me', requireAuth, async (req, res) => {
     let credential = null;
     try {
         credential = await require('../stores/automationCredentialStore').getCredential(userId, 'microsoft');
-    } catch (err) { log.debug('no stored credential', err); }
+    } catch (err) { fallback('routes/teamsNotesSettings:anon', err); /* no stored credential */ }
     res.json({ ...config, connection: teamsNotes.deriveConnectionStatus({ session: req.session, credential }) });
 });
 

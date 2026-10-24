@@ -32,6 +32,7 @@ const service = require('../core/customIntegrations/mcpLibrary/service');
 const members = require('../core/customIntegrations/mcpLibrary/members');
 const policyModule = require('../core/customIntegrations/mcpLibrary/policy');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const router = express.Router();
 
@@ -124,12 +125,12 @@ router.put('/policy', requireAuth, requireSuperAdmin, validate({ body: PolicyBod
     const policy = await policyModule.setPolicy(req.body);
     try {
         await require('../stores/userStore').logAccessAudit('mcp_library.policy_update', 'platform', policyModule.POLICY_KEY, req.session.user.id, before, policy, null);
-    } catch (err) { log.debug('best effort', err); }
+    } catch (err) { bestEffort('routes/mcpLibrary:anon', err); /* best effort */ }
     // Every org's tool list and capability set depends on it.
     try {
         const ent = require('../core/entitlements/entitlements');
         ent.registry.invalidateCustomIntegrationCache();
-    } catch (err) { log.debug('best effort', err); }
+    } catch (err) { bestEffort('routes/mcpLibrary:anon#2', err); /* best effort */ }
     res.json({ policy });
 });
 

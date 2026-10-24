@@ -33,6 +33,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -248,14 +249,14 @@ router.get('/admin/connector-health/mine', requireAuth, async (req, res) => {
     try {
         const sub = await userStore.getOrgSubscription(orgId);
         hasActiveSubscription = !!sub && sub.status === 'active';
-    } catch (err) { log.debug('treat as unknown-not-active', err); }
+    } catch (err) { fallback('routes/admin/connectorHealth:anon', err); /* treat as unknown-not-active */ }
 
     // Total successful messages — computeHealth needs it for 'inactive'.
     let messagesTotal = 0;
     try {
         const summary = await require('../../stores/usageStore').getUsageSummary({ organizationId: orgId });
         messagesTotal = Number(summary?.total_calls) || 0;
-    } catch (err) { log.debug('0 is safe: \'inactive\' is non-actionable in the banner', err); }
+    } catch (err) { fallback('routes/admin/connectorHealth:anon#2', err); /* 0 is safe: 'inactive' is non-actionable in the banner */ }
 
     const problems = await orgHealthStore.listProblems({ organizationId: orgId });
     const health = orgHealthStore.computeHealth({

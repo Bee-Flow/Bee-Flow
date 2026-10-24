@@ -110,6 +110,7 @@ require('../../core/serviceAuth');
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../auth/permissions');
+const { fallback } = require('../../utils/bestEffort');
 
 // ─── Streaming Template Chat ─────────────────────────────────────
 
@@ -233,7 +234,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                     // Injected without a tool call, so the Privacy Shield's
                     // "own server" block list is applied here (BFSF-354).
                     const { resolveShieldFor } = require('../../core/privacy/orgShield');
-                    const kbShield = await resolveShieldFor({ orgId: userOrgId, userId }).catch(() => null);
+                    const kbShield = await resolveShieldFor({ orgId: userOrgId, userId }).catch((e) => fallback('routes/ai/templateChat:anon', e, null));
                     // The "### Source N:" label goes through the same scan.
                     const { injectedPassagesPrompt } = require('../../core/privacy/toolPiiGate');
                     const kbText = await injectedPassagesPrompt(kbResults, { shield: kbShield, tag: 'TemplateChat' });
@@ -261,7 +262,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
         const _crypto = require('crypto');
         const _dlpConvId = conversationId ? `tmpl-${userId}-${conversationId}` : `tmpl-${_crypto.randomUUID()}`;
         const { resolveShieldFor: _resolveShieldFor } = require('../../core/privacy/orgShield');
-        const _psShield = await _resolveShieldFor({ orgId: userOrgId, userId }).catch(() => null);
+        const _psShield = await _resolveShieldFor({ orgId: userOrgId, userId }).catch((e) => fallback('routes/ai/templateChat:anon#2', e, null));
         const { scanAttachmentText: _scanAttText } = require('../../core/dlp/attachmentScanner');
         const _dlpActive = !!_psShield?.enabled;
         const _scanExtracted = async (text, filename) => {
@@ -365,7 +366,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                 const _convMap = require('../../core/dlp/dlpRunner').getConversationTokenMap(_dlpConvId);
                 const _add = buildTokenPreservationAddendum(_convMap);
                 if (_add && messages[0]?.role === 'system') messages[0].content += _add;
-            } catch (err) { log.debug('best-effort', err); }
+            } catch (err) { fallback('routes/ai/templateChat:anon#3', err); /* best-effort */ }
         }
 
         // Stream response

@@ -15,6 +15,7 @@ const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const configStore = require('../../stores/configStore');
 const meetingFiling = require('../../projects/meetingFiling');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Every engine the pipeline knows how to drive. A request may name one of
 // these; anything else is rejected rather than silently falling through to the
@@ -49,7 +50,7 @@ async function resolveAllowedProviders(localEnabled) {
  */
 async function resolveProjectFiling(req, userId, userOrgId) {
     if (!req.body.projectId) return { projectId: null };
-    const dropUpload = () => { try { fs.unlinkSync(req.file.path); } catch (err) { log.debug('multer\'s temp file may already be gone', err); } };
+    const dropUpload = () => { try { fs.unlinkSync(req.file.path); } catch (err) { bestEffort('routes/transcriptions/uploadIntake:dropUpload', err); /* multer's temp file may already be gone */ } };
     let target;
     try {
         // nosemgrep: ajinabraham.njsscan.traversal.resolve_path_traversal.join_resolve_path_traversal -- meetingFiling.resolve is the project access check, not path.resolve; no file path is built

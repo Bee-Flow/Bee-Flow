@@ -59,6 +59,7 @@ const { getAll } = require('../../db');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { resolveOrgId } = require('./shared');
 const { publicBaseUrl, publicDsrPath } = require('../../utils/appPaths');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ───────────────── Settings / onboarding ─────────────────
 
@@ -137,17 +138,17 @@ router.put('/settings', requireAuth, requirePermission('admin_compliance'), asyn
                     at,
                 },
             }).catch(e => log.warn('[Compliance] marking evidence failed:', e.message));
-            try { require('../../compliance/marking').invalidate(orgId); } catch (err) { log.debug('optional', err); }
+            try { require('../../compliance/marking').invalidate(orgId); } catch (err) { bestEffort('routes/compliance/settings:anon', err); /* optional */ }
             try {
                 const { emit, EVENTS } = require('../../compliance/events');
                 emit(EVENTS.CONTENT_MARKING_CHANGED, { orgId, enabled: marking.enabled, by: actorId });
-            } catch (err) { log.debug('the bus is optional in tests', err); }
+            } catch (err) { bestEffort('routes/compliance/settings:anon#2', err); /* the bus is optional in tests */ }
         }
         // An AI-literacy save re-runs the Art. 4 check now, instead of leaving
         // its old verdict standing until the next sweep. A switched-off AI Act
         // framework throws FrameworkDisabledError; the catch swallows it.
         if (AI_LITERACY_KEYS.some(k => Object.prototype.hasOwnProperty.call(patch, k))) {
-            runner.runOne(orgId, 'AIA-Art4-ai-literacy', { runType: 'event' }).catch(() => {});
+            runner.runOne(orgId, 'AIA-Art4-ai-literacy', { runType: 'event' }).catch((e) => bestEffort('routes/compliance/settings:anon#3', e));
         }
         res.json(decorate(saved));
     } catch (e) {
@@ -189,7 +190,7 @@ router.post('/settings/scc', requireAuth, requirePermission('admin_compliance'),
     // Re-run every check that reads the attestation list, so none of them
     // keeps its stale verdict until the next sweep. A check whose framework
     // is switched off throws FrameworkDisabledError; the catch swallows it.
-    for (const checkId of SCC_READING_CHECKS) runner.runOne(orgId, checkId).catch(() => {});
+    for (const checkId of SCC_READING_CHECKS) runner.runOne(orgId, checkId).catch((e) => bestEffort('routes/compliance/settings:anon#4', e));
     res.json({ scc_confirmed_operators: next });
 });
 

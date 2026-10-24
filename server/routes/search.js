@@ -57,6 +57,7 @@ const { HttpError } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
 const { worded, choice } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ─── What a caller may send ─────────────────────────────────────
 
@@ -226,7 +227,7 @@ async function resolveSerperKey(req) {
     try {
         const k = await configStore.getSecret('serper_api_key');
         if (k) return k;
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('routes/search:resolveSerperKey', err); /* fall through */ }
     return process.env.SERPER_API_KEY || null;
 }
 

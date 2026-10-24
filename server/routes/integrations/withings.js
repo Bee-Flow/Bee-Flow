@@ -38,6 +38,7 @@ const configStore = require('../../stores/configStore');
 const automationCredentialStore = require('../../stores/automationCredentialStore');
 const automationAuth = require('../../auth/automationAuth');
 const { OAUTH_PROVIDERS, requireAuth } = require('../../auth/permissions');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const PROVIDER = 'withings';
 const TOKEN_TIMEOUT_MS = 20000;
@@ -159,7 +160,7 @@ router.get('/callback', async (req, res) => {
         }
 
         const userStore = require('../../stores/userStore');
-        const user = await userStore.getUser(userId).catch(() => null);
+        const user = await userStore.getUser(userId).catch((e) => fallback('routes/integrations/withings:anon', e, null));
         const orgId = resolveVaultOrgId({ ...user, id: userId });
         await automationCredentialStore.upsertCredential({
             userId,
@@ -219,11 +220,11 @@ router.get('/status', requireAuth, async (req, res) => {
     const { clientId, clientSecret } = await automationAuth.withingsClientConfig();
     const configured = !!(clientId && clientSecret);
 
-    const cred = await automationCredentialStore.getCredential(userId, PROVIDER).catch(() => null);
+    const cred = await automationCredentialStore.getCredential(userId, PROVIDER).catch((e) => fallback('routes/integrations/withings:anon#2', e, null));
     const connected = cred?.status === 'active';
     const needsReauth = !connected && cred?.status === 'needs_reauth';
     const withingsUserId = (connected || needsReauth)
-        ? await configStore.getConfig(`withings_userid_user_${userId}`).catch(() => null)
+        ? await configStore.getConfig(`withings_userid_user_${userId}`).catch((e) => fallback('routes/integrations/withings:anon#3', e, null))
         : null;
 
     res.json({ configured, connected, needsReauth, withingsUserId: withingsUserId || null, scope: cred?.scope || null });
@@ -240,7 +241,7 @@ router.post('/disconnect', requireAuth, async (req, res) => {
     // 'unknown_provider' and the local delete is what actually cuts access.
     const { revokeProviderCredential } = require('../../auth/oauthRoutes');
     const result = await revokeProviderCredential(userId, PROVIDER);
-    await configStore.deleteConfig(`withings_userid_user_${userId}`).catch(() => {});
+    await configStore.deleteConfig(`withings_userid_user_${userId}`).catch((e) => bestEffort('routes/integrations/withings:anon#4', e));
 
     log.info(`[WithingsConnector] Disconnected for user ${userId}`);
     res.json({ success: true, hadCredential: result.found });

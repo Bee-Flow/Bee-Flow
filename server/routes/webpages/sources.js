@@ -21,6 +21,7 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded, bodyOf, choice, NOTHING, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── What a source may carry ─────────────────────────────────────────
 //
@@ -214,7 +215,7 @@ function register(router, { upload }) {
                 }
             } catch (e) {
                 log.error(`[Webpages] Retry failed for source ${source.id}:`, e.message);
-                await webpageStore.updateSource(source.id, { status: 'error', error: e.message }).catch(() => {});
+                await webpageStore.updateSource(source.id, { status: 'error', error: e.message }).catch((e) => bestEffort('routes/webpages/sources:register', e));
             }
         })();
     });

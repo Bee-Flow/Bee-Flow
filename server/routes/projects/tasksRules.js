@@ -13,13 +13,14 @@
 const { badRequest, conflict } = require('../../core/http/errors');
 const { taskEvent, sealList, checkDates, canContain } = require('./tasksPresent');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /** Assignees must be on the project right now. */
 async function checkedAssignees(ctx, projectId, ids) {
     const unique = [...new Set(ids || [])];
     for (const id of unique) {
         let role = null;
-        try { role = await ctx.getProjectRole(id, projectId); } catch (err) { log.debug('unknown is not a member', err); }
+        try { role = await ctx.getProjectRole(id, projectId); } catch (err) { fallback('routes/projects/tasksRules:checkedAssignees', err); /* unknown is not a member */ }
         if (!role) throw badRequest('assignee_not_member', 'You can only give a task to a member of this project.');
     }
     return unique;

@@ -22,6 +22,7 @@ const storageStore = require('../stores/storageStore');
 const { HttpError, badRequest } = require('../core/http/errors');
 
 const { CLIP_MAX_BYTES, VTT_MAX_BYTES, CLIP_MIME_WHITELIST } = require('../core/cms/uploadPolicy');
+const { bestEffort } = require('../utils/bestEffort');
 
 const CLIP_PART_BYTES = 16 * 1024 * 1024;
 const CLIP_EXT_WHITELIST = new Set(['.mp4', '.webm']);
@@ -118,10 +119,10 @@ async function streamIntoStorage(filePath, size, key, contentType, signal = null
         }
         await storageStore.completeMultipartUpload(key, uploadId, parts);
     } catch (err) {
-        await storageStore.abortMultipartUpload(key, uploadId).catch(() => {});
+        await storageStore.abortMultipartUpload(key, uploadId).catch((e) => bestEffort('routes/cmsMedia:streamIntoStorage', e));
         throw err;
     } finally {
-        await handle.close().catch(() => {});
+        await handle.close().catch((e) => bestEffort('routes/cmsMedia:streamIntoStorage#2', e));
     }
 }
 

@@ -68,6 +68,7 @@ const { requireBetaFeature } = require('../core/entitlements/betaFeatures');
 router.use(requireBetaFeature('automations'));
 
 const { requireActiveOrgForMutations } = require('../auth');
+const { fallback } = require('../utils/bestEffort');
 router.use(requireActiveOrgForMutations());
 
 /** A real boolean, never the text "false" — which is true. */
@@ -166,7 +167,7 @@ router.post('/', validate({ body: CreateBody }), async (req, res) => {
 // path wins. Lightweight projection (no definition).
 router.get('/chat-tools', async (req, res) => {
     const userId = req.session.user.id;
-    const callable = await automationStore.getCallableStepsForUser(userId, { orgIds: [] }).catch(() => []);
+    const callable = await automationStore.getCallableStepsForUser(userId, { orgIds: [] }).catch((e) => fallback('routes/step:anon', e, []));
     const tools = callable
         .filter(s => s.ownerId === userId && s.exposeAsTool)
         .map(s => ({ id: s.id, title: s.title, description: s.description || '', icon: s.icon || null, category: s.category || null }));

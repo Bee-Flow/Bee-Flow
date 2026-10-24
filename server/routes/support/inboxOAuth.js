@@ -12,6 +12,7 @@ const audit = require('../../support/audit');
 const providerClients = require('../../services/email/providerClients');
 const { resolveOrgScope, loadInboxInScope } = require('./inboxScope');
 const { oauthClosePage: _oauthClosePage, serviceEmailClosePage: _serviceEmailClosePage } = require('./oauthClosePage');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Build the OAuth callback URL. Mirrors the login flow (server/auth/oauthRoutes.js):
@@ -30,7 +31,7 @@ function redirectUriFor(req) {
         host = req.get('X-Forwarded-Host') || null;
         if (!host) {
             const ref = req.get('Referer');
-            if (ref) { try { const u = new URL(ref); host = u.host; protocol = u.protocol.replace(':', ''); } catch (err) { log.debug('ignore', err); } }
+            if (ref) { try { const u = new URL(ref); host = u.host; protocol = u.protocol.replace(':', ''); } catch (err) { fallback('routes/support/inboxOAuth:redirectUriFor', err); /* ignore */ } }
         }
         if (!host) host = req.get('host');
     }

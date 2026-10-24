@@ -98,6 +98,7 @@ const { assembleTurnPrompt } = require('./promptAssembly');
 const { makeTurnUsageLogger } = require('./usageAccounting');
 const { runBuildLoop } = require('./buildLoop');
 const { handleProposedPlan, runAutoFinalizeNet, persistTurnSnapshot, classifyTurnOutcome } = require('./turnClosing');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 // Each builder turn is a multi-iteration LLM conversation chaining many tool
 // calls — expensive. Same ceiling as the automation builder: 12/min/user.
@@ -308,7 +309,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         // Still record the turn's usage (Wave 6c) — a turn that died mid-stream
         // burned tokens too. logTurnUsage is idempotent, so a done-path log that
         // already ran wins; this only fires when we never reached it.
-        try { logTurnUsage('internal'); } catch (err) { log.debug('never block cleanup', err); }
+        try { logTurnUsage('internal'); } catch (err) { bestEffort('routes/ai/appStudioBuilder/chatStream:anon', err); /* never block cleanup */ }
         stopHeartbeat();
         res.end();
     }

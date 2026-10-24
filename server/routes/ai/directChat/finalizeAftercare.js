@@ -12,6 +12,7 @@ const { getAdapter } = require('../../../core/providers');
 const { buildTitleTranscript } = require('./shared');
 const log = require('../../../telemetry/log');
 const { resolveMemoryPolicy } = require('../../../core/memory/memoryPolicy');
+const { bestEffort, fallback } = require('../../../utils/bestEffort');
 
 /**
  * The title model is the dedicated admin model if set, else the system title
@@ -63,7 +64,7 @@ async function generateTitle({ convId, userId, savedMessages, send, ...modelCtx 
         }
     } catch (e) {
         log.error('[DirectChat] Title generation failed:', e.message, e.stack);
-        try { await agentStore.updateDirectConversationTitle(convId, 'New Chat', userId); send('title', { title: 'New Chat', conversationId: convId }); } catch (err) { log.debug('non-fatal', err); }
+        try { await agentStore.updateDirectConversationTitle(convId, 'New Chat', userId); send('title', { title: 'New Chat', conversationId: convId }); } catch (err) { bestEffort('routes/ai/directChat/finalizeAftercare:generateTitle', err); /* non-fatal */ }
     }
 }
 
@@ -89,7 +90,7 @@ async function scheduleTitle({ conv, savedMessages, moderationViolation, convId,
     }
     // Moderation violation on a still-unnamed chat: safe generic title.
     const safeTitle = 'New Chat';
-    try { await agentStore.updateDirectConversationTitle(convId, safeTitle, userId); } catch (err) { log.debug('non-fatal', err); }
+    try { await agentStore.updateDirectConversationTitle(convId, safeTitle, userId); } catch (err) { bestEffort('routes/ai/directChat/finalizeAftercare:scheduleTitle', err); /* non-fatal */ }
     send('title', { title: safeTitle, conversationId: convId });
     return { pendingTitle: null };
 }
@@ -124,7 +125,7 @@ async function extractTurnMemories({ req, userId, convId, messages, tokenizedMes
                 if (convMap && Object.keys(convMap).length > 0) {
                     userTextForMemory = restoreTokens(tokenizedMessage, convMap);
                 }
-            } catch (err) { log.debug('fall back to the tokenised text', err); }
+            } catch (err) { fallback('routes/ai/directChat/finalizeAftercare:extractTurnMemories', err); /* fall back to the tokenised text */ }
             extractionMessages = [{ role: 'user', content: userTextForMemory }];
         }
         memoryExtractor.extractFromConversation(userId, null, extractionMessages, convId, extractMemoriesEnabled ? validProjectId : null, userOrgForTiers || null)
@@ -134,7 +135,7 @@ async function extractTurnMemories({ req, userId, convId, messages, tokenizedMes
                 }
             })
             .catch(err => log.error('[DirectChat] Memory extraction failed:', err.message));
-    } catch (e) { log.debug('extractor load failed', e); }
+    } catch (e) { bestEffort('routes/ai/directChat/finalizeAftercare:extractTurnMemories#2', e); /* extractor load failed */ }
 }
 
 module.exports = { scheduleTitle, extractTurnMemories };

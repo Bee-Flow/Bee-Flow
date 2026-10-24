@@ -18,6 +18,7 @@ const { resolveModelForTier, TIER_DEFAULTS } = require('../core/llm/modelResolve
 const { buildAiMessages } = require('../core/webpages/webpageAiMessages');
 const usageStore = require('../stores/usageStore');
 const { openSse } = require('../core/http/sseHelpers');
+const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * The tier the page asked for (or the grant's default), the model it resolves
@@ -91,7 +92,7 @@ function logBridgeUsage(ctx, webpageId, modelId, fields, t0) {
         duration_ms: Date.now() - t0,
         source: 'webpage_bridge_ai',
         conversation_id: webpageId,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/webpagesPreviewAi:logBridgeUsage', e));
 }
 
 // POST /:id/ai/chat

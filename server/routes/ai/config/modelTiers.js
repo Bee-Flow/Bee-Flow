@@ -13,12 +13,13 @@ const { requireAuth } = require('../../../auth/permissions');
 const { z, typeError } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
 const { requireAdminUser } = require('../requireAdminUser');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const requireAdmin = requireAdminUser(isAdminUser);
 
 /** The auto-tier classifier caches its model; a changed tier or classifier model must reach it. */
 function clearClassifierCache() {
-    try { require('../../../core/llm/promptClassifier').clearClassifierCache(); } catch (err) { log.debug('non-fatal', err); }
+    try { require('../../../core/llm/promptClassifier').clearClassifierCache(); } catch (err) { bestEffort('routes/ai/config/modelTiers:clearClassifierCache', err); /* non-fatal */ }
 }
 
 // ── What a caller may send ────────────────────────────────────────────────
@@ -315,7 +316,7 @@ async function resolveSessionOrgId(req) {
                 if (g?.organizationId) return g.organizationId;
             }
         }
-    } catch (err) { log.debug('ignore', err); }
+    } catch (err) { bestEffort('routes/ai/config/modelTiers:resolveSessionOrgId', err); /* ignore */ }
     return null;
 }
 

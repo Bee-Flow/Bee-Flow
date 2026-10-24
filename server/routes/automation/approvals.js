@@ -161,7 +161,7 @@ function getUserId(req) { return req.session?.user?.id || null; }
 async function resolveApprovalViewer(req) {
     const userId = getUserId(req);
     const userStore = require('../../stores/userStore');
-    const user = await userStore.getUser(userId).catch(() => null);
+    const user = await userStore.getUser(userId).catch((e) => fallback('routes/automation/approvals:resolveApprovalViewer', e, null));
     const { parseGroupIds } = require('../../auth/orgMembership');
     const groupIds = user ? parseGroupIds(user).map(String) : [];
     const orgId = user?.organizationId || null;
@@ -185,12 +185,12 @@ async function backfillOwnPending(userId) {
         const { runs } = await automationStore.listRunsForUser(userId, { status: ['awaiting_approval'], limit: 25 });
         for (const run of runs) {
             const leg = run.journeyRunId && run.journeyRunId !== run.id
-                ? await automationStore.getRun(run.journeyRunId).catch(() => null)
+                ? await automationStore.getRun(run.journeyRunId).catch((e) => fallback('routes/automation/approvals:backfillOwnPending', e, null))
                 : run;
             if (!leg || leg.status !== 'awaiting_approval' || !leg.awaitingStepId) continue;
             const existing = await automationStore.getApprovalForRunStep(leg.id, leg.awaitingStepId, { pendingOnly: true });
             if (existing) continue;
-            const automation = await automationStore.getAutomation(leg.automationId).catch(() => null);
+            const automation = await automationStore.getAutomation(leg.automationId).catch((e) => fallback('routes/automation/approvals:backfillOwnPending#2', e, null));
             await approvalService.ensureApprovalForRun(leg, automation);
         }
     } catch (e) {
@@ -252,9 +252,9 @@ router.get('/approvals/directory', gate, async (req, res) => {
     if (!viewer.userId) return res.status(401).json({ error: 'Not signed in' });
     if (!viewer.orgId) return res.json({ members: [], groups: [] });
     const userStore = require('../../stores/userStore');
-    const members = (await userStore.getOrgMembersForDirectory(viewer.orgId).catch(() => []))
+    const members = (await userStore.getOrgMembersForDirectory(viewer.orgId).catch((e) => fallback('routes/automation/approvals:anon', e, [])))
         .map(u => ({ id: u.id, name: u.displayName || u.username || u.id }));
-    const groups = (await userStore.getAllGroups().catch(() => []))
+    const groups = (await userStore.getAllGroups().catch((e) => fallback('routes/automation/approvals:anon#2', e, [])))
         .filter(g => String(g.organizationId || '') === String(viewer.orgId))
         .map(g => ({ id: String(g.id), name: g.name || String(g.id) }));
     res.json({ members, groups });
@@ -269,7 +269,7 @@ router.get('/approvals/:id', async (req, res) => {
     if (!approval || !approvalService.canView(approval, viewer)) {
         return res.status(404).json({ error: 'Approval not found' });
     }
-    const audit = await automationStore.getApprovalAudit(approval.id).catch(() => []);
+    const audit = await automationStore.getApprovalAudit(approval.id).catch((e) => fallback('routes/automation/approvals:anon#3', e, []));
     // The run deep-link is an owner-only affordance — runs are owner-scoped
     // surfaces, so handing the link to an assignee would 403 them one
     // click later.
@@ -283,7 +283,7 @@ router.get('/approvals/:id', async (req, res) => {
     let progress = null;
     let canDecideNow = approval.status === 'pending' && approvalService.canDecide(approval, viewer);
     if (approvalService.hasStages(approval) || approvalService.hasPanel(approval)) {
-        const voteRows = await automationStore.getApprovalVotes(approval.id).catch(() => []);
+        const voteRows = await automationStore.getApprovalVotes(approval.id).catch((e) => fallback('routes/automation/approvals:anon#4', e, []));
         votes = voteRows.map(approvalService.voteSummary);
         progress = approvalService.panelProgress(approval, voteRows);
         // "Can decide" means "can act RIGHT NOW": holding a seat in the
@@ -323,7 +323,7 @@ router.post('/approvals/:id/decide', validate({ body: DecideBody }), async (req,
     if (!approvalService.canDecide(approval, viewer)) {
         return res.status(403).json({ error: 'You cannot decide this approval.' });
     }
-    const run = approval.runId ? await automationStore.getRun(approval.runId).catch(() => null) : null;
+    const run = approval.runId ? await automationStore.getRun(approval.runId).catch((e) => fallback('routes/automation/approvals:anon#5', e, null)) : null;
     const { code, body } = await approvalService.decide({
         approval,
         run,
@@ -373,6 +373,7 @@ router.post('/approvals/:id/withdraw', validate({ body: WithdrawBody }), async (
  * 409 approval_not_pending, 429 remind_rate_limited (details.retryAfterSec).
  */
 const remindLimiter = require('../../utils/perUserRateLimit').perUserRateLimit({ windowMs: 60_000, max: 20 });
+const { fallback } = require('../../utils/bestEffort');
 router.post('/approvals/:id/remind', remindLimiter, async (req, res) => {
     const { makeApprovalReminder } = require('../../automation/approvalRemind');
     const { makeAutomationAccess } = require('../../automation/access');
@@ -417,7 +418,7 @@ router.get('/approvals/:id/files/:fileId', async (req, res, next) => {
         const studioAppDataStore = require('../../stores/studioAppDataStore');
         const att = await studioAppDataStore
             .getAttachment(req.params.fileId, approval.studioAppId, approval.ownerId)
-            .catch(() => null);
+            .catch((e) => fallback('routes/automation/approvals:anon#6', e, null));
         if (!att || att.quarantined) return res.status(404).json({ error: 'Not found' });
         const storageStore = require('../../stores/storageStore');
         let streamed;
@@ -439,7 +440,7 @@ router.get('/approvals/:id/files/:fileId', async (req, res, next) => {
     }
     const chainRoot = approval.rootRunId || approval.runId;
     if (!chainRoot) return res.status(404).json({ error: 'Not found' });
-    const chain = await automationStore.getRunsInChain(chainRoot).catch(() => []);
+    const chain = await automationStore.getRunsInChain(chainRoot).catch((e) => fallback('routes/automation/approvals:anon#7', e, []));
     const runIds = chain.map(r => r.id);
     if (approval.runId && !runIds.includes(approval.runId)) runIds.push(approval.runId);
     const file = await automationStore.getGeneratedFileForRuns(req.params.fileId, runIds);

@@ -25,6 +25,7 @@ const { composeAppTurnMessages } = require('./turnMessages');
 const { renderDraftStateNote, renderApprovedPlanNote, renderPlanPolicyNote, renderEditorContextNote } = require('./turnNotes');
 const { renderBlindImageNote, renderUserImageFraming, renderVisionUnsupportedNotice } = require('./inboundImages');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 /**
  * Everything the build loop reads about "what the model is being asked":
@@ -77,7 +78,7 @@ async function assembleTurnPrompt({
         // a run_automation naming an automation the owner does not have is
         // refused when it is written, not at finalize.
         draftWrap._ownedAutomations = new Map((rows || []).map((a) => [a.id, { isActive: !!a.isActive }]));
-    } catch (err) { log.debug('prompt renders the empty-state line', err); }
+    } catch (err) { fallback('routes/ai/appStudioBuilder/promptAssembly:assembleTurnPrompt', err); /* prompt renders the empty-state line */ }
 
     // Owner's designed documents — rendered into the same note, and for the
     // same reason: the core tool menu has no list tools, so a document a
@@ -90,7 +91,7 @@ async function assembleTurnPrompt({
         // The keyed list for the tool-time check: a fill_document naming a
         // document the owner does not have is refused when it is written.
         draftWrap._documents = documentRows;
-    } catch (err) { log.debug('prompt renders the empty-state line; the gate stays permissive', err); }
+    } catch (err) { fallback('routes/ai/appStudioBuilder/promptAssembly:assembleTurnPrompt#2', err); /* prompt renders the empty-state line; the gate stays permissive */ }
 
     const sys = buildSystemPrompt({
         toolset: profile.toolset === 'core' ? 'core' : 'full',

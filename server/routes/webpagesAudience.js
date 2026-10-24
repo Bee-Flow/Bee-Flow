@@ -58,6 +58,7 @@ const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const { z, onUnknownKeys, typeError } = require('../utils/zod');
 const { worded, bodyOf, choice } = require('./webpages/schemas');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ── What "public" may carry ───────────────────────────────────────
 //
@@ -304,7 +305,7 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
         await publicAddress.setCanonicalShare(wp.id, userId, null);
         if (share && share.webpageId === wp.id && !share.revokedAt) {
             await publicShareStore.revokeShare(share.id, share.createdBy);
-            await publicShareStore.deleteShare(share.id, share.createdBy).catch(() => {});
+            await publicShareStore.deleteShare(share.id, share.createdBy).catch((e) => bestEffort('routes/webpagesAudience:anon', e));
         }
         const fresh = await webpageStore.getWebpage(wp.id, userId);
         return res.json(await buildModel(req, fresh || { ...wp, publicShareId: null }));
@@ -389,7 +390,7 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
     try {
         await webpageSnapshot.writeSnapshot({ shareId: created.share.id, webpageId: wp.id, ownerId: wp.userId });
     } catch (e) {
-        await publicShareStore.deleteShare(created.share.id, userId).catch(() => {});
+        await publicShareStore.deleteShare(created.share.id, userId).catch((e) => bestEffort('routes/webpagesAudience:anon#2', e));
         throw e;
     }
     await publicAddress.setCanonicalShare(wp.id, userId, created.share.id);
@@ -397,7 +398,7 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
     // and an error above must not take it along.
     if (existing) {
         await publicShareStore.revokeShare(existing.id, existing.createdBy).catch(() => {});
-        await publicShareStore.deleteShare(existing.id, existing.createdBy).catch(() => {});
+        await publicShareStore.deleteShare(existing.id, existing.createdBy).catch((e) => bestEffort('routes/webpagesAudience:anon#3', e));
     }
     // Only after this, the other live shares: the just-withdrawn old canonical no longer needs to be
     // rewritten, but the loose shares do.

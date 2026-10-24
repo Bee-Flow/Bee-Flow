@@ -14,6 +14,7 @@ const egress = require('../../support/issueEgress');
 const { getUserId, _emit } = require('./shared');
 const { HttpError } = require('../../core/http/errors');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 // The subject setting lives with the egress rule it governs.
 const { SUBJECT_KEY, includeSubjectEnabled } = egress;
@@ -82,7 +83,7 @@ async function saveConnection(req, res) {
         actorKind: 'staff', actorUserId: getUserId(req),
         action: 'youtrack_connection_change',
         payload: { fields: Object.keys(req.body) },
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/support/issueLinkHandlers:saveConnection', e));
     const status = await ytc.ping({ userId: getUserId(req) });
     ok(res, { status, includeSubject: await includeSubjectEnabled() });
 }
@@ -93,7 +94,7 @@ async function saveConnection(req, res) {
 async function findIssues(creds, q) {
     const project = await ytc.getDefaultProject();
     if (ytc.ISSUE_ID_RE.test(q)) {
-        const one = await ytc.getIssue(creds, q).catch(() => null);
+        const one = await ytc.getIssue(creds, q).catch((e) => fallback('routes/support/issueLinkHandlers:findIssues', e, null));
         return one ? [one] : [];
     }
     const scoped = project && q ? `project: {${project}} ${q}` : (q || (project ? `project: {${project}}` : ''));
@@ -185,7 +186,7 @@ async function attachIssues(req, res) {
     const linked = [];
     for (const issueId of issueIds) {
         let issue = null;
-        if (creds) issue = await ytc.getIssue(creds, issueId).catch(() => null);
+        if (creds) issue = await ytc.getIssue(creds, issueId).catch((e) => fallback('routes/support/issueLinkHandlers:attachIssues', e, null));
         if (creds && !issue) {
             return res.status(404).json({ error: `${issueId} does not exist in YouTrack` });
         }
@@ -205,7 +206,7 @@ async function attachIssues(req, res) {
         supportStore.recordThreadEvent({
             threadId: thread.id, actorUserId: userId, actorKind: 'staff',
             action: 'issue_linked', payload: { issueId, reason },
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/support/issueLinkHandlers:attachIssues#2', e));
     }
     _emit('thread_updated', { threadId: thread.id });
     ok(res, { issues: linked });
@@ -218,7 +219,7 @@ async function detachIssue(req, res) {
     supportStore.recordThreadEvent({
         threadId: id, actorUserId: getUserId(req), actorKind: 'staff',
         action: 'issue_unlinked', payload: { issueId },
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/support/issueLinkHandlers:detachIssue', e));
     _emit('thread_updated', { threadId: id });
     ok(res, {});
 }
@@ -232,7 +233,7 @@ async function screenPayload(req, res, thread, payload) {
         actorKind: 'staff', actorUserId: getUserId(req),
         action: 'issue_create_blocked',
         payload: { findings: screen.findings.map(f => f.category), scanned: screen.scanned },
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/support/issueLinkHandlers:screenPayload', e));
     res.status(422).json({
         error: 'This would send personal data to YouTrack.',
         detail: `Remove ${egress.describeFindings(screen.findings)} and try again.`,
@@ -268,7 +269,7 @@ async function recordCreatedIssue(req, { thread, creds, result, payload, project
         threadId: thread.id, actorUserId: getUserId(req), actorKind: 'staff',
         action: result.alreadyExists ? 'issue_linked' : 'issue_created',
         payload: { issueId, project: projectId, scanned: screen.scanned },
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/support/issueLinkHandlers:recordCreatedIssue', e));
     return row;
 }
 

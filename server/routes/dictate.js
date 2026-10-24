@@ -48,6 +48,7 @@ const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
+const { bestEffort } = require('../utils/bestEffort');
 
 const router = express.Router();
 
@@ -122,7 +123,7 @@ router.post('/', requireAuth, (req, res, next) => {
         log.error('[Dictate] failed:', err.message);
         throw new HttpError(500, 'dictation_failed', 'Could not transcribe that recording.');
     } finally {
-        try { await fs.promises.unlink(tmpPath); } catch (err) { log.debug('never written', err); }
+        try { await fs.promises.unlink(tmpPath); } catch (err) { bestEffort('routes/dictate:anon', err); /* never written */ }
     }
 });
 

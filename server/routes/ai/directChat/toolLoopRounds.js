@@ -25,6 +25,7 @@ const { computeStepMachineGuard, pipelineNeedsWrapUp, callAdapterWithFallback } 
 const { createStreamCallbacks, snapshotThinkingParts } = require('./streamCallbacks');
 const { emitToolResultEvents } = require('./toolResultEvents');
 const { logTurnUsage } = require('./turnUsage');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const MAX_STREAM_TOOL_ROUNDS = 15;
 const SHAPE_REJECTED = /invalid_request_message_order|Unexpected role|invalid.*tool_choice/i;
@@ -64,7 +65,7 @@ function resetStreamedOutput(turn) {
  * persistence and is separated from the follow-up text in the live view.
  */
 function closeVisibleRound(turn) {
-    try { turn.streamContentFlush(); } catch (err) { log.debug('best-effort', err); }
+    try { turn.streamContentFlush(); } catch (err) { bestEffort('routes/ai/directChat/toolLoopRounds:closeVisibleRound', err); /* best-effort */ }
     turn.displaySegments.onRoundEnd(turn.fullContent);
     turn.fullContent = '';
 }

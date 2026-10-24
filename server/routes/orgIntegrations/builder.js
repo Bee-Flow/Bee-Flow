@@ -209,6 +209,7 @@ const { safeToolName, dedupeToolName, buildMcpToolsCache } = require('../../core
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../auth/permissions');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 router.use(requireAuth);
 
 // 2. Org admin for :orgId — the shared adminRoutes factory (lazy-required so
@@ -224,7 +225,7 @@ router.use((req, res, next) => {
 router.param('id', async (req, res, next, id) => {
     try {
         const s = store();
-        const row = await s.getById(id).catch(() => null);
+        const row = await s.getById(id).catch((e) => fallback('routes/orgIntegrations/builder:anon', e, null));
         if (!row || row.orgId !== s.resolveOrgId(req.params.orgId)) {
             return res.status(404).json({ error: 'Not found' });
         }
@@ -256,13 +257,13 @@ function audit(req, verb, integrationId, oldValues, newValues) {
 // projection after grant-affecting mutations. The registry hook lands with the
 // entitlements phase — guard on typeof so this stays fail-soft until then.
 async function invalidateCaches(orgId) {
-    try { await require('../../core/entitlements/entitlements').invalidateForOrg(orgId); } catch (err) { log.debug('best effort', err); }
+    try { await require('../../core/entitlements/entitlements').invalidateForOrg(orgId); } catch (err) { bestEffort('routes/orgIntegrations/builder:invalidateCaches', err); /* best effort */ }
     try {
         const registry = require('../../core/entitlements/capabilityRegistry');
         if (typeof registry.invalidateCustomIntegrationCache === 'function') {
             await registry.invalidateCustomIntegrationCache(orgId);
         }
-    } catch (err) { log.debug('best effort', err); }
+    } catch (err) { bestEffort('routes/orgIntegrations/builder:invalidateCaches#2', err); /* best effort */ }
 }
 
 // The admin's own connection for this integration's provider (default first —
@@ -554,20 +555,20 @@ router.delete('/:id', async (req, res) => {
         const seen = new Set();
         for (const conn of await cs.listConnectionsForUser(req.session.user.id, provider)) {
             seen.add(conn.id);
-            await cs.deleteConnection(conn.id).catch(() => {});
+            await cs.deleteConnection(conn.id).catch((e) => bestEffort('routes/orgIntegrations/builder:anon#2', e));
         }
-        const grants = await cs.listGrants({ includeRevoked: true }).catch(() => []);
+        const grants = await cs.listGrants({ includeRevoked: true }).catch((e) => fallback('routes/orgIntegrations/builder:anon#3', e, []));
         for (const g of grants) {
             if (g.provider === provider && !seen.has(g.connection_id)) {
                 seen.add(g.connection_id);
-                await cs.deleteConnection(g.connection_id).catch(() => {});
+                await cs.deleteConnection(g.connection_id).catch((e) => bestEffort('routes/orgIntegrations/builder:anon#4', e));
             }
         }
-    } catch (err) { log.debug('best effort', err); }
+    } catch (err) { bestEffort('routes/orgIntegrations/builder:anon#5', err); /* best effort */ }
 
     // Drop a stale capability entry if one remained (e.g. disabled row
     // that was previously active).
-    try { await setOrgCapability(req.params.orgId, row.id, false); } catch (err) { log.debug('best effort', err); }
+    try { await setOrgCapability(req.params.orgId, row.id, false); } catch (err) { bestEffort('routes/orgIntegrations/builder:anon#6', err); /* best effort */ }
 
     await invalidateCaches(req.params.orgId);
     await audit(req, 'delete', row.id,

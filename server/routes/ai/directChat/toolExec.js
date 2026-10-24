@@ -41,6 +41,7 @@ const log = require('../../../telemetry/log');
 const {
     searchGuardText, searchGuardEvent, shieldGuardEvent, buildDispatchOptions, buildUsageRow, buildEgressArgs,
 } = require('./toolExecPayloads');
+const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Strip bulky fields from tool results before they become LLM messages.
@@ -101,7 +102,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     // SSE channel, which JSON-encodes each event; nothing here renders HTML.
     const toolName = streamed ? toolCall.function?.name : (toolCall.function?.name || toolCall.name); // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss
     let toolArgs = {};
-    try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (e) { log.debug('tool arguments are not valid JSON, call the tool with none', e); }
+    try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (e) { fallback('routes/ai/directChat/toolExec:executeDirectChatToolCall', e); /* tool arguments are not valid JSON, call the tool with none */ }
     // Restore DLP tokens in outbound tool args so write-side tools
     // (docs/sheets/gmail/calendar) get the real value, not the
     // [email_1] placeholder (BFSF-171). Search queries keep their
@@ -110,7 +111,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
         try {
             const _argMap = require('../../../core/dlp/dlpRunner').getConversationTokenMap(ctx.convId);
             if (_argMap && Object.keys(_argMap).length) toolArgs = untokeniseToolArgs(toolArgs, _argMap);
-        } catch (err) { log.debug('best-effort', err); }
+        } catch (err) { fallback('routes/ai/directChat/toolExec:executeDirectChatToolCall#2', err); /* best-effort */ }
     }
 
     // Notebook-write gate (BFSF-169). Enforced here rather than by removing
@@ -166,7 +167,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
                     log.info(`[DirectChat WebSearchGuard] ${streamed ? 'Streamed search' : 'Search'} query BLOCKED by regex: ${ruleNames}`);
                     guardrailEventStore.logGuardrailEvent(
                         searchGuardEvent(ctx, 'regex', ruleNames, 'search_blocked'),
-                    ).catch(() => {});
+                    ).catch((e) => bestEffort('routes/ai/directChat/toolExec:executeDirectChatToolCall#3', e));
                     ctx.send('tool_end', { name: toolName, result: '[Web search blocked — query violates content policy]' });
                     return { role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify({ error: 'Web search blocked — query violates content policy. Please rephrase.' }) };
                 }
@@ -181,7 +182,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
                         // Always log PII detection for monitoring
                         guardrailEventStore.logGuardrailEvent(
                             searchGuardEvent(ctx, 'pii', cats, ctx.webSearchGuardEnabled ? 'search_blocked' : 'pii_detected'),
-                        ).catch(() => {});
+                        ).catch((e) => bestEffort('routes/ai/directChat/toolExec:executeDirectChatToolCall#4', e));
                         // Only block when Web Search Guard is enabled
                         if (ctx.webSearchGuardEnabled) {
                             log.info(`[DirectChat WebSearchGuard] ${streamed ? 'Streamed search' : 'Search'} query BLOCKED by PII (${cats})`);
@@ -303,7 +304,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     try {
         const usageStore = require('../../../stores/usageStore');
         await usageStore.logUsage(buildUsageRow(ctx, toolName));
-    } catch (e) { log.debug('ignore', e); }
+    } catch (e) { bestEffort('routes/ai/directChat/toolExec:executeDirectChatToolCall#5', e); /* ignore */ }
 
     // ── Integration Activity Logging (async, non-blocking) ──
     // One shared write path (core/integrationLogging.js): the minimal
@@ -313,7 +314,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     try {
         const { logToolEgress } = require('../../../core/integrations/integrationLogging');
         logToolEgress(buildEgressArgs(ctx, { toolName, toolArgs, toolResult, toolError, outboundProbe, dispatchT0 }));
-    } catch (e) { log.debug('ignore', e); }
+    } catch (e) { bestEffort('routes/ai/directChat/toolExec:executeDirectChatToolCall#6', e); /* ignore */ }
 
     // Return raw toolResult so draft dedup can run sequentially after Promise.all.
     // `_toolName` rides along here as it does on the streamed return: without
@@ -376,7 +377,7 @@ async function _stripForModel(content, toolName, ctx) {
 /** Writes a tool block-list guardrail event with this turn's attribution. */
 function _shieldEventLogger(ctx) {
     return (fields) => {
-        guardrailEventStore.logGuardrailEvent(shieldGuardEvent(ctx, fields)).catch(() => {});
+        guardrailEventStore.logGuardrailEvent(shieldGuardEvent(ctx, fields)).catch((e) => bestEffort('routes/ai/directChat/toolExec:_shieldEventLogger', e));
     };
 }
 

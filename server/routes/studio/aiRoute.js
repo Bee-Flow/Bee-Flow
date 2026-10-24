@@ -101,6 +101,7 @@ const {
     makeLazyDeps, userIdOf, orgIdOf, moduleActive, licenceAllows, capability, permission, solutionsGate,
 } = require('./shared');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** One paragraph in, one building block out. Same cap skillDraft.js uses. */
 const MAX_TEXT_CHARS = 1000;
@@ -375,7 +376,7 @@ async function resolveModel(d, { userId, userOrgId }) {
     try {
         const resolved = await resolveModelForTier('tier:fast', { userOrgId, userId, fallbackTier: 'fast' });
         if (resolved) return resolved;
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('routes/studio/aiRoute:resolveModel', err); /* fall through */ }
     try {
         return await resolveModelWithGlobalFallback('tier:fast', { userOrgId, userId });
     } catch (_) {

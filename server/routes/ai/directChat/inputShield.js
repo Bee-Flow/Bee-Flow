@@ -9,6 +9,7 @@
 const configStore = require('../../../stores/configStore');
 const guardrailEventStore = require('../../../stores/guardrailEventStore');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Must run FIRST, before moderation, PII and regex guardrails: strips hidden
@@ -40,7 +41,7 @@ function logUnicodeSmuggling(unicodeResult, { userOrgId, userId, convId, modelId
         action_taken: 'stripped',
         source: 'direct',
         model: modelId || null,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/ai/directChat/inputShield:logUnicodeSmuggling', e));
 }
 
 /**

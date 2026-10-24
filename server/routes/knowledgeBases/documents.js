@@ -33,6 +33,7 @@ const { statusFilter, piiFilter } = require('./docFilters');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, orEmpty } = require('../../core/http/schemaParts');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── What a caller may send ──────────────────────────────────────────
 
@@ -147,7 +148,7 @@ router.post('/:id/documents/bulk-delete', requireAuth, requirePermission('manage
             // deleteDocumentChunks). To preserve the per-user audit ID,
             // explicitly call snapshot first with the user id; the store
             // then skips its own redundant snapshot via skipSnapshot.
-            await kbStore.snapshotDocumentVersion(docId, userId).catch(() => {});
+            await kbStore.snapshotDocumentVersion(docId, userId).catch((e) => bestEffort('routes/knowledgeBases/documents:anon', e));
             await deleteDocumentChunks(kb.id, doc.id, kb.tenant_id, { skipSnapshot: true });
             deleted++;
         } catch (err) {
@@ -284,7 +285,7 @@ router.delete('/:id/documents/:docId', requireAuth, requirePermission('manage_kn
     }
 
     // Snapshot with the user id, then have the store skip its own.
-    await kbStore.snapshotDocumentVersion(doc.id, getUserId(req)).catch(() => {});
+    await kbStore.snapshotDocumentVersion(doc.id, getUserId(req)).catch((e) => bestEffort('routes/knowledgeBases/documents:anon#2', e));
     await deleteDocumentChunks(kb.id, doc.id, kb.tenant_id, { skipSnapshot: true });
     res.json({ success: true });
 });

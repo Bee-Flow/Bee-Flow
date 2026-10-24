@@ -32,6 +32,7 @@ const nextcloudMenuSync = require('../../appStudio/nextcloudMenuSync');
 const { CreateAppBody, UpdateAppBody, DefinitionBody, RefQuery } = require('./schemas');
 const { requireManageApps, audienceFor, refuseRead, resolveOwnerOrgId } = require('./access');
 const { managedOf, MAX_CATEGORY_LEN, sanitizeAppRow, loadDataRefs } = require('./appHelpers');
+const { fallback } = require('../../utils/bestEffort');
 
 const router = express.Router();
 
@@ -51,7 +52,7 @@ router.get('/mine', requireAuth, async (req, res) => {
     // fetch. dbRatio is server-computed so the client never needs the cap.
     // Best-effort: a size lookup hiccup drops usage, never the app list.
     let sizes = {};
-    try { sizes = await studioAppQuota.appDbSizes(apps.map(a => a.id)); } catch (err) { log.debug('usage optional', err); }
+    try { sizes = await studioAppQuota.appDbSizes(apps.map(a => a.id)); } catch (err) { fallback('routes/studioApps/crud:anon', err); /* usage optional */ }
     const cap = DATA_LIMITS.MAX_DB_BYTES;
     const withUsage = apps.map((a) => {
         const dbBytes = sizes[a.id] || 0;
@@ -290,7 +291,7 @@ router.put('/:id/definition', requireAuth, requireManageApps, validate({ body: D
     // saveable — publish is where data references become hard errors.
     // Best-effort: a data-store hiccup skips the checks, never blocks a save.
     let dataRefs = {};
-    try { dataRefs = await loadDataRefs(req.params.id, userId); } catch (err) { log.debug('checks skipped', err); }
+    try { dataRefs = await loadDataRefs(req.params.id, userId); } catch (err) { fallback('routes/studioApps/crud:anon#2', err); /* checks skipped */ }
     const { ok, errors, warnings } = validateAppDefinition(canonical, { ...dataRefs, dataRefsAsWarnings: true });
     if (!ok) return res.status(422).json({ error: 'App definition failed validation', errors, warnings });
 

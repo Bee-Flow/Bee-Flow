@@ -52,6 +52,7 @@ const NOTEBOOK_TEXT = require('../i18n/defaults/en/notebooks');
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../auth/permissions');
+const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * Every export route must own the notebook in `:id`.
@@ -176,7 +177,7 @@ async function renderNotebookPdf(exportHTML, { title = 'Notebook' } = {}) {
         // so 'load' is enough; 'networkidle' never settled on servers without internet.
         await page.setContent(exportHTML, { waitUntil: 'load', timeout: PDF_LOAD_TIMEOUT_MS });
         // Let fonts and decoded images settle before printing.
-        await page.evaluate(() => document.fonts && document.fonts.ready).catch(() => {});
+        await page.evaluate(() => document.fonts && document.fonts.ready).catch((e) => bestEffort('routes/notebookExport:renderNotebookPdf', e));
         return page.pdf({
             format: 'Letter',
             margin: { top: '0.75in', right: '0.85in', bottom: '0.9in', left: '0.85in' },

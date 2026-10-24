@@ -15,6 +15,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
+const { fallback } = require('../../utils/bestEffort');
 
 const router = express.Router();
 
@@ -187,7 +188,7 @@ router.get('/orgs/:orgId', async (req, res) => {
     try {
         const orgRow = await userStore.getOrganization(req.params.orgId);
         usagePooled = (orgRow?.usage_pooled ?? '1') !== '0' && orgRow?.usagePooled !== false;
-    } catch (err) { log.debug('keep default = true', err); }
+    } catch (err) { fallback('routes/subscriptions/orgSubscriptions:anon', err); /* keep default = true */ }
 
     const billing = plan ? {
         plan_price: planPrice || null,
@@ -290,7 +291,7 @@ router.get('/orgs/:orgId', async (req, res) => {
     // Resolve the friendly name of a pending (scheduled) downgrade target.
     let pending_plan_name = null;
     if (sub.pending_plan_id) {
-        try { pending_plan_name = (await userStore.getPlan(sub.pending_plan_id))?.name || null; } catch (err) { log.debug('ignore', err); }
+        try { pending_plan_name = (await userStore.getPlan(sub.pending_plan_id))?.name || null; } catch (err) { fallback('routes/subscriptions/orgSubscriptions:anon#2', err); /* ignore */ }
     }
 
     res.json({

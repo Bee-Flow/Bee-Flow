@@ -16,6 +16,7 @@ const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { requireAuth } = require('../../auth/permissions');
 const { requireManageApps, resolveOwnerOrgId } = require('./access');
 const { sanitizeAppRow } = require('./appHelpers');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const router = express.Router();
 
@@ -91,7 +92,7 @@ router.post('/import', requireAuth, requireManageApps, appImportLimiter, async (
         const install = await installTemplate({ appId: created.id, ownerId: userId, template });
         if (!install || !install.ok) {
             const why = (install && install.error) || 'unknown error';
-            await studioAppStore.deleteStudioApp(created.id, userId).catch(() => {});
+            await studioAppStore.deleteStudioApp(created.id, userId).catch((e) => bestEffort('routes/studioApps/appImport:anon', e));
             created = null;
             return res.status(422).json({ error: `The app's data model could not be installed: ${why}`, code: 'model_install_failed' });
         }
@@ -123,7 +124,7 @@ router.post('/import', requireAuth, requireManageApps, appImportLimiter, async (
         // An app created before the failure is not left behind: a half-imported
         // app nobody asked for is worse than an import that plainly failed.
         if (created) {
-            await studioAppStore.deleteStudioApp(created.id, req.session.user.id).catch(() => {});
+            await studioAppStore.deleteStudioApp(created.id, req.session.user.id).catch((e) => bestEffort('routes/studioApps/appImport:anon#2', e));
         }
         const message = err && err.message ? err.message : 'Failed to import app';
         if (/limit reached|exceeds|quota/i.test(message)) {

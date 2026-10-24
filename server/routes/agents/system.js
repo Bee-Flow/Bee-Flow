@@ -14,6 +14,7 @@ const { openSse } = require('../../core/http/sseHelpers');
 const { HttpError } = require('../../core/http/errors');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // System-agent helpers all make LLM calls. They need auth + a rate limit for
 // the same reason /thread/title and /describe-building do — anonymous users
@@ -253,7 +254,7 @@ router.post('/system/identity-improver/generate', requireAuth, systemHelperLimit
                         description: identity.description || currentDescription || '',
                     };
                 }
-            } catch (err) { log.debug('Fall through to error', err); }
+            } catch (err) { bestEffort('routes/agents/system:parseResult', err); /* Fall through to error */ }
             return { error: 'Failed to parse response' };
         },
     })

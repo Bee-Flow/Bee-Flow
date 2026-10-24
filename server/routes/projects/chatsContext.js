@@ -16,6 +16,7 @@ const log = require('../../telemetry/log');
 const { projectAccessDeps } = require('./roleGate');
 const { badRequest, forbidden, notFound } = require('../../core/http/errors');
 const { chatEvent } = require('./chatsPresent');
+const { fallback } = require('../../utils/bestEffort');
 
 /** The dependencies, each defaulting to the real module, required on first use. */
 function resolveChatsDeps(deps) {
@@ -173,7 +174,7 @@ function makeChatsContext(deps = {}) {
         for (const id of unique) {
             try {
                 if (await ctx.getProjectRole(id, projectId)) kept.push(id);
-            } catch (err) { log.debug('unknown is not a member', err); }
+            } catch (err) { fallback('routes/projects/chatsContext:memberMentions', err); /* unknown is not a member */ }
         }
         return kept;
     }

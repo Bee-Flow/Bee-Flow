@@ -36,6 +36,7 @@ const { randomUUID } = require('node:crypto');
 const { HttpError } = require('../../../core/http/errors');
 const { pendingProposal } = require('./workMode');
 const { rebindPendingDatatables, collectPendingRefs } = require('../../../automation/builderTools/pendingDatatables');
+const { fallback } = require('../../../utils/bestEffort');
 
 const CLAIM_LEASE_MS = 120000;
 const APPROVED_CAP = 200;
@@ -178,7 +179,7 @@ async function applyPendingDatatables({ req, automationId, userId, snapshot }, d
         // Someone wrote in between (a chat turn). Look once more: if it is still
         // this proposal, write again; otherwise the tables exist and the client
         // saves the flow, which is all that matters.
-        const cur = await automationStore.getBuilderSession(automationId, userId).catch(() => null);
+        const cur = await automationStore.getBuilderSession(automationId, userId).catch((e) => fallback('routes/ai/automationBuilder/applyPendingDatatables:applyPendingDatatables', e, null));
         if (cur && cur.proposal && cur.proposal.id === p.id) {
             version = cur.version;
             try { await save(finalOf(cur)); } catch (e2) { log.warn(`[AutomationBuilder] apply: recording the outcome failed twice (automation ${automationId}): ${e2.message}`); }

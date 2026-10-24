@@ -130,6 +130,7 @@ const { openSse } = require('../core/http/sseHelpers');
 // The request shapes an app's runtime sends — shared with the public app
 // routes, which carry the same bodies (routes/studio/appRuntimeSchemas.js).
 const R = require('./studio/appRuntimeSchemas');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 // ── Pending run id (202 path) ───────────────────────────────────────
 // executeAutomation only hands back the run row when the run FINISHES, but a
@@ -139,7 +140,7 @@ const R = require('./studio/appRuntimeSchemas');
 // the same automation is never handed to the wrong viewer.
 async function resolveStartedRunId(runIds, { appId, viewerId, actionId }) {
     for (const runId of runIds) {
-        const run = await automationStore.getRun(runId).catch(() => null);
+        const run = await automationStore.getRun(runId).catch((e) => fallback('routes/studioAppsRun:resolveStartedRunId', e, null));
         const payload = run && run.triggerPayload;
         if (payload && payload._studioAppId === appId
             && payload._viewerUserId === viewerId && payload._actionId === actionId) {
@@ -321,7 +322,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         duration_ms: Date.now() - t0,
         source: 'studio_app_action',
         conversation_id: app.id,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/studioAppsRun:anon', e));
 
     if (result && result.ok) {
         return res.json({ ok: true, result: result.result ?? null });
@@ -438,7 +439,7 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
             duration_ms: Date.now() - t0,
             source: 'studio_app_action',
             conversation_id: app.id,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/studioAppsRun:anon#2', e));
     });
 
     let run;
@@ -491,7 +492,7 @@ async function approvalIdField(run) {
     if (run?.status !== 'awaiting_approval' || !run.awaitingStepId) return {};
     const approval = await automationStore
         .getApprovalForRunStep(run.id, run.awaitingStepId, { pendingOnly: true })
-        .catch(() => null);
+        .catch((e) => fallback('routes/studioAppsRun:approvalIdField', e, null));
     return approval ? { approvalId: approval.id } : {};
 }
 

@@ -72,6 +72,7 @@ const { perUserRateLimit } = require('../utils/perUserRateLimit');
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../auth/permissions');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ── Rate limits (per viewer + app) ──────────────────────────────────
 const FILE_UPLOAD_RPM = parseInt(process.env.STUDIO_APP_FILE_UPLOAD_RPM, 10) || 20;
@@ -216,7 +217,7 @@ router.post('/:id/data/attachments', requireAuth, uploadLimiter, validate({ para
 
     const scan = await scanBuffer(file.buffer);
     if (!scan.clean) {
-        try { await storageStore.deleteFile(key); } catch (err) { log.debug('best-effort cleanup', err); }
+        try { await storageStore.deleteFile(key); } catch (err) { bestEffort('routes/studioAppFiles:anon', err); /* best-effort cleanup */ }
         return res.status(422).json({ error: 'File failed a malware scan', signature: scan.signature || null });
     }
 
@@ -229,7 +230,7 @@ router.post('/:id/data/attachments', requireAuth, uploadLimiter, validate({ para
     });
     // scanned:true — the row exists only because the scan passed.
     await studioAppDataStore.setAttachmentScan(attachment.id, app.id, app.userId, { scanned: true, quarantined: false })
-        .catch(() => { /* advisory */ });
+        .catch((e) => bestEffort('routes/studioAppFiles:anon#2', e));
 
     res.json({
         success: true,
@@ -454,7 +455,7 @@ router.delete('/:id/data/attachments/:fileId', requireAuth, uploadLimiter, valid
         // Best-effort: the ledger row is already gone, so the bytes no
         // longer count as used space either way — an orphan object is a
         // storage-sweep problem, not a correctness one.
-        try { await storageStore.deleteFile(attachmentKey(app.userId, app.id, attachment.sha256)); } catch (err) { log.debug('swept later', err); }
+        try { await storageStore.deleteFile(attachmentKey(app.userId, app.id, attachment.sha256)); } catch (err) { bestEffort('routes/studioAppFiles:anon#3', err); /* swept later */ }
     }
 
     res.json({ success: true });

@@ -140,7 +140,7 @@ router.post('/:id/run', runTriggerLimiter, validate({ body: RunBody }), async (r
                 message: 'Run is still in progress. Check the run history shortly.',
             });
         }
-        const steps = await automationStore.getRunSteps(run.id).catch(() => []);
+        const steps = await automationStore.getRunSteps(run.id).catch((e) => fallback('routes/automation/runs:anon', e, []));
         return res.status(200).json({
             accepted: true,
             run,
@@ -361,6 +361,7 @@ function parseRunFilters(req) {
 // Handoff 5: the Runs tab's row fields (automation/runListRows.js), in one
 // batched read per kind of fact per page.
 const { makeRunRowDecorator, segmentCounts } = require('../../automation/runListRows');
+const { fallback } = require('../../utils/bestEffort');
 const runRows = makeRunRowDecorator({
     store: automationStore,
     getUsersByIds: (ids) => require('../../stores/userStore').getUserAvatarsByIds(ids),
@@ -488,7 +489,7 @@ async function resolveOrgRunViewer(req) {
     // Both reads are independently fail-closed: an unreadable user row is no
     // organisation, and a failed permission probe is no permission. Neither
     // may fall back to "carry on with what the session claims".
-    const user = await userStore.getUser(userId).catch(() => null);
+    const user = await userStore.getUser(userId).catch((e) => fallback('routes/automation/runs:resolveOrgRunViewer', e, null));
     const mayReadOrg = await hasPermission(userId, 'manage_automations', req.session).catch(() => false);
     return { userId, orgId: user?.organizationId || null, mayReadOrg: !!mayReadOrg };
 }

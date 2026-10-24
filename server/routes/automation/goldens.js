@@ -48,6 +48,7 @@ const { makeGuarded } = require('./guardedAutomation');
 const { effectiveStatus, anyRunning } = require('../../automation/testing/goldenReplay');
 const { envCap } = require('../../automation/mcpRunReadCaps');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
+const { fallback } = require('../../utils/bestEffort');
 
 const LABEL_TEXT = 'label is up to 80 characters.';
 const PATH_TEXT = 'ignorePaths is a list of up to 50 paths, each up to 500 characters.';
@@ -124,8 +125,8 @@ function makeGoldensRouter(overrides = {}) {
 
     async function runInfoOf(goldenRunId) {
         const [root, latest] = await Promise.all([
-            Promise.resolve(store().getRun(goldenRunId)).catch(() => null),
-            Promise.resolve(store().getLatestRunInChain?.(goldenRunId)).catch(() => null),
+            Promise.resolve(store().getRun(goldenRunId)).catch((e) => fallback('routes/automation/goldens:runInfoOf', e, null)),
+            Promise.resolve(store().getLatestRunInChain?.(goldenRunId)).catch((e) => fallback('routes/automation/goldens:runInfoOf#2', e, null)),
         ]);
         return describeRun(root, latest);
     }
@@ -143,7 +144,7 @@ function makeGoldensRouter(overrides = {}) {
         if (found.root.triggerKind === 'manual_step') {
             throw new HttpError(409, 'partial_run_not_golden', 'A run of a single step cannot be a golden run. Pick a run of the whole automation.');
         }
-        const latest = await Promise.resolve(store().getLatestRunInChain?.(found.run.id)).catch(() => null)
+        const latest = await Promise.resolve(store().getLatestRunInChain?.(found.run.id)).catch((e) => fallback('routes/automation/goldens:makeGoldensRouter', e, null))
             || found.legs[found.legs.length - 1] || found.run;
         if (latest.status !== 'success') {
             throw new HttpError(409, 'golden_needs_success', 'Only a run that finished successfully can be a golden run.');
@@ -210,7 +211,7 @@ function makeGoldensRouter(overrides = {}) {
                 .catch(async (e) => {
                     // replayGoldens records its own failures; this is the net under it.
                     log.warn(`[automation/goldens] replay of ${a.id} failed: ${e.code || 'replay_failed'}`);
-                    await Promise.all(selected.map((g) => Promise.resolve(testing().setGoldenReplay(g.id, { status: 'error', summary: null, replayRunId: null, errorCode: 'replay_failed' })).catch(() => null)));
+                    await Promise.all(selected.map((g) => Promise.resolve(testing().setGoldenReplay(g.id, { status: 'error', summary: null, replayRunId: null, errorCode: 'replay_failed' })).catch((e) => fallback('routes/automation/goldens:makeGoldensRouter#2', e, null))));
                 });
         });
         return res.status(202).json({ replaying: selected.map((g) => g.id) });

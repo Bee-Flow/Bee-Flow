@@ -17,6 +17,7 @@ const { resolveAccessContext } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { flag } = require('./schemas');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // `?download=1` is the rescue-hatch parameter and the only one this route reads. Strict, because `?downlaod=1` streamed the recording back `inline`: the browser played it instead of saving it, and for a browser recording without a durable copy, saving it is the only way out.
 const DOWNLOAD_TEXT = 'download is true of false.';
@@ -96,7 +97,7 @@ router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (re
             ownerId: transcription.ownerId || userId,
             audioPath: transcription.audioPath,
             audioStorageKey: transcription.audioStorageKey,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/transcriptions/audio:anon', e));
     }
 
     const audioPath = transcription.audioPath;

@@ -31,6 +31,7 @@ const {
     resolveOrgId, REGULATION_KEY, computeVerificationSummary,
     _riskStore, _recordSoaEvidence, _buildClauseConformity,
 } = require('./shared');
+const { fallback } = require('../../utils/bestEffort');
 
 // ───────────────── ISO 27001 — remaining exports ─────────────────
 
@@ -63,7 +64,7 @@ async function _riskPdfData(orgId) {
 router.get('/iso/risks.pdf', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
-    const org = await userStore.getOrganization(orgId).catch(() => null);
+    const org = await userStore.getOrganization(orgId).catch((e) => fallback('routes/compliance/isoAuditPack:anon', e, null));
     const { rows, stats } = await _riskPdfData(orgId);
     const { buildRiskRegisterPdf } = require('../../utils/compliancePdf');
     const { buffer, hash } = await buildRiskRegisterPdf({
@@ -88,7 +89,7 @@ async function _policyPackData(orgId) {
 router.get('/iso/policy-pack.pdf', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
-    const org = await userStore.getOrganization(orgId).catch(() => null);
+    const org = await userStore.getOrganization(orgId).catch((e) => fallback('routes/compliance/isoAuditPack:anon#2', e, null));
     const documents = await _policyPackData(orgId);
     if (!documents.length) return res.status(400).json({ error: 'no_published_policies' });
     const { buildPolicyPackPdf } = require('../../utils/compliancePdf');
@@ -106,7 +107,7 @@ router.get('/iso/policy-pack.pdf', requireAuth, requirePermission('admin_complia
 router.get('/iso/evidence-bundle.zip', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
-    const org = await userStore.getOrganization(orgId).catch(() => null);
+    const org = await userStore.getOrganization(orgId).catch((e) => fallback('routes/compliance/isoAuditPack:anon#3', e, null));
     const orgName = org?.name || orgId;
     const now = new Date().toISOString();
     const pdf = require('../../utils/compliancePdf');

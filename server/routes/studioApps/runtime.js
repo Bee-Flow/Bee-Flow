@@ -18,6 +18,7 @@ const { requireAuth } = require('../../auth/permissions');
 const { CheckBody, DraftQuery } = require('./schemas');
 const { requireManageApps, audienceFor, refuseRead } = require('./access');
 const { loadOwnedAutomations, loadDataRefs } = require('./appHelpers');
+const { fallback } = require('../../utils/bestEffort');
 
 const router = express.Router();
 
@@ -207,11 +208,11 @@ async function buildRuntimeViewer(app, userId, userGroups) {
         try {
             const meta = await studioAppDataStore.getDataModel(app.id, app.userId);
             model = (meta && meta.model) ? meta.model : null;
-        } catch (err) { log.debug('no data model → membership/mapping-less resolution', err); }
+        } catch (err) { fallback('routes/studioApps/runtime:buildRuntimeViewer', err); /* no data model → membership/mapping-less resolution */ }
         roleKey = await rlsGateway.resolveViewerRole(app, userId, model, { userGroups });
     }
     let user = null;
-    try { user = await userStore.getUser(userId); } catch (err) { log.debug('name/email stay null', err); }
+    try { user = await userStore.getUser(userId); } catch (err) { fallback('routes/studioApps/runtime:buildRuntimeViewer#2', err); /* name/email stay null */ }
     return {
         id: userId,
         name: user?.displayName || user?.name || user?.username || null,

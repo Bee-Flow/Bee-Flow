@@ -12,6 +12,7 @@ const { TOOL_REGISTRY, loadTools } = require('../../automation/toolRegistry');
 const { isSideEffect, effectOf } = require('../../automation/sideEffectMap');
 const { getOutputSchema, producesList, iterableFieldsOf } = require('../../automation/outputSchemas');
 const { resolveIntegration } = require('../../core/integrations/integrationToolMap');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * What a person reads for an action, next to the app's name: `nextcloud_mail_list_mailboxes`
@@ -72,7 +73,7 @@ async function isWebpagesAvailable(req, userId) {
     try {
         const { userHasBetaFeature } = require('../../core/entitlements/betaFeatures');
         webpagesAvailable = await userHasBetaFeature(userId, 'webpages', req.session);
-    } catch (err) { log.debug('default false', err); }
+    } catch (err) { fallback('routes/automation/catalogApps:isWebpagesAvailable', err); /* default false */ }
     return webpagesAvailable;
 }
 

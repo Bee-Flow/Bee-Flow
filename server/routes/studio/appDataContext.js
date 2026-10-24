@@ -18,6 +18,7 @@ const dataReadRunner = require('../../appStudio/dataReadRunner');
 const datatableSource = require('../../appStudio/datatableSource');
 const { resolveAudienceContext } = require('../../auth/audience');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
+const { fallback } = require('../../utils/bestEffort');
 
 // ── Rate limits (per viewer + app) ──────────────────────────────────
 // Reads are cheaper than writes; both keyed userId:appId so one noisy viewer
@@ -218,8 +219,8 @@ function parseListQuery(req) {
     const q = req.query || {};
     let filters;
     let sort;
-    if (typeof q.filter === 'string' && q.filter) { try { filters = JSON.parse(q.filter); } catch (err) { log.debug('ignore', err); } }
-    if (typeof q.sort === 'string' && q.sort) { try { sort = JSON.parse(q.sort); } catch (err) { log.debug('ignore', err); } }
+    if (typeof q.filter === 'string' && q.filter) { try { filters = JSON.parse(q.filter); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery', err); /* ignore */ } }
+    if (typeof q.sort === 'string' && q.sort) { try { sort = JSON.parse(q.sort); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery#2', err); /* ignore */ } }
     if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
     return { filters, sort };
 }

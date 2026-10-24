@@ -47,6 +47,7 @@ const { HttpError } = require('../../core/http/errors');
 const { onEvidenceWriteFailed } = require('../../compliance/evidence/writeFailures');
 const { publicBaseUrl, publicDsrPath } = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const CHECK_ID = 'GDPR-Art35-chat-monitoring-safeguards';
 /** The shorter of the summary's two views (30 and 90 days). */
@@ -197,7 +198,7 @@ function emitChanged(orgId) {
     try {
         const { emit, EVENTS } = require('../../compliance/events');
         emit(EVENTS.CHAT_MONITORING_CHANGED, { orgId });
-    } catch (err) { log.debug('the bus is optional in tests', err); }
+    } catch (err) { bestEffort('routes/compliance/chatMonitoring:emitChanged', err); /* the bus is optional in tests */ }
 }
 
 function displayName(user) {
@@ -423,7 +424,7 @@ function chatMonitoringDpiaHook(req, res, next) {
             resolveOrgId(req).then((orgId) => {
                 chatMonitoringFlag.invalidate(orgId);
                 emitChanged(orgId);
-            }).catch(() => { /* best-effort: the memo expires within 30 s anyway */ });
+            }).catch((e) => bestEffort('routes/compliance/chatMonitoring:chatMonitoringDpiaHook', e));
         });
     }
     next();

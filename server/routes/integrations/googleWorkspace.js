@@ -39,6 +39,7 @@ const automationCredentialStore = require('../../stores/automationCredentialStor
 // Same OAuth client + scope set as SSO login (permissions.js OAUTH_PROVIDERS)
 // so a connector consent never conflicts with an SSO consent for the same app.
 const { OAUTH_PROVIDERS, loadConfig, requireAuth } = require('../../auth/permissions');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 async function getGoogleClientConfig() {
     const config = await loadConfig();
@@ -188,7 +189,7 @@ router.get('/callback', async (req, res) => {
 
         // Persist into the encrypted vault (same home as SSO-acquired tokens).
         const userStore = require('../../stores/userStore');
-        const user = await userStore.getUser(userId).catch(() => null);
+        const user = await userStore.getUser(userId).catch((e) => fallback('routes/integrations/googleWorkspace:anon', e, null));
         const orgId = resolveVaultOrgId({ ...user, id: userId });
         await automationCredentialStore.upsertCredential({
             userId,
@@ -252,7 +253,7 @@ router.get('/status', requireAuth, async (req, res) => {
     const { clientId, clientSecret } = await getGoogleClientConfig();
     const configured = !!(clientId && clientSecret);
 
-    const cred = await automationCredentialStore.getCredential(userId, 'google').catch(() => null);
+    const cred = await automationCredentialStore.getCredential(userId, 'google').catch((e) => fallback('routes/integrations/googleWorkspace:anon#2', e, null));
     // Session fallback: Google-SSO consumers without an org have no vault
     // row (historic sessions) but ARE connected for this session.
     const sessionConnected = req.session?.oauthProvider === 'google' && !!req.session?.accessToken;
@@ -265,7 +266,7 @@ router.get('/status', requireAuth, async (req, res) => {
     const { hasMeetScopes } = require('../../core/meetingNotes/gmeetNotesSettings');
     const meetScopesGranted = hasMeetScopes(cred?.scope);
 
-    let email = await configStore.getConfig(`google_workspace_email_user_${userId}`).catch(() => null);
+    let email = await configStore.getConfig(`google_workspace_email_user_${userId}`).catch((e) => fallback('routes/integrations/googleWorkspace:anon#3', e, null));
     if (!email && sessionConnected) email = req.session.user?.email || null;
 
     res.json({ configured, connected, needsReauth, meetScopesGranted, email: connected || needsReauth ? email : null });
@@ -281,7 +282,7 @@ router.post('/disconnect', requireAuth, async (req, res) => {
     const { revokeProviderCredential } = require('../../auth/oauthRoutes');
     const result = await revokeProviderCredential(userId, 'google');
 
-    await configStore.deleteConfig(`google_workspace_email_user_${userId}`).catch(() => {});
+    await configStore.deleteConfig(`google_workspace_email_user_${userId}`).catch((e) => bestEffort('routes/integrations/googleWorkspace:anon#4', e));
 
     // Drop the Google tokens from the live session (SSO users stay signed
     // in — only their Google tool access ends until they reconnect).

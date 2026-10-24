@@ -17,6 +17,7 @@ const {
 } = require('../../../core/tools/sessionSkillRuntime');
 const { encryptionOpts } = require('./shared');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 async function setupSessionSkills({ req, send, userId, convId, config, clientHistoryProvided, modelId, disableSearchOnUpload, directChatTools, resolvedTier, requestSessionSkills, requestActivatedSessionSkillIds, message, timezone, tier, adapter, apiKey, apiUrl, messages, volatileMessage = null }) {
         let lastResponseId = null; // OpenAI Responses API chaining
@@ -80,7 +81,7 @@ async function setupSessionSkills({ req, send, userId, convId, config, clientHis
                         sessionSkillsCompletions = existingConv.sessionSkillsCompletions;
                     }
                 }
-            } catch (e) { log.debug('ignore', e); }
+            } catch (e) { fallback('routes/ai/directChat/sessionSkillSetup:setupSessionSkills', e); /* ignore */ }
         }
         // Client-side fallback: if a direct conversation id is not yet synced
         // (race between new message and SSE conversation_created), reuse

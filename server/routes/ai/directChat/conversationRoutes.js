@@ -21,6 +21,7 @@ const { z, typeError } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 // ── What a caller may send ────────────────────────────────────────────────
 // Every schema is `.strict()`: a key the router does not read is a client
@@ -188,7 +189,7 @@ router.post('/direct/conversations/:id/session-skills/regenerate', requireAuth, 
                 }
             }
         }
-    } catch (err) { log.debug('non-fatal', err); }
+    } catch (err) { fallback('routes/ai/directChat/conversationRoutes:anon', err); /* non-fatal */ }
 
     const newSkills = await bootstrapSessionSkills({
         adapter: bootstrapAdapter,

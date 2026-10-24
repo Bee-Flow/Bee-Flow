@@ -36,6 +36,7 @@ const { requireAuth, requirePermission } = require('../../auth/permissions');
 // Shared with the runner's per-run snapshot — see compliance/score.js.
 
 const { SEVERITY_WEIGHT, computeScore, scoresByFramework } = require('../../compliance/score');
+const { fallback } = require('../../utils/bestEffort');
 
 // Track which orgs have had an auto-run kicked off so we don't re-trigger on
 // every overview call. Keyed by orgId, value = timestamp of last auto-run.
@@ -137,7 +138,7 @@ router.get('/report.pdf', requireAuth, requirePermission('admin_compliance'), as
     const actorId = req.session?.user?.id || null;
     const [latest, org] = await Promise.all([
         complianceStore.getLatestPerCheck(orgId),
-        userStore.getOrganization(orgId).catch(() => null),
+        userStore.getOrganization(orgId).catch((e) => fallback('routes/compliance/overview:anon', e, null)),
     ]);
     const { GUI_DEFAULTS } = require('../../i18n/defaults/en');
     const rows = [];
@@ -147,7 +148,7 @@ router.get('/report.pdf', requireAuth, requirePermission('admin_compliance'), as
         try {
             const ev = await complianceStore.getEvidenceHistory(orgId, r.check_id, 1);
             evidenceHash = ev?.[0]?.hash || null;
-        } catch (err) { log.debug('best-effort', err); }
+        } catch (err) { fallback('routes/compliance/overview:anon#2', err); /* best-effort */ }
         rows.push({
             regulation: r.regulation,
             article: r.article,

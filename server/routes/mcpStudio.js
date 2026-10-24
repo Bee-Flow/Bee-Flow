@@ -60,6 +60,7 @@ const { gateRequest: authenticateMcpRequest, rpcDenied } = require('../auth/mcpA
 const { batchTooLarge, rpcBatchTooLarge } = require('../auth/mcpAccess/batch');
 const { scopeAllowsTool, filterToolsByScope } = require('../auth/mcpAccess/scopes');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const router = express.Router();
 
@@ -102,7 +103,7 @@ async function assertCapability(userId) {
     const { hasCapability } = require('../core/entitlements/entitlements');
     const orgId = await require('../stores/userStore').getUser(userId)
         .then((u) => u?.organizationId || null)
-        .catch(() => null);
+        .catch((e) => fallback('routes/mcpStudio:assertCapability', e, null));
     const ok = await hasCapability('app_studio', { userId, orgId });
     // Without this line the symptom is an empty tool list and no explanation
     // anywhere — the client shows a server with nothing on it and the operator

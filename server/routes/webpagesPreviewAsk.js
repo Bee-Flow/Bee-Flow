@@ -35,6 +35,7 @@ const { getAdapter } = require('../core/providers');
 const { openSse } = require('../core/http/sseHelpers');
 const { resolveBridgeModel, loadAiContext } = require('./webpagesPreviewAi');
 const { compactToolResultForLLM, buildAskToolSurface, automationToolName } = require('./webpagesPreviewAskTools');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const MAX_ASK_ROUNDS_DEFAULT = 6;
 const MAX_ASK_ROUNDS_HARD_CAP = 10;
@@ -79,7 +80,7 @@ async function runGrantedAutomation(ask, toolName, toolArgs) {
         if (automationToolName(autoId) === toolName) { grant = g; break; }
     }
     if (!grant) return { error: `Automation not granted: ${toolName}` };
-    const automation = await automationStore.getAutomation(grant.automationId).catch(() => null);
+    const automation = await automationStore.getAutomation(grant.automationId).catch((e) => fallback('routes/webpagesPreviewAsk:runGrantedAutomation', e, null));
     if (!automation || automation.userId !== ctx.authorUserId) return { error: 'Automation unavailable' };
     const runner = require('../core/automationRunner');
     const run = await runner.executeAutomation(automation, {
@@ -133,7 +134,7 @@ async function dispatchAskTool(ask, toolCall) {
     const { send, shieldGate } = ask;
     const toolName = toolCall.function?.name || toolCall.name;
     let toolArgs = {};
-    try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (_) { log.debug('tool arguments are not valid JSON, call the tool with none', _); }
+    try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (_) { fallback('routes/webpagesPreviewAsk:dispatchAskTool', _); /* tool arguments are not valid JSON, call the tool with none */ }
 
     send('tool_call', { id: toolCall.id, name: toolName, args: toolArgs });
     const refusal = await shieldGate.refuse(toolName, toolArgs);
@@ -230,7 +231,7 @@ async function runAskRounds(ask, llm, messages) {
             state.fullContent = '';
             state.streamToolCalls = [];
             await adapter.stream(apiKey, apiUrl, modelId, messages, { maxTokens, temperature }, state.callback);
-        } catch (err) { log.debug('best-effort', err); }
+        } catch (err) { fallback('routes/webpagesPreviewAsk:runAskRounds', err); /* best-effort */ }
     }
     return { rounds, truncated };
 }
@@ -313,7 +314,7 @@ async function ask(req, res) {
             duration_ms: Date.now() - t0,
             source: 'webpage_bridge_ai_agentic',
             conversation_id: webpageId,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/webpagesPreviewAsk:ask', e));
 
         send('done', { rounds, truncated, prompt_tokens: usageAcc.total().prompt_tokens, completion_tokens: usageAcc.total().completion_tokens });
         stopHeartbeat();

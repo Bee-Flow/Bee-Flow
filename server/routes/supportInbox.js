@@ -38,6 +38,7 @@ const OAuth = require('./support/inboxOAuth');
 const Threads = require('./support/inboxThreads');
 const Settings = require('./support/inboxSettings');
 const Writes = require('./support/inboxOrgWrites');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 // ── Permission gate (all routes) ──────────────────────────────────────────────
 router.use(async (req, res, next) => {
@@ -60,7 +61,7 @@ router.use(async (req, res, next) => {
  */
 async function agentUsableByInbox(agentId, organizationId, userId) {
     if (!agentId) return true;
-    const agent = await agentStore.getAgent(agentId).catch(() => null);
+    const agent = await agentStore.getAgent(agentId).catch((e) => fallback('routes/supportInbox:agentUsableByInbox', e, null));
     if (!agent) return false;
     if (agent.owner_id === 'system') return true;
     if (agent.organization_id) return agent.organization_id === organizationId;
@@ -105,7 +106,7 @@ router.patch('/inboxes/:id', validate({ body: S.PatchInboxBody }), async (req, r
     // string / null clears the operator (allowed).
     if (typeof req.body?.operator_user_id === 'string' && req.body.operator_user_id.trim()) {
         const { _eligibleStaffForOrg } = require('../services/supportAutoAssigner');
-        const eligible = await _eligibleStaffForOrg(inbox.organization_id).catch(() => []);
+        const eligible = await _eligibleStaffForOrg(inbox.organization_id).catch((e) => fallback('routes/supportInbox:anon', e, []));
         const op = req.body.operator_user_id.trim();
         if (!Array.isArray(eligible) || !eligible.includes(op)) {
             return res.status(400).json({ error: "Operator must be a support-capable member of this inbox's organisation." });
@@ -154,7 +155,7 @@ router.delete('/inboxes/:id', async (req, res) => {
     // firing on a dead inbox_id filter after the mailbox is gone.
     if (inbox.kb_ingest_automation_id) {
         const { teardownAutomation } = require('../automation/provisionAutomation');
-        await teardownAutomation(inbox.kb_ingest_automation_id).catch(() => {});
+        await teardownAutomation(inbox.kb_ingest_automation_id).catch((e) => bestEffort('routes/supportInbox:anon#2', e));
     }
     const { purgedThreads } = await supportInboxStore.deleteInbox(req.params.id, inbox.organization_id);
     audit.emit(req, { organizationId: inbox.organization_id, inboxId: inbox.id, action: 'inbox_deleted', payload: { provider: inbox.provider, emailAddress: inbox.email_address || null, purgedThreads } });
@@ -197,7 +198,7 @@ async function ensureKbAutomation(inbox, userId, session, kbId) {
     }
 
     let automationId = inbox.kb_ingest_automation_id || null;
-    const existing = automationId ? await automationStore.getAutomation(automationId).catch(() => null) : null;
+    const existing = automationId ? await automationStore.getAutomation(automationId).catch((e) => fallback('routes/supportInbox:ensureKbAutomation', e, null)) : null;
     if (existing) {
         // goLive: this provisioned automation runs what Support settings wrote
         // (handoff 5 live split), never a pending working copy.
@@ -229,7 +230,7 @@ router.put('/inboxes/:id/kb-automation', validate({ body: S.KbAutomationBody }),
     const { teardownAutomation } = require('../automation/provisionAutomation');
 
     if (!enabled) {
-        if (inbox.kb_ingest_automation_id) await teardownAutomation(inbox.kb_ingest_automation_id).catch(() => {});
+        if (inbox.kb_ingest_automation_id) await teardownAutomation(inbox.kb_ingest_automation_id).catch((e) => bestEffort('routes/supportInbox:anon#3', e));
         // Keep kb id so re-enabling pre-selects the previous KB.
         const updated = await supportInboxStore.setKbAutomation(req.params.id, { enabled: false, automationId: null }, inbox.organization_id);
         audit.emit(req, { organizationId: inbox.organization_id, inboxId: inbox.id, action: 'kb_automation_changed', payload: { enabled: false } });
@@ -279,7 +280,7 @@ router.post('/inboxes/:id/scan', validate({ body: S.ScanBody }), async (req, res
     audit.emit(req, { organizationId: inbox.organization_id, inboxId: inbox.id, action: 'scan_started', payload: { windowDays: days } });
     // Best-effort immediate kick (the lease prevents double-run with the drain
     // tick); only when this process is the configured scan runner.
-    if (process.env.SUPPORT_SCAN_IN_API !== 'false') { scanOneDue().catch(() => {}); }
+    if (process.env.SUPPORT_SCAN_IN_API !== 'false') { scanOneDue().catch((e) => bestEffort('routes/supportInbox:anon#4', e)); }
     res.json({ inbox: updated });
 });
 
