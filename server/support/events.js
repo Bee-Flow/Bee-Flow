@@ -16,6 +16,7 @@
 
 const { EventEmitter } = require('events');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const supportEvents = new EventEmitter();
 // Each connected staff browser adds a listener. The cap is a smoke alarm, not
@@ -26,7 +27,7 @@ supportEvents.setMaxListeners(50);
 function emit(event, payload) {
     try {
         supportEvents.emit('event', { event, data: payload });
-    } catch (err) { log.debug('a listener blew up; the caller\'s work still stands', err); }
+    } catch (err) { bestEffort('support/events:emit', err); /* a listener blew up; the caller's work still stands */ }
 }
 
 module.exports = { supportEvents, emit };

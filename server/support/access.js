@@ -19,6 +19,7 @@ const supportInboxStore = require('../stores/supportInboxStore');
 const userStore = require('../stores/userStore');
 const { resolveUserOrgIds, isOrgAdminRole } = require('../auth/permissions');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 function getUserId(req) { return req.session?.user?.id || null; }
 
@@ -33,7 +34,7 @@ async function resolveUserGroups(req) {
         if (typeof user.groups === 'string') {
             try { return JSON.parse(user.groups || '[]'); } catch { return []; }
         }
-    } catch (err) { log.debug('ignore', err); }
+    } catch (err) { bestEffort('support/access:resolveUserGroups', err); /* ignore */ }
     return [];
 }
 
@@ -129,7 +130,7 @@ async function userGroupsFor(userId) {
         if (!user) return [];
         if (Array.isArray(user.groups)) return user.groups;
         if (typeof user.groups === 'string') { try { return JSON.parse(user.groups || '[]'); } catch { return []; } }
-    } catch (err) { log.debug('ignore', err); }
+    } catch (err) { bestEffort('support/access:userGroupsFor', err); /* ignore */ }
     return [];
 }
 

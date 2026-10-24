@@ -11,6 +11,7 @@
 
 const supportStore = require('../stores/supportStore');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Canonical actor kind per action. Includes the historical action strings the
 // engine already emits (so backfilled + legacy events categorise correctly) and
@@ -108,8 +109,8 @@ function emit(req, { organizationId = null, inboxId = null, threadId = null, act
             organizationId, inboxId, threadId,
             actorKind: kind, actorUserId: uid, action, payload,
             ip: clientIp(req), ua: clientUa(req),
-        }).catch(() => { /* never break the request */ });
-    } catch (err) { log.debug('never break the request', err); }
+        }).catch((e) => bestEffort('support/audit:emit', e));
+    } catch (err) { bestEffort('support/audit:emit#2', err); /* never break the request */ }
 }
 
 /**
@@ -122,8 +123,8 @@ function emitSystem({ organizationId = null, inboxId = null, threadId = null, ac
             organizationId, inboxId, threadId,
             actorKind: actorKind || actorKindFor(action, 'system'),
             actorUserId, action, payload,
-        }).catch(() => {});
-    } catch (err) { log.debug('swallow', err); }
+        }).catch((e) => bestEffort('support/audit:emitSystem', e));
+    } catch (err) { bestEffort('support/audit:emitSystem#2', err); /* swallow */ }
 }
 
 module.exports = { ACTION_CATALOG, actorKindFor, emit, emitSystem, clientIp, clientUa };

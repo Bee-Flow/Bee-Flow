@@ -15,6 +15,7 @@
 const { sendServiceEmail } = require('../utils/emailService');
 const { clientHost: _clientHost } = require('../utils/appPaths');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 function _escape(s) {
     if (s == null) return '';
@@ -243,7 +244,7 @@ async function _recordAuditEvent({ threadId, kind, errorMsg }) {
                 payload: { kind, error: errorMsg.slice(0, 500) },
             });
         }
-    } catch (err) { log.debug('failure audit write failed, nothing more to report', err); }
+    } catch (err) { bestEffort('support/emails:_recordAuditEvent', err); /* failure audit write failed, nothing more to report */ }
 }
 
 /**
