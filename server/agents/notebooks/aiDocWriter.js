@@ -24,6 +24,7 @@
 
 const log = require('../../telemetry/log');
 const notebookCollab = require('./notebookCollab');
+const { fallback } = require('../../utils/bestEffort');
 
 /** The HTML as the store keeps it, for "is this the same document?". @param {unknown} html */
 function canonicalHtml(html) {
@@ -96,7 +97,7 @@ function makeAiDocWriter({ notebookId, userId, baseHtml, expectedVersion, store 
         });
         let saved = await write(casVersion);
         if (!saved.ok && saved.conflict) {
-            const fresh = await store.getNotebook(notebookId, userId).catch(() => null);
+            const fresh = await store.getNotebook(notebookId, userId).catch((e) => fallback('agents/notebooks/aiDocWriter:writeRow', e, null));
             if (fresh && canonicalHtml(fresh.documentContent) === casBase) saved = await write(fresh.version);
         }
         if (saved.ok) {

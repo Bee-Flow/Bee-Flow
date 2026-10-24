@@ -100,6 +100,7 @@ function normalizeSourceName(name, fallback = 'Untitled source') {
 // stores the same sentences on documents.status_reason, so notebooks and
 // knowledge bases must not drift into two vocabularies for one failure.
 const { friendlyError } = require('../../core/kb/friendlyError');
+const { bestEffort, fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 // Cap stored extracted text so a giant upload can't bloat a DB row; enough for
 // preview + text/meeting retry.
@@ -174,7 +175,7 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
             if (shield?.enabled) {
                 // Hydrate any existing notebook map first so a second source in the
                 // same dossier reuses tokens (one [person_1] across all sources).
-                try { await require('../../core/dlp/dlpRunner').getConversationTokenMapAsync(notebookId); } catch (err) { log.debug('best-effort', err); }
+                try { await require('../../core/dlp/dlpRunner').getConversationTokenMapAsync(notebookId); } catch (err) { bestEffort('agents/notebooks/sourceIngestion:ingestTextIntoKB', err); /* best-effort */ }
                 // Warm the scan ledger with this source's segments.
                 //
                 // Ingestion already reads every byte of the source; recording the
@@ -269,7 +270,7 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
         // so the UI can show a "duplicate" badge.
         if (e.code === 'DUPLICATE') {
             log.info(`[SourceIngestion] Duplicate content for "${sourceName}", marking ready`);
-            const cur = await notebookStore.getSource(sourceId).catch(() => null);
+            const cur = await notebookStore.getSource(sourceId).catch((e) => fallbackSwallowed('agents/notebooks/sourceIngestion:ingestTextIntoKB#2', e, null));
             await writeWhileProcessing(sourceId, { status: 'ready', stage: 'ready', wordCount, metadata: { ...(cur?.metadata || {}), duplicate: true } });
             return;
         }

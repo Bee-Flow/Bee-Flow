@@ -26,6 +26,7 @@
  *   roles: () => { SystemRoles: { SUPER_ADMIN: string }, OrgRoles: { AGENT_EDITOR: string } },
  * }} deps
  */
+const { fallback } = require('../utils/bestEffort');
 function makeAgentAccess(deps) {
     // Prefetch the per-request inputs canModifyAgent needs so list endpoints can
     // compute `can_edit` for many agents without N× user/permission lookups.
@@ -34,7 +35,7 @@ function makeAgentAccess(deps) {
         const [hasManage, orgIds, user] = await Promise.all([
             deps.hasPermission(userId, 'manage_agents', req.session),
             Promise.resolve(deps.resolveUserOrgIds(req)).catch(() => new Set()),
-            Promise.resolve(deps.getUser(userId)).catch(() => null),
+            Promise.resolve(deps.getUser(userId)).catch((e) => fallback('agents/agentAccess:buildCanModifyContext', e, null)),
         ]);
         return { hasManage, orgIds, user };
     }
