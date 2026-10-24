@@ -113,7 +113,10 @@ const mockDsrStore = {
 };
 
 const mockUserStore = {
-    getUser: async (id) => state.users.get(id) || null,
+    getUser: async (id) => {
+        if (state.userLookupFails) throw Object.assign(new Error('connection terminated'), { code: '57P01' });
+        return state.users.get(id) || null;
+    },
     getUserByEmail: async (email) => [...state.users.values()].find(u => u.email === email) || null,
     // The discovery scan must use the ORG-PINNED lookup, never the platform-wide
     // one — otherwise a tenant can ask whether any address has an account here.
@@ -248,7 +251,7 @@ test.beforeEach(() => {
         ['admin_b', { id: 'admin_b', organizationId: 'org_b', email: 'admin@org-b.test' }],
         ['u_person', { id: 'u_person', organizationId: 'org_a', email: EMAIL }],
     ]);
-    state.audits = []; state.evidence = []; state.mails = []; state.mailFail = false; state.auditFail = false;
+    state.audits = []; state.evidence = []; state.mails = []; state.mailFail = false; state.auditFail = false; state.userLookupFails = false;
     state.evidenceFail = false; writeFailures._reset();
     state.events = []; state.tokenHashes = new Map(); state.runnerCalls = [];
     discovery._resetMemo();
@@ -259,6 +262,20 @@ async function seed(over = {}) {
     Object.assign(state.rows.get(created.id), over);
     return created.id;
 }
+
+// ── The admin's organisation ────────────────────────────────────────
+
+test('an admin whose organisation cannot be looked up gets 503, never the default org\'s requests', async () => {
+    await mockDsrStore.createRequest({ organization_id: 'default', request_type: 'access', subject_email: EMAIL, channel: 'public_form' });
+    state.userLookupFails = true;
+    const list = await get('/requests', { session: ADMIN });
+    assert.strictEqual(list.status, 503);
+    assert.strictEqual(list.body.code, 'org_unavailable');
+    assert.ok(!list.text.includes(EMAIL));
+    const manual = await post('/requests/manual', { session: ADMIN, body: { subject_email: 'other@example.org' } });
+    assert.strictEqual(manual.status, 503);
+    assert.strictEqual(state.rows.size, 1, 'no manual intake filed under the default org');
+});
 
 // ── Public intake ───────────────────────────────────────────────────
 

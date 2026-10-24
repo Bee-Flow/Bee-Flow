@@ -69,7 +69,7 @@ async function _openNis2Incidents(orgId) {
             }
         } catch (e) {
             if (!isMissingTable(e)) throw e;
-            return { rows: null, source: 'incidentStore.listOpenClocks', missing: e.code };
+            return { rows: null, source: 'incidentStore.listOpenClocks', missing: e.code ?? 'missing_table' };
         }
     }
     try {
@@ -86,7 +86,7 @@ async function _openNis2Incidents(orgId) {
         `, [orgId]);
         return { rows, source: 'query' };
     } catch (e) {
-        if (isMissingTable(e)) return { rows: null, source: 'query', missing: e.code };
+        if (isMissingTable(e)) return { rows: null, source: 'query', missing: e.code ?? 'missing_table' };
         throw e;
     }
 }

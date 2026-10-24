@@ -71,7 +71,7 @@ module.exports = {
             if (isMissingTable(e)) {
                 return {
                     status: 'warn',
-                    evidence: { provisioned: false, missing: e.code },
+                    evidence: { provisioned: false, missing: e.code ?? 'missing_table' },
                     details: 'The ISMS policy register is not provisioned yet — open Compliance → Policies once to seed it.',
                 };
             }
@@ -140,7 +140,7 @@ module.exports = {
             if (isMissingTable(e)) {
                 return {
                     status: 'warn',
-                    evidence: { ...evidence, provisioned: false, missing: e.code },
+                    evidence: { ...evidence, provisioned: false, missing: e.code ?? 'missing_table' },
                     details: 'The acknowledgement ledger is not provisioned yet — cannot verify management approval.',
                 };
             }

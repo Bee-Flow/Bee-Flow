@@ -35,6 +35,7 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
+const { bestEffort } = require('../utils/bestEffort');
 const router = express.Router();
 
 const dsrStore = require('../stores/dsrStore');
@@ -53,7 +54,7 @@ const complianceStore = (() => { try { return require('../stores/complianceStore
 const emailService = (() => { try { return require('../utils/emailService'); } catch { return null; } })();
 
 // Bootstrap the durable verify-token secret once the DB is up (non-fatal).
-verifyToken.ensureDurable().catch(() => {});
+verifyToken.ensureDurable().catch((e) => bestEffort('dsr:ensureDurableVerifySecret', e));
 
 const publicSubmitLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
@@ -142,7 +143,7 @@ function clockFor(row, now = Date.now()) {
             const { state } = deadlines.clockState('dsr', due, Number.isFinite(startedMs) ? startedMs : null, now);
             return { days_left: daysLeft, state };
         }
-    } catch (err) { log.debug('not there — local rule below', err); }
+    } catch (err) { bestEffort('dsr:clockState', err); } // the local rule below decides
     let state = 'ok';
     if (due <= now) state = 'overdue';
     else if (due - now <= URGENT_BELOW_DAYS * DAY_MS) state = 'urgent';
@@ -152,7 +153,7 @@ function clockFor(row, now = Date.now()) {
 function publicBaseUrl() {
     try {
         if (typeof appPaths.publicBaseUrl === 'function') return String(appPaths.publicBaseUrl()).replace(/\/+$/, '');
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('dsr:publicBaseUrl', err); }
     const fromEnv = process.env.PUBLIC_SHARE_BASE_URL || process.env.PUBLIC_APP_URL;
     if (fromEnv) return String(fromEnv).replace(/\/+$/, '');
     return appPaths.clientHost();
@@ -191,13 +192,12 @@ async function _resolveOrgIdFromSubject(email) {
     }
 }
 
+// A failed lookup is a 503: 'default' would show this admin another tenant's requests.
 async function resolveAdminOrgId(req) {
     const userId = req.session?.user?.id;
     if (!userId) return 'default';
-    try {
-        const u = await userStore.getUser(userId);
-        return u?.organizationId || 'default';
-    } catch { return 'default'; }
+    const u = await userStore.getUser(userId).catch((e) => { throw new HttpError(503, 'org_unavailable', `organisation lookup failed (${e?.code || 'error'})`); });
+    return u?.organizationId || 'default';
 }
 
 /** Org name + DPO address + locale for the letters. Best-effort, never throws. */
@@ -207,11 +207,11 @@ async function letterContext(orgId) {
         const org = await userStore.getOrganization?.(orgId);
         if (org?.name) ctx.orgName = org.name;
         if (org?.defaultLocale || org?.locale) ctx.locale = org.defaultLocale || org.locale;
-    } catch (err) { log.debug('keep defaults', err); }
+    } catch (err) { bestEffort('dsr:letterContextOrg', err); } // keep the defaults
     try {
         const settings = await complianceStore?.getSettings?.(orgId);
         if (settings?.dpo_email) ctx.dpoEmail = settings.dpo_email;
-    } catch (err) { log.debug('keep defaults', err); }
+    } catch (err) { bestEffort('dsr:letterContextSettings', err); }
     if (!ctx.orgName) ctx.orgName = orgId === 'default' ? 'Bee Flow' : orgId;
     return ctx;
 }
@@ -296,7 +296,7 @@ async function sendAck(orgId, created, email, requestType) {
         await dsrStore.appendTimeline(orgId, created.id, { kind: 'ack_sent', by: null, text: null });
     } catch (e) {
         log.warn(`[DSR] ack e-mail for #${created.id} failed:`, e.message);
-        await dsrStore.appendTimeline(orgId, created.id, { kind: 'ack_failed', by: null, text: String(e.message || 'send failed').slice(0, 200) }).catch(() => {});
+        await dsrStore.appendTimeline(orgId, created.id, { kind: 'ack_failed', by: null, text: String(e.message || 'send failed').slice(0, 200) }).catch((err) => bestEffort('dsr:ackFailedTimeline', err));
     }
 }
 
@@ -482,8 +482,8 @@ router.post('/requests/:id/verify', publicReadLimiter, requireVerifyToken, stamp
 // account, GDPR Art. 12.)
 
 router.post('/requests/manual', requireAuth, requirePermission('admin_compliance'), validate({ body: ManualIntakeBody }), async (req, res) => {
+    const orgId = await resolveAdminOrgId(req);
     try {
-        const orgId = await resolveAdminOrgId(req);
         const actorId = req.session?.user?.id || null;
         const body = req.body || {};
         const email = typeof body.subject_email === 'string' ? body.subject_email.trim().toLowerCase() : '';
@@ -741,7 +741,7 @@ router.get('/requests/:id/export', requireAuth, requirePermission('admin_complia
         discovery_summary: discoverySummary,
         notes: 'Dossier of how this request was handled. It contains no personal data of the subject and no free text at all (BFSF-441): the subject\'s note, the result summary, the extension reason and the timeline entries are reported as lengths only. The subject\'s own data was delivered to them directly.',
     };
-    userStore.logAccessAudit?.('dsr.dossier_exported', 'dsr_request', String(id), actorId, null, null, orgId)?.catch?.(() => {});
+    userStore.logAccessAudit?.('dsr.dossier_exported', 'dsr_request', String(id), actorId, null, null, orgId)?.catch?.((e) => bestEffort('dsr:dossierAudit', e));
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="dsr-${id}-dossier.json"`);
     res.send(JSON.stringify(dossier, null, 2));

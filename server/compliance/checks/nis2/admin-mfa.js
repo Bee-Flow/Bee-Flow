@@ -82,7 +82,7 @@ module.exports = {
             if (isMissingTable(e)) {
                 return {
                     status: 'warn',
-                    evidence: { provisioned: false, missing: e.code },
+                    evidence: { provisioned: false, missing: e.code ?? 'missing_table' },
                     details: 'MFA columns on the user table are not provisioned yet — cannot verify admin MFA coverage.',
                 };
             }

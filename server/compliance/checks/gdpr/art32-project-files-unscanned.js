@@ -75,7 +75,8 @@ async function rescanDocument(row) {
     });
     if (verdict.piiStatus === 'unscanned') return 'still_unscanned';
     if (verdict.outcome === ingestPrivacy.OUTCOME.SKIPPED) {
-        await helpers.purgeDocumentChunks(row.kb_id, row.document_id, row.tenant_id).catch(() => {});
+        // Not swallowed: chunks left behind would keep a withheld file searchable; a throw counts the file as failed.
+        await helpers.purgeDocumentChunks(row.kb_id, row.document_id, row.tenant_id);
         await kbStore.replaceDocumentContent(row.document_id, {
             status: 'skipped', statusReason: verdict.reason, chunkCount: 0,
             piiStatus: verdict.piiStatus, piiCategories: verdict.piiCategories,

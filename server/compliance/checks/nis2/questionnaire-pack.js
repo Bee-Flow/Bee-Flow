@@ -87,7 +87,7 @@ module.exports = {
             if (isMissingTable(e)) {
                 return {
                     status: 'warn',
-                    evidence: { provisioned: false, missing: e.code },
+                    evidence: { provisioned: false, missing: e.code ?? 'missing_table' },
                     details: 'The ISO 27001 registers (policies, SoA, sweeps) are not provisioned yet — open Compliance → Policies and → SoA once to seed them.',
                 };
             }
