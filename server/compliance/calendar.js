@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — the regulatory calendar: the framework catalogue's MILESTONES
  * (compliance/frameworks.js) with the two per-org facts the UI needs on top.

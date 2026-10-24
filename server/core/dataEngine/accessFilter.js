@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ROW-LEVEL-SECURITY — the access-filter compiler.
  *

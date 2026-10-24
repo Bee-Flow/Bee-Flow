@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EERLIJK FALEN op elke plek waar een BRUG draait — één mechanisme, twee bruggen.
  *

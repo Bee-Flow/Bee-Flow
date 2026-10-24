@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * jobs/aiParticipation.js with an in-memory store and engine (the engine and
  * the store have their own tests; engine.test.js runs this job over PGlite).

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * automation/access.js — the role matrix behind every automation route
  * (handoff 5, sharing and roles). All lookups are injected: no database, no

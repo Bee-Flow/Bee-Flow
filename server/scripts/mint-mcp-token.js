@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Mint (or revoke) a Bee Flow MCP bearer token from the command line.
  *

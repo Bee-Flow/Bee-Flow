@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The relations a link request declares, in Nextcloud-native terms (table and
  * column ids), turned into per-mirror declared relations. Extracted from

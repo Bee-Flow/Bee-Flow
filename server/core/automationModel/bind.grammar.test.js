@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * One path, one value — whatever kind of binding carries it.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Notebook chat: the Privacy Shield on attachments and the typed message.
  *

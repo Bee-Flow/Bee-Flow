@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De usage-index, geschreven vanuit een WEBPAGINA (`consumer_kind='webpage'`).
  *
@@ -109,7 +110,6 @@
  * is precies dezelfde stille poort als regel 1. Beide bronnen leesbaar, of
  * niets schrijven.
  */
-
 'use strict';
 const { featureModule } = require('../featureModules');
 const logger = require('../../telemetry/log');
@@ -183,7 +183,7 @@ async function scopesForPage(page, deps = {}) {
  * Wat bindt deze pagina NU aan tabellen?
  *
  * @returns {Promise<{ok:boolean, reason:string, scopes?:Array, entries?:Array,
- *                    ownerId?:string|null, unresolved?:number}>}
+ *                    ownerId?:string|null, unresolved?:number, error?:string}>}
  *   `ok:false` betekent ALTIJD "laat de index staan" — nooit "schrijf een lege
  *   lijst". Het onderscheid staat in `reason`.
  */

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The legal claims the Compliance Center's English strings make, pinned to
  * what the law actually says (round 2 legal-wording review, 7 Oct 2026).

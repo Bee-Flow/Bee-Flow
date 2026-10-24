@@ -97,7 +97,7 @@ async function tryAzure(buffer, filename) {
         // Wrap every path (config read, Azure client, timeout) so a failure
         // here falls through to the next extractor instead of crashing the
         // whole attachment flow.
-        log.warn(`[AttachmentExtractor] Azure Document Intelligence step failed for ${filename}: ${err.message}`);
+        log.warn(`[AttachmentExtractor] Azure Document Intelligence step failed for ${log.nameForLog(filename)}: ${err.message}`);
         return null;
     }
 }
@@ -108,7 +108,7 @@ async function tryMistralOcr(base64, mimeType, filename) {
         const text = await mistralOCR(base64, mimeType, filename);
         return text || null;
     } catch (err) {
-        log.warn(`[AttachmentExtractor] Mistral OCR failed for ${filename}: ${err.message}`);
+        log.warn(`[AttachmentExtractor] Mistral OCR failed for ${log.nameForLog(filename)}: ${err.message}`);
         return null;
     }
 }

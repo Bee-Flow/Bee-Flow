@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Maintenance / deployment window routes.
  *

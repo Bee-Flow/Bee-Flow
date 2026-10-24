@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The token-preservation addendum must tell the model that a token IS the
  * value: a user whose memory reads "My name is [person_7]" asked "what is my

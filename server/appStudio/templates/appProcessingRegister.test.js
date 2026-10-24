@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Processing register — the checks templates.test.js cannot make.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Canonical JSON for the compliance evidence chain.
  *

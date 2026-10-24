@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * parseDocument's PDF fallback (core/documents/documentParser.js) — the path a
  * PDF takes when Mistral OCR is not configured.

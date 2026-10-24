@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Dictation — speak instead of type, anywhere in the product.
  *

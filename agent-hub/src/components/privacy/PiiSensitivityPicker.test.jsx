@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import PiiSensitivityPicker, { presetFor, PII_SENSITIVITY_PRESETS } from './PiiSensitivityPicker';
 
@@ -39,19 +40,21 @@ describe('presetFor', () => {
 });
 
 describe('PiiSensitivityPicker', () => {
-    it('selecting a level stores that level\'s exact threshold', () => {
+    it('selecting a level stores that level\'s exact threshold', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(<PiiSensitivityPicker value={0.7} onChange={onChange} />);
-        fireEvent.click(screen.getByText('High sensitivity'));
+        await user.click(screen.getByText('High sensitivity'));
         expect(onChange).toHaveBeenCalledWith(0.45);
-        fireEvent.click(screen.getByText('Low sensitivity'));
+        await user.click(screen.getByText('Low sensitivity'));
         expect(onChange).toHaveBeenCalledWith(0.85);
     });
 
-    it('hides the raw slider by default for preset values', () => {
+    it('hides the raw slider by default for preset values', async () => {
+        const user = userEvent.setup();
         render(<PiiSensitivityPicker value={0.7} onChange={() => {}} />);
         expect(document.querySelector('input[type="range"]')).toBeNull();
-        fireEvent.click(screen.getByText('Advanced: set an exact percentage'));
+        await user.click(screen.getByText('Advanced: set an exact percentage'));
         expect(document.querySelector('input[type="range"]')).not.toBeNull();
     });
 
@@ -69,20 +72,22 @@ describe('PiiSensitivityPicker', () => {
         expect(onChange).toHaveBeenCalledWith(0.65);
     });
 
-    it('choosing a level auto-hides the advanced fold', () => {
+    it('choosing a level auto-hides the advanced fold', async () => {
+        const user = userEvent.setup();
         // Opened because the stored value is custom…
         render(<PiiSensitivityPicker value={0.5} onChange={() => {}} />);
         expect(document.querySelector('input[type="range"]')).not.toBeNull();
         // …but picking a named level answers the question — the raw slider
         // must not linger under a preset selection.
-        fireEvent.click(screen.getByText('High sensitivity'));
+        await user.click(screen.getByText('High sensitivity'));
         expect(document.querySelector('input[type="range"]')).toBeNull();
     });
 
-    it('disables the level buttons in read-only contexts', () => {
+    it('disables the level buttons in read-only contexts', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(<PiiSensitivityPicker value={0.7} onChange={onChange} disabled />);
-        fireEvent.click(screen.getByText('High sensitivity'));
+        await user.click(screen.getByText('High sensitivity'));
         expect(onChange).not.toHaveBeenCalled();
     });
 });

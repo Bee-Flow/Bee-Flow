@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The document runner's marking PORT.
  *

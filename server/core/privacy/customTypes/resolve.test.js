@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The old terms as types and back (migrate.js), and what the runtime makes of

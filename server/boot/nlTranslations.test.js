@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Dutch catalogues run in sequence, every name in the list is real, and
  * startupTasks actually delegates to the shared ladder.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Per-conversation kb_search result cache.
  *

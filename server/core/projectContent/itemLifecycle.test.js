@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/projectContent/itemLifecycle.js — what happens to an item's
  * project-bound state (co-editing, comment threads, compliance signal) when it

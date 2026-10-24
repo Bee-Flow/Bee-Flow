@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Overlap reconciliation between a pyannoteAI /diarize run and a /identify run.
  *

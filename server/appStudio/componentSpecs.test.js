@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * componentSpecs.js — the schema contract itself. These tests pin the v2
  * surface (versions, limits, new types/kinds) and assert the spec tables are

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CLAMPING a stored `config.tools` — on write and on read both, and never by
  * throwing.

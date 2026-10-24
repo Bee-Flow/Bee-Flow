@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MANAGED_COLUMNS } from './datatableDisplay';
@@ -165,12 +166,13 @@ describe('the Used-by tab', () => {
     };
 
     it('navigates in-app for an automation this account owns', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         await openUsage(
             [{ automationId: 'a1', automationTitle: 'Nightly sync', automationOwner: 'u1', mode: 'read', columns: [] }],
             { user: { id: 'u1' }, onNavigate },
         );
-        fireEvent.click(await screen.findByRole('button', { name: 'Nightly sync' }));
+        await user.click(await screen.findByRole('button', { name: 'Nightly sync' }));
         expect(onNavigate).toHaveBeenCalledWith('studio/automations/a1');
     });
 
@@ -189,6 +191,7 @@ describe('the Used-by tab', () => {
     });
 
     it('is fetched ONCE for the whole detail, not once per panel', async () => {
+        const user = userEvent.setup();
         // The designer, this tab and the delete confirmation all read it. Three
         // fetches is three chances to disagree about what depends on the table
         // while somebody decides whether to drop a column.
@@ -198,7 +201,7 @@ describe('the Used-by tab', () => {
         // test that pins the wording of a translated value fails on the day
         // somebody improves it rather than on the day the behaviour breaks.
         await screen.findByTestId('used-by');
-        fireEvent.click(screen.getByRole('radio', { name: /Columns/ }));
+        await user.click(screen.getByRole('radio', { name: /Columns/ }));
         await screen.findByDisplayValue('Email');
         expect(datatablesApi.listUsage).toHaveBeenCalledTimes(1);
     });
@@ -215,8 +218,9 @@ describe('the Used-by tab', () => {
 
 describe('the dialogs are real dialogs', () => {
     it('the create dialog traps focus and closes on ESC', async () => {
+        const user = userEvent.setup();
         renderStudio({ hasPermission: () => true });
-        fireEvent.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
+        await user.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
 
         const dialog = await screen.findByRole('dialog');
         expect(dialog.contains(document.activeElement)).toBe(true);
@@ -226,10 +230,11 @@ describe('the dialogs are real dialogs', () => {
     });
 
     it('the destructive column dialog traps focus and closes on ESC', async () => {
+        const user = userEvent.setup();
         renderStudio({ initialDatatableId: 'tbl_1', hasPermission: () => true });
         await screen.findByDisplayValue('Email');
-        fireEvent.click(screen.getByRole('button', { name: /Remove Email/ }));
-        fireEvent.click(screen.getByRole('button', { name: /Save columns/ }));
+        await user.click(screen.getByRole('button', { name: /Remove Email/ }));
+        await user.click(screen.getByRole('button', { name: /Save columns/ }));
 
         const dialog = await screen.findByRole('dialog');
         expect(dialog.textContent).toMatch(/throws away data/i);
@@ -247,6 +252,7 @@ describe('the dialogs are real dialogs', () => {
 
 describe('columns can be reordered', () => {
     it('moving one down — ↓ on its grip, or a drop onto the next row — changes the order that is SAVED', async () => {
+        const user = userEvent.setup();
         datatablesApi.putSchema.mockResolvedValue({ fields: [], modelVersion: 5 });
         renderStudio({ initialDatatableId: 'tbl_1', hasPermission: () => true });
         await screen.findByDisplayValue('Email');
@@ -262,7 +268,7 @@ describe('columns can be reordered', () => {
         fireEvent.dragStart(screen.getAllByTestId('column-grip')[0], { dataTransfer: { setData: () => {}, effectAllowed: '' } });
         fireEvent.dragOver(rows[1]);
         fireEvent.drop(rows[1]);
-        fireEvent.click(screen.getByRole('button', { name: /Save columns/ }));
+        await user.click(screen.getByRole('button', { name: /Save columns/ }));
 
         await waitFor(() => expect(datatablesApi.putSchema).toHaveBeenCalled());
         const [, fields] = datatablesApi.putSchema.mock.calls[0];
@@ -345,34 +351,38 @@ describe('a managed table locks the columns the platform fills in', () => {
     });
 
     it('says what its rows hold, and that the retention window is what expires them', async () => {
+        const user = userEvent.setup();
         renderStudio({ initialDatatableId: 'tbl_1', hasPermission: () => true });
         // The tab is "Retention" now (artboard 1f). Matched case-insensitively
         // so the assertion survives both the old "Data & retention" value and
         // the swept one landing in the dictionary.
-        fireEvent.click(await screen.findByRole('radio', { name: /retention/i }));
+        await user.click(await screen.findByRole('radio', { name: /retention/i }));
         expect(await screen.findByText(/plain text/i)).toBeInTheDocument();
         expect(screen.getByText(/30 days after their fetched_at/)).toBeInTheDocument();
         expect(screen.getByText(/no second, hidden clock/i)).toBeInTheDocument();
     });
 
     it('the retention column is the one the SWEEP counts from, and is not the author’s to pick here', async () => {
+        const user = userEvent.setup();
         // http_cache stamps `fetched_at`; a window counted from any other
         // column would be a countdown the sweep never reads.
         renderStudio({ initialDatatableId: 'tbl_1', hasPermission: () => true });
-        fireEvent.click(await screen.findByRole('radio', { name: /retention/i }));
+        await user.click(await screen.findByRole('radio', { name: /retention/i }));
         const picker = await screen.findByLabelText(/Date column the age is measured from/i);
         expect(picker.disabled).toBe(true);
         expect(picker.value).toBe('fetched_at');
     });
 
     it('repeats what it holds before it is deleted', async () => {
+        const user = userEvent.setup();
         renderStudio({ initialDatatableId: 'tbl_1', hasPermission: () => true });
-        fireEvent.click(await screen.findByRole('button', { name: /More about this table/ }));
-        fireEvent.click(await screen.findByRole('menuitem', { name: /Delete this table/ }));
+        await user.click(await screen.findByRole('button', { name: /More about this table/ }));
+        await user.click(await screen.findByRole('menuitem', { name: /Delete this table/ }));
         expect(await screen.findByText(/what a third-party service answered/i)).toBeInTheDocument();
     });
 
     it('surfaces the server sentence if an older tab gets past the guard', async () => {
+        const user = userEvent.setup();
         // The contract lives on the server; this client may be a stale tab.
         const err = new Error('"cache_key" is part of how this table is filled in automatically');
         err.status = 409;
@@ -380,16 +390,18 @@ describe('a managed table locks the columns the platform fills in', () => {
         datatablesApi.putSchema.mockRejectedValue(err);
         renderStudio({ initialDatatableId: 'tbl_1', hasPermission: () => true });
         await screen.findByDisplayValue('My note');
-        fireEvent.click(screen.getByRole('button', { name: /Remove My note/ }));
-        fireEvent.click(screen.getByRole('button', { name: /Save columns/ }));
+        await user.click(screen.getByRole('button', { name: /Remove My note/ }));
+        await user.click(screen.getByRole('button', { name: /Save columns/ }));
         // Removing an AUTHOR column asks the destructive question first.
-        fireEvent.click(await screen.findByRole('button', { name: /Save anyway/ }));
-        expect(await screen.findByText(/filled in automatically/)).toBeInTheDocument();
+        await user.click(await screen.findByRole('button', { name: /Save anyway/ }));
+        // The sentence may show in more than one place (inline and as a toast) once the pointer events settle.
+        expect((await screen.findAllByText(/filled in automatically/)).length).toBeGreaterThan(0);
     });
 });
 
 describe('the create dialog can provision one', () => {
     it('sends the kind, omits the description so the server supplies its own, and shows the warning VERBATIM', async () => {
+        const user = userEvent.setup();
         const warning = 'Rows here hold what a third-party service answered, in plain text.';
         datatablesApi.list.mockResolvedValue({ datatables: [], scope: ORG_SCOPE });
         datatablesApi.createManaged.mockResolvedValue({
@@ -399,10 +411,10 @@ describe('the create dialog can provision one', () => {
         const onNavigate = vi.fn();
         renderStudio({ hasPermission: () => true, onNavigate });
 
-        fireEvent.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
-        fireEvent.click(screen.getByRole('radio', { name: /Web service answers/ }));
+        await user.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
+        await user.click(screen.getByRole('radio', { name: /Web service answers/ }));
         fireEvent.change(screen.getByPlaceholderText('Customers'), { target: { value: 'Answers' } });
-        fireEvent.click(screen.getByRole('button', { name: /^Create$/ }));
+        await user.click(screen.getByRole('button', { name: /^Create$/ }));
 
         await waitFor(() => expect(datatablesApi.createManaged).toHaveBeenCalled());
         expect(datatablesApi.createManaged).toHaveBeenCalledWith({
@@ -414,21 +426,22 @@ describe('the create dialog can provision one', () => {
         expect(await screen.findByText(warning)).toBeInTheDocument();
         // And the dialog stays up until it has been read.
         expect(datatablesApi.create).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByRole('button', { name: /Open the table/ }));
+        await user.click(screen.getByRole('button', { name: /Open the table/ }));
         await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/datatables/tbl_new'));
     });
 
     it('an ordinary table can be given its first columns in the same dialog', async () => {
+        const user = userEvent.setup();
         datatablesApi.list.mockResolvedValue({ datatables: [], scope: ORG_SCOPE });
         datatablesApi.create.mockResolvedValue({ datatable: { ...TABLE, id: 'tbl_new' } });
         renderStudio({ hasPermission: () => true });
 
-        fireEvent.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
+        await user.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
         fireEvent.change(screen.getByPlaceholderText('Customers'), { target: { value: 'Leads' } });
         fireEvent.change(screen.getByPlaceholderText(/onboarding e-mail/i), { target: { value: 'inbound leads' } });
-        fireEvent.click(screen.getByRole('button', { name: /Add a column/ }));
+        await user.click(screen.getByRole('button', { name: /Add a column/ }));
         fireEvent.change(screen.getAllByLabelText('Column name')[0], { target: { value: 'Company name' } });
-        fireEvent.click(screen.getByRole('button', { name: /^Create$/ }));
+        await user.click(screen.getByRole('button', { name: /^Create$/ }));
 
         await waitFor(() => expect(datatablesApi.create).toHaveBeenCalled());
         expect(datatablesApi.create.mock.calls[0][0].fields)
@@ -436,12 +449,13 @@ describe('the create dialog can provision one', () => {
     });
 
     it('refuses to submit a first column the server would reject', async () => {
+        const user = userEvent.setup();
         datatablesApi.list.mockResolvedValue({ datatables: [], scope: ORG_SCOPE });
         renderStudio({ hasPermission: () => true });
-        fireEvent.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
+        await user.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
         fireEvent.change(screen.getByPlaceholderText('Customers'), { target: { value: 'Leads' } });
         fireEvent.change(screen.getByPlaceholderText(/onboarding e-mail/i), { target: { value: 'inbound leads' } });
-        fireEvent.click(screen.getByRole('button', { name: /Add a column/ }));
+        await user.click(screen.getByRole('button', { name: /Add a column/ }));
         // `created_at` is a column every table already has.
         fireEvent.change(screen.getAllByLabelText('Column name')[0], { target: { value: 'created at' } });
 

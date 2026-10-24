@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * execAiStep's personal-memory grounding (`step.useMemory`, 2026-09-04).
  *

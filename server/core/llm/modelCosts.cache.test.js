@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DB-free tests — prompt-cache pricing per provider token-accounting contract.
  *

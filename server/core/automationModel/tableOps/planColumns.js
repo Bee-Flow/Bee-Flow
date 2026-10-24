@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Static column planning: the columns a table step produces, derived from the
@@ -95,7 +96,7 @@ function planSelect(op, cols, need) {
 /**
  * @param {{ key: string, label?: string, type?: string }[] | null | undefined} columns
  * @param {any[]} ops normalised operations (spec.normalizeTableStep)
- * @returns {{ columns: { key: string, label: string, type: string }[] | null, findings: any[] }}
+ * @returns {{ columns: { key: string, label: string, type?: string }[] | null, findings: any[] }}
  */
 function planColumns(columns, ops) {
     const findings = [];

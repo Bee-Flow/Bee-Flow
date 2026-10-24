@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * House Style Extractor
  *

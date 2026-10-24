@@ -1,4 +1,5 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import NcScopeSection from './NcScopeSection';
@@ -69,12 +70,13 @@ describe('NcScopeSection', () => {
     });
 
     it('mode change PUTs a single-integration patch immediately', async () => {
+        const user = userEvent.setup();
         mockGet(scopePayload());
         render(<NcScopeSection />);
         await waitFor(() => screen.getByTestId('nc-scope-row-nextcloud-mail'));
 
-        fireEvent.click(screen.getByTestId('nc-scope-row-nextcloud-mail'));
-        fireEvent.click(screen.getByRole('radio', { name: 'Off' }));
+        await user.click(screen.getByTestId('nc-scope-row-nextcloud-mail'));
+        await user.click(screen.getByRole('radio', { name: 'Off' }));
 
         await waitFor(() => {
             const put = authFetch.mock.calls.find(([, opts]) => opts?.method === 'PUT');
@@ -84,10 +86,11 @@ describe('NcScopeSection', () => {
     });
 
     it('unscopable integrations offer no "Only selected" segment', async () => {
+        const user = userEvent.setup();
         mockGet(scopePayload());
         render(<NcScopeSection />);
         await waitFor(() => screen.getByTestId('nc-scope-row-nextcloud-status'));
-        fireEvent.click(screen.getByTestId('nc-scope-row-nextcloud-status'));
+        await user.click(screen.getByTestId('nc-scope-row-nextcloud-status'));
         const radios = screen.getAllByRole('radio').map(r => r.textContent);
         expect(radios).toContain('Everything');
         expect(radios).toContain('Off');
@@ -95,15 +98,16 @@ describe('NcScopeSection', () => {
     });
 
     it('revoke-all asks inline first, then POSTs /revoke-all', async () => {
+        const user = userEvent.setup();
         mockGet(scopePayload());
         render(<NcScopeSection />);
         await waitFor(() => screen.getByTestId('nc-scope-revoke'));
 
-        fireEvent.click(screen.getByTestId('nc-scope-revoke'));
+        await user.click(screen.getByTestId('nc-scope-revoke'));
         // No network call yet — the confirm is the safety.
         expect(authFetch.mock.calls.filter(([url]) => String(url).includes('revoke-all'))).toHaveLength(0);
 
-        fireEvent.click(screen.getByTestId('nc-scope-revoke-yes'));
+        await user.click(screen.getByTestId('nc-scope-revoke-yes'));
         await waitFor(() => {
             expect(authFetch.mock.calls.some(([url]) => String(url).includes('/nc-scope/revoke-all'))).toBe(true);
         });
@@ -141,25 +145,26 @@ describe('NcScopeSection', () => {
     // write `${API_BASE}/api/...`, and this component was the one that
     // didn't.
     it('requests the /api mount, not the SPA root', async () => {
+        const user = userEvent.setup();
         mockGet(scopePayload({ 'nextcloud-calendar': { mode: 'selected', selected: ['work'] } }));
         render(<NcScopeSection />);
         await waitFor(() => screen.getByTestId('nc-scope-row-nextcloud-calendar'));
 
         // Expanding an already-narrowed row mounts its picker → /resources/…
-        fireEvent.click(screen.getByTestId('nc-scope-row-nextcloud-calendar'));
+        await user.click(screen.getByTestId('nc-scope-row-nextcloud-calendar'));
         await waitFor(() => expect(
             authFetch.mock.calls.some(([u]) => String(u).includes('/resources/'))).toBe(true));
 
         // …and the write paths, so PUT and POST are covered too. Collapse the
         // calendar row first — two open flyouts mean two 'Off' radios.
-        fireEvent.click(screen.getByTestId('nc-scope-row-nextcloud-calendar'));
-        fireEvent.click(screen.getByTestId('nc-scope-row-nextcloud-mail'));
-        fireEvent.click(screen.getByRole('radio', { name: 'Off' }));
+        await user.click(screen.getByTestId('nc-scope-row-nextcloud-calendar'));
+        await user.click(screen.getByTestId('nc-scope-row-nextcloud-mail'));
+        await user.click(screen.getByRole('radio', { name: 'Off' }));
         await waitFor(() => expect(
             authFetch.mock.calls.some(([, o]) => o?.method === 'PUT')).toBe(true));
 
-        fireEvent.click(screen.getByTestId('nc-scope-revoke'));
-        fireEvent.click(screen.getByTestId('nc-scope-revoke-yes'));
+        await user.click(screen.getByTestId('nc-scope-revoke'));
+        await user.click(screen.getByTestId('nc-scope-revoke-yes'));
         await waitFor(() => expect(
             authFetch.mock.calls.some(([u]) => String(u).includes('/revoke-all'))).toBe(true));
 

@@ -246,15 +246,16 @@ describe('TokenVaultSection — forgetting one entry', () => {
     beforeEach(() => { cleanup(); vi.clearAllMocks(); i18n.value = { ...i18n.value, t: stableT }; });
 
     it('puts the real value in the app\'s own dialog and sends nothing when it is declined', async () => {
+        const user = userEvent.setup();
         const confirmSpy = vi.spyOn(window, 'confirm');
         await mount({ entries: [ENTRY], total: 1 });
 
-        fireEvent.click(screen.getByRole('button', { name: 'Forget this: [PERSON_1]' }));
+        await user.click(screen.getByRole('button', { name: 'Forget this: [PERSON_1]' }));
 
         const dialog = await screen.findByRole('dialog', { name: 'Forget "Jan Jansen"?' });
         expect(within(dialog).getByText('Any saved message that still shows [PERSON_1] will keep showing the placeholder — this cannot be undone.')).toBeInTheDocument();
         expect(confirmSpy).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByTestId('confirm-dialog-cancel'));
+        await user.click(screen.getByTestId('confirm-dialog-cancel'));
         await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
         expect(deletes()).toHaveLength(0);
         expect(screen.getByText('Jan Jansen')).toBeInTheDocument();
@@ -262,18 +263,20 @@ describe('TokenVaultSection — forgetting one entry', () => {
     });
 
     it('falls back to the placeholder in the dialog when the value cannot be opened', async () => {
+        const user = userEvent.setup();
         await mount({ entries: [{ ...ENTRY, unreadable: true, value: null }], total: 1 });
 
-        fireEvent.click(screen.getByRole('button', { name: 'Forget this: [PERSON_1]' }));
+        await user.click(screen.getByRole('button', { name: 'Forget this: [PERSON_1]' }));
         expect(await screen.findByRole('dialog', { name: 'Forget "[PERSON_1]"?' })).toBeInTheDocument();
     });
 
     it('deletes by id and drops the row and the counter without re-reading the list', async () => {
+        const user = userEvent.setup();
         await mount({ entries: [ENTRY], total: 3 });
         await waitFor(() => expect(gets()).toHaveLength(2), { timeout: 2000 });
 
-        fireEvent.click(screen.getByRole('button', { name: 'Forget this: [PERSON_1]' }));
-        fireEvent.click(await screen.findByTestId('confirm-dialog-confirm'));
+        await user.click(screen.getByRole('button', { name: 'Forget this: [PERSON_1]' }));
+        await user.click(await screen.findByTestId('confirm-dialog-confirm'));
 
         await waitFor(() => expect(screen.queryByText('Jan Jansen')).toBeNull());
         expect(deletes()[0][0]).toBe('/api/privacy/token-vault/e1');
@@ -283,10 +286,11 @@ describe('TokenVaultSection — forgetting one entry', () => {
     });
 
     it('WART: a rejected delete is completely silent — the row stays, nothing is said', async () => {
+        const user = userEvent.setup();
         await mount({ entries: [ENTRY], total: 1 }, { deleteRes: jsonRes({ error: 'nope' }, 403) });
 
-        fireEvent.click(screen.getByRole('button', { name: 'Forget this: [PERSON_1]' }));
-        fireEvent.click(await screen.findByTestId('confirm-dialog-confirm'));
+        await user.click(screen.getByRole('button', { name: 'Forget this: [PERSON_1]' }));
+        await user.click(await screen.findByTestId('confirm-dialog-confirm'));
 
         await waitFor(() => expect(deletes()).toHaveLength(1));
         expect(screen.getByText('Jan Jansen')).toBeInTheDocument();
@@ -363,13 +367,14 @@ describe('TokenVaultSection — paging', () => {
     });
 
     it('WART: "Show more" jumps a full page and REPLACES the rows instead of appending', async () => {
+        const user = userEvent.setup();
         // Only one row was returned, yet the next request starts at offset 100,
         // and the arriving page overwrites the visible list.
         await mount({ entries: [ENTRY], total: 5 });
         await waitFor(() => expect(gets()).toHaveLength(2), { timeout: 2000 });
 
         serve({ entries: [{ ...ENTRY, id: 'e9', token: '[PERSON_9]', value: 'Piet Peters' }], total: 5 });
-        fireEvent.click(screen.getByRole('button', { name: 'Show more' }));
+        await user.click(screen.getByRole('button', { name: 'Show more' }));
 
         expect(await screen.findByText('Piet Peters')).toBeInTheDocument();
         expect(screen.queryByText('Jan Jansen')).toBeNull();

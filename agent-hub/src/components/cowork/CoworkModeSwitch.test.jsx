@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import CoworkModeSwitch from './CoworkModeSwitch';
@@ -123,17 +124,19 @@ describe('CoworkModeSwitch — which tab reads as selected', () => {
 });
 
 describe('CoworkModeSwitch — clicking', () => {
-    it('reports the id of the tab you clicked', () => {
+    it('reports the id of the tab you clicked', async () => {
+        const user = userEvent.setup();
         const { props } = renderSwitch();
-        fireEvent.click(coworkTab());
+        await user.click(coworkTab());
         expect(props.onChange).toHaveBeenCalledWith('cowork');
     });
 
-    it('wrat: clicking the tab that is already active fires onChange again', () => {
+    it('wrat: clicking the tab that is already active fires onChange again', async () => {
+        const user = userEvent.setup();
         // No same-value guard. Every caller that resets composer state on a
         // mode change therefore resets it on a no-op click too.
         const { props } = renderSwitch({ value: 'chat' });
-        fireEvent.click(chatTab());
+        await user.click(chatTab());
         expect(props.onChange).toHaveBeenCalledTimes(1);
         expect(props.onChange).toHaveBeenCalledWith('chat');
     });
@@ -212,10 +215,11 @@ describe('CoworkModeToggle — whether the switch is shown at all', () => {
         expect(chatTab().className).toContain('text-[11.5px]');
     });
 
-    it('passes the click straight through to the caller', () => {
+    it('passes the click straight through to the caller', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(<CoworkModeToggle enabled value="chat" onChange={onChange} />);
-        fireEvent.click(coworkTab());
+        await user.click(coworkTab());
         expect(onChange).toHaveBeenCalledWith('cowork');
     });
 

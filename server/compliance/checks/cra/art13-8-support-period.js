@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CRA Art. 13(8) / Annex II(7) — support period and end-of-support date
  * declared.
@@ -185,4 +186,4 @@ module.exports = {
     },
 };
 
-module.exports._test = { _dateOnly, _daysUntil, _httpUrl, RENEWAL_HORIZON_DAYS };
+Object.assign(module.exports, { _test: { _dateOnly, _daysUntil, _httpUrl, RENEWAL_HORIZON_DAYS } });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Telling the staff something happened, and filling a canned reply in.
  *

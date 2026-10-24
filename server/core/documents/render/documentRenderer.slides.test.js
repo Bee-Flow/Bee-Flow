@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The slides layout — a markdown memorandum rendered as a landscape deck.
  *

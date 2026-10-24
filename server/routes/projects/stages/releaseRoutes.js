@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Release routes (design 8, 6.1): cut a release in Dev, list and read the

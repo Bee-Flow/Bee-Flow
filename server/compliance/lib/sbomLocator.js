@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * SBOM locator — finds the software bill of materials that describes the
  * RUNNING build (CRA Annex I Part II(1); PLD Art. 9 evidence).

@@ -8,7 +8,8 @@
  * button that can fail, not a link.
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import PublicFormRenderer, { FormEndingView } from './PublicFormRenderer';
@@ -43,20 +44,22 @@ describe('notebook field', () => {
     });
 
     it('hands the field to the opener when pressed', async () => {
+        const user = userEvent.setup();
         const onOpenInNotebooks = vi.fn().mockResolvedValue(undefined);
         render(<FormEndingView form={form([NOTEBOOK])} onOpenInNotebooks={onOpenInNotebooks} />);
-        fireEvent.click(button());
+        await user.click(button());
         await waitFor(() => expect(onOpenInNotebooks).toHaveBeenCalledTimes(1));
         expect(onOpenInNotebooks.mock.calls[0][0].fileId).toBe('f1');
     });
 
     it('says it is working, and stays that way while the page navigates', async () => {
+        const user = userEvent.setup();
         // No flipping back on success: the browser is leaving, and a button
         // that re-enables first reads as "nothing happened, press again".
         let resolve;
         const onOpenInNotebooks = vi.fn(() => new Promise(r => { resolve = r; }));
         render(<FormEndingView form={form([NOTEBOOK])} onOpenInNotebooks={onOpenInNotebooks} />);
-        fireEvent.click(button());
+        await user.click(button());
         await waitFor(() => expect(screen.getByText(/Opening in Notebooks/)).toBeTruthy());
         expect(button().disabled).toBe(true);
         resolve();
@@ -64,17 +67,19 @@ describe('notebook field', () => {
     });
 
     it('does not fire twice while the first press is still going', async () => {
+        const user = userEvent.setup();
         const onOpenInNotebooks = vi.fn(() => new Promise(() => {}));
         render(<FormEndingView form={form([NOTEBOOK])} onOpenInNotebooks={onOpenInNotebooks} />);
-        fireEvent.click(button());
-        fireEvent.click(button());
+        await user.click(button());
+        await user.click(button());
         await waitFor(() => expect(onOpenInNotebooks).toHaveBeenCalledTimes(1));
     });
 
     it('shows what went wrong and lets the visitor try again', async () => {
+        const user = userEvent.setup();
         const onOpenInNotebooks = vi.fn().mockRejectedValue(new Error('Could not open this in Notebooks.'));
         render(<FormEndingView form={form([NOTEBOOK])} onOpenInNotebooks={onOpenInNotebooks} />);
-        fireEvent.click(button());
+        await user.click(button());
         await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Could not open/));
         expect(button().disabled).toBe(false);
     });
@@ -89,6 +94,7 @@ describe('notebook field', () => {
      * treated as one that asks, or a page carrying it cannot be submitted.
      */
     it('is never required, never submitted, and never blocks the form', async () => {
+        const user = userEvent.setup();
         const onSubmit = vi.fn().mockResolvedValue(undefined);
         render(
             <PublicFormRenderer
@@ -97,7 +103,7 @@ describe('notebook field', () => {
                 onOpenInNotebooks={vi.fn()}
             />,
         );
-        fireEvent.click(screen.getByRole('button', { name: 'Verstuur' }));
+        await user.click(screen.getByRole('button', { name: 'Verstuur' }));
         await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
         expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('doc');
     });

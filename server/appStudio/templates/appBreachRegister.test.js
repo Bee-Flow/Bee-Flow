@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Data breach register — the checks templates.test.js cannot make.
  *

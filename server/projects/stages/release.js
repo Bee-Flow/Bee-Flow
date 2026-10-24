@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Cut a pipeline release of a Solution (design 6.1, D18, D20).
  *

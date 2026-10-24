@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, fireEvent, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ActionsSection, { getFormFields } from './ActionsSection';
 
@@ -132,11 +133,12 @@ describe('ActionsSection — app_trigger typed mapping', () => {
     });
 
     it('picking an app_trigger automation prefills typed rows (file → first file field)', async () => {
+        const user = userEvent.setup();
         const actions = { act1: { kind: 'run_automation', automationId: null } };
         const { onCommit, findByText, getByText } = renderActions(formNode, actions);
-        fireEvent.click(await findByText('Choose an automation…'));
+        await user.click(await findByText('Choose an automation…'));
         // AutomationPicker body lists the app_trigger automation with its badge.
-        fireEvent.click(await findByText('Process invoice'));
+        await user.click(await findByText('Process invoice'));
 
         await waitFor(() => expect(onCommit).toHaveBeenCalled());
         const nextDef = onCommit.mock.calls.at(-1)[0];

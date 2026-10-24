@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Test preload: fills core's feature registries the way index.js does
  * (boot/featureModules.js, core/featureModules.js), so a test that drives core

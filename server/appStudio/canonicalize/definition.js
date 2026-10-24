@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio canonicalizer — the top level: the definition shell (meta, theme,
  * roles, design/nav/publicAccess/aiBrowsing) and the two passes over it.

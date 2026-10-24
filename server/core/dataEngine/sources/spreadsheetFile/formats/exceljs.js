@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EDITING an .xlsx in place with exceljs — the one library that loads a
  * workbook, lets a few cells change and writes it back with the rest intact:

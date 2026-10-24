@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The `flatten` step's own shape (spec F3-F7): a route with at least one
  * `[*]` level, `parents` that fit that route, and well formed column plans.

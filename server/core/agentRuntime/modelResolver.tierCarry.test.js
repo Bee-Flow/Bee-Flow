@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The tier that produced an agent's model travels with the model id.
  *

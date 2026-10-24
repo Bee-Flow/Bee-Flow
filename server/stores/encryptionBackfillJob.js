@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * In-memory job state for "encrypt existing data" (stores/encryptionBackfill.js).

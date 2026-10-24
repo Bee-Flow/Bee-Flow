@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Cell-precise access through the Excel workbook API (…/workbook/…), for
  * ./oneDrive.js. It answers for xlsx/xlsm on OneDrive for Business; consumer
@@ -211,7 +212,7 @@ async function lastUsedRow(g, file, ws, headers) {
  * knows the last DATA row better than usedRange does). Date columns get
  * a number format so the serial renders as a date, formula-shaped texts
  * get Text — sent as a PATCH of their own BEFORE the values.
- * @returns {{ rowNumber:number, marker:object }}
+ * @returns {Promise<{ rowNumber:number, marker:object }>}
  */
 async function appendRow(g, file, sheet, cells, { ifMatch = null, afterRow = null } = {}) {
     await guard(g, file, ifMatch);

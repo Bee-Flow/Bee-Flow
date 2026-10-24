@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — template-upgrade support (pristine detection + availability).
  *
@@ -91,7 +92,7 @@ function isPristine(app) {
  *                 candidate reports available:false)
  *   getTemplate(id) → registry lookup override (defaults to the real registry)
  */
-async function annotateTemplateUpgrades(apps, { loadApp, getTemplate } = {}) {
+async function annotateTemplateUpgrades(apps, /** @type {{loadApp?: Function, getTemplate?: Function}} */ { loadApp, getTemplate } = {}) {
     const out = [];
     for (const a of (Array.isArray(apps) ? apps : [])) {
         // Awaited: a CAPTURED template (studio_app_templates) is a database

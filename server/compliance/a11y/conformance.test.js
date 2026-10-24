@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * conformance.js — locating and shape-checking the CI artefact.
  *

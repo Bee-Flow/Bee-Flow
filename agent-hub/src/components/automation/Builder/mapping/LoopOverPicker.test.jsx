@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import LoopOverPicker from './LoopOverPicker';
 import { VariablePickerProvider } from './VariablePickerContext';
@@ -30,16 +31,18 @@ describe('LoopOverPicker — friendly labels', () => {
         expect(screen.queryByText('steps.s1.output.results')).toBeNull();
     });
 
-    it('keeps the raw path input behind Advanced', () => {
+    it('keeps the raw path input behind Advanced', async () => {
+        const user = userEvent.setup();
         renderPicker();
         expect(screen.queryByPlaceholderText('steps.s1.output.results')).toBeNull();
-        fireEvent.click(screen.getByText('Advanced'));
+        await user.click(screen.getByText('Advanced'));
         expect(screen.getByPlaceholderText('steps.s1.output.results')).toBeTruthy();
     });
 
-    it('picking a list emits its path', () => {
+    it('picking a list emits its path', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderPicker({ overRef: '', itemVar: 'item' });
-        fireEvent.click(screen.getByText(/Search web/));
+        await user.click(screen.getByText(/Search web/));
         expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ overRef: 'steps.s1.output.results' }));
     });
 });

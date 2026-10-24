@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Print the Playbook briefs as harness briefs — so the two live-run gates
  * (scripts/builder-live-run.sh, scripts/app-builder-live-run.sh --brief …)
@@ -83,7 +84,7 @@ const approvals = {
 };
 
 fs.mkdirSync(outDir, { recursive: true });
-for (const [name, body] of [['playbook-invoice-automation.json', automation], ['playbook-invoice-app.json', app], ['playbook-invoice-approvals.json', approvals]]) {
+for (const [name, body] of /** @type {Array<[string, { brief: string }]>} */ ([['playbook-invoice-automation.json', automation], ['playbook-invoice-app.json', app], ['playbook-invoice-approvals.json', approvals]])) {
     const file = path.join(outDir, name);
     fs.writeFileSync(file, `${JSON.stringify(body, null, 2)}\n`);
     console.log(`wrote ${file} (${body.brief.length} brief chars)`);

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Every AGENT dispatch that borrows the owner's connection must ask `actAs`.
  *

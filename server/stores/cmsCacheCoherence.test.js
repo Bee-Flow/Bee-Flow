@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit — config cache coherence for the CMS editor "reverts to previous
  * version" fix (Workstream A1).

@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -52,13 +53,14 @@ describe('InsightsPanel — headline + collapse', () => {
         expect(screen.queryByRole('tablist')).toBeNull();
     });
 
-    it('opens and closes the detail region', () => {
+    it('opens and closes the detail region', async () => {
+        const user = userEvent.setup();
         render(<InsightsPanel meeting={MEETING} onSeek={() => {}} />);
         const toggle = screen.getByRole('button', { name: /Show details/i });
         expect(toggle.getAttribute('aria-expanded')).toBe('false');
-        fireEvent.click(toggle);
+        await user.click(toggle);
         expect(screen.getByRole('tablist')).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: /Hide details/i }));
+        await user.click(screen.getByRole('button', { name: /Hide details/i }));
         expect(screen.queryByRole('tablist')).toBeNull();
     });
 
@@ -99,7 +101,8 @@ describe('InsightsPanel — Overview tab', () => {
     beforeEach(() => window.localStorage.clear());
     afterEach(cleanup);
 
-    it('summarises the headline facts and jumps to them', () => {
+    it('summarises the headline facts and jumps to them', async () => {
+        const user = userEvent.setup();
         const onSeek = vi.fn();
         render(<InsightsPanel meeting={MEETING} onSeek={onSeek} />);
         openDetails();
@@ -107,7 +110,7 @@ describe('InsightsPanel — Overview tab', () => {
         expect(screen.getByText('Biggest topic')).toBeTruthy();
         expect(screen.getByText('People who spoke')).toBeTruthy();
         // Tom's longest uninterrupted stretch starts at 0.
-        fireEvent.click(screen.getByRole('button', { name: '5:00' }));
+        await user.click(screen.getByRole('button', { name: '5:00' }));
         expect(onSeek).toHaveBeenCalledWith(0);
     });
 
@@ -153,26 +156,28 @@ describe('InsightsPanel — People tab', () => {
         expect(screen.getByText('Marijke')).toBeTruthy();
     });
 
-    it('expands one contribution at a time, and none for a speaker without one', () => {
+    it('expands one contribution at a time, and none for a speaker without one', async () => {
+        const user = userEvent.setup();
         renderPeople();
         expect(screen.getAllByRole('button', { name: /contribution/i })).toHaveLength(1);
         const toggle = screen.getByRole('button', { name: 'Show contribution' });
         expect(toggle.getAttribute('aria-expanded')).toBe('false');
-        fireEvent.click(toggle);
+        await user.click(toggle);
 
         const prose = screen.getByText('Tom demonstreerde de tool en nam de wensen op.');
         const open = screen.getByRole('button', { name: 'Hide contribution' });
         expect(open.getAttribute('aria-controls')).toBe(prose.getAttribute('id'));
-        fireEvent.click(open);
+        await user.click(open);
         expect(screen.queryByText('Tom demonstreerde de tool en nam de wensen op.')).toBeNull();
     });
 
-    it('seeks to the longest monologue on click', () => {
+    it('seeks to the longest monologue on click', async () => {
+        const user = userEvent.setup();
         const onSeek = vi.fn();
         render(<InsightsPanel meeting={MEETING} onSeek={onSeek} />);
         openDetails();
         goToTab('People');
-        fireEvent.click(screen.getByRole('button', { name: '5:00' }));
+        await user.click(screen.getByRole('button', { name: '5:00' }));
         expect(onSeek).toHaveBeenCalledWith(0);
     });
 });
@@ -181,7 +186,8 @@ describe('InsightsPanel — Flow, Topics and Follow-up tabs', () => {
     beforeEach(() => window.localStorage.clear());
     afterEach(cleanup);
 
-    it('shows conversation dynamics and jumps into a quiet stretch', () => {
+    it('shows conversation dynamics and jumps into a quiet stretch', async () => {
+        const user = userEvent.setup();
         const onSeek = vi.fn();
         render(<InsightsPanel meeting={MEETING} onSeek={onSeek} />);
         openDetails();
@@ -191,11 +197,12 @@ describe('InsightsPanel — Flow, Topics and Follow-up tabs', () => {
         expect(screen.getByText('Time in long monologues')).toBeTruthy();
         // 8:20 → 10:00 is the lead-out (nobody speaks after 500s).
         expect(screen.getByText('After the last word')).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: '1:40' }));
+        await user.click(screen.getByRole('button', { name: '1:40' }));
         expect(onSeek).toHaveBeenCalledWith(500);
     });
 
-    it('breaks topics down by time and owner, and seeks to one', () => {
+    it('breaks topics down by time and owner, and seeks to one', async () => {
+        const user = userEvent.setup();
         const onSeek = vi.fn();
         render(<InsightsPanel meeting={MEETING} onSeek={onSeek} />);
         openDetails();
@@ -206,11 +213,12 @@ describe('InsightsPanel — Flow, Topics and Follow-up tabs', () => {
         // Tom holds the floor in both chapters, so both rows name him.
         expect(screen.getAllByText(/Mostly Tom Smit/)).toHaveLength(2);
         expect(screen.getByText('Action items per topic')).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: 'MFA (2:00)' }));
+        await user.click(screen.getByRole('button', { name: 'MFA (2:00)' }));
         expect(onSeek).toHaveBeenCalledWith(120);
     });
 
-    it('reports follow-up health and unanswered questions', () => {
+    it('reports follow-up health and unanswered questions', async () => {
+        const user = userEvent.setup();
         const onSeek = vi.fn();
         render(<InsightsPanel meeting={MEETING} onSeek={onSeek} />);
         openDetails();
@@ -218,7 +226,7 @@ describe('InsightsPanel — Flow, Topics and Follow-up tabs', () => {
         expect(screen.getByText('Without an owner')).toBeTruthy();
         expect(screen.getByText('Decisions made')).toBeTruthy();
         expect(screen.getByText('Left unanswered')).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: '5:00' }));
+        await user.click(screen.getByRole('button', { name: '5:00' }));
         expect(onSeek).toHaveBeenCalledWith(300);
     });
 

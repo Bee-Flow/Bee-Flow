@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "May this mirror talk to its storage right now, and as whom?"
  *
@@ -65,7 +66,7 @@ function orgForScope(orgId, session) {
 }
 
 /**
- * @param {object} source   the mirror's `source` block ({ provider, file:{id,path,…}, linkedByUserId, ncInstanceId })
+ * @param {Record<string, any>} source   the mirror's `source` block ({ provider, file:{id,path,…}, linkedByUserId, ncInstanceId })
  * @param {object} [opts]
  * @param {string|null} [opts.orgId]  the table's organisation (null for a personal mirror)
  * @param {boolean} [opts.fresh]      skip the memo (a re-link, a "try again")

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 // Characterisation of the pure prompt/payload builders of the CMS builder.
 // Goes through the route's `_test` surface, so it pins the same output

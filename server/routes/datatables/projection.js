@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What a client is allowed to see of a table.
  *

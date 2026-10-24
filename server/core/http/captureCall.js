@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * One outbound call inside a capture context, never throwing:

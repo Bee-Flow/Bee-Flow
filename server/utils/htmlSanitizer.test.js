@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * htmlSanitizer unit tests — the write-path defense for notebook document
  * bodies, plus the block-aware plaintext extractor the card previews use.

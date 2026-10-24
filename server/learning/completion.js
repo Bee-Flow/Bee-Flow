@@ -1,3 +1,4 @@
+// @typecheck
 // Pure completion / badge / certificate-eligibility computation.
 //
 // The server is the authority for badges and certificates: it recomputes these

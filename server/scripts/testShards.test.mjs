@@ -1,3 +1,4 @@
+// @typecheck
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { assignShards, fileTimeoutMs, hashShard, orderLongestFirst, parseShard, TIMEOUT_CAP_MS } from './testShards.mjs';

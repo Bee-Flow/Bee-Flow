@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Feature ports: what the automation runner asks of the features above it.
  *

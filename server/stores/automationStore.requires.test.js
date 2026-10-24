@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Require-resolution guard for the automationStore split (§WS5 #3).
  *

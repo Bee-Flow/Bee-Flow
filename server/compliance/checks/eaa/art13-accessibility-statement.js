@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EAA Art. 13(2) / Annex V (indicative) — an accessibility statement is
  * published.

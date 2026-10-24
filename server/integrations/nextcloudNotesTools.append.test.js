@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * notes_append must find the note it created before, even though Notes strips
  * file-name characters from the stored title.

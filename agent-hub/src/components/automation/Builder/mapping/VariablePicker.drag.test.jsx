@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import VariablePicker from './VariablePicker';
 
@@ -72,11 +73,12 @@ describe('VariablePicker — leaves are drag sources', () => {
         expect(dataTransfer.effectAllowed).toBe('copy');
     });
 
-    it('a nested child carries its own full path, not the parent’s', () => {
+    it('a nested child carries its own full path, not the parent’s', async () => {
+        const user = userEvent.setup();
         renderPicker();
         // The popover is a portal, so it is not under the render container.
         // Expand the parent so the child renders.
-        fireEvent.click(leafRow('currentUser.org').querySelector('[data-expand-btn]'));
+        await user.click(leafRow('currentUser.org').querySelector('[data-expand-btn]'));
 
         const dataTransfer = makeDataTransfer();
         fireEvent.dragStart(leafRow('currentUser.org.id'), { dataTransfer });
@@ -84,10 +86,11 @@ describe('VariablePicker — leaves are drag sources', () => {
         expect(dataTransfer.data['application/x-binding-path']).toBe('currentUser.org.id');
     });
 
-    it('dragging does not select the field — click still picks', () => {
+    it('dragging does not select the field — click still picks', async () => {
+        const user = userEvent.setup();
         const onPick = vi.fn();
         renderPicker({ onPick });
-        fireEvent.click(leafRow('currentUser.email'));
+        await user.click(leafRow('currentUser.email'));
         expect(onPick).toHaveBeenCalledWith('currentUser.email', { raw: false });
     });
 

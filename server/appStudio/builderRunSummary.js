@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder — the health of one build, read off its SSE transcript.
  *

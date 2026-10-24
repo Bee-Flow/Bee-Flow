@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import DiagramPane from './DiagramPane';
 import { TRIGGERS } from './flow/stepPalette';
@@ -14,27 +15,30 @@ describe('DiagramPane — the empty canvas', () => {
 
     const title = () => screen.queryByText('What does this automation start with?');
 
-    it('offers every trigger as a card, and adds the picked one', () => {
+    it('offers every trigger as a card, and adds the picked one', async () => {
+        const user = userEvent.setup();
         const onAddTrigger = vi.fn();
         render(<DiagramPane definition={null} editable onAddTrigger={onAddTrigger} />);
         expect(title()).toBeTruthy();
         const grid = screen.getByTestId('empty-trigger-grid');
         expect(grid.querySelectorAll('button').length).toBe(TRIGGERS.length);
-        fireEvent.click(screen.getByRole('button', { name: /^Form/ }));
+        await user.click(screen.getByRole('button', { name: /^Form/ }));
         expect(onAddTrigger).toHaveBeenCalledWith(expect.objectContaining({ kind: 'trigger', triggerKind: 'form' }));
     });
 
-    it('falls back to the picker when only the palette handler is wired', () => {
+    it('falls back to the picker when only the palette handler is wired', async () => {
+        const user = userEvent.setup();
         const onRequestOpenPalette = vi.fn();
         render(<DiagramPane definition={null} editable onRequestOpenPalette={onRequestOpenPalette} />);
-        fireEvent.click(screen.getByRole('button', { name: /^Schedule/ }));
+        await user.click(screen.getByRole('button', { name: /^Schedule/ }));
         expect(onRequestOpenPalette).toHaveBeenCalledTimes(1);
     });
 
-    it('hands the whole automation to the assistant when the host wires it', () => {
+    it('hands the whole automation to the assistant when the host wires it', async () => {
+        const user = userEvent.setup();
         const onOpenAssistant = vi.fn();
         render(<DiagramPane definition={null} editable onAddTrigger={vi.fn()} onOpenAssistant={onOpenAssistant} />);
-        fireEvent.click(screen.getByRole('button', { name: 'Assistant' }));
+        await user.click(screen.getByRole('button', { name: 'Assistant' }));
         expect(onOpenAssistant).toHaveBeenCalledTimes(1);
     });
 

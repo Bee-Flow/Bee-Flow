@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Memory Extractor - Extracts memorable information from conversations
  * Uses LLM to identify facts, preferences, and instructions worth remembering
@@ -217,7 +218,7 @@ async function extractFromConversation(userId, agentId, messages, conversationId
 
                 if (sourceMessage && typeof sourceMessage === 'string') {
                     try {
-                        await memoryStore.addMemorySource(id, conversationId, sourceMessage);
+                        await memoryStore.addMemorySource(id, conversationId);
                     } catch (err) {
                         log.error('[MemoryExtractor] Failed to link source:', err.message);
                     }

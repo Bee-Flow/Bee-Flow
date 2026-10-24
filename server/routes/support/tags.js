@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tag taxonomy CRUD for staff — the named tags threads can be labelled with,
  * scoped to the acting org (system-wide for super-admins).

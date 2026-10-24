@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Dry-run taint: which binding roots read synthesized data.
  *

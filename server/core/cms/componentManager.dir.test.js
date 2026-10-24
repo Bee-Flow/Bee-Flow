@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Where the component runtime looks (core/cms/componentManager.js).
  *

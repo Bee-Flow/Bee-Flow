@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, act, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 /**
@@ -154,18 +155,20 @@ describe('WebpagesList — describe to build', () => {
     });
 
     it('a picked source can be taken back off the bar', async () => {
+        const user = userEvent.setup();
         renderList();
         await act(async () => { fireEvent.click(screen.getByTestId('webpages-source-picker')); });
         await act(async () => { fireEvent.click(screen.getByRole('menuitemcheckbox', { name: /Quotes/ })); });
         expect(screen.getByTestId('webpages-build-sources')).toHaveTextContent('Quotes');
 
-        fireEvent.click(screen.getByRole('button', { name: 'Remove Quotes' }));
+        await user.click(screen.getByRole('button', { name: 'Remove Quotes' }));
         expect(screen.queryByTestId('webpages-build-sources')).not.toBeInTheDocument();
     });
 
-    it('a preset fills the build bar and creates nothing by itself', () => {
+    it('a preset fills the build bar and creates nothing by itself', async () => {
+        const user = userEvent.setup();
         const { props } = renderList();
-        fireEvent.click(screen.getByRole('button', { name: 'Status page on a table' }));
+        await user.click(screen.getByRole('button', { name: 'Status page on a table' }));
 
         const input = screen.getByRole('textbox', { name: 'Describe the page you want' });
         expect(input.value.length).toBeGreaterThan(20);
@@ -177,15 +180,16 @@ describe('WebpagesList — describe to build', () => {
 /* ── the name-only shortcut ───────────────────────────────────────────── */
 
 describe('WebpagesList — the name-only shortcut', () => {
-    it('lives under "All options" and still submits through onCreate', () => {
+    it('lives under "All options" and still submits through onCreate', async () => {
+        const user = userEvent.setup();
         const { props } = renderList({ newName: 'Page C' });
 
         const disclosure = screen.getByRole('button', { name: /All options/ });
         expect(disclosure).toHaveAttribute('aria-expanded', 'false');
-        fireEvent.click(disclosure);
+        await user.click(disclosure);
         expect(disclosure).toHaveAttribute('aria-expanded', 'true');
 
-        fireEvent.click(screen.getByRole('button', { name: /Create/ }));
+        await user.click(screen.getByRole('button', { name: /Create/ }));
         expect(props.onCreate).toHaveBeenCalledTimes(1);
     });
 
@@ -232,31 +236,33 @@ describe('WebpagesList — cards', () => {
         expect(links).toHaveTextContent('vPlan sync');
     });
 
-    it('routes open / edit / duplicate / delete out through the callbacks', () => {
+    it('routes open / edit / duplicate / delete out through the callbacks', async () => {
+        const user = userEvent.setup();
         const { props } = renderList();
         const card = screen.getByTestId('webpage-card');
 
-        fireEvent.click(within(card).getByTitle('Edit in IDE'));
-        fireEvent.click(within(card).getByTitle('Duplicate'));
-        fireEvent.click(within(card).getByTitle('Delete'));
+        await user.click(within(card).getByTitle('Edit in IDE'));
+        await user.click(within(card).getByTitle('Duplicate'));
+        await user.click(within(card).getByTitle('Delete'));
         expect(props.onEdit).toHaveBeenCalledWith('A');
         expect(props.onClone).toHaveBeenCalledWith('A');
         expect(props.onDelete).toHaveBeenCalledWith('A');
         // The row actions must not also open the page.
         expect(props.onOpen).not.toHaveBeenCalled();
 
-        fireEvent.click(card);
+        await user.click(card);
         expect(props.onOpen).toHaveBeenCalledWith('A');
     });
 
-    it('does not open another card while one is already opening', () => {
+    it('does not open another card while one is already opening', async () => {
+        const user = userEvent.setup();
         const { props } = renderList({
             webpages: [row('A', 'Page A'), row('B', 'Page B')],
             loadingWebpageId: 'A',
         });
         const cards = screen.getAllByTestId('webpage-card');
         expect(cards[0]).toHaveAttribute('aria-busy', 'true');
-        fireEvent.click(cards[1]);
+        await user.click(cards[1]);
         expect(props.onOpen).not.toHaveBeenCalled();
     });
 

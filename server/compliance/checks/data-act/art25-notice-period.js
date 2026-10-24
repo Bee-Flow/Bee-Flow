@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Data Act Art. 25(2)(d) — a customer can start switching with at most two
  * months' notice, whatever the contract term says.
@@ -156,4 +157,4 @@ module.exports = {
     },
 };
 
-module.exports._test = { MAX_NOTICE_DAYS, _judge, _days, _deploymentMode };
+Object.assign(module.exports, { _test: { MAX_NOTICE_DAYS, _judge, _days, _deploymentMode } });

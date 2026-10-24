@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../hooks/useTranslation', () => {
@@ -43,13 +44,14 @@ describe('RemoteStudioApp', () => {
     });
 
     it('retries the import (fresh nonce) when the user clicks Retry', async () => {
+        const user = userEvent.setup();
         const Mod = () => <div data-testid="mod">recovered</div>;
         // Fails on the first attempt (nonce 0), succeeds on retry (nonce 1).
         const load = vi.fn((nonce) => (nonce === 0 ? Promise.reject(new Error('boom')) : Promise.resolve({ default: Mod })));
         render(<RemoteStudioApp moduleId="m1" labels={{ en: 'Mod One' }} entryUrl="/x" load={load} />);
 
         await screen.findByTestId('module-error-card');
-        fireEvent.click(screen.getByText('modules.retry'));
+        await user.click(screen.getByText('modules.retry'));
 
         expect(await screen.findByTestId('mod')).toHaveTextContent('recovered');
         expect(load).toHaveBeenCalledTimes(2);

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * approvalService v2 — app-sourced decisions and withdraw.
  *

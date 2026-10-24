@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — the ISO 27001 ISMS documents: member-facing published policies
  * and acknowledgements, plus the admin draft/publish CRUD.
@@ -29,6 +30,7 @@ const { resolveOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { HttpError } = require('../../core/http/errors');
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
@@ -155,7 +157,8 @@ router.post('/iso/docs/:slug/publish', requireAuth, requirePermission('admin_com
         });
         res.json(doc);
     } catch (e) {
-        res.status(e.message?.includes('empty') ? 400 : 500).json({ error: e.message });
+        if (e.message === 'Cannot publish an empty document') throw new HttpError(400, 'empty_document', e.message);
+        throw e;
     }
 });
 

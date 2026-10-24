@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The route table of /api/studio-apps (routes/studioApps.js), pinned.
  *

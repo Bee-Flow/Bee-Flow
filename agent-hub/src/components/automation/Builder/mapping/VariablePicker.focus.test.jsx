@@ -1,4 +1,5 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import VariablePicker from './VariablePicker';
@@ -37,16 +38,18 @@ describe('VariablePicker — scoped to the clicked pill\'s step', () => {
         expect(current.textContent).toContain('Total');
     });
 
-    it('"All steps" brings every step back', () => {
+    it('"All steps" brings every step back', async () => {
+        const user = userEvent.setup();
         renderPicker({ focusPath: 'steps.b.output.total' });
-        fireEvent.click(screen.getByRole('button', { name: 'All steps' }));
+        await user.click(screen.getByRole('button', { name: 'All steps' }));
         expect(screen.getByText('Read the figures')).toBeTruthy();
         expect(screen.getByText('What scores already')).toBeTruthy();
     });
 
-    it('picking another field of that step hands back its path', () => {
+    it('picking another field of that step hands back its path', async () => {
+        const user = userEvent.setup();
         const { onPick } = renderPicker({ focusPath: 'steps.b.output.total' });
-        fireEvent.click(screen.getByText('Gap'));
+        await user.click(screen.getByText('Gap'));
         expect(onPick).toHaveBeenCalledWith('steps.b.output.gap', expect.anything());
     });
 

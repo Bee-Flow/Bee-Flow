@@ -1,4 +1,5 @@
 import { render as rtlRender, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // The Studio screen lost its tab bar: its sections open from a flyout panel
@@ -141,13 +142,14 @@ const openAppsFlyout = async () => fireEvent.click(await screen.findByTestId('na
 describe('Sidebar — member documents', () => {
     beforeEach(resetSidebarMocks);
 
-    it.each([true, false])('opens documents without Studio rights, with sidebar open=%s', (isOpen) => {
+    it.each([true, false])('opens documents without Studio rights, with sidebar open=%s', async (isOpen) => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         renderSidebar({ isOpen, onNavigate, user: { id: 'member', permissions: ['page_chat'] }, hasPermission: () => false, currentPage: 'documents', directChatMode: true });
         expect(screen.queryByTestId('nav-studio')).toBeNull();
         expect(screen.getByTestId('nav-documents')).toHaveAttribute('aria-current', 'page');
         expect(screen.getByTestId('nav-new-chat')).not.toHaveAttribute('aria-current');
-        fireEvent.click(screen.getByTestId('nav-documents'));
+        await user.click(screen.getByTestId('nav-documents'));
         expect(onNavigate).toHaveBeenCalledWith('documents');
     });
 
@@ -294,7 +296,8 @@ describe('Sidebar — Studio flyout (registry-driven)', () => {
         expect(screen.getByTestId('nav-studio-agents').getAttribute('data-locked')).toBeNull();
     });
 
-    it('a locked row neither navigates nor offers a sub-panel', () => {
+    it('a locked row neither navigates nor offers a sub-panel', async () => {
+        const user = userEvent.setup();
         // (The Studio ROW's own landing — first UNLOCKED section — is
         // firstOpenStudioSection, pinned in studioApps.test.jsx; on desktop
         // the row click toggles the flyout, so it cannot be reached here.)
@@ -304,13 +307,13 @@ describe('Sidebar — Studio flyout (registry-driven)', () => {
         // the licence, so the locked row is a licence lock, not a role hide.
         renderSidebar({ onNavigate, user: { isAdmin: true, permissions: [] }, hasPermission: holds(ADMIN_ROLE_PERMS) });
         openStudioFlyout();
-        fireEvent.click(screen.getByTestId('nav-studio-apps'));
+        await user.click(screen.getByTestId('nav-studio-apps'));
         expect(onNavigate).not.toHaveBeenCalled();
         expect(screen.getByTestId('nav-studio-apps').getAttribute('aria-haspopup')).toBeNull();
         // The flyout stays open — nothing happened.
         expect(screen.getByTestId('flyout-studio')).toBeTruthy();
         // The open ones still navigate.
-        fireEvent.click(screen.getByTestId('nav-studio-agents'));
+        await user.click(screen.getByTestId('nav-studio-agents'));
         expect(onNavigate).toHaveBeenLastCalledWith('studio/agents');
     });
 
@@ -411,33 +414,35 @@ describe('Sidebar — Studio flyout (registry-driven)', () => {
         expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/api/studio/counts'))).toBe(false);
     });
 
-    it('navigates to studio/<urlSegment> and closes the panel when a section is picked', () => {
+    it('navigates to studio/<urlSegment> and closes the panel when a section is picked', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         renderSidebar({ onNavigate });
         openStudioFlyout();
-        fireEvent.click(screen.getByTestId('nav-studio-skills'));
+        await user.click(screen.getByTestId('nav-studio-skills'));
         expect(onNavigate).toHaveBeenLastCalledWith('studio/skills');
         expect(screen.queryByTestId('flyout-studio')).toBeNull();
         openStudioFlyout();
-        fireEvent.click(screen.getByTestId('nav-studio-aiTasks'));
+        await user.click(screen.getByTestId('nav-studio-aiTasks'));
         expect(onNavigate).toHaveBeenLastCalledWith('studio/automations');
         openStudioFlyout();
-        fireEvent.click(screen.getByTestId('nav-studio-meetingNotes'));
+        await user.click(screen.getByTestId('nav-studio-meetingNotes'));
         expect(onNavigate).toHaveBeenLastCalledWith('studio/meeting-notes');
     });
 
-    it('toggles via the row, opens on hover, closes on Escape, keeps the tour anchor', () => {
+    it('toggles via the row, opens on hover, closes on Escape, keeps the tour anchor', async () => {
+        const user = userEvent.setup();
         const { container } = renderSidebar();
         const row = container.querySelector('[data-tour="nav-studio"]');
         expect(row).toBeTruthy();
-        // Click toggles.
+        // Click toggles. A bare click event: user.click would hover first, and hover opens the flyout.
         fireEvent.click(row);
         expect(screen.getByTestId('flyout-studio')).toBeTruthy();
         fireEvent.click(row);
         expect(screen.queryByTestId('flyout-studio')).toBeNull();
         // Hovering the wrapper opens too (React derives onMouseEnter from
         // native mouseover, which is what fireEvent.mouseOver dispatches).
-        fireEvent.mouseOver(row.parentElement);
+        await user.hover(row.parentElement);
         expect(screen.getByTestId('flyout-studio')).toBeTruthy();
         // Escape dismisses.
         fireEvent.keyDown(document, { key: 'Escape' });
@@ -576,6 +581,7 @@ describe('Sidebar — the top-level Approvals row', () => {
     beforeEach(resetSidebarMocks);
 
     it('is listed on any approval, pending or not, and navigates to the section', async () => {
+        const user = userEvent.setup();
         // It is the ONLY entrance since the Studio panel stopped listing the
         // section, so it must not depend on something being PENDING: the
         // decided ones are a record people go looking for.
@@ -585,7 +591,7 @@ describe('Sidebar — the top-level Approvals row', () => {
         const row = await screen.findByTestId('nav-approvals');
         // Nothing waiting → no badge, but the row is there.
         expect(row.textContent).not.toMatch(/\d/);
-        fireEvent.click(row);
+        await user.click(row);
         expect(onNavigate).toHaveBeenLastCalledWith('studio/approvals');
     });
 
@@ -675,14 +681,15 @@ describe('Sidebar — Apps flyout (published apps)', () => {
     });
 
     it('navigates to the directory and to a single app', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         renderSidebar({ onNavigate });
         await openAppsFlyout();
         await screen.findByTestId('nav-app-a1');
-        fireEvent.click(screen.getByTestId('nav-apps-all'));
+        await user.click(screen.getByTestId('nav-apps-all'));
         expect(onNavigate).toHaveBeenLastCalledWith('apps');
         await openAppsFlyout();
-        fireEvent.click(await screen.findByTestId('nav-app-a1'));
+        await user.click(await screen.findByTestId('nav-app-a1'));
         expect(onNavigate).toHaveBeenLastCalledWith('apps/a1');
     });
 
@@ -720,6 +727,7 @@ describe('Sidebar — the Forms row', () => {
     it('is listed once the organisation has published a form, and lists it', async () => {
         serve({ forms: [{ id: 'f1', title: 'Leave request', description: 'Ask for time off', live: true }] });
         renderSidebar();
+        // A bare click event: user.click would hover first, and hover opens the flyout, so the click would close it.
         fireEvent.click(await screen.findByTestId('nav-forms'));
         expect(screen.getByTestId('nav-forms-all')).toBeTruthy();
         expect(screen.getByTestId('nav-form-f1')).toBeTruthy();
@@ -743,7 +751,8 @@ describe('Sidebar — the Forms row', () => {
 describe('Sidebar — the Studio row', () => {
     beforeEach(resetSidebarMocks);
 
-    it('opens the first section that actually passed its gate', () => {
+    it('opens the first section that actually passed its gate', async () => {
+        const user = userEvent.setup();
         licenseMock.hasFeature = () => false;
         const onNavigate = vi.fn();
         renderSidebar({
@@ -751,8 +760,9 @@ describe('Sidebar — the Studio row', () => {
             user: { isAdmin: true, permissions: [] },
             hasPermission: (p) => p === 'manage_agents',
         });
+        // A bare click event: user.click would hover first, and hover opens the flyout, so the click would close it.
         fireEvent.click(screen.getByTestId('nav-studio'));
-        fireEvent.click(screen.getByTestId('nav-studio-agents'));
+        await user.click(screen.getByTestId('nav-studio-agents'));
         expect(onNavigate).toHaveBeenLastCalledWith('studio/agents');
     });
 

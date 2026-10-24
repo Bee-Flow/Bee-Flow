@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The files a run produced: list, download, PDF page preview.
  *

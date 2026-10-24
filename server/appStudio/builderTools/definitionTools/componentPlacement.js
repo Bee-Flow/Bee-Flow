@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — WHERE a component goes: resolving the parent an
  * app_add_components / app_move_node call named (and the section a call that

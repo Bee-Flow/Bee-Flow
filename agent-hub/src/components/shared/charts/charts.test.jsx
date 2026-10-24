@@ -2,7 +2,8 @@
  * The shared chart kit: draws in jsdom (explicit width), carries every number
  * as text, and never emits a purple/violet/indigo hue.
  */
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect } from 'vitest';
 import BarList from './BarList';
 import { CHART_SERIES, chartSeriesVar } from './chartChrome';
@@ -26,13 +27,14 @@ describe('TokenBarChart', () => {
 });
 
 describe('BarList', () => {
-    it('shows label, count and share per row, and folds the tail behind a button', () => {
+    it('shows label, count and share per row, and folds the tail behind a button', async () => {
+        const user = userEvent.setup();
         const rows = Array.from({ length: 10 }, (_, i) => ({ label: `Option ${i}`, n: 10 - i, pct: 10 - i }));
         const { container } = render(<BarList rows={rows} maxRows={8} ariaLabel="How did you hear about us?" moreLabel={(n) => `${n} more`} />);
         expect(screen.getAllByRole('listitem').length).toBe(8);
         expect(screen.getByText('Option 0')).toBeTruthy();
         expect(screen.getByText('10%')).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: '2 more' }));
+        await user.click(screen.getByRole('button', { name: '2 more' }));
         expect(screen.getAllByRole('listitem').length).toBe(10);
         for (const re of FORBIDDEN) expect(container.innerHTML).not.toMatch(re);
     });

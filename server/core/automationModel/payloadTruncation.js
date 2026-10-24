@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Step input/output truncation for the run history (§13).
  *

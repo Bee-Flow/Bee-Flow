@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -166,17 +167,19 @@ describe('OrgTerminationsPanel — first paint and the four requests', () => {
     });
 
     it('re-fetches all four when the refresh button is pressed', async () => {
+        const user = userEvent.setup();
         await mount();
-        fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+        await user.click(screen.getByRole('button', { name: 'Refresh' }));
         await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(8));
     });
 
     it('keeps the table on screen during a refresh — the loading card only covers a cold start', async () => {
+        const user = userEvent.setup();
         await mount({ list: jsonRes({ rows: [ROW] }) });
         expect(detailRowFor('Invoice Bot')).toBeTruthy();
         let release;
         authFetch.mockImplementation(() => new Promise(res => { release = res; }));
-        fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+        await user.click(screen.getByRole('button', { name: 'Refresh' }));
         expect(screen.queryByText('Loading terminations…')).toBeNull();
         expect(detailRowFor('Invoice Bot')).toBeTruthy();
         release(jsonRes({ rows: [] }));
@@ -270,23 +273,25 @@ describe('OrgTerminationsPanel — the error alert banner', () => {
     });
 
     it('the "Review errors" CTA filters the detail table down to error rows', async () => {
+        const user = userEvent.setup();
         await mount({
             summary: jsonRes({ total: 100, by_type: { error: 30 } }),
             list: jsonRes({ rows: [ROW, { ...ROW, id: 'r2', termination_type: 'aborted', agent_name: 'Aborted Bot' }] }),
         });
         expect(detailRowFor('Aborted Bot')).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: /Review errors/ }));
+        await user.click(screen.getByRole('button', { name: /Review errors/ }));
         await waitFor(() => expect(detailRowFor('Aborted Bot')).toBeUndefined());
         expect(detailRowFor('Invoice Bot')).toBeTruthy();
         expect(screen.getByText('1 event')).toBeInTheDocument();
     });
 
     it('leaves the filtered-out agent in the agent dropdown — the options come from the unfiltered rows (wart)', async () => {
+        const user = userEvent.setup();
         const { container } = await mount({
             summary: jsonRes({ total: 100, by_type: { error: 30 } }),
             list: jsonRes({ rows: [ROW, { ...ROW, id: 'r2', agent_id: 'ag-2', termination_type: 'aborted', agent_name: 'Aborted Bot' }] }),
         });
-        fireEvent.click(screen.getByRole('button', { name: /Review errors/ }));
+        await user.click(screen.getByRole('button', { name: /Review errors/ }));
         await waitFor(() => expect(detailRowFor('Aborted Bot')).toBeUndefined());
         expect(Array.from(container.querySelectorAll('select')[1].options).map(o => o.textContent))
             .toEqual(['All agents', 'Invoice Bot', 'Aborted Bot']);
@@ -326,11 +331,12 @@ describe('OrgTerminationsPanel — a failed load', () => {
     });
 
     it('keeps the PREVIOUS data on screen when a refresh throws, with no staleness marker (wart)', async () => {
+        const user = userEvent.setup();
         await mount({ list: jsonRes({ rows: [ROW] }), summary: jsonRes({ total: 100, by_type: { error: 0 } }) });
         expect(detailRowFor('Invoice Bot')).toBeTruthy();
 
         authFetch.mockRejectedValue(new Error('offline'));
-        fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+        await user.click(screen.getByRole('button', { name: 'Refresh' }));
         await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(8));
 
         expect(detailRowFor('Invoice Bot')).toBeTruthy();
@@ -513,8 +519,9 @@ describe('OrgTerminationsPanel — the expanded row', () => {
     });
 
     it('falls back to an em dash for every missing detail field', async () => {
+        const user = userEvent.setup();
         await mount({ list: jsonRes({ rows: [{ id: 'bare', termination_type: 'aborted' }] }) });
-        fireEvent.click(screen.getByText('▸'));
+        await user.click(screen.getByText('▸'));
         // source, conversation, user, error class, error, stack, attachments = 7 dashes,
         // plus the model cell ("Unknown") and error-code cell in the collapsed row.
         expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(7);

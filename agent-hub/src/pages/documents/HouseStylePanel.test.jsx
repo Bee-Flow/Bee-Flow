@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 /**
@@ -88,23 +89,26 @@ describe('HouseStylePanel — who may change it', () => {
 
 describe('HouseStylePanel — the master switch', () => {
     it('saves the flipped value', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.click(screen.getByTestId('house-style-enabled'));
-        fireEvent.click(screen.getByTestId('house-style-save'));
+        await user.click(screen.getByTestId('house-style-enabled'));
+        await user.click(screen.getByTestId('house-style-save'));
         await waitFor(() => expect(api.saveHouseStyle).toHaveBeenCalled());
         expect(api.saveHouseStyle.mock.calls[0][0].enabled).toBe(false);
     });
 
     it('confirms the save rather than leaving the user guessing', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.click(screen.getByTestId('house-style-save'));
+        await user.click(screen.getByTestId('house-style-save'));
         expect(await screen.findByText(/Saved\. New documents will use it\./i)).toBeTruthy();
     });
 
     it('surfaces a failed save and keeps the edits on screen', async () => {
+        const user = userEvent.setup();
         await renderPanel();
         api.saveHouseStyle.mockRejectedValue(new Error('Only an org admin may do that.'));
-        fireEvent.click(screen.getByTestId('house-style-save'));
+        await user.click(screen.getByTestId('house-style-save'));
         expect(await screen.findByText('Only an org admin may do that.')).toBeTruthy();
     });
 });
@@ -131,9 +135,10 @@ describe('HouseStylePanel — the logo', () => {
     });
 
     it('can take the logo back off', async () => {
+        const user = userEvent.setup();
         await renderPanel({ style: { logoDataUrl: 'data:image/png;base64,AAA' } });
         expect(screen.getByTestId('house-style-logo')).toBeTruthy();
-        fireEvent.click(screen.getByText('Remove'));
+        await user.click(screen.getByText('Remove'));
         expect(screen.queryByTestId('house-style-logo')).toBeNull();
     });
 });
@@ -146,9 +151,10 @@ describe('HouseStylePanel — the fields', () => {
     });
 
     it('edits a company detail into the payload', async () => {
+        const user = userEvent.setup();
         await renderPanel();
         fireEvent.change(screen.getByDisplayValue('Van Dijk Groep'), { target: { value: 'Van Dijk Staal BV' } });
-        fireEvent.click(screen.getByTestId('house-style-save'));
+        await user.click(screen.getByTestId('house-style-save'));
         await waitFor(() => expect(api.saveHouseStyle).toHaveBeenCalled());
         expect(api.saveHouseStyle.mock.calls[0][0].companyName).toBe('Van Dijk Staal BV');
     });
@@ -156,23 +162,25 @@ describe('HouseStylePanel — the fields', () => {
 
 describe('HouseStylePanel — presentations', () => {
     it('draws the preview from the SERVER-resolved theme and re-asks after an edit', async () => {
+        const user = userEvent.setup();
         await renderPanel();
         await waitFor(() => expect(screen.getByTestId('deck-preview')).toBeInTheDocument());
         expect(api.previewDeckTheme).toHaveBeenCalled();
         const before = api.previewDeckTheme.mock.calls.length;
-        fireEvent.click(screen.getByTestId('house-style-deck-preset-dark'));
+        await user.click(screen.getByTestId('house-style-deck-preset-dark'));
         await waitFor(() => expect(api.previewDeckTheme.mock.calls.length).toBeGreaterThan(before));
         const sent = api.previewDeckTheme.mock.calls.at(-1)[0];
         expect(sent.deck.preset).toBe('dark');
     });
 
     it('saves the deck choices with the letterhead, blanks meaning "same as documents"', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.click(screen.getByTestId('house-style-deck-preset-clean'));
+        await user.click(screen.getByTestId('house-style-deck-preset-clean'));
         fireEvent.change(screen.getByTestId('house-style-deck-tableStyle'), { target: { value: 'lines' } });
         fireEvent.change(screen.getByTestId('house-style-deck-footer'), { target: { value: 'Vertrouwelijk' } });
-        fireEvent.click(screen.getByTestId('house-style-deck-numbers'));
-        fireEvent.click(screen.getByTestId('house-style-save'));
+        await user.click(screen.getByTestId('house-style-deck-numbers'));
+        await user.click(screen.getByTestId('house-style-save'));
         await waitFor(() => expect(api.saveHouseStyle).toHaveBeenCalled());
         const saved = api.saveHouseStyle.mock.calls[0][0];
         expect(saved.deck).toMatchObject({ preset: 'clean', tableStyle: 'lines', footerText: 'Vertrouwelijk', slideNumbers: false, accent: '' });
@@ -187,6 +195,7 @@ describe('HouseStylePanel — presentations', () => {
 
 describe('HouseStylePanel — the template deck', () => {
     it('uploads a .pptx, shows its name and previews on its backdrop; Remove takes it off', async () => {
+        const user = userEvent.setup();
         const template = { name: 'Conf 2026', aspect: 1.78, cover: { image: 'data:image/jpeg;base64,AAA', overlays: [] }, content: { image: 'data:image/jpeg;base64,AAA', overlays: [{ image: 'data:image/png;base64,BBB', x: 0.03, y: 0.04, w: 0.1, h: 0.18 }] }, background: '#0F96E0', text: '#FFFFFF', fonts: { title: '', body: '' } };
         api.uploadDeckTemplate.mockResolvedValue(template);
         api.previewDeckTheme.mockResolvedValue({ ...THEME, template, text: '#FFFFFF', titleStyle: 'plain', background: '#0F96E0' });
@@ -196,12 +205,13 @@ describe('HouseStylePanel — the template deck', () => {
         await waitFor(() => expect(api.uploadDeckTemplate).toHaveBeenCalledWith('data:image/png;base64,AAA', 'Conf 2026.pptx'));
         expect(await screen.findByText('Conf 2026')).toBeTruthy();
         await waitFor(() => expect(document.querySelector('[data-template="yes"]')).toBeTruthy());
-        fireEvent.click(screen.getByTestId('house-style-deck-template-remove'));
+        await user.click(screen.getByTestId('house-style-deck-template-remove'));
         expect(screen.queryByTestId('house-style-deck-template')).toBeNull();
         expect(screen.getByTestId('house-style-deck-template-file')).toBeTruthy();
     });
 
     it('suggests the template\'s brand colour and typefaces for the house style, applied in one click', async () => {
+        const user = userEvent.setup();
         const template = { name: 'Conf', aspect: 1.78, cover: { image: 'data:image/jpeg;base64,AAA', overlays: [] }, content: { image: 'data:image/jpeg;base64,AAA', overlays: [] }, background: '#0F96E0', accent: '#0489D2', text: '#FFFFFF', fonts: { title: 'Georgia', body: 'Georgia' } };
         api.uploadDeckTemplate.mockResolvedValue(template);
         await renderPanel();
@@ -209,7 +219,7 @@ describe('HouseStylePanel — the template deck', () => {
         const box = await screen.findByTestId('house-style-template-suggestions');
         expect(box.textContent).toMatch(/#0489D2/);
         expect(box.textContent).toMatch(/Georgia/);
-        fireEvent.click(screen.getByTestId('house-style-template-apply'));
+        await user.click(screen.getByTestId('house-style-template-apply'));
         await waitFor(() => expect(screen.getByDisplayValue('#0489D2')).toBeTruthy());
         expect(screen.getByTestId('house-style-deck-titleFont').value).toBe('Georgia');
         expect(screen.queryByTestId('house-style-template-suggestions')).toBeNull();

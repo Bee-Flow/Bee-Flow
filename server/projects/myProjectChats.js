@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "My chats in this project" — the caller's OWN direct and agent
  * conversations filed under a project, shared or not.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Export Template — builds a professional HTML document for PDF rendering.
  *

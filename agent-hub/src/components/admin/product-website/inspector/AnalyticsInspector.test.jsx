@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import AnalyticsInspector from './AnalyticsInspector';
@@ -40,7 +41,8 @@ describe('AnalyticsInspector', () => {
         expect(onChange).toHaveBeenCalledWith({ gaMeasurementId: '' });
     });
 
-    it('warns when the cookie banner is disabled and jumps to its settings', () => {
+    it('warns when the cookie banner is disabled and jumps to its settings', async () => {
+        const user = userEvent.setup();
         const onOpenCookieSettings = vi.fn();
         render(
             <AnalyticsInspector
@@ -50,7 +52,7 @@ describe('AnalyticsInspector', () => {
             />,
         );
         expect(screen.getByText(/cookie banner is disabled/)).toBeInTheDocument();
-        fireEvent.click(screen.getByText('Open cookie banner settings'));
+        await user.click(screen.getByText('Open cookie banner settings'));
         expect(onOpenCookieSettings).toHaveBeenCalled();
     });
 

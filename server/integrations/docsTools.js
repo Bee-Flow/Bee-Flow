@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Google Docs Tools — Read and write Google Docs (no delete)
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO 27001 A.5.15 / A.5.18 / A.8.3 — Access control is centrally defined and
  * machine-checked.

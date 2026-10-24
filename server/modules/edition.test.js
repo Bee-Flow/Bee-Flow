@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Edition switch — the core-only build proof.
  *

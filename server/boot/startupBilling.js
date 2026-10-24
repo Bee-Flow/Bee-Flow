@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Billing schedulers: dunning, trial expiry, plan-cap drift, seat sync, PAYG drain.
  *

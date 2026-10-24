@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, fireEvent, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ActionsSection from './ActionsSection';
@@ -146,12 +147,13 @@ describe('ActionsSection — native AI actions', () => {
         expect(lastAction().prompt).toBe('Summarize {{form.title}}');
     });
 
-    it('ai_generate (structured): renders the declared-fields editor and adds a field', () => {
+    it('ai_generate (structured): renders the declared-fields editor and adds a field', async () => {
+        const user = userEvent.setup();
         const { getByText, lastAction } = renderActions(formNode, {
             act1: { kind: 'ai_generate', prompt: 'x', output: 'structured', schema: [], resultVar: 'r' },
         });
         expect(getByText('Fields to return')).toBeTruthy();
-        fireEvent.click(getByText('+ Add field'));
+        await user.click(getByText('+ Add field'));
         expect(lastAction().schema).toEqual([{ name: 'field', type: 'string', description: '', required: false }]);
     });
 
@@ -193,6 +195,7 @@ describe('ActionsSection — native AI actions', () => {
     });
 
     it('ai_extract: an untouched schema adopts the table\'s columns and maps them on write-to', async () => {
+        const user = userEvent.setup();
         const { findByLabelText, lastAction } = renderActions(formNode, {
             act1: {
                 kind: 'ai_extract', source: { kind: 'formula', expr: 'form.upload' },
@@ -202,7 +205,7 @@ describe('ActionsSection — native AI actions', () => {
         // The toggle stays disabled until the table catalogue lands.
         const toggle = await findByLabelText('Write extracted rows to a data table');
         await waitFor(() => expect(toggle.disabled).toBe(false));
-        fireEvent.click(toggle);
+        await user.click(toggle);
 
         const action = lastAction();
         // The placeholder schema is replaced by the table's own columns — typed,
@@ -219,6 +222,7 @@ describe('ActionsSection — native AI actions', () => {
     });
 
     it('ai_extract: an authored schema is kept and matched to columns by name', async () => {
+        const user = userEvent.setup();
         const { findByLabelText, lastAction } = renderActions(formNode, {
             act1: {
                 kind: 'ai_extract', source: { kind: 'formula', expr: 'form.upload' },
@@ -232,7 +236,7 @@ describe('ActionsSection — native AI actions', () => {
         // The toggle stays disabled until the table catalogue lands.
         const toggle = await findByLabelText('Write extracted rows to a data table');
         await waitFor(() => expect(toggle.disabled).toBe(false));
-        fireEvent.click(toggle);
+        await user.click(toggle);
 
         const action = lastAction();
         expect(action.schema).toHaveLength(3); // the builder's own fields survive
@@ -268,11 +272,12 @@ describe('ActionsSection — native AI actions', () => {
     });
 
     it('kb_query: lists knowledge bases and toggling one commits its id', async () => {
+        const user = userEvent.setup();
         const { findByLabelText, lastAction } = renderActions(formNode, {
             act1: { kind: 'kb_query', query: { kind: 'static', value: '' }, knowledgeBaseIds: [], resultVar: 'results' },
         });
         const cb = await findByLabelText('Ground in Handbook');
-        fireEvent.click(cb);
+        await user.click(cb);
         expect(lastAction().knowledgeBaseIds).toEqual(['kb1']);
     });
 });

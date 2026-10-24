@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Parameters a code step declares, read from the JSDoc on `main`.
  *

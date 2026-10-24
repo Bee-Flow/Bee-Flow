@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The dependency graph of a Solution: which app runs which automation, which
  * automation asks whom to approve, which page is allowed to call what.
@@ -172,11 +173,11 @@ const SEVERITY = {
 function appDatatableIds(_app) { return []; }
 
 /**
- * @param {object} input
- * @param {object} input.project
- * @param {Array}  input.automations  every kind — blocks and layers included
- * @param {Array}  input.apps         WITH their definitions, not meta only
- * @param {Array}  input.webpages
+ * @param {object} [input]
+ * @param {Record<string, any>} [input.project]
+ * @param {Array}  [input.automations]  every kind — blocks and layers included
+ * @param {Array}  [input.apps]         WITH their definitions, not meta only
+ * @param {Array}  [input.webpages]
  * @param {Array}  [input.datatables] the tables filed into this project
  * @param {Array}  [input.agents]     WITH their parsed `config`
  * @param {Array}  [input.knowledgeBases] the bases this project links
@@ -186,7 +187,7 @@ function appDatatableIds(_app) { return []; }
  * @param {Set}    [input.knownAutomationIds]  ids that exist outside the project
  * @param {Set}    [input.knownDatatableIds]
  * @param {Set}    [input.knownKnowledgeBaseIds]
- * @returns {{nodes: Array, edges: Array, externals: Array, problems: Array}}
+ * @returns {{projectId?: string|null, nodes: Array, edges: Array, externals: Array, problems: Array}}
  */
 function buildProjectGraph({
     project = null, automations = [], apps = [], webpages = [],
@@ -465,5 +466,4 @@ function buildProjectGraph({
 
     return { projectId: project?.id || null, nodes, edges, externals, problems };
 }
-
 module.exports = { buildProjectGraph, PROBLEM, PROSE, SEVERITY };

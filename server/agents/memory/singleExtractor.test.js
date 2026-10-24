@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * There is exactly ONE memory extractor, and direct chat runs it once.
  *

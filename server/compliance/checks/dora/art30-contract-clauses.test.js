@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DORA-Art30-contract-clauses — annual attestation that contracts with
  * financial entities carry the Art. 30 provisions.

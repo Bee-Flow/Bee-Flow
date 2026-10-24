@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Knowledge bases in a Solution — the one member kind with no `project_id`.
  *
@@ -133,7 +134,7 @@ async function validateKnowledgeBaseIds(req, ids, projectOrganizationId) {
  *
  * @param {object} req
  * @param {unknown[]} ids      what the caller sent
- * @param {object} project     the project row before the write (getProject)
+ * @param {Record<string, any>} project     the project row before the write (getProject)
  * @returns {Promise<{ ok: boolean, invalid: string[], tooMany?: boolean, ids: unknown[] }>}
  *          `ids` is the list to store when `ok`
  */

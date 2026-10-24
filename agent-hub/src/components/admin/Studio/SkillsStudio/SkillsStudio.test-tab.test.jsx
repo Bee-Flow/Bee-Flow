@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { skillsApi } from './skillsApi';
@@ -120,13 +121,14 @@ describe('before a run', () => {
  */
 describe('a skill this account may not edit', () => {
     it('a skill this account may not edit cannot be run, and says why', async () => {
+        const user = userEvent.setup();
         renderTab({ readOnly: true });
         await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
         // Everything else about the run is in order — only the right is missing.
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'What does line 4 mean?' } });
         expect(screen.getByTestId('skill-test-run').disabled).toBe(true);
         expect(screen.getByTestId('skill-test-readonly').textContent).toMatch(/not change it/i);
-        fireEvent.click(screen.getByTestId('skill-test-run'));
+        await user.click(screen.getByTestId('skill-test-run'));
         expect(skillsApi.test).not.toHaveBeenCalled();
     });
 
@@ -155,12 +157,13 @@ describe('the agent picker', () => {
     });
 
     it('sends the chosen agent with the run', async () => {
+        const user = userEvent.setup();
         skillsApi.test.mockImplementation(streams([['answer', { text: 'ok' }], ['done', { run: RUN }]]));
         renderTab();
         await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
         fireEvent.change(screen.getByTestId('skill-test-agent'), { target: { value: 'ag1' } });
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'What does line 4 mean?' } });
-        fireEvent.click(screen.getByTestId('skill-test-run'));
+        await user.click(screen.getByTestId('skill-test-run'));
         await waitFor(() => expect(skillsApi.test).toHaveBeenCalled());
         expect(skillsApi.test.mock.calls[0][1].agentId).toBe('ag1');
     });
@@ -175,6 +178,7 @@ describe('the agent picker', () => {
 
 describe('a run', () => {
     it('shows the answer, a row per step, and the advice', async () => {
+        const user = userEvent.setup();
         skillsApi.test.mockImplementation(streams([
             ['answer', { text: 'Line 4 is the install fee.' }],
             ['done', { run: RUN }],
@@ -182,7 +186,7 @@ describe('a run', () => {
         renderTab();
         await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'What does line 4 mean?' } });
-        fireEvent.click(screen.getByTestId('skill-test-run'));
+        await user.click(screen.getByTestId('skill-test-run'));
 
         expect(await screen.findByTestId('skill-test-answer')).toBeTruthy();
         expect(screen.getByTestId('skill-test-answer').textContent).toContain('Line 4 is the install fee.');
@@ -195,15 +199,17 @@ describe('a run', () => {
     });
 
     it('reloads the history, so the tab and the overview cannot disagree', async () => {
+        const user = userEvent.setup();
         skillsApi.test.mockImplementation(streams([['answer', { text: 'x' }], ['done', { run: RUN }]]));
         renderTab();
         await waitFor(() => expect(skillsApi.testRuns).toHaveBeenCalledTimes(1));
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'q' } });
-        fireEvent.click(screen.getByTestId('skill-test-run'));
+        await user.click(screen.getByTestId('skill-test-run'));
         await waitFor(() => expect(skillsApi.testRuns).toHaveBeenCalledTimes(2));
     });
 
     it('the advice links to what the first flagged step uses, through the shared deep link', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         skillsApi.test.mockImplementation(streams([
             ['answer', { text: 'x' }],
@@ -220,12 +226,13 @@ describe('a run', () => {
         renderTab({ onNavigate });
         await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'q' } });
-        fireEvent.click(screen.getByTestId('skill-test-run'));
-        fireEvent.click(await screen.findByTestId('skill-test-advice-link'));
+        await user.click(screen.getByTestId('skill-test-run'));
+        await user.click(await screen.findByTestId('skill-test-advice-link'));
         expect(onNavigate).toHaveBeenCalledWith('studio/automations/a1');
     });
 
     it('offers no link when the flagged step points at nothing', async () => {
+        const user = userEvent.setup();
         skillsApi.test.mockImplementation(streams([
             ['answer', { text: 'x' }],
             ['done', {
@@ -235,7 +242,7 @@ describe('a run', () => {
         renderTab();
         await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'q' } });
-        fireEvent.click(screen.getByTestId('skill-test-run'));
+        await user.click(screen.getByTestId('skill-test-run'));
         await screen.findByTestId('skill-test-advice');
         expect(screen.queryByTestId('skill-test-advice-link')).toBeNull();
     });
@@ -243,6 +250,7 @@ describe('a run', () => {
 
 describe('a run that did not produce a verdict', () => {
     it('an error frame shows the reason and NO step rows', async () => {
+        const user = userEvent.setup();
         skillsApi.test.mockImplementation(streams([
             ['answer', { text: 'something' }],
             ['error', { error: 'raw', code: 'grading_failed' }],
@@ -250,7 +258,7 @@ describe('a run that did not produce a verdict', () => {
         renderTab();
         await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'q' } });
-        fireEvent.click(screen.getByTestId('skill-test-run'));
+        await user.click(screen.getByTestId('skill-test-run'));
         const err = await screen.findByTestId('skill-test-error');
         expect(err.textContent).toMatch(/could not be graded/i);
         expect(screen.queryAllByTestId('skill-test-step-row')).toHaveLength(0);
@@ -258,6 +266,7 @@ describe('a run that did not produce a verdict', () => {
     });
 
     it('a refusal BEFORE the stream keeps its reason', async () => {
+        const user = userEvent.setup();
         const err = new Error('Add steps first — a test grades one step at a time.');
         err.status = 400;
         err.code = 'no_steps';
@@ -265,11 +274,12 @@ describe('a run that did not produce a verdict', () => {
         renderTab();
         await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'q' } });
-        fireEvent.click(screen.getByTestId('skill-test-run'));
+        await user.click(screen.getByTestId('skill-test-run'));
         expect((await screen.findByTestId('skill-test-error')).textContent).toMatch(/Add steps first/i);
     });
 
     it('an unknown status is drawn as a warning, never as a pass', async () => {
+        const user = userEvent.setup();
         skillsApi.test.mockImplementation(streams([
             ['answer', { text: 'x' }],
             ['done', { run: { ...RUN, results: [{ stepId: 'st1', title: 'Read the quote', evidence: '?', status: 'excellent' }] } }],
@@ -277,12 +287,13 @@ describe('a run that did not produce a verdict', () => {
         renderTab();
         await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'q' } });
-        fireEvent.click(screen.getByTestId('skill-test-run'));
+        await user.click(screen.getByTestId('skill-test-run'));
         const rows = await screen.findAllByTestId('skill-test-step-row');
         expect(rows[0].getAttribute('data-status')).toBe('warning');
     });
 
     it('a stream that ENDS after the answer is a failure, not a quiet success', async () => {
+        const user = userEvent.setup();
         // The reader resolves on end-of-body. A close-delimited SSE response
         // (how the Nextcloud proxy frames it) cannot distinguish "cut" from
         // "finished", so a grading pass that died mid-run used to leave the
@@ -292,7 +303,7 @@ describe('a run that did not produce a verdict', () => {
         renderTab();
         await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'q' } });
-        fireEvent.click(screen.getByTestId('skill-test-run'));
+        await user.click(screen.getByTestId('skill-test-run'));
         const err = await screen.findByTestId('skill-test-error');
         expect(err.textContent).toMatch(/stopped before a verdict/i);
         expect(screen.queryAllByTestId('skill-test-step-row')).toHaveLength(0);
@@ -301,15 +312,17 @@ describe('a run that did not produce a verdict', () => {
     });
 
     it('a done frame carrying no run is the same hole one frame later', async () => {
+        const user = userEvent.setup();
         skillsApi.test.mockImplementation(streams([['answer', { text: 'x' }], ['done', { run: null }]]));
         renderTab();
         await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'q' } });
-        fireEvent.click(screen.getByTestId('skill-test-run'));
+        await user.click(screen.getByTestId('skill-test-run'));
         expect((await screen.findByTestId('skill-test-error')).textContent).toMatch(/stopped before a verdict/i);
     });
 
     it('a knowledge-base check the server could not run says so', async () => {
+        const user = userEvent.setup();
         const err = new Error('Could not check which knowledge bases this skill may use. Try again.');
         err.status = 503;
         err.code = 'kb_check_failed';
@@ -317,13 +330,14 @@ describe('a run that did not produce a verdict', () => {
         renderTab();
         await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'q' } });
-        fireEvent.click(screen.getByTestId('skill-test-run'));
+        await user.click(screen.getByTestId('skill-test-run'));
         expect((await screen.findByTestId('skill-test-error')).textContent).toMatch(/knowledge bases/i);
     });
 });
 
 describe('what the run actually searched', () => {
     it('says when the run searched fewer knowledge bases than the skill links', async () => {
+        const user = userEvent.setup();
         // The answer AND the verdict below it were built on fewer sources
         // than the skill declares. Silence would let a warning read as a
         // problem with the skill rather than with this account's access.
@@ -335,22 +349,24 @@ describe('what the run actually searched', () => {
         renderTab();
         await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'q' } });
-        fireEvent.click(screen.getByTestId('skill-test-run'));
+        await user.click(screen.getByTestId('skill-test-run'));
         const line = await screen.findByTestId('skill-test-kb-dropped');
         expect(line.textContent).toMatch(/1 of 3/);
     });
 
     it('says nothing when every linked base was searched', async () => {
+        const user = userEvent.setup();
         skillsApi.test.mockImplementation(streams([['answer', { text: 'x' }], ['done', { run: RUN }]]));
         renderTab();
         await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'q' } });
-        fireEvent.click(screen.getByTestId('skill-test-run'));
+        await user.click(screen.getByTestId('skill-test-run'));
         await screen.findByTestId('skill-test-answer');
         expect(screen.queryByTestId('skill-test-kb-dropped')).toBeNull();
     });
 
     it('a new run clears the previous run\'s notice', async () => {
+        const user = userEvent.setup();
         skillsApi.test.mockImplementation(streams([
             ['notice', { code: 'kb_dropped', declared: 2, used: 0 }],
             ['answer', { text: 'x' }],
@@ -359,10 +375,10 @@ describe('what the run actually searched', () => {
         renderTab();
         await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'q' } });
-        fireEvent.click(screen.getByTestId('skill-test-run'));
+        await user.click(screen.getByTestId('skill-test-run'));
         await screen.findByTestId('skill-test-kb-dropped');
         skillsApi.test.mockImplementation(streams([['answer', { text: 'y' }], ['done', { run: RUN }]]));
-        fireEvent.click(screen.getByTestId('skill-test-run'));
+        await user.click(screen.getByTestId('skill-test-run'));
         await waitFor(() => expect(screen.queryByTestId('skill-test-kb-dropped')).toBeNull());
     });
 });

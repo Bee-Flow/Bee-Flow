@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * PLD Art. 9 (disclosure of evidence) / Art. 2(1) placing on the market /
  * Art. 8(2) / Art. 17(1)(b) substantial modification — every product has a recorded release.
@@ -336,4 +337,4 @@ module.exports = {
     },
 };
 
-module.exports._test = { _recordBuild, _orgSubject, _evaluateOrgSubject, GRACE_DAYS, PLATFORM_SUBJECT_ID };
+Object.assign(module.exports, { _test: { _recordBuild, _orgSubject, _evaluateOrgSubject, GRACE_DAYS, PLATFORM_SUBJECT_ID } });

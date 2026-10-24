@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import EN_DEFAULTS from '../../../i18n/en-defaults';
 
@@ -41,7 +42,8 @@ describe('PermissionConsentDialog', () => {
         expect(envSection).toHaveTextContent('env:process');
     });
 
-    it('accept passes exactly the shown permission ids', () => {
+    it('accept passes exactly the shown permission ids', async () => {
+        const user = userEvent.setup();
         const onAccept = vi.fn();
         render(
             <PermissionConsentDialog
@@ -53,17 +55,18 @@ describe('PermissionConsentDialog', () => {
             />,
         );
         expect(screen.getByText('Pro Module requests new permissions')).toBeInTheDocument();
-        fireEvent.click(screen.getByTestId('consent-accept'));
+        await user.click(screen.getByTestId('consent-accept'));
         expect(onAccept).toHaveBeenCalledWith(['db', 'email:send']);
     });
 
-    it('cancel fires onCancel and never onAccept', () => {
+    it('cancel fires onCancel and never onAccept', async () => {
+        const user = userEvent.setup();
         const onAccept = vi.fn();
         const onCancel = vi.fn();
         render(
             <PermissionConsentDialog module={MODULE} permissions={['db']} onAccept={onAccept} onCancel={onCancel} />,
         );
-        fireEvent.click(screen.getByText('Cancel'));
+        await user.click(screen.getByText('Cancel'));
         expect(onCancel).toHaveBeenCalled();
         expect(onAccept).not.toHaveBeenCalled();
     });

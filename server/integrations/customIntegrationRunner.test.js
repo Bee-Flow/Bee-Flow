@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the custom-integration runner's pure helpers.
  *

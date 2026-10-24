@@ -1,3 +1,4 @@
+// @typecheck
 const { resolveShieldFor, mergeWithOrgShield } = require('../privacy/orgShield');
 const { checkRegexPatterns } = require('../privacy/guardrails');
 const guardrailEventStore = require('../../stores/guardrailEventStore');

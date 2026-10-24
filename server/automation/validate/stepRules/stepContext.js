@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The graph-level state every per-step rule reads, derived ONCE per graph.
  *

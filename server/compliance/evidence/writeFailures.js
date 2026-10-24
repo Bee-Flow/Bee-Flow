@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 const log = require('../../telemetry/log');
 

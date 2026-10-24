@@ -10,6 +10,7 @@ const userStore = require('../../stores/userStore');
 const { isNcOrg } = require('../../auth/ncAudience');
 const { getAdminId } = require('./shared');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
@@ -222,9 +223,8 @@ router.post('/orgs/:orgId/preview-change', validate({ body: PlanChangeBody }), a
         }
         return res.json({ ...common, proration_amount: 0, effective: sub.current_period_end || null });
     } catch (e) {
-        const status = stripePaymentErrorStatus(e) || 500;
-        if (status === 500) log.error('[Subscriptions] orgs/:orgId/preview-change error:', e);
-        res.status(status).json({ error: e.message });
+        if (stripePaymentErrorStatus(e) === 402) throw new HttpError(402, 'payment_required', e.message); // a declined card: the customer's message
+        throw e; // anything else: the terminal handler logs it and answers a generic 500
     }
 });
 

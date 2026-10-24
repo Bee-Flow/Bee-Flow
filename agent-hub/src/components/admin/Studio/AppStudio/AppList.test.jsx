@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AppList from './AppList';
 
@@ -92,33 +93,36 @@ describe('AppList', () => {
     });
 
     it('calls onOpen with the app when an owned card is clicked', async () => {
+        const user = userEvent.setup();
         const onOpen = vi.fn();
         render(<AppList onOpen={onOpen} />);
 
-        fireEvent.click(await screen.findByText('My tracker'));
+        await user.click(await screen.findByText('My tracker'));
         expect(onOpen).toHaveBeenCalledTimes(1);
         expect(onOpen.mock.calls[0][0]).toMatchObject({ id: 'app-owned' });
     });
 
     it('New app modal shows the template gallery and creates from a template', async () => {
+        const user = userEvent.setup();
         const onOpen = vi.fn();
         render(<AppList onOpen={onOpen} />);
         await screen.findByText('My tracker');
 
-        fireEvent.click(screen.getByRole('button', { name: /New app/ }));
+        await user.click(screen.getByRole('button', { name: /New app/ }));
         expect(await screen.findByRole('dialog')).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('tab', { name: 'From template' }));
+        await user.click(screen.getByRole('tab', { name: 'From template' }));
         expect(await screen.findByText('Ticket tracker')).toBeInTheDocument();
         expect(screen.getByText('Forms')).toBeInTheDocument();
         expect(screen.getByText('Collect and triage requests.')).toBeInTheDocument();
 
-        fireEvent.click(screen.getByText('Ticket tracker'));
+        await user.click(screen.getByText('Ticket tracker'));
         await waitFor(() => expect(studioAppsApi.createApp).toHaveBeenCalledWith({ templateId: 'tpl_ticket' }));
         await waitFor(() => expect(onOpen).toHaveBeenCalledWith({ id: 'app-new', name: 'Ticket tracker' }));
     });
 
     it('says so when a template installs its screens but not its data', async () => {
+        const user = userEvent.setup();
         // The silent version of this produced an app with every screen, no
         // tables and no mailbox connector — indistinguishable from a template
         // that never had them. The app is still created and still opened; the
@@ -132,10 +136,10 @@ describe('AppList', () => {
         render(<AppList onOpen={onOpen} />);
         await screen.findByText('My tracker');
 
-        fireEvent.click(screen.getByRole('button', { name: /New app/ }));
-        fireEvent.click(screen.getByRole('tab', { name: 'From template' }));
+        await user.click(screen.getByRole('button', { name: /New app/ }));
+        await user.click(screen.getByRole('tab', { name: 'From template' }));
         await screen.findByText('Ticket tracker');
-        fireEvent.click(screen.getByText('Ticket tracker'));
+        await user.click(screen.getByText('Ticket tracker'));
 
         await waitFor(() => expect(toast.error).toHaveBeenCalled());
         expect(toast.error.mock.calls[0][0]).toMatch(/tables and connections did not install/);
@@ -145,19 +149,20 @@ describe('AppList', () => {
     });
 
     it('offers a "Remix with AI" action per template that creates then opens with a remix intent', async () => {
+        const user = userEvent.setup();
         const onOpen = vi.fn();
         render(<AppList onOpen={onOpen} />);
         await screen.findByText('My tracker');
 
-        fireEvent.click(screen.getByRole('button', { name: /New app/ }));
-        fireEvent.click(screen.getByRole('tab', { name: 'From template' }));
+        await user.click(screen.getByRole('button', { name: /New app/ }));
+        await user.click(screen.getByRole('tab', { name: 'From template' }));
         await screen.findByText('Ticket tracker');
 
         // The remix affordance renders on the template card.
         const remix = screen.getByRole('button', { name: /Remix with AI/ });
         expect(remix).toBeInTheDocument();
 
-        fireEvent.click(remix);
+        await user.click(remix);
 
         // Creates from the template …
         await waitFor(() => expect(studioAppsApi.createApp).toHaveBeenCalledWith({ templateId: 'tpl_ticket' }));
@@ -172,17 +177,18 @@ describe('AppList', () => {
     });
 
     it('using a template as-is (not remix) opens without a remix intent', async () => {
+        const user = userEvent.setup();
         const onOpen = vi.fn();
         render(<AppList onOpen={onOpen} />);
         await screen.findByText('My tracker');
 
-        fireEvent.click(screen.getByRole('button', { name: /New app/ }));
-        fireEvent.click(screen.getByRole('tab', { name: 'From template' }));
+        await user.click(screen.getByRole('button', { name: /New app/ }));
+        await user.click(screen.getByRole('tab', { name: 'From template' }));
         await screen.findByText('Ticket tracker');
 
         // Clicking the card body (the title) creates + opens the plain way —
         // single-arg onOpen(app), no remix intent.
-        fireEvent.click(screen.getByText('Ticket tracker'));
+        await user.click(screen.getByText('Ticket tracker'));
         await waitFor(() => expect(studioAppsApi.createApp).toHaveBeenCalledWith({ templateId: 'tpl_ticket' }));
         await waitFor(() => expect(onOpen).toHaveBeenCalledWith({ id: 'app-new', name: 'Ticket tracker' }));
     });
@@ -190,6 +196,7 @@ describe('AppList', () => {
     // ── Captured templates (made from an app with app_save_as_template) ──
 
     it('marks a captured template as the org\'s own and lets it be deleted', async () => {
+        const user = userEvent.setup();
         studioAppsApi.listTemplates.mockResolvedValue({
             templates: [
                 { id: 'tpl_ticket', title: 'Ticket tracker', description: 'Built in.', category: 'Forms', icon: 'Ticket', source: 'builtin' },
@@ -200,8 +207,8 @@ describe('AppList', () => {
 
         render(<AppList onOpen={vi.fn()} />);
         await screen.findByText('My tracker');
-        fireEvent.click(screen.getByRole('button', { name: /New app/ }));
-        fireEvent.click(screen.getByRole('tab', { name: 'From template' }));
+        await user.click(screen.getByRole('button', { name: /New app/ }));
+        await user.click(screen.getByRole('tab', { name: 'From template' }));
         await screen.findByText('Aanvraag automatisering');
 
         // The provenance badge tells you this carries your own data model.
@@ -212,7 +219,7 @@ describe('AppList', () => {
         const removes = screen.getAllByRole('button', { name: /Delete/ });
         expect(removes).toHaveLength(1);
 
-        fireEvent.click(removes[0]);
+        await user.click(removes[0]);
         await waitFor(() => expect(studioAppsApi.deleteTemplate).toHaveBeenCalledWith('utpl_abc'));
         // Gone from the gallery once the server confirmed.
         await waitFor(() => expect(screen.queryByText('Aanvraag automatisering')).not.toBeInTheDocument());
@@ -220,6 +227,7 @@ describe('AppList', () => {
     });
 
     it('keeps a captured template listed when the delete fails', async () => {
+        const user = userEvent.setup();
         studioAppsApi.listTemplates.mockResolvedValue({
             templates: [{ id: 'utpl_abc', title: 'Eigen sjabloon', description: 'x', category: 'Sales', icon: 'ClipboardList', source: 'captured', version: 1 }],
         });
@@ -227,56 +235,59 @@ describe('AppList', () => {
 
         render(<AppList onOpen={vi.fn()} />);
         await screen.findByText('My tracker');
-        fireEvent.click(screen.getByRole('button', { name: /New app/ }));
-        fireEvent.click(screen.getByRole('tab', { name: 'From template' }));
+        await user.click(screen.getByRole('button', { name: /New app/ }));
+        await user.click(screen.getByRole('tab', { name: 'From template' }));
         await screen.findByText('Eigen sjabloon');
 
-        fireEvent.click(screen.getByRole('button', { name: /Delete/ }));
+        await user.click(screen.getByRole('button', { name: /Delete/ }));
         await waitFor(() => expect(toast.error).toHaveBeenCalled());
         expect(screen.getByText('Eigen sjabloon')).toBeInTheDocument();
     });
 
     it('creates a blank app with the typed name', async () => {
+        const user = userEvent.setup();
         const onOpen = vi.fn();
         render(<AppList onOpen={onOpen} />);
         await screen.findByText('My tracker');
 
-        fireEvent.click(screen.getByRole('button', { name: /New app/ }));
+        await user.click(screen.getByRole('button', { name: /New app/ }));
         fireEvent.change(screen.getByPlaceholderText('e.g. Vacation requests'), {
             target: { value: 'Vacation requests' },
         });
-        fireEvent.click(screen.getByRole('button', { name: /Create app/ }));
+        await user.click(screen.getByRole('button', { name: /Create app/ }));
 
         await waitFor(() => expect(studioAppsApi.createApp).toHaveBeenCalledWith({ name: 'Vacation requests' }));
         await waitFor(() => expect(onOpen).toHaveBeenCalled());
     });
 
     it('deletes an owned app after confirmation', async () => {
+        const user = userEvent.setup();
         render(<AppList onOpen={vi.fn()} />);
         await screen.findByText('My tracker');
 
-        fireEvent.click(screen.getByRole('button', { name: 'Actions for My tracker' }));
-        fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Actions for My tracker' }));
+        await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
 
         // ConfirmDialog: nothing deleted until confirmed.
         expect(studioAppsApi.deleteApp).not.toHaveBeenCalled();
         expect(await screen.findByRole('dialog')).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+        await user.click(screen.getByRole('button', { name: 'Delete' }));
         await waitFor(() => expect(studioAppsApi.deleteApp).toHaveBeenCalledWith('app-owned'));
         await waitFor(() => expect(screen.queryByText('My tracker')).not.toBeInTheDocument());
     });
 
     it('renames an owned app through the small modal', async () => {
+        const user = userEvent.setup();
         render(<AppList onOpen={vi.fn()} />);
         await screen.findByText('My tracker');
 
-        fireEvent.click(screen.getByRole('button', { name: 'Actions for My tracker' }));
-        fireEvent.click(screen.getByRole('menuitem', { name: 'Rename' }));
+        await user.click(screen.getByRole('button', { name: 'Actions for My tracker' }));
+        await user.click(screen.getByRole('menuitem', { name: 'Rename' }));
 
         const input = await screen.findByLabelText('App name');
         fireEvent.change(input, { target: { value: 'Renamed' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+        await user.click(screen.getByRole('button', { name: 'Save' }));
 
         await waitFor(() => expect(studioAppsApi.updateApp).toHaveBeenCalledWith('app-owned', { name: 'Renamed' }));
         expect(await screen.findByText('Renamed')).toBeInTheDocument();
@@ -308,12 +319,13 @@ describe('AppList', () => {
     });
 
     it('stops retrying a failing template fetch and shows the error state with Try again', async () => {
+        const user = userEvent.setup();
         studioAppsApi.listTemplates.mockRejectedValue(new Error('Templates are unavailable.'));
         render(<AppList onOpen={vi.fn()} />);
         await screen.findByText('My tracker');
 
-        fireEvent.click(screen.getByRole('button', { name: /New app/ }));
-        fireEvent.click(screen.getByRole('tab', { name: 'From template' }));
+        await user.click(screen.getByRole('button', { name: /New app/ }));
+        await user.click(screen.getByRole('tab', { name: 'From template' }));
 
         // The failed fetch leaves templates null — the load must NOT loop.
         expect(await screen.findByText('Templates are unavailable.')).toBeInTheDocument();
@@ -325,11 +337,12 @@ describe('AppList', () => {
         studioAppsApi.listTemplates.mockResolvedValue({
             templates: [{ id: 'tpl_ticket', title: 'Ticket tracker', description: 'Collect and triage requests.' }],
         });
-        fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+        await user.click(screen.getByRole('button', { name: 'Try again' }));
         expect(await screen.findByText('Ticket tracker')).toBeInTheDocument();
     });
 
     it('shows "Update available" on an upgradable owned card, confirms, then upgrades and reloads', async () => {
+        const user = userEvent.setup();
         studioAppsApi.listMine.mockResolvedValue({
             apps: [
                 { ...OWNED_APP, templateUpgrade: { available: true, fromVersion: 1, toVersion: 2 } },
@@ -348,13 +361,13 @@ describe('AppList', () => {
 
         // Clicking the pill opens the confirm dialog — it must NOT open
         // the editor (the whole card is a click target) and nothing runs yet.
-        fireEvent.click(screen.getByRole('button', { name: 'Update available' }));
+        await user.click(screen.getByRole('button', { name: 'Update available' }));
         expect(onOpen).not.toHaveBeenCalled();
         expect(studioAppsApi.templateUpgrade).not.toHaveBeenCalled();
         expect(await screen.findByText('The app is updated to the latest template version. Your data stays.')).toBeInTheDocument();
 
         // Confirming calls the upgrade route and reloads the list.
-        fireEvent.click(screen.getByRole('button', { name: 'Update' }));
+        await user.click(screen.getByRole('button', { name: 'Update' }));
         await waitFor(() => expect(studioAppsApi.templateUpgrade).toHaveBeenCalledWith('app-owned'));
         await waitFor(() => expect(toast.success).toHaveBeenCalled());
         // load() ran once on mount and once after the upgrade.

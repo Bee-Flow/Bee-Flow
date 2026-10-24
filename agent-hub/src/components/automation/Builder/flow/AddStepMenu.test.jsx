@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import AddStepMenu from './AddStepMenu';
@@ -49,12 +50,13 @@ describe('AddStepMenu — apps tree', () => {
         expect(rowOrder(category)[0]).toBe('CHEVRON');
     });
 
-    it('a nested app row puts its chevron on the SAME side as the category (BFSF-337)', () => {
+    it('a nested app row puts its chevron on the SAME side as the category (BFSF-337)', async () => {
+        const user = userEvent.setup();
         // It used to sit after the action count, on the far right, so drilling
         // one level deeper moved the click target across the whole panel.
         renderApps();
         const categories = screen.getAllByRole('button');
-        fireEvent.click(categories[0]);
+        await user.click(categories[0]);
 
         const appRow = openDrive();
         expect(appRow).toBeTruthy();
@@ -64,19 +66,21 @@ describe('AddStepMenu — apps tree', () => {
         expect(order[order.length - 1]).toBe('2');
     });
 
-    it('names the app without the vendor word the category row already shows', () => {
+    it('names the app without the vendor word the category row already shows', async () => {
+        const user = userEvent.setup();
         renderApps();
-        fireEvent.click(screen.getAllByRole('button')[0]);
+        await user.click(screen.getAllByRole('button')[0]);
         // 'Google Drive' sat directly under a row reading 'Google Workspace'.
         expect(screen.getByText('Drive')).toBeTruthy();
         expect(screen.queryByText('Google Drive')).toBeNull();
     });
 
-    it('the app chevron still toggles its actions', () => {
+    it('the app chevron still toggles its actions', async () => {
+        const user = userEvent.setup();
         renderApps();
-        fireEvent.click(screen.getAllByRole('button')[0]);
+        await user.click(screen.getAllByRole('button')[0]);
         expect(screen.queryByText('Search')).toBeNull();
-        fireEvent.click(openDrive());
+        await user.click(openDrive());
         // The catalog labels these 'drive search' / 'drive list files' — the
         // raw tool name — so the shared prefix comes off for display.
         expect(screen.getByText('Search')).toBeTruthy();
@@ -84,19 +88,21 @@ describe('AddStepMenu — apps tree', () => {
         expect(screen.queryByText('drive search')).toBeNull();
     });
 
-    it('shows what each action does, not just its name', () => {
+    it('shows what each action does, not just its name', async () => {
+        const user = userEvent.setup();
         renderApps();
-        fireEvent.click(screen.getAllByRole('button')[0]);
-        fireEvent.click(openDrive());
+        await user.click(screen.getAllByRole('button')[0]);
+        await user.click(openDrive());
         expect(screen.getByText('Search for files')).toBeTruthy();
         expect(screen.getByText('List files', { selector: 'div.truncate' })).toBeTruthy();
     });
 
-    it('clicking an action adds it — with the FULL label on the payload', () => {
+    it('clicking an action adds it — with the FULL label on the payload', async () => {
+        const user = userEvent.setup();
         const { onAdd } = renderApps();
-        fireEvent.click(screen.getAllByRole('button')[0]);
-        fireEvent.click(openDrive());
-        fireEvent.click(screen.getByText('Search'));
+        await user.click(screen.getAllByRole('button')[0]);
+        await user.click(openDrive());
+        await user.click(screen.getByText('Search'));
         // The node lands on a canvas with no app row above it, so the step it
         // creates keeps the catalog's own name for the action.
         expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({
@@ -104,10 +110,11 @@ describe('AddStepMenu — apps tree', () => {
         }));
     });
 
-    it('the quick-add "+" is separate from the disclosure and adds the primary action', () => {
+    it('the quick-add "+" is separate from the disclosure and adds the primary action', async () => {
+        const user = userEvent.setup();
         const { onAdd } = renderApps();
-        fireEvent.click(screen.getAllByRole('button')[0]);
-        fireEvent.click(screen.getByTitle('Add Google Drive'));
+        await user.click(screen.getAllByRole('button')[0]);
+        await user.click(screen.getByTitle('Add Google Drive'));
         expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ tool: 'drive_search', label: 'Google Drive' }));
         // Adding must not have expanded the row.
         expect(screen.queryByText('drive list files')).toBeNull();
@@ -138,10 +145,11 @@ describe('AddStepMenu — a step the graph cannot accept', () => {
         expect(row.textContent).toMatch(/switch the trigger/i);
     });
 
-    it('does nothing on click, Enter or Space', () => {
+    it('does nothing on click, Enter or Space', async () => {
+        const user = userEvent.setup();
         const onAdd = renderFlow();
         const row = formRow();
-        fireEvent.click(row);
+        await user.click(row);
         fireEvent.keyDown(row, { key: 'Enter' });
         fireEvent.keyDown(row, { key: ' ' });
         expect(onAdd).not.toHaveBeenCalled();
@@ -159,39 +167,43 @@ describe('AddStepMenu — a step the graph cannot accept', () => {
      * menu still added it and still produced the guaranteed
      * `form_page.no_form_trigger` save error.
      */
-    it('gates the Suggested / Frequently used rows too, not just the categories', () => {
+    it('gates the Suggested / Frequently used rows too, not just the categories', async () => {
+        const user = userEvent.setup();
         const reco = [{ key: 'form_page', Icon: () => null, label: 'Form: ask for more info', payload: { kind: 'form_page', mode: 'input', label: 'Ask for more info' } }];
         const onAdd = vi.fn();
         render(<AddStepMenu scope={{ catalog: { apps: [] }, hasFormTrigger: false, suggested: reco }} showSearch onAdd={onAdd} />);
         const row = screen.getAllByText(/Form: ask for more info/i)[0].closest('[role="button"]');
         expect(row.getAttribute('aria-disabled')).toBe('true');
-        fireEvent.click(row);
+        await user.click(row);
         expect(onAdd).not.toHaveBeenCalled();
     });
 
-    it('leaves the reco rows addable when a form trigger exists', () => {
+    it('leaves the reco rows addable when a form trigger exists', async () => {
+        const user = userEvent.setup();
         const reco = [{ key: 'form_page', Icon: () => null, label: 'Form: ask for more info', payload: { kind: 'form_page', mode: 'input', label: 'Ask for more info' } }];
         const onAdd = vi.fn();
         render(<AddStepMenu scope={{ catalog: { apps: [] }, hasFormTrigger: true, suggested: reco }} showSearch onAdd={onAdd} />);
-        fireEvent.click(screen.getAllByText(/Form: ask for more info/i)[0].closest('[role="button"]'));
+        await user.click(screen.getAllByText(/Form: ask for more info/i)[0].closest('[role="button"]'));
         expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ kind: 'form_page', mode: 'input' }));
     });
 
-    it('adds normally once the automation has a form trigger', () => {
+    it('adds normally once the automation has a form trigger', async () => {
+        const user = userEvent.setup();
         const onAdd = renderFlow({ hasFormTrigger: true });
         const row = formRow();
         expect(row.getAttribute('aria-disabled')).toBeNull();
-        fireEvent.click(row);
+        await user.click(row);
         expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ kind: 'form_page', mode: 'input' }));
     });
 
-    it('does not claim it is impossible when the caller never said', () => {
+    it('does not claim it is impossible when the caller never said', async () => {
+        const user = userEvent.setup();
         // The edge-drop popover passes no hasFormTrigger at all. Defaulting to
         // "blocked" made every form step permanently unreachable from there,
         // form trigger or not.
         const onAdd = renderFlow({});
         expect(formRow().getAttribute('aria-disabled')).toBeNull();
-        fireEvent.click(formRow());
+        await user.click(formRow());
         expect(onAdd).toHaveBeenCalled();
     });
 });

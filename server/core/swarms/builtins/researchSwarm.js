@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Built-in swarm: Research Swarm
  *

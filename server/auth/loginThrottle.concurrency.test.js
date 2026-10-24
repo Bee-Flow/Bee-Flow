@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The throttle under PARALLEL load — the axis two rounds of testing missed.
  *

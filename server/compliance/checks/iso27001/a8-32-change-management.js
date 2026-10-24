@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO 27001 A.8.32 — change management: does the review process actually
  * operate? Judged on the github connector's sample of the last merged PRs

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * What a Privacy Shield save may change about "Your own data", and what the

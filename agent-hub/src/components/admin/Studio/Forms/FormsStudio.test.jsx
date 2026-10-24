@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -175,6 +176,7 @@ describe('<FormsStudio>', () => {
     });
 
     it('offers "open the automation" only to the owner, and says so on the others', async () => {
+        const user = userEvent.setup();
         listOrgForms.mockResolvedValue({
             forms: [
                 form({ id: '1'.repeat(48), title: 'Mine', mine: true }),
@@ -189,18 +191,19 @@ describe('<FormsStudio>', () => {
         // door — the automation endpoints would 403 it.
         expect(screen.getAllByTestId('form-open-automation')).toHaveLength(1);
         expect(screen.getAllByTestId('form-not-mine')).toHaveLength(2);
-        fireEvent.click(screen.getByTestId('form-open-automation'));
+        await user.click(screen.getByTestId('form-open-automation'));
         // An AUTOMATION id in the URL, never the page token.
         expect(onNavigate).toHaveBeenCalledWith('studio/automations/au1');
         expect(onNavigate.mock.calls.flat().join(' ')).not.toContain('1'.repeat(48));
     });
 
     it('copies the ABSOLUTE public address, not the bare /f path', async () => {
+        const user = userEvent.setup();
         const writeText = vi.fn().mockResolvedValue(undefined);
         Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
         listOrgForms.mockResolvedValue({ forms: [form()] });
         renderStudio();
-        fireEvent.click(await screen.findByTestId('form-copy-link'));
+        await user.click(await screen.findByTestId('form-copy-link'));
         await waitFor(() => expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/f/${TOKEN}`));
     });
 
@@ -214,6 +217,7 @@ describe('<FormsStudio> — an empty list and a failed read are different screen
     });
 
     it('a refused read is an error with a retry — never "No forms yet", never a count', async () => {
+        const user = userEvent.setup();
         listOrgForms.mockRejectedValueOnce(new Error('Forbidden'));
         renderStudio();
         expect((await screen.findByTestId('forms-error')).textContent).toContain('Forbidden');
@@ -222,7 +226,7 @@ describe('<FormsStudio> — an empty list and a failed read are different screen
         expect(screen.queryByTestId('forms-list')).toBeNull();
 
         listOrgForms.mockResolvedValueOnce({ forms: [form()] });
-        fireEvent.click(screen.getByTestId('forms-retry'));
+        await user.click(screen.getByTestId('forms-retry'));
         await screen.findByTestId('forms-list');
         expect(screen.queryByTestId('forms-error')).toBeNull();
         expect(screen.getByTestId('forms-count').textContent).toBe('1 form');
@@ -240,6 +244,7 @@ describe('<FormsStudio> — an empty list and a failed read are different screen
     });
 
     it('withdraws the count when a LATER read fails, rather than leaving the number standing', async () => {
+        const user = userEvent.setup();
         // The rows stay — they are the last thing anyone actually knew, and
         // blanking them would put a wrong answer under a banner that says the
         // read failed. The COUNT does not, because a count is a claim about
@@ -249,7 +254,7 @@ describe('<FormsStudio> — an empty list and a failed read are different screen
         expect((await screen.findByTestId('forms-count')).textContent).toBe('2 forms');
 
         listOrgForms.mockRejectedValueOnce(new Error('gone'));
-        fireEvent.click(screen.getByTestId('forms-refresh'));
+        await user.click(screen.getByTestId('forms-refresh'));
         await screen.findByTestId('forms-error');
         expect(screen.queryByTestId('forms-count')).toBeNull();
         expect(screen.getAllByTestId('form-row')).toHaveLength(2);
@@ -264,12 +269,13 @@ describe('<FormsStudio> — an empty list and a failed read are different screen
     });
 
     it('"New form" opens the dialog; "Collect answers in a table" creates a collecting form automation and lands on the Form page', async () => {
+        const user = userEvent.setup();
         listOrgForms.mockResolvedValue({ forms: [] });
         fetchMock.mockResolvedValue({ ok: true, json: async () => ({ automation: { id: 'au-form' }, answers: { datatableId: 'tbl_a', created: true } }) });
         const onNavigate = vi.fn();
         renderStudio({ onNavigate });
         await screen.findByTestId('forms-new');
-        fireEvent.click(screen.getByTestId('forms-new'));
+        await user.click(screen.getByTestId('forms-new'));
         // the dialog, not a POST
         expect(fetchMock).not.toHaveBeenCalled();
         expect(onNavigate).toHaveBeenCalledWith('studio/forms/new');
@@ -279,7 +285,7 @@ describe('<FormsStudio> — an empty list and a failed read are different screen
         const radios = screen.getAllByRole('radio');
         expect(radios[0]).toBeChecked();
         fireEvent.change(screen.getByTestId('new-form-name'), { target: { value: 'Customer feedback' } });
-        fireEvent.click(screen.getByTestId('new-form-create'));
+        await user.click(screen.getByTestId('new-form-create'));
         await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/forms/au-form/questions'));
         const [url, init] = fetchMock.mock.calls[0];
         expect(url).toBe('/api/automation');
@@ -289,19 +295,20 @@ describe('<FormsStudio> — an empty list and a failed read are different screen
     });
 
     it('a brief typed in the dialog is parked under the NEW form\'s id for its Questions tab — and only for a collecting form', async () => {
+        const user = userEvent.setup();
         listOrgForms.mockResolvedValue({ forms: [] });
         fetchMock.mockResolvedValue({ ok: true, json: async () => ({ automation: { id: 'au-form' } }) });
         const onNavigate = vi.fn();
         renderStudio({ onNavigate });
-        fireEvent.click(await screen.findByTestId('forms-new'));
+        await user.click(await screen.findByTestId('forms-new'));
         await screen.findByTestId('new-form-dialog');
         fireEvent.change(screen.getByTestId('new-form-brief'), { target: { value: 'A vacation request form' } });
         // the brief box belongs to the collecting choice only
-        fireEvent.click(screen.getAllByRole('radio')[1]);
+        await user.click(screen.getAllByRole('radio')[1]);
         expect(screen.queryByTestId('new-form-brief')).toBeNull();
-        fireEvent.click(screen.getAllByRole('radio')[0]);
+        await user.click(screen.getAllByRole('radio')[0]);
         expect(screen.getByTestId('new-form-brief').value).toBe('A vacation request form');
-        fireEvent.click(screen.getByTestId('new-form-create'));
+        await user.click(screen.getByTestId('new-form-create'));
         await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/forms/au-form/questions'));
         // not in the create body …
         expect(JSON.stringify(JSON.parse(fetchMock.mock.calls[0][1].body))).not.toContain('vacation');
@@ -311,14 +318,15 @@ describe('<FormsStudio> — an empty list and a failed read are different screen
     });
 
     it('"Form that starts an automation" creates the automation without a table and opens the builder', async () => {
+        const user = userEvent.setup();
         listOrgForms.mockResolvedValue({ forms: [] });
         fetchMock.mockResolvedValue({ ok: true, json: async () => ({ automation: { id: 'au-form' } }) });
         const onNavigate = vi.fn();
         renderStudio({ onNavigate });
-        fireEvent.click(await screen.findByTestId('forms-new'));
+        await user.click(await screen.findByTestId('forms-new'));
         await screen.findByTestId('new-form-dialog');
-        fireEvent.click(screen.getAllByRole('radio')[1]);
-        fireEvent.click(screen.getByTestId('new-form-create'));
+        await user.click(screen.getAllByRole('radio')[1]);
+        await user.click(screen.getByTestId('new-form-create'));
         await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/automations/au-form'));
         const body = JSON.parse(fetchMock.mock.calls[0][1].body);
         expect(body.definition.trigger.form.collect).toBeUndefined();
@@ -326,12 +334,13 @@ describe('<FormsStudio> — an empty list and a failed read are different screen
     });
 
     it('a refused create says so in the dialog instead of failing silently', async () => {
+        const user = userEvent.setup();
         listOrgForms.mockResolvedValue({ forms: [] });
         fetchMock.mockResolvedValue({ ok: false, status: 403, text: async () => 'feature_locked' });
         renderStudio();
-        fireEvent.click(await screen.findByTestId('forms-new'));
+        await user.click(await screen.findByTestId('forms-new'));
         await screen.findByTestId('new-form-dialog');
-        fireEvent.click(screen.getByTestId('new-form-create'));
+        await user.click(screen.getByTestId('new-form-create'));
         expect((await screen.findByRole('alert')).textContent).toContain('Could not create the form.');
     });
 });
@@ -391,13 +400,14 @@ describe('<FormsStudio> — rows open the Form page by the automation id, by gra
     });
 
     it('the owner\'s row is a button that opens the page; "Answers" opens its Answers tab', async () => {
+        const user = userEvent.setup();
         listOrgForms.mockResolvedValue({ forms: [form({ answers: { collecting: true, datatableId: 'tbl_a', grade: 'owner', rowCount: 28 } })] });
         const onNavigate = vi.fn();
         renderStudio({ onNavigate });
         const answers = await screen.findByTestId('form-answers');
         expect(answers.textContent).toContain('Answers · 28 responses');
         expect(screen.getByTestId('form-collects')).toBeTruthy();
-        fireEvent.click(screen.getByTestId('form-open'));
+        await user.click(screen.getByTestId('form-open'));
         expect(onNavigate).toHaveBeenCalledWith('studio/forms/au1');
         expect(screen.getByTestId('form-page-stub').getAttribute('data-form')).toBe('au1');
         // the token is in no navigation call
@@ -419,6 +429,7 @@ describe('<FormsStudio> — rows open the Form page by the automation id, by gra
     });
 
     it('a colleague with a grade on the answers table gets the Answers button and the page; without one, neither', async () => {
+        const user = userEvent.setup();
         listOrgForms.mockResolvedValue({
             forms: [
                 form({ automationId: 'au-shared', mine: false, title: 'Shared', answers: { collecting: true, datatableId: 'tbl_s', grade: 'viewer', rowCount: 3 } }),
@@ -431,7 +442,7 @@ describe('<FormsStudio> — rows open the Form page by the automation id, by gra
         expect(screen.getAllByTestId('form-answers').length).toBe(1);
         expect(screen.getAllByTestId('form-open').length).toBe(1);
         expect(screen.getAllByTestId('form-not-mine').length).toBe(2);
-        fireEvent.click(screen.getByTestId('form-answers'));
+        await user.click(screen.getByTestId('form-answers'));
         expect(onNavigate).toHaveBeenCalledWith('studio/forms/au-shared/answers');
         expect(screen.getByTestId('form-page-stub').getAttribute('data-tab')).toBe('answers');
     });

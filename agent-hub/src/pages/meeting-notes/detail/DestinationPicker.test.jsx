@@ -10,6 +10,7 @@
  * that does not exist.
  */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -120,12 +121,13 @@ describe('DestinationPicker — the menu', () => {
     });
 
     it('loads a branch only when it is opened, and only once', async () => {
+        const user = userEvent.setup();
         open();
         expect(listAutomations).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByText('Start an automation'));
+        await user.click(screen.getByText('Start an automation'));
         await screen.findByText('Testlink versturen');
-        fireEvent.click(screen.getByText('Back'));
-        fireEvent.click(screen.getByText('Start an automation'));
+        await user.click(screen.getByText('Back'));
+        await user.click(screen.getByText('Start an automation'));
         await screen.findByText('Testlink versturen');
         expect(listAutomations).toHaveBeenCalledTimes(1);
         expect(tableList).not.toHaveBeenCalled();
@@ -135,8 +137,9 @@ describe('DestinationPicker — the menu', () => {
 
 describe('DestinationPicker — start an automation', () => {
     it('offers only automations that can be started by hand', async () => {
+        const user = userEvent.setup();
         open();
-        fireEvent.click(screen.getByText('Start an automation'));
+        await user.click(screen.getByText('Start an automation'));
         expect(await screen.findByText('Testlink versturen')).toBeTruthy();
         expect(screen.getByText('Ask the agent')).toBeTruthy();
         expect(screen.queryByText('Nightly digest')).toBeNull();
@@ -144,10 +147,11 @@ describe('DestinationPicker — start an automation', () => {
     });
 
     it('runs it with the allow-listed payload and records the run', async () => {
+        const user = userEvent.setup();
         run.mockResolvedValue({ accepted: true, run: { id: 'run-9' } });
         const onPicked = open();
-        fireEvent.click(screen.getByText('Start an automation'));
-        fireEvent.click(await screen.findByText('Testlink versturen'));
+        await user.click(screen.getByText('Start an automation'));
+        await user.click(await screen.findByText('Testlink versturen'));
         await waitFor(() => expect(onPicked).toHaveBeenCalled());
 
         const [id, body] = run.mock.calls[0];
@@ -166,12 +170,13 @@ describe('DestinationPicker — start an automation', () => {
     });
 
     it('still records the destination when the run outlived its window (202, no run id)', async () => {
+        const user = userEvent.setup();
         // The run really started. Refusing to record it, or inventing an id
         // for the chip to link to, would both be lies.
         run.mockResolvedValue({ accepted: true, pending: true });
         const onPicked = open();
-        fireEvent.click(screen.getByText('Start an automation'));
-        fireEvent.click(await screen.findByText('Testlink versturen'));
+        await user.click(screen.getByText('Start an automation'));
+        await user.click(await screen.findByText('Testlink versturen'));
         await waitFor(() => expect(onPicked).toHaveBeenCalled());
         const dest = onPicked.mock.calls[0][0];
         expect(dest.ref).toBe('a-1');
@@ -180,26 +185,29 @@ describe('DestinationPicker — start an automation', () => {
 
     /** THE BITE: a chip is a claim, and a refused run is not one. */
     it('records NOTHING when the run is refused, and says why', async () => {
+        const user = userEvent.setup();
         run.mockRejectedValue(new Error('Forbidden'));
         const onPicked = open();
-        fireEvent.click(screen.getByText('Start an automation'));
-        fireEvent.click(await screen.findByText('Testlink versturen'));
+        await user.click(screen.getByText('Start an automation'));
+        await user.click(await screen.findByText('Testlink versturen'));
         expect(await screen.findByRole('alert')).toHaveTextContent(/Forbidden/);
         expect(onPicked).not.toHaveBeenCalled();
     });
 
     it('says so when the list cannot be loaded, instead of showing an empty one', async () => {
+        const user = userEvent.setup();
         listAutomations.mockRejectedValue(new Error('offline'));
         open();
-        fireEvent.click(screen.getByText('Start an automation'));
+        await user.click(screen.getByText('Start an automation'));
         expect(await screen.findByRole('alert')).toHaveTextContent(/offline/);
     });
 });
 
 describe('DestinationPicker — row in a table', () => {
     it('offers only tables a row may actually be added to', async () => {
+        const user = userEvent.setup();
         open();
-        fireEvent.click(screen.getByText('Row in a table'));
+        await user.click(screen.getByText('Row in a table'));
         expect(await screen.findByText('Backlog')).toBeTruthy();
         // Below `editor` the insert is refused; a managed table's columns are
         // a platform contract, not a place to file a meeting action.
@@ -208,9 +216,10 @@ describe('DestinationPicker — row in a table', () => {
     });
 
     it('maps the action text into the first sentence column and writes the row', async () => {
+        const user = userEvent.setup();
         const onPicked = open();
-        fireEvent.click(screen.getByText('Row in a table'));
-        fireEvent.click(await screen.findByText('Backlog'));
+        await user.click(screen.getByText('Row in a table'));
+        await user.click(await screen.findByText('Backlog'));
         // The default mapping is text → first text column, and nothing else.
         const ownerSelect = await screen.findByLabelText('Owner');
         expect(screen.getByLabelText('Title').value).toBe('text');
@@ -219,7 +228,7 @@ describe('DestinationPicker — row in a table', () => {
         expect(screen.queryByLabelText('Amount')).toBeNull();
 
         fireEvent.change(ownerSelect, { target: { value: 'assignee' } });
-        fireEvent.click(screen.getByText('Add the row'));
+        await user.click(screen.getByText('Add the row'));
         await waitFor(() => expect(addRow).toHaveBeenCalled());
         expect(addRow).toHaveBeenCalledWith('t-1', { title: 'Testlink versturen', owner: 'Tom' });
 
@@ -228,11 +237,12 @@ describe('DestinationPicker — row in a table', () => {
     });
 
     it('records nothing when the insert is refused', async () => {
+        const user = userEvent.setup();
         addRow.mockRejectedValue(new Error('You cannot add rows to this table'));
         const onPicked = open();
-        fireEvent.click(screen.getByText('Row in a table'));
-        fireEvent.click(await screen.findByText('Backlog'));
-        fireEvent.click(await screen.findByText('Add the row'));
+        await user.click(screen.getByText('Row in a table'));
+        await user.click(await screen.findByText('Backlog'));
+        await user.click(await screen.findByText('Add the row'));
         expect(await screen.findByRole('alert')).toHaveTextContent(/cannot add rows/);
         expect(onPicked).not.toHaveBeenCalled();
     });
@@ -240,9 +250,10 @@ describe('DestinationPicker — row in a table', () => {
 
 describe('DestinationPicker — to a knowledge base', () => {
     it('files the action as a text source and records the source it made', async () => {
+        const user = userEvent.setup();
         const onPicked = open();
-        fireEvent.click(screen.getByText('To a knowledge base'));
-        fireEvent.click(await screen.findByText('Offertevoorwaarden'));
+        await user.click(screen.getByText('To a knowledge base'));
+        await user.click(await screen.findByText('Offertevoorwaarden'));
         await waitFor(() => expect(createSource).toHaveBeenCalled());
 
         const [kbId, body] = createSource.mock.calls[0];
@@ -256,10 +267,11 @@ describe('DestinationPicker — to a knowledge base', () => {
     });
 
     it('records nothing when the licence caps the source count', async () => {
+        const user = userEvent.setup();
         createSource.mockRejectedValue(new Error('This plan allows 3 knowledge sources per knowledge base.'));
         const onPicked = open();
-        fireEvent.click(screen.getByText('To a knowledge base'));
-        fireEvent.click(await screen.findByText('Offertevoorwaarden'));
+        await user.click(screen.getByText('To a knowledge base'));
+        await user.click(await screen.findByText('Offertevoorwaarden'));
         expect(await screen.findByRole('alert')).toHaveTextContent(/This plan allows 3/);
         expect(onPicked).not.toHaveBeenCalled();
     });
@@ -277,10 +289,11 @@ describe('DestinationPicker — an existing destination', () => {
     });
 
     it('can forget it — a change to the note, not an undo of the row', async () => {
+        const user = userEvent.setup();
         const onPicked = vi.fn();
         render(<DestinationPicker item={withDest} meeting={meeting} onPicked={onPicked} />);
-        fireEvent.click(screen.getByTestId('action-destination-chip'));
-        fireEvent.click(screen.getByText('Remove destination'));
+        await user.click(screen.getByTestId('action-destination-chip'));
+        await user.click(screen.getByText('Remove destination'));
         await waitFor(() => expect(onPicked).toHaveBeenCalledWith(null));
         // Nothing is deleted anywhere: the row that was written stays written.
         expect(addRow).not.toHaveBeenCalled();

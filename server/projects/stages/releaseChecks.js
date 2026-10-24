@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The stage-only release checks (design 6.1 items 2 and 7, 4.2, D18, D20).
  *
@@ -165,13 +166,13 @@ async function crossStageFindings({ solutionId, manifest }, deps = {}) {
 /**
  * Every stage-only finding of a pipeline cut.
  *
- * @param {object} input  stageOnlyFindings' input plus `solutionId`
+ * @param {Record<string, any>} [input]  stageOnlyFindings' input plus `solutionId`
  * @param {object} [deps] crossStageScan's (`solutionStageStore`, `db`, `ownersOf`)
  * @returns {Promise<{ blocked: boolean, findings: object[] }>}
  */
 async function releaseChecks(input = {}, deps = {}) {
     const findings = [
-        ...stageOnlyFindings(input),
+        ...stageOnlyFindings(/** @type {any} */ (input)),
         ...(await crossStageFindings({ solutionId: input.solutionId, manifest: input.manifest }, deps)),
     ];
     return { blocked: findings.some(f => f.severity === 'blocking'), findings };

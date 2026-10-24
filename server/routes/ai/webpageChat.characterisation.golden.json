@@ -2887,7 +2887,7 @@
  "provider resolution fails": {
   "status": 400,
   "events": null,
-  "body": "{\"error\":\"no provider for model-1\"}",
+  "body": "{\"error\":\"no provider for model-1\",\"correlationId\":\"corr-1\",\"code\":\"bad_request\"}",
   "calls": [],
   "trace": [
    [

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A Nextcloud push event → the mirror(s) it is about, patched in place.
  *
@@ -44,7 +45,7 @@ function ownerFilter(meta, action) {
 }
 
 /**
- * @param {{ orgId:string, event:string, payload:object }} args
+ * @param {{ orgId:string, event:string, payload:Record<string, any> }} args
  * @returns {Promise<{ patched:number, kicked:number }>}
  */
 async function onTablesEvent({ orgId, event, payload }) {

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Replay gaps — step outputs a resume cannot restore (BFSF-435).
  *
@@ -60,7 +61,7 @@ function readsStep(step, stepId) {
 /**
  * The gaps that matter: those some step after the pause reads.
  *
- * @param {object} definition           the automation being resumed
+ * @param {any} definition           the automation being resumed
  * @param {string} fromStepId           the step the run paused on
  * @param {Map<string, number|null>} gaps  stepId → original size in bytes
  * @returns {Map<string, number|null>}  the subset a later step reads
@@ -89,7 +90,7 @@ function replayGapError(stepId, originalBytes) {
         `The output of step ${stepId}${size ? ` (${size})` : ''} was too large to keep for this resume, `
         + 'and the steps after the pause need it. Start the automation again so the step runs once more',
     );
-    err.replayGap = { stepId, originalBytes: Number(originalBytes) || null };
+    Object.assign(err, { replayGap: { stepId, originalBytes: Number(originalBytes) || null } });
     return err;
 }
 

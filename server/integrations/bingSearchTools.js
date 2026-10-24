@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Bing Web Search Tools — Azure Bing Search API v7 integration
  *
@@ -56,7 +57,7 @@ async function executeBingSearchTool(toolName, args) {
             throw new Error(`Bing Search API error (${response.status}): ${text}`);
         }
 
-        const data = await response.json();
+        const data = /** @type {{ webPages?: { value?: any[] } }} */ (await response.json());
         const webPages = data.webPages?.value || [];
 
         log.info(`[BingSearch] Found ${webPages.length} results`);

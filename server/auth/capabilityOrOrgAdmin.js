@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A capability gate with an org-admin escape hatch for ORG-level endpoints.
  *

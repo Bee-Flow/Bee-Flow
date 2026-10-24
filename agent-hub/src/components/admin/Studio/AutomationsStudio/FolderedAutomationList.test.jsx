@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import FolderedAutomationList, { MoveToFolderDialog } from './FolderedAutomationList';
@@ -62,10 +63,11 @@ describe('FolderedAutomationList', () => {
         expect(within(header).getByText('2')).toBeTruthy();
     });
 
-    it('keeps a folder’s rows hidden until it is opened', () => {
+    it('keeps a folder’s rows hidden until it is opened', async () => {
+        const user = userEvent.setup();
         renderList([automation('inside', { folderId: 'f1' })]);
         expect(screen.queryByText('Automation inside')).toBeNull();
-        fireEvent.click(screen.getByLabelText('Expand Klanten'));
+        await user.click(screen.getByLabelText('Expand Klanten'));
         expect(screen.getByText('Automation inside')).toBeTruthy();
     });
 
@@ -105,10 +107,11 @@ describe('FolderedAutomationList', () => {
     });
 
     describe('creating a folder', () => {
-        it('names it in the app, never through a browser prompt', () => {
+        it('names it in the app, never through a browser prompt', async () => {
+            const user = userEvent.setup();
             const promptSpy = vi.spyOn(window, 'prompt');
             const { onCreateFolder } = renderList([]);
-            fireEvent.click(screen.getByText('New folder'));
+            await user.click(screen.getByText('New folder'));
 
             const input = screen.getByLabelText('New folder name');
             fireEvent.change(input, { target: { value: 'Offertes' } });
@@ -119,18 +122,20 @@ describe('FolderedAutomationList', () => {
             promptSpy.mockRestore();
         });
 
-        it('drops an empty name instead of making a nameless folder', () => {
+        it('drops an empty name instead of making a nameless folder', async () => {
+            const user = userEvent.setup();
             const { onCreateFolder } = renderList([]);
-            fireEvent.click(screen.getByText('New folder'));
+            await user.click(screen.getByText('New folder'));
             const input = screen.getByLabelText('New folder name');
             fireEvent.change(input, { target: { value: '   ' } });
             fireEvent.keyDown(input, { key: 'Enter' });
             expect(onCreateFolder).not.toHaveBeenCalled();
         });
 
-        it('abandons on Escape', () => {
+        it('abandons on Escape', async () => {
+            const user = userEvent.setup();
             const { onCreateFolder } = renderList([]);
-            fireEvent.click(screen.getByText('New folder'));
+            await user.click(screen.getByText('New folder'));
             const input = screen.getByLabelText('New folder name');
             fireEvent.change(input, { target: { value: 'Nope' } });
             fireEvent.keyDown(input, { key: 'Escape' });
@@ -140,38 +145,42 @@ describe('FolderedAutomationList', () => {
     });
 
     describe('removing a folder', () => {
-        it('asks in the app, and promises the automations survive', () => {
+        it('asks in the app, and promises the automations survive', async () => {
+            const user = userEvent.setup();
             const confirmSpy = vi.spyOn(window, 'confirm');
             const { onDeleteFolder } = renderList([automation('a', { folderId: 'f1' })]);
-            fireEvent.click(screen.getByLabelText('Delete Klanten'));
+            await user.click(screen.getByLabelText('Delete Klanten'));
 
             expect(screen.getByRole('dialog', { name: 'Remove folder' })).toBeTruthy();
             expect(screen.getByText(/will stay/)).toBeTruthy();
             expect(confirmSpy).not.toHaveBeenCalled();
             expect(onDeleteFolder).not.toHaveBeenCalled();
 
-            fireEvent.click(screen.getByText('Remove folder'));
+            await user.click(screen.getByText('Remove folder'));
             expect(onDeleteFolder).toHaveBeenCalledWith(expect.objectContaining({ id: 'f1' }));
             confirmSpy.mockRestore();
         });
 
-        it('says so plainly when the folder is empty', () => {
+        it('says so plainly when the folder is empty', async () => {
+            const user = userEvent.setup();
             renderList([]);
-            fireEvent.click(screen.getByLabelText('Delete Klanten'));
+            await user.click(screen.getByLabelText('Delete Klanten'));
             expect(screen.getByText('The folder is empty.')).toBeTruthy();
         });
 
-        it('cancelling changes nothing', () => {
+        it('cancelling changes nothing', async () => {
+            const user = userEvent.setup();
             const { onDeleteFolder } = renderList([automation('a', { folderId: 'f1' })]);
-            fireEvent.click(screen.getByLabelText('Delete Klanten'));
-            fireEvent.click(screen.getByText('Cancel'));
+            await user.click(screen.getByLabelText('Delete Klanten'));
+            await user.click(screen.getByText('Cancel'));
             expect(onDeleteFolder).not.toHaveBeenCalled();
         });
     });
 
-    it('renames a folder inline', () => {
+    it('renames a folder inline', async () => {
+        const user = userEvent.setup();
         const { onRenameFolder } = renderList([]);
-        fireEvent.click(screen.getByLabelText('Rename Klanten'));
+        await user.click(screen.getByLabelText('Rename Klanten'));
         const input = screen.getByLabelText('Folder name');
         fireEvent.change(input, { target: { value: 'Klantwerk' } });
         fireEvent.keyDown(input, { key: 'Enter' });
@@ -204,18 +213,20 @@ describe('MoveToFolderDialog', () => {
         expect(container.firstChild).toBeNull();
     });
 
-    it('offers every folder plus a way back out', () => {
+    it('offers every folder plus a way back out', async () => {
+        const user = userEvent.setup();
         const onPick = vi.fn();
         render(<MoveToFolderDialog automation={automation('a')} folders={FOLDERS} onPick={onPick} onClose={vi.fn()} />);
         expect(screen.getByText('No folder')).toBeTruthy();
-        fireEvent.click(screen.getByText('Klanten'));
+        await user.click(screen.getByText('Klanten'));
         expect(onPick).toHaveBeenCalledWith('f1');
     });
 
-    it('can take an automation out of its folder', () => {
+    it('can take an automation out of its folder', async () => {
+        const user = userEvent.setup();
         const onPick = vi.fn();
         render(<MoveToFolderDialog automation={automation('a', { folderId: 'f1' })} folders={FOLDERS} onPick={onPick} onClose={vi.fn()} />);
-        fireEvent.click(screen.getByText('No folder'));
+        await user.click(screen.getByText('No folder'));
         expect(onPick).toHaveBeenCalledWith(null);
     });
 

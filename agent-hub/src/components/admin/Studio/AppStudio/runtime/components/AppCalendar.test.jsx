@@ -1,4 +1,5 @@
-import { fireEvent, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import AppCalendar, { bucketEvents } from './AppCalendar';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
@@ -65,22 +66,24 @@ describe('AppCalendar — month view', () => {
         }
     });
 
-    it('prev/next move the month grid', () => {
+    it('prev/next move the month grid', async () => {
+        const user = userEvent.setup();
         const { container, getByLabelText } = withRuntime(<AppCalendar node={calNode()} />);
-        fireEvent.click(getByLabelText('Next month'));
+        await user.click(getByLabelText('Next month'));
         expect(container.querySelector('[data-app-calendar-day="2026-04-01"]')).toBeTruthy();
-        fireEvent.click(getByLabelText('Previous month'));
+        await user.click(getByLabelText('Previous month'));
         expect(container.querySelector('[data-app-calendar-day="2026-03-03"]')).toBeTruthy();
     });
 
-    it('event chip click fires onRowClick with the row (run mode)', () => {
+    it('event chip click fires onRowClick with the row (run mode)', async () => {
+        const user = userEvent.setup();
         const runAction = vi.fn();
         const { container } = withRuntime(
             <AppCalendar node={calNode({}, { onRowClick: 'act_row001' })} />,
             { mode: 'run', runAction },
         );
         const chip = container.querySelector('[data-app-calendar-day="2026-03-03"] [data-app-calendar-event]');
-        fireEvent.click(chip);
+        await user.click(chip);
         // The row goes out as `item` too — that is the name every picker and
         // template teaches for it, and navigate params read `item.<field>`.
         expect(runAction).toHaveBeenCalledWith('act_row001', { formValues: ROWS[0], item: ROWS[0] });

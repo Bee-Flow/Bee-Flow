@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import SpeakerRows from './SpeakerRows';
@@ -49,12 +50,13 @@ describe('SpeakerRows', () => {
         expect(screen.getByRole('button', { name: /show 2 more speakers/i })).toBeInTheDocument();
     });
 
-    it('expands to all rows and collapses again via "Show less"', () => {
+    it('expands to all rows and collapses again via "Show less"', async () => {
+        const user = userEvent.setup();
         renderRows();
-        fireEvent.click(screen.getByRole('button', { name: /show 2 more speakers/i }));
+        await user.click(screen.getByRole('button', { name: /show 2 more speakers/i }));
         expect(screen.getByText('S7')).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: /show less/i }));
+        await user.click(screen.getByRole('button', { name: /show less/i }));
         expect(screen.queryByText('S7')).toBeNull();
         expect(screen.getByRole('button', { name: /show 2 more speakers/i })).toBeInTheDocument();
     });
@@ -66,11 +68,12 @@ describe('SpeakerRows', () => {
         expect(screen.getAllByRole('button', { name: /play S0 at/i }).length).toBeGreaterThan(0);
     });
 
-    it('clicking a block seeks and plays at that spot in the recording', () => {
+    it('clicking a block seeks and plays at that spot in the recording', async () => {
+        const user = userEvent.setup();
         const { rows, onSeekTo } = renderRows();
         const firstBlock = rows[0].blocks[0];
         const btn = screen.getAllByRole('button', { name: /play S0 at/i })[0];
-        fireEvent.click(btn);
+        await user.click(btn);
         const [seconds, opts] = onSeekTo.mock.calls[0];
         expect(seconds).toBeGreaterThanOrEqual(firstBlock.start);
         expect(seconds).toBeLessThanOrEqual(firstBlock.end);

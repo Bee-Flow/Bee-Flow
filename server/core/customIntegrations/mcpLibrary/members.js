@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The member side of the organisation MCP library: the servers a person may
  * use that need a key, and their own key for each (Settings → Connections).

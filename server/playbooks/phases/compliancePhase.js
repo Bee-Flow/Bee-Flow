@@ -19,7 +19,7 @@
  *
  * It CHANGES NOTHING. It reads, it reports, and the person decides.
  */
-
+// @typecheck
 'use strict';
 
 const { languageName, copyFor } = require('./../copy');
@@ -707,12 +707,12 @@ function withBudget(promise, ms) {
 function defaultDeps() {
     return {
         resolveModel: (opts) => require('../../core/llm/modelResolver').resolveModelForTierName(opts.tier || 'fast', opts),
-        chatForcedTool: (...args) => require('../../core/llm/llmClient').chatForcedTool(...args),
+        chatForcedTool: (...args) => /** @type {Function} */ (require('../../core/llm/llmClient').chatForcedTool)(...args),
     };
 }
 
 /**
- * @returns {Promise<{ ok:true, artifacts:{ findings, facts, frameworks, modelFailed }, summary }>}
+ * @returns {Promise<{ ok:true, artifacts:{ findings, facts, frameworks, modelFailed, checks }, summary }>}
  * Always ok: the static half is the review's floor, and a model that cannot be
  * reached is reported as a note on the phase, not as a failed phase.
  */

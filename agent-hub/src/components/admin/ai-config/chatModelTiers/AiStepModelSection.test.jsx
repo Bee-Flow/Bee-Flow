@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
@@ -51,7 +52,8 @@ describe('AiStepModelSection', () => {
         expect(screen.getByTestId('picker').textContent).toBe("— Use the step's own tier —");
     });
 
-    it('a picked model shows by display name (id when there is none) and reaches setAiStepModel; Save reaches saveAiStepModel', () => {
+    it('a picked model shows by display name (id when there is none) and reaches setAiStepModel; Save reaches saveAiStepModel', async () => {
+        const user = userEvent.setup();
         const props = renderSection({ aiStepModel: 'qwen2.5:1.5b' });
         expect(screen.getByTestId('picker').textContent).toBe('Qwen 2.5 1.5B');
         cleanup();
@@ -60,9 +62,9 @@ describe('AiStepModelSection', () => {
         cleanup();
         const propsAgain = renderSection({ aiStepModel: 'qwen2.5:1.5b' });
         Object.assign(props, propsAgain);
-        fireEvent.click(screen.getByTestId('picker'));
+        await user.click(screen.getByTestId('picker'));
         expect(props.setAiStepModel).toHaveBeenCalledWith('qwen2.5:1.5b');
-        fireEvent.click(screen.getByRole('button', { name: 'Save AI Step Model' }));
+        await user.click(screen.getByRole('button', { name: 'Save AI Step Model' }));
         expect(props.saveAiStepModel).toHaveBeenCalledTimes(1);
     });
 

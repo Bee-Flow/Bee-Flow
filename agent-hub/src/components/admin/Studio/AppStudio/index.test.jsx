@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -55,6 +56,7 @@ beforeEach(() => {
 
 describe('AppStudioSection', () => {
     it('shows the list, then opens the editor on card click and reports editing', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         const onEditingChange = vi.fn();
         render(
@@ -66,7 +68,7 @@ describe('AppStudioSection', () => {
         expect(screen.queryByTestId('editor-shell')).not.toBeInTheDocument();
         expect(onEditingChange).toHaveBeenLastCalledWith(false);
 
-        fireEvent.click(screen.getByText('My tracker'));
+        await user.click(screen.getByText('My tracker'));
 
         expect(await screen.findByTestId('editor-shell')).toBeInTheDocument();
         expect(screen.getByText('editing:My tracker')).toBeInTheDocument();
@@ -95,6 +97,7 @@ describe('AppStudioSection', () => {
     });
 
     it('closing the editor returns to the list and reports editing=false', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         const onEditingChange = vi.fn();
         render(
@@ -106,7 +109,7 @@ describe('AppStudioSection', () => {
         );
         await screen.findByTestId('editor-shell');
 
-        fireEvent.click(screen.getByRole('button', { name: 'close-editor' }));
+        await user.click(screen.getByRole('button', { name: 'close-editor' }));
 
         expect(await screen.findByText('My tracker')).toBeInTheDocument();
         expect(screen.queryByTestId('editor-shell')).not.toBeInTheDocument();
@@ -115,10 +118,11 @@ describe('AppStudioSection', () => {
     });
 
     it('keeps the open app row in sync when the editor reports onAppUpdated', async () => {
+        const user = userEvent.setup();
         render(<AppStudioSection initialAppId="app-1" />);
         await screen.findByTestId('editor-shell');
 
-        fireEvent.click(screen.getByRole('button', { name: 'rename-from-editor' }));
+        await user.click(screen.getByRole('button', { name: 'rename-from-editor' }));
         expect(await screen.findByText('editing:Updated name')).toBeInTheDocument();
     });
 

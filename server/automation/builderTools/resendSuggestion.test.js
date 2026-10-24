@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A `resendAs` suggestion must be a call that can actually succeed.
  *

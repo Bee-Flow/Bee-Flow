@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which tools an ai_step is offered (split out of execAi.execAiStep): the
  * agent's per-action grants on an agent step, the user's integration catalog

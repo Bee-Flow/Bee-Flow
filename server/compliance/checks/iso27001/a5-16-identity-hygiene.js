@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO 27001 A.5.16 — identity hygiene across the org's directories.
  * Reads the google-workspace and microsoft-entra connector summaries

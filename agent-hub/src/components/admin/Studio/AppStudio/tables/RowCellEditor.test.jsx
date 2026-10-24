@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import RowCellEditor from './RowCellEditor';
@@ -40,13 +41,14 @@ describe('RowCellEditor', () => {
         expect(onCommit).toHaveBeenCalledWith(18.5);
     });
 
-    it('lets a multi-select collect several choices before it hands them over', () => {
+    it('lets a multi-select collect several choices before it hands them over', async () => {
+        const user = userEvent.setup();
         const field = { key: 'tags', name: 'Tags', type: 'multiselect', options: ['Open', 'Urgent', 'Late'] };
         const { onCommit } = renderCell(field, '["Open"]');
 
-        fireEvent.click(screen.getByRole('checkbox', { name: 'Urgent' }));
+        await user.click(screen.getByRole('checkbox', { name: 'Urgent' }));
         expect(onCommit).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+        await user.click(screen.getByRole('button', { name: 'Done' }));
         expect(onCommit).toHaveBeenCalledWith(['Open', 'Urgent']);
     });
 

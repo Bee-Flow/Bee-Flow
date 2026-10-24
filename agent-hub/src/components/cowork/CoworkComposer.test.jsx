@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render, screen, fireEvent, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import CoworkComposer, { COWORK_PLACEHOLDER } from './CoworkComposer';
@@ -213,10 +214,11 @@ describe('CoworkComposer — the send button', () => {
         expect(send()).toBeDisabled();
     });
 
-    it('is enabled, and submits, once there is text and a resolvable moment', () => {
+    it('is enabled, and submits, once there is text and a resolvable moment', async () => {
+        const user = userEvent.setup();
         const { props } = setup({ value: 'Send the digest' });
         expect(send()).toBeEnabled();
-        fireEvent.click(send());
+        await user.click(send());
         expect(props.onSubmit).toHaveBeenCalledTimes(1);
     });
 
@@ -297,11 +299,12 @@ describe('CoworkComposer — the model tier pickers', () => {
         expect(screen.getByTestId('tier-slider-trigger')).toHaveAttribute('aria-label', 'Response depth: Think');
     });
 
-    it('reports a new depth to the caller', () => {
+    it('reports a new depth to the caller', async () => {
+        const user = userEvent.setup();
         const onTierChange = vi.fn();
         setup({ value: 'x', modelTiers: TIERS, selectedTier: 'thinking', onTierChange });
-        fireEvent.click(screen.getByTestId('tier-slider-trigger'));
-        fireEvent.click(screen.getByTestId('tier-slider-stop-pro'));
+        await user.click(screen.getByTestId('tier-slider-trigger'));
+        await user.click(screen.getByTestId('tier-slider-stop-pro'));
         expect(onTierChange).toHaveBeenCalledWith('pro');
     });
 
@@ -338,30 +341,33 @@ describe('CoworkComposer — the Apps picker', () => {
         expect(screen.queryByTestId('apps-picker-button')).not.toBeInTheDocument();
     });
 
-    it('lists what the catalogue offers, with the active count', () => {
+    it('lists what the catalogue offers, with the active count', async () => {
+        const user = userEvent.setup();
         setup({ value: 'x' });
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getByTestId('apps-picker-button'));
         const panel = screen.getByTestId('apps-picker-panel');
         expect(within(panel).getAllByTestId('apps-picker-item')).toHaveLength(2);
         expect(panel).toHaveTextContent('2/2 active');
     });
 
-    it('routes a toggle through the item\'s own list, not the workspace one', () => {
+    it('routes a toggle through the item\'s own list, not the workspace one', async () => {
+        const user = userEvent.setup();
         const setEnabledApps = vi.fn();
         setup({ value: 'x', coworkOver: { enabledApps: ['gmail'], setEnabledApps } });
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
-        fireEvent.click(screen.getByLabelText('Enable Google Drive'));
+        await user.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getByLabelText('Enable Google Drive'));
         expect(setEnabledApps).toHaveBeenCalledWith(['gmail', 'google-drive']);
         // The workspace-wide toggle stays untouched.
         expect(catalog.state.toggleApp).not.toHaveBeenCalled();
     });
 
-    it('picking an app KEEPS the brief you already typed and adds the seed to it', () => {
+    it('picking an app KEEPS the brief you already typed and adds the seed to it', async () => {
+        const user = userEvent.setup();
         // Was a wart: `onChange(seed)` replaced the box outright, so half a
         // paragraph of brief disappeared on one click, with no undo.
         const typed = 'Summarise last week and mail it to the team';
         const { props } = setup({ value: typed });
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getByTestId('apps-picker-button'));
         pickApp('gmail');
         const next = props.onChange.mock.calls.at(-1)[0];
         expect(next).toContain(typed);
@@ -369,29 +375,33 @@ describe('CoworkComposer — the Apps picker', () => {
         expect(next.indexOf(typed)).toBeLessThan(next.indexOf('Show my recent emails'));
     });
 
-    it('seeds an empty box with the seed alone — no leading blank line', () => {
+    it('seeds an empty box with the seed alone — no leading blank line', async () => {
+        const user = userEvent.setup();
         const { props } = setup({ value: '' });
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getByTestId('apps-picker-button'));
         pickApp('gmail');
         expect(props.onChange).toHaveBeenCalledWith('Show my recent emails');
     });
 
-    it('treats a box holding only whitespace as empty', () => {
+    it('treats a box holding only whitespace as empty', async () => {
+        const user = userEvent.setup();
         const { props } = setup({ value: '   \n ' });
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getByTestId('apps-picker-button'));
         pickApp('gmail');
         expect(props.onChange).toHaveBeenCalledWith('Show my recent emails');
     });
 
-    it('leaves the brief alone for an app with nothing sensible to type', () => {
+    it('leaves the brief alone for an app with nothing sensible to type', async () => {
+        const user = userEvent.setup();
         setCatalog({ availableApps: [app('mystery-tool', 'Mystery')] });
         const { props } = setup({ value: 'Keep this' });
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getByTestId('apps-picker-button'));
         pickApp('mystery-tool');
         expect(props.onChange).not.toHaveBeenCalled();
     });
 
-    it('leaves the box holding both, with the caret behind the seed', () => {
+    it('leaves the box holding both, with the caret behind the seed', async () => {
+        const user = userEvent.setup();
         // Needs a real controlled host: the value the picker produces only
         // reaches the textarea through the parent.
         //
@@ -409,7 +419,7 @@ describe('CoworkComposer — the Apps picker', () => {
         const box = brief();
         box.focus();
         box.setSelectionRange(4, 4);
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getByTestId('apps-picker-button'));
         pickApp('gmail');
         const el = brief();
         expect(el.value).toContain('Mail the team');
@@ -537,10 +547,11 @@ describe('CoworkComposer — the caret after a seed', () => {
         return <CoworkComposer value={value} onChange={onChange} onSubmit={vi.fn()} cowork={coworkStub()} />;
     }
 
-    it('moves the caret once, after a seed lands', () => {
+    it('moves the caret once, after a seed lands', async () => {
+        const user = userEvent.setup();
         render(<Host />);
         moves.mockClear();
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getByTestId('apps-picker-button'));
         pickApp('gmail');
 
         const el = brief();
@@ -554,13 +565,14 @@ describe('CoworkComposer — the caret after a seed', () => {
         expect(moves).not.toHaveBeenCalled();
     });
 
-    it('forgets the seed when the host ignored it, instead of jumping the caret later', () => {
+    it('forgets the seed when the host ignored it, instead of jumping the caret later', async () => {
+        const user = userEvent.setup();
         // A caller may drop an onChange — a disabled parent, a race, a guard.
         // The flag would then still be set at the NEXT keystroke, and the
         // caret would leap to the end in the middle of someone's sentence,
         // long after the app they picked.
         render(<Host dropFirstChange />);
-        fireEvent.click(screen.getByTestId('apps-picker-button'));
+        await user.click(screen.getByTestId('apps-picker-button'));
         pickApp('gmail');
         expect(brief().value).toBe('Mail the team');  // the host really dropped it
 

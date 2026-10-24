@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The dispatcher's egress chokepoint: every tool call leaves a ledger row,
  * exactly one, whoever dispatched it.

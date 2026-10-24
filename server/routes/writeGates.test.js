@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Building and publishing are gated on a PERMISSION, not just on a capability.
  *

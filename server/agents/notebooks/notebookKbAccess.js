@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which of a notebook's knowledge bases may THIS caller have searched?
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tool Dispatcher — the one place a tool call is executed.
  *
@@ -39,26 +40,26 @@ registerBuiltinToolFamilies();
  *
  * @param {string} toolName - Name of the tool to execute
  * @param {Object} toolArgs - Arguments for the tool
- * @param {Object} context  - Execution context, handed to the tool family as is:
- *   @param {string}  context.userId       - Current user ID
- *   @param {Object}  context.session      - Express session (for OAuth tokens)
- *   @param {Object}  context.userAuth     - User auth info (encryptionKey, etc.)
- *   @param {Object}  context.fixedParams  - Pre-configured params for this tool (tier overrides etc)
- *   @param {string}  context.agentId      - Agent ID (or null for direct chat)
- *   @param {string}  context.orgId        - Organization ID for n8n/org-scoped tools
- *   @param {Function} context.send        - SSE send helper (for image gen streaming)
- *   @param {Object}  context.imageGenSettings - Image generation settings
- *   @param {Object}  context.req          - Express request (for image gen API access)
- *   @param {Array}   context.attachments  - File attachments (for n8n)
- *   @param {Function} context.onImageGenerated - Callback when image is generated
- *   @param {Object}  context.runScope     - { runId, rootRunId } inside an automation
+ * @param {Object} [context]  - Execution context, handed to the tool family as is:
+ *   @param {string}  [context.userId]       - Current user ID
+ *   @param {Object}  [context.session]      - Express session (for OAuth tokens)
+ *   @param {Object}  [context.userAuth]     - User auth info (encryptionKey, etc.)
+ *   @param {Object}  [context.fixedParams]  - Pre-configured params for this tool (tier overrides etc)
+ *   @param {string}  [context.agentId]      - Agent ID (or null for direct chat)
+ *   @param {string}  [context.orgId]        - Organization ID for n8n/org-scoped tools
+ *   @param {Function} [context.send]        - SSE send helper (for image gen streaming)
+ *   @param {Object}  [context.imageGenSettings] - Image generation settings
+ *   @param {Object}  [context.req]          - Express request (for image gen API access)
+ *   @param {Array}   [context.attachments]  - File attachments (for n8n)
+ *   @param {Function} [context.onImageGenerated] - Callback when image is generated
+ *   @param {Object}  [context.runScope]     - { runId, rootRunId } inside an automation
  *                                          run; null in a chat. Lets the upload tools
  *                                          resolve a `generated_file` handle.
- *   @param {Object|false} context.egress  - Attribution for the egress row the
+ *   @param {Object|false} [context.egress]  - Attribution for the egress row the
  *                                          chokepoint writes when no probe is active:
  *                                          { source, model, isDryRun, ids }. `false`
  *                                          opts a UI-only read out (see toolEgress.js).
- * @returns {*} Tool result
+ * @returns {Promise<*>} Tool result
  */
 async function dispatchTool(toolName, toolArgs, context = {}) {
     // Guard: some providers return tool_calls without a valid function name

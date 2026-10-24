@@ -185,10 +185,11 @@ describe('PreferencesSection — profile strip', () => {
         expect(screen.queryByText('Tom Smit')).toBeNull();
     });
 
-    it('lifts a saved avatar to onUpdateUser', () => {
+    it('lifts a saved avatar to onUpdateUser', async () => {
+        const user = userEvent.setup();
         const onUpdateUser = vi.fn();
         mount({ onUpdateUser });
-        fireEvent.click(screen.getByTestId('avatar-picker'));
+        await user.click(screen.getByTestId('avatar-picker'));
         expect(onUpdateUser).toHaveBeenCalledWith({ avatar: '🐝', avatarType: 'emoji' });
     });
 });
@@ -202,12 +203,13 @@ describe('PreferencesSection — interface language row', () => {
     });
 
     it('appears once a second locale exists and calls setLocale on pick', async () => {
+        const user = userEvent.setup();
         serveLocales([{ code: 'en', name: 'English' }, { code: 'nl', name: 'Nederlands' }]);
         mount();
         await screen.findByText('Interface Language');
 
-        fireEvent.click(rowTrigger('Interface Language'));
-        fireEvent.click(screen.getByText('Nederlands'));
+        await user.click(rowTrigger('Interface Language'));
+        await user.click(screen.getByText('Nederlands'));
         expect(setLocale).toHaveBeenCalledWith('nl');
     });
 
@@ -269,15 +271,16 @@ describe('PreferencesSection — chat history row', () => {
         expect(rowTrigger('Chat History').textContent).toContain('Per Agent');
     });
 
-    it('persists a change to scoped storage and broadcasts it', () => {
+    it('persists a change to scoped storage and broadcasts it', async () => {
+        const user = userEvent.setup();
         scopedStorage.setCurrentUser('u1');
         const events = [];
         const listener = e => events.push(e.detail);
         window.addEventListener('chatHistoryModeChanged', listener);
 
         mount();
-        fireEvent.click(rowTrigger('Chat History'));
-        fireEvent.click(screen.getByText('All Chats'));
+        await user.click(rowTrigger('Chat History'));
+        await user.click(screen.getByText('All Chats'));
 
         expect(scopedStorage.getItem('chatHistoryMode')).toBe('all-chats');
         expect(events).toEqual(['all-chats']);
@@ -292,28 +295,30 @@ describe('PreferencesSection — chat history row', () => {
         expect(rowTrigger('Chat History').textContent).toContain('All Chats');
     });
 
-    it('silently drops the preference when no user is scoped (wart)', () => {
+    it('silently drops the preference when no user is scoped (wart)', async () => {
+        const user = userEvent.setup();
         // scopedStorage no-ops without a current user: the dropdown shows the
         // new value, the broadcast fires, and nothing survives a reload.
         mount();
-        fireEvent.click(rowTrigger('Chat History'));
-        fireEvent.click(screen.getByText('All Chats'));
+        await user.click(rowTrigger('Chat History'));
+        await user.click(screen.getByText('All Chats'));
         expect(rowTrigger('Chat History').textContent).toContain('All Chats');
         expect(scopedStorage.getItem('chatHistoryMode')).toBeNull();
     });
 });
 
 describe('PreferencesSection — startup row', () => {
-    it('shows the three startup options and reports the pick upward', () => {
+    it('shows the three startup options and reports the pick upward', async () => {
+        const user = userEvent.setup();
         const setDefaultAgentMode = vi.fn();
         mount({ setDefaultAgentMode });
         expect(screen.getByText('Choose what opens when you launch Bee Flow')).toBeInTheDocument();
         expect(rowTrigger('Startup').textContent).toContain('Continue where you left off');
 
-        fireEvent.click(rowTrigger('Startup'));
+        await user.click(rowTrigger('Startup'));
         expect(screen.getByText('Always open a specific agent')).toBeInTheDocument();
         expect(screen.getByText('Start with Direct Chat')).toBeInTheDocument();
-        fireEvent.click(screen.getByText('Start with Direct Chat'));
+        await user.click(screen.getByText('Start with Direct Chat'));
         expect(setDefaultAgentMode).toHaveBeenCalledWith('direct-chat');
     });
 
@@ -347,9 +352,10 @@ describe('PreferencesSection — Simple Mode', () => {
     });
 
     it('saves the new value and lifts it, optimistically', async () => {
+        const user = userEvent.setup();
         const onUpdateUser = vi.fn();
         mount({ onUpdateUser });
-        fireEvent.click(toggle());
+        await user.click(toggle());
 
         expect(onUpdateUser).toHaveBeenCalledWith({ simpleMode: true });
         expect(toggle()).toHaveAttribute('aria-pressed', 'true');
@@ -361,13 +367,14 @@ describe('PreferencesSection — Simple Mode', () => {
     });
 
     it('reverts itself and the parent when the save throws', async () => {
+        const user = userEvent.setup();
         const onUpdateUser = vi.fn();
         authFetch.mockImplementation(async (url, init) => {
             if (init?.method === 'POST') throw new Error('offline');
             return { ok: true, json: async () => [] };
         });
         mount({ onUpdateUser });
-        fireEvent.click(toggle());
+        await user.click(toggle());
 
         await waitFor(() => expect(toggle()).toHaveAttribute('aria-pressed', 'false'));
         expect(onUpdateUser.mock.calls).toEqual([[{ simpleMode: true }], [{ simpleMode: false }]]);
@@ -376,6 +383,7 @@ describe('PreferencesSection — Simple Mode', () => {
     });
 
     it('reverts the toggle when the server REFUSES the save', async () => {
+        const user = userEvent.setup();
         // The save goes through mutate(), which throws on a 403/500, so a
         // refused save is reverted like a failed request instead of leaving
         // the optimistic value standing on screen.
@@ -385,7 +393,7 @@ describe('PreferencesSection — Simple Mode', () => {
             return { ok: true, json: async () => [] };
         });
         mount({ onUpdateUser });
-        fireEvent.click(toggle());
+        await user.click(toggle());
 
         await waitFor(() => expect(toggle()).toHaveAttribute('aria-pressed', 'false'));
         expect(authFetch.mock.calls.some(c => c[1]?.method === 'POST')).toBe(true);
@@ -414,10 +422,11 @@ describe('PreferencesSection — Simple Mode', () => {
     });
 
     it('saves nothing from a phone — the lock is client-side only', async () => {
+        const user = userEvent.setup();
         viewport = { isMobile: true, isCompact: false, isDesktop: false, width: 390 };
         const onUpdateUser = vi.fn();
         mount({ onUpdateUser });
-        fireEvent.click(toggle());
+        await user.click(toggle());
         expect(onUpdateUser).not.toHaveBeenCalled();
         expect(authFetch.mock.calls.some(c => c[1]?.method === 'POST')).toBe(false);
     });

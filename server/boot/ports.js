@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Ports: a lower layer declares the hook, the layer that owns the policy
  * fills it in at boot. Each line here would otherwise be an upward import.

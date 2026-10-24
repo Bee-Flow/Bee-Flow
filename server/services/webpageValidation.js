@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage post-generation validation (BFSF-222).
  *
@@ -215,6 +216,7 @@ function validateVanilla({ html, scriptTexts, assetPathSet, allowedHosts }) {
  * verbatim string literal, no id literal matches anywhere, and it never shows
  * up inside a template literal. Import-based assets are skipped entirely
  * (the esbuild resolver already fails loudly on missing imports).
+ * @param {{ sources: any, assetPathSet: Set<string>, allowedHosts?: any }} input
  */
 function validateReactMui({ sources, assetPathSet }) {
     const violations = [];
@@ -294,6 +296,8 @@ function validateWebpageProject({ framework, html, scriptTexts, sources, assetPa
 
 /**
  * The end-of-turn repair note fed back to the generating model.
+ * @param {any[]} violations
+ * @param {{ assetPaths?: string[] }} [opts]
  */
 function buildRepairMessage(violations, { assetPaths } = {}) {
     const assetList = assetPaths && assetPaths.length

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * call_block (reusable Step) collection + validation (§WS5, extracted verbatim
  * from validate.js).

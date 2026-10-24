@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat: per-format attachment handlers for the streaming turn (image,
  * Google Drive, PDF, DOCX/PPTX, spreadsheet, Gmail, plain text, generic file).

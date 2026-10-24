@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import SetupStepBody, {
@@ -153,13 +154,14 @@ describe('SetupStepBody — the four bodies', () => {
         expect(screen.getByLabelText('Name')).toBeInTheDocument();
     });
 
-    it('legal-bases step toggles a basis on and off', () => {
+    it('legal-bases step toggles a basis on and off', async () => {
+        const user = userEvent.setup();
         let latest = null;
         render(<Host step={1} onData={(d) => { latest = d; }} />);
         expect(screen.getByTestId('setup-step-lb-contract')).toHaveAttribute('aria-pressed', 'true');
-        fireEvent.click(screen.getByTestId('setup-step-lb-contract'));
+        await user.click(screen.getByTestId('setup-step-lb-contract'));
         expect(latest.legal_bases).not.toContain('contract');
-        fireEvent.click(screen.getByTestId('setup-step-lb-consent'));
+        await user.click(screen.getByTestId('setup-step-lb-consent'));
         expect(latest.legal_bases).toContain('consent');
         expect(LEGAL_BASES).toHaveLength(6);
     });
@@ -180,18 +182,19 @@ describe('SetupStepBody — the four bodies', () => {
         expect(screen.queryByText('Jan Janssen — jan@acme.nl')).not.toBeInTheDocument();
     });
 
-    it('breach step: free text adds a recipient once and the remove button takes it off', () => {
+    it('breach step: free text adds a recipient once and the remove button takes it off', async () => {
+        const user = userEvent.setup();
         let latest = null;
         render(<Host step={3} onData={(d) => { latest = d; }} />);
         const input = screen.getByTestId('setup-step-recipient-input');
         fireEvent.change(input, { target: { value: 'security@example.com' } });
-        fireEvent.click(screen.getByTestId('setup-step-recipient-add'));
+        await user.click(screen.getByTestId('setup-step-recipient-add'));
         expect(latest.breach_recipients).toEqual(['security@example.com']);
         expect(input.value).toBe('');
         fireEvent.change(input, { target: { value: 'security@example.com' } });
-        fireEvent.click(screen.getByTestId('setup-step-recipient-add'));
+        await user.click(screen.getByTestId('setup-step-recipient-add'));
         expect(latest.breach_recipients).toEqual(['security@example.com']);
-        fireEvent.click(screen.getByLabelText('Remove'));
+        await user.click(screen.getByLabelText('Remove'));
         expect(latest.breach_recipients).toEqual([]);
     });
 

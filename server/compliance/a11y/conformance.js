@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Reader for the CI accessibility-conformance artefact.
  *

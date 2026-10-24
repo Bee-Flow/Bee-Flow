@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Connector vocabulary and the stateless helpers every connector kind shares:
  * the runtime caps, the error shape, the safe public projection, viewer-param

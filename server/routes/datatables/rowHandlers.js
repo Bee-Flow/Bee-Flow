@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The rows themselves: the handler bodies of read a page, read one, add,
  * edit, delete one and delete a selection. The route table and the request

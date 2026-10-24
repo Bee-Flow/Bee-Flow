@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the Scaleway billing tool module.
  *

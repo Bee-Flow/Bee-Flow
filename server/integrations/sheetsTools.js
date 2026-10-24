@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Google Sheets Tools — list, read, append, update, create.
  *

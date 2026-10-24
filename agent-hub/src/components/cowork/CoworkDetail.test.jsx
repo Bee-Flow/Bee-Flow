@@ -1,4 +1,5 @@
-import { render as rtlRender, screen, cleanup, waitFor, fireEvent, act, within } from '@testing-library/react';
+import { render as rtlRender, screen, cleanup, waitFor, act, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import CoworkDetail from './CoworkDetail';
@@ -318,18 +319,19 @@ describe('CoworkDetail — the action buttons', () => {
     beforeEach(() => { cleanup(); api.listCoworkRuns.mockReset(); });
 
     it('hands the id to run and toggle, but the whole item to delete', async () => {
+        const user = userEvent.setup();
         const { handlers, entry } = await renderFull();
 
-        fireEvent.click(screen.getByTestId('cowork-run-now'));
+        await user.click(screen.getByTestId('cowork-run-now'));
         expect(handlers.onRunNow).toHaveBeenCalledWith('w1');
 
-        fireEvent.click(screen.getByTestId('cowork-toggle'));
+        await user.click(screen.getByTestId('cowork-toggle'));
         expect(handlers.onToggle).toHaveBeenCalledWith('w1');
 
-        fireEvent.click(screen.getByTestId('cowork-delete'));
+        await user.click(screen.getByTestId('cowork-delete'));
         expect(handlers.onDelete).toHaveBeenCalledWith(entry);
 
-        fireEvent.click(screen.getByTestId('cowork-edit'));
+        await user.click(screen.getByTestId('cowork-edit'));
         expect(handlers.onEdit).toHaveBeenCalledTimes(1);
     });
 
@@ -358,6 +360,7 @@ describe('CoworkDetail — the action buttons', () => {
     });
 
     it('wrat: Run now stays clickable for an item the badge calls "Waiting to start"', async () => {
+        const user = userEvent.setup();
         // The guard reads item.lastStatus directly instead of the derived
         // status, so every in-flight state except the literal string
         // "running" can be fired a second time from this button.
@@ -366,7 +369,7 @@ describe('CoworkDetail — the action buttons', () => {
 
         const button = screen.getByTestId('cowork-run-now');
         expect(button).toBeEnabled();
-        fireEvent.click(button);
+        await user.click(button);
         expect(handlers.onRunNow).toHaveBeenCalledWith('w1');
     });
 });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Every path the builder SHIPS — in the curated templates, the few-shot
  * examples and the system prompts — is one the run reads, written in the

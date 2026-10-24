@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The access decision for an upload URL, asked again at PUT time.
  *
@@ -19,7 +20,7 @@
 
 /**
  * @param {object} deps
- * @param {(id: string) => Promise<object|null>} deps.getTokenById
+ * @param {(id: string) => Promise<any>} deps.getTokenById
  * @param {(userId: string) => Promise<object|null>} deps.getUser
  * @param {(user: object) => Promise<{ primary: string|null, all: string[] }>} deps.resolveOrgs  auth/mcpAccess/orgResolve
  * @param {(orgId: string|null) => Promise<object>} deps.getOrgPolicy

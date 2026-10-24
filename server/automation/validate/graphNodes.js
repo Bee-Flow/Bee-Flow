@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The node rules of validateGraph (./graph.js): the additional triggers and
  * the top-level steps (shape, unique ids, types allowed in this scope), which

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * zod, with the default refusal texts of zod 3.
@@ -135,6 +136,7 @@ zod.z.config({ customError: zod3Text });
  *
  *   z.object(shape, { error: typeError({ required: 'Send a body.', invalid: 'The body is an object.' }) })
  */
+/** @param {{ required?: string, invalid?: string }} [messages] */
 const typeError = ({ required, invalid } = {}) => (iss) => {
     if (iss.code !== 'invalid_type') return undefined;
     return iss.input === undefined ? required : invalid;

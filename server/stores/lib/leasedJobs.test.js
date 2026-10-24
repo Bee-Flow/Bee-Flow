@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * stores/lib/leasedJobs — the claim/lease/heartbeat/fail SQL the Meet and
  * Teams import stores share. Pins the statements and parameters each store

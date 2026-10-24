@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Chat signals: the effective state, one resolver for everything that
  * announces or counts.
@@ -37,6 +38,15 @@ const CACHE_TTL_MS = 30_000;
 const ERROR_TTL_MS = 5_000;
 const ORGS_TTL_MS = 5 * 60_000;
 
+/**
+ * @typedef {Readonly<{
+ *   state: 'off'|'on'|'scheduled', version: string|null, from: string|null,
+ *   surfaces: readonly string[], paused: readonly any[], signals: readonly string[],
+ *   noticeUrl: string|null, visitorNoticeUrl: string|null, retentionDays: number,
+ * }>} ChatMonitoring
+ */
+
+/** @type {ChatMonitoring} */
 const OFF = Object.freeze({
     state: 'off', version: null, from: null, surfaces: Object.freeze([]), paused: Object.freeze([]),
     signals: Object.freeze([]), noticeUrl: null, visitorNoticeUrl: null, retentionDays: V.RETENTION.default,
@@ -56,6 +66,7 @@ function defaultDeps() {
 /**
  * The effective state from what was read. Pure.
  * @param {{ settings: any, dpiaRow: any, installHasOrganisations: boolean, orgKey: string, now: number }} input
+ * @returns {ChatMonitoring}
  */
 function computeState({ settings, dpiaRow, installHasOrganisations, orgKey, now }) {
     const s = settings || {};
@@ -124,7 +135,7 @@ function makeResolver(deps, { ttlMs = CACHE_TTL_MS, errorTtlMs = ERROR_TTL_MS, o
 
     /**
      * @param {string|null|undefined} orgKey an org id, or 'default' for users without one
-     * @returns {Promise<typeof OFF>}
+     * @returns {Promise<ChatMonitoring>}
      */
     async function resolveChatMonitoring(orgKey) {
         const key = typeof orgKey === 'string' && orgKey ? orgKey : 'default';

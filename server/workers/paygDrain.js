@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * PAYG meter event drain worker.
  *

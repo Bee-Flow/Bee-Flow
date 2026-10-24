@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * webpageBindings — wat de pagina ZELF doet.
  *
@@ -111,7 +112,6 @@
  * een gat. Er staat met opzet geen `beeflow.nl` hardgecodeerd in de lijst — op
  * een self-hosted installatie is dat wél een derde partij.
  */
-
 'use strict';
 
 const bfElements = require('./bfElements');
@@ -211,7 +211,7 @@ function ownHosts() {
  * dat niet wordt gelezen kan geen markering opleveren, en dat is niet te
  * onderscheiden van "hier staat niets".
  *
- * @returns {{readable:boolean, html:string, css:string, js:string, extras:Array<{path:string,text:string}>}}
+ * @returns {Promise<{readable:boolean, html:string, css:string, js:string, extras:Array<{path:string,text:string}>}>}
  */
 async function readPageCode(userId, webpageId) {
     const unreadable = { readable: false, html: '', css: '', js: '', extras: [] };

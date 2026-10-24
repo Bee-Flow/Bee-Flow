@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The forEach trail walk shares the run's JSON-text cache.
  *

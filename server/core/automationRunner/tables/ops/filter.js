@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * filter: keep the rows that pass the rules, the rules fed in at run time and

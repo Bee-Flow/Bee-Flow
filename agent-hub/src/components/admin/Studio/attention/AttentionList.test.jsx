@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -168,35 +169,38 @@ describe('AttentionList', () => {
     });
 
     it('opens where the server said, and falls back to the registry for a kind it has no link for', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         runMock.mockResolvedValue(run({ findings: [EMPTY_KB, BLOCKED] }));
         renderList({ onNavigate });
         // deepLink from the server, converted to an in-app page.
-        fireEvent.click(await screen.findByTestId('studio-attention-item-knowledge_base.empty_in_use'));
+        await user.click(await screen.findByTestId('studio-attention-item-knowledge_base.empty_in_use'));
         expect(onNavigate).toHaveBeenCalledWith('studio/knowledge/k1');
         // A row that arrived WITHOUT a link (the endpoint sends one for all
         // six sources today) — built from the Studio registry instead of
         // dropping the button.
-        fireEvent.click(screen.getByTestId('studio-attention-item-solution.blocked'));
+        await user.click(screen.getByTestId('studio-attention-item-solution.blocked'));
         expect(onNavigate).toHaveBeenCalledWith('studio/solutions/p1');
     });
 
     it('offers no button when nothing named a row to open', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         runMock.mockResolvedValue(run({ findings: [{ ...BLOCKED, targetId: null, deepLink: null }] }));
         renderList({ onNavigate });
         const row = await screen.findByTestId('studio-attention-item-solution.blocked');
         expect(row.getAttribute('role')).toBeNull();
-        fireEvent.click(row);
+        await user.click(row);
         expect(onNavigate).not.toHaveBeenCalled();
     });
 
     it('refuses a link that does not go into this app', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         runMock.mockResolvedValue(run({ findings: [{ ...BLOCKED, deepLink: 'https://example.com/x' }] }));
         renderList({ onNavigate });
         // Falls back to the registry path, never to the foreign URL.
-        fireEvent.click(await screen.findByTestId('studio-attention-item-solution.blocked'));
+        await user.click(await screen.findByTestId('studio-attention-item-solution.blocked'));
         expect(onNavigate).toHaveBeenCalledWith('studio/solutions/p1');
     });
 

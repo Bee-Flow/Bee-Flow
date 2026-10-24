@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Smoke scenarios — AI Act deployer obligations:
  * Art. 4 (AI literacy), Art. 26 (human oversight), Art. 26(6) (log retention)

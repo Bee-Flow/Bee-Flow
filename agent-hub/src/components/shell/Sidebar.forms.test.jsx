@@ -1,4 +1,5 @@
 import { render as rtlRender, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -101,6 +102,7 @@ describe('Sidebar — the Forms row', () => {
     });
 
     it('opens the menu on a click rather than navigating — All forms is the way in', async () => {
+        const user = userEvent.setup();
         serveForms([form('f1', 'Offerte-controle')]);
         const onNavigate = vi.fn();
         renderSidebar({ onNavigate });
@@ -113,7 +115,7 @@ describe('Sidebar — the Forms row', () => {
         expect(screen.getByTestId('flyout-forms')).toBeTruthy();
         expect(onNavigate).not.toHaveBeenCalled();
 
-        fireEvent.click(screen.getByTestId('nav-forms-all'));
+        await user.click(screen.getByTestId('nav-forms-all'));
         expect(onNavigate).toHaveBeenCalledWith('forms');
     });
 
@@ -152,12 +154,13 @@ describe('Sidebar — the Forms row', () => {
     });
 
     it('opens a form in this tab and remembers the visit for next time', async () => {
+        const user = userEvent.setup();
         serveForms([form('f1', 'Offerte-controle')]);
         const onNavigate = vi.fn();
         renderSidebar({ onNavigate });
         await openForms();
 
-        fireEvent.click(await screen.findByTestId('nav-form-f1'));
+        await user.click(await screen.findByTestId('nav-form-f1'));
         expect(onNavigate).toHaveBeenCalledWith('forms/f1');
         expect(JSON.parse(storeMock.data.formRecents)).toHaveProperty('f1');
     });
@@ -170,6 +173,7 @@ describe('Sidebar — the Forms row', () => {
     });
 
     it('keeps the row usable when the forms list cannot be fetched', async () => {
+        const user = userEvent.setup();
         // A failed load must not take the row away: it is drawn from the last
         // remembered answer ("there were forms") and only corrected by a load
         // that actually answered.
@@ -180,7 +184,7 @@ describe('Sidebar — the Forms row', () => {
         await openForms();
 
         expect(await screen.findByTestId('nav-forms-all')).toBeTruthy();
-        fireEvent.click(screen.getByTestId('nav-forms-all'));
+        await user.click(screen.getByTestId('nav-forms-all'));
         expect(onNavigate).toHaveBeenCalledWith('forms');
     });
 

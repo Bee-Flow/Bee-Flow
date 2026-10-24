@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The "workers no-op" half of the module contract.
  *

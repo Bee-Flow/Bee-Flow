@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Knowledge Bases — documents, threads and chunks.
  *

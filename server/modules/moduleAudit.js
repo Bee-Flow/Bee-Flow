@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Module lifecycle audit — a NEVER-THROW wrapper over the host's existing
  * access_audit_log (userStore.logAccessAudit) with target_type

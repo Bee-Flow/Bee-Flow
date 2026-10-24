@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance score model — the single implementation shared by the API routes
  * (/overview, /checks/run, /counts) and the runner's per-run score snapshot, so

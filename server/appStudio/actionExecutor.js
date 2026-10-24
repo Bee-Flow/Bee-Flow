@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio v2 — ACTION EXECUTOR (server half of the ACTION MODEL).
  *

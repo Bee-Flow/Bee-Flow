@@ -1,3 +1,4 @@
+// @typecheck
 // Validation + merge for the client-written learning progress blob.
 //
 // The blob (configStore key learning_progress_user_${userId}) feeds badge and

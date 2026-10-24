@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The text edits behind notebook_insert and notebook_replace, as pure functions
  * of the current Markdown: no I/O, so the matching strategies can be read and

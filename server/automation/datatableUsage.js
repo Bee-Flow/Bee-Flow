@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which steps of an automation touch which datatable.
  *
@@ -44,7 +45,7 @@ function columnsOf(step) {
 }
 
 /**
- * @param {object} definition an automation definition
+ * @param {any} definition an automation definition
  * @returns {Array<{datatableId, stepId, mode, columns}>}
  */
 function collectDatatableUsage(definition) {

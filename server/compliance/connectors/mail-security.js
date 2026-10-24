@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Mail security probe (credential-less) — SPF / DMARC / DKIM presence for the
  * organisation's sending domain via public DNS. Evidence for information-

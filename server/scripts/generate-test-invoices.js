@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Test-invoice generator - realistic PDF invoices for the Nextcloud Invoices
  * folder, so an automation can be asked to read them and sort by supplier /
@@ -29,7 +30,6 @@
  * Upload target defaults to the local sandbox (http://localhost:8081, admin).
  * Override with --nc-url / --nc-user / --nc-pass or NC_URL / NC_USER / NC_PASS.
  */
-
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
@@ -911,7 +911,7 @@ const LAYOUTS = { classicNL, germanUtility, modernSaaS, receiptSmall, frenchFact
 
 // --------------------------- render one PDF -------------------------------
 function renderPdf(inv, outPath) {
-    return new Promise((resolve, reject) => {
+    return /** @type {Promise<void>} */ (new Promise((resolve, reject) => {
         const doc = new PDFDocument({
             size: 'A4', margin: PAGE.margin,
             info: {
@@ -928,7 +928,7 @@ function renderPdf(inv, outPath) {
         doc.end();
         stream.on('finish', resolve);
         stream.on('error', reject);
-    });
+    }));
 }
 
 // --------------------------- the plan (walk backward) ---------------------

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Structure-aware text chunking for the local KB pipeline (see
  * chunkPrimitives.js for the pieces it is built from).

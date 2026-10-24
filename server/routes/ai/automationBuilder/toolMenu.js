@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — the tools a turn offers the model: the schema set by
  * feature flag and profile, the webpage inspection tools, the work-mode

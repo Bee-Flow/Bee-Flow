@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * The closing review, printed — without a playbook, a browser or a write.
  *
@@ -99,7 +100,7 @@ function args(name) {
     const out = await runCompliancePhase(
         { facts, locale: 'en', frameworkNames: names },
         noModel
-            ? { resolveModel: async () => { throw new Error('--no-model'); }, chatForcedTool: async () => ({}) }
+            ? { resolveModel: async () => { throw new Error('--no-model'); }, chatForcedTool: /** @type {any} */ (async () => ({})) }
             : undefined,
     );
     console.log(`\n${out.summary}${out.artifacts.modelFailed ? `   (model: ${out.artifacts.modelFailed})` : ''}\n`);

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio data model — validateDataModel: the whole-model gate (tables,
  * fields, relations, computed expressions, roles and the directory block).

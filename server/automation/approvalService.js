@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * approvalService — the ONE place an approval decision happens.
  *

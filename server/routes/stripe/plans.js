@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Stripe configuration status + the public plan catalogue.
  *

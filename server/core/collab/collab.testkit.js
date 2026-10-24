@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Test kit for the co-editing tests: a whole co-editing server over PGlite
  * and in-memory stand-ins, with no module mocking.

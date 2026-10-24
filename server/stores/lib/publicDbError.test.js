@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Error text shown to page authors and pages: SQL errors pass, file-system
  * and path text does not.

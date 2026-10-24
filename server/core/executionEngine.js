@@ -4,7 +4,7 @@ const componentManager = require('./cms/componentManager');
 const watcherStateStore = require('../stores/watcherStateStore');
 const { buildMcpChildEnv } = require('./mcpChildEnv');
 const log = require('../telemetry/log');
-
+// @typecheck
 /**
  * Variables a component child gets on top of the MCP child allow-list.
  *
@@ -39,7 +39,7 @@ function buildComponentEnv(source = process.env) {
         const value = source[name];
         if (value !== undefined) extra[name] = value;
     }
-    return buildMcpChildEnv(extra, source);
+    return /** @type {Record<string, string>} */ (buildMcpChildEnv(extra, source));
 }
 
 async function executeWorkflow(workflow, userAuth = {}) {

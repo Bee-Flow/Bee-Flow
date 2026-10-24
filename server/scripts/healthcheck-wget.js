@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 'use strict';
 // bee-flow-healthcheck-wget
 //

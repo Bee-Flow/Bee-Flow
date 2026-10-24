@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 const { test, before, after } = require('node:test');

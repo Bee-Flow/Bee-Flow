@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NIS2 Art. 21(2)(a) — a maintained risk analysis.
  *

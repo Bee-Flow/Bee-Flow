@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Subscription Limit Enforcement
  * 
@@ -113,7 +114,7 @@ async function checkConsumerLimits(userId, agentType) {
  * Check consumer resource limits against the __consumer_default__ plan.
  * 
  * @param {string} userId - User ID
- * @param {'agents'|'knowledge_sources'} resourceType - Type of resource
+ * @param {'users'|'agents'|'knowledge_sources'} resourceType - Type of resource ('users' has no per-user limit)
  * @param {number} currentCount - Current count of resources owned by user
  * @returns {Promise<string|null>} Error message if limit exceeded, null otherwise
  */
@@ -122,6 +123,7 @@ async function checkConsumerResourceLimits(userId, resourceType, currentCount) {
     const consumerPlan = allPlans.find(p => p.name === '__consumer_default__');
     if (!consumerPlan) return null;
 
+    /** @type {Record<string, string>} */
     const fieldMap = {
         agents: 'max_agents',
         knowledge_sources: 'max_knowledge_sources',
@@ -132,7 +134,7 @@ async function checkConsumerResourceLimits(userId, resourceType, currentCount) {
     const max = consumerPlan[field];
     if (max !== null && max !== undefined && currentCount >= max) {
         const labels = { agents: 'agents', knowledge_sources: 'knowledge sources' };
-        return `You have reached your limit of ${max} ${labels[resourceType]}. Upgrade to an organization plan for higher limits.`;
+        return `You have reached your limit of ${max} ${labels[/** @type {'agents'|'knowledge_sources'} */ (resourceType)]}. Upgrade to an organization plan for higher limits.`;
     }
     return null;
 }

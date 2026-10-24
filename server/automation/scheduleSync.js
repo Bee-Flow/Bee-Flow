@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Keep `automation_schedules` in step with an automation's ADDITIONAL schedule
  * triggers (`definition.triggers[]`, kind 'schedule').
@@ -38,7 +39,7 @@ function scheduleFingerprint(def) {
  * @param {object} def            the automation definition
  * @param {object} [opts]
  * @param {boolean} [opts.rearm]  recompute every next_run_at (activation)
- * @param {object} [deps]         { automationStore, cron } — injectable for tests
+ * @param {{automationStore?: any, cron?: any}} [deps]         { automationStore, cron } — injectable for tests
  * @returns {Promise<{ synced: string[], removed: boolean }>}
  */
 async function syncSchedules(automationId, def, { rearm = false } = {}, deps = {}) {

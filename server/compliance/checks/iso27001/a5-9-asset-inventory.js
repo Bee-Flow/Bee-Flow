@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO 27001 A.5.9 — Inventory of information and associated assets.
  *
@@ -117,6 +118,7 @@ module.exports = {
             .filter(([k, v]) => v == null && !failedAssets.has(k)).map(([k]) => k);
         const total = Object.values(counts).reduce((sum, v) => sum + (v || 0), 0);
 
+        /** @type {Record<string, any>} */
         const evidence = {
             ...counts,
             providers,

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A miss inside JSON text does not parse the body again for every item.
  *

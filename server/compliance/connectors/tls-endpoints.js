@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * TLS endpoint probe (credential-less) — certificate expiry and protocol
  * version for the org's public endpoints (A.8.24 cryptography in transit).

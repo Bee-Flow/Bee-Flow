@@ -513,7 +513,7 @@ function checkAgainst(root, tokens, from, opts = {}) {
     const fixes = [];
     const advice = [];
     let pairsDone = false;
-    const done = (extra = {}) => ({ tokens: cur, fixes, ...(advice.length ? { advice } : {}), ...extra });
+    const done = (/** @type {{problem?: any}} */ extra = {}) => ({ tokens: cur, fixes, ...(advice.length ? { advice } : {}), ...extra });
     for (let round = 0; round < 5; round++) {
         const r = S.walk(root, cur, from, []);
         if (r.status === 'ok' || r.status === 'unknown') {

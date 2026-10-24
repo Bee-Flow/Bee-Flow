@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage Multi-File Tools
  *

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 require('../../boot/featureModules'); // core looks feature modules up by name (core/featureModules.js)

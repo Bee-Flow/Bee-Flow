@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Smoke scenarios — ISO 27001 checks fed by the GitHub connector:
  * A.8.8 dependency vulnerabilities, A.8.4 branch protection, A.8.28 secret

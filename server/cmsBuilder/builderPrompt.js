@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CMS builder — system prompt + draft-state rendering.
  *

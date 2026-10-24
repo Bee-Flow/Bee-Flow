@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import scopedStorage from '../../../../utils/scopedStorage';
@@ -37,40 +38,44 @@ describe('SettingsForm — Loop batch size + body editor', () => {
         expect(screen.getByText('Add step')).toBeTruthy();
     });
 
-    it('adding a step via the palette appends to body and auto-expands it', () => {
+    it('adding a step via the palette appends to body and auto-expands it', async () => {
+        const user = userEvent.setup();
         const onPatch = vi.fn();
         renderForm(step, { onPatch });
-        fireEvent.click(screen.getByText('Add step'));
+        await user.click(screen.getByText('Add step'));
         // "Notification" is a Flow-control palette item, always present with no catalog.
-        fireEvent.click(screen.getByText('Notification'));
+        await user.click(screen.getByText('Notification'));
         // The new body row renders (expanded), showing its own Label field.
         expect(screen.getByText(/1\. /)).toBeTruthy();
     });
 
-    it('removing a body step calls onChange with it filtered out', () => {
+    it('removing a body step calls onChange with it filtered out', async () => {
+        const user = userEvent.setup();
         const bodyStep = { id: 'n1', type: 'notification', label: 'Ping', title: 'hi', body: 'x' };
         const withBody = { ...step, body: [bodyStep] };
         renderForm(withBody);
         expect(screen.getByText(/1\. Ping/)).toBeTruthy();
-        fireEvent.click(screen.getByTitle('Remove step'));
+        await user.click(screen.getByTitle('Remove step'));
         expect(screen.queryByText(/1\. Ping/)).toBeNull();
     });
 
-    it('expanding a body step renders its own nested SettingsForm (Label field)', () => {
+    it('expanding a body step renders its own nested SettingsForm (Label field)', async () => {
+        const user = userEvent.setup();
         const bodyStep = { id: 'n1', type: 'notification', label: 'Ping', title: 'hi', body: 'x' };
         const withBody = { ...step, body: [bodyStep] };
         renderForm(withBody);
-        fireEvent.click(screen.getByText(/1\. Ping/));
+        await user.click(screen.getByText(/1\. Ping/));
         expect(screen.getByDisplayValue('Ping')).toBeTruthy();
     });
 
-    it('reordering moves a step and disables the boundary buttons', () => {
+    it('reordering moves a step and disables the boundary buttons', async () => {
+        const user = userEvent.setup();
         const bodyStep = (id, label) => ({ id, type: 'notification', label, title: 'x', body: 'x' });
         const withBody = { ...step, body: [bodyStep('a', 'First'), bodyStep('b', 'Second')] };
         renderForm(withBody);
         const upButtons = screen.getAllByTitle('Move up');
         expect(upButtons[0].disabled).toBe(true);
-        fireEvent.click(screen.getAllByTitle('Move down')[0]);
+        await user.click(screen.getAllByTitle('Move down')[0]);
         // After swapping, "Second" should now render first.
         const rows = screen.getAllByText(/^[12]\. /);
         expect(rows[0].textContent).toMatch(/1\. Second/);
@@ -97,10 +102,11 @@ describe('SettingsForm — Loop body, and the canvas', () => {
         expect(screen.getByText(/once per item, top to bottom/i)).toBeTruthy();
     });
 
-    it('offers the canvas, and hands back the loop\'s id', () => {
+    it('offers the canvas, and hands back the loop\'s id', async () => {
+        const user = userEvent.setup();
         const onExpandOnCanvas = vi.fn();
         renderForm(step, { onExpandOnCanvas });
-        fireEvent.click(screen.getByRole('button', { name: /edit on canvas/i }));
+        await user.click(screen.getByRole('button', { name: /edit on canvas/i }));
         expect(onExpandOnCanvas).toHaveBeenCalledWith('lp');
     });
 

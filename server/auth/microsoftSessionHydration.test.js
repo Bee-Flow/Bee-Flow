@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * resolveMicrosoftSession: a Microsoft-only session for Outlook next to
  * whatever the caller's session is (Google SSO, Nextcloud, an automation shim).

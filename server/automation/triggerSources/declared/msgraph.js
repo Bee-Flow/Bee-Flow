@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Microsoft 365. Delivered by Graph change notifications to a webhook, so
  * without a public base URL a subscription can never fire — which is why the

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `/api/datatables` — the HTTP surface for datatables.
  *

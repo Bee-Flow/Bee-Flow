@@ -170,7 +170,7 @@ router.post('/upload', requireAuth, upload.single('file'), validate({ body: Uplo
         extractedText = result.value || '';
         parameters = extractParameters(extractedText);
     } catch (err) {
-        log.warn(`[Templates] Failed to extract text from ${fileName}:`, err.message);
+        log.warn(`[Templates] Failed to extract text from ${log.nameForLog(fileName)}:`, err.message);
     }
 
     // Upload to RustFS

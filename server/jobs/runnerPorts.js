@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The jobs feature's side of core/automationRunner/featurePorts.js: the
  * periodic passes the runner's ticks (core/automationRunner/scheduler/ticks.js)
@@ -15,7 +16,7 @@ registerRunnerPorts({
     periodicJobs: {
         runRetentionPass: (...args) => require('./runRetention').runRetentionPass(...args),
         purgeTrashPass: (...args) => require('./automationTrashPurge').purgeTrashPass(...args),
-        datatableRetentionPass: (...args) => require('./datatableRetention').datatableRetentionPass(...args),
+        datatableRetentionPass: () => require('./datatableRetention').datatableRetentionPass(),
         digestPass: (...args) => require('./automationDigest').digestPass(...args),
     },
 });

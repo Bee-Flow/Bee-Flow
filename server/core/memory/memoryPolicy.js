@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * memoryPolicy — the single place that answers "may this turn read memory, and
  * may it write memory?".
@@ -157,12 +158,12 @@ async function isSensitiveOptInForUser(userId, orgId) {
 /**
  * Resolve read/write for one turn.
  *
- * @param {object}  opts
- * @param {string}  opts.userId
+ * @param {object}  [opts]
+ * @param {string}  [opts.userId]
  * @param {string}  [opts.orgId]               org of the user, for the org-level switch
  * @param {boolean} [opts.perChatReadEnabled]   per-chat memory off; only `false` blocks read and write
  * @param {boolean} [opts.perChatWriteEnabled]  the composer Brain toggle; only `false` means paused
- * @param {object}  [opts.agent]                agent row, for `embed_enabled`
+ * @param {Record<string, any>}  [opts.agent]                agent row, for `embed_enabled`
  * @param {boolean} [opts.blocked]              moderation / guardrail violation this turn
  * @returns {Promise<{read: boolean, write: boolean, reason: string, sensitive: boolean}>}
  *   `sensitive`: art. 9 memories may be READ this turn (user opted in AND org allows it).

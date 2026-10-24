@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Replay seeding for resumed and partial runs (extracted verbatim from
  * automationRunner.js). Turns persisted automation_run_steps rows back into the

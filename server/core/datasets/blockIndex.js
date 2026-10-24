@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/datasets — the block index that makes a 30 GB file queryable.
  *
@@ -74,7 +75,7 @@ function serialize(perContig, contentEnd) {
     return out;
 }
 
-/** @returns {{ contentEnd:number, contigs:Array, byName:Map, entryCount:number, ... }} */
+/** @returns {{ contentEnd:number, contigs:Array, byName:Map, entryCount:number }} */
 function deserialize(buf) {
     if (!Buffer.isBuffer(buf) || buf.length < MAGIC.length + 4 || !buf.subarray(0, MAGIC.length).equals(MAGIC)) {
         throw new Error('blockIndex.deserialize: not a BFDI1 index');

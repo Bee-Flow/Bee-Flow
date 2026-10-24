@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Build it with AI" for a form — the schema the model fills in, the prompts,
  * and the clamps that turn its answer into a form declaration the contract

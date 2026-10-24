@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The per-round decisions of a streamed direct-chat turn, exercised by running
  * them.

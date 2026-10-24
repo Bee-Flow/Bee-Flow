@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Microsoft Contacts Tools — Built-in tools for AI to manage Outlook Contacts
  * 

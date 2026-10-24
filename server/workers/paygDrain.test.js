@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit — PAYG outbox drain: circuit breaker lifecycle + hard-fail terminality.
  *

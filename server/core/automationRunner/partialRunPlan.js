@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The plan of a seeded partial run (the re-run of a step with the inputs of a
  * chosen run): what would execute, which of it has side effects, and the two

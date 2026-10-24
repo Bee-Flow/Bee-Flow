@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The restricted expression engine, for the automation runner.
  *

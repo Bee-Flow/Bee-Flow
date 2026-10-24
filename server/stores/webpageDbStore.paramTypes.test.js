@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * webpageDbStore.normalizeParams — boolean bind regression (BE-P2.1).
  *

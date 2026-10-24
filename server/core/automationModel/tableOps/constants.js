@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Vocabulary and small coercion helpers of the table step, shared by the

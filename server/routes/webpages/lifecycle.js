@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Het einde en de aftakking van een pagina: klonen en verwijderen.
  *

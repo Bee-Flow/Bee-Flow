@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Emoji Catalog — the canonical list of themable emojis the Appearance panel
  * exposes. Every entry has a stable `id`, a human `label`, and a `defaultEmoji`

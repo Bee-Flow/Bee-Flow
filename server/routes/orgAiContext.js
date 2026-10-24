@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Organization AI Context API
  *

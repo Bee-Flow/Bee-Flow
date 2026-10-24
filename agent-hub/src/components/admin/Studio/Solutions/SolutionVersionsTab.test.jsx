@@ -1,4 +1,5 @@
-import { fireEvent, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect } from 'vitest';
 
 import SolutionVersionsTab from './SolutionVersionsTab';
@@ -126,9 +127,10 @@ describe('what changed', () => {
 });
 
 describe('all versions', () => {
-    it('lists every publication with its own change count', () => {
+    it('lists every publication with its own change count', async () => {
+        const user = userEvent.setup();
         const { getByTestId, getAllByTestId } = render(<SolutionVersionsTab remote={ok([WITH_SUMMARIES, NO_SUMMARIES])} />);
-        fireEvent.click(getByTestId('versions-view-all'));
+        await user.click(getByTestId('versions-view-all'));
         const rows = getAllByTestId('version-row');
         expect(rows.length).toBe(2);
         expect(rows[0].textContent).toMatch(/v3/);
@@ -137,28 +139,31 @@ describe('all versions', () => {
         expect(rows[1].textContent).toMatch(/3 changes/);
     });
 
-    it('a version with no recorded diff says "not recorded" in the list too', () => {
+    it('a version with no recorded diff says "not recorded" in the list too', async () => {
+        const user = userEvent.setup();
         const { getByTestId, getAllByTestId } = render(
             <SolutionVersionsTab remote={ok([{ id: 'r1', version: 1, publishedAt: null, notes: null }])} />,
         );
-        fireEvent.click(getByTestId('versions-view-all'));
+        await user.click(getByTestId('versions-view-all'));
         expect(getAllByTestId('version-row')[0].textContent).toMatch(/not recorded/);
     });
 
-    it('picking one opens it under "what changed"', () => {
+    it('picking one opens it under "what changed"', async () => {
+        const user = userEvent.setup();
         const { getByTestId, getAllByTestId, getByText } = render(
             <SolutionVersionsTab remote={ok([WITH_SUMMARIES, NO_SUMMARIES])} />,
         );
-        fireEvent.click(getByTestId('versions-view-all'));
-        fireEvent.click(getAllByTestId('version-row')[1]);
+        await user.click(getByTestId('versions-view-all'));
+        await user.click(getAllByTestId('version-row')[1]);
         expect(getByText('Nightly invoices')).toBeTruthy();
     });
 
-    it('a release whose version could not be read says so rather than showing v0', () => {
+    it('a release whose version could not be read says so rather than showing v0', async () => {
+        const user = userEvent.setup();
         const { getByTestId, getAllByTestId } = render(
             <SolutionVersionsTab remote={ok([{ id: 'r1', version: 0, publishedAt: null, notes: { entities: [] } }])} />,
         );
-        fireEvent.click(getByTestId('versions-view-all'));
+        await user.click(getByTestId('versions-view-all'));
         expect(getAllByTestId('version-row')[0].textContent).toMatch(/Version unknown/);
     });
 });

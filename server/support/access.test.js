@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 // supportInboxStore (required transitively by access.js) throws at load unless

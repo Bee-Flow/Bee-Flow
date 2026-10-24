@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The English line for each piece of AI Act evidence (aiActDetect.js). The
  * builder translates by `code` (automations.aiact.reason.<code>) and falls back

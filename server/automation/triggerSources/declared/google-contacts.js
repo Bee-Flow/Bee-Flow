@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Google Contacts. poll_diff over contacts_list.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * perUserRateLimit — the Redis-backed fleet-wide window and its guarantees:
  * unnamed limiters never touch Redis, named ones count there, and ANY Redis

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/datasets — BGZF block round-trip and interop.
  *

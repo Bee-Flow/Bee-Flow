@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The grants that are NOT keyed on an app — the `RESERVED_TOOL_KEYS`, on the
  * READ side: which automations an agent is offered and whether they ask first,

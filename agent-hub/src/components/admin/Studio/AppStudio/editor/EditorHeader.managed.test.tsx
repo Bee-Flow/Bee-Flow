@@ -1,6 +1,7 @@
 import { DndContext } from '@dnd-kit/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -80,24 +81,27 @@ describe('EditorHeader on a managed app', () => {
         expect(onViewChange).toHaveBeenLastCalledWith('preview');
     });
 
-    it('the name is not an input', () => {
+    it('the name is not an input', async () => {
+        const user = userEvent.setup();
         renderHeader({ managed: MANAGED });
-        fireEvent.click(screen.getByText('Quote portal'));
+        await user.click(screen.getByText('Quote portal'));
         expect(screen.queryByLabelText('App name')).toBeNull();
     });
 
     it('version history lists versions without a Restore', async () => {
+        const user = userEvent.setup();
         renderHeader({ managed: MANAGED });
-        fireEvent.click(screen.getByRole('button', { name: 'More' }));
-        fireEvent.click(await screen.findByRole('menuitem', { name: /Version history/ }));
+        await user.click(screen.getByRole('button', { name: 'More' }));
+        await user.click(await screen.findByRole('menuitem', { name: /Version history/ }));
         expect(await screen.findByText('Version 1')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
     });
 
     it('Publish opens the audience picker alone: no flush, no pre-flight check', async () => {
+        const user = userEvent.setup();
         const onFlush = vi.fn();
         renderHeader({ managed: MANAGED, isPublished: true, sharedGroups: [] }, { onFlush });
-        fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
+        await user.click(screen.getByRole('button', { name: 'Publish' }));
         expect(await screen.findByText('Choose who can use this app', { selector: 'p' })).toBeInTheDocument();
         expect(onFlush).not.toHaveBeenCalled();
         expect(screen.queryByRole('button', { name: /Check this app/ })).toBeNull();
@@ -122,14 +126,15 @@ describe('EditorHeader on an app nobody manages', () => {
     });
 
     it('a restore the stage refuses turns the header read-only and shows the banner', async () => {
+        const user = userEvent.setup();
         vi.mocked(studioAppsApi.restoreVersion).mockRejectedValue(Object.assign(new Error('refused'), {
             status: 409, code: 'managed_part',
             body: { error: 'refused', code: 'managed_part', details: { solutionId: 's2', stage: 'uat' } },
         }));
         renderHeader();
-        fireEvent.click(screen.getByRole('button', { name: 'More' }));
-        fireEvent.click(await screen.findByRole('menuitem', { name: /Version history/ }));
-        fireEvent.click(await screen.findByRole('button', { name: 'Restore' }));
+        await user.click(screen.getByRole('button', { name: 'More' }));
+        await user.click(await screen.findByRole('menuitem', { name: /Version history/ }));
+        await user.click(await screen.findByRole('button', { name: 'Restore' }));
         expect(await screen.findByTestId('managed-part-banner')).toHaveTextContent('UAT.');
         await waitFor(() => expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull());
     });

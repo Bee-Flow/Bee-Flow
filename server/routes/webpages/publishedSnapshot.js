@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Wat een LEZER van een gepubliceerde pagina krijgt, en hoe die momentopname
  * ontstaat (W2).

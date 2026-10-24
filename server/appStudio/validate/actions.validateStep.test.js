@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 // Characterisation of validateStep's refusals, driven through the exported

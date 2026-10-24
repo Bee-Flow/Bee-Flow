@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Edit data" (set) whole-table operations: the operation vocabulary, its
  * count ceiling, and the per-operation shape rules.

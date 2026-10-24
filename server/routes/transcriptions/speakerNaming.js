@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Transcriptions: speaker naming shared by the upload and reprocess pipelines.
  */

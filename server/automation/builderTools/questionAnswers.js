@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Reading the text the chat sends after a question card ("Q: ...\nA: ...", one
  * block per question, a blank line between). One port for both readers: the

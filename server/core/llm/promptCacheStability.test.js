@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Prompt-cache prefix stability.
  *

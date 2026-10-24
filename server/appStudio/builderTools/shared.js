@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — shared internals for the sibling tool modules.
  *

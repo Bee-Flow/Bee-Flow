@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR Art. 12: a privacy-notice address without a scheme still fails, but it
  * is on record, so the check must not claim that nothing is set.

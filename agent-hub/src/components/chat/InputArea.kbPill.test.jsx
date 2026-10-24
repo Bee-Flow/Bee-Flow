@@ -1,4 +1,5 @@
 import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -170,6 +171,7 @@ describe('the KB pill — telling without offering', () => {
     const reader = { id: 2, name: 'Reader' };
 
     it('states what a chat without the picker is grounded on', async () => {
+        const user = userEvent.setup();
         render(
             <InputArea
                 onSendMessage={vi.fn()} onStopGenerating={vi.fn()} isLoading={false} directMode
@@ -182,7 +184,7 @@ describe('the KB pill — telling without offering', () => {
         // A statement, not a control: no tab stop, and no picker promised.
         expect(pill.tagName).toBe('SPAN');
         expect(pill).not.toHaveAttribute('aria-haspopup');
-        fireEvent.click(pill);
+        await user.click(pill);
         expect(screen.queryByTestId('composer-kb-picker')).not.toBeInTheDocument();
     });
 
@@ -262,8 +264,9 @@ describe('the KB pill — one owner for the picker', () => {
     });
 
     it('has no row left in the "+" menu that could fight it for the open state', async () => {
+        const user = userEvent.setup();
         render(<Harness availableKBs={[KB('kb1', 'Handbook')]} />);
-        fireEvent.click(await screen.findByTestId('composer-tools-button'));
+        await user.click(await screen.findByTestId('composer-tools-button'));
         expect(screen.getByTestId('composer-tool-attach')).toBeInTheDocument();
         expect(screen.queryByTestId('composer-tool-knowledge-bases')).not.toBeInTheDocument();
     });
@@ -271,6 +274,7 @@ describe('the KB pill — one owner for the picker', () => {
 
 describe('the KB pill — changing what a chat is grounded on', () => {
     it('saves the change and then shows what the SERVER stored', async () => {
+        const user = userEvent.setup();
         // Two ticked in the UI, one stored: the server re-authorises, and the
         // composer follows the answer rather than its own request.
         patchReply = { ok: true, status: 200, body: { success: true, knowledgeBaseIds: ['kb1'] } };
@@ -283,7 +287,7 @@ describe('the KB pill — changing what a chat is grounded on', () => {
             />,
         );
         await openPicker();
-        fireEvent.click(screen.getByRole('checkbox', { name: /Policies/ }));
+        await user.click(screen.getByRole('checkbox', { name: /Policies/ }));
 
         await waitFor(() => expect(patchCalls).toHaveLength(1));
         expect(patchCalls[0].href).toContain('/ai/direct/conversations/conv-1');
@@ -295,19 +299,21 @@ describe('the KB pill — changing what a chat is grounded on', () => {
     });
 
     it('detaches everything through the same round trip', async () => {
+        const user = userEvent.setup();
         patchReply = { ok: true, status: 200, body: { success: true, knowledgeBaseIds: [] } };
         const onIdsChange = vi.fn();
         render(
             <Harness availableKBs={[KB('kb1', 'Handbook')]} selectedKBIds={['kb1']} onIdsChange={onIdsChange} />,
         );
         await openPicker();
-        fireEvent.click(screen.getByText('Clear'));
+        await user.click(screen.getByText('Clear'));
 
         await waitFor(() => expect(patchCalls[0].body).toEqual({ knowledgeBaseIds: [] }));
         await waitFor(() => expect(onIdsChange).toHaveBeenCalledWith([]));
     });
 
     it('sends the confirmed ids only, so one dead id cannot wedge the picker', async () => {
+        const user = userEvent.setup();
         // Resending 'ghost' would make the server refuse every later change
         // (400, nothing stored) — the picker would look broken, not stale.
         patchReply = { ok: true, status: 200, body: { success: true, knowledgeBaseIds: ['kb1', 'kb2'] } };
@@ -318,13 +324,14 @@ describe('the KB pill — changing what a chat is grounded on', () => {
             />,
         );
         await openPicker();
-        fireEvent.click(screen.getByRole('checkbox', { name: /Policies/ }));
+        await user.click(screen.getByRole('checkbox', { name: /Policies/ }));
 
         await waitFor(() => expect(patchCalls).toHaveLength(1));
         expect(patchCalls[0].body).toEqual({ knowledgeBaseIds: ['kb1', 'kb2'] });
     });
 
     it('keeps the selection and says why when the server refuses an id', async () => {
+        const user = userEvent.setup();
         patchReply = {
             ok: false, status: 400,
             body: { error: 'One or more knowledge bases are not available', invalid: ['kb2'] },
@@ -338,7 +345,7 @@ describe('the KB pill — changing what a chat is grounded on', () => {
             />,
         );
         await openPicker();
-        fireEvent.click(screen.getByRole('checkbox', { name: /Policies/ }));
+        await user.click(screen.getByRole('checkbox', { name: /Policies/ }));
 
         const error = await screen.findByTestId('composer-kb-error');
         expect(error).toHaveTextContent('not available to you');
@@ -348,13 +355,14 @@ describe('the KB pill — changing what a chat is grounded on', () => {
     });
 
     it('says the change did not land when the network drops it', async () => {
+        const user = userEvent.setup();
         patchReply = { throws: true };
         const onIdsChange = vi.fn();
         render(
             <Harness availableKBs={[KB('kb1', 'Handbook')]} selectedKBIds={[]} onIdsChange={onIdsChange} />,
         );
         await openPicker();
-        fireEvent.click(screen.getByRole('checkbox', { name: /Handbook/ }));
+        await user.click(screen.getByRole('checkbox', { name: /Handbook/ }));
 
         expect(await screen.findByTestId('composer-kb-error')).toHaveTextContent('could not be saved');
         expect(onIdsChange).not.toHaveBeenCalled();
@@ -362,14 +370,16 @@ describe('the KB pill — changing what a chat is grounded on', () => {
     });
 
     it('names the owner rule rather than a generic failure on a 403', async () => {
+        const user = userEvent.setup();
         patchReply = { ok: false, status: 403, body: { error: 'Only the owner can change the attached knowledge bases' } };
         render(<Harness availableKBs={[KB('kb1', 'Handbook')]} selectedKBIds={[]} />);
         await openPicker();
-        fireEvent.click(screen.getByRole('checkbox', { name: /Handbook/ }));
+        await user.click(screen.getByRole('checkbox', { name: /Handbook/ }));
         expect(await screen.findByTestId('composer-kb-error')).toHaveTextContent('Only the owner');
     });
 
     it('holds the choice locally while the chat has no id to save it against', async () => {
+        const user = userEvent.setup();
         // The conversation is created by the first turn, which carries the
         // list with it — there is nothing to PATCH yet.
         const onIdsChange = vi.fn();
@@ -382,7 +392,7 @@ describe('the KB pill — changing what a chat is grounded on', () => {
             />,
         );
         await openPicker();
-        fireEvent.click(screen.getByRole('checkbox', { name: /Handbook/ }));
+        await user.click(screen.getByRole('checkbox', { name: /Handbook/ }));
 
         await waitFor(() => expect(onIdsChange).toHaveBeenCalledWith(['kb1']));
         expect(patchCalls).toHaveLength(0);

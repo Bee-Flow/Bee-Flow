@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The context every install function reads, and the deferred stamp pass.
  *
@@ -54,6 +55,12 @@ function versionOf(solution) {
  *
  * `stamp` only COLLECTS `{ ref, kind, entityId, payload, stepIdMap }`;
  * `stampAll` writes them once every reference is patched (F2).
+ *
+ * @param {{
+ *   ownerId?: string, organizationId?: string|null, projectId?: string|null, refMap?: Map<any, any>,
+ *   can?: Function, req?: any, wiring?: any, rekey?: boolean, scope?: any, datatableKeyFor?: any,
+ *   dataModelOptions?: any, managedWrite?: any, installedVersion?: number, releaseId?: any, deps?: Record<string, any>,
+ * }} [opts]
  */
 function makeInstallCtx({
     ownerId, organizationId = null, projectId = null, refMap = new Map(), can = () => true, req = null,

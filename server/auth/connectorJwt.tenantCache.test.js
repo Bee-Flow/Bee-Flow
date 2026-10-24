@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tenant resolution — the org-id list cache and the listKeysWithPrefix
  * contract.

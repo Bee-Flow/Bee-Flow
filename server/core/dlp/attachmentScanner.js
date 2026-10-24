@@ -331,7 +331,7 @@ function _finaliseCompleteScan({ text, findings, summary, action, conversationId
     if (action === 'block') {
         // Categories by label, except an org's own type, which is logged by id.
         const logCats = [...new Set(findings.map(f => (isCustomTypeId(f.category) ? f.category : (f.label || f.category || 'Other'))))];
-        log.warn(`[AttachmentScanner] 🚫 ${filename}: ${findings.length} finding(s) — blocking (categories: ${logCats.join(', ')})`);
+        log.warn(`[AttachmentScanner] 🚫 ${log.nameForLog(filename)}: ${findings.length} finding(s) — blocking (categories: ${logCats.join(', ')})`);
         return { action: 'block', reason: 'pii', text: null, findings, summary: out, tokenMap: null };
     }
     if (action === 'ask') {
@@ -344,7 +344,7 @@ function _finaliseCompleteScan({ text, findings, summary, action, conversationId
         // Remembered "allow" from an earlier ask this conversation — still
         // report what was found (audit trail, TokenisedBadge), just don't
         // redact it.
-        log.warn(`[AttachmentScanner] ${filename}: remembered "allow" — passing ${findings.length} finding(s) through unredacted`);
+        log.warn(`[AttachmentScanner] ${log.nameForLog(filename)}: remembered "allow" — passing ${findings.length} finding(s) through unredacted`);
         return { action: 'pass', text, findings, summary: out, tokenMap: null };
     }
 
@@ -358,7 +358,7 @@ function _finaliseCompleteScan({ text, findings, summary, action, conversationId
     // ("Tom"/"Tom Smit" share one token). This is the number the TOKEN MAPPING
     // table has rows for, which is what makes the badge checkable.
     out.count = Object.keys(tokenMap).length;
-    log.info(`[AttachmentScanner] 🔒 ${filename}: tokenised ${out.count} value(s) across ${out.mentions} mention(s)${cacheHit ? ' (cached scan)' : ` in ${out.scanMs}ms`}`);
+    log.info(`[AttachmentScanner] 🔒 ${log.nameForLog(filename)}: tokenised ${out.count} value(s) across ${out.mentions} mention(s)${cacheHit ? ' (cached scan)' : ` in ${out.scanMs}ms`}`);
     return { action: 'tokenize', text: tokenizedText, findings, summary: out, tokenMap };
 }
 
@@ -381,7 +381,7 @@ async function applyAttachmentRedactionChoice({ text, findings, conversationId, 
     const summary = _summariseFindings(findings);
     summary.filename = filename;
     summary.count = Object.keys(tokenMap).length;
-    log.info(`[AttachmentScanner] 🔒 ${filename}: tokenised ${summary.count} value(s) across ${summary.mentions} mention(s) (user-reviewed)`);
+    log.info(`[AttachmentScanner] 🔒 ${log.nameForLog(filename)}: tokenised ${summary.count} value(s) across ${summary.mentions} mention(s) (user-reviewed)`);
     return { action: 'tokenize', text: tokenizedText, findings, summary, tokenMap };
 }
 
@@ -429,7 +429,7 @@ async function scanAttachmentText({ text, pages, filename, orgShield, conversati
     const cacheKey = _cacheKey(text, orgShield);
     const cached = _cacheGet(cacheKey);
     if (cached) {
-        log.info(`[AttachmentScanner] cache hit for ${filename} (${cached.findings.length} finding(s))`);
+        log.info(`[AttachmentScanner] cache hit for ${log.nameForLog(filename)} (${cached.findings.length} finding(s))`);
         return _finaliseCompleteScan({
             text,
             findings: cached.findings,
@@ -481,7 +481,7 @@ async function scanAttachmentText({ text, pages, filename, orgShield, conversati
             degraded: false, scannedPages: 0, totalPages, held: true,
             reason: 'overflow', filename, scanMs: 0,
         };
-        log.warn(`[AttachmentScanner] 🚫 ${filename}: ${pages.length} pages > cap ${effMaxPages} — failing closed (block)`);
+        log.warn(`[AttachmentScanner] 🚫 ${log.nameForLog(filename)}: ${pages.length} pages > cap ${effMaxPages} — failing closed (block)`);
         return { action: 'block', reason: 'overflow', text: null, findings: [], summary, tokenMap: null };
     }
 
@@ -489,7 +489,7 @@ async function scanAttachmentText({ text, pages, filename, orgShield, conversati
         const scanPages = pages.slice(0, effMaxPages);
         if (pages.length > effMaxPages) {
             overflow = true;
-            log.warn(`[AttachmentScanner] ${filename}: ${pages.length} pages exceeds cap (${effMaxPages}); only first ${effMaxPages} scanned`);
+            log.warn(`[AttachmentScanner] ${log.nameForLog(filename)}: ${pages.length} pages exceeds cap (${effMaxPages}); only first ${effMaxPages} scanned`);
         }
         for (let i = 0; i < scanPages.length; i++) pageEntities[i] = [];
 
@@ -513,7 +513,7 @@ async function scanAttachmentText({ text, pages, filename, orgShield, conversati
                     pageEntities[i] = result?.hasPii ? result.entities : [];
                     if (result?.degraded) { anyDegraded = true; degradedReason = degradedReason || result.degradedReason || 'degraded'; }
                 } catch (err) {
-                    log.warn(`[AttachmentScanner] ${filename} p.${p.pageNumber} scan failed: ${err.message}`);
+                    log.warn(`[AttachmentScanner] ${log.nameForLog(filename)} p.${p.pageNumber} scan failed: ${err.message}`);
                     pageEntities[i] = [];
                     anyDegraded = true;
                     degradedReason = degradedReason || `scan_error: ${err.message}`;
@@ -527,7 +527,7 @@ async function scanAttachmentText({ text, pages, filename, orgShield, conversati
         const lanes = Math.max(1, Math.min(concurrency, scanPages.length));
         await Promise.all(Array.from({ length: lanes }, () => worker()));
         if (timedOut) {
-            log.warn(`[AttachmentScanner] ${filename}: deadline hit at ${pageBudgetMs}ms (${perPageBudgetMs}ms/page, ceiling ${ceilingMs}ms); ${scannedPages} of ${scanPages.length} pages scanned`);
+            log.warn(`[AttachmentScanner] ${log.nameForLog(filename)}: deadline hit at ${pageBudgetMs}ms (${perPageBudgetMs}ms/page, ceiling ${ceilingMs}ms); ${scannedPages} of ${scanPages.length} pages scanned`);
         }
     } else {
         try {
@@ -553,7 +553,7 @@ async function scanAttachmentText({ text, pages, filename, orgShield, conversati
             pageEntities.push(entities.map(e => ({ ...e, page: null })));
             scannedPages = timedOut ? 0 : 1;
         } catch (err) {
-            log.warn(`[AttachmentScanner] ${filename} whole-text scan failed: ${err.message}`);
+            log.warn(`[AttachmentScanner] ${log.nameForLog(filename)} whole-text scan failed: ${err.message}`);
             pageEntities.push([]);
             anyDegraded = true;
             degradedReason = `scan_error: ${err.message}`;
@@ -592,7 +592,7 @@ async function scanAttachmentText({ text, pages, filename, orgShield, conversati
     if (incomplete) {
         if (largeInputPolicy === 'fail_closed') {
             summary.held = true;
-            log.warn(`[AttachmentScanner] 🚫 ${filename}: scan ${reason} — failing closed (block/hold)`);
+            log.warn(`[AttachmentScanner] 🚫 ${log.nameForLog(filename)}: scan ${reason} — failing closed (block/hold)`);
             return { action: 'block', reason, text: null, findings, summary, tokenMap: null };
         }
         // fail_open — proceed, but ONLY with what we actually checked.
@@ -629,18 +629,18 @@ async function scanAttachmentText({ text, pages, filename, orgShield, conversati
             return { action: 'ask', text: keptText, findings, summary, tokenMap: null };
         }
         if (action === 'pass_through') {
-            log.warn(`[AttachmentScanner] ${filename}: remembered "allow" — passing ${findings.length} finding(s) through unredacted (partial scan, ${reason})`);
+            log.warn(`[AttachmentScanner] ${log.nameForLog(filename)}: remembered "allow" — passing ${findings.length} finding(s) through unredacted (partial scan, ${reason})`);
             return { action: 'pass', text: keptText, findings, summary, tokenMap: null };
         }
 
         if (action === 'block') {
             if (findings.length > 0) {
-                log.warn(`[AttachmentScanner] 🚫 ${filename}: ${findings.length} finding(s) in scanned pages (${reason}) — blocking`);
+                log.warn(`[AttachmentScanner] 🚫 ${log.nameForLog(filename)}: ${findings.length} finding(s) in scanned pages (${reason}) — blocking`);
                 return { action: 'block', reason: 'pii', text: null, findings, summary, tokenMap: null };
             }
             // Nothing found in the part we checked. fail_open says proceed —
             // with the checked part only.
-            log.warn(`[AttachmentScanner] ⚠️ ${filename}: scan ${reason}, no findings in scanned part — truncating at ${boundary}/${text.length} chars`);
+            log.warn(`[AttachmentScanner] ⚠️ ${log.nameForLog(filename)}: scan ${reason}, no findings in scanned part — truncating at ${boundary}/${text.length} chars`);
             return { action: 'pass', text: keptText, findings: [], summary, tokenMap: null };
         }
         if (findings.length > 0) {
@@ -650,10 +650,10 @@ async function scanAttachmentText({ text, pages, filename, orgShield, conversati
             const { tokenizedText, tokenMap } = tokenizeText(keptText, findings, existing);
             if (conversationId) mergeTokenMap(conversationId, tokenMap);
             summary.count = Object.keys(tokenMap).length;
-            log.warn(`[AttachmentScanner] ⚠️ 🔒 ${filename}: partial scan (${reason}) — tokenised ${summary.count} value(s) across ${summary.mentions} mention(s); tail cut at ${boundary}/${text.length} chars`);
+            log.warn(`[AttachmentScanner] ⚠️ 🔒 ${log.nameForLog(filename)}: partial scan (${reason}) — tokenised ${summary.count} value(s) across ${summary.mentions} mention(s); tail cut at ${boundary}/${text.length} chars`);
             return { action: 'tokenize', text: tokenizedText, findings, summary, tokenMap };
         }
-        log.warn(`[AttachmentScanner] ⚠️ ${filename}: scan ${reason}, no findings — truncating at ${boundary}/${text.length} chars`);
+        log.warn(`[AttachmentScanner] ⚠️ ${log.nameForLog(filename)}: scan ${reason}, no findings — truncating at ${boundary}/${text.length} chars`);
         return { action: 'pass', text: keptText, findings: [], summary, tokenMap: null };
     }
 

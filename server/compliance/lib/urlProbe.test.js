@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * URL probe — SSRF refusal, bounded body, structured errors, security.txt parse.
  * Network is never touched: a fetchImpl double answers with real Response objects.

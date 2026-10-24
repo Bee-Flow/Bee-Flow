@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/llm/promptLayout — moving the volatile system block behind the history.
  *

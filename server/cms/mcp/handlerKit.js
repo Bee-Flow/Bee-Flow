@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Small pieces every CMS-over-MCP handler module shares (./dispatch.js and

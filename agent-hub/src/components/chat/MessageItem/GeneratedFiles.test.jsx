@@ -1,4 +1,5 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GeneratedFiles } from './GeneratedMedia';
@@ -34,7 +35,8 @@ describe('GeneratedFiles', () => {
         expect(screen.getByText('Download').closest('a').getAttribute('href')).toMatch(/\/documents\/x_Offerte-Acme\.docx$/);
     });
 
-    it('a deck kept in the library gets an Open button that hands it to the chat shell, and falls back to the Studio page', () => {
+    it('a deck kept in the library gets an Open button that hands it to the chat shell, and falls back to the Studio page', async () => {
+        const user = userEvent.setup();
         render(<GeneratedFiles msg={{ files: [
             { kind: 'presentation', name: 'Kick-off.pptx', slideCount: 5, url: '/api/storage/file/users/u1/presentations/k.pptx', documentId: 'doc-9', documentUrl: '/app/studio/documents/doc-9' },
         ] }} />);
@@ -47,12 +49,12 @@ describe('GeneratedFiles', () => {
         const spy = (e) => seen.push(e.detail);
         window.addEventListener('beeflow:open-document-side', spy);
         const push = vi.spyOn(window.history, 'pushState');
-        fireEvent.click(open);
+        await user.click(open);
         expect(seen).toEqual([{ id: 'doc-9', href: '/app/studio/documents/doc-9' }]);
         expect(push).not.toHaveBeenCalled();
         // Nobody claims it: the Studio page.
         window.removeEventListener('beeflow:open-document-side', claim);
-        fireEvent.click(open);
+        await user.click(open);
         expect(push).toHaveBeenCalledWith({ page: 'studio' }, '', '/app/studio/documents/doc-9');
         window.removeEventListener('beeflow:open-document-side', spy);
         push.mockRestore();

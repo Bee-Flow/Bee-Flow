@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -171,31 +172,34 @@ describe('which version the audience reads', () => {
 
 describe('restoring', () => {
     it('BIJT: asks first — clicking Restore does not restore anything yet', async () => {
+        const user = userEvent.setup();
         const onRestore = vi.fn();
         authFetch.mockResolvedValue(list([row()]));
         renderTab({ onRestore });
-        fireEvent.click(await screen.findByText('Restore'));
+        await user.click(await screen.findByText('Restore'));
         expect(await screen.findByRole('dialog')).toHaveTextContent('Restore v12?');
         expect(onRestore).not.toHaveBeenCalled();
     });
 
     it('BIJT: cancelling leaves the page exactly as it was', async () => {
+        const user = userEvent.setup();
         const onRestore = vi.fn();
         authFetch.mockResolvedValue(list([row()]));
         renderTab({ onRestore });
-        fireEvent.click(await screen.findByText('Restore'));
-        fireEvent.click(within(await screen.findByRole('dialog')).getByText('Cancel'));
+        await user.click(await screen.findByText('Restore'));
+        await user.click(within(await screen.findByRole('dialog')).getByText('Cancel'));
         await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
         expect(onRestore).not.toHaveBeenCalled();
     });
 
     it('hands the restore to the page and then reloads the list', async () => {
+        const user = userEvent.setup();
         const onRestore = vi.fn().mockResolvedValue(undefined);
         authFetch.mockResolvedValue(list([row({ id: 'v-a' })]));
         renderTab({ onRestore });
-        fireEvent.click(await screen.findByText('Restore'));
+        await user.click(await screen.findByText('Restore'));
         const dialog = await screen.findByRole('dialog');
-        fireEvent.click(within(dialog).getAllByText('Restore').at(-1));
+        await user.click(within(dialog).getAllByText('Restore').at(-1));
         await waitFor(() => expect(onRestore).toHaveBeenCalledWith('v-a'));
         // Terugzetten voegt zelf een rij toe; de lijst mag niet blijven staan
         // zoals hij was.
@@ -203,12 +207,13 @@ describe('restoring', () => {
     });
 
     it('a restore that fails is shown, not swallowed into a list that looks unchanged', async () => {
+        const user = userEvent.setup();
         const onRestore = vi.fn().mockRejectedValue(new Error('Failed to restore version'));
         authFetch.mockResolvedValue(list([row()]));
         renderTab({ onRestore });
-        fireEvent.click(await screen.findByText('Restore'));
+        await user.click(await screen.findByText('Restore'));
         const dialog = await screen.findByRole('dialog');
-        fireEvent.click(within(dialog).getAllByText('Restore').at(-1));
+        await user.click(within(dialog).getAllByText('Restore').at(-1));
         expect(await screen.findByRole('alert')).toHaveTextContent('Failed to restore version');
     });
 
@@ -233,9 +238,10 @@ describe('viewing a version', () => {
     };
 
     it('opens the snapshot read-only, through the SAME route the list uses', async () => {
+        const user = userEvent.setup();
         withVersion({ html: '<h1>old</h1>', css: 'a{}', js: '' });
         renderTab();
-        fireEvent.click(await screen.findByText('View'));
+        await user.click(await screen.findByText('View'));
         const editor = await screen.findByTestId('version-editor');
         expect(editor).toHaveTextContent('<h1>old</h1>');
         expect(editor).toHaveAttribute('data-readonly', 'true');
@@ -244,26 +250,28 @@ describe('viewing a version', () => {
     });
 
     it('switches between the three slots and comes back to the list', async () => {
+        const user = userEvent.setup();
         withVersion({ html: '<h1>old</h1>', css: 'body{color:red}', js: '' });
         renderTab();
-        fireEvent.click(await screen.findByText('View'));
+        await user.click(await screen.findByText('View'));
         await screen.findByTestId('version-editor');
-        fireEvent.click(screen.getByText('style.css'));
+        await user.click(screen.getByText('style.css'));
         const editor = screen.getByTestId('version-editor');
         expect(editor).toHaveTextContent('body{color:red}');
         expect(editor).toHaveAttribute('data-language', 'css');
-        fireEvent.click(screen.getByText('Back to history'));
+        await user.click(screen.getByText('Back to history'));
         expect(await screen.findByTestId('version-row')).toBeInTheDocument();
     });
 
     it('a snapshot that cannot be read says so instead of showing an empty file', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation(async (url) => (
             String(url).endsWith('/versions')
                 ? list([row({ id: 'v-a' })])
                 : { ok: false, status: 404, json: async () => ({ error: 'Version not found' }) }
         ));
         renderTab();
-        fireEvent.click(await screen.findByText('View'));
+        await user.click(await screen.findByText('View'));
         expect(await screen.findByRole('alert')).toHaveTextContent('Version not found');
         expect(screen.queryByTestId('version-editor')).not.toBeInTheDocument();
     });
@@ -286,11 +294,12 @@ describe('the list', () => {
     });
 
     it('loads the next page from the offset it already has', async () => {
+        const user = userEvent.setup();
         authFetch
             .mockResolvedValueOnce(ok({ versions: [row({ id: 'a' })], hasMore: true, published: null }))
             .mockResolvedValueOnce(ok({ versions: [row({ id: 'b' })], hasMore: false, published: null }));
         renderTab();
-        fireEvent.click(await screen.findByText('Load more'));
+        await user.click(await screen.findByText('Load more'));
         await waitFor(() => expect(screen.getAllByTestId('version-row')).toHaveLength(2));
         expect(urls().at(-1)).toContain('offset=1');
     });
@@ -337,11 +346,12 @@ describe('WebpageHistoryTab — de dekking van een momentopname', () => {
     });
 
     it('belooft geen volledige terugkeer als er bestanden buiten de momentopname vallen', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(list([row()], {
             coverage: { slots: ['html', 'css', 'js', 'db'], extraFiles: false, framework: 'react-mui', coversProject: false },
         }));
         renderTab({ onRestore: vi.fn() });
-        fireEvent.click(await screen.findByText('Restore'));
+        await user.click(await screen.findByText('Restore'));
         const dialog = await screen.findByRole('dialog');
         expect(dialog).toHaveTextContent(/stays as it is now/i);
     });
@@ -349,6 +359,7 @@ describe('WebpageHistoryTab — de dekking van een momentopname', () => {
 
 describe('WebpageHistoryTab — een momentopname zonder bytes', () => {
     it('zegt dat hij niet te lezen is in plaats van een leeg bestand te tonen', async () => {
+        const user = userEvent.setup();
         // `readSlot` antwoordt met '' zowel voor "leeg" als voor "het object is
         // weg". Zonder het `readable`-veld kon de kijker die twee niet uit elkaar
         // houden — en Terugzetten op diezelfde rij schreef de leegte over de
@@ -357,7 +368,7 @@ describe('WebpageHistoryTab — een momentopname zonder bytes', () => {
             ? ok({ version: { ...row(), readable: false, html: '', css: '', js: '' } })
             : list([row()])));
         renderTab();
-        fireEvent.click(await screen.findByText('View'));
+        await user.click(await screen.findByText('View'));
         expect(await screen.findByRole('alert')).toHaveTextContent(/cannot be read any more/i);
         expect(screen.queryByTestId('version-editor')).not.toBeInTheDocument();
     });

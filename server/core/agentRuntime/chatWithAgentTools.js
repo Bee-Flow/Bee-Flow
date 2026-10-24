@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tool execution for the non-streaming agent loop (./chatWithAgent): the
  * Privacy Shield gate, connection lending and the dispatch of one tool call.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage framework + runtime-tier model.
  *

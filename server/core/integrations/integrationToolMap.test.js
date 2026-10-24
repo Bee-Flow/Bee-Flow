@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * resolveIntegration precedence + the hardened output scanner.
  *

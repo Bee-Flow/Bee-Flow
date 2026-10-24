@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The effect of a workflow STEP (the step-level companion of sideEffectMap.js,

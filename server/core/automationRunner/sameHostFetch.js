@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 const MAX_AUTH_REDIRECTS = 5;

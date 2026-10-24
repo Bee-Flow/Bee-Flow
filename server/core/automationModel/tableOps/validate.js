@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Findings for one `table` step: shape and field checks (validateOps.js) plus,

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation notifications that do not go out the moment they happen
  * (Studio → Automations handoff 5):

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * A list of rows as a table source for the `table` step.

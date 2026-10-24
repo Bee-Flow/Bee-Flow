@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO/IEC 27001:2022 Annex A — control catalog (93 controls).
  *

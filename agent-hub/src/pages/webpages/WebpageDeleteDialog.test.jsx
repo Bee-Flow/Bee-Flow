@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -67,6 +68,7 @@ beforeEach(() => { authFetch.mockReset(); });
 
 describe('blocked by use', () => {
     it('shows what holds the page, says deleting does not stop it, and asks for the name', async () => {
+        const user = userEvent.setup();
         const calls = routes({ usage: ok({ usage: [SOLUTION], unchecked: [], complete: true }) });
         open();
 
@@ -77,7 +79,7 @@ describe('blocked by use', () => {
 
         expect(confirmButton()).toBeDisabled();
         typeName('Prijslijst');
-        fireEvent.click(confirmButton());
+        await user.click(confirmButton());
 
         // Shown the list, typed the name → the confirmation the 409 asks for.
         await waitFor(() => expect(calls.del).toHaveLength(1));
@@ -102,6 +104,7 @@ describe('blocked by unreadability', () => {
     });
 
     it('the FIRST press asks the server; only the second one confirms', async () => {
+        const user = userEvent.setup();
         // `?confirm=1` tells the server to skip its check. An `unchecked` list
         // is permanently non-empty here (two kinds can never be answered), so
         // OR-ing it into the flag would send EVERY first press pre-confirmed
@@ -122,7 +125,7 @@ describe('blocked by unreadability', () => {
         await screen.findByTestId('webpage-delete-unchecked');
         expect(confirmButton()).toBeDisabled();
         typeName('Prijslijst');
-        fireEvent.click(confirmButton());
+        await user.click(confirmButton());
 
         await waitFor(() => expect(calls.del).toHaveLength(1));
         expect(calls.del[0].url).toBe('https://host.example/api/webpages/wp1',
@@ -131,13 +134,14 @@ describe('blocked by unreadability', () => {
         // The refusal came back: the card cleared the name and asks again.
         await screen.findByText(/type the name again/i);
         typeName('Prijslijst');
-        fireEvent.click(confirmButton());
+        await user.click(confirmButton());
 
         await waitFor(() => expect(calls.del).toHaveLength(2));
         expect(calls.del[1].url).toBe('https://host.example/api/webpages/wp1?confirm=1');
     });
 
     it('a refusal that arrives between load and press is not pressed through', async () => {
+        const user = userEvent.setup();
         // The TOCTOU the two-step exists for: the list said "nothing", and by
         // the time the button was pressed a Solution had taken the page.
         const calls = routes({
@@ -153,7 +157,7 @@ describe('blocked by unreadability', () => {
 
         await screen.findByTestId('webpage-delete-unchecked');
         typeName('Prijslijst');
-        fireEvent.click(confirmButton());
+        await user.click(confirmButton());
 
         // The Solution the first list never had is now on screen, and nothing
         // was deleted.
@@ -177,6 +181,7 @@ describe('blocked by unreadability', () => {
 
 describe('free', () => {
     it('checked and empty: no name, no confirmation flag, and the page is reported gone', async () => {
+        const user = userEvent.setup();
         const calls = routes({ usage: ok({ usage: [], unchecked: [], complete: true }) });
         const { onDeleted } = open();
 
@@ -185,7 +190,7 @@ describe('free', () => {
         expect(screen.queryByTestId('webpage-delete-unchecked')).toBeNull();
         expect(screen.queryByTestId('webpage-delete-unreadable')).toBeNull();
 
-        fireEvent.click(confirmButton());
+        await user.click(confirmButton());
         await waitFor(() => expect(calls.del).toHaveLength(1));
         expect(calls.del[0].url).toBe('https://host.example/api/webpages/wp1',
             'nothing was shown to break, so nothing is confirmed — the server keeps its own guard');
@@ -195,6 +200,7 @@ describe('free', () => {
 
 describe('the server refuses anyway', () => {
     it('takes the 409\'s own list AND its unchecked kinds, then confirms on the second press', async () => {
+        const user = userEvent.setup();
         const calls = routes({
             usage: ok({ usage: [], unchecked: [], complete: true }),
             del: (n) => (n === 1
@@ -204,7 +210,7 @@ describe('the server refuses anyway', () => {
         const { onDeleted } = open();
 
         await screen.findByTestId('danger-unused');
-        fireEvent.click(confirmButton());
+        await user.click(confirmButton());
 
         // The fresher list wins, and the kinds it could not check travel with it.
         expect(await screen.findByText('Offertes')).toBeInTheDocument();
@@ -212,13 +218,14 @@ describe('the server refuses anyway', () => {
         expect(onDeleted).not.toHaveBeenCalled();
 
         typeName('Prijslijst');
-        fireEvent.click(confirmButton());
+        await user.click(confirmButton());
         await waitFor(() => expect(calls.del).toHaveLength(2));
         expect(calls.del[1].url).toBe('https://host.example/api/webpages/wp1?confirm=1');
         await waitFor(() => expect(onDeleted).toHaveBeenCalledWith('wp1'));
     });
 
     it('a 409 it cannot read reports every kind as unchecked rather than none', async () => {
+        const user = userEvent.setup();
         routes({
             usage: ok({ usage: [], unchecked: [], complete: true }),
             del: fail(409, null),
@@ -226,7 +233,7 @@ describe('the server refuses anyway', () => {
         open();
 
         await screen.findByTestId('danger-unused');
-        fireEvent.click(confirmButton());
+        await user.click(confirmButton());
 
         const line = await screen.findByTestId('webpage-delete-unchecked');
         expect(line).toHaveTextContent(/solutions/i);
@@ -237,10 +244,11 @@ describe('the server refuses anyway', () => {
 
 describe('cancelling', () => {
     it('closes the dialog instead of dropping back onto a collapsed link', async () => {
+        const user = userEvent.setup();
         routes();
         const { onClose } = open();
         await screen.findByTestId('danger-unused');
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        await user.click(screen.getByRole('button', { name: 'Cancel' }));
         expect(onClose).toHaveBeenCalled();
     });
 });

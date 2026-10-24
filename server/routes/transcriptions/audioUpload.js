@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The audio upload of POST /api/transcriptions (./upload.js): the multer
@@ -14,6 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const { HttpError } = require('../../core/http/errors');
 
 /** Set on the fileFilter's rejection below. */
 const UNSUPPORTED_AUDIO_FORMAT = 'UNSUPPORTED_AUDIO_FORMAT';
@@ -45,9 +47,10 @@ function uploadErrorHandler(err, req, res, next) {
         if (err.code === 'LIMIT_FILE_SIZE') {
             return res.status(400).json({ error: 'File too large. Maximum size is 500 MB.' });
         }
-        return res.status(400).json({ error: err.message });
+        // multer's own limit messages are written for the uploader.
+        return next(new HttpError(400, 'upload_failed', err.message));
     }
-    if (err?.code === UNSUPPORTED_AUDIO_FORMAT) return res.status(400).json({ error: err.message });
+    if (err?.code === UNSUPPORTED_AUDIO_FORMAT) return next(new HttpError(400, 'unsupported_audio_format', err.message));
     next(err);
 }
 

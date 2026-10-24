@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Let AI fill it in" / "Improve with AI" — the two drafting endpoints.
  * (Bee Flow Builder redesign, Sep 2026, Track S3.)

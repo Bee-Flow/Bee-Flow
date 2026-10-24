@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The retrieval half of the agent knowledge search (./knowledgeSearch): the
  * search query, the call to the local store or the search service, the
@@ -81,7 +82,7 @@ async function fetchKnowledgeResults({ userId, kbIds, userMessage }, kb) {
             });
 
             if (searchRes.ok) {
-                const searchData = await searchRes.json();
+                const searchData = /** @type {any} */ (await searchRes.json());
                 const chunks = searchData.chunks || searchData.results || [];
                 results.push(...chunks.map(c => toKnowledgeResult(c, c.score || c.rerank_score || 0)));
             }

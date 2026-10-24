@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Notebook-write gate (BFSF-169).
  *

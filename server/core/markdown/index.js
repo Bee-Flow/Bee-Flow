@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * server/core/markdown — server-side BFM (BeeFlow-Flavored Markdown) converters.
  *

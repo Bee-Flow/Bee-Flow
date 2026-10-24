@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Periodic prunes started at boot.
  *

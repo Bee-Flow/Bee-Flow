@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Auto-tier selection through classify-service: which labels go out, how a
  * score becomes a tier, and that every failure is "no opinion" (null) rather

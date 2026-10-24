@@ -1,6 +1,7 @@
 import { DndContext } from '@dnd-kit/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 
 // The palette (row 2) reads the component catalog; the views mount panels that
@@ -76,50 +77,54 @@ describe('EditorHeader — the five segments are one control', () => {
         expect(screen.getByRole('radio', { name: /^Logic\s*1$/ })).toBeInTheDocument();
     });
 
-    it('row 2 (undo/redo · screens · components) exists in Edit and nowhere else', () => {
+    it('row 2 (undo/redo · screens · components) exists in Edit and nowhere else', async () => {
+        const user = userEvent.setup();
         renderHeader();
         expect(screen.getByTestId('editor-tool-row')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('radio', { name: 'Data' }));
+        await user.click(screen.getByRole('radio', { name: 'Data' }));
         expect(screen.queryByTestId('editor-tool-row')).not.toBeInTheDocument();
     });
 
-    it('Data and Roles are VIEWS, and the shell is told which one is open', () => {
+    it('Data and Roles are VIEWS, and the shell is told which one is open', async () => {
+        const user = userEvent.setup();
         const onViewChange = vi.fn();
         renderHeader({ onViewChange });
         expect(onViewChange).toHaveBeenCalledWith('edit');
 
-        fireEvent.click(screen.getByRole('radio', { name: 'Data' }));
+        await user.click(screen.getByRole('radio', { name: 'Data' }));
         expect(onViewChange).toHaveBeenLastCalledWith('data');
         // Variables is a SUBTAB of Data (a deviation from the artboard, which
         // dropped it) — not a segment of its own.
         expect(screen.queryByRole('radio', { name: 'Variables' })).not.toBeInTheDocument();
         expect(screen.getByRole('tab', { name: /Variables/ })).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('radio', { name: 'Roles' }));
+        await user.click(screen.getByRole('radio', { name: 'Roles' }));
         expect(onViewChange).toHaveBeenLastCalledWith('roles');
         expect(screen.getByText('roles-manager')).toBeInTheDocument();
     });
 
-    it('keeps the Roles panels MOUNTED across its subtabs (they hold unsaved drafts)', () => {
+    it('keeps the Roles panels MOUNTED across its subtabs (they hold unsaved drafts)', async () => {
+        const user = userEvent.setup();
         renderHeader();
-        fireEvent.click(screen.getByRole('radio', { name: 'Roles' }));
-        fireEvent.click(screen.getByRole('tab', { name: 'Row rules' }));
+        await user.click(screen.getByRole('radio', { name: 'Roles' }));
+        await user.click(screen.getByRole('tab', { name: 'Row rules' }));
         // Still in the tree, merely hidden — unmounting would discard the draft.
         expect(screen.getByText('roles-manager')).toBeInTheDocument();
         expect(screen.getByText('row-rules')).toBeInTheDocument();
     });
 
-    it('guards LEAVING the Roles view while a draft is unsaved', () => {
+    it('guards LEAVING the Roles view while a draft is unsaved', async () => {
+        const user = userEvent.setup();
         const onViewChange = vi.fn();
         renderHeader({ onViewChange });
-        fireEvent.click(screen.getByRole('radio', { name: 'Roles' }));
-        fireEvent.click(screen.getByRole('button', { name: 'make-dirty' }));
+        await user.click(screen.getByRole('radio', { name: 'Roles' }));
+        await user.click(screen.getByRole('button', { name: 'make-dirty' }));
 
-        fireEvent.click(screen.getByRole('radio', { name: 'Edit' }));
+        await user.click(screen.getByRole('radio', { name: 'Edit' }));
         expect(screen.getByText('Leave without saving?')).toBeInTheDocument();
         expect(onViewChange).toHaveBeenLastCalledWith('roles');
 
-        fireEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
+        await user.click(screen.getByRole('button', { name: 'Discard changes' }));
         expect(onViewChange).toHaveBeenLastCalledWith('edit');
     });
 });
@@ -143,17 +148,19 @@ describe('EditorHeader — publish, view-as and the ⋯ menu', () => {
         expect(screen.getByTestId('publish-pill')).toHaveAttribute('data-status', 'draft');
     });
 
-    it('"View as" is a capsule that opens a role menu', () => {
+    it('"View as" is a capsule that opens a role menu', async () => {
+        const user = userEvent.setup();
         renderHeader();
         const capsule = screen.getByTestId('view-as-capsule');
         expect(capsule).toHaveTextContent('Owner');
-        fireEvent.click(capsule);
+        await user.click(capsule);
         expect(screen.getByRole('menuitemradio', { name: 'Seller' })).toBeInTheDocument();
     });
 
-    it('⌘K, version history and view-as-role live in the ⋯ menu', () => {
+    it('⌘K, version history and view-as-role live in the ⋯ menu', async () => {
+        const user = userEvent.setup();
         renderHeader();
-        fireEvent.click(screen.getByRole('button', { name: 'More' }));
+        await user.click(screen.getByRole('button', { name: 'More' }));
         expect(screen.getByRole('menuitem', { name: /Command palette/ })).toBeInTheDocument();
         expect(screen.getByRole('menuitem', { name: 'Version history' })).toBeInTheDocument();
         expect(screen.getByRole('menuitem', { name: 'View as role…' })).toBeInTheDocument();

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automations as agent tools — §28.
  *

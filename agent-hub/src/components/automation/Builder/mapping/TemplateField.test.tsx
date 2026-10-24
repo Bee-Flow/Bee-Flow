@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import TemplateFieldJs from './TemplateField';
@@ -124,17 +125,19 @@ describe('TemplateField: a list, table or group dragged into a text', () => {
         expect(screen.getByRole('group', { name: 'More ways to use this value' })).toBeTruthy();
     });
 
-    it('More turns the table into one column, in the same place', () => {
+    it('More turns the table into one column, in the same place', async () => {
+        const user = userEvent.setup();
         const { changes, insert } = setupInsert();
         insert('steps.kw.output.rows');
-        fireEvent.click(screen.getByText('Only “Id”, from every row'));
+        await user.click(screen.getByText('Only “Id”, from every row'));
         expect(changes.at(-1)).toBe('{{steps.kw.output.rows[*].id}}');
     });
 
-    it('a separate run for each row sets the step\'s forEach and puts the row in the text', () => {
+    it('a separate run for each row sets the step\'s forEach and puts the row in the text', async () => {
+        const user = userEvent.setup();
         const { changes, forEachCalls, insert } = setupInsert();
         insert('steps.kw.output.rows');
-        fireEvent.click(screen.getByText('A separate run for each row'));
+        await user.click(screen.getByText('A separate run for each row'));
         expect(forEachCalls.at(-1)).toEqual(expect.objectContaining({ overRef: 'steps.kw.output.rows' }));
         expect(changes.at(-1)).toMatch(/^\{\{loop\.[A-Za-z_]+\}\}$/);
     });

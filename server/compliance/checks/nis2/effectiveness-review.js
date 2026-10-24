@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NIS2 Art. 21(2)(f) — policies and procedures to assess the effectiveness of
  * the cybersecurity risk-management measures.

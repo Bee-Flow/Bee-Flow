@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The trigger-only partial run (▶ on a trigger node), split out of partialRuns.js:
  * a synthetic run that executes no step, whose output IS the trigger payload.

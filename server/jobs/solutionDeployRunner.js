@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Solution stage deployments: the 15-second tick of the deploy runner
  * (projects/stages/runner.js, design 6.4).
@@ -43,7 +44,7 @@ async function tick(deps = {}) {
     }
 }
 
-/** @param {{ runner?: object, intervalMs?: number }} [deps] */
+/** @param {{ runner?: { tick: () => Promise<object> }, intervalMs?: number }} [deps] */
 function start(deps = {}) {
     if (_timer) return;
     const ms = Number(deps.intervalMs) > 0 ? Number(deps.intervalMs) : TICK_MS;

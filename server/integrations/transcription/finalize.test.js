@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The shared tail of every chat-tool transcription provider. The provider
  * wiring (what each handler hands in) is pinned end to end in

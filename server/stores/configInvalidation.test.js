@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit — cross-replica config cache invalidation (Workstream A2).
  *

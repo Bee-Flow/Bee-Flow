@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Trigger-filter primitives that aren't tied to a specific provider.
  *

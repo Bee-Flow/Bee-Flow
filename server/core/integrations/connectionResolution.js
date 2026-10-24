@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Connection Resolution — the per-tool chokepoint that decides whether a tool
  * call should run under a LENT connection (full delegation) instead of the

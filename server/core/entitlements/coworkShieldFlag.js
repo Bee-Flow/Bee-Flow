@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CW-10 — per-org flag: privacy shield on the NON-AGENT run path.
  *

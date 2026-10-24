@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit test for the org-admin "active" subset intersection rule.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * projectStore.setArchived and the archived filter of listUserProjects, against a real Postgres (pglite).
  *

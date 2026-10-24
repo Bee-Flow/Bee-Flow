@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — the app as a WHOLE: its meta (name, description,
  * icon), its look (the classic theme knobs, the App Design v2 knobs and the

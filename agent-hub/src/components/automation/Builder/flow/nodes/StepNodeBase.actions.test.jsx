@@ -1,4 +1,5 @@
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ReactFlowProvider } from '@xyflow/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import StepNodeBase from './StepNodeBase';
@@ -39,14 +40,15 @@ describe('StepNodeBase — icons appear on hover, focus and tap', () => {
     // Driven by React state rather than Tailwind `group-hover` so it can
     // actually be asserted: jsdom applies no stylesheet, so a CSS-only rule
     // would be untestable and could silently stop working.
-    it('hovering the card reveals run, disconnect and delete; leaving hides them', () => {
+    it('hovering the card reveals run, disconnect and delete; leaving hides them', async () => {
+        const user = userEvent.setup();
         const { container } = renderNode({ onExecuteStep: vi.fn(), onDetachNode: vi.fn(), onDeleteNode: vi.fn() });
         const toolbar = () => screen.getByTestId('node-hover-toolbar');
 
         expect(hidden(toolbar())).toBe(true);
-        fireEvent.mouseEnter(card(container));
+        await user.hover(card(container));
         expect(visible(toolbar())).toBe(true);
-        fireEvent.mouseLeave(card(container));
+        await user.unhover(card(container));
         expect(hidden(toolbar())).toBe(true);
     });
 
@@ -86,7 +88,8 @@ describe('StepNodeBase — icons appear on hover, focus and tap', () => {
         expect(classesOf(toolbar)).toContain('-translate-x-1/2');
     });
 
-    it('the add-next-step button follows the same hover state', () => {
+    it('the add-next-step button follows the same hover state', async () => {
+        const user = userEvent.setup();
         const { container } = render(
             <ReactFlowProvider>
                 <NodeRuntimeContext.Provider value={{ pinnedById: new Set(), disabledById: new Set(), triggerIds: new Set(), attachedIds: new Set() }}>
@@ -95,7 +98,7 @@ describe('StepNodeBase — icons appear on hover, focus and tap', () => {
             </ReactFlowProvider>,
         );
         expect(hidden(screen.getByLabelText('Add next step'))).toBe(true);
-        fireEvent.mouseEnter(card(container));
+        await user.hover(card(container));
         expect(visible(screen.getByLabelText('Add next step'))).toBe(true);
     });
 
@@ -104,9 +107,10 @@ describe('StepNodeBase — icons appear on hover, focus and tap', () => {
         expect(classesOf(screen.getByLabelText('Delete step').parentElement)).toContain('pointer-events-none');
     });
 
-    it('no popover competes with the icons for the same hover', () => {
+    it('no popover competes with the icons for the same hover', async () => {
+        const user = userEvent.setup();
         const { container } = renderNode({ onDeleteNode: vi.fn() }, 'b');
-        fireEvent.mouseEnter(card(container));
+        await user.hover(card(container));
         expect(screen.queryByText(/Runs once per item/)).toBeNull();
     });
 });
@@ -114,10 +118,11 @@ describe('StepNodeBase — icons appear on hover, focus and tap', () => {
 describe('StepNodeBase — the play button runs UP TO this step', () => {
     beforeEach(cleanup);
 
-    it('asks for everything before the step, not just the step', () => {
+    it('asks for everything before the step, not just the step', async () => {
+        const user = userEvent.setup();
         const onExecuteStep = vi.fn();
         renderNode({ onExecuteStep });
-        fireEvent.click(screen.getByLabelText('Execute step'));
+        await user.click(screen.getByLabelText('Execute step'));
         expect(onExecuteStep).toHaveBeenCalledWith('b', { mode: 'upTo' });
     });
 
@@ -158,10 +163,11 @@ describe('StepNodeBase — branch ports', () => {
 describe('StepNodeBase — disconnect action', () => {
     beforeEach(cleanup);
 
-    it('offers it on a wired step and reports the node id', () => {
+    it('offers it on a wired step and reports the node id', async () => {
+        const user = userEvent.setup();
         const onDetachNode = vi.fn();
         renderNode({ onDetachNode });
-        fireEvent.click(screen.getByLabelText('Disconnect step'));
+        await user.click(screen.getByLabelText('Disconnect step'));
         expect(onDetachNode).toHaveBeenCalledWith('b');
     });
 
@@ -182,10 +188,11 @@ describe('StepNodeBase — disconnect action', () => {
 describe('StepNodeBase — pin action (the fifth button)', () => {
     beforeEach(cleanup);
 
-    it('offers Pin only when there is an output to freeze, and reports the node id', () => {
+    it('offers Pin only when there is an output to freeze, and reports the node id', async () => {
+        const user = userEvent.setup();
         const onPinNode = vi.fn();
         renderNode({ onPinNode, pinnableIds: new Set(['b']) });
-        fireEvent.click(screen.getByLabelText('Pin step'));
+        await user.click(screen.getByLabelText('Pin step'));
         expect(onPinNode).toHaveBeenCalledWith('b');
     });
 

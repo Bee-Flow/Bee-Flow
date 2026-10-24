@@ -1,4 +1,5 @@
 import { render, cleanup, fireEvent, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import RefTokenInput from './RefTokenInput';
@@ -14,19 +15,21 @@ const pill = () => document.querySelector('[data-ref-pill]');
 describe('RefTokenInput — pills you can click and re-pick', () => {
     beforeEach(cleanup);
 
-    it('a click on a pill reports its path, without the braces', () => {
+    it('a click on a pill reports its path, without the braces', async () => {
+        const user = userEvent.setup();
         const onPillClick = vi.fn();
         render(<RefTokenInput value="Hi {{steps.a.output.x}}" mode="fixed" onChange={() => {}} stepLabelById={LABELS} onPillClick={onPillClick} />);
-        fireEvent.click(pill().firstChild);
+        await user.click(pill().firstChild);
         expect(onPillClick).toHaveBeenCalledTimes(1);
         expect(onPillClick.mock.calls[0][0]).toMatchObject({ raw: '{{steps.a.output.x}}', path: 'steps.a.output.x' });
         expect(onPillClick.mock.calls[0][0].el).toBe(pill());
     });
 
-    it('a click on plain text is not a pill click', () => {
+    it('a click on plain text is not a pill click', async () => {
+        const user = userEvent.setup();
         const onPillClick = vi.fn();
         const { container } = render(<RefTokenInput value="Hi {{steps.a.output.x}}" mode="fixed" onChange={() => {}} onPillClick={onPillClick} />);
-        fireEvent.click(container.querySelector('[data-ref-editor]'));
+        await user.click(container.querySelector('[data-ref-editor]'));
         expect(onPillClick).not.toHaveBeenCalled();
     });
 

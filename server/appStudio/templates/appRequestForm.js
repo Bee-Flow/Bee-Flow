@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio template — Request form — the canonical v1 demo: form → automation → thanks.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * automation/agentBinding.js: who may link an agent_call automation to an
  * agent, what the trigger panel may show, and the dispatch-time question.

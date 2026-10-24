@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A spreadsheet document as an Excel workbook: one worksheet per tab (same
  * names, same order), the RAW cells, so a typed "=SUM(B1:B3)" arrives as a

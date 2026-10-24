@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * errorShape — what of a thrown error may be written down: the class and the

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — the persisted builder-session snapshot the client
  * rehydrates from on mount (GET /session/:automationId).

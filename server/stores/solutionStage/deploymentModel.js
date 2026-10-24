@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /** Constants, row mappers and small SQL helpers of the deployments store (see deployments.js). */
 

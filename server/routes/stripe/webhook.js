@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * POST /webhook — signature verification, the idempotency ledger, and the
  * event-type routing table that hands each Stripe event to its handler module.

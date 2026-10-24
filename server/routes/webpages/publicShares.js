@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Externe (openbare) deel-links en hun momentopnames.
  *
@@ -21,6 +22,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice, NOTHING, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 
 // ── Wat een deel-link mag dragen ────────────────────────────────────
 //
@@ -150,7 +152,7 @@ function register(router) {
             const { accessMode, password, allowedEmails, expiresAt, title } = req.body;
             let expiry;
             try { expiry = parseExpiresAt(expiresAt); }
-            catch (e) { return res.status(400).json({ error: e.message }); }
+            catch (e) { throw new HttpError(400, 'bad_request', e.message); }
 
             const { share, rawToken } = await publicShareStore.createShare({
                 webpageId: wp.id,
@@ -224,7 +226,7 @@ function register(router) {
         }
         let expiry;
         try { expiry = parseExpiresAt(req.body.expiresAt); }
-        catch (e) { return res.status(400).json({ error: e.message }); }
+        catch (e) { throw new HttpError(400, 'bad_request', e.message); }
         await publicShareStore.updateExpiry(share.id, userId, expiry);
         const updated = await publicShareStore.getShareById(share.id);
         res.json({ success: true, share: updated });

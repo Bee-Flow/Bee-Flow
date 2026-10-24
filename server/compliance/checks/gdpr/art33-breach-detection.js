@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR Art. 33 — Breach notification readiness AND live 72-hour compliance.
  *

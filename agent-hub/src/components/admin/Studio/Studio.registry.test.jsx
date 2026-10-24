@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // The Studio shell has no tab bar anymore — section navigation lives in the
@@ -156,14 +157,15 @@ describe('Studio shell — registry-driven sections', () => {
     });
 
     it('fires the aggregate editing flag while an app reports editing', async () => {
+        const user = userEvent.setup();
         const onEditingChange = vi.fn();
         renderStudio({ onEditingChange });
         const start = await screen.findByTestId('agents-start-editing');
 
-        fireEvent.click(start);
+        await user.click(start);
         expect(onEditingChange).toHaveBeenLastCalledWith(true);
 
-        fireEvent.click(screen.getByTestId('agents-stop-editing'));
+        await user.click(screen.getByTestId('agents-stop-editing'));
         expect(onEditingChange).toHaveBeenLastCalledWith(false);
     });
 });

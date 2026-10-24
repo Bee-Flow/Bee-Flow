@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NIS2-Art21(2)(d)-questionnaire-pack — the supplier evidence pack is ready (never fails).
  * Run: cd server && node --test --test-force-exit compliance/checks/nis2/questionnaire-pack.test.js

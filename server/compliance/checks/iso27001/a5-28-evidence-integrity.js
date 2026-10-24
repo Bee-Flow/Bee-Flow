@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO 27001 A.5.28 / A.5.36 — Collection of evidence & compliance with the
  * organisation's own monitoring.

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // t() interpolates so price/awaiting labels are assertable by their key prefix.
@@ -59,6 +60,7 @@ describe('MarketplaceTab', () => {
     afterEach(() => vi.unstubAllGlobals());
 
     it('shows the connect banner when the install is not connected', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation((url) => {
             if (String(url).includes('/marketplace')) return jsonRes({ connected: false, modules: [] });
             return jsonRes({});
@@ -67,7 +69,7 @@ describe('MarketplaceTab', () => {
         expect(await screen.findByTestId('connect-hub-banner')).toBeInTheDocument();
 
         // Connect CTA opens the confirm dialog (its Cancel button is unique to it).
-        fireEvent.click(screen.getByText('modules.connect_cta'));
+        await user.click(screen.getByText('modules.connect_cta'));
         expect(screen.getByText('modules.cancel')).toBeInTheDocument();
     });
 
@@ -93,6 +95,7 @@ describe('MarketplaceTab', () => {
     });
 
     it('buys → awaiting payment → I-have-paid refresh → entitled Install', async () => {
+        const user = userEvent.setup();
         let entitled = false;
         let purchaseBody = null;
         authFetch.mockImplementation((url, init = {}) => {
@@ -119,7 +122,7 @@ describe('MarketplaceTab', () => {
         renderTab();
 
         // Buy → opens Checkout, flips to awaiting.
-        fireEvent.click(await screen.findByRole('button', { name: 'modules.buy' }));
+        await user.click(await screen.findByRole('button', { name: 'modules.buy' }));
         expect(await screen.findByTestId('awaiting-pro')).toBeInTheDocument();
         expect(window.open).toHaveBeenCalledWith('https://checkout.stripe/x', '_blank', 'noopener,noreferrer');
 
@@ -131,7 +134,7 @@ describe('MarketplaceTab', () => {
         });
 
         // "I've paid — refresh" flips the entitlement and the card offers Install.
-        fireEvent.click(screen.getByText('modules.paid_refresh'));
+        await user.click(screen.getByText('modules.paid_refresh'));
         expect(await screen.findByRole('button', { name: 'modules.install' })).toBeInTheDocument();
     });
 
@@ -183,6 +186,7 @@ describe('MarketplaceTab', () => {
     });
 
     it('update → 409 consent_required → accept retries with acceptedPermissions', async () => {
+        const user = userEvent.setup();
         const updateBodies = [];
         authFetch.mockImplementation((url, init = {}) => {
             const u = String(url);
@@ -206,7 +210,7 @@ describe('MarketplaceTab', () => {
         });
         renderTab();
 
-        fireEvent.click(await screen.findByRole('button', { name: 'modules.update' }));
+        await user.click(await screen.findByRole('button', { name: 'modules.update' }));
 
         // Consent dialog opens seeded with the missing permissions…
         expect(await screen.findByTestId('permission-consent-dialog')).toBeInTheDocument();
@@ -214,13 +218,14 @@ describe('MarketplaceTab', () => {
         expect(screen.getByTestId('perm-http:*')).toBeInTheDocument();
 
         // …and accepting retries the update with acceptedPermissions set.
-        fireEvent.click(screen.getByTestId('consent-accept'));
+        await user.click(screen.getByTestId('consent-accept'));
         await waitFor(() => expect(updateBodies).toHaveLength(2));
         expect(updateBodies[1]).toEqual({ acceptedPermissions: ['db', 'http:*'] });
         await waitFor(() => expect(screen.queryByTestId('permission-consent-dialog')).toBeNull());
     });
 
     it('shows quarantine and restart chips from the health join, with Re-enable', async () => {
+        const user = userEvent.setup();
         let reactivated = false;
         authFetch.mockImplementation((url, init = {}) => {
             const u = String(url);
@@ -254,7 +259,7 @@ describe('MarketplaceTab', () => {
         renderTab();
 
         expect(await screen.findByTestId('quarantined-pro')).toBeInTheDocument();
-        fireEvent.click(screen.getByTestId('reactivate-pro'));
+        await user.click(screen.getByTestId('reactivate-pro'));
         await waitFor(() => expect(authFetch.mock.calls.some(([u, i]) =>
             String(u).endsWith('/pro/reactivate') && (i?.method === 'POST'))).toBe(true));
     });
@@ -292,6 +297,7 @@ describe('MarketplaceTab', () => {
     });
 
     it('opens the detail drawer from a ?module= deep link and strips it on close', async () => {
+        const user = userEvent.setup();
         window.history.replaceState(null, '', '/admin/modules?tab=marketplace&module=pro');
         authFetch.mockImplementation((url) => {
             const u = String(url);
@@ -313,12 +319,13 @@ describe('MarketplaceTab', () => {
         renderTab();
 
         expect(await screen.findByTestId('module-detail-drawer')).toBeInTheDocument();
-        fireEvent.click(screen.getByTestId('drawer-close'));
+        await user.click(screen.getByTestId('drawer-close'));
         expect(screen.queryByTestId('module-detail-drawer')).toBeNull();
         expect(window.location.search).toBe('?tab=marketplace');
     });
 
     it('installs an entitled module and shows the download progress phase', async () => {
+        const user = userEvent.setup();
         authFetch.mockImplementation((url, init = {}) => {
             const u = String(url);
             const m = init.method || 'GET';
@@ -336,7 +343,7 @@ describe('MarketplaceTab', () => {
         });
         renderTab();
 
-        fireEvent.click(await screen.findByRole('button', { name: 'modules.install' }));
+        await user.click(await screen.findByRole('button', { name: 'modules.install' }));
         expect(await screen.findByTestId('install-progress-pro')).toBeInTheDocument();
         await waitFor(() => expect(screen.getByTestId('install-progress-pro')).toHaveTextContent('modules.installing_download'));
     });

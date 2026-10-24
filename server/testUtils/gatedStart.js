@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Mount a background worker's start() against captured timers and a stand-in
  * runtime module gate, for the "removing the module stops the worker" tests
@@ -41,8 +42,9 @@ function mountGated(startFn, opts = {}) {
         timers.push(h);
         return h;
     };
-    globalThis.setInterval = capture('interval');
-    globalThis.setTimeout = capture('timeout');
+    // A fake timer handle: enough for the code under test, not a real Timeout.
+    globalThis.setInterval = /** @type {any} */ (capture('interval'));
+    globalThis.setTimeout = /** @type {any} */ (capture('timeout'));
     try {
         startFn({ ...opts, gate });
     } finally {

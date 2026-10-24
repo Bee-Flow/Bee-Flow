@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the org-health additions to connectorJwt:
  *

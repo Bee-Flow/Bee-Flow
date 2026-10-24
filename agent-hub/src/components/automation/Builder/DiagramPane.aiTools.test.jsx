@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import DiagramPane from './DiagramPane';
 import { toolNodeId } from './flow/aiToolNodes';
@@ -113,16 +114,18 @@ describe('DiagramPane — an AI step wears its tools', () => {
     it('removing a chip takes the tool out of the allowlist', () => {
         const onDefinitionChange = vi.fn();
         renderCanvas(defWith({ tools: ['gmail_search', 'gmail_send'], allowTools: true }), { onDefinitionChange });
+        // fireEvent: the chip sits in a React Flow layer with pointer-events: none, which user.click refuses.
         fireEvent.click(screen.getByLabelText('Remove Search email'));
         const next = onDefinitionChange.mock.calls[0][0];
         expect(next.steps[0].tools).toEqual(['gmail_send']);
         expect(next.steps[0].allowTools).toBe(true);
     });
 
-    it('clicking a chip opens the AI step, since a tool has no editor of its own', () => {
+    it('clicking a chip opens the AI step, since a tool has no editor of its own', async () => {
+        const user = userEvent.setup();
         const onNodeClick = vi.fn();
         const { container } = renderCanvas(defWith({ tools: ['gmail_search'], allowTools: true }), { onNodeClick });
-        fireEvent.click(nodeEl(container, toolNodeId('ai1', 'gmail_search')));
+        await user.click(nodeEl(container, toolNodeId('ai1', 'gmail_search')));
         expect(onNodeClick).toHaveBeenCalledWith('ai1');
     });
 

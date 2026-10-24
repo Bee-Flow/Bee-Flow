@@ -1,5 +1,6 @@
 import { createRequire } from 'module';
 import { render, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -43,11 +44,12 @@ beforeEach(() => {
 
 describe('RowRuleEditor — building a rule without typing code', () => {
     it('writes the same expression the server accepts from three dropdowns', async () => {
+        const user = userEvent.setup();
         const { getByText, getByLabelText } = render(<RowRuleEditor appId="a1" />);
-        fireEvent.click(getByText('Add a condition'));
+        await user.click(getByText('Add a condition'));
         fireEvent.change(getByLabelText('Compare with, condition 1'), { target: { value: 'viewer.id' } });
 
-        fireEvent.click(getByText('Save row access'));
+        await user.click(getByText('Save row access'));
         await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
         const [tableId, patch] = saveTableAccess.mock.calls[0];
         expect(tableId).toBe('t1');
@@ -56,12 +58,13 @@ describe('RowRuleEditor — building a rule without typing code', () => {
     });
 
     it('saves a typed value as a quoted literal', async () => {
+        const user = userEvent.setup();
         const { getByText, getByLabelText } = render(<RowRuleEditor appId="a1" />);
-        fireEvent.click(getByText('Add a condition'));
+        await user.click(getByText('Add a condition'));
         fireEvent.change(getByLabelText('Column, condition 1'), { target: { value: 'status' } });
         fireEvent.change(getByLabelText('Value, condition 1'), { target: { value: 'open' } });
 
-        fireEvent.click(getByText('Save row access'));
+        await user.click(getByText('Save row access'));
         await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
         expect(saveTableAccess.mock.calls[0][1].rowFilters).toEqual({ member: 'record.status == "open"' });
     });
@@ -76,15 +79,16 @@ describe('RowRuleEditor — building a rule without typing code', () => {
     });
 
     it('produces a rule the server gateway accepts and binds every value in', async () => {
+        const user = userEvent.setup();
         const { getByText, getByLabelText } = render(<RowRuleEditor appId="a1" />);
-        fireEvent.click(getByText('Add a condition'));
+        await user.click(getByText('Add a condition'));
         fireEvent.change(getByLabelText('Compare with, condition 1'), { target: { value: 'viewer.id' } });
-        fireEvent.click(getByText('Add a condition'));
+        await user.click(getByText('Add a condition'));
         fireEvent.change(getByLabelText('Column, condition 2'), { target: { value: 'amount' } });
         fireEvent.change(getByLabelText('Test, condition 2'), { target: { value: '>' } });
         fireEvent.change(getByLabelText('Value, condition 2'), { target: { value: '100' } });
 
-        fireEvent.click(getByText('Save row access'));
+        await user.click(getByText('Save row access'));
         await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
         const expr = saveTableAccess.mock.calls[0][1].rowFilters.member;
         expect(expr).toBe('record.owner_id == viewer.id && record.amount > 100');
@@ -93,26 +97,29 @@ describe('RowRuleEditor — building a rule without typing code', () => {
             .toEqual({ sql: '(("owner_id" = ?) AND ("amount" > ?))', params: ['alice', 100] });
     });
 
-    it('refuses to save a half-filled condition instead of silently widening the rule', () => {
+    it('refuses to save a half-filled condition instead of silently widening the rule', async () => {
+        const user = userEvent.setup();
         const { getByText } = render(<RowRuleEditor appId="a1" />);
-        fireEvent.click(getByText('Add a condition'));
+        await user.click(getByText('Add a condition'));
         expect(getByText('Fill in the value.')).toBeTruthy();
         expect(getByText('Save row access').disabled).toBe(true);
     });
 });
 
 describe('RowRuleEditor — the raw expression stays reachable', () => {
-    it('carries the built rule into the raw box and back', () => {
+    it('carries the built rule into the raw box and back', async () => {
+        const user = userEvent.setup();
         const { getByText, getByLabelText } = render(<RowRuleEditor appId="a1" />);
-        fireEvent.click(getByText('Only rows they added themselves'));
-        fireEvent.click(getByText('Write it myself'));
+        await user.click(getByText('Only rows they added themselves'));
+        await user.click(getByText('Write it myself'));
         expect(getByLabelText('Row rule expression').value).toBe('record.created_by == viewer.id');
 
-        fireEvent.click(getByText('Back to the picker'));
+        await user.click(getByText('Back to the picker'));
         expect(getByLabelText('Column, condition 1').value).toBe('created_by');
     });
 
     it('opens a rule the pickers cannot show in the raw box, untouched', async () => {
+        const user = userEvent.setup();
         const expr = 'record.owner_id == viewer.id && (record.status == "open" || record.amount > 5)';
         mockRoles([tasks({ member: expr })]);
         const { getByLabelText, getByText } = render(<RowRuleEditor appId="a1" />);
@@ -120,7 +127,7 @@ describe('RowRuleEditor — the raw expression stays reachable', () => {
         expect(getByText('Back to the picker').disabled).toBe(true);
         expect(getByText(/stays as text — it is saved exactly as written/)).toBeTruthy();
 
-        fireEvent.click(getByText('Save row access'));
+        await user.click(getByText('Save row access'));
         await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
         expect(saveTableAccess.mock.calls[0][1].rowFilters).toEqual({ member: expr });
     });
@@ -132,10 +139,11 @@ describe('RowRuleEditor — the raw expression stays reachable', () => {
         expect(getByText('Save row access').disabled).toBe(true);
     });
 
-    it('inserts a column into the raw box', () => {
+    it('inserts a column into the raw box', async () => {
+        const user = userEvent.setup();
         const { getByText, getByLabelText } = render(<RowRuleEditor appId="a1" />);
-        fireEvent.click(getByText('Write it myself'));
-        fireEvent.click(getByText('record.owner_id'));
+        await user.click(getByText('Write it myself'));
+        await user.click(getByText('record.owner_id'));
         expect(getByLabelText('Row rule expression').value).toContain('record.owner_id');
     });
 });
@@ -150,17 +158,19 @@ describe('RowRuleEditor — who ends up seeing what', () => {
         expect(text).toMatch(/you always see and change every row yourself/);
     });
 
-    it('says what the "only the rows they added" preset really hands out', () => {
+    it('says what the "only the rows they added" preset really hands out', async () => {
+        const user = userEvent.setup();
         const { getByText, getByTestId } = render(<RowRuleEditor appId="a1" />);
-        fireEvent.click(getByText('Only the rows they added'));
+        await user.click(getByText('Only the rows they added'));
         const text = getByTestId('row-rule-outcome').textContent;
         expect(text).toContain('Member sees only the rows in Tasks they added themselves.');
         expect(text).toMatch(/add new rows, and change or delete the rows they added/);
     });
 
-    it('says a rule changes nothing when the role has no access', () => {
+    it('says a rule changes nothing when the role has no access', async () => {
+        const user = userEvent.setup();
         const { getByText, getByTestId } = render(<RowRuleEditor appId="a1" />);
-        fireEvent.click(getByText('No access'));
+        await user.click(getByText('No access'));
         expect(getByTestId('row-rule-outcome').textContent).toMatch(/cannot add any\. A row rule changes nothing here\./);
     });
 });
@@ -176,12 +186,13 @@ describe('RowRuleEditor — a role set up in more detail than the presets', () =
     });
 
     it('saves a rule without handing out changing and deleting on the way', async () => {
+        const user = userEvent.setup();
         mockRoles([lookOnly()]);
         const { getByText, getByLabelText } = render(<RowRuleEditor appId="a1" />);
-        fireEvent.click(getByText('Add a condition'));
+        await user.click(getByText('Add a condition'));
         fireEvent.change(getByLabelText('Compare with, condition 1'), { target: { value: 'viewer.id' } });
 
-        fireEvent.click(getByText('Save row access'));
+        await user.click(getByText('Save row access'));
         await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
         const patch = saveTableAccess.mock.calls[0][1];
         expect(patch.roles.member).toEqual({ read: 'all', create: false, update: 'none', delete: 'none' });
@@ -199,11 +210,12 @@ describe('RowRuleEditor — a role set up in more detail than the presets', () =
     });
 
     it('replaces the mix once a preset is picked, and only then', async () => {
+        const user = userEvent.setup();
         mockRoles([lookOnly()]);
         const { getByText } = render(<RowRuleEditor appId="a1" />);
-        fireEvent.click(getByText('See, change and delete every row'));
+        await user.click(getByText('See, change and delete every row'));
 
-        fireEvent.click(getByText('Save row access'));
+        await user.click(getByText('Save row access'));
         await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
         expect(saveTableAccess.mock.calls[0][1].roles.member)
             .toEqual({ read: 'all', create: true, update: 'all', delete: 'all' });
@@ -211,22 +223,23 @@ describe('RowRuleEditor — a role set up in more detail than the presets', () =
 });
 
 describe('RowRuleEditor — unsaved work', () => {
-    it('confirms before switching table throws away an unsaved rule', () => {
+    it('confirms before switching table throws away an unsaved rule', async () => {
+        const user = userEvent.setup();
         mockRoles([tasks(), { ...tasks(), id: 't2', key: 'notes', name: 'Notes' }]);
         const { getByLabelText, getByText, queryByText } = render(<RowRuleEditor appId="a1" />);
-        fireEvent.click(getByText('Only rows they added themselves'));
+        await user.click(getByText('Only rows they added themselves'));
 
         fireEvent.change(getByLabelText('Table'), { target: { value: 't2' } });
         expect(getByText('Discard your unsaved changes?')).toBeTruthy();
         // Nothing switched yet, and the unsaved rule is still on screen.
         expect(getByLabelText('Column, condition 1').value).toBe('created_by');
 
-        fireEvent.click(getByText('Keep editing'));
+        await user.click(getByText('Keep editing'));
         expect(queryByText('Discard your unsaved changes?')).toBeNull();
         expect(getByLabelText('Table').value).toBe('t1');
 
         fireEvent.change(getByLabelText('Table'), { target: { value: 't2' } });
-        fireEvent.click(getByText('Discard changes'));
+        await user.click(getByText('Discard changes'));
         expect(getByLabelText('Table').value).toBe('t2');
         expect(getByText('Add a condition')).toBeTruthy();
     });

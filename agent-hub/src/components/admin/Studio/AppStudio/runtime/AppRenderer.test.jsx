@@ -1,4 +1,5 @@
 import { render, fireEvent, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import AppRenderer from './AppRenderer';
 import { APP_COMPONENT_TYPES, getComponentEntry, PALETTE_CATEGORIES } from './componentRegistry';
@@ -102,12 +103,13 @@ describe('AppRenderer — run mode', () => {
         expect(getByText(/Unknown component: wizardry/)).toBeTruthy();
     });
 
-    it('a button click calls runAction with its action id', () => {
+    it('a button click calls runAction with its action id', async () => {
+        const user = userEvent.setup();
         const runAction = vi.fn();
         const { getByRole } = render(
             <AppRenderer definition={KITCHEN_SINK} screenId="scr_dash01" mode="run" runAction={runAction} />,
         );
-        fireEvent.click(getByRole('button', { name: /Refresh/ }));
+        await user.click(getByRole('button', { name: /Refresh/ }));
         expect(runAction).toHaveBeenCalledTimes(1);
         expect(runAction).toHaveBeenCalledWith('act_fetch1', {});
     });
@@ -124,7 +126,8 @@ describe('AppRenderer — run mode', () => {
 });
 
 describe('AppRenderer — edit mode', () => {
-    it('renders every type through a custom NodeWrapper and reports clicks', () => {
+    it('renders every type through a custom NodeWrapper and reports clicks', async () => {
+        const user = userEvent.setup();
         const clicks = [];
         const NodeWrapper = ({ node, className, style, children }) => (
             <div
@@ -144,7 +147,7 @@ describe('AppRenderer — edit mode', () => {
                 `type '${type}' did not render in edit mode`,
             ).toBeTruthy();
         }
-        fireEvent.click(getByText('Team dashboard'));
+        await user.click(getByText('Team dashboard'));
         expect(clicks).toContain('cmp_headg1');
     });
 
@@ -159,12 +162,13 @@ describe('AppRenderer — edit mode', () => {
         expect(container.querySelector('[data-app-hidden-badge]')).toBeTruthy();
     });
 
-    it('edit-mode buttons never fire actions', () => {
+    it('edit-mode buttons never fire actions', async () => {
+        const user = userEvent.setup();
         const runAction = vi.fn();
         const { getByRole } = render(
             <AppRenderer definition={KITCHEN_SINK} screenId="scr_dash01" mode="edit" runAction={runAction} />,
         );
-        fireEvent.click(getByRole('button', { name: /Refresh/ }));
+        await user.click(getByRole('button', { name: /Refresh/ }));
         expect(runAction).not.toHaveBeenCalled();
     });
 });
@@ -296,19 +300,21 @@ describe('AppRenderer — forms', () => {
         );
     }
 
-    it('blocks submit and shows an inline error when a required field is empty', () => {
+    it('blocks submit and shows an inline error when a required field is empty', async () => {
+        const user = userEvent.setup();
         const runAction = vi.fn();
         const { getByRole, getByText } = renderForm(runAction);
-        fireEvent.click(getByRole('button', { name: /Send request/ }));
+        await user.click(getByRole('button', { name: /Send request/ }));
         expect(runAction).not.toHaveBeenCalled();
         expect(getByText('This field is required.')).toBeTruthy();
     });
 
-    it('submits formValues keyed by input name (defaults included) with the form id', () => {
+    it('submits formValues keyed by input name (defaults included) with the form id', async () => {
+        const user = userEvent.setup();
         const runAction = vi.fn();
         const { getByRole, getByLabelText } = renderForm(runAction);
         fireEvent.change(getByLabelText(/Subject/), { target: { value: 'New laptop' } });
-        fireEvent.click(getByRole('button', { name: /Send request/ }));
+        await user.click(getByRole('button', { name: /Send request/ }));
         expect(runAction).toHaveBeenCalledTimes(1);
         const [actionId, opts] = runAction.mock.calls[0];
         expect(actionId).toBe('act_submit');
@@ -319,11 +325,12 @@ describe('AppRenderer — forms', () => {
         expect(opts.formValues.notify).toBe(true);       // input_checkbox default
     });
 
-    it('keeps field values after a failed submit attempt', () => {
+    it('keeps field values after a failed submit attempt', async () => {
+        const user = userEvent.setup();
         const runAction = vi.fn();
         const { getByRole, getByLabelText } = renderForm(runAction);
         fireEvent.change(getByLabelText(/Details/), { target: { value: 'It broke' } });
-        fireEvent.click(getByRole('button', { name: /Send request/ })); // blocked: subject empty
+        await user.click(getByRole('button', { name: /Send request/ })); // blocked: subject empty
         expect(runAction).not.toHaveBeenCalled();
         expect(getByLabelText(/Details/).value).toBe('It broke');
     });

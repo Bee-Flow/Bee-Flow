@@ -136,7 +136,7 @@ router.post('/', requireAdmin, validate({ body: AddLocaleBody }), async (req, re
         res.json({ success: true, locales });
     } catch (err) {
         log.error('[Languages] Add error:', err.message);
-        res.status(400).json({ error: err.message });
+        throw new HttpError(400, 'bad_request', err.message);
     }
 });
 
@@ -147,7 +147,7 @@ router.delete('/:code', requireAdmin, async (req, res) => {
         res.json({ success: true, locales });
     } catch (err) {
         log.error('[Languages] Delete error:', err.message);
-        res.status(400).json({ error: err.message });
+        throw new HttpError(400, 'bad_request', err.message);
     }
 });
 
@@ -164,7 +164,7 @@ router.put('/:code/default', (req, res, next) => (req.params.code === 'org' ? ne
         res.json({ success: true, locales });
     } catch (err) {
         log.error('[Languages] Set default error:', err.message);
-        res.status(400).json({ error: err.message });
+        throw new HttpError(400, 'bad_request', err.message);
     }
 });
 

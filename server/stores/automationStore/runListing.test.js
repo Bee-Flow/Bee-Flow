@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Runs tab's list reads (handoff 5), run for real against PGlite:
  *   - the `q` search (summary, outcome sentence, starter name, trigger-payload

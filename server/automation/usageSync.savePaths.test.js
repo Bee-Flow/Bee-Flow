@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Every path that saves a CONSUMER of a datatable has to reconcile the
  * dependents index — listed here, per consumer kind.

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 // Pure prompt and payload builders of the CMS builder route (cmsBuilder.js):
 // machine-message renderers, history/context sanitisers, tool labels and

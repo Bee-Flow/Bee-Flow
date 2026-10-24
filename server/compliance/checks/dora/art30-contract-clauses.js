@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DORA Art. 30(2)(3) — contractual provisions with financial entities.
  *
@@ -106,4 +107,4 @@ module.exports = {
     },
 };
 
-module.exports._test = { WINDOW_DAYS, _templateUrl };
+Object.assign(module.exports, { _test: { WINDOW_DAYS, _templateUrl } });

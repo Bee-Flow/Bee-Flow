@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — the leaf phases of builder_add_steps: batch pre-validation,
  * handle eviction, the partial-failure result and the per-entry dispatch.

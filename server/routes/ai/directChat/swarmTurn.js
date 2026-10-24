@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — the Swarm tier branch of the streaming turn.
  *

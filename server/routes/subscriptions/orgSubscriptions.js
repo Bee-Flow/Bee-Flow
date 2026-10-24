@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Org subscriptions — listing every org's subscription, one org's subscription
  * with its billing/usage view and plan pickers, the admin assign/update write,
@@ -13,6 +14,7 @@ const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { HttpError } = require('../../core/http/errors');
 
 const router = express.Router();
 
@@ -366,7 +368,7 @@ router.put('/orgs/:orgId', validate({ body: OrgSubscriptionBody }), async (req, 
         res.json(sub);
     } catch (e) {
         log.error('[Subscriptions] setOrgSub error:', e);
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 
@@ -384,7 +386,7 @@ router.post('/orgs/:orgId/start-trial', validate({ body: StartTrialBody }), asyn
             return res.status(409).json({ error: 'trial_already_used' });
         }
         log.error('[Subscriptions] startOrgTrial error:', e);
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 

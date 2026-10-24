@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio template — AI system register (EU AI Act).
  *

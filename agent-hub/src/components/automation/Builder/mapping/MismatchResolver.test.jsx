@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import MismatchResolver from './MismatchResolver';
@@ -65,24 +66,26 @@ describe('MismatchResolver', () => {
         expect(screen.getByRole('button', { name: 'Only the first' }).getAttribute('aria-pressed')).toBe('false');
     });
 
-    it('a choice hands back the binding it writes, and the collapsed summary follows it', () => {
+    it('a choice hands back the binding it writes, and the collapsed summary follows it', async () => {
+        const user = userEvent.setup();
         const { onChoose } = renderBox();
         expandOptions();
-        fireEvent.click(screen.getByRole('button', { name: 'Only the first' }));
+        await user.click(screen.getByRole('button', { name: 'Only the first' }));
         expect(onChoose).toHaveBeenCalledWith(expect.objectContaining({ id: 'first', binding: { kind: 'expr', value: 'first(steps.a.output.warnings)' } }));
-        fireEvent.click(screen.getByRole('button', { name: 'A separate run for each item' }));
+        await user.click(screen.getByRole('button', { name: 'A separate run for each item' }));
         expect(onChoose).toHaveBeenCalledWith(expect.objectContaining({ id: 'foreach', forEach: expect.objectContaining({ overRef: 'steps.a.output.warnings' }) }));
         // Collapse again: the summary names the last applied choice.
-        fireEvent.click(screen.getByRole('button', { name: 'fewer' }));
+        await user.click(screen.getByRole('button', { name: 'fewer' }));
         expect(screen.queryByRole('button', { name: 'Only the first' })).toBeNull();
     });
 
-    it('keeps "the whole list" two clicks away, never gone', () => {
+    it('keeps "the whole list" two clicks away, never gone', async () => {
+        const user = userEvent.setup();
         renderBox();
         expect(screen.queryByRole('button', { name: 'Keep the whole list' })).toBeNull();
         expandOptions();
         expect(screen.queryByRole('button', { name: 'Keep the whole list' })).toBeNull();
-        fireEvent.click(screen.getByRole('button', { name: /more/ }));
+        await user.click(screen.getByRole('button', { name: /more/ }));
         expect(screen.getByRole('button', { name: 'Keep the whole list' })).toBeTruthy();
         expect(screen.getByRole('button', { name: 'Only the last' })).toBeTruthy();
     });
@@ -107,10 +110,11 @@ describe('MismatchResolver', () => {
         expect(screen.queryByRole('button', { name: 'A separate run for each item' })).toBeNull();
     });
 
-    it('can be closed once the author is happy', () => {
+    it('can be closed once the author is happy', async () => {
+        const user = userEvent.setup();
         const onClose = vi.fn();
         renderBox({ onClose });
-        fireEvent.click(screen.getByLabelText('Cancel'));
+        await user.click(screen.getByLabelText('Cancel'));
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 });

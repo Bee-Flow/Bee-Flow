@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import LineColorPanel from './LineColorPanel';
@@ -71,21 +72,23 @@ describe('LineColorPanel', () => {
         }
     });
 
-    it('pinning a case colour writes edge.color on every edge of that case', () => {
+    it('pinning a case colour writes edge.color on every edge of that case', async () => {
+        const user = userEvent.setup();
         const { onDefinitionChange } = renderPanel();
         openPanel();
-        fireEvent.click(screen.getByLabelText('Change the colour of pdf'));
-        fireEvent.click(screen.getByLabelText('Colour pdf red'));
+        await user.click(screen.getByLabelText('Change the colour of pdf'));
+        await user.click(screen.getByLabelText('Colour pdf red'));
         const next = onDefinitionChange.mock.calls[0][0];
         expect(next.edges.find(e => e.caseName === 'pdf').color).toBe('red');
         expect(next.edges.find(e => e.caseName === 'word').color).toBeUndefined();
     });
 
-    it('remapping a PII group writes definition.piiLineColors; auto clears it', () => {
+    it('remapping a PII group writes definition.piiLineColors; auto clears it', async () => {
+        const user = userEvent.setup();
         const { onDefinitionChange } = renderPanel();
         openPanel();
-        fireEvent.click(screen.getByLabelText('Change the colour of Contact'));
-        fireEvent.click(screen.getByLabelText('Colour Contact cyan'));
+        await user.click(screen.getByLabelText('Change the colour of Contact'));
+        await user.click(screen.getByLabelText('Colour Contact cyan'));
         expect(onDefinitionChange.mock.calls[0][0].piiLineColors).toEqual({ Contact: 'cyan' });
     });
 

@@ -70,7 +70,7 @@ async function extractWithAzureWithStats(buffer, filename = 'unknown') {
         throw new Error('Azure Document Intelligence is not configured. Set endpoint and key in admin settings.');
     }
 
-    log.info(`[AzureDocIntelligence] Analyzing document: ${filename} (${buffer.length} bytes)`);
+    log.info(`[AzureDocIntelligence] Analyzing document: ${log.nameForLog(filename)} (${buffer.length} bytes)`);
 
     const base64Source = buffer.toString('base64');
 
@@ -126,7 +126,7 @@ async function extractWithAzureWithStats(buffer, filename = 'unknown') {
             const pageCount = result.analyzeResult?.pages?.length || 0;
 
             if (!rawContent.trim()) {
-                log.warn(`[AzureDocIntelligence] No content extracted from ${filename} (${pageCount} pages)`);
+                log.warn(`[AzureDocIntelligence] No content extracted from ${log.nameForLog(filename)} (${pageCount} pages)`);
                 return { text: '', pageCount };
             }
 
@@ -140,7 +140,7 @@ async function extractWithAzureWithStats(buffer, filename = 'unknown') {
             const { cleanAzureDocMarkdown } = require('../text/markdownCleanup');
             const { text: content, pages } = cleanAzureDocMarkdown(rawContent, { withPages: true });
 
-            log.info(`[AzureDocIntelligence] Extracted ${rawContent.length} → ${content.length} chars from ${filename} (${pageCount} pages)`);
+            log.info(`[AzureDocIntelligence] Extracted ${rawContent.length} → ${content.length} chars from ${log.nameForLog(filename)} (${pageCount} pages)`);
 
             // ── Track usage cost (fire-and-forget) ──
             const cost = computeDocIntelligenceCost(pageCount);

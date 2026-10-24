@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De poort naar buiten, puur getest.
  *

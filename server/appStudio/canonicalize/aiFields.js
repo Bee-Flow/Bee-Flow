@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio canonicalizer — the native AI field cleaners: string lists, the
  * extraction schema, and the writeTo block that lands extracted rows.

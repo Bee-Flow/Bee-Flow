@@ -147,7 +147,7 @@ async function _provisioningGate(req, org, orgId, payload) {
     // connector can't break on a geo hiccup. See signupGuards.js.
     const geoGate = await checkConnectorSignupAllowed(req);
     if (!geoGate.ok) {
-        log.info(`[ConnectorJWT] Geo-blocked auto-provision for ${payload.email} (org=${orgId}, country=${geoGate.country || 'unknown'})`);
+        log.info(`[ConnectorJWT] Geo-blocked auto-provision for ${log.textForLog(payload.email)} (org=${orgId}, country=${geoGate.country || 'unknown'})`);
         orgHealth.problem('auth.blocked_geo', {
             orgId, source: 'connectorJwt', req,
             meta: { country: geoGate.country || null, reason: 'geo_policy' },

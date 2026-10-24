@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO 27001 A.8.28 — secure coding: secret scanning and push protection from
  * the github connector snapshots. This check never fails outright — GitHub

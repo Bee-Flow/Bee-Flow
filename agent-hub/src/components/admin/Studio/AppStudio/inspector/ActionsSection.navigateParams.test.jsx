@@ -1,4 +1,5 @@
 import { render, fireEvent, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import ActionsSection from './ActionsSection';
@@ -62,33 +63,37 @@ describe('ActionsSection — navigate params', () => {
         expect(screen.getByLabelText('Value 1 formula').value).toBe('item.id');
     });
 
-    it('adds a value and names it', () => {
+    it('adds a value and names it', async () => {
+        const user = userEvent.setup();
         const { lastAction } = renderActions(NAVIGATE);
-        fireEvent.click(screen.getByRole('button', { name: 'Carry a value along' }));
+        await user.click(screen.getByRole('button', { name: 'Carry a value along' }));
         fireEvent.change(screen.getByLabelText('Value 1 name'), { target: { value: 'recordId' } });
         fireEvent.change(screen.getByLabelText('Value 1 formula'), { target: { value: 'item.id' } });
         expect(lastAction().params).toEqual({ recordId: { kind: 'formula', expr: 'item.id' } });
     });
 
-    it('switches a value between a formula and a fixed value', () => {
+    it('switches a value between a formula and a fixed value', async () => {
+        const user = userEvent.setup();
         const { lastAction } = renderActions({ ...NAVIGATE, params: { tab: { kind: 'formula', expr: 'item.tab' } } });
-        fireEvent.click(screen.getByRole('button', { name: 'Use a fixed value' }));
+        await user.click(screen.getByRole('button', { name: 'Use a fixed value' }));
         fireEvent.change(screen.getByLabelText('Value 1'), { target: { value: 'notes' } });
         expect(lastAction().params).toEqual({ tab: { kind: 'static', value: 'notes' } });
     });
 
-    it('removing the last value drops the key entirely', () => {
+    it('removing the last value drops the key entirely', async () => {
+        const user = userEvent.setup();
         const { lastAction } = renderActions({ ...NAVIGATE, params: { tab: { kind: 'static', value: 'x' } } });
-        fireEvent.click(screen.getByRole('button', { name: 'Remove value 1' }));
+        await user.click(screen.getByRole('button', { name: 'Remove value 1' }));
         expect(lastAction()).toEqual({ kind: 'navigate', screenId: 'scr_b' });
         expect(lastAction()).not.toHaveProperty('params');
     });
 
     // params is an object: committing a duplicate name would collapse the two
     // rows and drop the first one's value in silence.
-    it('refuses a name another value already uses, and says why', () => {
+    it('refuses a name another value already uses, and says why', async () => {
+        const user = userEvent.setup();
         const { lastAction } = renderActions({ ...NAVIGATE, params: { a: { kind: 'static', value: '1' } } });
-        fireEvent.click(screen.getByRole('button', { name: 'Carry a value along' }));
+        await user.click(screen.getByRole('button', { name: 'Carry a value along' }));
         fireEvent.change(screen.getByLabelText('Value 2 name'), { target: { value: 'a' } });
 
         expect(screen.getByText(/already goes by that name/i)).toBeTruthy();

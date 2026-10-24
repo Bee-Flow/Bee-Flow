@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Whole-document validation: the passes that span more than one graph — the
  * inline `layers` map, the graph-size ceilings, the hide/reveal pairing check,

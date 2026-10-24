@@ -163,16 +163,11 @@ function register(router) {
         requireCapability('automation_sharing'),
         validate({ body: GrantBody, query: NO_QUERY }),
         async (req, res) => {
-            try {
-                const { granteeType, granteeId, grade } = req.body;
-                if (granteeType === 'group') await validateSharedGroupsForOrg(req.datatable.organizationId, [granteeId]);
-                const grants = await datatableStore.addGrant(req.datatable.id, req.datatableScope,
-                    { granteeType, granteeId, grade, grantedBy: req.session.user.id });
-                res.json({ grants });
-            } catch (e) {
-                if (e.status) return res.status(e.status).json({ error: e.message });
-                throw e;
-            }
+            const { granteeType, granteeId, grade } = req.body;
+            if (granteeType === 'group') await validateSharedGroupsForOrg(req.datatable.organizationId, [granteeId]);
+            const grants = await datatableStore.addGrant(req.datatable.id, req.datatableScope,
+                { granteeType, granteeId, grade, grantedBy: req.session.user.id });
+            res.json({ grants });
         });
 
     router.delete('/:id/grants/:grantId',

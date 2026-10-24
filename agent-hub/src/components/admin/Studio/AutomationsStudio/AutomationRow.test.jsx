@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import AutomationRow from './AutomationRow';
@@ -42,9 +43,10 @@ describe('AutomationRow — more options button', () => {
         expect(btn.className).not.toMatch(/opacity-0/);
     });
 
-    it('opens the same menu the right-click context menu opens, on a left click', () => {
+    it('opens the same menu the right-click context menu opens, on a left click', async () => {
+        const user = userEvent.setup();
         renderRow();
-        fireEvent.click(screen.getByLabelText('More options'));
+        await user.click(screen.getByLabelText('More options'));
         expect(screen.getByText('Duplicate')).toBeTruthy();
         expect(screen.getByText('Export JSON')).toBeTruthy();
         expect(screen.getByText('Move to folder…')).toBeTruthy();
@@ -54,15 +56,17 @@ describe('AutomationRow — more options button', () => {
         expect(screen.getByText('View executions')).toBeTruthy();
     });
 
-    it('does not trigger onSelect when opening the menu via the button', () => {
+    it('does not trigger onSelect when opening the menu via the button', async () => {
+        const user = userEvent.setup();
         const { onSelect } = renderRow();
-        fireEvent.click(screen.getByLabelText('More options'));
+        await user.click(screen.getByLabelText('More options'));
         expect(onSelect).not.toHaveBeenCalled();
     });
 
-    it('still opens onSelect for a normal click elsewhere on the row', () => {
+    it('still opens onSelect for a normal click elsewhere on the row', async () => {
+        const user = userEvent.setup();
         const { onSelect, container } = renderRow();
-        fireEvent.click(container.querySelector('[title="My automation"]'));
+        await user.click(container.querySelector('[title="My automation"]'));
         expect(onSelect).toHaveBeenCalled();
     });
 
@@ -72,10 +76,11 @@ describe('AutomationRow — more options button', () => {
         expect(screen.getByText('Duplicate')).toBeTruthy();
     });
 
-    it('running an item from the menu still calls its handler and closes the menu', () => {
+    it('running an item from the menu still calls its handler and closes the menu', async () => {
+        const user = userEvent.setup();
         const { onDuplicate } = renderRow();
-        fireEvent.click(screen.getByLabelText('More options'));
-        fireEvent.click(screen.getByText('Duplicate'));
+        await user.click(screen.getByLabelText('More options'));
+        await user.click(screen.getByText('Duplicate'));
         expect(onDuplicate).toHaveBeenCalled();
         expect(screen.queryByText('Delete')).toBeNull();
     });

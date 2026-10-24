@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * aiStepEnum: the output schema as tool parameters, and the allowed values
  * (`enumFrom`) from run data to the model and back into the schema. Synthetic

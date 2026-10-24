@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Blog routes of the CMS.
  *

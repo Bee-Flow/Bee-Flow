@@ -1,3 +1,4 @@
+// @typecheck
 const { getProviders, addProvider, updateProvider, deleteProvider, setDefaultProvider, getModelsForProvider, invalidateModelCache } = require('../../core/aiAgent');
 const { getAdapter, baseAdapter } = require('../../core/providers');
 

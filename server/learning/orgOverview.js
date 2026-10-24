@@ -1,3 +1,4 @@
+// @typecheck
 // Org-wide Learning Center aggregation for the admin Academy panel.
 //
 // Members are the org's users (direct organizationId plus group-based

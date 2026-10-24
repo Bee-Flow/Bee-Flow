@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Native Excel charts for the .xlsx writer: a sheet's chart configs (the same
  * shape the editor stores in `settings.sheet.charts`) become DrawingML parts

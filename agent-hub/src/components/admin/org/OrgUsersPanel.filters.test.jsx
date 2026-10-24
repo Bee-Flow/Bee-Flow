@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import OrgUsersPanel from './OrgUsersPanel';
 import { authFetch } from '../../../utils/helpers';
@@ -143,7 +144,7 @@ describe('OrgUsersPanel — member filter bar', () => {
         fireEvent.change(screen.getByDisplayValue('admin.org_all_roles'), { target: { value: 'member' } });
         const clear = await screen.findByText('Clear');
 
-        fireEvent.click(clear);
+        await userEvent.click(clear);
         await waitFor(() => expect(names()).toEqual(['Jan de Vries', 'Eva Bakker', 'Piet Jansen']));
         expect(screen.getByPlaceholderText('Search by name or email…')).toHaveValue('');
         expect(screen.queryByText('Clear')).not.toBeInTheDocument();

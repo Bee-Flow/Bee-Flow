@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 const log = require('../../telemetry/log');
 
@@ -45,7 +46,7 @@ const PERSIST_DEBOUNCE_MS = 250;
  * @param {function} [opts.persist] async (runId, map) => void; injected for tests
  * @param {function} [opts.onEvict] called with the evicted count (audit marker)
  */
-function createTokenVault({ runId = null, seed = null, persist = null, onEvict = null } = {}) {
+function createTokenVault(/** @type {{runId?: string|null, seed?: any, persist?: Function|null, onEvict?: Function|null}} */ { runId = null, seed = null, persist = null, onEvict = null } = {}) {
     /** @type {Record<string,string>} token → real value */
     const map = {};
     let dirty = false;

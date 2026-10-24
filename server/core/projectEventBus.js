@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Cross-replica fan-out for project live updates.
  *

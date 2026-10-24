@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De boot-migratieladder — ÉÉN lijst, twee aanroepers.
  *

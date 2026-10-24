@@ -9,7 +9,8 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/canUse/KnowledgeCard.test.jsx
  */
-import { render, screen, cleanup, fireEvent, within } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import { READ } from './canUseFacts';
@@ -114,13 +115,14 @@ describe('KnowledgeCard — leeg is niet hetzelfde als onleesbaar', () => {
         expect(screen.queryByTestId('agent-knowledge-kbs-unreadable')).toBeNull();
     });
 
-    it('zegt bij een mislukte kennisbanklezing WAT er misging, en nooit "niets gekoppeld"', () => {
+    it('zegt bij een mislukte kennisbanklezing WAT er misging, en nooit "niets gekoppeld"', async () => {
+        const user = userEvent.setup();
         const onRetryKbs = vi.fn();
         render(<KnowledgeCard {...base} kbState={READ.ERROR} onRetryKbs={onRetryKbs} kbRows={[{ id: 'kb1', name: null, documentCount: null, lastContentAt: null, readable: false }]} />);
         const notice = screen.getByTestId('agent-knowledge-kbs-unreadable');
         expect(notice.textContent).toMatch(/Could not load the knowledge bases/i);
         expect(screen.queryByTestId('agent-knowledge-empty')).toBeNull();
-        fireEvent.click(within(notice).getByRole('button'));
+        await user.click(within(notice).getByRole('button'));
         expect(onRetryKbs).toHaveBeenCalled();
     });
 
@@ -133,10 +135,11 @@ describe('KnowledgeCard — leeg is niet hetzelfde als onleesbaar', () => {
 });
 
 describe('KnowledgeCard — de knoppen', () => {
-    it('"+ Koppelen" vraagt de kiezer om de sectie Kennisbanken', () => {
+    it('"+ Koppelen" vraagt de kiezer om de sectie Kennisbanken', async () => {
+        const user = userEvent.setup();
         const onOpenChooser = vi.fn();
         render(<KnowledgeCard {...base} onOpenChooser={onOpenChooser} />);
-        fireEvent.click(screen.getByTestId('agent-knowledge-link'));
+        await user.click(screen.getByTestId('agent-knowledge-link'));
         expect(onOpenChooser).toHaveBeenCalledWith({ section: CHOOSER_SECTION.KNOWLEDGE_BASES, appId: null });
     });
 
@@ -145,25 +148,27 @@ describe('KnowledgeCard — de knoppen', () => {
         expect(screen.queryByTestId('agent-knowledge-link')).toBeNull();
     });
 
-    it('zet de bronverwijzingen in het ⋯-menu en geeft de wijziging door', () => {
+    it('zet de bronverwijzingen in het ⋯-menu en geeft de wijziging door', async () => {
+        const user = userEvent.setup();
         const onIncludeSourceReferencesChange = vi.fn();
         render(<KnowledgeCard {...base} onIncludeSourceReferencesChange={onIncludeSourceReferencesChange} />);
         // Dicht: de schakelaar staat er niet.
         expect(screen.queryByLabelText(/Include source references/i)).toBeNull();
-        fireEvent.click(screen.getByTestId('agent-knowledge-menu'));
+        await user.click(screen.getByTestId('agent-knowledge-menu'));
         const toggle = screen.getByRole('checkbox');
-        fireEvent.click(toggle);
+        await user.click(toggle);
         expect(onIncludeSourceReferencesChange).toHaveBeenCalledWith(true);
     });
 });
 
 describe('KnowledgeCard — de tip over meeting notes', () => {
-    it('staat er altijd en wijst naar de bronnen van de gekoppelde kennisbank', () => {
+    it('staat er altijd en wijst naar de bronnen van de gekoppelde kennisbank', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<KnowledgeCard {...base} kbRows={[KB]} onNavigate={onNavigate} tipKbId="kb1" />);
         const tip = screen.getByTestId('agent-knowledge-tip');
         expect(tip.textContent).toMatch(/meeting tag/i);
-        fireEvent.click(screen.getByTestId('agent-knowledge-tip-action'));
+        await user.click(screen.getByTestId('agent-knowledge-tip-action'));
         expect(onNavigate).toHaveBeenCalledWith('studio/knowledge/kb1/sources');
     });
 

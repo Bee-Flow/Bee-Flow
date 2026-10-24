@@ -1,4 +1,5 @@
 import { render, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import AppList from './AppList';
 import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';
@@ -47,12 +48,13 @@ describe('AppList', () => {
         expect(empty.getByText('Niets.')).toBeTruthy();
     });
 
-    it('fires onRowClick with the whole row — in run mode only', () => {
+    it('fires onRowClick with the whole row — in run mode only', async () => {
+        const user = userEvent.setup();
         // The bug this guards: the spec declared the event, the component did
         // not implement it, and validation happily accepted the wiring.
         const runAction = vi.fn();
         const { container } = renderList(node({}, { onRowClick: 'act_1' }), { runAction });
-        fireEvent.click(container.querySelectorAll('button')[0]);
+        await user.click(container.querySelectorAll('button')[0]);
         expect(runAction).toHaveBeenCalledWith('act_1', { formValues: ROWS[0], item: ROWS[0] });
 
         runAction.mockClear();
@@ -345,12 +347,13 @@ describe('AppList — badgePlacement and selectedDetailKey', () => {
         expect(container.querySelectorAll('[data-app-list-peek]')).toHaveLength(1);
     });
 
-    it('opens the panel on hover and closes it again', () => {
+    it('opens the panel on hover and closes it again', async () => {
+        const user = userEvent.setup();
         const { container, queryByRole } = renderList(peekNode({ peekTitle: 'Wat mist er', peekLimit: 2, peekMoreText: 'nog {count}' }));
         expect(queryByRole('tooltip')).toBe(null);
 
         const badge = container.querySelector('[data-app-list-peek]');
-        fireEvent.mouseEnter(badge);
+        await user.hover(badge);
         const panel = queryByRole('tooltip');
         expect(panel.textContent).toContain('Wat mist er');
         expect(panel.textContent).toContain('no material');
@@ -358,7 +361,7 @@ describe('AppList — badgePlacement and selectedDetailKey', () => {
         expect(panel.textContent).not.toContain('marked');
         expect(panel.textContent).toContain('nog 1');
 
-        fireEvent.mouseLeave(badge);
+        await user.unhover(badge);
         expect(queryByRole('tooltip')).toBe(null);
     });
 

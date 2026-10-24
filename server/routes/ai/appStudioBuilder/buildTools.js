@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio Builder build loop: running one round's tool calls. Each call is
  * applied (the plan tool is the route's own), annotated, reported over SSE,

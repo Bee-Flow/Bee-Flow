@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat prompt assembly: the conversation history. Which history the
  * turn replays (the client's, with the persisted attachment sidecars grafted

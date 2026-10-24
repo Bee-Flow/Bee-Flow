@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
@@ -120,27 +120,29 @@ describe('SoaPage — controls tab', () => {
     });
 
     it('a row click opens the drawer; Save goes through data.soa.update(ref, patch); a second click closes it', async () => {
+        const user = userEvent.setup();
         const props = pageProps();
         render(<SoaPage {...props} />);
-        fireEvent.click(screen.getByTestId('soa-table-row-A.5.1'));
+        await user.click(screen.getByTestId('soa-table-row-A.5.1'));
         expect(screen.getByTestId('soa-drawer')).toBeTruthy();
         expect(screen.getByTestId('soa-drawer-decision-approved')).toBeDisabled(); // CHK-5 is warn
-        fireEvent.click(screen.getByTestId('soa-drawer-decision-reviewed'));
-        fireEvent.click(screen.getByTestId('soa-drawer-actions-primary'));
+        await user.click(screen.getByTestId('soa-drawer-decision-reviewed'));
+        await user.click(screen.getByTestId('soa-drawer-actions-primary'));
         await waitFor(() => expect(props.data.soa.update).toHaveBeenCalledWith('A.5.1', expect.objectContaining({ status: 'reviewed', applicable: true })));
         expect(fetchJson).not.toHaveBeenCalled();
-        fireEvent.click(screen.getByTestId('soa-table-row-A.5.1'));
+        await user.click(screen.getByTestId('soa-table-row-A.5.1'));
         expect(screen.queryByTestId('soa-drawer')).toBeNull();
     });
 
     it('falls back to PUT /iso/soa/:ref through fetchJson when the hook has no update()', async () => {
+        const user = userEvent.setup();
         const props = pageProps();
         const refresh = vi.fn();
         props.data.soa = { soa: soaBody(), busyRef: null, refresh };
         fetchJson.mockResolvedValue({ ok: true });
         render(<SoaPage {...props} />);
-        fireEvent.click(screen.getByTestId('soa-table-row-A.5.1'));
-        fireEvent.click(screen.getByTestId('soa-drawer-actions-primary'));
+        await user.click(screen.getByTestId('soa-table-row-A.5.1'));
+        await user.click(screen.getByTestId('soa-drawer-actions-primary'));
         await waitFor(() => expect(fetchJson).toHaveBeenCalled());
         const [url, init] = fetchJson.mock.calls[0];
         expect(url).toMatch(/\/api\/compliance\/iso\/soa\/A\.5\.1$/);
@@ -163,9 +165,10 @@ describe('SoaPage — controls tab', () => {
 });
 
 describe('SoaPage — phone (artboard 1h)', () => {
-    it('the drawer is a right-side modal, not a 380px card pinned over the table', () => {
+    it('the drawer is a right-side modal, not a 380px card pinned over the table', async () => {
+        const user = userEvent.setup();
         render(<SoaPage {...pageProps({ isMobile: true })} />);
-        fireEvent.click(screen.getByTestId('soa-table-card-A.5.1'));
+        await user.click(screen.getByTestId('soa-table-card-A.5.1'));
         const dialog = document.body.querySelector('[role="dialog"]');
         expect(dialog).not.toBeNull();
         expect(dialog.getAttribute('aria-modal')).toBe('true');
@@ -173,9 +176,10 @@ describe('SoaPage — phone (artboard 1h)', () => {
         expect(screen.getByTestId('soa-drawer').dataset.mode).toBe('modal');
     });
 
-    it('desktop keeps the inline card', () => {
+    it('desktop keeps the inline card', async () => {
+        const user = userEvent.setup();
         render(<SoaPage {...pageProps()} />);
-        fireEvent.click(screen.getByTestId('soa-table-row-A.5.1'));
+        await user.click(screen.getByTestId('soa-table-row-A.5.1'));
         expect(document.body.querySelector('[role="dialog"]')).toBeNull();
         expect(screen.getByTestId('soa-drawer').dataset.mode).toBe('inline');
     });

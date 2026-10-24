@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Video Generation Tool — Veo 3.1 via Google GenAI
  * 
@@ -72,7 +73,7 @@ async function executeVideoGenTool(args, send, req, nanoBananaSettings) {
         : (typeof videoSettings.generateAudio === 'boolean' ? videoSettings.generateAudio : undefined);
     const negativePrompt = args.negative_prompt || undefined;
 
-    log.info(`[VideoGen Tool] Generating: "${prompt.substring(0, 80)}" (${aspectRatio}, ${durationSeconds}s, ${resolution || 'default'}, ${model})`);
+    log.info(`[VideoGen Tool] Generating: "${log.textForLog(prompt)}" (${aspectRatio}, ${durationSeconds}s, ${resolution || 'default'}, ${model})`);
 
     // Notify user that generation is starting (it takes a while)
     send('tool_progress', { name: 'generate_video', message: 'Video generation started — this typically takes 1-3 minutes...' });

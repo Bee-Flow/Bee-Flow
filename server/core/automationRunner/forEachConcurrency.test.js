@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which "run once per item" steps may run items side by side, and the pool that does it.
  *

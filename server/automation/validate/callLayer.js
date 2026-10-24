@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * call_layer (inline Flowlet) collection + validation (§WS5, extracted verbatim
  * from validate.js).

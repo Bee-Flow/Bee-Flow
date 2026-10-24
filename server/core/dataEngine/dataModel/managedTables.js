@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * MANAGED datatables — a table whose COLUMNS the platform owns.
  *

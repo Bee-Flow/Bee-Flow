@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { datatablesApi } from './datatablesApi';
@@ -62,12 +63,13 @@ async function renderRows(props = {}) {
 
 describe('adding a row types every column', () => {
     it('saves a multiselect as an ARRAY, not the string a text box would produce', async () => {
+        const user = userEvent.setup();
         await renderRows();
-        fireEvent.click(screen.getByRole('button', { name: /Add a row/i }));
+        await user.click(screen.getByRole('button', { name: /Add a row/i }));
         const group = await screen.findByRole('group', { name: 'Tags' });
-        fireEvent.click(within(group).getAllByRole('checkbox')[0]);
-        fireEvent.click(within(group).getAllByRole('checkbox')[1]);
-        fireEvent.click(screen.getByRole('button', { name: 'Add row' }));
+        await user.click(within(group).getAllByRole('checkbox')[0]);
+        await user.click(within(group).getAllByRole('checkbox')[1]);
+        await user.click(screen.getByRole('button', { name: 'Add row' }));
 
         await waitFor(() => expect(datatablesApi.addRow).toHaveBeenCalled());
         const [, values] = datatablesApi.addRow.mock.calls[0];
@@ -77,10 +79,11 @@ describe('adding a row types every column', () => {
     });
 
     it('saves an unticked checkbox as false, not as a missing key', async () => {
+        const user = userEvent.setup();
         await renderRows();
-        fireEvent.click(screen.getByRole('button', { name: /Add a row/i }));
+        await user.click(screen.getByRole('button', { name: /Add a row/i }));
         await screen.findByRole('button', { name: 'Add row' });
-        fireEvent.click(screen.getByRole('button', { name: 'Add row' }));
+        await user.click(screen.getByRole('button', { name: 'Add row' }));
 
         await waitFor(() => expect(datatablesApi.addRow).toHaveBeenCalled());
         const [, values] = datatablesApi.addRow.mock.calls[0];
@@ -90,8 +93,9 @@ describe('adding a row types every column', () => {
     });
 
     it('gives a datetime column a datetime-local picker, never free text', async () => {
+        const user = userEvent.setup();
         await renderRows();
-        fireEvent.click(screen.getByRole('button', { name: /Add a row/i }));
+        await user.click(screen.getByRole('button', { name: /Add a row/i }));
         const input = await screen.findByLabelText('Due');
         expect(input).toHaveAttribute('type', 'datetime-local');
         // And a choice column is a dropdown of its own options.
@@ -101,11 +105,12 @@ describe('adding a row types every column', () => {
 
 describe('editing a row', () => {
     it('sends the updated_at it read, so a colleague is not silently overwritten', async () => {
+        const user = userEvent.setup();
         await renderRows();
-        fireEvent.click(screen.getByRole('button', { name: 'Edit this row' }));
+        await user.click(screen.getByRole('button', { name: 'Edit this row' }));
         const email = await screen.findByLabelText('E-mail');
         fireEvent.change(email, { target: { value: 'new@b.c' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Save this row' }));
+        await user.click(screen.getByRole('button', { name: 'Save this row' }));
 
         await waitFor(() => expect(datatablesApi.updateRow).toHaveBeenCalled());
         expect(datatablesApi.updateRow).toHaveBeenCalledWith(
@@ -114,12 +119,13 @@ describe('editing a row', () => {
     });
 
     it('tells the person when someone else changed the row, instead of a bare failure', async () => {
+        const user = userEvent.setup();
         const conflict = Object.assign(new Error('Someone else changed this row'), { code: 'row_conflict', status: 409 });
         datatablesApi.updateRow.mockRejectedValue(conflict);
         await renderRows();
-        fireEvent.click(screen.getByRole('button', { name: 'Edit this row' }));
+        await user.click(screen.getByRole('button', { name: 'Edit this row' }));
         fireEvent.change(await screen.findByLabelText('E-mail'), { target: { value: 'x@y.z' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Save this row' }));
+        await user.click(screen.getByRole('button', { name: 'Save this row' }));
 
         expect(await screen.findByText(/had it open/i)).toBeInTheDocument();
     });
@@ -127,19 +133,21 @@ describe('editing a row', () => {
 
 describe('deleting a row', () => {
     it('asks first, and does nothing until the answer is yes', async () => {
+        const user = userEvent.setup();
         await renderRows();
-        fireEvent.click(screen.getByRole('button', { name: 'Delete this row' }));
+        await user.click(screen.getByRole('button', { name: 'Delete this row' }));
         expect(await screen.findByText(/Delete this row\?/)).toBeInTheDocument();
         expect(datatablesApi.deleteRow).not.toHaveBeenCalled();
 
-        fireEvent.click(screen.getByRole('button', { name: /Delete the row/i }));
+        await user.click(screen.getByRole('button', { name: /Delete the row/i }));
         await waitFor(() => expect(datatablesApi.deleteRow).toHaveBeenCalledWith('tbl_1', 'rec_1'));
     });
 
     it('cancelling leaves the row alone', async () => {
+        const user = userEvent.setup();
         await renderRows();
-        fireEvent.click(screen.getByRole('button', { name: 'Delete this row' }));
-        fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+        await user.click(screen.getByRole('button', { name: 'Delete this row' }));
+        await user.click(await screen.findByRole('button', { name: 'Cancel' }));
         await waitFor(() => expect(screen.queryByText(/Delete this row\?/)).not.toBeInTheDocument());
         expect(datatablesApi.deleteRow).not.toHaveBeenCalled();
     });
@@ -147,6 +155,7 @@ describe('deleting a row', () => {
 
 describe('paging', () => {
     it('Load more APPENDS the next keyset page instead of replacing the first', async () => {
+        const user = userEvent.setup();
         datatablesApi.listRows
             .mockResolvedValueOnce({ rows: [ROW], hasMore: true, count: 1, nextCursor: 'cur-1', total: 2 })
             .mockResolvedValueOnce({
@@ -156,7 +165,7 @@ describe('paging', () => {
         await renderRows();
         expect(screen.getByText(/the 1 most recent of 2/)).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: /Load more/i }));
+        await user.click(screen.getByRole('button', { name: /Load more/i }));
         expect(await screen.findByText('second@b.c')).toBeInTheDocument();
         // Both pages on screen — a replace would look like paging and lose the
         // rows the person was already reading.
@@ -201,11 +210,12 @@ describe('import', () => {
     const WITH_BAD_CHOICE = 'E-mail;Active;Stage\nanna@example.com;ja;new\nbo@example.com;nee;nope';
 
     it('reads a semicolon-delimited European paste and sends ONE bulk request', async () => {
+        const user = userEvent.setup();
         datatablesApi.bulkImport.mockResolvedValue({ inserted: 2, errors: [] });
         await renderRows();
-        fireEvent.click(screen.getByRole('button', { name: /Import/i }));
+        await user.click(screen.getByRole('button', { name: /Import/i }));
         fireEvent.change(await screen.findByLabelText('Pasted rows'), { target: { value: EUROPEAN } });
-        fireEvent.click(await screen.findByRole('button', { name: /Import 2 rows/i }));
+        await user.click(await screen.findByRole('button', { name: /Import 2 rows/i }));
 
         await waitFor(() => expect(datatablesApi.bulkImport).toHaveBeenCalledTimes(1));
         const [, rows] = datatablesApi.bulkImport.mock.calls[0];
@@ -216,11 +226,12 @@ describe('import', () => {
     });
 
     it('reports a value the column cannot hold BY LINE, and never sends that row', async () => {
+        const user = userEvent.setup();
         datatablesApi.bulkImport.mockResolvedValue({ inserted: 1, errors: [] });
         await renderRows();
-        fireEvent.click(screen.getByRole('button', { name: /Import/i }));
+        await user.click(screen.getByRole('button', { name: /Import/i }));
         fireEvent.change(await screen.findByLabelText('Pasted rows'), { target: { value: WITH_BAD_CHOICE } });
-        fireEvent.click(await screen.findByRole('button', { name: /Import 2 rows/i }));
+        await user.click(await screen.findByRole('button', { name: /Import 2 rows/i }));
 
         // 'nope' is not one of the Stage choices. Line 3, counting the header
         // as line 1 — the number the person is looking at in the spreadsheet.

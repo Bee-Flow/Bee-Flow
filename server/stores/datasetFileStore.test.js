@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Dataset File Store — the SQL-enforced upload/ingest state machine.
  *

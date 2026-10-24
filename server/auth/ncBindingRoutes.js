@@ -16,6 +16,7 @@
 
 const express = require('express');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 
 const userStore = require('../stores/userStore');
@@ -161,7 +162,7 @@ router.post('/admin/nc-bindings/:id/approve', requireAuth, async (req, res) => {
             ncAdminDisplayName: row.ncAdminDisplayName,
         });
     } catch (e) {
-        if (e.statusCode === 409) return res.status(409).json({ error: e.message });
+        if (e.statusCode === 409) throw new HttpError(409, 'conflict', e.message);
         throw e;
     }
 

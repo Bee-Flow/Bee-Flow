@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
@@ -100,18 +101,20 @@ describe('ExecutionsPanel — list and run share one mount', () => {
         expect(table.getAttribute('data-step')).toBe('s7');
     });
 
-    it('HIDES the table rather than unmounting it while a run is open', () => {
+    it('HIDES the table rather than unmounting it while a run is open', async () => {
+        const user = userEvent.setup();
         renderPanel();
-        fireEvent.click(screen.getByRole('button', { name: 'open r1' }));
+        await user.click(screen.getByRole('button', { name: 'open r1' }));
         // Still mounted — this is what preserves filters, scroll and pages.
         expect(screen.getByTestId('table')).toBeTruthy();
         expect(tableWrapper().className).toBe('hidden');
         expect(screen.getByTestId('view').getAttribute('data-run')).toBe('r1');
     });
 
-    it('stands the table down (active=false) while a run is open, but leaves the run view active', () => {
+    it('stands the table down (active=false) while a run is open, but leaves the run view active', async () => {
+        const user = userEvent.setup();
         renderPanel({ active: true });
-        fireEvent.click(screen.getByRole('button', { name: 'open r1' }));
+        await user.click(screen.getByRole('button', { name: 'open r1' }));
         expect(screen.getByTestId('table').getAttribute('data-active')).toBe('false');
         expect(screen.getByTestId('view').getAttribute('data-active')).toBe('true');
     });
@@ -122,9 +125,10 @@ describe('ExecutionsPanel — list and run share one mount', () => {
         expect(screen.getByTestId('view').getAttribute('data-active')).toBe('false');
     });
 
-    it('hands the clicked row to the run view as a seed, so the bar can paint before the fetch lands', () => {
+    it('hands the clicked row to the run view as a seed, so the bar can paint before the fetch lands', async () => {
+        const user = userEvent.setup();
         renderPanel();
-        fireEvent.click(screen.getByRole('button', { name: 'open r1' }));
+        await user.click(screen.getByRole('button', { name: 'open r1' }));
         expect(screen.getByTestId('view').getAttribute('data-seed-title')).toBe('Weekly digest');
     });
 
@@ -143,60 +147,67 @@ describe('ExecutionsPanel — list and run share one mount', () => {
 
 // ── reporting to the URL owner ──────────────────────────────────────────────
 describe('ExecutionsPanel — what it reports back', () => {
-    it('reports the open run id on mount and on every change', () => {
+    it('reports the open run id on mount and on every change', async () => {
+        const user = userEvent.setup();
         const onRunIdChange = vi.fn();
         renderPanel({ onRunIdChange });
         expect(onRunIdChange).toHaveBeenLastCalledWith(null);
-        fireEvent.click(screen.getByRole('button', { name: 'open r1' }));
+        await user.click(screen.getByRole('button', { name: 'open r1' }));
         expect(onRunIdChange).toHaveBeenLastCalledWith('r1');
     });
 
-    it('PUSHES when a run opens, so Back closes it', () => {
+    it('PUSHES when a run opens, so Back closes it', async () => {
+        const user = userEvent.setup();
         const onRunStateChange = vi.fn();
         renderPanel({ onRunStateChange });
-        fireEvent.click(screen.getByRole('button', { name: 'open r1' }));
+        await user.click(screen.getByRole('button', { name: 'open r1' }));
         expect(onRunStateChange).toHaveBeenCalledWith({ runId: 'r1', stepId: null }, { replace: false });
     });
 
-    it('REPLACES when a step is selected — same place, refined', () => {
+    it('REPLACES when a step is selected — same place, refined', async () => {
+        const user = userEvent.setup();
         const onRunStateChange = vi.fn();
         renderPanel({ onRunStateChange });
-        fireEvent.click(screen.getByRole('button', { name: 'open r1' }));
+        await user.click(screen.getByRole('button', { name: 'open r1' }));
         onRunStateChange.mockClear();
-        fireEvent.click(screen.getByRole('button', { name: 'select s2' }));
+        await user.click(screen.getByRole('button', { name: 'select s2' }));
         expect(onRunStateChange).toHaveBeenCalledWith({ runId: 'r1', stepId: 's2' }, { replace: true });
         expect(screen.getByTestId('view').getAttribute('data-initial-step')).toBe('s2');
     });
 
-    it('normalises a cleared step selection to null', () => {
+    it('normalises a cleared step selection to null', async () => {
+        const user = userEvent.setup();
         const onRunStateChange = vi.fn();
         renderPanel({ onRunStateChange, initialRunId: 'r1', initialStepId: 's2' });
-        fireEvent.click(screen.getByRole('button', { name: 'clear step' }));
+        await user.click(screen.getByRole('button', { name: 'clear step' }));
         expect(onRunStateChange).toHaveBeenCalledWith({ runId: 'r1', stepId: null }, { replace: true });
     });
 
-    it('REPLACES when the run closes', () => {
+    it('REPLACES when the run closes', async () => {
+        const user = userEvent.setup();
         const onRunStateChange = vi.fn();
         renderPanel({ onRunStateChange, initialRunId: 'r1' });
-        fireEvent.click(screen.getByRole('button', { name: 'back' }));
+        await user.click(screen.getByRole('button', { name: 'back' }));
         expect(onRunStateChange).toHaveBeenLastCalledWith({ runId: null, stepId: null }, { replace: true });
         expect(screen.queryByTestId('view')).toBeNull();
     });
 
-    it('drops the selected step when another run is opened from inside the view', () => {
+    it('drops the selected step when another run is opened from inside the view', async () => {
+        const user = userEvent.setup();
         renderPanel({ initialRunId: 'r1', initialStepId: 's2' });
-        fireEvent.click(screen.getByRole('button', { name: 'open r2' }));
+        await user.click(screen.getByRole('button', { name: 'open r2' }));
         const view = screen.getByTestId('view');
         expect(view.getAttribute('data-run')).toBe('r2');
         expect(view.getAttribute('data-initial-step')).toBe('null');
     });
 
-    it('pushes a history entry for a run it cannot open when the row carries no id (wrat)', () => {
+    it('pushes a history entry for a run it cannot open when the row carries no id (wrat)', async () => {
+        const user = userEvent.setup();
         // openRunAndReport reports before checking that the run is openable:
         // the view never mounts, but the owner is told to PUSH runId:null.
         const onRunStateChange = vi.fn();
         renderPanel({ onRunStateChange });
-        fireEvent.click(screen.getByRole('button', { name: 'open a run with no id' }));
+        await user.click(screen.getByRole('button', { name: 'open a run with no id' }));
         expect(screen.queryByTestId('view')).toBeNull();
         expect(onRunStateChange).toHaveBeenCalledWith({ runId: null, stepId: null }, { replace: false });
     });
@@ -208,11 +219,12 @@ describe('ExecutionsPanel — closing prefers real history navigation', () => {
     beforeEach(() => { back = vi.spyOn(window.history, 'back').mockImplementation(() => {}); });
     afterEach(() => { back.mockRestore(); });
 
-    it('calls history.back() and changes NOTHING itself when this run was the last push', () => {
+    it('calls history.back() and changes NOTHING itself when this run was the last push', async () => {
+        const user = userEvent.setup();
         const onRunStateChange = vi.fn();
         window.history.replaceState({ page: 'studio', beeflowRunOpen: 'r1' }, '', '/');
         renderPanel({ onRunStateChange, initialRunId: 'r1' });
-        fireEvent.click(screen.getByRole('button', { name: 'back' }));
+        await user.click(screen.getByRole('button', { name: 'back' }));
         expect(back).toHaveBeenCalledTimes(1);
         // The run stays open until the popstate actually arrives — the owner
         // is expected to move ?run= and feed a new initialRunId back in.
@@ -220,20 +232,22 @@ describe('ExecutionsPanel — closing prefers real history navigation', () => {
         expect(onRunStateChange).not.toHaveBeenCalled();
     });
 
-    it('closes locally when the stamped history entry belongs to a DIFFERENT run', () => {
+    it('closes locally when the stamped history entry belongs to a DIFFERENT run', async () => {
+        const user = userEvent.setup();
         const onRunStateChange = vi.fn();
         window.history.replaceState({ page: 'studio', beeflowRunOpen: 'r9' }, '', '/');
         renderPanel({ onRunStateChange, initialRunId: 'r1' });
-        fireEvent.click(screen.getByRole('button', { name: 'back' }));
+        await user.click(screen.getByRole('button', { name: 'back' }));
         expect(back).not.toHaveBeenCalled();
         expect(screen.queryByTestId('view')).toBeNull();
         expect(onRunStateChange).toHaveBeenLastCalledWith({ runId: null, stepId: null }, { replace: true });
     });
 
-    it('closes locally when nothing stamped the history entry', () => {
+    it('closes locally when nothing stamped the history entry', async () => {
+        const user = userEvent.setup();
         window.history.replaceState({ page: 'studio' }, '', '/');
         renderPanel({ initialRunId: 'r1' });
-        fireEvent.click(screen.getByRole('button', { name: 'back' }));
+        await user.click(screen.getByRole('button', { name: 'back' }));
         expect(back).not.toHaveBeenCalled();
         expect(screen.queryByTestId('view')).toBeNull();
     });
@@ -273,11 +287,12 @@ describe('ExecutionsPanel — adopting Back/Forward', () => {
 
 // ── studio chrome ───────────────────────────────────────────────────────────
 describe('ExecutionsPanel — collapsing the studio chrome', () => {
-    it('reports editing=false at mount and true once a run is open (global scope only)', () => {
+    it('reports editing=false at mount and true once a run is open (global scope only)', async () => {
+        const user = userEvent.setup();
         const onEditingChange = vi.fn();
         renderPanel({ scope: 'global', onEditingChange });
         expect(onEditingChange).toHaveBeenLastCalledWith(false);
-        fireEvent.click(screen.getByRole('button', { name: 'open r1' }));
+        await user.click(screen.getByRole('button', { name: 'open r1' }));
         expect(onEditingChange).toHaveBeenLastCalledWith(true);
     });
 

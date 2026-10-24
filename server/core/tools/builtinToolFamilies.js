@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Core's own tool families: the tools that are Bee Flow itself rather than a
  * third-party integration (skills, media generation, reminders, Cowork,
@@ -154,7 +155,8 @@ async function executeSetAiTask(toolName, toolArgs, context) {
         if (currentCount >= maxTasks) {
             return { error: `Maximum number of cowork items reached (${maxTasks}). The user needs to delete or pause an existing one first.` };
         }
-        const task = await coworkStore.createSchedule({
+        // createSchedule's optional fields (toolsEnabled, agentId, ...) are not declared optional.
+        const task = await coworkStore.createSchedule(/** @type {any} */ ({
             userId,
             title: toolArgs.title,
             prompt: toolArgs.prompt,
@@ -162,7 +164,7 @@ async function executeSetAiTask(toolName, toolArgs, context) {
             nextRunAt: toolArgs.first_run_at,
             modelTier: toolArgs.model_tier || 'fast',
             timezone: context?.timezone || 'UTC',
-        });
+        }));
         return {
             success: true,
             task_id: task.id,

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A step's mappings that found nothing survive the database and come back on
  * the step row (automation_run_steps.binding_warnings → rowToRunStep's

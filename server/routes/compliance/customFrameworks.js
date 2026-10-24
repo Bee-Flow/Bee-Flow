@@ -34,6 +34,7 @@
  */
 
 const express = require('express');
+const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 
 const complianceStore = require('../../stores/complianceStore');
@@ -154,7 +155,7 @@ const AttestationsQuery = z.object({
 function _badRequest(res, e) {
     if (e instanceof customFrameworkStore.InvalidCodeError) return res.status(400).json({ error: e.code, message: e.message });
     if (e instanceof customFrameworkStore.CodeTakenError) return res.status(409).json({ error: e.code, message: e.message });
-    return res.status(400).json({ error: e.message });
+    throw new HttpError(400, 'invalid_framework', e.message);
 }
 
 function _isUuid(v) {
@@ -286,7 +287,7 @@ router.post('/custom/frameworks/:id/checks', ...guard, validate({ body: ChecksBo
         _invalidateCounts(orgId);
         res.json({ checks: list, count: list.length });
     } catch (e) {
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 
@@ -335,7 +336,7 @@ router.post('/custom/checks/:id/attest', ...guard, validate({ body: AttestBody }
         _invalidateCounts(orgId);
         res.status(201).json(attestation);
     } catch (e) {
-        res.status(400).json({ error: e.message });
+        throw new HttpError(400, 'bad_request', e.message);
     }
 });
 

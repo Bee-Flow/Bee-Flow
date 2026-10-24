@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { describeAction, actionOptions } from './actionLabels';
@@ -105,20 +106,22 @@ describe('MultiInspector — bulk delete', () => {
 
     // Deleting ONE container asks first; deleting five from here did not ask at
     // all, and a bulk delete is where the most is at stake.
-    it('asks before destroying a selection that holds other components', () => {
+    it('asks before destroying a selection that holds other components', async () => {
+        const user = userEvent.setup();
         const onCommit = renderMulti([card, heading], ['cmp_card', 'cmp_h']);
-        fireEvent.click(screen.getByLabelText('Delete selected'));
+        await user.click(screen.getByLabelText('Delete selected'));
         expect(onCommit).not.toHaveBeenCalled();
         expect(screen.getByText('Delete 2 components?')).toBeTruthy();
 
-        fireEvent.click(screen.getByText('Delete'));
+        await user.click(screen.getByText('Delete'));
         expect(onCommit).toHaveBeenCalled();
     });
 
-    it('does not ask when nothing in the selection holds anything', () => {
+    it('does not ask when nothing in the selection holds anything', async () => {
+        const user = userEvent.setup();
         const other = { id: 'cmp_h2', type: 'heading', props: { text: 'Yo', level: 2 }, style: {} };
         const onCommit = renderMulti([heading, other], ['cmp_h', 'cmp_h2']);
-        fireEvent.click(screen.getByLabelText('Delete selected'));
+        await user.click(screen.getByLabelText('Delete selected'));
         expect(onCommit).toHaveBeenCalled();
     });
 });
@@ -194,20 +197,22 @@ describe('TabsInspector — deleting a tab', () => {
         return onCommit;
     }
 
-    it('asks before destroying a tab that holds components', () => {
+    it('asks before destroying a tab that holds components', async () => {
+        const user = userEvent.setup();
         const onCommit = renderTabs();
-        fireEvent.click(screen.getByLabelText('Delete tab 2'));
+        await user.click(screen.getByLabelText('Delete tab 2'));
         expect(onCommit).not.toHaveBeenCalled();
         expect(screen.getByText('Delete the “Details” tab?')).toBeTruthy();
         expect(screen.getByText(/holds 1 component/)).toBeTruthy();
 
-        fireEvent.click(screen.getByText('Delete'));
+        await user.click(screen.getByText('Delete'));
         expect(onCommit).toHaveBeenCalled();
     });
 
-    it('deletes an empty tab straight away', () => {
+    it('deletes an empty tab straight away', async () => {
+        const user = userEvent.setup();
         const onCommit = renderTabs();
-        fireEvent.click(screen.getByLabelText('Delete tab 1'));
+        await user.click(screen.getByLabelText('Delete tab 1'));
         expect(onCommit).toHaveBeenCalled();
     });
 });

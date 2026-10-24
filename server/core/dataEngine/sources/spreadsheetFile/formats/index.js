@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The file formats a spreadsheet mirror can read, and the two it can write.
  *
@@ -130,6 +131,8 @@ async function listSheets(buffer, format) {
  * One worksheet as header + rows, the reader's contract:
  * `{ sheet, header, rows, rowNumbers, formulaCols:Set, dateCols:Set, numFmts:Map, lastDataRow, truncated, warnings, csv? }`
  * — cells are string | number | boolean | UTC wall-clock Date | null (cells.js).
+ * @param {Buffer} buffer
+ * @param {{ format?:string, sheet?:any, headerRow?:number, maxRows?:number, maxCols?:number }} [opts]
  */
 async function readSheet(buffer, { format, sheet = null, headerRow = 1, maxRows = MAX_ROWS, maxCols = MAX_COLS } = {}) {
     assertSize(buffer);
@@ -155,6 +158,8 @@ async function readSheet(buffer, { format, sheet = null, headerRow = 1, maxRows 
  * stored sniff (a fallback: the csv editor sniffs the bytes it edits);
  * `expectSpan` is the header width the ops were located in (csv refuses a
  * file whose header no longer has that width).
+ * @param {Buffer} buffer
+ * @param {{ format?:string, sheet?:any, headerRow?:number, ops?:any[], columns?:Record<string, any>, csv?:any, expectSpan?:any }} [opts]
  * @returns {Promise<{ buffer:Buffer, appended:number[], lastDataRow:number, skipped?:Array, csv?:object }>}
  */
 async function editInPlace(buffer, { format, sheet = null, headerRow = 1, ops = [], columns = {}, csv = null, expectSpan = null } = {}) {

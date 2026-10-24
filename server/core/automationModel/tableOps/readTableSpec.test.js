@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /** The read_table step's settings: defaults, clamping and the findings of a bad one. */
 

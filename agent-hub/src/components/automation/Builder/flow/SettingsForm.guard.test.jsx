@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { editorWithValue, typeInEditor } from '../../../../test/refEditor';
@@ -54,27 +55,30 @@ describe('SettingsForm — guard', () => {
     });
 
     it('saves what to scan', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(guardStep({ sourceRef: '' }));
         typeInEditor(screen.getAllByRole('textbox').find(el => el.hasAttribute('data-ref-editor')), 'trigger.output.body');
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls.at(-1)[0].sourceRef).toBe('trigger.output.body');
     });
 
     it('an untouched category list stays INHERITED rather than freezing today\'s policy', async () => {
+        const user = userEvent.setup();
         // Writing the full list into the step would silently stop it following
         // the organisation the next time a category is added.
         const { onPatch } = renderForm(guardStep());
         // Something else has to change for there to BE a save — the point is
         // that saving does not quietly materialise the inherited settings.
-        fireEvent.click(screen.getByRole('checkbox', { name: /Stop the run/i }));
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByRole('checkbox', { name: /Stop the run/i }));
+        await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls.at(-1)[0].categories).toBeUndefined();
         expect(onPatch.mock.calls.at(-1)[0].confidence).toBeUndefined();
     });
 
     it('unticking one category narrows the scan to the rest, not to that one', async () => {
+        const user = userEvent.setup();
         // Nothing selected means "everything the org looks for", so the first
         // click has to start from that whole list — starting from empty would
         // turn one tick into "scan for only this", the opposite of the gesture.
@@ -82,8 +86,8 @@ describe('SettingsForm — guard', () => {
         // By id, not by label — the label is translated, the id is what
         // reaches the detector.
         await waitFor(() => expect(document.querySelector('[data-pii-category="Email"]')).toBeTruthy());
-        fireEvent.click(document.querySelector('[data-pii-category="Email"]'));
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(document.querySelector('[data-pii-category="Email"]'));
+        await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const { categories } = onPatch.mock.calls.at(-1)[0];
         expect(categories.length).toBeGreaterThan(1);
@@ -92,9 +96,10 @@ describe('SettingsForm — guard', () => {
     });
 
     it('records the two on-found actions', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(guardStep());
-        fireEvent.click(screen.getByLabelText(/Stop the run/i, { selector: 'input' }).closest('input') || screen.getByRole('checkbox', { name: /Stop the run/i }));
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByLabelText(/Stop the run/i, { selector: 'input' }).closest('input') || screen.getByRole('checkbox', { name: /Stop the run/i }));
+        await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls.at(-1)[0].onFound).toEqual({ stop: true });
     });
@@ -148,10 +153,11 @@ describe('SettingsForm — guard', () => {
     });
 
     it('a tokenize step never saves the guard-only onFound block', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm({ ...guardStep(), type: 'tokenize' });
         await waitFor(() => expect(document.querySelector('[data-pii-category="Email"]')).toBeTruthy());
-        fireEvent.click(document.querySelector('[data-pii-category="Email"]'));
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(document.querySelector('[data-pii-category="Email"]'));
+        await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls.at(-1)[0]).not.toHaveProperty('onFound');
     });

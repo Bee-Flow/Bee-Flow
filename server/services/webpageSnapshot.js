@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage Snapshot Service — capture an immutable, sanitized copy of a
  * webpage for external/public sharing.
@@ -157,7 +158,7 @@ function harden(html) {
 /**
  * CSS sanitization. DOMPurify doesn't process raw stylesheets, so we run a
  * narrow regex sweep to remove the patterns that can exfiltrate or escape:
- *   • @import          — can pull external CSS that itself contains exfil
+ *   • at-import rules  — can pull external CSS that itself contains exfil
  *   • url(javascript:) — IE-legacy, but trivially cheap to block
  *   • expression()     — same
  * Modern CSS isn't capable of script execution on its own, so we leave the

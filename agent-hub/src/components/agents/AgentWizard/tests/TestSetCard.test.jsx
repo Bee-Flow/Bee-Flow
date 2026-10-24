@@ -14,7 +14,8 @@
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/tests/TestSetCard.test.jsx
  */
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
@@ -199,10 +200,11 @@ describe('TestSetCard — een weigering is geen mislukte test', () => {
         expect(screen.queryByTestId('agent-tests-refusal-retry')).toBeNull();
     });
 
-    it('een lezing die omviel biedt wél opnieuw proberen', () => {
+    it('een lezing die omviel biedt wél opnieuw proberen', async () => {
+        const user = userEvent.setup();
         const onRetryRun = vi.fn();
         render(<TestSetCard {...base} refusal={refusalFor({ status: 503, body: { code: 'org_check_failed' } })} onRetryRun={onRetryRun} />);
-        fireEvent.click(screen.getByTestId('agent-tests-refusal-retry'));
+        await user.click(screen.getByTestId('agent-tests-refusal-retry'));
         expect(onRetryRun).toHaveBeenCalled();
     });
 
@@ -243,46 +245,51 @@ describe('TestSetCard — een lopende run', () => {
 });
 
 describe('TestSetCard — Bekijk', () => {
-    it('vouwt de vragen en de historie open, en haalt ze pas dan op', () => {
+    it('vouwt de vragen en de historie open, en haalt ze pas dan op', async () => {
+        const user = userEvent.setup();
         const onOpenDetail = vi.fn();
         render(<TestSetCard {...base} lastRun={run()} runs={[{ id: 'r1', passed: 11, total: 12, ranAt: RAN_AT, version: 3, results: { items: [] } }]} onOpenDetail={onOpenDetail} />);
         expect(screen.queryByTestId('agent-tests-detail')).toBeNull();
         expect(onOpenDetail).not.toHaveBeenCalled();
 
-        fireEvent.click(screen.getByTestId('agent-tests-view'));
+        await user.click(screen.getByTestId('agent-tests-view'));
         expect(onOpenDetail).toHaveBeenCalledTimes(1);
         expect(screen.getByTestId('agent-tests-detail')).toBeInTheDocument();
         expect(screen.getAllByTestId('agent-tests-question-row')).toHaveLength(12);
         expect(screen.getAllByTestId('agent-tests-run-row')).toHaveLength(1);
     });
 
-    it('een vraag die niet in de laatste run zat krijgt geen oordeel', () => {
+    it('een vraag die niet in de laatste run zat krijgt geen oordeel', async () => {
+        const user = userEvent.setup();
         const withExtra = [...tests(12), { id: 'brand-new', name: 'Brand new', question: 'q', createdAt: '2026-09-01T00:00:00.000Z', updatedAt: '2026-09-01T00:00:00.000Z' }];
         render(<TestSetCard {...base} tests={withExtra} lastRun={run()} />);
-        fireEvent.click(screen.getByTestId('agent-tests-view'));
+        await user.click(screen.getByTestId('agent-tests-view'));
         const rows = screen.getAllByTestId('agent-tests-question-row');
         const last = rows[rows.length - 1];
         expect(last).toHaveAttribute('data-status', 'none');
         expect(last.textContent).toMatch(/Not part of the last run/);
     });
 
-    it('BIJT — een historie die niet gelezen kon worden is geen lege historie', () => {
+    it('BIJT — een historie die niet gelezen kon worden is geen lege historie', async () => {
+        const user = userEvent.setup();
         render(<TestSetCard {...base} lastRun={run()} runs={[]} runsUnknown />);
-        fireEvent.click(screen.getByTestId('agent-tests-view'));
+        await user.click(screen.getByTestId('agent-tests-view'));
         expect(screen.getByTestId('agent-tests-runs-unreadable')).toBeInTheDocument();
         expect(screen.queryByTestId('agent-tests-runs-empty')).toBeNull();
     });
 
-    it('zegt hoeveel runs er bewaard blijven zodra de lijst vol is', () => {
+    it('zegt hoeveel runs er bewaard blijven zodra de lijst vol is', async () => {
+        const user = userEvent.setup();
         const many = Array.from({ length: 20 }, (_, i) => ({ id: `r${i}`, passed: 1, total: 1, ranAt: RAN_AT, version: 1, results: { items: [] } }));
         render(<TestSetCard {...base} lastRun={run()} runs={many} runsKeep={20} />);
-        fireEvent.click(screen.getByTestId('agent-tests-view'));
+        await user.click(screen.getByTestId('agent-tests-view'));
         expect(screen.getByTestId('agent-tests-runs-pruned').textContent).toBe('Only the last 20 runs are kept.');
     });
 
-    it('een run in de historie die niet afgerond is, toont geen score', () => {
+    it('een run in de historie die niet afgerond is, toont geen score', async () => {
+        const user = userEvent.setup();
         render(<TestSetCard {...base} runs={[{ id: 'r1', passed: 5, total: 0, ranAt: RAN_AT, results: {} }]} />);
-        fireEvent.click(screen.getByTestId('agent-tests-view'));
+        await user.click(screen.getByTestId('agent-tests-view'));
         const row = screen.getByTestId('agent-tests-run-row');
         expect(row).toHaveAttribute('data-state', 'unfinished');
         expect(row.textContent).not.toMatch(/5 of 0/);
@@ -290,14 +297,15 @@ describe('TestSetCard — Bekijk', () => {
 });
 
 describe('TestSetCard — de knoppen', () => {
-    it('"+ Dit gesprek als test" staat er alleen als er een gesprek is', () => {
+    it('"+ Dit gesprek als test" staat er alleen als er een gesprek is', async () => {
+        const user = userEvent.setup();
         const onAddFromChat = vi.fn();
         const { rerender } = render(<TestSetCard {...base} onAddFromChat={onAddFromChat} canAddFromChat={false} />);
         expect(screen.queryByTestId('agent-tests-add-from-chat')).toBeNull();
         expect(screen.getByTestId('agent-tests-add-hint')).toBeInTheDocument();
 
         rerender(<TestSetCard {...base} onAddFromChat={onAddFromChat} canAddFromChat />);
-        fireEvent.click(screen.getByTestId('agent-tests-add-from-chat'));
+        await user.click(screen.getByTestId('agent-tests-add-from-chat'));
         expect(onAddFromChat).toHaveBeenCalled();
     });
 
@@ -428,29 +436,32 @@ describe('BIJT — waar de score OVER gaat, en wie de vraag schreef', () => {
         expect(about.textContent).not.toMatch(/about v/);
     });
 
-    it('een verwachting die een model opschreef draagt dat merkje ook na het opslaan', () => {
+    it('een verwachting die een model opschreef draagt dat merkje ook na het opslaan', async () => {
+        const user = userEvent.setup();
         const list = tests(2);
         list[0] = { ...list[0], writtenBy: { mustMention: 'ai', notes: 'human' } };
         render(<TestSetCard {...base} tests={list} lastRun={run()} />);
-        fireEvent.click(screen.getByTestId('agent-tests-view'));
+        await user.click(screen.getByTestId('agent-tests-view'));
         expect(screen.getAllByTestId('agent-tests-question-ai')).toHaveLength(1);
     });
 
-    it('een vraag die iemand zelf tikte draagt er geen', () => {
+    it('een vraag die iemand zelf tikte draagt er geen', async () => {
+        const user = userEvent.setup();
         render(<TestSetCard {...base} tests={tests(2)} lastRun={run()} />);
-        fireEvent.click(screen.getByTestId('agent-tests-view'));
+        await user.click(screen.getByTestId('agent-tests-view'));
         expect(screen.queryByTestId('agent-tests-question-ai')).toBeNull();
     });
 });
 
 describe('BIJT — een historierij spreekt over zichzelf', () => {
-    it('noemt zich niet "The last run"', () => {
+    it('noemt zich niet "The last run"', async () => {
+        const user = userEvent.setup();
         const rows = [
             { id: 'r9', version: 4, passed: 5, total: 0, ranAt: RAN_AT, results: {} },
             { id: 'r8', version: 3, passed: 11, total: 12, ranAt: RAN_AT, results: { items: Array.from({ length: 12 }, () => item()) } },
         ];
         render(<TestSetCard {...base} lastRun={run()} runs={rows} runsKeep={20} />);
-        fireEvent.click(screen.getByTestId('agent-tests-view'));
+        await user.click(screen.getByTestId('agent-tests-view'));
         const [first] = screen.getAllByTestId('agent-tests-run-row');
         expect(first).toHaveAttribute('data-state', 'unfinished');
         expect(first.textContent).toMatch(/This run did not finish/);

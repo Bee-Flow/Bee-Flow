@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Een geplande run moet de tier oplossen ONDER DE ORG VAN ZIJN EIGENAAR.
  *

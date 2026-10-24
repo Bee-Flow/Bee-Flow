@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NIS2-Art21(2)(f)-effectiveness-review — audit/management review + sweep freshness.
  * Run: cd server && node --test --test-force-exit compliance/checks/nis2/effectiveness-review.test.js

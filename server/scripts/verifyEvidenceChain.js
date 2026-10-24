@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Verify one organisation's compliance evidence chain and print the report.
  *

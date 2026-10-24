@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Support SLA enforcer — computes first-response / resolution due dates from
  * the configured policies and flags breaches on a 60s tick.
@@ -38,10 +39,10 @@ async function _notifyBreach(row, which) {
     try { notifyStaff = require('../support/notifications').notifyStaff; } catch (err) { log.debug('noop', err); }
     const label = which === 'first' ? 'First-response' : 'Resolution';
     try {
-        await supportStore.recordThreadEvent({
+        await supportStore.recordThreadEvent(/** @type {any} */ ({
             threadId: row.id, actorUserId: null, actorKind: 'automation',
             action: 'sla_breach', payload: { which },
-        });
+        }));
     } catch (e) { log.warn('[SupportSLA] recordThreadEvent failed:', e.message); }
 
     if (typeof notifyStaff === 'function') {
@@ -97,6 +98,7 @@ async function slaTick() {
  * Mount the SLA tick behind the runtime module gate, so removing Support in
  * the admin Modules panel stops breach flagging on a running pod (BFSF-438).
  * `gate` is a test seam; the exported slaTick stays ungated.
+ * @param {{ intervalMs?: number, gate?: Function }} [opts]
  */
 function start({ intervalMs = 60_000, gate } = {}) {
     if (_timer) return;

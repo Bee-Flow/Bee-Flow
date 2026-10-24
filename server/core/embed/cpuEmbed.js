@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * In-process embeddings via Transformers.js.
  *
@@ -98,7 +99,7 @@ function withTimeout(promise, ms, label) {
  * can fall back gracefully.
  *
  * @param {string[]} texts
- * @param {{ kind?: 'query'|'passage' }} [options] — controls the
+ * @param {{ kind?: 'query'|'passage' }} [options] controls the
  *   multilingual-e5 prefix. Default 'passage' (storage); use 'query'
  *   for the search-time embedding.
  * @returns {Promise<number[][]>}

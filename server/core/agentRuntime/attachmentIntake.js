@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Streaming agent chat — attachment intake.
  *
@@ -157,8 +158,8 @@ async function processTurnAttachments({ messageMetadata, lastMsg, userId, modelT
                             findings: [],
                             provider: { isExternal: false, reason: sseReason },
                         });
-                        const dlpStore = require('../../stores/guardrailEventStore');
-                        dlpStore.logGuardrailEvent({
+                        const guardEvents = require('../../stores/guardrailEventStore');
+                        guardEvents.logGuardrailEvent({
                             organization_id: agent.organization_id || null,
                             user_id: userId || null,
                             agent_id: agentId || null,

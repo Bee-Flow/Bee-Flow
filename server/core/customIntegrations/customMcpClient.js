@@ -392,7 +392,7 @@ async function discoverTools(integration, { secretObject = null } = {}) {
  * the org connection's credential, reusing a pooled connection, and
  * returning scrubbed text capped at MAX_RESULT_CHARS.
  *
- * @param {object} integration  shaped row; the ACTIVATED definition is preferred
+ * @param {any} integration  shaped row; the ACTIVATED definition is preferred
  * @param {string} rawToolName  remote tool name, or the prefixed cint_<slug>_<name>
  * @param {object} args         tool arguments (already schema-checked upstream)
  * @param {string} userId       running user (pool identity + BYO resolution)

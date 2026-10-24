@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — sheetScan (which spreadsheet in an order package is the BOM).
  *

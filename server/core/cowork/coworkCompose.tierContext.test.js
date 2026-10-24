@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De composer schrijft de opdracht UIT DE WOORDEN VAN DE GEBRUIKER — dus ook
  * hij lost zijn model op onder de org van die gebruiker (EU-overrides en

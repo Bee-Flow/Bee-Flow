@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * File version history — list the previous versions of a file id and restore
  * one of them.

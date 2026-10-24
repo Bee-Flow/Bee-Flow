@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Reminder Routes — REST API for user-bound reminders.
  *

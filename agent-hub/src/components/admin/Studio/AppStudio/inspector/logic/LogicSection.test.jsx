@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import LogicSection from './LogicSection';
 import { findNode } from '../../state/definitionOps';
@@ -76,11 +77,12 @@ describe('LogicSection', () => {
         expect(queryByText('Validation')).toBeNull();
     });
 
-    it('toggling Visible off commits visible:false', () => {
+    it('toggling Visible off commits visible:false', async () => {
+        const user = userEvent.setup();
         const node = { id: 'cmp_b1', type: 'button', props: { label: 'Go' }, style: {} };
         const { lastDef, getAllByRole } = renderLogic(node);
         // The Visible toggle is the section's first (and only) checkbox.
-        fireEvent.click(getAllByRole('checkbox')[0]);
+        await user.click(getAllByRole('checkbox')[0]);
         expect(findNode(lastDef(), 'cmp_b1').node.visible).toBe(false);
     });
 });

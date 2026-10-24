@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import LogicSection from './LogicSection';
@@ -139,9 +140,10 @@ describe('LogicSection — server contract', () => {
             .toBeGreaterThan(0);
     });
 
-    it('a computed value commits a formula that round-trips', () => {
+    it('a computed value commits a formula that round-trips', async () => {
+        const user = userEvent.setup();
         const { lastNode, lastDef, getByPlaceholderText, getByText } = renderLogic(TEXT);
-        fireEvent.click(getByText('Compute a value'));
+        await user.click(getByText('Compute a value'));
         fireEvent.change(
             getByPlaceholderText("e.g. item.status == 'done' ? 'Done' : 'Open'"),
             { target: { value: 'item.name' } },
@@ -153,9 +155,10 @@ describe('LogicSection — server contract', () => {
         expect(saved.errors).toEqual([]);
     });
 
-    it('a computed row with no formula yet is never committed', () => {
+    it('a computed row with no formula yet is never committed', async () => {
+        const user = userEvent.setup();
         const { onCommit, getByText } = renderLogic(TEXT);
-        fireEvent.click(getByText('Compute a value'));
+        await user.click(getByText('Compute a value'));
         expect(onCommit).not.toHaveBeenCalled();
         // …because an empty expression is rejected outright.
         expect(roundTrip(defWith({ id: NODE_ID, ...TEXT, computed: { text: { kind: 'formula', expr: '' } } })).errors.length)

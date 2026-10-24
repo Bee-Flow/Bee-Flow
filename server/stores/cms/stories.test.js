@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Customer stories (issue #239): story pages are ordinary CMS pages that carry
  * a story-header block; the grid reads their cards from the PUBLISHED snapshot.

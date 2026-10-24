@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * AI Routes — Slim Router Mount
  * 

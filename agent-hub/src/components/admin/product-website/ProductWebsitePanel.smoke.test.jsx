@@ -3,6 +3,7 @@
 // network boundary (mocked authFetch), driving the edit through the real
 // cms-edit postMessage protocol rather than editor internals.
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -208,10 +209,11 @@ describe('ProductWebsitePanel smoke', () => {
     });
 
     it('refuses canvas mutations while the AI builder turn is running (stream lock)', async () => {
+        const user = userEvent.setup();
         const iframe = await renderLoadedPanel();
         // Open the (stubbed) assistant and start a turn via the real bridge.
-        fireEvent.click(screen.getByTitle('Build pages with the AI assistant'));
-        fireEvent.click(await screen.findByTestId('begin-turn'));
+        await user.click(screen.getByTitle('Build pages with the AI assistant'));
+        await user.click(await screen.findByTestId('begin-turn'));
         await screen.findAllByText('AI is editing — Stop to take over'); // lock scrim up
         postFromIframe(iframe, { type: 'cms-block-action', blockId: 'b1', action: 'move-down' });
         // Refusal is loud (toast) …
@@ -227,9 +229,10 @@ describe('ProductWebsitePanel smoke', () => {
     });
 
     it('publishes after draining saves and updates the status pill', async () => {
+        const user = userEvent.setup();
         await renderLoadedPanel();
         expect(screen.getByText('Draft — never published')).toBeInTheDocument();
-        fireEvent.click(screen.getByText('Publish'));
+        await user.click(screen.getByText('Publish'));
         await waitFor(() => {
             expect(callsMatching('/publish', 'POST').length).toBe(1);
         }, { timeout: 3000 });

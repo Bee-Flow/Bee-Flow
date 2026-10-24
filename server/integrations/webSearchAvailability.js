@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Is a web search provider set up on this installation?

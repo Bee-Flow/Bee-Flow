@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CRA Annex I Part II(5) / Art. 13(6) — coordinated vulnerability disclosure
  * policy published.
@@ -217,7 +218,7 @@ module.exports = {
      * The returned object lands in the evidence chain — no e-mail address
      * in it, only booleans and the public policy URL.
      */
-    async autoFix(orgId, { actorId } = {}) {
+    async autoFix(orgId, /** @type {{actorId?: any}} */ { actorId } = {}) {
         const settings = await complianceStore.getSettings(orgId) || {};
         const policy = _httpUrl(settings.vuln_disclosure_url);
         const psirtSet = typeof settings.psirt_contact_email === 'string' && /@/.test(settings.psirt_contact_email);
@@ -253,4 +254,4 @@ module.exports = {
     },
 };
 
-module.exports._test = { _publicBaseUrl, _httpUrl, _sameUrl, SECURITY_TXT_PATH };
+Object.assign(module.exports, { _test: { _publicBaseUrl, _httpUrl, _sameUrl, SECURITY_TXT_PATH } });

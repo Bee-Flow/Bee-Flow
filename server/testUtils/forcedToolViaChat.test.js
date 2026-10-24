@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The forced-tool test double: a JSON object reply is parsed into `structured`,
  * prose (or any other JSON shape) leaves it null and the text in `content`.

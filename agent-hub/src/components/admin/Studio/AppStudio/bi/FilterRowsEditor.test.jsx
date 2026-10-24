@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import FilterRowsEditor from './FilterRowsEditor';
@@ -26,14 +27,15 @@ function renderEditor(filters) {
 }
 
 describe('FilterRowsEditor value control', () => {
-    it('matches a yes/no field with a real boolean', () => {
+    it('matches a yes/no field with a real boolean', async () => {
+        const user = userEvent.setup();
         const first = renderEditor([{ field: 'done', op: 'eq', value: '' }]);
-        fireEvent.click(first.getByRole('radio', { name: 'Yes' }));
+        await user.click(first.getByRole('radio', { name: 'Yes' }));
         expect(first.last()[0]).toEqual({ field: 'done', op: 'eq', value: true });
         first.unmount();
 
         const second = renderEditor([{ field: 'done', op: 'eq', value: true }]);
-        fireEvent.click(second.getByRole('radio', { name: 'No' }));
+        await user.click(second.getByRole('radio', { name: 'No' }));
         expect(second.last()[0].value).toBe(false);
     });
 
@@ -59,9 +61,10 @@ describe('FilterRowsEditor value control', () => {
         expect(last()[0].value).toBe('closed');
     });
 
-    it('keeps a free-text escape for anything the picker cannot express', () => {
+    it('keeps a free-text escape for anything the picker cannot express', async () => {
+        const user = userEvent.setup();
         const { getByLabelText, getByRole } = renderEditor([{ field: 'done', op: 'eq', value: true }]);
-        fireEvent.click(getByRole('button', { name: /type any value/i }));
+        await user.click(getByRole('button', { name: /type any value/i }));
         expect(getByLabelText('Filter value').tagName).toBe('INPUT');
         expect(getByRole('button', { name: /back to the simple picker/i })).toBeTruthy();
     });

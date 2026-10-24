@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De 409-poort voor DELETE /:id — zie de uitleg hieronder.
  *

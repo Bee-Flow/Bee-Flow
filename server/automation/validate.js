@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Validate an automation definition before save / run.
  *

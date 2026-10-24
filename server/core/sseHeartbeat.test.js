@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit — startSseHeartbeat transport + onDead liveness (H5). DB-free.
  * Run: node --test core/sseHeartbeat.test.js

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — the Data Act export matrix (Art. 30): for every kind of data
  * this organisation holds, whether a portable export route exists, is mounted,

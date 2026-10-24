@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * _suggestedPatch op paths, read with the shared path grammar.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DB-free tests — the in-memory price catalogue index.
  *

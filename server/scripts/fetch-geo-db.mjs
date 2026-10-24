@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Download the DB-IP Lite City + ASN databases for local development.
  *

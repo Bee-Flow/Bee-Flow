@@ -157,6 +157,8 @@ stub('../stores/projectStore', {});
 const router = require('./studioAppData');
 
 // ── Dispatch (uit studioAppsRun.test.js) ────────────────────────────
+const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
+
 function dispatch({ method = 'GET', url, user = MEMBER, body, query = {} } = {}) {
     return new Promise((resolve, reject) => {
         const req = {
@@ -186,7 +188,10 @@ function dispatch({ method = 'GET', url, user = MEMBER, body, query = {} } = {})
             },
             destroy(err) { this.destroyed = err || new Error('destroyed'); resolve(this); return this; },
         };
-        router(req, res, (err) => reject(err || new Error(`fell through: ${method} ${url}`)));
+        // What the app does with a thrown error: the terminal handler answers it.
+        router(req, res, (err) => (err
+            ? terminalErrorHandler(err, req, res, reject)
+            : reject(new Error(`fell through: ${method} ${url}`))));
     });
 }
 

@@ -102,7 +102,7 @@ describe('AnchoredMenu', () => {
         expect(panel.style.position).toBe('fixed');
     });
 
-    it('unmounts its listeners when it closes', () => {
+    it('unmounts its listeners when it closes', async () => {
         const onClose = vi.fn();
         function Toggle() {
             const anchorRef = useRef(null);
@@ -115,7 +115,7 @@ describe('AnchoredMenu', () => {
             );
         }
         render(<Toggle />);
-        fireEvent.click(screen.getByText('hide'));
+        await userEvent.click(screen.getByText('hide'));
         expect(document.querySelector('[data-anchored-menu]')).toBeNull();
         fireEvent.mouseDown(document.body);
         expect(onClose).not.toHaveBeenCalled();

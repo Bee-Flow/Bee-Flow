@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import scopedStorage from '../../../../../utils/scopedStorage';
@@ -117,9 +118,10 @@ describe('the shared field designer — the rename path reaches all three editor
         expect(screen.getByText(/Renamed — 1 binding in this automation now points at it\./)).toBeTruthy();
     });
 
-    it('does not nag about bindings a row it minted a moment ago cannot have', () => {
+    it('does not nag about bindings a row it minted a moment ago cannot have', async () => {
+        const user = userEvent.setup();
         renderForm(trigger('layer_input', []));
-        fireEvent.click(screen.getByText('Add input'));
+        await user.click(screen.getByText('Add input'));
 
         // `input1` is the designer's own placeholder — nothing downstream can
         // be pointing at it, so naming the row is not a rename.
@@ -128,16 +130,17 @@ describe('the shared field designer — the rename path reaches all three editor
         expect(screen.queryByText(/still point at the old name/)).toBeNull();
     });
 
-    it('mints a name no sibling already holds, instead of counting off the length', () => {
+    it('mints a name no sibling already holds, instead of counting off the length', async () => {
+        const user = userEvent.setup();
         renderForm(trigger('layer_input', [{ name: 'input1', type: 'string' }, { name: 'input2', type: 'string' }]));
-        fireEvent.click(screen.getByText('Add input'));
+        await user.click(screen.getByText('Add input'));
         // Two rows already, so a length-based name mints `input3`; remove the
         // middle one and the next add would mint `input3` a second time — a
         // duplicate the server drops silently, taking the row with it.
         expect(screen.getByLabelText('Field 3 name').value).toBe('input3');
 
-        fireEvent.click(screen.getAllByLabelText('Remove input')[0]);
-        fireEvent.click(screen.getByText('Add input'));
+        await user.click(screen.getAllByLabelText('Remove input')[0]);
+        await user.click(screen.getByText('Add input'));
         expect(screen.getByLabelText('Field 3 name').value).toBe('input4');
     });
 });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * datasetAccess.isUploaderOf — the one rule on whose a genome file is.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the NC onboarding-incomplete reminder job.
  *

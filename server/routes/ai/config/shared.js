@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Shared helpers for the AI config routers in this directory: the admin gate
  * every admin-only route checks.

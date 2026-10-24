@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Regression tests for two load-bearing Claude-adapter behaviours the
  * builder optimizations rely on:

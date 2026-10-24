@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio canonicalizer — the leaf helpers every canonicalize/ module
  * shares: the object/formula predicates, the JSON-semantics deep copy, string

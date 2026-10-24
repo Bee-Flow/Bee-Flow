@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tolerant reading of an app_add_components call — the repairs that are
  * unambiguous, done BEFORE the build so a small model's near-miss lands

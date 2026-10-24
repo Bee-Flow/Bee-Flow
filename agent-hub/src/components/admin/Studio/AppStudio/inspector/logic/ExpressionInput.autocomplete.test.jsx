@@ -1,4 +1,5 @@
 import { render, fireEvent, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import ExpressionInput from './ExpressionInput';
@@ -105,36 +106,40 @@ describe('ExpressionInput — inline autocomplete', () => {
     });
 
     // The bug this whole parameter exists for.
-    it('completes a root the automation builder does not have', () => {
+    it('completes a root the automation builder does not have', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         renderInput({ value: '', onChange });
         type('currentUser.');
-        fireEvent.click(document.querySelector('[title="currentUser.email"]'));
+        await user.click(document.querySelector('[title="currentUser.email"]'));
         expect(onChange).toHaveBeenLastCalledWith('currentUser.email');
     });
 
-    it('REPLACES what was typed rather than appending to it', () => {
+    it('REPLACES what was typed rather than appending to it', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         renderInput({ value: '', onChange });
         type('vars.stat');
-        fireEvent.click(document.querySelector('[title="vars.statusFilter"]'));
+        await user.click(document.querySelector('[title="vars.statusFilter"]'));
         // Not 'vars.statvars.statusFilter'.
         expect(onChange).toHaveBeenLastCalledWith('vars.statusFilter');
     });
 
-    it('keeps the text around the token intact', () => {
+    it('keeps the text around the token intact', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         renderInput({ value: '', onChange });
         type('1 + vars.stat');
-        fireEvent.click(document.querySelector('[title="vars.statusFilter"]'));
+        await user.click(document.querySelector('[title="vars.statusFilter"]'));
         expect(onChange).toHaveBeenLastCalledWith('1 + vars.statusFilter');
     });
 
-    it('the {} button inserts at the caret instead of replacing', () => {
+    it('the {} button inserts at the caret instead of replacing', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         renderInput({ value: 'len(', onChange });
-        fireEvent.click(screen.getByLabelText('Insert a variable'));
-        fireEvent.click(document.querySelector('[title="currentUser.name"]'));
+        await user.click(screen.getByLabelText('Insert a variable'));
+        await user.click(document.querySelector('[title="currentUser.name"]'));
         expect(onChange).toHaveBeenLastCalledWith('len(currentUser.name');
     });
 });

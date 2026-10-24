@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Integration clients: the provider API clients core code talks through,
  * injected by the integrations feature.

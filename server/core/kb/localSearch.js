@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Local KB search: hybrid (vector + full-text) retrieval over `kb_chunks`,
  * reciprocal rank fusion, the context window, then the reranker
@@ -77,6 +78,7 @@ async function searchLocally(tenantId, kbIds, query, options = {}) {
     // Connection is held ONLY for actual database work, not for external API calls.
     let vectorResults = { rows: [] };
     let ftsResults = { rows: [] };
+    /** @type {any[] & { _orphanFiltered?: boolean, _metrics?: object }} */
     let results = [];
 
     const client = await getClient();

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Trigger Bus — fans incoming app events into matching automation runs.
  *

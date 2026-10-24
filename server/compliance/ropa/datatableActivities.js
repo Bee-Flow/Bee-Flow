@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Studio tables that hold personal data, as processing activities.
  *
@@ -40,8 +41,8 @@ function categoriesOf(fields) {
 
 function defaultDeps() {
     return {
-        getAll: (...a) => require('../../db').getAll(...a),
-        getTableMeta: (...a) => require('../../stores/datatableStore').getTableMeta(...a),
+        getAll: (sql, params) => require('../../db').getAll(sql, params),
+        getTableMeta: (a, b) => require('../../stores/datatableStore').getTableMeta(a, b),
     };
 }
 

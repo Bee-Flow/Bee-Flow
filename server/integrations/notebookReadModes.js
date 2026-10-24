@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The read side of the chat's notebook tools (integrations/workspaceTools.js
  * notebook_read): a Markdown notebook read as an outline, one section, the

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — the ONE place templates are looked up.
  *
@@ -50,7 +51,7 @@ function listBuiltIn() {
  * gallery is how someone starts an app; losing the captured half is a smaller
  * harm than losing all of it.
  */
-async function listAvailableTemplates({ userId, orgIds = [] } = {}) {
+async function listAvailableTemplates(/** @type {{userId?: any, orgIds?: any[]}} */ { userId, orgIds = [] } = {}) {
     const rows = listBuiltIn();
     try {
         const captured = await captureStore().listTemplatesFor({ userId, orgIds });
@@ -69,7 +70,7 @@ async function listAvailableTemplates({ userId, orgIds = [] } = {}) {
  * getTemplate(unknownId) returns null: every caller already handles "no such
  * template" and none of them handles an exception.
  */
-async function resolveTemplate(id, { userId, orgIds = [] } = {}) {
+async function resolveTemplate(id, /** @type {{userId?: any, orgIds?: any[]}} */ { userId, orgIds = [] } = {}) {
     if (typeof id !== 'string' || !id) return null;
     const store = captureStore();
     if (!store.isCapturedTemplateId(id)) {

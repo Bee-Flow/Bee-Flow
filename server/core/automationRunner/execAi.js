@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The AI step executor (extracted verbatim from engine.js): execAiStep and
  * the output-field inference that powers the ai_step schema fallback.
@@ -109,6 +110,7 @@ async function loadAiStepAgentContext(step, ctx) {
     // they grant under this step's switches. Without an agent the switches
     // are read off the step all the same: absent means all off.
     const stepSkills = require('./aiStepSkills');
+    /** @type {any} */
     const stepPermissions = agentBinding ? agentBinding.permissions : require('./aiStepAgent').stepAgentPermissions(step);
     const skillCtx = await stepSkills.loadStepSkillContext({ step, ctx, binding: agentBinding });
     const skillGrants = stepSkills.grantsUnderPermissions(skillCtx.grants, stepPermissions);

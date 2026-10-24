@@ -8,7 +8,7 @@
  * args and always re-derive the thread from that context, so the model cannot
  * pivot to another customer's data. Every tool is strictly read-only.
  */
-
+// @typecheck
 const supportStore = require('../stores/supportStore');
 const userStore = require('../stores/userStore');
 const log = require('../telemetry/log');
@@ -217,7 +217,7 @@ async function _resolveThread(context) {
 
 async function _recordAction(threadId, tool, payload = {}) {
     try {
-        await supportStore.recordThreadEvent({ threadId, actorKind: 'ai', action: 'ai_action', payload: { tool, ...payload } });
+        await supportStore.recordThreadEvent(/** @type {any} */ ({ threadId, actorKind: 'ai', action: 'ai_action', payload: { tool, ...payload } }));
     } catch (err) { log.debug('audit is best-effort', err); }
 }
 
@@ -428,7 +428,7 @@ async function executeSupportTool(toolName, args = {}, context = {}) {
                 const kbIds = Array.isArray(agent?.config?.knowledge_base_ids) ? agent.config.knowledge_base_ids : [];
                 const aiUserId = `support-ai:${thread.id}`;
                 const hits = await quickKBSearch(aiUserId, kbIds, query, { topK });
-                return (hits || []).map(h => ({ title: h.title, content: h.content, score: h.score, source: h.source_uri }));
+                return (/** @type {any[]} */ (hits) || []).map(h => ({ title: h.title, content: h.content, score: h.score, source: h.source_uri }));
             } catch (e) {
                 return { error: e.message };
             }

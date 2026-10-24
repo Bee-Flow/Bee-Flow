@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The working rules of the FULL builder system prompt, after the step menu:

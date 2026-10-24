@@ -77,13 +77,13 @@ async function parseDocx(buffer, filename, options = {}) {
             : await mammoth.extractRawText({ buffer });
         const text = result.value || '';
         if (!text.trim()) {
-            log.info(`[DocumentParser] DOCX file "${filename}" is empty or contains only images`);
+            log.info(`[DocumentParser] DOCX file "${log.nameForLog(filename)}" is empty or contains only images`);
             return `[Document: ${filename} — no extractable text content]`;
         }
-        log.info(`[DocumentParser] Extracted ${text.length} chars from DOCX: ${filename}`);
+        log.info(`[DocumentParser] Extracted ${text.length} chars from DOCX: ${log.nameForLog(filename)}`);
         return text;
     } catch (err) {
-        log.error(`[DocumentParser] Failed to parse DOCX "${filename}":`, err.message);
+        log.error(`[DocumentParser] Failed to parse DOCX "${log.nameForLog(filename)}":`, err.message);
         return `[Document: ${filename} — failed to parse DOCX: ${err.message}]`;
     }
 }
@@ -94,13 +94,13 @@ async function parsePptx(buffer, filename) {
         const { extractPptxText } = require('./pptxExtractor');
         const { text, slideCount, notesCount } = await extractPptxText(buffer);
         if (!text.trim()) {
-            log.info(`[DocumentParser] PPTX file "${filename}" has no extractable text`);
+            log.info(`[DocumentParser] PPTX file "${log.nameForLog(filename)}" has no extractable text`);
             return `[Presentation: ${filename} — no extractable text content]`;
         }
-        log.info(`[DocumentParser] Extracted ${text.length} chars from PPTX: ${filename} (${slideCount} slides, ${notesCount} with notes)`);
+        log.info(`[DocumentParser] Extracted ${text.length} chars from PPTX: ${log.nameForLog(filename)} (${slideCount} slides, ${notesCount} with notes)`);
         return text;
     } catch (err) {
-        log.error(`[DocumentParser] Failed to parse PPTX "${filename}":`, err.message);
+        log.error(`[DocumentParser] Failed to parse PPTX "${log.nameForLog(filename)}":`, err.message);
         return `[Presentation: ${filename} — failed to parse PPTX: ${err.message}]`;
     }
 }
@@ -163,7 +163,7 @@ function parseSpreadsheet(buffer, filename) {
 
             const LARGE_SHEET_WARN = 5000;
             if (rows.length > LARGE_SHEET_WARN) {
-                log.warn(`[DocumentParser] Large sheet "${sheetName}" in "${filename}": ${rows.length} rows — token usage will be high`);
+                log.warn(`[DocumentParser] Large sheet "${sheetName}" in "${log.nameForLog(filename)}": ${rows.length} rows — token usage will be high`);
             }
 
             if (sheets.length > 1) {
@@ -174,10 +174,10 @@ function parseSpreadsheet(buffer, filename) {
         }
 
         const result = parts.join('\n\n');
-        log.info(`[DocumentParser] Parsed spreadsheet "${filename}": ${sheets.length} sheet(s), ${result.length} chars`);
+        log.info(`[DocumentParser] Parsed spreadsheet "${log.nameForLog(filename)}": ${sheets.length} sheet(s), ${result.length} chars`);
         return result;
     } catch (err) {
-        log.error(`[DocumentParser] Failed to parse spreadsheet "${filename}":`, err.message);
+        log.error(`[DocumentParser] Failed to parse spreadsheet "${log.nameForLog(filename)}":`, err.message);
         return `[Spreadsheet: ${filename} — failed to parse: ${err.message}]`;
     }
 }
@@ -201,10 +201,10 @@ async function parsePdf(buffer, filename) {
         if (!text || !text.trim()) {
             return `[PDF: ${filename} — no extractable text (may be image-based)]`;
         }
-        log.info(`[DocumentParser] Extracted ${text.length} chars from PDF: ${filename}`);
+        log.info(`[DocumentParser] Extracted ${text.length} chars from PDF: ${log.nameForLog(filename)}`);
         return text;
     } catch (err) {
-        log.error(`[DocumentParser] Failed to parse PDF "${filename}":`, err.message);
+        log.error(`[DocumentParser] Failed to parse PDF "${log.nameForLog(filename)}":`, err.message);
         return `[PDF: ${filename} — failed to parse: ${err.message}]`;
     }
 }

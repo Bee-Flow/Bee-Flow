@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Ook de compose-call zelf is verbruik: één LLM-call per brief, die vóór dit
  * bestond zijn response.usage weggooide. Hier wordt gepind dat hij door

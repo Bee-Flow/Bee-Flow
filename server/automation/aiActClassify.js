@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The two AI Act questions a definition cannot answer by itself, put to the
  * FAST model tier (handoff 5, "the check should be automatic"):

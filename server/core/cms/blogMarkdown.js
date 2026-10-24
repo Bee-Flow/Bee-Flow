@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Blog post Markdown → HTML that is safe to serve to anonymous visitors.
  *

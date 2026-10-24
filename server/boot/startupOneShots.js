@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * One-shot boot checks, backfills and data migrations.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The items a "run once per item" step works through, and — for a list
  * INSIDE a list — which outer element each item belongs to.

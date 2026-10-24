@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Smoke scenarios — GDPR technical and organisational safeguards:
  * Art. 32 (encryption, DLP, access logging), Art. 33 (breach detection),

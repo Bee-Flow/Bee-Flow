@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The wiring between "what the deployment sets" and "what the server reads".
  *

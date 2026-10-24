@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Single source of truth for "will this app_event trigger actually fire?"
  *

@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
@@ -67,25 +68,27 @@ describe('RolePermissionEditor', () => {
         expect(screen.getByText('Use Datatables')).toBeTruthy();
     });
 
-    it('shows Save only once something actually changed, and hides it again on undo', () => {
+    it('shows Save only once something actually changed, and hides it again on undo', async () => {
+        const user = userEvent.setup();
         renderEditor();
         expect(screen.queryByTestId('role-save-member')).toBeNull();
-        fireEvent.click(screen.getByTestId('role-perm-member-use_notebooks'));
+        await user.click(screen.getByTestId('role-perm-member-use_notebooks'));
         expect(screen.getByTestId('role-save-member')).toBeTruthy();
         // Back to where it started — not a change any more.
-        fireEvent.click(screen.getByTestId('role-perm-member-use_notebooks'));
+        await user.click(screen.getByTestId('role-perm-member-use_notebooks'));
         expect(screen.queryByTestId('role-save-member')).toBeNull();
     });
 
     it('PUTs the full editable choice, not a delta', async () => {
+        const user = userEvent.setup();
         fetchMock.impl = async () => ({
             ok: true, json: async () => ({ id: 'member', permissions: ['use_approvals'] }),
         });
         const onSaved = vi.fn();
         renderEditor({ onSaved });
         // The reported case: take Notebooks away from Member.
-        fireEvent.click(screen.getByTestId('role-perm-member-use_notebooks'));
-        fireEvent.click(screen.getByTestId('role-save-member'));
+        await user.click(screen.getByTestId('role-perm-member-use_notebooks'));
+        await user.click(screen.getByTestId('role-save-member'));
 
         await waitFor(() => expect(onSaved).toHaveBeenCalled());
         const { url, opts } = fetchMock.calls[0];
@@ -97,13 +100,14 @@ describe('RolePermissionEditor', () => {
     });
 
     it('keeps the change on screen and says why when the save is refused', async () => {
+        const user = userEvent.setup();
         fetchMock.impl = async () => ({
             ok: false, json: async () => ({ error: 'Organization admin access required' }),
         });
         const onSaved = vi.fn();
         renderEditor({ onSaved });
-        fireEvent.click(screen.getByTestId('role-perm-member-use_notebooks'));
-        fireEvent.click(screen.getByTestId('role-save-member'));
+        await user.click(screen.getByTestId('role-perm-member-use_notebooks'));
+        await user.click(screen.getByTestId('role-save-member'));
 
         expect(await screen.findByText('Organization admin access required')).toBeTruthy();
         expect(onSaved).not.toHaveBeenCalled();

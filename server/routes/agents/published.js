@@ -262,11 +262,7 @@ router.patch('/:id/publish', validate({ body: PublishBody }), async (req, res) =
 
     // Validate sharedGroups belong to the agent's org. Undefined → leave as-is.
     let cleanedGroups;
-    try {
-        cleanedGroups = await validateSharedGroupsForOrg(agent.organization_id, sharedGroups);
-    } catch (e) {
-        return res.status(e.status || 500).json({ error: e.message });
-    }
+    cleanedGroups = await validateSharedGroupsForOrg(agent.organization_id, sharedGroups);
 
     // When flipping to published, re-validate every cross-reference in the
     // agent's config. Owner may have lost access to a referenced KB or skill
@@ -276,13 +272,10 @@ router.patch('/:id/publish', validate({ body: PublishBody }), async (req, res) =
     // (not the requesting user) so an org-admin publishing on behalf of a
     // demoted owner gets the right verdict.
     if (isPublished) {
-        try {
-            const { validateAgentConfigReferences } = require('./crud');
-            if (validateAgentConfigReferences) {
-                await validateAgentConfigReferences(agent, agent.config || {});
-            }
-        } catch (e) {
-            return res.status(e.status || 400).json({ error: e.message });
+        const { validateAgentConfigReferences } = require('./crud');
+        if (validateAgentConfigReferences) {
+            // Throws a 400 whose message names what the owner can no longer reach.
+            await validateAgentConfigReferences(agent, agent.config || {});
         }
     }
 

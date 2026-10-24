@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * One cell, both ways: what the sheet holds ↔ what the mirror stores.
  *
@@ -30,7 +31,6 @@
  *
  * PURE: no database, no network, no timezone.
  */
-
 'use strict';
 
 const { SpreadsheetSourceError } = require('./errors');
@@ -282,7 +282,7 @@ function formatOfNumFmt(numFmt) {
 /**
  * What the mirror stores for one cell.
  * @param {*} raw          what the reader gave: string | number | boolean | Date | null
- * @param {object} entry   the columnMap entry ({ type, dateFormat? })
+ * @param {{ type?:string, dateFormat?:string|null }} entry   the columnMap entry ({ type, dateFormat? })
  * @returns {*}            the value for the declared type, or null when it does not fit
  */
 function readCell(raw, entry) {

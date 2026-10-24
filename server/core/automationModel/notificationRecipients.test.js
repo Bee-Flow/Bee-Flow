@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * automation/notificationRecipients: who an automation notification reaches.
  *

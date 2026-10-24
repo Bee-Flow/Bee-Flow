@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — end-of-turn finalization after the streamed rounds are done:
  * untokeniser flush + display-segment join, the empty-response guard with the

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The indexes a refresh builds over a mirror's RELATION TARGETS, so every
  * fetched row can be given its derived columns in memory (rows.js):
@@ -51,7 +52,7 @@ async function readColumn(scope, targetDatatableId, fieldId) {
 
 /**
  * @param {{kind:string,id:string}} scope
- * @param {object} source    the mirror's `source` (relations + columnMap)
+ * @param {any} source    the mirror's `source` (relations + columnMap)
  * @param {object} [hooks]
  * @param {(rel:object, target:object) => string|null} [hooks.labelFieldFor]
  *   for an 'nc' relation: the target mirror's field that holds the label

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio catalog — node/screen/action ids and the schema version this
  * contract emits. Everything else in componentSpecs/ builds on these two.

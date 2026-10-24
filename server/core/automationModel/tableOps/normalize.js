@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Per-operation normalisation: fills defaults and coerces shapes so the

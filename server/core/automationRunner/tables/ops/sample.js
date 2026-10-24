@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * sample: the first rows, or a random but repeatable pick. The generator is

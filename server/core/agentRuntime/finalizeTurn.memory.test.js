@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * finalizeStreamTurn only extracts memories when the memory policy allows a
  * write, and a guardrail violation or a redacted message still blocks it.

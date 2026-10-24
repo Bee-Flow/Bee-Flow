@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Reverse-mapping a model id back to a tier is deterministic.
  *

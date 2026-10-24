@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The two agent-policy gates in a real streaming turn: the name whitelist and
  * the confirmation hold.

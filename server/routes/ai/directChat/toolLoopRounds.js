@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — the LLM rounds of a streamed turn: the non-streaming tool
  * pre-check loop, the primary stream, and the streamed tool rounds (with the

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De middenkolom van "Data & koppelingen": wat hangt er aan deze pagina?
  *
@@ -56,7 +57,7 @@ const WRITING_MODES = new Set(['write', 'readwrite']);
  * variabele komt niet. Vandaar dat "niet gevonden" in de UI een zachte,
  * gestippelde mededeling is en geen fout.
  *
- * @returns {Map<string, boolean>|null} null als de bestanden niet leesbaar waren
+ * @returns {Promise<Map<string, boolean>|null>} null als de bestanden niet leesbaar waren
  */
 async function scanCodeForTables(userId, webpageId, datatableIds) {
     if (!datatableIds.length) return new Map();

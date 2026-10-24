@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * fieldDiff(prev, next, { fullText: true }): a changed long-text setting also
  * carries its whole text, for the line diff. Synthetic definitions.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The steps that act on the RUN rather than on the data flowing through it:
  * what it puts in front of a person (`notification`, `form_page`), and how it

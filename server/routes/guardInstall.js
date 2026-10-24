@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Admin routes for installing / uninstalling the optional PII guard service.
  * Mounted at /api/admin/guard.

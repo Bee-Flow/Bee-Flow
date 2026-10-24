@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Keyed, shape-preserving look-alikes of an admin's real examples.

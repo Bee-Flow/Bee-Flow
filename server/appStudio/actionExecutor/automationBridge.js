@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio action executor — run_automation (extracted verbatim from
  * actionExecutor.js): the input bridge from viewer form values to automation

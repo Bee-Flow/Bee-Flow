@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The comment surface inside the real participation engine
  * (projects/participation/engine.js + answerWriter.js): a contract test from

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The PII step of the agent input guardrails (./guardrailsRunner): scan the
  * last messages, tokenise the user message in place on a redact verdict, or
@@ -107,6 +108,7 @@ function applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, co
     const piiCats = [...new Set(piiResult.entities.map(e => e.label || e.category).filter(Boolean))];
     const piiCount = Object.keys(piiResult.tokenMap).length;
     out.userPrivacyMeta = { piiTokenizedCount: piiCount, piiCategories: piiCats };
+    /** @type {Record<string, any>} */
     const assistantTokenisationInfo = out.assistantTokenisationInfo = {
         source: 'pii',
         action: 'redact',

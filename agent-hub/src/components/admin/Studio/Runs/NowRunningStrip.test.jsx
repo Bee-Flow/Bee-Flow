@@ -1,4 +1,5 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import NowRunningStrip from './NowRunningStrip';
@@ -95,10 +96,11 @@ describe('NowRunningStrip — what a line says', () => {
         expect(screen.getByTestId('now-running-line').textContent).toMatch(/without a name/i);
     });
 
-    it('offers the automation only when the screen can navigate', () => {
+    it('offers the automation only when the screen can navigate', async () => {
+        const user = userEvent.setup();
         const onOpenAutomation = vi.fn();
         render(<NowRunningStrip facets={{ automations: [roll()] }} onOpenAutomation={onOpenAutomation} />);
-        fireEvent.click(screen.getByTestId('now-running-open'));
+        await user.click(screen.getByTestId('now-running-open'));
         expect(onOpenAutomation).toHaveBeenCalledWith('a1');
         cleanup();
         render(<NowRunningStrip facets={{ automations: [roll()] }} />);

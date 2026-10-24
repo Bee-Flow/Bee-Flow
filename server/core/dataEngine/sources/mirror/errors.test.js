@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The one error shape every source kind answers with: status + code for the
  * routes, errorClass for the runner, `safe` for the App Studio refusal — and

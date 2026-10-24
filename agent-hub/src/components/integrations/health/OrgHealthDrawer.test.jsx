@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import OrgHealthDrawer from './OrgHealthDrawer';
 
@@ -37,10 +38,11 @@ describe('OrgHealthDrawer', () => {
         expect(screen.queryByText(/\{"/)).toBeNull();
     });
 
-    it('links chat.subscription_blocked to the subscriptions console', () => {
+    it('links chat.subscription_blocked to the subscriptions console', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<OrgHealthDrawer org={ORG} onClose={() => {}} onNavigate={onNavigate} />);
-        fireEvent.click(screen.getByText('Open subscriptions'));
+        await user.click(screen.getByText('Open subscriptions'));
         expect(onNavigate).toHaveBeenCalledWith('admin/subscriptions');
     });
 

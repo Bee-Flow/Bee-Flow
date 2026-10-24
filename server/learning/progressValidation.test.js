@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests — learning progress blob validation + merge.
  *

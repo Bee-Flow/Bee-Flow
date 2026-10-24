@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Header cells → datatable fields, deterministically — the spreadsheet twin
  * of ../nextcloudTable/columns.js, with one difference that shapes everything:

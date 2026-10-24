@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Transcriptions — multi-meeting AI report.
  *

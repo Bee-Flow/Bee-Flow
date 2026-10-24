@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render as rtlRender, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import SkillsStudio from './index';
@@ -176,10 +177,11 @@ describe('the landing with nothing selected', () => {
     });
 
     it('can be re-sorted by name', async () => {
+        const user = userEvent.setup();
         renderStudio();
         await screen.findByTestId('skills-overview');
-        fireEvent.click(screen.getByTestId('skills-sort'));
-        fireEvent.click(await screen.findByRole('menuitemradio', { name: /name/i }));
+        await user.click(screen.getByTestId('skills-sort'));
+        await user.click(await screen.findByRole('menuitemradio', { name: /name/i }));
         const rows = screen.getAllByTestId('skills-overview-row');
         expect(rows[0].getAttribute('data-skill-id')).toBe('s1');
     });
@@ -211,8 +213,9 @@ describe('the detail', () => {
     });
 
     it('adds a step and autosaves the STRUCTURE, never the old text columns', async () => {
+        const user = userEvent.setup();
         await openFirst();
-        fireEvent.click(screen.getByTestId('skill-step-add'));
+        await user.click(screen.getByTestId('skill-step-add'));
         expect(screen.getAllByTestId('skill-step')).toHaveLength(3);
         await waitFor(() => expect(skillsApi.update).toHaveBeenCalled());
         const [, payload] = skillsApi.update.mock.calls.at(-1);
@@ -222,10 +225,11 @@ describe('the detail', () => {
     });
 
     it('flips a rule between "always" and "never" from its own mark', async () => {
+        const user = userEvent.setup();
         await openFirst();
         const rules = screen.getAllByTestId('skill-rule');
         expect(rules[0].getAttribute('data-polarity')).toBe('never');
-        fireEvent.click(within(rules[0]).getByTestId('skill-rule-polarity'));
+        await user.click(within(rules[0]).getByTestId('skill-rule-polarity'));
         expect(screen.getAllByTestId('skill-rule')[0].getAttribute('data-polarity')).toBe('must');
         await waitFor(() => expect(skillsApi.update).toHaveBeenCalled());
         const [, payload] = skillsApi.update.mock.calls.at(-1);
@@ -233,24 +237,27 @@ describe('the detail', () => {
     });
 
     it('turns the output rows into a JSON schema, and an empty list back into null', async () => {
+        const user = userEvent.setup();
         await openFirst();
-        fireEvent.click(screen.getByTestId('stub-output-rows'));
+        await user.click(screen.getByTestId('stub-output-rows'));
         await waitFor(() => expect(skillsApi.update).toHaveBeenCalled());
         const [, payload] = skillsApi.update.mock.calls.at(-1);
         expect(payload.outputSchema).toEqual({ type: 'object', properties: { total: { type: 'number' } } });
     });
 
     it('lists what uses the skill on the last tab', async () => {
+        const user = userEvent.setup();
         await openFirst();
-        fireEvent.click(screen.getByRole('radio', { name: /Used by/ }));
+        await user.click(screen.getByRole('radio', { name: /Used by/ }));
         expect(await screen.findByTestId('used-by')).toBeTruthy();
         expect(screen.getByText('Quote assistant')).toBeTruthy();
         expect(screen.getByText('Send quote')).toBeTruthy();
     });
 
     it('shows the examples with their rationale on the Examples tab', async () => {
+        const user = userEvent.setup();
         await openFirst();
-        fireEvent.click(screen.getByRole('radio', { name: /Examples/ }));
+        await user.click(screen.getByRole('radio', { name: /Examples/ }));
         const cards = await screen.findAllByTestId('skill-example');
         expect(cards).toHaveLength(1);
         expect(within(cards[0]).getByDisplayValue('Why 1240?')).toBeTruthy();
@@ -355,9 +362,10 @@ describe('a skill you may see but not change', () => {
     // writes a `skill_test_runs` row that the owner reads back as a verdict.
     // So the same answer that greys out the steps has to reach it.
     it('carries that answer into the Test tab, where no run is offered either', async () => {
+        const user = userEvent.setup();
         renderStudio({ initialSkillId: 's1' });
         await screen.findByTestId('skill-readonly');
-        fireEvent.click(screen.getByRole('radio', { name: /Test/ }));
+        await user.click(screen.getByRole('radio', { name: /Test/ }));
         expect(await screen.findByTestId('skill-test-readonly')).toBeTruthy();
         expect(screen.getByTestId('skill-test-run').disabled).toBe(true);
     });
@@ -413,15 +421,17 @@ describe('a usage read that failed', () => {
     });
 
     it('says the list is incomplete on the Used-by tab', async () => {
+        const user = userEvent.setup();
         await open();
-        fireEvent.click(screen.getByRole('radio', { name: /Used by/ }));
+        await user.click(screen.getByRole('radio', { name: /Used by/ }));
         expect(await screen.findByText(/Could not load who uses this/)).toBeTruthy();
     });
 
     it('never tells the delete dialog that nothing depends on this skill', async () => {
+        const user = userEvent.setup();
         await open();
-        fireEvent.click(screen.getByRole('radio', { name: /Used by/ }));
-        fireEvent.click(await screen.findByRole('button', { name: 'Delete skill' }));
+        await user.click(screen.getByRole('radio', { name: /Used by/ }));
+        await user.click(await screen.findByRole('button', { name: 'Delete skill' }));
         // The claim that must never appear.
         expect(screen.queryByTestId('danger-unused')).toBeNull();
         // And it is replaced by the NARROW sentence, not by a spinner that
@@ -451,6 +461,7 @@ describe('"Improve with AI"', () => {
     // that was not persisted server-side would be lost on the next
     // navigation.
     it('calls the route and adopts the STORED skill', async () => {
+        const user = userEvent.setup();
         skillsApi.improve.mockResolvedValue({
             skill: {
                 ...FULL,
@@ -461,19 +472,20 @@ describe('"Improve with AI"', () => {
         renderStudio({ initialSkillId: 's1' });
         const button = await screen.findByTestId('skill-improve');
         expect(button.disabled).toBe(false);
-        fireEvent.click(button);
+        await user.click(button);
         await waitFor(() => expect(skillsApi.improve).toHaveBeenCalledWith('s1'));
         await waitFor(() => expect(screen.getByDisplayValue('Fetch the quote.')).toBeTruthy());
         expect(screen.getByTestId('skill-detail').textContent).toContain('Explain a quote, clearly');
     });
 
     it('a refusal is shown and the skill is left alone', async () => {
+        const user = userEvent.setup();
         const err = new Error('You cannot edit this skill');
         err.status = 403;
         err.code = 'not_editable';
         skillsApi.improve.mockRejectedValue(err);
         renderStudio({ initialSkillId: 's1' });
-        fireEvent.click(await screen.findByTestId('skill-improve'));
+        await user.click(await screen.findByTestId('skill-improve'));
         await waitFor(() => expect(screen.getByTestId('skill-readonly')).toBeTruthy());
     });
 
@@ -496,6 +508,7 @@ describe('"Let AI fill it in", on a skill that is still empty', () => {
     });
 
     it('turns one sentence into a draft the editor saves like any other edit', async () => {
+        const user = userEvent.setup();
         skillsApi.draft.mockResolvedValue({
             draft: {
                 name: 'Explain a quote',
@@ -510,7 +523,7 @@ describe('"Let AI fill it in", on a skill that is still empty', () => {
         fireEvent.change(within(card).getByRole('textbox'), {
             target: { value: 'help customers understand their quote' },
         });
-        fireEvent.click(screen.getByTestId('skill-fill-in-run'));
+        await user.click(screen.getByTestId('skill-fill-in-run'));
         await waitFor(() => expect(skillsApi.draft).toHaveBeenCalledWith('help customers understand their quote'));
         // It is a DRAFT: the same autosave that carries a keystroke carries it.
         await waitFor(() => expect(skillsApi.update).toHaveBeenCalled());
@@ -518,11 +531,12 @@ describe('"Let AI fill it in", on a skill that is still empty', () => {
     });
 
     it('a model that could not draft anything leaves the skill alone', async () => {
+        const user = userEvent.setup();
         skillsApi.draft.mockRejectedValue(Object.assign(new Error('nope'), { status: 502, code: 'ai_unusable' }));
         renderStudio({ initialSkillId: 's2' });
         const card = await screen.findByTestId('skill-fill-in');
         fireEvent.change(within(card).getByRole('textbox'), { target: { value: 'something' } });
-        fireEvent.click(screen.getByTestId('skill-fill-in-run'));
+        await user.click(screen.getByTestId('skill-fill-in-run'));
         await waitFor(() => expect(skillsApi.draft).toHaveBeenCalled());
         expect(skillsApi.update).not.toHaveBeenCalled();
     });
@@ -530,11 +544,12 @@ describe('"Let AI fill it in", on a skill that is still empty', () => {
 
 describe('a reference pill in a step', () => {
     it('opens the automation it points at, through the same deep link the usage table uses', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<SkillsStudio user={{ id: 'u1', orgRole: 'org_admin' }} initialSkillId="s1" onNavigate={onNavigate} />);
         await screen.findByTestId('skill-detail');
         const pill = await screen.findByRole('button', { name: 'Look up quote status' });
-        fireEvent.click(pill);
+        await user.click(pill);
         expect(onNavigate).toHaveBeenCalledWith('studio/automations/a1');
     });
 });

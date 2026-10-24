@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 // Unit tests for the streaming un-tokeniser, focused on the `restore` helper

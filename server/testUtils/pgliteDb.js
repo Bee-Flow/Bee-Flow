@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A real Postgres for a store test: @electric-sql/pglite, in-process, behind
  * the small `db` a store factory takes (`makeSharesStore(db)`,

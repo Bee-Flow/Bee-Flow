@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * fill_document step: take a Document the person DESIGNED in Studio, fill its
  * placeholders with this run's values, and keep the PDF.
@@ -196,7 +197,7 @@ async function execFillDocument(step, ctx, runState, mode) {
 
     const marking = await resolveDocumentMarking(step, ctx, runState, 'fill_document');
 
-    const { buffer, contentType, degraded, marking: markingResult, fill, slideCount } = await renderFilledDocument({
+    const { buffer, contentType, degraded, marking: markingResult, fill, slideCount } = /** @type {any} */ (await renderFilledDocument({
         document: doc,
         sectionOverrides: step.sectionOverrides,
         values,
@@ -205,7 +206,7 @@ async function execFillDocument(step, ctx, runState, mode) {
         format,
         // A slide's picture is a storage reference the owner may read.
         resolveImage: isDeck ? runnerPort('presentations').makeUserImageResolver(ctx.userId) : null,
-    });
+    }));
 
     const outcome = markingOutcome(marking, markingResult);
     if (outcome.requested && !outcome.visible) {

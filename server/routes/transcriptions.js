@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Transcriptions API — REST endpoints for meeting transcription history.
  *

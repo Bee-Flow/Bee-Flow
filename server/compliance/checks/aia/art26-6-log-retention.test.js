@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * AIA-Art26-6-log-retention — a ledger that could not be read is not "no
  * activity logs recorded yet".

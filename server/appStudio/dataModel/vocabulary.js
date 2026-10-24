@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Re-export shim over ../../core/dataEngine/dataModel/vocabulary, PLUS the two
  * connector constants that stay a feature concern.

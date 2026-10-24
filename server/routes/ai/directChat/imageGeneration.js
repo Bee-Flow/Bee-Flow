@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — one-shot image generation (POST /chat/generate-image).
  *
@@ -42,7 +43,7 @@ router.post('/chat/generate-image', requireAuth, validate({ body: GenerateImageB
         return res.status(400).json({ error: 'Google API key not configured. Add it in Admin → AI Config → API Keys.' });
     }
 
-    log.info(`[ImageGen] Generating image for user ${userId}: "${prompt.substring(0, 80)}"`);
+    log.info(`[ImageGen] Generating image for user ${userId}: "${log.textForLog(prompt)}"`);
 
     const result = await googleAdapter.generateImage(googleApiKey, prompt, {
         aspectRatio: aspectRatio || '1:1',

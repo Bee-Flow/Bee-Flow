@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import RulesEditor from './RulesEditor';
@@ -95,10 +96,11 @@ function measureCardsAsAStack() {
 const settle = () => act(async () => { await new Promise(r => setTimeout(r, 30)); });
 
 describe('steps', () => {
-    it('adds a step with an id of its own, so nothing is keyed by position', () => {
+    it('adds a step with an id of its own, so nothing is keyed by position', async () => {
+        const user = userEvent.setup();
         const onSteps = vi.fn();
         render(<Harness onSteps={onSteps} />);
-        fireEvent.click(screen.getByTestId('skill-step-add'));
+        await user.click(screen.getByTestId('skill-step-add'));
         const [next] = onSteps.mock.calls.at(-1);
         expect(next).toHaveLength(1);
         expect(next[0].id).toMatch(/^step_/);
@@ -127,14 +129,15 @@ describe('steps', () => {
         expect(next[1]).toEqual({ id: 'b', text: 'two', refs: [] });
     });
 
-    it('removes the step that was asked for, by id', () => {
+    it('removes the step that was asked for, by id', async () => {
+        const user = userEvent.setup();
         const onSteps = vi.fn();
         render(<Harness
             initial={[{ id: 'a', text: 'one', refs: [] }, { id: 'b', text: 'two', refs: [] }]}
             onSteps={onSteps}
         />);
         const cards = screen.getAllByTestId('skill-step');
-        fireEvent.click(within(cards[0]).getByRole('button', { name: /Remove step/i }));
+        await user.click(within(cards[0]).getByRole('button', { name: /Remove step/i }));
         expect(onSteps.mock.calls.at(-1)[0].map(s => s.id)).toEqual(['b']);
     });
 
@@ -232,18 +235,20 @@ describe('steps', () => {
         expect(screen.getByRole('button', { name: 'Reorder step 2' })).toBeTruthy();
     });
 
-    it('picks a reference from what exists — never free text — and shows its name', () => {
+    it('picks a reference from what exists — never free text — and shows its name', async () => {
+        const user = userEvent.setup();
         const onSteps = vi.fn();
         render(<Harness initial={[{ id: 'a', text: 'Fetch it', refs: [] }]} onSteps={onSteps} />);
-        fireEvent.click(screen.getByTestId('skill-step-ref-add'));
-        fireEvent.click(screen.getByRole('menuitem', { name: /Look up quote status/ }));
+        await user.click(screen.getByTestId('skill-step-ref-add'));
+        await user.click(screen.getByRole('menuitem', { name: /Look up quote status/ }));
         const [next] = onSteps.mock.calls.at(-1);
         expect(next[0].refs).toEqual([{ kind: 'automation', id: 'a1' }]);
     });
 
-    it('does not offer a reference the step already carries', () => {
+    it('does not offer a reference the step already carries', async () => {
+        const user = userEvent.setup();
         render(<Harness initial={[{ id: 'a', text: 'x', refs: [{ kind: 'kb', id: 'k1' }] }]} />);
-        fireEvent.click(screen.getByTestId('skill-step-ref-add'));
+        await user.click(screen.getByTestId('skill-step-ref-add'));
         expect(screen.queryByRole('menuitem', { name: /Quote terms/ })).toBeNull();
         expect(screen.getByRole('menuitem', { name: /Pricelist/ })).toBeTruthy();
     });
@@ -257,33 +262,36 @@ describe('steps', () => {
      * Een `table`-ref is een echte grant (datatable_query), dus wie dat te
      * horen krijgt loopt weg van een grant die hij nodig heeft.
      */
-    it('offers nothing to reference only when the lists were READ and are empty', () => {
+    it('offers nothing to reference only when the lists were READ and are empty', async () => {
+        const user = userEvent.setup();
         render(<Harness initial={[{ id: 'a', text: 'x', refs: [] }]} refOptions={{}} listStatus={LISTS_READ} />);
-        fireEvent.click(screen.getByTestId('skill-step-ref-add'));
+        await user.click(screen.getByTestId('skill-step-ref-add'));
         expect(screen.getByTestId('skill-ref-none').textContent).toMatch(/Nothing to reference yet/);
         expect(screen.queryByTestId('skill-ref-unread')).toBeNull();
     });
 
-    it('says it is still asking before the first answer — not "nothing to reference"', () => {
+    it('says it is still asking before the first answer — not "nothing to reference"', async () => {
+        const user = userEvent.setup();
         render(<Harness
             initial={[{ id: 'a', text: 'x', refs: [] }]}
             refOptions={{}}
             listStatus={{ loaded: false, unavailable: [] }}
         />);
-        fireEvent.click(screen.getByTestId('skill-step-ref-add'));
+        await user.click(screen.getByTestId('skill-step-ref-add'));
         expect(screen.getByTestId('skill-ref-loading')).toBeTruthy();
         expect(screen.queryByTestId('skill-ref-none')).toBeNull();
         expect(screen.queryByText(/Nothing to reference yet/)).toBeNull();
     });
 
-    it('names the lists it could not read, and offers to ask again', () => {
+    it('names the lists it could not read, and offers to ask again', async () => {
+        const user = userEvent.setup();
         const reload = vi.fn();
         render(<Harness
             initial={[{ id: 'a', text: 'x', refs: [] }]}
             refOptions={{}}
             listStatus={{ loaded: true, unavailable: ['automations', 'kbs', 'tables'], reload }}
         />);
-        fireEvent.click(screen.getByTestId('skill-step-ref-add'));
+        await user.click(screen.getByTestId('skill-step-ref-add'));
         const note = screen.getByTestId('skill-ref-unread');
         expect(note.getAttribute('role')).toBe('status');
         expect(note.textContent).toMatch(/Could not be read/);
@@ -291,7 +299,7 @@ describe('steps', () => {
         expect(note.textContent).toMatch(/Knowledge bases/);
         expect(note.textContent).toMatch(/Tables/);
         expect(screen.queryByTestId('skill-ref-none')).toBeNull();
-        fireEvent.click(screen.getByTestId('skill-ref-retry'));
+        await user.click(screen.getByTestId('skill-ref-retry'));
         expect(reload).toHaveBeenCalledTimes(1);
     });
 
@@ -301,13 +309,14 @@ describe('steps', () => {
      * gefilterd) terwijl Tables er nog stond — dat leest als "deze organisatie
      * heeft geen automations".
      */
-    it('keeps the lists that DID arrive and still names the one that did not', () => {
+    it('keeps the lists that DID arrive and still names the one that did not', async () => {
+        const user = userEvent.setup();
         render(<Harness
             initial={[{ id: 'a', text: 'x', refs: [] }]}
             refOptions={{ automation: [], kb: [], table: REF_OPTIONS.table }}
             listStatus={{ loaded: true, unavailable: ['automations'] }}
         />);
-        fireEvent.click(screen.getByTestId('skill-step-ref-add'));
+        await user.click(screen.getByTestId('skill-step-ref-add'));
         expect(screen.getByRole('menuitem', { name: /Pricelist/ })).toBeTruthy();
         expect(screen.getByTestId('skill-ref-unread').textContent).toMatch(/Automations/);
         expect(screen.getByTestId('skill-ref-unread').textContent).not.toMatch(/Tables/);
@@ -327,13 +336,14 @@ describe('steps', () => {
      * that swallowed a click and did nothing. A control that does nothing is
      * worse than no control: it teaches that the app is broken.
      */
-    it('opens the referenced thing when there is somewhere to go', () => {
+    it('opens the referenced thing when there is somewhere to go', async () => {
+        const user = userEvent.setup();
         const onOpenRef = vi.fn();
         render(<Harness
             initial={[{ id: 'a', text: 'x', refs: [{ kind: 'table', id: 't1' }] }]}
             onOpenRef={onOpenRef}
         />);
-        fireEvent.click(screen.getByRole('button', { name: 'Pricelist' }));
+        await user.click(screen.getByRole('button', { name: 'Pricelist' }));
         expect(onOpenRef).toHaveBeenCalledWith({ kind: 'table', id: 't1' });
     });
 
@@ -343,14 +353,15 @@ describe('steps', () => {
         expect(screen.queryByRole('button', { name: 'Pricelist' })).toBeNull();
     });
 
-    it('still opens a reference for a read-only viewer — looking is not editing', () => {
+    it('still opens a reference for a read-only viewer — looking is not editing', async () => {
+        const user = userEvent.setup();
         const onOpenRef = vi.fn();
         render(<Harness
             initial={[{ id: 'a', text: 'x', refs: [{ kind: 'kb', id: 'k1' }] }]}
             onOpenRef={onOpenRef}
             readOnly
         />);
-        fireEvent.click(screen.getByRole('button', { name: 'Quote terms' }));
+        await user.click(screen.getByRole('button', { name: 'Quote terms' }));
         expect(onOpenRef).toHaveBeenCalledWith({ kind: 'kb', id: 'k1' });
         expect(screen.queryByRole('button', { name: /Remove reference/i })).toBeNull();
     });
@@ -365,22 +376,24 @@ describe('steps', () => {
 });
 
 describe('rules', () => {
-    it('adds a rule that defaults to "always", not to a negation', () => {
+    it('adds a rule that defaults to "always", not to a negation', async () => {
+        const user = userEvent.setup();
         const onRules = vi.fn();
         render(<RulesHarness onRules={onRules} />);
-        fireEvent.click(screen.getByTestId('skill-rule-add'));
+        await user.click(screen.getByTestId('skill-rule-add'));
         expect(onRules.mock.calls.at(-1)[0][0].polarity).toBe('must');
     });
 
-    it('flips polarity from the mark that shows it, in both directions', () => {
+    it('flips polarity from the mark that shows it, in both directions', async () => {
+        const user = userEvent.setup();
         const onRules = vi.fn();
         render(<RulesHarness
             initial={[{ id: 'r1', polarity: 'must', text: 'Answer in the language of the question.' }]}
             onRules={onRules}
         />);
-        fireEvent.click(screen.getByTestId('skill-rule-polarity'));
+        await user.click(screen.getByTestId('skill-rule-polarity'));
         expect(onRules.mock.calls.at(-1)[0][0].polarity).toBe('never');
-        fireEvent.click(screen.getByTestId('skill-rule-polarity'));
+        await user.click(screen.getByTestId('skill-rule-polarity'));
         expect(onRules.mock.calls.at(-1)[0][0].polarity).toBe('must');
     });
 
@@ -397,14 +410,15 @@ describe('rules', () => {
         expect(screen.queryByTestId('skill-rule-add')).toBeNull();
     });
 
-    it('removes the rule that was asked for, by id', () => {
+    it('removes the rule that was asked for, by id', async () => {
+        const user = userEvent.setup();
         const onRules = vi.fn();
         render(<RulesHarness
             initial={[{ id: 'r1', polarity: 'must', text: 'a' }, { id: 'r2', polarity: 'never', text: 'b' }]}
             onRules={onRules}
         />);
         const rows = screen.getAllByTestId('skill-rule');
-        fireEvent.click(within(rows[1]).getByRole('button', { name: /Remove rule/i }));
+        await user.click(within(rows[1]).getByRole('button', { name: /Remove rule/i }));
         expect(onRules.mock.calls.at(-1)[0].map(r => r.id)).toEqual(['r1']);
     });
 });

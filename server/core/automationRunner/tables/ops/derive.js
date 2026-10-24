@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * derive: add or replace columns from a value, a reference, a template or a

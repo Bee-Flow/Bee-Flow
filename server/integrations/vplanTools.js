@@ -23,7 +23,7 @@
  *
  * API reference: https://docs.api.vplan.com/
  */
-
+// @typecheck
 const configStore = require('../stores/configStore');
 const log = require('../telemetry/log');
 
@@ -132,7 +132,7 @@ const SORT_PARAM = {
  * plus an optional `with` enum and any tool-specific extras.
  */
 function listParams(withKey, extra = {}, required = []) {
-    const properties = {
+    /** @type {Record<string, any>} */ const properties = {
         limit: { type: 'integer', description: `Maximum number of records (1-${MAX_LIMIT}, default ${DEFAULT_LIMIT})` },
         offset: { type: 'integer', description: 'Pagination offset (default 0)' },
         filters: FILTER_PARAM,

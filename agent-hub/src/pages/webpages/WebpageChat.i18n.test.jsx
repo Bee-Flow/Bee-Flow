@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 
 /**
@@ -59,11 +60,12 @@ describe('WebpageChat — i18n', () => {
         expect(screen.getByText('⟦webpages.chat.quick_dashboard⟧')).toBeInTheDocument();
     });
 
-    it('BIJT — een voorbeeld verstuurt de VERTAALDE tekst, want dat is wat de lezer aanklikte', () => {
+    it('BIJT — een voorbeeld verstuurt de VERTAALDE tekst, want dat is wat de lezer aanklikte', async () => {
+        const user = userEvent.setup();
         const onSend = vi.fn();
         renderChat({ onSend });
 
-        fireEvent.click(screen.getByText('⟦webpages.chat.quick_bakery⟧'));
+        await user.click(screen.getByText('⟦webpages.chat.quick_bakery⟧'));
 
         expect(onSend).toHaveBeenCalledWith('⟦webpages.chat.quick_bakery⟧', []);
     });

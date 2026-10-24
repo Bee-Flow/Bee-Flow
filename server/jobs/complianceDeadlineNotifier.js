@@ -21,7 +21,7 @@
  * compliance event bus uses). Messages never carry an e-mail address or a
  * subject's name — a DSR is '#id · type' (BFSF-441).
  */
-
+// @typecheck
 const { recordJobRun } = require('../telemetry/metrics');
 const { complianceSectionPath, complianceIncidentPath } = require('../utils/appPaths');
 const log = require('../telemetry/log');
@@ -376,7 +376,7 @@ async function _sweepAttestations(d, orgId, nowMs) {
 }
 
 /** The per-org sections, each independent of the others. */
-const ORG_SWEEPS = Object.freeze([
+/** @type {ReadonlyArray<readonly [string, Function]>} */ const ORG_SWEEPS = Object.freeze([
     ['incident', _sweepIncidents],
     ['dsr', _sweepDsr],
     ['dpia', _sweepDpia],

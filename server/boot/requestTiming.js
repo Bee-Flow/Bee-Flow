@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Per-route latency instrumentation. Mounted by index.js right after the body
  * parser; the counters it fills are read back by /api/admin/metrics.

@@ -97,7 +97,7 @@ const REASONS = Object.freeze({
  * Wat draait deze app NU aan automatiseringen?
  *
  * @returns {Promise<{ok:boolean, reason:string, ownerId?:string|null,
- *                    entries?:Array, unset?:number}>}
+ *                    entries?:Array, unset?:number, error?:string, which?:string}>}
  *   `ok:false` betekent ALTIJD "laat de index staan" — nooit "schrijf een lege
  *   lijst". Het onderscheid staat in `reason`.
  */

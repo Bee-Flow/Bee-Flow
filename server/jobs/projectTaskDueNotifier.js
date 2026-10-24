@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Project task due-date notifier — a daily tick that rings the bell of the
  * people a task is given to: the day before it is due, on the day, and every
@@ -48,7 +49,7 @@ function reminderFor(dueDate, today, tomorrow, sent) {
  * @param {object} [deps]
  * @param {Function} [deps.query]      (sql, params) => { rows }
  * @param {Function} [deps.now]        () => ms
- * @param {object}   [deps.notifier]   projects/taskNotify surface
+ * @param {{ due: Function }} [deps.notifier]   projects/taskNotify surface
  */
 async function run(deps = {}) {
     const query = deps.query || ((sql, params) => pool.query(sql, params));

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /** The pin (learnMediaPack.json) a release carries, and where its assets are fetched from. */
 

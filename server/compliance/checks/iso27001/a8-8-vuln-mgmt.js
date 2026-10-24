@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO 27001 A.8.8 — management of technical vulnerabilities: open Dependabot
  * alerts from the github connector snapshots. A critical/high finding left

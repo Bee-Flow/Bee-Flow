@@ -1,4 +1,5 @@
-import { render as rtlRender, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render as rtlRender, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -162,40 +163,43 @@ describe('StudioHomeHeader', () => {
         expect(props.user).toBe(ORG_USER);
     });
 
-    it('de AI-regel van het "Nieuw"-menu landt op dat paneel, niet op de Automations-terugval', () => {
+    it('de AI-regel van het "Nieuw"-menu landt op dat paneel, niet op de Automations-terugval', async () => {
+        const user = userEvent.setup();
         // Zonder Automations-sectie zou de regel zonder eigen `onAi` GELOCKT zijn
         // (dat is de terugval in NewMenu.jsx). Dat hij hier open staat, niets
         // navigeert en de cursor in het paneel zet, bewijst dat de kop hem een
         // eigen bestemming geeft.
         const onNavigate = vi.fn();
         renderHeader({ sections: allOpen().filter((a) => a.id !== 'aiTasks'), onNavigate });
-        fireEvent.click(screen.getByTestId('new-menu-chevron'));
+        await user.click(screen.getByTestId('new-menu-chevron'));
         const ai = screen.getByTestId('new-menu-ai');
         expect(ai.hasAttribute('disabled')).toBe(false);
-        fireEvent.click(ai);
+        await user.click(ai);
         expect(onNavigate).not.toHaveBeenCalled();
         expect(document.activeElement).toBe(screen.getByTestId('studio-ai-input'));
         // Eén paneel op dit scherm, niet ook nog een dialoog ernaast.
         expect(screen.getAllByTestId('studio-ai-panel')).toHaveLength(1);
     });
 
-    it('draagt de split-knop "Nieuw" en opent het menu uit het registry', () => {
+    it('draagt de split-knop "Nieuw" en opent het menu uit het registry', async () => {
+        const user = userEvent.setup();
         renderHeader();
         expect(screen.getByTestId('new-menu-trigger')).toBeTruthy();
         expect(screen.queryByTestId('new-menu')).toBeNull();
-        fireEvent.click(screen.getByTestId('new-menu-chevron'));
+        await user.click(screen.getByTestId('new-menu-chevron'));
         expect(screen.getByTestId('new-menu')).toBeTruthy();
         // Afgeleid uit dezelfde secties als de rest van het scherm.
         expect(screen.getByTestId('new-menu-aiTasks')).toBeTruthy();
     });
 
-    it('een gelockte sectie staat in het menu als bordje, niet als deur', () => {
+    it('een gelockte sectie staat in het menu als bordje, niet als deur', async () => {
+        const user = userEvent.setup();
         const community = resolveStudioNav(STUDIO_APPS, {
             user: {}, hasLicenseFeature: (f) => f === 'automations', canUse: (id) => id === 'automations',
             hasPermission: () => true, can: () => false, lockReason: () => 'ceiling',
         }).filter((a) => !a.hiddenFromNav);
         renderHeader({ sections: community });
-        fireEvent.click(screen.getByTestId('new-menu-chevron'));
+        await user.click(screen.getByTestId('new-menu-chevron'));
         const locked = screen.getByTestId('new-menu-apps');
         expect(locked.getAttribute('data-locked')).toBe('true');
         expect(locked.getAttribute('aria-disabled')).toBe('true');

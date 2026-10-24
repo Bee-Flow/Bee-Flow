@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO27001-A.5.31-legal-register — the legal register the hub scores against
  * must have been re-checked recently, per framework the organisation uses.

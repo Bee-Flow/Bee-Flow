@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * analyzeCode: everything the product knows about a code step's source
  * without running it. Pure (no I/O, no isolated-vm), so the validator, the

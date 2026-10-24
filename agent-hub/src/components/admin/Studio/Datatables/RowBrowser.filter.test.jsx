@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { datatablesApi } from './datatablesApi';
@@ -66,8 +67,9 @@ function lastCall() {
 
 describe('the filter is built from the table, not typed', () => {
     it('offers the table\'s own columns plus the two system dates, and nothing else', async () => {
+        const user = userEvent.setup();
         await openFilter();
-        fireEvent.click(screen.getByRole('button', { name: /Add a condition/i }));
+        await user.click(screen.getByRole('button', { name: /Add a condition/i }));
         const field = await screen.findByLabelText(/Column to filter on/i);
         const offered = [...field.options].map(o => o.value);
         expect(offered).toEqual(['email', 'total', 'stage', 'created_at', 'updated_at']);
@@ -78,8 +80,9 @@ describe('the filter is built from the table, not typed', () => {
     });
 
     it('offers operators that suit the column, and swaps them when the column changes', async () => {
+        const user = userEvent.setup();
         await openFilter();
-        fireEvent.click(screen.getByRole('button', { name: /Add a condition/i }));
+        await user.click(screen.getByRole('button', { name: /Add a condition/i }));
         const test = await screen.findByLabelText(/Test to apply/i);
         expect([...test.options].map(o => o.value)).toContain('contains');
 
@@ -93,13 +96,14 @@ describe('the filter is built from the table, not typed', () => {
 
 describe('applying a filter', () => {
     it('sends the closed descriptor and the match mode', async () => {
+        const user = userEvent.setup();
         await openFilter();
-        fireEvent.click(screen.getByRole('button', { name: /Add a condition/i }));
+        await user.click(screen.getByRole('button', { name: /Add a condition/i }));
         fireEvent.change(await screen.findByLabelText(/Column to filter on/i), { target: { value: 'stage' } });
         fireEvent.change(screen.getByLabelText(/Test to apply/i), { target: { value: 'in' } });
         fireEvent.change(screen.getByLabelText(/Value to compare with/i), { target: { value: 'new, won' } });
         fireEvent.change(screen.getByLabelText(/Match all or any condition/i), { target: { value: 'any' } });
-        fireEvent.click(screen.getByRole('button', { name: /Apply/i }));
+        await user.click(screen.getByRole('button', { name: /Apply/i }));
 
         await waitFor(() => expect(lastCall().filters).toEqual([{ field: 'stage', op: 'in', value: ['new', 'won'] }]));
         expect(lastCall().match).toBe('any');
@@ -108,10 +112,11 @@ describe('applying a filter', () => {
     });
 
     it('never sends a condition with nothing typed in it', async () => {
+        const user = userEvent.setup();
         await openFilter();
-        fireEvent.click(screen.getByRole('button', { name: /Add a condition/i }));
+        await user.click(screen.getByRole('button', { name: /Add a condition/i }));
         await screen.findByLabelText(/Value to compare with/i);
-        fireEvent.click(screen.getByRole('button', { name: /^Apply$/i }));
+        await user.click(screen.getByRole('button', { name: /^Apply$/i }));
         // Half-typed, so the descriptor stays empty and the rows on screen are
         // still the unfiltered ones. `email = ''` would come back as zero rows
         // and read as "nothing matches" rather than "you have not finished".
@@ -122,38 +127,42 @@ describe('applying a filter', () => {
     });
 
     it('a condition that becomes answerable IS sent, from page one', async () => {
+        const user = userEvent.setup();
         await openFilter();
-        fireEvent.click(screen.getByRole('button', { name: /Add a condition/i }));
+        await user.click(screen.getByRole('button', { name: /Add a condition/i }));
         fireEvent.change(await screen.findByLabelText(/Value to compare with/i), { target: { value: 'a@b' } });
-        fireEvent.click(screen.getByRole('button', { name: /Apply/i }));
+        await user.click(screen.getByRole('button', { name: /Apply/i }));
         await waitFor(() => expect(lastCall().filters).toEqual([{ field: 'email', op: 'eq', value: 'a@b' }]));
     });
 
     it('an "is empty" condition needs no value at all', async () => {
+        const user = userEvent.setup();
         await openFilter();
-        fireEvent.click(screen.getByRole('button', { name: /Add a condition/i }));
+        await user.click(screen.getByRole('button', { name: /Add a condition/i }));
         fireEvent.change(await screen.findByLabelText(/Test to apply/i), { target: { value: 'isNull' } });
         expect(screen.queryByLabelText(/Value to compare with/i)).toBeNull();
-        fireEvent.click(screen.getByRole('button', { name: /Apply/i }));
+        await user.click(screen.getByRole('button', { name: /Apply/i }));
         await waitFor(() => expect(lastCall().filters).toEqual([{ field: 'email', op: 'isNull', value: null }]));
     });
 
     it('clearing takes the conditions off the request, not just off the screen', async () => {
+        const user = userEvent.setup();
         await openFilter();
-        fireEvent.click(screen.getByRole('button', { name: /Add a condition/i }));
+        await user.click(screen.getByRole('button', { name: /Add a condition/i }));
         fireEvent.change(await screen.findByLabelText(/Value to compare with/i), { target: { value: 'a@b.c' } });
-        fireEvent.click(screen.getByRole('button', { name: /Apply/i }));
+        await user.click(screen.getByRole('button', { name: /Apply/i }));
         await waitFor(() => expect(lastCall().filters.length).toBe(1));
 
-        fireEvent.click(screen.getByRole('button', { name: /^Clear$/i }));
+        await user.click(screen.getByRole('button', { name: /^Clear$/i }));
         await waitFor(() => expect(lastCall().filters).toEqual([]));
     });
 
     it('says how many conditions are in force, on the closed control', async () => {
+        const user = userEvent.setup();
         await openFilter();
-        fireEvent.click(screen.getByRole('button', { name: /Add a condition/i }));
+        await user.click(screen.getByRole('button', { name: /Add a condition/i }));
         fireEvent.change(await screen.findByLabelText(/Value to compare with/i), { target: { value: 'a@b.c' } });
-        fireEvent.click(screen.getByRole('button', { name: /Apply/i }));
+        await user.click(screen.getByRole('button', { name: /Apply/i }));
         await waitFor(() => expect(lastCall().filters.length).toBe(1));
         // The panel can be closed; a filter that is still in force must not be
         // invisible from the toolbar.
@@ -161,25 +170,28 @@ describe('applying a filter', () => {
     });
 
     it('a filtered empty result says "no rows match", not "no rows yet"', async () => {
+        const user = userEvent.setup();
         await openFilter();
         datatablesApi.listRows.mockResolvedValue({ rows: [], hasMore: false, count: 0, nextCursor: null, total: 1 });
-        fireEvent.click(screen.getByRole('button', { name: /Add a condition/i }));
+        await user.click(screen.getByRole('button', { name: /Add a condition/i }));
         fireEvent.change(await screen.findByLabelText(/Value to compare with/i), { target: { value: 'zzz' } });
-        fireEvent.click(screen.getByRole('button', { name: /Apply/i }));
+        await user.click(screen.getByRole('button', { name: /Apply/i }));
         expect(await screen.findByText(/No rows match/i)).toBeInTheDocument();
     });
 
     it('a condition can be taken off the draft again', async () => {
+        const user = userEvent.setup();
         await openFilter();
-        fireEvent.click(screen.getByRole('button', { name: /Add a condition/i }));
+        await user.click(screen.getByRole('button', { name: /Add a condition/i }));
         await screen.findByLabelText(/Column to filter on/i);
-        fireEvent.click(screen.getByRole('button', { name: /Remove this condition/i }));
+        await user.click(screen.getByRole('button', { name: /Remove this condition/i }));
         expect(screen.queryByLabelText(/Column to filter on/i)).toBeNull();
     });
 });
 
 describe('selecting rows', () => {
     it('select-all ticks every row on the page, and one bulk request deletes them', async () => {
+        const user = userEvent.setup();
         datatablesApi.listRows.mockResolvedValue({
             rows: [ROW, { ...ROW, id: 'rec_2', email: 'b@b.c' }],
             hasMore: false, count: 2, nextCursor: null, total: 2,
@@ -188,19 +200,20 @@ describe('selecting rows', () => {
         render(<RowBrowser table={TABLE} />);
         await screen.findByText('a@b.c');
 
-        fireEvent.click(screen.getByLabelText(/Select every row on this page/i));
+        await user.click(screen.getByLabelText(/Select every row on this page/i));
         expect(await screen.findByText(/2 rows selected/i)).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: /Delete selected/i }));
+        await user.click(screen.getByRole('button', { name: /Delete selected/i }));
         // It asks first — the same rule a single row delete follows.
         expect(datatablesApi.bulkDeleteRows).not.toHaveBeenCalled();
-        fireEvent.click(await screen.findByRole('button', { name: /Delete them/i }));
+        await user.click(await screen.findByRole('button', { name: /Delete them/i }));
 
         await waitFor(() => expect(datatablesApi.bulkDeleteRows).toHaveBeenCalledTimes(1));
         expect(datatablesApi.bulkDeleteRows).toHaveBeenCalledWith('tbl_1', ['rec_1', 'rec_2']);
     });
 
     it('reports the number the SERVER deleted, not the number asked for', async () => {
+        const user = userEvent.setup();
         // `deleted` is what Postgres removed after the access predicate. A row
         // a colleague deleted a second ago is not this account's to claim.
         datatablesApi.listRows.mockResolvedValue({
@@ -210,22 +223,23 @@ describe('selecting rows', () => {
         datatablesApi.bulkDeleteRows.mockResolvedValue({ deleted: 1, requested: 2 });
         render(<RowBrowser table={TABLE} />);
         await screen.findByText('a@b.c');
-        fireEvent.click(screen.getByLabelText(/Select every row on this page/i));
-        fireEvent.click(screen.getByRole('button', { name: /Delete selected/i }));
-        fireEvent.click(await screen.findByRole('button', { name: /Delete them/i }));
+        await user.click(screen.getByLabelText(/Select every row on this page/i));
+        await user.click(screen.getByRole('button', { name: /Delete selected/i }));
+        await user.click(await screen.findByRole('button', { name: /Delete them/i }));
         expect(await screen.findByText(/Deleted 1 of 2 rows/i)).toBeInTheDocument();
     });
 
     it('explains the server cap instead of a bare failure', async () => {
+        const user = userEvent.setup();
         const err = Object.assign(new Error('Too many'), {
             status: 413, code: 'too_many_ids', body: { code: 'too_many_ids', limit: 200, used: 400 },
         });
         datatablesApi.bulkDeleteRows.mockRejectedValue(err);
         render(<RowBrowser table={TABLE} />);
         await screen.findByText('a@b.c');
-        fireEvent.click(screen.getByLabelText(/Select every row on this page/i));
-        fireEvent.click(screen.getByRole('button', { name: /Delete selected/i }));
-        fireEvent.click(await screen.findByRole('button', { name: /Delete them/i }));
+        await user.click(screen.getByLabelText(/Select every row on this page/i));
+        await user.click(screen.getByRole('button', { name: /Delete selected/i }));
+        await user.click(await screen.findByRole('button', { name: /Delete them/i }));
         expect(await screen.findByText(/at most 200 rows at a time/i)).toBeInTheDocument();
     });
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ONE round through the provider ADAPTER — every SDK provider and every
  * self-hosted runtime (Ollama, vLLM, llama.cpp, LM Studio, …).

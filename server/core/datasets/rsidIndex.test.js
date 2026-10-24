@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/datasets — rsID shard index.
  * Run: cd server && node --test core/datasets/rsidIndex.test.js

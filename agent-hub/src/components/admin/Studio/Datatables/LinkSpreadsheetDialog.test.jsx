@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { datatablesApi } from './datatablesApi';
@@ -134,11 +135,12 @@ describe('step 1 — files', () => {
     });
 
     it('a csv with a linked sheet cannot be ticked — it IS one sheet, so there is nothing left to link', async () => {
+        const user = userEvent.setup();
         datatablesApi.browseSpreadsheets.mockImplementation(async ({ folderId }) => (folderId === 'fin'
             ? { ...FINANCE, items: FINANCE.items.map(i => (i.id === 'f2' ? { ...i, linkedAs: [{ datatableId: 'tbl_old', sheet: null }] } : i)) }
             : ROOT));
         open();
-        fireEvent.click(await screen.findByRole('button', { name: /Finance/ }));
+        await user.click(await screen.findByRole('button', { name: /Finance/ }));
         expect(await screen.findByRole('checkbox', { name: 'Leveranciers.csv' })).toBeDisabled();
         expect(screen.getByText('1 sheet linked')).toBeInTheDocument();
         // A workbook with a linked sheet stays tickable: another of its sheets may be free.
@@ -146,30 +148,32 @@ describe('step 1 — files', () => {
     });
 
     it('opens a folder, shows the path, and keeps a ticked file across folders', async () => {
+        const user = userEvent.setup();
         open();
-        fireEvent.click(await screen.findByRole('button', { name: /Finance/ }));
+        await user.click(await screen.findByRole('button', { name: /Finance/ }));
         await waitFor(() => expect(datatablesApi.browseSpreadsheets).toHaveBeenCalledWith(expect.objectContaining({ folderId: 'fin' })));
         const nav = await screen.findByRole('navigation', { name: 'Folder path' });
         expect(within(nav).getByText('Finance')).toBeInTheDocument();
-        fireEvent.click(await screen.findByRole('checkbox', { name: 'Facturen 2026.xlsx' }));
+        await user.click(await screen.findByRole('checkbox', { name: 'Facturen 2026.xlsx' }));
         expect(screen.getByText('1 file selected')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /^Next$/ })).not.toBeDisabled();
         // Back to the root: the file stays in the summary, and can be unticked from there.
-        fireEvent.click(within(nav).getByRole('button', { name: 'All files' }));
+        await user.click(within(nav).getByRole('button', { name: 'All files' }));
         await screen.findByRole('checkbox', { name: 'Planning Q3' });
         expect(screen.getByText('1 file selected')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Unselect Facturen 2026.xlsx' }));
+        await user.click(screen.getByRole('button', { name: 'Unselect Facturen 2026.xlsx' }));
         expect(screen.queryByText('1 file selected')).toBeNull();
     });
 
     it('searches the root, debounced, and hides the shared toggle for Nextcloud', async () => {
+        const user = userEvent.setup();
         open();
         await screen.findByRole('checkbox', { name: 'Planning Q3' });
         expect(screen.getByRole('checkbox', { name: 'Shared with me' })).toBeInTheDocument();
         fireEvent.change(screen.getByRole('textbox', { name: 'Find a spreadsheet' }), { target: { value: 'fact' } });
         await waitFor(() => expect(datatablesApi.browseSpreadsheets).toHaveBeenCalledWith(expect.objectContaining({ folderId: 'root', q: 'fact' })), { timeout: 1500 });
         expect(await screen.findByText('Search results')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('tab', { name: /Nextcloud/ }));
+        await user.click(screen.getByRole('tab', { name: /Nextcloud/ }));
         await waitFor(() => expect(datatablesApi.browseSpreadsheets).toHaveBeenCalledWith(expect.objectContaining({ provider: 'nextcloud_files', folderId: 'root' })));
         expect(screen.queryByRole('checkbox', { name: 'Shared with me' })).toBeNull();
     });
@@ -177,6 +181,7 @@ describe('step 1 — files', () => {
 
 describe('step 2 — sheets & columns', () => {
     it('reads the file once, disables a linked sheet, and lets the columns be typed and a key chosen', async () => {
+        const user = userEvent.setup();
         open();
         await pickFiles(['Facturen 2026.xlsx']);
         await waitFor(() => expect(datatablesApi.describeSpreadsheet).toHaveBeenCalledWith({ provider: 'google_drive', fileId: 'f1', scope: 'organisation' }));
@@ -197,7 +202,7 @@ describe('step 2 — sheets & columns', () => {
         expect(within(sec).getByRole('radio', { name: 'Leverancier' })).toBeDisabled();
         expect(within(sec).getAllByText('values repeat').length).toBe(2);           // Leverancier, Totaal
         expect(within(sec).getByText('only text or number')).toBeInTheDocument();  // Datum
-        fireEvent.click(within(sec).getByRole('radio', { name: 'Factuurnummer' }));
+        await user.click(within(sec).getByRole('radio', { name: 'Factuurnummer' }));
         expect(within(sec).getByRole('radio', { name: 'Factuurnummer' })).toBeChecked();
         expect(screen.getByRole('button', { name: /^Next$/ })).not.toBeDisabled();
         // Retyped to a date, the key column can no longer identify a row: back to the row number.
@@ -207,11 +212,12 @@ describe('step 2 — sheets & columns', () => {
     });
 
     it('re-reads the sheet when the header row moves, keeping the types the person chose', async () => {
+        const user = userEvent.setup();
         open();
         await pickFiles(['Facturen 2026.xlsx']);
         const sec = await pickFacturenSheet();
         fireEvent.change(within(sec).getByRole('combobox', { name: 'Type of Totaal' }), { target: { value: 'number' } });
-        fireEvent.click(within(sec).getByRole('button', { name: 'One row down' }));
+        await user.click(within(sec).getByRole('button', { name: 'One row down' }));
         await waitFor(() => expect(datatablesApi.describeSpreadsheet).toHaveBeenCalledWith(
             { provider: 'google_drive', fileId: 'f1', sheet: 'Facturen', headerRow: 2, scope: 'organisation' },
         ), { timeout: 1500 });
@@ -271,12 +277,13 @@ describe('step 2 — sheets & columns', () => {
 
 describe('steps 3-5 — names, relations, review, link', () => {
     it('names the table after the file, reviews the key, and sends EXACTLY the contract body', async () => {
+        const user = userEvent.setup();
         datatablesApi.linkSpreadsheets.mockResolvedValue({ datatables: [{ id: 'tbl_new' }], warnings: [], partial: false });
         const { onLinked } = open();
         await pickFiles(['Facturen 2026.xlsx']);
         const sec = await pickFacturenSheet();
         fireEvent.change(within(sec).getByRole('combobox', { name: 'Type of Totaal' }), { target: { value: 'number' } });
-        fireEvent.click(within(sec).getByRole('radio', { name: 'Factuurnummer' }));
+        await user.click(within(sec).getByRole('radio', { name: 'Factuurnummer' }));
         next();                                                                         // names
         expect(await screen.findByDisplayValue('Facturen 2026')).toBeInTheDocument();
         expect(screen.getByDisplayValue('facturen_2026')).toBeInTheDocument();
@@ -286,13 +293,14 @@ describe('steps 3-5 — names, relations, review, link', () => {
         next();                                                                         // review
         expect(await screen.findByText('key: Factuurnummer', { exact: false })).toBeInTheDocument();
         expect(screen.getByText(/belong to your organisation/)).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Link the sheet' }));
+        await user.click(screen.getByRole('button', { name: 'Link the sheet' }));
         await waitFor(() => expect(datatablesApi.linkSpreadsheets).toHaveBeenCalled());
         expect(datatablesApi.linkSpreadsheets).toHaveBeenCalledWith({ scope: 'organisation', tables: [EXPECTED_F1_TABLE], relations: [] });
         await waitFor(() => expect(onLinked).toHaveBeenCalledWith(expect.objectContaining({ datatables: [{ id: 'tbl_new' }] })));
     });
 
     it('suggests a relation on a shared title and names both ends by sheet and column', async () => {
+        const user = userEvent.setup();
         datatablesApi.linkSpreadsheets.mockResolvedValue({ datatables: [], warnings: [], partial: false });
         open();
         await pickFiles(['Facturen 2026.xlsx', 'Leveranciers.csv']);
@@ -302,12 +310,12 @@ describe('steps 3-5 — names, relations, review, link', () => {
         expect(await screen.findByDisplayValue('Leveranciers')).toBeInTheDocument();
         next();                                                                         // relations
         const suggestion = await screen.findByRole('checkbox', { name: /Facturen 2026 · Leverancier matches Leveranciers · Leverancier/ });
-        fireEvent.click(suggestion);
+        await user.click(suggestion);
         next();                                                                         // review
         // The csv is listed by its file alone ("file › null" would be a lie about a sheet).
         expect(await screen.findByText('Leveranciers.csv · row number')).toBeInTheDocument();
         expect(screen.getByText('Facturen 2026.xlsx › Facturen · row number')).toBeInTheDocument();
-        fireEvent.click(await screen.findByRole('button', { name: 'Link 2 sheets' }));
+        await user.click(await screen.findByRole('button', { name: 'Link 2 sheets' }));
         await waitFor(() => expect(datatablesApi.linkSpreadsheets).toHaveBeenCalled());
         const body = datatablesApi.linkSpreadsheets.mock.calls[0][0];
         // The csv selected itself the moment it was read, before the person ticked Facturen: selection order.
@@ -323,6 +331,7 @@ describe('steps 3-5 — names, relations, review, link', () => {
 
 describe('a relation outlives neither of its ends', () => {
     it('is dropped from the body when its sheet is unticked afterwards', async () => {
+        const user = userEvent.setup();
         datatablesApi.linkSpreadsheets.mockResolvedValue({ datatables: [], warnings: [], partial: false });
         open();
         await pickFiles(['Facturen 2026.xlsx', 'Leveranciers.csv']);
@@ -330,14 +339,14 @@ describe('a relation outlives neither of its ends', () => {
         await waitFor(() => expect(screen.getByRole('button', { name: /^Next$/ })).not.toBeDisabled());
         next(); await screen.findByDisplayValue('Leveranciers');
         next();
-        fireEvent.click(await screen.findByRole('checkbox', { name: /Facturen 2026 · Leverancier matches Leveranciers · Leverancier/ }));
-        fireEvent.click(screen.getByRole('button', { name: /Back/ }));                       // names
-        fireEvent.click(await screen.findByRole('button', { name: /Back/ }));                // sheets
-        fireEvent.click(await screen.findByRole('checkbox', { name: 'Facturen — Facturen 2026.xlsx' }));   // untick
+        await user.click(await screen.findByRole('checkbox', { name: /Facturen 2026 · Leverancier matches Leveranciers · Leverancier/ }));
+        await user.click(screen.getByRole('button', { name: /Back/ }));                       // names
+        await user.click(await screen.findByRole('button', { name: /Back/ }));                // sheets
+        await user.click(await screen.findByRole('checkbox', { name: 'Facturen — Facturen 2026.xlsx' }));   // untick
         next(); await screen.findByDisplayValue('Leveranciers');
         next(); expect(await screen.findByText(/at least two sheets/)).toBeInTheDocument();
         next();
-        fireEvent.click(await screen.findByRole('button', { name: 'Link the sheet' }));
+        await user.click(await screen.findByRole('button', { name: 'Link the sheet' }));
         await waitFor(() => expect(datatablesApi.linkSpreadsheets).toHaveBeenCalled());
         const body = datatablesApi.linkSpreadsheets.mock.calls[0][0];
         expect(body.tables.map(x => x.key)).toEqual(['leveranciers']);

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * FORM ANSWERS — a submission becomes a row.
  *
@@ -44,7 +45,7 @@ const TAG = '[form answers]';
 
 /** The run-context shape the datatable resolver reads, for the automation's owner. */
 async function principalCtxFor(automation) {
-    const p = await resolveDatatablePrincipalForUser(automation.userId);
+    const p = /** @type {any} */ (await resolveDatatablePrincipalForUser(automation.userId));
     return {
         userId: automation.userId,
         orgId: automation.organizationId || p.orgId || null,

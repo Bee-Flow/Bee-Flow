@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unattended-run session resolution (extracted verbatim from engine.js):
  * vault-backed OAuth session building for scheduled/offline runs, connector

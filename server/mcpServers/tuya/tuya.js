@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tuya MCP — pure helpers.
  *
@@ -210,7 +211,7 @@ function summarizeDevice(device = {}) {
     return summary;
 }
 
-/** Filter a device list by free-text query, online state and category. */
+/** Filter a device list by free-text query, online state and category. @param {any[]} devices @param {{ query?: string, online?: boolean, category?: string }} [opts] */
 function filterDevices(devices, { query, online, category } = {}) {
     let out = Array.isArray(devices) ? devices.slice() : [];
 

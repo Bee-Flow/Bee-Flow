@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Local adapter — llama-server prefill progress is requested only where it is
  * understood.

@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import UserManagement from './UserManagement';
 import { authFetch } from '../../../utils/helpers';
@@ -115,9 +116,10 @@ describe('UserManagement', () => {
     });
 
     it('navigates on section switch instead of holding local tab state', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<UserManagement user={fullAdmin} onNavigate={onNavigate} />);
-        fireEvent.click(await screen.findByText('admin.users_tab_groups'));
+        await user.click(await screen.findByText('admin.users_tab_groups'));
         expect(onNavigate).toHaveBeenCalledWith('admin/security/users/groups');
     });
 

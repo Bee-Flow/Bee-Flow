@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Data Act Art. 25 exit procedure: relevance gate, document unpublished →
  * fail, published but never exercised → warn, stale attested test → warn,

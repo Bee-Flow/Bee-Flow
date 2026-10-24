@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok } from '@/test/http';
 import AccessTab from './AccessTab';
@@ -31,18 +32,20 @@ describe('AccessTab', () => {
     });
 
     it('reveals group chips after switching to "Restricted"', async () => {
+        const user = userEvent.setup();
         mockAccess();
         render(<AccessTab inbox={INBOX} user={ADMIN} />);
-        fireEvent.click(await screen.findByText('Restricted to specific groups'));
+        await user.click(await screen.findByText('Restricted to specific groups'));
         expect(await screen.findByText('Tier-1')).toBeTruthy();
         expect(screen.getByText('Billing')).toBeTruthy();
     });
 
     it('autosaves selected groups via PUT', async () => {
+        const user = userEvent.setup();
         mockAccess();
         render(<AccessTab inbox={INBOX} user={ADMIN} />);
-        fireEvent.click(await screen.findByText('Restricted to specific groups'));
-        fireEvent.click(await screen.findByText('Tier-1'));
+        await user.click(await screen.findByText('Restricted to specific groups'));
+        await user.click(await screen.findByText('Tier-1'));
         // Debounced autosave (700ms) — wait for the PUT to fire.
         await waitFor(() => {
             const putCall = authFetch.mock.calls.find(([, opts]) => opts && opts.method === 'PUT');

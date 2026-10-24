@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Parsing and fingerprinting of a code step's source.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * MACHINERY-Art3-industrial-detection — detector → not_applicable | warn.
  * Run: cd server && node --test --test-force-exit compliance/checks/machinery/art3-industrial-detection.test.js

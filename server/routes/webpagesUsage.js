@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpagina's — wie gebruikt er een (W5 deel B).
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The runner's periodic ticks and the boot/drain lifecycle that mounts them
  * (extracted verbatim from automationRunner.js).
@@ -302,7 +303,7 @@ async function start() {
     // Their handles go into _tickHandles too, so a SIGTERM inside the first
     // minute cancels the pending sweep instead of racing it. stop() needs no
     // special case for them: Node's clearInterval IS clearTimeout.
-    for (const [fn, delay] of [[dueTick, 10_000], [reapTick, 15_000], [formQueueTick, 20_000], [retentionTick, 60_000], [datatableRetentionTick, 90_000]]) {
+    for (const [fn, delay] of /** @type {Array<[() => any, number]>} */ ([[dueTick, 10_000], [reapTick, 15_000], [formQueueTick, 20_000], [retentionTick, 60_000], [datatableRetentionTick, 90_000]])) {
         const t = setTimeout(fn, delay);
         t.unref?.();
         _tickHandles.push(t);

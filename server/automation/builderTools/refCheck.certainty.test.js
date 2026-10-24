@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * refCheck — a refusal must be CERTAIN and a repair must keep the MEANING.
  *

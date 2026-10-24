@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Who should use this app?" in a sentence → a PROPOSAL.
  *
@@ -304,7 +305,7 @@ function resolveNames(raw, { roles = [], groups = [], people = [], digest = null
 function defaultDeps() {
     return {
         resolveModel: (opts) => require('../core/llm/modelResolver').resolveModelForTierName(opts.tier || 'fast', opts),
-        chatForcedTool: (...args) => require('../core/llm/llmClient').chatForcedTool(...args),
+        chatForcedTool: (...args) => /** @type {Function} */ (require('../core/llm/llmClient').chatForcedTool)(...args),
     };
 }
 

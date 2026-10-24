@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit — server block sanitization/normalization (Workstream B).
  *

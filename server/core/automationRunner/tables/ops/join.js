@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * join: add the columns of another table to each row, matched on one to

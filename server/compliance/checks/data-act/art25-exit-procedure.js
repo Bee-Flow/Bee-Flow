@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Data Act Art. 25(2)(a),(b),(e) / Art. 23(a),(c) — an exit procedure exists and has
  * been exercised. Also DORA Art. 28(8): exit strategies for ICT services.
@@ -193,4 +194,4 @@ module.exports = {
     },
 };
 
-module.exports._test = { DOC_SLUG, WINDOW_DAYS, STAMP_ACTION };
+Object.assign(module.exports, { _test: { DOC_SLUG, WINDOW_DAYS, STAMP_ACTION } });

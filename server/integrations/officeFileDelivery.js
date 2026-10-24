@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Office file delivery — where a file the chat built ends up.
  *
@@ -172,8 +173,8 @@ async function resolveDestinations(toolName, args, ctx, fileName) {
  *
  * @param {string} toolName  create_word_document | create_spreadsheet
  * @param {object} args      tool arguments
- * @param {{ userId: string, orgId?: string|null, session?: object, provider?: string,
- *   nextcloudPath?: string, nextcloudError?: string, oneDrivePath?: string }} ctx
+ * @param {{ userId?: string, orgId?: string|null, session?: object, provider?: string,
+ *   nextcloudPath?: string, nextcloudError?: string, oneDrivePath?: string }} [ctx]
  */
 async function buildAndDeliver(toolName, args = {}, ctx = {}) {
     const spec = FILE_TOOLS[toolName];
@@ -244,7 +245,12 @@ async function buildAndDeliver(toolName, args = {}, ctx = {}) {
     };
 }
 
-/** The dispatcher's entry: resolve where the file goes, then build and deliver it. */
+/**
+ * The dispatcher's entry: resolve where the file goes, then build and deliver it.
+ * @param {string} toolName
+ * @param {Record<string, any>} [args]
+ * @param {{ userId?: string, orgId?: string|null, session?: object, provider?: string }} [ctx]
+ */
 async function executeOfficeFileTool(toolName, args = {}, ctx = {}) {
     const spec = FILE_TOOLS[toolName];
     if (!spec) return { error: `Unknown file tool ${toolName}` };

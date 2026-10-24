@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De zod-woordenschat waaruit de verzoekschema's van deze router zijn gebouwd.
  *

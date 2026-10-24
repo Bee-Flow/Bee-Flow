@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit — per-locale translation merge + string extraction for the CMS.
  *

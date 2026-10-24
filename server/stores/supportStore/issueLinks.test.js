@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Issue-link snapshots and the follow-up diff, against a REAL Postgres
  * (@electric-sql/pglite, in-process) and the store's real schema.

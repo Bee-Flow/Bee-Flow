@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR Art. 12/13/14 — Transparent information to data subjects.
  * Verifies that a privacy-notice URL has been published in compliance_settings.

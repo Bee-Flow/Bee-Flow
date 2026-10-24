@@ -1,3 +1,4 @@
+// @typecheck
 // Wipe SaaS-side state for the local NC sandbox so the next connector boot
 // starts from scratch: org gone, tenant key gone, pending bindings gone,
 // pairing codes gone, all sessions gone. Invoked by scripts/dev-nc.sh reset.

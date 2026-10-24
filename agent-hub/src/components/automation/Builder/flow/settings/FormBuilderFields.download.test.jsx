@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import FormBuilderFields from './FormBuilderFields';
@@ -63,9 +64,10 @@ describe('FormBuilderFields — download button', () => {
             expect(screen.getByText(/Nothing to hand over/)).toBeTruthy();
         });
 
-        it('adds a download that collects nothing', () => {
+        it('adds a download that collects nothing', async () => {
+            const user = userEvent.setup();
             const { onChange } = renderEditor(endingForm(), { variant: 'ending' });
-            fireEvent.click(screen.getByRole('button', { name: /Add a download/ }));
+            await user.click(screen.getByRole('button', { name: /Add a download/ }));
 
             const next = onChange.mock.calls[0][0];
             expect(next.fields).toHaveLength(1);

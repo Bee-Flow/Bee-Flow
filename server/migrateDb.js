@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Database Migration Runner — en sinds U1 doet hij dat ook echt.
  *
@@ -98,7 +99,7 @@ async function runMigrations({ log = console, force = false } = {}) {
     // De boot-ladder die de oude runner altijd oversloeg: losse datamigraties
     // en de NL-catalogi, uit dezelfde lijsten die de server bij boot draait.
     const { runLooseMigrations, runNlTranslations, MANUAL_MIGRATIONS } = require('./boot/bootMigrations');
-    for (const [label, run] of [['datamigraties', runLooseMigrations], ['NL-catalogi', runNlTranslations]]) {
+    for (const [label, run] of /** @type {Array<[string, typeof runLooseMigrations]>} */ ([['datamigraties', runLooseMigrations], ['NL-catalogi', runNlTranslations]])) {
         const r = await run({ log, force });
         report.succeeded.push(...r.ok.map(n => `${label}/${n}`));
         report.skipped.push(...r.skipped.map(n => `${label}/${n}`));

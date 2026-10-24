@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * /w/<slug> — het adres van de PAGINA, bediend door dezelfde viewer.
  *

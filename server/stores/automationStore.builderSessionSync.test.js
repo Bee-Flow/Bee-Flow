@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Regression test: updating an automation's definition keeps the
  * builder-session snapshot's `draft` in lock-step with the row.

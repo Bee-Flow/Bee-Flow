@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance EventEmitter — turns business events into compliance signals.
  *
@@ -386,4 +387,4 @@ _bus.on(EVENTS.CHAT_MONITORING_CHANGED, async ({ orgId }) => {
 });
 
 module.exports = { emit, EVENTS, _bus, PROJECT_RERUN_CHECKS, _resetProjectReruns, _projectRerunCount: () => _projectReruns.size };
-module.exports.CHAT_SIGNAL_CHECKS = CHAT_SIGNAL_CHECKS;
+Object.assign(module.exports, { CHAT_SIGNAL_CHECKS });

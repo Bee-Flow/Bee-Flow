@@ -65,7 +65,7 @@ const PAIR_VALUE_KEYS = ['value', 'values'];
 const FIELD_NAME_RE = /^[A-Za-z_][A-Za-z0-9_.:-]{0,63}$/;
 const MAX_SHOWN_NAME = 30;
 
-const ANY = Object.freeze({ t: 'any' });
+const ANY = /** @type {{t: string, [k: string]: any}} */ (Object.freeze({ t: 'any' }));
 
 const isContainer = n => !!n && (n.t === 'obj' || n.t === 'arr');
 

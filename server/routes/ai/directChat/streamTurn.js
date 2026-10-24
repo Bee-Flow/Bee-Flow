@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — the streaming turn (POST /chat/direct/stream).
  *

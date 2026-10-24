@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * compliancePdf — every builder must return real PDF bytes and a stable
  * content hash. Run: node --test server/utils/compliancePdf.test.js

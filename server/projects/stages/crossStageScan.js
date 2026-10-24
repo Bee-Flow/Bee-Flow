@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Does a stage's payload point into Dev or into the sibling stage (design 3.1)?
  *
@@ -127,7 +128,7 @@ function scanAgainst(payloads, owners, code = 'stage.cross_reference') {
     };
     for (const p of payloads || []) {
         if (!p || !isObject(p.payload)) continue;
-        const ref = p.ref || p.payload.ref || null;
+        const ref = p.ref || /** @type {Record<string, any>} */ (p.payload).ref || null;
         const holder = holderOf(p.kind);
         if (HOLDER_KINDS.includes(holder)) {
             visitPointers(holder, p.payload, (ptr) => {

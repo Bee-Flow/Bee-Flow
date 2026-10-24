@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The server-wide rule for what ORGANISATION admins may install in their MCP
  * library. Set by the server administrator (super-admin), read on every

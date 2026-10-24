@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The stage chain's rulebook — pure, so the whole matrix is enumerable.
  *

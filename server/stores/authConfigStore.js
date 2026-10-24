@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 // OAuth metadata and credentials are committed together. Reads deliberately

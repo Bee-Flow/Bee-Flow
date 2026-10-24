@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Interrupted-turn persistence for direct chat.
  *

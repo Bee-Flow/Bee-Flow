@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Saved-audio backfill — give every meeting note a durable object-storage copy.
  *

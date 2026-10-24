@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Platform-module runtime tests (server/modules/index.js).
  *

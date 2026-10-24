@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import FieldPicker from './FieldPicker';
 
@@ -59,18 +60,20 @@ describe('FieldPicker', () => {
         expect(screen.queryByText('Subject')).toBeNull();
     });
 
-    it('accepts a typed field name when there is no sample data yet', () => {
+    it('accepts a typed field name when there is no sample data yet', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderPicker({ options: [], value: null });
-        fireEvent.click(screen.getByRole('button', { name: /Choose a field/ }));
+        await user.click(screen.getByRole('button', { name: /Choose a field/ }));
         expect(screen.getByText(/No sample data yet/)).toBeTruthy();
         fireEvent.change(screen.getByPlaceholderText('Search fields…'), { target: { value: 'subject' } });
         fireEvent.mouseDown(screen.getByText('Use “subject”'));
         expect(onChange).toHaveBeenCalledWith({ kind: 'ref', path: 'item.subject' });
     });
 
-    it('resolves a typed name against the given base', () => {
+    it('resolves a typed name against the given base', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderPicker({ options: [], fallbackBase: 'trigger.output' });
-        fireEvent.click(screen.getByRole('button', { name: /Choose a field/ }));
+        await user.click(screen.getByRole('button', { name: /Choose a field/ }));
         fireEvent.change(screen.getByPlaceholderText('Search fields…'), { target: { value: 'plan' } });
         fireEvent.mouseDown(screen.getByText('Use “plan”'));
         expect(onChange).toHaveBeenCalledWith({ kind: 'ref', path: 'trigger.output.plan' });

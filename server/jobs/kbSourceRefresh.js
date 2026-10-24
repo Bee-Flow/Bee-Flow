@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Knowledge-base source refresh — the scheduled half of "sources keep
  * themselves up to date".

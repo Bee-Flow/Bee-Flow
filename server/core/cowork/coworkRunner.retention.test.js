@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De retentiesweep-bedrading in de cowork-runner: hetzelfde configpatroon als
  * jobs/runRetention.js (COWORK_RUN_RETENTION_DAYS, default 90, 0 = uit) en

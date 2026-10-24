@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GDPR Art. 32 — DLP (Data Loss Prevention) active and working.
  *

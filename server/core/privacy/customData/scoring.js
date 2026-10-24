@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * How a test sentence is scored against what a matcher found in it.

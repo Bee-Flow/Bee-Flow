@@ -1,3 +1,4 @@
+// @typecheck
 // Server-owned product fact sheet for the Learning Center AI tutor.
 //
 // The tutor answers free-form "I'm stuck" questions from inside lessons. Lesson

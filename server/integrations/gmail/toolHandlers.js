@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The longer branches of executeGmailTool (../gmailTools.js), one function
  * per tool; the dispatch itself stays there.

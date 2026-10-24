@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Pure summary-template helpers — no DB, no LLM.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Reuse this app's answer ACROSS runs" — the organisation's policy for it.
  *

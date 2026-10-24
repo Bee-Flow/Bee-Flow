@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 const { exec, pool } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');

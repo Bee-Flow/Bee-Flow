@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import ActionsSection, { stepCount } from './ActionsSection';
@@ -161,8 +162,9 @@ describe('ActionsSection — the automation contract, when it drifts', () => {
     });
 
     it('adding a missing input writes it into the mapping', async () => {
+        const user = userEvent.setup();
         const { lastAction } = renderSection(wired);
-        fireEvent.click(await screen.findByRole('button', { name: /\+ amount/ }));
+        await user.click(await screen.findByRole('button', { name: /\+ amount/ }));
         expect(Object.keys(lastAction().inputMapping)).toContain('amount');
     });
 

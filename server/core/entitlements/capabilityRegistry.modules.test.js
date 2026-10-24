@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Capability-registry module-filter seam tests.
  *

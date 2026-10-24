@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The memory extractor logs ids and types, never what the user said.
  *

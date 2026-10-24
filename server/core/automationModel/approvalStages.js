@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * approvalStages — the stage chain's rulebook. Pure, so both the automation
  * engine and the App Studio executor reach the same answer from the same

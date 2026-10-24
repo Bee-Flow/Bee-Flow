@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The list descriptor — the one place caller-supplied query shape is accepted,
  * and the module that closes it.

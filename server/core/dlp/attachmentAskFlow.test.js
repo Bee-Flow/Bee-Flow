@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * resolveAttachmentAsk — the attachment-side counterpart to dlpPreflight's
  * text 'ask' branch: emits `dlp_attachment_preview`, awaits one decision,

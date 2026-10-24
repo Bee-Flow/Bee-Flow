@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — model-facing payload helpers: the step-id echoes appended
  * to every mutation result, sample compaction, the dry-run projection and
@@ -87,6 +88,7 @@ function summariseDraftSteps(draft) {
     // trigger.output.<param>) and the live step ids within that scope.
     for (const [key, g] of Object.entries(draft?.layers || {})) {
         if (!g || typeof g !== 'object') continue;
+        /** @type {any[]} */
         const steps = [{
             id: g.trigger?.id || 'trg',
             type: 'trigger',

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -134,19 +135,21 @@ describe('AppRunPage — run-view formula scope (GA gate)', () => {
     });
 
     it('(c) a set_variable sequence makes vars.x visible to a computed prop', async () => {
+        const user = userEvent.setup();
         const { findByText, queryByText } = renderPage();
         const button = await findByText('Set var');
 
         expect(queryByText('Zap-visible')).toBeNull();
-        fireEvent.click(button);
+        await user.click(button);
         expect(await findByText('Zap-visible')).toBeTruthy();
     });
 
     it('(d) navigate-with-params exposes screen.params.recordId on the target screen', async () => {
+        const user = userEvent.setup();
         const { findByText, queryByText } = renderPage();
         const button = await findByText('Open record');
 
-        fireEvent.click(button);
+        await user.click(button);
         expect(await findByText('rec_42')).toBeTruthy();
         // The computed formula replaced the static fallback.
         expect(queryByText('no-record')).toBeNull();

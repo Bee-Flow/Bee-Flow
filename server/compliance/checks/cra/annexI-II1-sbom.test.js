@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CRA Annex I II(1) SBOM: relevance gate, nothing found → fail, licence list
  * only → warn, build-sha match → pass, fresh without sha → pass, stale /

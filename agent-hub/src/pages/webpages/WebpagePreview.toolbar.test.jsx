@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('../../utils/helpers', () => ({
@@ -43,29 +44,32 @@ describe('WebpagePreview toolbar — the shield', () => {
 });
 
 describe('WebpagePreview toolbar — the device toggle', () => {
-    it('caps the frame at the device width and says which one is on', () => {
+    it('caps the frame at the device width and says which one is on', async () => {
+        const user = userEvent.setup();
         const { container } = renderPreview();
         const iframe = container.querySelector('iframe');
         expect(iframe.style.maxWidth).toBe(`${PREVIEW_DEVICES.desktop.width}px`);
         expect(screen.getByTestId('preview-device-desktop')).toHaveAttribute('aria-checked', 'true');
 
-        fireEvent.click(screen.getByTestId('preview-device-mobile'));
+        await user.click(screen.getByTestId('preview-device-mobile'));
         expect(container.querySelector('iframe').style.maxWidth).toBe(`${PREVIEW_DEVICES.mobile.width}px`);
         expect(screen.getByTestId('preview-device-mobile')).toHaveAttribute('aria-checked', 'true');
         expect(screen.getByTestId('preview-device-desktop')).toHaveAttribute('aria-checked', 'false');
     });
 
-    it('does NOT remount the iframe — the postMessage guard holds the same window', () => {
+    it('does NOT remount the iframe — the postMessage guard holds the same window', async () => {
+        const user = userEvent.setup();
         const { container } = renderPreview();
         const before = container.querySelector('iframe');
-        fireEvent.click(screen.getByTestId('preview-device-mobile'));
+        await user.click(screen.getByTestId('preview-device-mobile'));
         expect(container.querySelector('iframe')).toBe(before);
     });
 
-    it('reloading DOES remount it — that is what a reload is', () => {
+    it('reloading DOES remount it — that is what a reload is', async () => {
+        const user = userEvent.setup();
         const { container } = renderPreview();
         const before = container.querySelector('iframe');
-        fireEvent.click(screen.getByTitle('Reload preview'));
+        await user.click(screen.getByTitle('Reload preview'));
         expect(container.querySelector('iframe')).not.toBe(before);
     });
 });

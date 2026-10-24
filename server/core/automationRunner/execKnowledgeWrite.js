@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `knowledge_write` — put text into a knowledge base, so an agent can answer
  * from it later.

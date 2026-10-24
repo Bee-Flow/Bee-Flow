@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * nextcloud_upload_file: missing parents are created on a 404 as well as a 409
  * (Nextcloud answers 404 for a PUT whose parent folder is missing), a path

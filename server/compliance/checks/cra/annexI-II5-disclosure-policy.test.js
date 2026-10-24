@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CRA Annex I II(5) disclosure policy: relevance gate, no public host, 404 →
  * fail, served without policy → warn, served + Policy line → pass, attested

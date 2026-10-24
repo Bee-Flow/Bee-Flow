@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * NIS2-Art21(2)(g)-cyber-hygiene-training — policy-ack ∪ training-attest coverage.
  * Run: cd server && node --test --test-force-exit compliance/checks/nis2/cyber-hygiene-training.test.js

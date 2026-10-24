@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EAA Art. 4 / Art. 13(2) — the product's own public surfaces are
  * accessibility-tested.

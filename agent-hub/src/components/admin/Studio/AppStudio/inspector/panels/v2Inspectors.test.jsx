@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import ChartInspector from './ChartInspector';
 import DataGridInspector from './DataGridInspector';
@@ -74,16 +75,18 @@ describe('v2 inspectors — smoke', () => {
 });
 
 describe('v2 inspectors — behaviour', () => {
-    it('DataGridInspector toggles searchable', () => {
+    it('DataGridInspector toggles searchable', async () => {
+        const user = userEvent.setup();
         const { onCommit, getByText } = renderInspector(DataGridInspector, N.data_grid);
-        fireEvent.click(getByText('Searchable'));
+        await user.click(getByText('Searchable'));
         expect(onCommit).toHaveBeenCalled();
         expect(onCommit.mock.calls.at(-1)[0].screens[0].sections[0].children[0].props.searchable).toBe(true);
     });
 
-    it('ChartInspector sets a series colour from the no-purple palette', () => {
+    it('ChartInspector sets a series colour from the no-purple palette', async () => {
+        const user = userEvent.setup();
         const { onCommit, getByLabelText } = renderInspector(ChartInspector, N.chart);
-        fireEvent.click(getByLabelText('Colour #22c55e'));
+        await user.click(getByLabelText('Colour #22c55e'));
         expect(onCommit.mock.calls.at(-1)[0].screens[0].sections[0].children[0].props.series[0].color).toBe('#22c55e');
     });
 
@@ -101,11 +104,12 @@ describe('v2 inspectors — behaviour', () => {
         expect(onCommit.mock.calls.at(-1)[0].screens[0].sections[0].children[0].props.title).toBe('Hello');
     });
 
-    it('RepeaterInspector mirrors the source binding into node.forEach', () => {
+    it('RepeaterInspector mirrors the source binding into node.forEach', async () => {
+        const user = userEvent.setup();
         const { onCommit, getByPlaceholderText, getByText } = renderInspector(RepeaterInspector, N.repeater);
         // An untouched source opens on the BindingField chooser; typed-in values
         // are the fourth card.
-        fireEvent.click(getByText('Type the values myself'));
+        await user.click(getByText('Type the values myself'));
         fireEvent.change(getByPlaceholderText('[{"name":"…"}]'), { target: { value: '[{"name":"A"}]' } });
         const next = onCommit.mock.calls.at(-1)[0];
         const node = findNode(next, 'cmp_rp').node;
@@ -113,7 +117,8 @@ describe('v2 inspectors — behaviour', () => {
         expect(node.forEach).toEqual({ kind: 'static', value: [{ name: 'A' }] });
     });
 
-    it('TabsInspector adds a tab; TabInspector edits a tab label', () => {
+    it('TabsInspector adds a tab; TabInspector edits a tab label', async () => {
+        const user = userEvent.setup();
         const tabsNode = {
             id: 'cmp_tabs', type: 'tabs', visible: true, props: {}, style: { span: 12 },
             children: [{ id: 'cmp_taba', type: 'tab', visible: true, props: { label: 'One', icon: null }, style: {}, children: [] }],
@@ -121,7 +126,7 @@ describe('v2 inspectors — behaviour', () => {
         const onCommit = vi.fn();
         const definition = defWith(tabsNode);
         const first = render(<TabsInspector node={tabsNode} definition={definition} onCommit={onCommit} disabled={false} />);
-        fireEvent.click(first.getByText('Add tab'));
+        await user.click(first.getByText('Add tab'));
         const next = onCommit.mock.calls.at(-1)[0];
         expect(findNode(next, 'cmp_tabs').node.children.length).toBe(2);
         first.unmount();

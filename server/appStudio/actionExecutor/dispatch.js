@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio action executor — the DISPATCHER (extracted verbatim from
  * actionExecutor.js). Validates the step, routes it to the module for its

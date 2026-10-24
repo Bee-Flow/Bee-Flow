@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Put a turn's attachments onto its user message. Each kind is handled in
  * ./attachmentKinds; extracted text passes the Privacy Shield gate in

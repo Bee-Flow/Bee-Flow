@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Carrying a writer's change onto a co-edited notebook (agents/notebooks/notebookRebase.js),
  * with the real editor serialization (core/markdown).

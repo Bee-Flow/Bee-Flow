@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EU AI Act Art. 53 — GPAI transparency (in force since Aug 2025).
  *

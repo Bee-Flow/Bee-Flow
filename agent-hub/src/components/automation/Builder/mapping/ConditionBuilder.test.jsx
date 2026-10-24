@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ConditionBuilder from './ConditionBuilder';
 import { VariablePickerProvider } from './VariablePickerContext';
@@ -38,10 +39,11 @@ describe('ConditionBuilder — typed ValueSlot', () => {
         expect(screen.getByText('no value needed')).toBeTruthy();
     });
 
-    it('"Use a variable instead" swaps the typed slot back to a free BindingField', () => {
+    it('"Use a variable instead" swaps the typed slot back to a free BindingField', async () => {
+        const user = userEvent.setup();
         renderBuilder({ value: 'steps.s1.output.amount > 1000' }, { previewSample });
         expect(document.querySelector('input[type="number"]')).toBeTruthy();
-        fireEvent.click(screen.getByLabelText('Use a variable instead'));
+        await user.click(screen.getByLabelText('Use a variable instead'));
         expect(document.querySelector('input[type="number"]')).toBeNull();
         expect(screen.getByPlaceholderText('value')).toBeTruthy();
     });
@@ -125,9 +127,10 @@ describe('ConditionBuilder — raw mode', () => {
         expect(textarea.value).toBe('foo(bar) &&& x');
     });
 
-    it('the help disclosure reveals the whitelisted functions', () => {
+    it('the help disclosure reveals the whitelisted functions', async () => {
+        const user = userEvent.setup();
         renderBuilder({ value: 'foo(bar) &&& x' });
-        fireEvent.click(screen.getByText(/What can I write here\?/));
+        await user.click(screen.getByText(/What can I write here\?/));
         expect(screen.getByText('contains(text, part)')).toBeTruthy();
         expect(screen.getByText('isEmpty(value)')).toBeTruthy();
     });

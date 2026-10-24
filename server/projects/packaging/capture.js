@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Read a live Solution and write it down as a Blueprint.
  *
@@ -35,7 +36,6 @@
  * component by id. Capture rewrites leaf values and removes fields; neither can
  * make a canonical document structurally invalid, so it is left alone.
  */
-
 'use strict';
 
 const { assignRefs, buildManifest } = require('../../core/packaging/manifest');
@@ -632,6 +632,7 @@ function cutTokensOf(members, refs) {
  *
  * Returns `{ ok, manifest, slots, rawIds, findings, steeringNames, cutTokens }`.
  * A gallery capture's manifest carries no slots, and its slots no Dev values.
+ * @param {{ project?: Record<string, any>, exportedAt?: any, version?: number, refs?: any, connSlots?: any, pipeline?: boolean }} [opts]
  */
 async function captureSolution({
     project, exportedAt = null, version = 1, refs: ledger = null, connSlots = null, pipeline = false,
@@ -725,7 +726,6 @@ async function captureSolution({
         cutTokens: cutTokensOf(members, refs),
     };
 }
-
 module.exports = {
     captureSolution, loadMembers,
     captureApp, captureAutomation, captureWebpage,

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Bounded-concurrency parallel mapper.
  *

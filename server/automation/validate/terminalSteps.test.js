@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * DE LIJST-BEWAKER (serverhelft) — elke terminale stapsoort is overal bekend.
  *

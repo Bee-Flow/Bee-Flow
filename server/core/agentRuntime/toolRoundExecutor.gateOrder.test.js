@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Characterisation: the ORDER of the security gates in one tool round.
  *

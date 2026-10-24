@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The never-redact layer.
  *

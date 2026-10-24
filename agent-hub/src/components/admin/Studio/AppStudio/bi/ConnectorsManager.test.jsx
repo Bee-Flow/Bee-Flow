@@ -1,4 +1,5 @@
 import { fireEvent, render, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // The connector editor reads the automations catalog (through
@@ -95,40 +96,44 @@ describe('ConnectorsManager — adding one', () => {
     });
 
     it('starts on "an app you already use", and that card opens the app menu', async () => {
+        const user = userEvent.setup();
         const { onChange, getByRole, findByRole } = renderMgr([]);
         expect(getByRole('radio', { name: /an app you already use/i }).getAttribute('aria-checked')).toBe('true');
 
         // The app kind no longer creates a blank connector to configure — it
         // opens the picker, where each ticked action becomes its own connector.
-        fireEvent.click(getByRole('button', { name: /choose apps & actions/i }));
+        await user.click(getByRole('button', { name: /choose apps & actions/i }));
         expect(await findByRole('dialog', { name: /choose apps & actions/i })).toBeTruthy();
         expect(onChange).not.toHaveBeenCalled();
     });
 
-    it('creates an automation connector from the second card', () => {
+    it('creates an automation connector from the second card', async () => {
+        const user = userEvent.setup();
         const { last, getByRole } = renderMgr([]);
-        fireEvent.click(getByRole('radio', { name: /one of my automations/i }));
-        fireEvent.click(getByRole('button', { name: /add it/i }));
+        await user.click(getByRole('radio', { name: /one of my automations/i }));
+        await user.click(getByRole('button', { name: /add it/i }));
         expect(last()[0].kind).toBe('automation');
     });
 
-    it('marks the web-address card as the advanced way', () => {
+    it('marks the web-address card as the advanced way', async () => {
+        const user = userEvent.setup();
         const { getByRole } = renderMgr([]);
         const card = getByRole('radio', { name: /another system via its web address/i });
         expect(card.textContent).toMatch(/advanced/i);
-        fireEvent.click(card);
-        fireEvent.click(getByRole('button', { name: /add it/i }));
+        await user.click(card);
+        await user.click(getByRole('button', { name: /add it/i }));
     });
 
-    it('offers the same three cards from the sidebar button, and can be cancelled', () => {
+    it('offers the same three cards from the sidebar button, and can be cancelled', async () => {
+        const user = userEvent.setup();
         const base = [{ id: 'conn_aaa111', kind: 'automation', name: 'A', automationId: 'auto-1' }];
         const { onChange, getByRole, queryByRole } = renderMgr(base);
         expect(queryByRole('radiogroup')).toBeNull();
 
-        fireEvent.click(getByRole('button', { name: /automation or web address/i }));
+        await user.click(getByRole('button', { name: /automation or web address/i }));
         expect(getByRole('radiogroup', { name: /where should this get its data/i })).toBeTruthy();
 
-        fireEvent.click(getByRole('button', { name: /cancel/i }));
+        await user.click(getByRole('button', { name: /cancel/i }));
         expect(queryByRole('radiogroup')).toBeNull();
         expect(onChange).not.toHaveBeenCalled();
     });
@@ -140,7 +145,8 @@ describe('ConnectorsManager — adding one', () => {
 });
 
 describe('ConnectorsManager — editing', () => {
-    it('edits the rest URL and declares a viewer param (round-trips the shape)', () => {
+    it('edits the rest URL and declares a viewer param (round-trips the shape)', async () => {
+        const user = userEvent.setup();
         const base = [{ id: 'conn_abc123', kind: 'rest', name: 'Items', params: [] }];
         const { last, getByRole } = renderMgr(base);
 
@@ -149,7 +155,7 @@ describe('ConnectorsManager — editing', () => {
         });
         expect(last()[0].url).toBe('https://api.example.com/items?q={q}');
 
-        fireEvent.click(getByRole('button', { name: /add param/i }));
+        await user.click(getByRole('button', { name: /add param/i }));
         const withParam = last();
         expect(withParam[0].params).toEqual([{ key: '', type: 'text', required: false }]);
 
@@ -159,12 +165,13 @@ describe('ConnectorsManager — editing', () => {
         expect(rerender.last()[0].params[0].key).toBe('q');
     });
 
-    it('keeps the REST details reachable one disclosure deeper', () => {
+    it('keeps the REST details reachable one disclosure deeper', async () => {
+        const user = userEvent.setup();
         const base = [{ id: 'conn_abc123', kind: 'rest', name: 'Items', params: [], auth: { type: 'bearer' } }];
         const { last, getByRole, queryByRole } = renderMgr(base);
         expect(queryByRole('textbox', { name: /Credential provider/i })).toBeNull();
 
-        fireEvent.click(getByRole('button', { name: /advanced settings/i }));
+        await user.click(getByRole('button', { name: /advanced settings/i }));
         fireEvent.change(getByRole('textbox', { name: /Credential provider/i }), { target: { value: 'example' } });
         const emitted = last();
         expect(emitted[0].auth).toEqual({ type: 'bearer', credentialProvider: 'example' });
@@ -172,7 +179,8 @@ describe('ConnectorsManager — editing', () => {
         expect(() => getByRole('textbox', { name: /token|secret|api key/i })).toThrow();
     });
 
-    it('switches kind to integration_tool and still allows a hand-typed tool', () => {
+    it('switches kind to integration_tool and still allows a hand-typed tool', async () => {
+        const user = userEvent.setup();
         const base = [{ id: 'conn_abc123', kind: 'rest', name: 'Items', params: [] }];
         const { last, getByRole, unmount } = renderMgr(base);
         fireEvent.change(getByRole('combobox', { name: /connector kind/i }), { target: { value: 'integration_tool' } });
@@ -181,19 +189,20 @@ describe('ConnectorsManager — editing', () => {
         const switched = last();
         unmount();
         const rerender = renderMgr(switched);
-        fireEvent.click(rerender.getByRole('button', { name: /advanced settings/i }));
+        await user.click(rerender.getByRole('button', { name: /advanced settings/i }));
         fireEvent.change(rerender.getByRole('textbox', { name: /^Tool$/i }), { target: { value: 'gmail_list_messages' } });
         expect(rerender.last()[0].tool).toBe('gmail_list_messages');
     });
 
-    it('deletes a connector', () => {
+    it('deletes a connector', async () => {
+        const user = userEvent.setup();
         const base = [
             { id: 'conn_aaa111', kind: 'automation', name: 'A', automationId: 'x' },
             { id: 'conn_bbb222', kind: 'automation', name: 'B', automationId: 'y' },
         ];
         const { last, getByRole } = renderMgr(base);
         const list = getByRole('button', { name: /Delete A/i });
-        fireEvent.click(list);
+        await user.click(list);
         expect(last()).toEqual([base[1]]);
     });
 
@@ -228,17 +237,19 @@ describe('ConnectorsManager — the automation kind', () => {
     });
 
     it('picks an automation from the shared picker', async () => {
+        const user = userEvent.setup();
         const base = [{ id: 'conn_aaa111', kind: 'automation', name: 'Report', params: [] }];
         const { last, getByRole, findByRole } = renderMgr(base);
-        fireEvent.click(getByRole('button', { name: /choose an automation/i }));
-        fireEvent.click(await findByRole('button', { name: /Sync contacts/i }));
+        await user.click(getByRole('button', { name: /choose an automation/i }));
+        await user.click(await findByRole('button', { name: /Sync contacts/i }));
         expect(last()[0].automationId).toBe('auto-2');
     });
 
-    it('still lets the id be typed by hand', () => {
+    it('still lets the id be typed by hand', async () => {
+        const user = userEvent.setup();
         const base = [{ id: 'conn_aaa111', kind: 'automation', name: 'Report', params: [] }];
         const { last, getByRole } = renderMgr(base);
-        fireEvent.click(getByRole('button', { name: /type the id myself/i }));
+        await user.click(getByRole('button', { name: /type the id myself/i }));
         fireEvent.change(getByRole('textbox', { name: /automation id/i }), { target: { value: 'auto-9' } });
         expect(last()[0].automationId).toBe('auto-9');
     });
@@ -248,13 +259,14 @@ describe('ConnectorsManager — Test it', () => {
     const REST = [{ id: 'conn_abc123', kind: 'rest', name: 'Items', params: [], url: 'https://api.example.com/items' }];
 
     it('runs the connector and shows the first rows', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue({
             ok: true,
             status: 200,
             json: async () => ({ rows: [{ name: 'Ann', email: 'ann@example.com' }, { name: 'Bo' }] }),
         });
         const { getByRole, findByText, getByText } = renderMgr(REST, { appId: 'app_1' });
-        fireEvent.click(getByRole('button', { name: /test it/i }));
+        await user.click(getByRole('button', { name: /test it/i }));
 
         expect(await findByText(/It works — 2 rows came back/i)).toBeTruthy();
         expect(getByText('Ann')).toBeTruthy();
@@ -266,32 +278,35 @@ describe('ConnectorsManager — Test it', () => {
     });
 
     it('sends the values typed for declared params', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ rows: [] }) });
         const withParam = [{ ...REST[0], params: [{ key: 'q', type: 'text' }] }];
         const { getByRole, getByLabelText, findByText } = renderMgr(withParam, { appId: 'app_1' });
 
         fireEvent.change(getByLabelText('Test value for q'), { target: { value: 'invoices' } });
-        fireEvent.click(getByRole('button', { name: /test it/i }));
+        await user.click(getByRole('button', { name: /test it/i }));
 
         expect(await findByText(/nothing came back/i)).toBeTruthy();
         expect(JSON.parse(authFetch.mock.calls[0][1].body)).toEqual({ params: { q: 'invoices' } });
     });
 
     it('says to save first when the server has never seen this connector', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue({ ok: false, status: 404, json: async () => ({ error: 'Connector not found' }) });
         const { getByRole, findByRole } = renderMgr(REST, { appId: 'app_1' });
-        fireEvent.click(getByRole('button', { name: /test it/i }));
+        await user.click(getByRole('button', { name: /test it/i }));
         expect((await findByRole('alert')).textContent).toMatch(/Save your changes first/i);
     });
 
     it('names the app to connect when the run needs an account', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue({
             ok: false,
             status: 409,
             json: async () => ({ error: 'needs a connected account', code: 'connection_required', provider: 'Gmail' }),
         });
         const { getByRole, findByRole } = renderMgr(REST, { appId: 'app_1' });
-        fireEvent.click(getByRole('button', { name: /test it/i }));
+        await user.click(getByRole('button', { name: /test it/i }));
         expect((await findByRole('alert')).textContent).toMatch(/Connect Gmail/i);
     });
 
@@ -314,14 +329,15 @@ describe('ConnectorsManager — Test it', () => {
 
 describe('ConnectorsManager — picking apps & actions in bulk', () => {
     it('creates one connector per ticked action, named after the app and action', async () => {
+        const user = userEvent.setup();
         const { last, getByRole, findByRole } = renderMgr([]);
-        fireEvent.click(getByRole('button', { name: /choose apps & actions/i }));
+        await user.click(getByRole('button', { name: /choose apps & actions/i }));
         await findByRole('dialog', { name: /choose apps & actions/i });
 
-        fireEvent.click(getByRole('button', { name: /^Gmail$/ }));
-        fireEvent.click(getByRole('button', { name: /^Search/ }));
-        fireEvent.click(getByRole('button', { name: /^Read/ }));
-        fireEvent.click(getByRole('button', { name: /^Apply$/ }));
+        await user.click(getByRole('button', { name: /^Gmail$/ }));
+        await user.click(getByRole('button', { name: /^Search/ }));
+        await user.click(getByRole('button', { name: /^Read/ }));
+        await user.click(getByRole('button', { name: /^Apply$/ }));
 
         const emitted = last();
         expect(emitted).toHaveLength(2);
@@ -334,52 +350,56 @@ describe('ConnectorsManager — picking apps & actions in bulk', () => {
     });
 
     it('un-ticking an action removes its connector', async () => {
+        const user = userEvent.setup();
         const base = [
             { id: 'conn_aaa111', kind: 'integration_tool', name: 'Gmail search', tool: 'gmail_search', integrationId: 'gmail', params: [] },
             { id: 'conn_bbb222', kind: 'integration_tool', name: 'Gmail send', tool: 'gmail_send', integrationId: 'gmail', params: [] },
         ];
         const { last, getByRole, findByRole } = renderMgr(base);
-        fireEvent.click(getByRole('button', { name: /choose apps & actions/i }));
+        await user.click(getByRole('button', { name: /choose apps & actions/i }));
         // Scoped to the overlay: the sidebar also carries buttons named after
         // these connectors, and the app row carries an "N selected" badge.
         const picker = within(await findByRole('dialog', { name: /choose apps & actions/i }));
 
-        fireEvent.click(picker.getByRole('button', { name: /^Gmail/ }));
-        fireEvent.click(picker.getByRole('button', { name: /^Send email/ }));
-        fireEvent.click(picker.getByRole('button', { name: /^Apply$/ }));
+        await user.click(picker.getByRole('button', { name: /^Gmail/ }));
+        await user.click(picker.getByRole('button', { name: /^Send email/ }));
+        await user.click(picker.getByRole('button', { name: /^Apply$/ }));
 
         expect(last()).toHaveLength(1);
         expect(last()[0].tool).toBe('gmail_search');
     });
 
     it('shows what is already wired as ticked, and Apply stays inert until something changes', async () => {
+        const user = userEvent.setup();
         const base = [{ id: 'conn_aaa111', kind: 'integration_tool', name: 'Gmail search', tool: 'gmail_search', integrationId: 'gmail', params: [] }];
         const { onChange, getByRole, findByRole } = renderMgr(base);
-        fireEvent.click(getByRole('button', { name: /choose apps & actions/i }));
+        await user.click(getByRole('button', { name: /choose apps & actions/i }));
         const picker = within(await findByRole('dialog', { name: /choose apps & actions/i }));
 
-        fireEvent.click(picker.getByRole('button', { name: /^Gmail/ }));
+        await user.click(picker.getByRole('button', { name: /^Gmail/ }));
         expect(picker.getByRole('button', { name: /^Search/ }).getAttribute('aria-pressed')).toBe('true');
         expect(picker.getByRole('button', { name: /nothing to change/i }).disabled).toBe(true);
         expect(onChange).not.toHaveBeenCalled();
     });
 
     it('badges the actions that return a list and the ones that write', async () => {
+        const user = userEvent.setup();
         const { getByRole, findByRole } = renderMgr([]);
-        fireEvent.click(getByRole('button', { name: /choose apps & actions/i }));
+        await user.click(getByRole('button', { name: /choose apps & actions/i }));
         await findByRole('dialog', { name: /choose apps & actions/i });
 
-        fireEvent.click(getByRole('button', { name: /^Gmail$/ }));
+        await user.click(getByRole('button', { name: /^Gmail$/ }));
         expect(getByRole('button', { name: /^Search/ }).textContent).toMatch(/list/i);
         expect(getByRole('button', { name: /^Send email/ }).textContent).toMatch(/writes/i);
     });
 
     it('marks an app the builder has not connected instead of hiding it', async () => {
+        const user = userEvent.setup();
         const { getByRole, findByRole, findByText } = renderMgr([]);
-        fireEvent.click(getByRole('button', { name: /choose apps & actions/i }));
+        await user.click(getByRole('button', { name: /choose apps & actions/i }));
         await findByRole('dialog', { name: /choose apps & actions/i });
 
-        fireEvent.click(getByRole('button', { name: /^Slack$/ }));
+        await user.click(getByRole('button', { name: /^Slack$/ }));
         expect(await findByText(/Slack is not connected to your account/i)).toBeTruthy();
     });
 
@@ -464,8 +484,9 @@ describe('ConnectorsManager — combining actions', () => {
     });
 
     it('accepting the suggestion adds a chain step with the binding already set', async () => {
+        const user = userEvent.setup();
         const { last, findByRole } = renderMgr(READ);
-        fireEvent.click(await findByRole('button', { name: /needs messageId/i }));
+        await user.click(await findByRole('button', { name: /needs messageId/i }));
         // A follow-up action returns a different KIND of thing — that is why it
         // needed chaining — so it lands in a table of its own by default.
         expect(last()[0].chain).toEqual([{ ownTable: true, tool: 'gmail_search', argsFrom: { messageId: 'id' } }]);
@@ -504,15 +525,17 @@ describe('ConnectorsManager — combining actions', () => {
     });
 
     it('removes a chain step, dropping the key rather than leaving an empty array', async () => {
+        const user = userEvent.setup();
         const chained = [{ ...READ[0], chain: [{ tool: 'gmail_search', argsFrom: { messageId: 'id' } }] }];
         const { last, findByRole } = renderMgr(chained);
-        fireEvent.click(await findByRole('button', { name: /remove step 2/i }));
+        await user.click(await findByRole('button', { name: /remove step 2/i }));
         expect('chain' in last()[0]).toBe(false);
     });
 
     it('never offers a writing action as a lookup step', async () => {
+        const user = userEvent.setup();
         const { findByRole, getByRole } = renderMgr(READ);
-        fireEvent.click(await findByRole('button', { name: /add a follow-up step/i }));
+        await user.click(await findByRole('button', { name: /add a follow-up step/i }));
         const select = getByRole('combobox', { name: /follow-up action/i });
         expect(within(select).queryByRole('option', { name: /Send email/i })).toBeNull();
         expect(within(select).getByRole('option', { name: /Search/i })).toBeTruthy();

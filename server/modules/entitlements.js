@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Module entitlement grant verification.
  *
@@ -45,8 +46,8 @@ function decodeGrantUnverified(token) {
  * Verify a module entitlement grant.
  *
  * @param {string} token  compact JWS module-grant token
- * @param {object} opts
- * @param {string} opts.moduleId            slug the grant must be scoped to
+ * @param {object} [opts]
+ * @param {string} [opts.moduleId]          slug the grant must be scoped to
  * @param {string[]} [opts.subjectIds]      if provided, payload.sub must be one of these
  * @param {number} [opts.now]               unix seconds (defaults to real clock)
  * @param {function} [opts.publicKeyResolver] (kid) => key | Promise<key>; when

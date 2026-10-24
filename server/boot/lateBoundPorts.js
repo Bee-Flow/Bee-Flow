@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Late-bound ports: three lower modules call back into a higher one through a
  * setter instead of a require, to keep the import graph acyclic. The higher
@@ -15,6 +16,6 @@
 require('../core/tools/automationExecutorPort')
     .setAutomationExecutor((...args) => require('../core/automationRunner').executeAutomation(...args));
 require('../core/privacy/customTypes/registry')
-    .setOrgShieldResolver((...args) => require('../core/privacy/orgShield').resolveOrgShield(...args));
+    .setOrgShieldResolver((orgId) => require('../core/privacy/orgShield').resolveOrgShield(orgId));
 require('../stores/configStore')
     .setLegacySecretResolver((...args) => require('../stores/integrationConnectionStore').getLegacySecretValue(...args));

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ElevenLabs Tools — Music (with vocals), TTS, and Sound Effects
  *

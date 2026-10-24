@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The tool surface of the CMS MCP server.
  *
@@ -321,7 +322,7 @@ function toMcpTool(fn, { readOnly, destructive = false }) {
 
 /**
  * The advertised list: builder tools first, then the MCP-only ones.
- * @param {{ TOOL_SCHEMAS: object[], MUTATING_TOOLS: Set<string> }} builder
+ * @param {{ TOOL_SCHEMAS: any[], MUTATING_TOOLS: Set<string> }} builder
  */
 function buildToolList(builder) {
     const fromBuilder = builder.TOOL_SCHEMAS

@@ -1,4 +1,5 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import VariablePicker from './VariablePicker';
@@ -92,9 +93,10 @@ describe('VariablePicker — names, not keys', () => {
         expect(screen.getByText('Current user').closest('button').getAttribute('title')).toBe('currentUser');
     });
 
-    it('humanises nested children too', () => {
+    it('humanises nested children too', async () => {
+        const user = userEvent.setup();
         renderPicker();
-        fireEvent.click(leafRow('steps.act_4d3307a.output.org').querySelector('[data-expand-btn]'));
+        await user.click(leafRow('steps.act_4d3307a.output.org').querySelector('[data-expand-btn]'));
         expect(screen.getByText('Klant id')).toBeTruthy();
         expect(screen.getByText('Klant id').getAttribute('title')).toBe('klant_id');
     });

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 // Graph reads can exceed PostgreSQL's idle-in-transaction timeout. Hold a

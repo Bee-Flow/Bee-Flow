@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tool Execution — Component/system tool management and execution
  * 

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The process registry (id → type), the scan plan built from a category

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The watcher trigger compares the current items with the state of the previous
  * poll. getWatcherState is async; it used to be read without await, so the

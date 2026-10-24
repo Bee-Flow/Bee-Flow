@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * routes/automation/versionHistory.js — the Versions tab endpoints over a real
  * Express app, with the store and the access guard injected (no module mocking).

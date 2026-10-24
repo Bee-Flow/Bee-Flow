@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The App Studio MCP endpoint's protocol layer.
  *

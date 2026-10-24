@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Agentic AI bridge — POST /:id/ai/ask
  *

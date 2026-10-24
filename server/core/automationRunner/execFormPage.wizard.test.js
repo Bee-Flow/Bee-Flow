@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Form wizard pages at run time: dynamic options and per-item questions read
  * from the run, the page condition (`when`), and the blanks a dry run hands to

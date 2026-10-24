@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useEffect } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 
@@ -146,8 +147,9 @@ describe('InspectorPanel — the translated inspector chrome', () => {
 
 describe('InspectorPanel — the translated destructive path', () => {
     it('translates the whole delete confirmation, button included', async () => {
+        const user = userEvent.setup();
         const { onCommit } = await renderPanel('cmp_form01');
-        fireEvent.click(screen.getByRole('button', { name: 'Verwijderen' }));
+        await user.click(screen.getByRole('button', { name: 'Verwijderen' }));
 
         const dialog = screen.getByRole('dialog');
         // The component TYPE inside the question comes from the component
@@ -161,7 +163,7 @@ describe('InspectorPanel — the translated destructive path', () => {
         const confirm = Array.from(dialog.querySelectorAll('button'))
             .find((b) => b.textContent?.trim() === 'Verwijderen');
         expect(confirm).toBeTruthy();
-        fireEvent.click(confirm);
+        await user.click(confirm);
         await act(async () => { });
         expect(onCommit).toHaveBeenCalled();
     });
@@ -177,6 +179,7 @@ describe('InspectorPanel — the translated destructive path', () => {
     });
 
     it('falls back to the call site English for a key the catalogue does not have', async () => {
+        const user = userEvent.setup();
         // `component` is the stand-in the delete question uses when the registry
         // has no entry for the node's type. It is not in the stub above, so an
         // untranslated key must show its English fallback, never the raw key.
@@ -213,7 +216,7 @@ describe('InspectorPanel — the translated destructive path', () => {
             </QueryClientProvider>,
         );
         await act(async () => { });
-        fireEvent.click(screen.getByRole('button', { name: 'Verwijderen' }));
+        await user.click(screen.getByRole('button', { name: 'Verwijderen' }));
 
         const dialog = screen.getByRole('dialog');
         expect(dialog.textContent).toContain('Deze component verwijderen?');

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage Source Ingestion — mirror of agents/notebooks/sourceIngestion.js
  * but talks to webpageStore so each webpage owns its own KB and source rows.
@@ -58,7 +59,7 @@ async function ingestTextIntoKB(webpageId, sourceId, userId, text, sourceName) {
         const result = await ingestDocument(
             userId, kbId, text, sourceName,
             'webpage_source', sourceId,
-            {
+            /** @type {any} */ ({
                 skipDedup: false, lang: 'auto',
                 // EXPLICIT opt-out of the knowledge-base privacy screen (K4).
                 // This path already scans with its OWN policy and deliberately
@@ -67,7 +68,7 @@ async function ingestTextIntoKB(webpageId, sourceId, userId, text, sourceName) {
                 // what this feature stores without anyone asking, so the null
                 // is written down rather than left to the default.
                 privacy: null,
-            }
+            })
         );
         await webpageStore.updateSource(sourceId, { status: 'ready', wordCount });
         log.info(`[WebpageSourceIngestion] Source "${sourceName}" ingested: ${result.chunks} chunks, ${wordCount} words`);
@@ -86,7 +87,7 @@ async function ingestFileSource(webpageId, sourceId, userId, buffer, fileName, m
         const text = await extractFileContent(buffer, mimeType, fileName);
         await ingestTextIntoKB(webpageId, sourceId, userId, text, fileName);
     } catch (e) {
-        log.error(`[WebpageSourceIngestion] File parse failed for "${fileName}":`, e.message);
+        log.error(`[WebpageSourceIngestion] File parse failed for "${log.nameForLog(fileName)}":`, e.message);
         await webpageStore.updateSource(sourceId, { status: 'error', error: friendlyError(e) });
     }
 }

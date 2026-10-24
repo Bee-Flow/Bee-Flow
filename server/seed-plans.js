@@ -1,3 +1,4 @@
+// @typecheck
 const db = require('./db');
 (async () => {
     try {

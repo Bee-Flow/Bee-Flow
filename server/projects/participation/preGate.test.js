@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * projects/participation/preGate.js — the cheap rules in front of the gate.
  * Pure: every input is a value, so every rule is proven on its own.

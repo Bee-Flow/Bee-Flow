@@ -17,6 +17,7 @@
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentStudio/deleteFlow.test.jsx
  */
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 
 const authFetch = vi.fn();
@@ -105,7 +106,7 @@ describe('delete → 409 → delete anyway', () => {
         expect(screen.getByText('12')).toBeTruthy();
 
         // THE HOP.
-        fireEvent.click(screen.getByText('Delete anyway'));
+        await userEvent.click(screen.getByText('Delete anyway'));
         await waitFor(() => expect(deleteCalls().length).toBe(2));
         expect(String(deleteCalls()[1][0])).toContain('confirm=1');
     });
@@ -164,7 +165,7 @@ describe('delete → 409 → delete anyway', () => {
         await openAndConfirm();
         await screen.findByTestId('delete-blocked');
 
-        fireEvent.click(screen.getByText('Cancel'));
+        await userEvent.click(screen.getByText('Cancel'));
         await openAndConfirm();
         // Second run: the first press must be unconfirmed again, or a stale
         // block would turn an ordinary delete into a forced one.

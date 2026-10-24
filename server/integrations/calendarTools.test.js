@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * BFSF-254 — calendar_create_event / calendar_update_event timezone handling.
  *

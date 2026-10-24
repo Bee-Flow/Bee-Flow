@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The model shape the migration planner diffs, for ./migrationPlan.js and
  * ./retainedColumns.js: which model tables have a physical table, and the

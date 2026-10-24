@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * MASTER_ENCRYPTION_KEY rotation utility.
  *

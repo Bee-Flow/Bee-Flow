@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Generate the compliance demo's CATALOG fixture from the product's own
  * catalogs, rather than hand-copying 44 check ids and 93 control refs.

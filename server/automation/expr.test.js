@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for the restricted expression evaluator, focused on the
  * whitelisted helper functions (contains/startsWith/endsWith/lower/upper/

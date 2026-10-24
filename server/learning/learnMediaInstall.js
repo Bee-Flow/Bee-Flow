@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Install a Learning Center video pack into LEARN_MEDIA_DIR.
@@ -42,7 +43,6 @@ const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const { pipeline } = require('node:stream/promises');
-
 const { openUrl, streamToFile } = require('./learnMediaDownload');
 const { validatePin, resolveBase } = require('./learnMediaPin');
 const telemetryLog = require('../telemetry/log');
@@ -77,7 +77,7 @@ async function sha256File(file) {
     return hash.digest('hex');
 }
 
-/** Copy or download the source to `file`. Only https (or http on loopback, for tests). */
+/** Copy or download the source to `file`. Only https (or http on loopback, for tests). @param {string} source @param {string} file @param {{ fetchImpl?: typeof fetch }} [opts] */
 async function obtainTarball(source, file, { fetchImpl } = {}) {
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a constant anchored prefix test, no repeat: linear
     if (/^https?:\/\//i.test(source)) {
@@ -278,6 +278,7 @@ function ensureDir(dest) {
 /**
  * Download/copy, verify and install a pack. On any failure the current pack in
  * `dest` stays live and every temporary file is removed.
+ * @param {{ source: string, dest?: string, expectedSha256?: string, fetchImpl?: typeof fetch, tar?: string, log?: (msg: string) => void }} opts
  */
 async function fetchLearnMediaPack({ source, dest = defaultDir(), expectedSha256 = '', fetchImpl, tar = 'tar', log = () => {} }) {
     if (!source) throw new Error('no pack source: set LEARN_MEDIA_PACK_URL or pass a URL or path');
@@ -397,7 +398,6 @@ async function syncFromPin(pin, dir, opts = {}) {
         fs.rmSync(staging, { recursive: true, force: true });
     }
 }
-
 module.exports = {
     ALLOWED_EXTS,
     isSafePackPath,

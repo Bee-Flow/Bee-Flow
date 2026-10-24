@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The size and vocabulary limits of a blog post, in one dependency-free module
  * so the store (stores/cms/posts.js, beside this file), the REST schemas (routes/cmsBlog.js) and

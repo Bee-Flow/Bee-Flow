@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Knowledge Bases — single-KB detail and settings.
  *
@@ -202,11 +203,8 @@ router.patch('/:id', requireAuth, requirePermission('manage_knowledge'), validat
                 code: 'not_owner',
             });
         }
-        try {
-            adoptOrgId = await assertUserCanUseOrg(req, organizationId);
-        } catch (err) {
-            return res.status(err.status || 403).json({ error: err.message });
-        }
+        // Throws a 403 with a message written for the caller.
+        adoptOrgId = await assertUserCanUseOrg(req, organizationId);
     }
 
     const updated = await kbStore.updateKB(kb.id, {
@@ -244,11 +242,7 @@ router.patch('/:id/publish', requireAuth, validate({ body: PublishBody }), async
     // "leave as-is"; the validator returns undefined and the store
     // preserves the existing column value.
     let cleanedGroups;
-    try {
-        cleanedGroups = await validateSharedGroupsForOrg(kb.organization_id, sharedGroups);
-    } catch (err) {
-        return res.status(err.status || 500).json({ error: err.message });
-    }
+    cleanedGroups = await validateSharedGroupsForOrg(kb.organization_id, sharedGroups);
     const updated = await kbStore.setPublished(kb.id, isPublished, cleanedGroups);
     // Snapshot for audit/rollback. Fire-and-forget — versioning failure
     // must not unwind a successful publish.

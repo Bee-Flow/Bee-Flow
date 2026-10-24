@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * auth/opaqueSetup.js — can @serenity-kit/opaque read OPAQUE_SERVER_SETUP?
  *

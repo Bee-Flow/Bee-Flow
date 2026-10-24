@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — the app's PUBLIC surface (app_set_public_access):
  * the screens an anonymous visitor may open at /p/<token>, and the loud echo

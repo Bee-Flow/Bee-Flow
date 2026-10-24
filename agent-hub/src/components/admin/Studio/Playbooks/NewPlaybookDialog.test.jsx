@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import NewPlaybookDialog from './NewPlaybookDialog';
@@ -45,23 +46,24 @@ describe('NewPlaybookDialog — a built-in recipe, or one the AI writes', () => 
     });
 
     it('lists the server recipes, an existing table needs a pick, and Start posts the built-in id with the inputs', async () => {
+        const user = userEvent.setup();
         const onCreated = vi.fn();
         render(<NewPlaybookDialog user={{ id: 'u1', locale: 'nl' }} onClose={vi.fn()} onCreated={onCreated} />);
         // The INTERFACE language, not the account's: the demo is built in the
         // language the person is looking at (no provider in tests → 'en').
         await waitFor(() => expect(playbooksApi.recipes).toHaveBeenCalledWith('en'));
         // The dialog opens on Describe it; an offered recipe is a card to pick.
-        fireEvent.click(await screen.findByText('Facturen bijhouden'));
+        await user.click(await screen.findByText('Facturen bijhouden'));
         expect(screen.getByLabelText('Approver group (optional)')).toBeTruthy();
         const start = screen.getByTestId('playbook-start');
         expect(start.disabled).toBe(false);
-        fireEvent.click(screen.getByText('An existing table'));
+        await user.click(screen.getByText('An existing table'));
         await waitFor(() => expect(screen.getByTestId('playbook-start').disabled).toBe(true));
         const pick = await screen.findByTestId('playbook-table-pick');
         fireEvent.change(pick, { target: { value: 'tbl_ex' } });
         expect(screen.getByTestId('playbook-start').disabled).toBe(false);
         fireEvent.change(screen.getByTestId('playbook-input-folderPath'), { target: { value: '/Invoices-Test' } });
-        fireEvent.click(screen.getByTestId('playbook-start'));
+        await user.click(screen.getByTestId('playbook-start'));
         await waitFor(() => expect(playbooksApi.create).toHaveBeenCalledWith({
             recipeId: 'invoice_tracker',
             title: 'Facturen bijhouden',
@@ -71,23 +73,25 @@ describe('NewPlaybookDialog — a built-in recipe, or one the AI writes', () => 
     });
 
     it('a folder that is not an absolute path blocks Start with the hint', async () => {
+        const user = userEvent.setup();
         render(<NewPlaybookDialog user={{ id: 'u1' }} onClose={vi.fn()} onCreated={vi.fn()} />);
-        fireEvent.click(await screen.findByText('Facturen bijhouden'));
+        await user.click(await screen.findByText('Facturen bijhouden'));
         fireEvent.change(screen.getByTestId('playbook-input-folderPath'), { target: { value: 'Invoices' } });
         expect(screen.getByTestId('playbook-start').disabled).toBe(true);
         expect(screen.getByText(/absolute Nextcloud path/)).toBeTruthy();
     });
 
     it('Describe it: composes a document, previews its phases and columns, renders ITS inputs, and Start posts the document', async () => {
+        const user = userEvent.setup();
         playbooksApi.composeRecipe.mockResolvedValue({ recipe: COMPOSED, warnings: [] });
         render(<NewPlaybookDialog user={{ id: 'u1', locale: 'nl' }} onClose={vi.fn()} onCreated={vi.fn()} />);
         await screen.findByText('Facturen bijhouden');
-        fireEvent.click(screen.getByText('Describe it'));
+        await user.click(screen.getByText('Describe it'));
         expect(screen.getByTestId('playbook-start').disabled).toBe(true); // nothing composed yet
         const compose = screen.getByTestId('playbook-compose');
         expect(compose.disabled).toBe(true);
         fireEvent.change(screen.getByLabelText('What should this playbook build?'), { target: { value: 'Lees contracten in en bewaak de einddatum' } });
-        fireEvent.click(compose);
+        await user.click(compose);
         await waitFor(() => expect(playbooksApi.composeRecipe).toHaveBeenCalledWith('Lees contracten in en bewaak de einddatum', 'en'));
         const preview = await screen.findByTestId('playbook-recipe-preview');
         expect(preview.textContent).toContain('Contracten inlezen');
@@ -98,7 +102,7 @@ describe('NewPlaybookDialog — a built-in recipe, or one the AI writes', () => 
         expect(screen.getByTestId('playbook-input-horizon').value).toBe('90');
         expect(screen.queryByLabelText('Approver group (optional)')).toBeNull();
         expect(screen.getByLabelText('Name').value).toBe('Contracten bewaken');
-        fireEvent.click(screen.getByTestId('playbook-start'));
+        await user.click(screen.getByTestId('playbook-start'));
         await waitFor(() => expect(playbooksApi.create).toHaveBeenCalledWith({
             recipe: COMPOSED,
             title: 'Contracten bewaken',
@@ -109,6 +113,7 @@ describe('NewPlaybookDialog — a built-in recipe, or one the AI writes', () => 
     });
 
     it('columns the server guessed from the briefs are flagged beside the preview — never silent', async () => {
+        const user = userEvent.setup();
         // The composer's last resort (recipeDoc.synthesizeTableFromPlaceholders)
         // fills `table` from {{field.x}} placeholders when the model declared no
         // columns and the repair round still did not. The person must see that
@@ -116,9 +121,9 @@ describe('NewPlaybookDialog — a built-in recipe, or one the AI writes', () => 
         playbooksApi.composeRecipe.mockResolvedValue({ recipe: COMPOSED, warnings: ['table_synthesized'] });
         render(<NewPlaybookDialog user={{ id: 'u1' }} onClose={vi.fn()} onCreated={vi.fn()} />);
         await screen.findByText('Facturen bijhouden');
-        fireEvent.click(screen.getByText('Describe it'));
+        await user.click(screen.getByText('Describe it'));
         fireEvent.change(screen.getByLabelText('What should this playbook build?'), { target: { value: 'Lees contracten in' } });
-        fireEvent.click(screen.getByTestId('playbook-compose'));
+        await user.click(screen.getByTestId('playbook-compose'));
         const preview = await screen.findByTestId('playbook-recipe-preview');
         expect(preview.textContent).toContain('Leverancier (text)');
         expect(screen.getByTestId('playbook-columns-synthesized').textContent).toMatch(/did not declare these columns/);
@@ -126,34 +131,37 @@ describe('NewPlaybookDialog — a built-in recipe, or one the AI writes', () => 
     });
 
     it('a clean composition shows no synthesized-columns note', async () => {
+        const user = userEvent.setup();
         playbooksApi.composeRecipe.mockResolvedValue({ recipe: COMPOSED, warnings: ['no_app'] });
         render(<NewPlaybookDialog user={{ id: 'u1' }} onClose={vi.fn()} onCreated={vi.fn()} />);
         await screen.findByText('Facturen bijhouden');
-        fireEvent.click(screen.getByText('Describe it'));
+        await user.click(screen.getByText('Describe it'));
         fireEvent.change(screen.getByLabelText('What should this playbook build?'), { target: { value: 'Lees contracten in' } });
-        fireEvent.click(screen.getByTestId('playbook-compose'));
+        await user.click(screen.getByTestId('playbook-compose'));
         await screen.findByTestId('playbook-recipe-preview');
         expect(screen.queryByTestId('playbook-columns-synthesized')).toBeNull();
     });
 
     it('a cut-off composition (compose_truncated) says to ask for less, in the GUI language', async () => {
+        const user = userEvent.setup();
         playbooksApi.composeRecipe.mockRejectedValue(Object.assign(new Error('server sentence'), { status: 422, code: 'compose_truncated', body: { errors: [] } }));
         render(<NewPlaybookDialog user={{ id: 'u1' }} onClose={vi.fn()} onCreated={vi.fn()} />);
         await screen.findByText('Facturen bijhouden');
-        fireEvent.click(screen.getByText('Describe it'));
+        await user.click(screen.getByText('Describe it'));
         fireEvent.change(screen.getByLabelText('What should this playbook build?'), { target: { value: 'alles' } });
-        fireEvent.click(screen.getByTestId('playbook-compose'));
+        await user.click(screen.getByTestId('playbook-compose'));
         expect((await screen.findByRole('alert')).textContent).toMatch(/longer than the model can write in one answer/);
         expect(screen.getByTestId('playbook-start').disabled).toBe(true);
     });
 
     it('a refused composition shows the validator\'s findings and keeps Start closed', async () => {
+        const user = userEvent.setup();
         playbooksApi.composeRecipe.mockRejectedValue(Object.assign(new Error("The model's playbook is not runnable."), { status: 422, code: 'recipe_invalid', body: { errors: [{ code: 'brief_required', message: 'Phase "R" needs a brief.' }] } }));
         render(<NewPlaybookDialog user={{ id: 'u1' }} onClose={vi.fn()} onCreated={vi.fn()} />);
         await screen.findByText('Facturen bijhouden');
-        fireEvent.click(screen.getByText('Describe it'));
+        await user.click(screen.getByText('Describe it'));
         fireEvent.change(screen.getByLabelText('What should this playbook build?'), { target: { value: 'iets' } });
-        fireEvent.click(screen.getByTestId('playbook-compose'));
+        await user.click(screen.getByTestId('playbook-compose'));
         expect((await screen.findByRole('alert')).textContent).toContain('needs a brief');
         expect(screen.getByTestId('playbook-start').disabled).toBe(true);
     });

@@ -7,7 +7,7 @@
  * - Activated dynamically to reduce token usage.
  * - Optionally publishable to the persistent skill library on user request.
  */
-
+// @typecheck
 const crypto = require('crypto');
 const skillStore = require('../../stores/skillStore');
 const log = require('../../telemetry/log');
@@ -519,7 +519,7 @@ async function executePublishSessionSkill({
     const src = (sessionSkills || []).find(s => s.id === skillId);
     if (!src) return { error: `Session skill not found: ${skillId}` };
 
-    const created = await skillStore.createSkill({
+    const created = await skillStore.createSkill(/** @type {any} */ ({
         orgId,
         userId,
         name: sanitizeText(args?.name, 120) || src.name,
@@ -531,7 +531,7 @@ async function executePublishSessionSkill({
         icon: '⚡',
         isShared: args?.is_shared === true,
         dynamicActivation: args?.dynamic_activation !== false,
-    });
+    }));
 
     return {
         success: true,

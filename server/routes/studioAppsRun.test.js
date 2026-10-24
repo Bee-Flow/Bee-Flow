@@ -506,14 +506,12 @@ test('object value for a mapped field answers 400', async () => {
         },
     });
     for (const bad of [{ nested: true }, ['a', 'b']]) {
-        const r = await dispatch({
+        await assert.rejects(dispatch({
             url: `/${app.id}/actions/act1/run`,
             user: `viewer-badval-${Array.isArray(bad)}`,
             orgIds: [ORG],
             body: { formValues: { email: bad } },
-        });
-        assert.strictEqual(r.statusCode, 400);
-        assert.match(r.body.error, /email/);
+        }), (e) => e.status === 400 && /email/.test(e.message));
     }
     assert.strictEqual(runnerCalls.length, 0);
 });
@@ -568,18 +566,20 @@ test('app_trigger target: missing required inputs answer 400 listing all names',
         { name: 'doc', type: 'file', required: true },
     ]);
     const app = makeApp({ actionsPub: { act1: { kind: 'run_automation', automationId: 'auto-at2' } } });
-    const r = await dispatch({ url: `/${app.id}/actions/act1/run`, orgIds: [ORG], body: { formValues: {} } });
-    assert.strictEqual(r.statusCode, 400);
-    assert.match(r.body.error, /Missing required inputs: a, doc/);
+    await assert.rejects(
+        dispatch({ url: `/${app.id}/actions/act1/run`, orgIds: [ORG], body: { formValues: {} } }),
+        (e) => e.status === 400 && /Missing required inputs: a, doc/.test(e.message),
+    );
     assert.strictEqual(runnerCalls.length, 0);
 });
 
 test('app_trigger target: a type violation answers 400 naming the param', async () => {
     makeAppTriggerAutomation('auto-at3', [{ name: 'rows', type: 'array', required: true }]);
     const app = makeApp({ actionsPub: { act1: { kind: 'run_automation', automationId: 'auto-at3' } } });
-    const r = await dispatch({ url: `/${app.id}/actions/act1/run`, orgIds: [ORG], body: { formValues: { rows: 'not json' } } });
-    assert.strictEqual(r.statusCode, 400);
-    assert.match(r.body.error, /Input "rows" expects valid JSON/);
+    await assert.rejects(
+        dispatch({ url: `/${app.id}/actions/act1/run`, orgIds: [ORG], body: { formValues: { rows: 'not json' } } }),
+        (e) => e.status === 400 && /Input "rows" expects valid JSON/.test(e.message),
+    );
     assert.strictEqual(runnerCalls.length, 0);
 });
 

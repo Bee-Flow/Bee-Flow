@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Settings } from 'lucide-react';
 import { describe, expect, it, vi } from 'vitest';
 import StudioSectionHeader, { OBJHEAD, OBJHEAD_FOLD, PRIMARY_ACTION_STYLE } from './StudioSectionHeader';
@@ -82,14 +83,15 @@ describe('StudioSectionHeader — tile, title, chip', () => {
 });
 
 describe('StudioSectionHeader — back and rename', () => {
-    it('renders no back arrow without onBack, and a named one with it', () => {
+    it('renders no back arrow without onBack, and a named one with it', async () => {
+        const user = userEvent.setup();
         const { unmount } = renderHeader();
         expect(screen.queryByTestId('studio-section-back')).toBeNull();
         unmount();
         const onBack = vi.fn();
         renderHeader({ onBack, backLabel: 'Back to Knowledge' });
         const back = screen.getByRole('button', { name: 'Back to Knowledge' });
-        fireEvent.click(back);
+        await user.click(back);
         expect(onBack).toHaveBeenCalledTimes(1);
     });
 
@@ -103,10 +105,11 @@ describe('StudioSectionHeader — back and rename', () => {
         expect(screen.getByTestId('studio-section-title').tagName).toBe('H1');
     });
 
-    it('renames inline: click → input, Enter commits the trimmed name', () => {
+    it('renames inline: click → input, Enter commits the trimmed name', async () => {
+        const user = userEvent.setup();
         const onRename = vi.fn();
         renderHeader({ onRename });
-        fireEvent.click(screen.getByTestId('studio-section-title'));
+        await user.click(screen.getByTestId('studio-section-title'));
         const input = screen.getByTestId('studio-section-title-input');
         expect(input.value).toBe('Offerte-kennis');
         fireEvent.change(input, { target: { value: '  Offertes  ' } });
@@ -115,21 +118,22 @@ describe('StudioSectionHeader — back and rename', () => {
         expect(screen.queryByTestId('studio-section-title-input')).toBeNull();
     });
 
-    it('never calls back with an empty or unchanged name; Escape cancels', () => {
+    it('never calls back with an empty or unchanged name; Escape cancels', async () => {
+        const user = userEvent.setup();
         const onRename = vi.fn();
         renderHeader({ onRename });
-        fireEvent.click(screen.getByTestId('studio-section-title'));
+        await user.click(screen.getByTestId('studio-section-title'));
         let input = screen.getByTestId('studio-section-title-input');
         fireEvent.change(input, { target: { value: '' } });
         fireEvent.blur(input);
         expect(onRename).not.toHaveBeenCalled();
 
-        fireEvent.click(screen.getByTestId('studio-section-title'));
+        await user.click(screen.getByTestId('studio-section-title'));
         input = screen.getByTestId('studio-section-title-input');
         fireEvent.blur(input);
         expect(onRename).not.toHaveBeenCalled();
 
-        fireEvent.click(screen.getByTestId('studio-section-title'));
+        await user.click(screen.getByTestId('studio-section-title'));
         input = screen.getByTestId('studio-section-title-input');
         fireEvent.change(input, { target: { value: 'Something else' } });
         fireEvent.keyDown(input, { key: 'Escape' });
@@ -148,10 +152,11 @@ describe('StudioSectionHeader — tabs and badges', () => {
         expect(screen.getByRole('radio', { name: /Content/ })).toHaveAttribute('aria-checked', 'false');
     });
 
-    it('calls onTab with the id', () => {
+    it('calls onTab with the id', async () => {
+        const user = userEvent.setup();
         const onTab = vi.fn();
         renderHeader({ onTab });
-        fireEvent.click(screen.getByRole('radio', { name: /Used by/ }));
+        await user.click(screen.getByRole('radio', { name: /Used by/ }));
         expect(onTab).toHaveBeenCalledWith('usage');
     });
 
@@ -210,18 +215,19 @@ describe('StudioSectionHeader — tabs and badges', () => {
         expect(screen.queryByTestId('studio-section-tab-menu')).toBeNull();
     });
 
-    it('offers the same tabs with the same counts in the narrow-width menu', () => {
+    it('offers the same tabs with the same counts in the narrow-width menu', async () => {
+        const user = userEvent.setup();
         const onTab = vi.fn();
         renderHeader({ onTab, activeTab: 'review' });
         const trigger = screen.getByTestId('studio-section-tab-menu');
         expect(trigger).toHaveTextContent('Review2');
         expect(trigger).toHaveAttribute('aria-expanded', 'false');
-        fireEvent.click(trigger);
+        await user.click(trigger);
         expect(trigger).toHaveAttribute('aria-expanded', 'true');
         const items = screen.getAllByRole('menuitemradio');
         expect(items.map((el) => el.textContent)).toEqual(['Content', 'Settings', 'Review2', 'Used by3']);
         expect(screen.getByRole('menuitemradio', { name: /Review/ })).toHaveAttribute('aria-checked', 'true');
-        fireEvent.click(screen.getByRole('menuitemradio', { name: /Used by/ }));
+        await user.click(screen.getByRole('menuitemradio', { name: /Used by/ }));
         expect(onTab).toHaveBeenCalledWith('usage');
         expect(screen.queryByRole('menu')).toBeNull();
     });

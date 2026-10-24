@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Regression test (BFSF-184): the webpage chat's end-of-turn validation
  * repair round must leave the Claude request ending on a USER turn.

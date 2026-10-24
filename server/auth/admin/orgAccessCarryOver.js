@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 // What an "All members" save stores for the ids it could not decide itself.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A run says when a mapping found nothing.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — the two adapter stream callbacks of a turn.
  *

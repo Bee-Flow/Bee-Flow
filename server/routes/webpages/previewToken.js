@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Het kortlevende token waarmee de gesandboxte preview-iframe de API bereikt.
  *

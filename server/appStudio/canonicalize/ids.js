@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio canonicalizer — the id allocator: one pass hands out every final
  * id and records the old → new renames pass 2 rewrites references with.

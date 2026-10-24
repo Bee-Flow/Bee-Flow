@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De tool-catalogus als ÉÉN lijst.
  *

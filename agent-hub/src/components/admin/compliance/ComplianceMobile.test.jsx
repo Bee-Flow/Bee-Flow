@@ -89,22 +89,23 @@ function expectThumbTargets(container) {
 
 /* ══ The segments ════════════════════════════════════════════════════════ */
 describe('ComplianceMobile — the segmented control is a view, not a route', () => {
-    it('opens on the overview and switches to the two list views without navigating', () => {
+    it('opens on the overview and switches to the two list views without navigating', async () => {
+        const user = userEvent.setup();
         const { container, navigate } = mount();
         expect(screen.getByTestId('compliance-mobile').dataset.view).toBe('overview');
         expect(screen.getByTestId('mobile-home-overview')).toBeInTheDocument();
 
-        fireEvent.click(screen.getByText('Frameworks'));
+        await user.click(screen.getByText('Frameworks'));
         expect(screen.getByTestId('compliance-mobile').dataset.view).toBe('frameworks');
         expect(screen.queryByTestId('mobile-home-overview')).toBeNull();
         expect(screen.getByTestId('mobile-rail-list-frameworks')).toBeInTheDocument();
 
-        fireEvent.click(screen.getByText('Registers'));
+        await user.click(screen.getByText('Registers'));
         expect(screen.getByTestId('compliance-mobile').dataset.view).toBe('registers');
         expect(screen.getByTestId('mobile-rail-list-registers')).toBeInTheDocument();
         expect(screen.queryByTestId('mobile-rail-list-frameworks')).toBeNull();
 
-        fireEvent.click(screen.getByText('Overview'));
+        await user.click(screen.getByText('Overview'));
         expect(screen.getByTestId('mobile-home-overview')).toBeInTheDocument();
 
         // The whole point: none of that touched the address.
@@ -112,16 +113,18 @@ describe('ComplianceMobile — the segmented control is a view, not a route', ()
         expectThumbTargets(container);
     });
 
-    it('a row in a list view IS a route, and it navigates to that section', () => {
+    it('a row in a list view IS a route, and it navigates to that section', async () => {
+        const user = userEvent.setup();
         const { navigate } = mount();
-        fireEvent.click(screen.getByText('Frameworks'));
-        fireEvent.click(screen.getByTestId('mobile-row-gdpr'));
+        await user.click(screen.getByText('Frameworks'));
+        await user.click(screen.getByTestId('mobile-row-gdpr'));
         expect(navigate).toHaveBeenCalledWith('gdpr');
     });
 
-    it('resets to the overview segment when a section closes back to home', () => {
+    it('resets to the overview segment when a section closes back to home', async () => {
+        const user = userEvent.setup();
         const { rerender, navigate, onBack, data } = mount();
-        fireEvent.click(screen.getByText('Registers'));
+        await user.click(screen.getByText('Registers'));
         expect(screen.getByTestId('compliance-mobile').dataset.view).toBe('registers');
 
         const props = { navigate, onBack, data, tab: 'overview', onTab: vi.fn(), page: <div data-testid="page-node">page</div> };
@@ -160,15 +163,16 @@ describe('ComplianceMobile — the segmented control is a view, not a route', ()
 
 /* ══ The back chevron ════════════════════════════════════════════════════ */
 describe('ComplianceMobile — the back chevron means one thing at a time', () => {
-    it('leaves the hub at home and returns to the overview from inside a section', () => {
+    it('leaves the hub at home and returns to the overview from inside a section', async () => {
+        const user = userEvent.setup();
         const { rerender, navigate, onBack, data } = mount();
-        fireEvent.click(screen.getByTestId('mobile-back'));
+        await user.click(screen.getByTestId('mobile-back'));
         expect(onBack).toHaveBeenCalledTimes(1);
         expect(navigate).not.toHaveBeenCalled();
 
         rerender(<ComplianceMobile active="dsr" navigate={navigate} onBack={onBack} data={data}
             tab="overview" onTab={vi.fn()} page={<div />} />);
-        fireEvent.click(screen.getByTestId('mobile-back'));
+        await user.click(screen.getByTestId('mobile-back'));
         expect(navigate).toHaveBeenCalledWith('overview');
         expect(onBack).toHaveBeenCalledTimes(1);   // still one: it did NOT leave Settings
     });
@@ -189,17 +193,18 @@ describe('ComplianceMobile — the back chevron means one thing at a time', () =
 
 /* ══ The top bar ═════════════════════════════════════════════════════════ */
 describe('ComplianceMobile — the top bar', () => {
-    it('runs the checks and goes quiet while a run is in flight', () => {
+    it('runs the checks and goes quiet while a run is in flight', async () => {
+        const user = userEvent.setup();
         const runNow = vi.fn();
         const { rerender, navigate, onBack } = mount({ data: makeData({ core: { runNow } }) });
-        fireEvent.click(screen.getByTestId('mobile-run-now'));
+        await user.click(screen.getByTestId('mobile-run-now'));
         expect(runNow).toHaveBeenCalledTimes(1);
 
         rerender(<ComplianceMobile active="overview" navigate={navigate} onBack={onBack}
             data={makeData({ core: { runNow, running: true } })} tab="overview" onTab={vi.fn()} page={<div />} />);
         const btn = screen.getByTestId('mobile-run-now');
         expect(btn).toBeDisabled();
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(runNow).toHaveBeenCalledTimes(1);
     });
 
@@ -242,18 +247,20 @@ describe('ComplianceMobile — the top bar', () => {
 
 /* ══ The overview ════════════════════════════════════════════════════════ */
 describe('ComplianceMobile — the overview segment', () => {
-    it('lists the framework rows with their score and opens one', () => {
+    it('lists the framework rows with their score and opens one', async () => {
+        const user = userEvent.setup();
         const { navigate } = mount();
         const row = screen.getByTestId('mobile-fw-gdpr');
         expect(row).toBeInTheDocument();
         expect(screen.getByTestId('mobile-fw-ring-gdpr')).toBeInTheDocument();
-        fireEvent.click(row);
+        await user.click(row);
         expect(navigate).toHaveBeenCalledWith('gdpr');
     });
 
-    it('sends an attention row to the target the server computed, id decoded', () => {
+    it('sends an attention row to the target the server computed, id decoded', async () => {
+        const user = userEvent.setup();
         const { navigate } = mount();
-        fireEvent.click(screen.getByTestId('mobile-attention-a2'));
+        await user.click(screen.getByTestId('mobile-attention-a2'));
         expect(navigate).toHaveBeenCalledWith('dpia', 'ag/9', undefined); // (section, id, tab)
     });
 
@@ -378,21 +385,23 @@ describe('ComplianceMobile — the calendar and the reports are reachable from h
 
 /* ══ The list views ══════════════════════════════════════════════════════ */
 describe('ComplianceMobile — the rail as a phone list', () => {
-    it('hides a growing-set framework until the org has it', () => {
+    it('hides a growing-set framework until the org has it', async () => {
+        const user = userEvent.setup();
         const { rerender, navigate, onBack } = mount();
-        fireEvent.click(screen.getByText('Frameworks'));
+        await user.click(screen.getByText('Frameworks'));
         expect(screen.queryByTestId('mobile-row-nis2')).toBeNull();
 
         rerender(<ComplianceMobile active="overview" navigate={navigate} onBack={onBack}
             data={makeData({ frameworks: { isEnabled: (id) => id === 'nis2' } })}
             tab="overview" onTab={vi.fn()} page={<div />} />);
-        fireEvent.click(screen.getByText('Frameworks'));
+        await user.click(screen.getByText('Frameworks'));
         expect(screen.getByTestId('mobile-row-nis2')).toBeInTheDocument();
     });
 
-    it('groups registers and admin under their own headings, all as thumb targets', () => {
+    it('groups registers and admin under their own headings, all as thumb targets', async () => {
+        const user = userEvent.setup();
         const { container } = mount();
-        fireEvent.click(screen.getByText('Registers'));
+        await user.click(screen.getByText('Registers'));
         const list = screen.getByTestId('mobile-rail-list');
         expect(within(list).getByText('Registers')).toBeInTheDocument();
         expect(within(list).getByText('Admin')).toBeInTheDocument();
@@ -410,9 +419,10 @@ describe('ComplianceMobile — the rail as a phone list', () => {
     // (mobile/MobileRailList.jsx:65) therefore never fires on the phone. The
     // assertion below is correct; the name was not. The `active` prop wiring
     // is dead — either drop it or render the list from a section too.
-    it('never marks a row: the list is only shown at home, where no section is active', () => {
+    it('never marks a row: the list is only shown at home, where no section is active', async () => {
+        const user = userEvent.setup();
         mount({ active: 'overview' });
-        fireEvent.click(screen.getByText('Registers'));
+        await user.click(screen.getByText('Registers'));
         const rows = [...screen.getByTestId('mobile-rail-list').querySelectorAll('button')];
         expect(rows.length).toBeGreaterThan(0); // not vacuous: there are rows to check
         expect(rows.every(r => r.getAttribute('aria-current') === null)).toBe(true);

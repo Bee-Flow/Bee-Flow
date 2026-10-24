@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Scaleway infrastructure connector — backup freshness and network exposure
  * evidence for the org's Scaleway project (A.8.13/A.8.14 backups, A.8.20/

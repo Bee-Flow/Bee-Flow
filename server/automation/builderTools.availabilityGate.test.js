@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The availability gate: the builder may only propose tools this user can run.
  *

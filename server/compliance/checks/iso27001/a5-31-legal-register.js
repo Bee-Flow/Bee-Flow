@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO 27001 A.5.31 — legal, statutory, regulatory and contractual
  * requirements: is the legal register this hub scores against still current?

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 const { XMLParser, XMLValidator } = require('fast-xml-parser');

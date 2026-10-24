@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * EU AI Act — the signals the platform detects itself about an automation or
  * an agent, before an admin answers the classification questions.
@@ -36,7 +37,7 @@
 
 const { getOne, getAll } = require('../../db');
 const graph = require('../../automation/automationGraph');
-const { hasDisclosure } = require('../checks/aia/art50-ai-disclosure');
+const { hasDisclosure } = /** @type {any} */ (require('../checks/aia/art50-ai-disclosure'));
 const complianceStore = require('../../stores/complianceStore');
 
 // The Annex III catalogue — ten domains, their keyword hints and the point of

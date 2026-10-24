@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio data routes: reading in bulk. The owner's streamed export,
  * a read descriptor (POST /data/query) and a batch of them. The route

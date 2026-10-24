@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Who may fill a form in — the one rule behind every gate.
  * (Studio → Forms, automation-form-audience-2026-09.)

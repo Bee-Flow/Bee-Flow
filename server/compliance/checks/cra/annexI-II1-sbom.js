@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CRA Annex I Part II(1) / Art. 13 — a software bill of materials ships with
  * the running build.
@@ -175,4 +176,4 @@ module.exports = {
     },
 };
 
-module.exports._test = { _shaMatches, _ageDays, FRESH_DAYS };
+Object.assign(module.exports, { _test: { _shaMatches, _ageDays, FRESH_DAYS } });

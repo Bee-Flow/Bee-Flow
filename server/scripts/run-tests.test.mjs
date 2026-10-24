@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The runner is the server's quality gate, so what matters here is that it can
  * still FAIL — and that it counts everything.

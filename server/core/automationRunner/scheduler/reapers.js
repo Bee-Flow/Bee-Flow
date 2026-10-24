@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The runner's reapers (extracted verbatim from automationRunner.js).
  *

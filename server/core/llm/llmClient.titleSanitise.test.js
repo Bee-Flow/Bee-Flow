@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Title sanitisation contract.
  *

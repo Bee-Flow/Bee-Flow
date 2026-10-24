@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 // Side-effect-free encryption helpers, shared by config storage and read-only upgrade inspection.
 const crypto = require('crypto');

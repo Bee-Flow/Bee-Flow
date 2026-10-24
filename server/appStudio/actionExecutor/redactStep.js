@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio action executor — redact_pdf: a PDF in, a copy without the marks
  * that identify a person or the customer out.

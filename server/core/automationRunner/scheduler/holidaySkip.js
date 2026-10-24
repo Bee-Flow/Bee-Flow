@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The schedule tick's holiday check: should this claimed schedule stay quiet
  * because its slot falls on a public holiday?
@@ -29,7 +30,7 @@ const holidays = require('../../scheduling/holidays');
  * @returns {null | { holiday: { date: string, key: string, name: string }, nextRunAt: string|null }}
  *          null = run it; otherwise skip it and store `nextRunAt`.
  */
-function holidaySkipFor(automation, { triggerStepId = null, cron, tz = null, scheduledFor = null, now = Date.now() } = {}) {
+function holidaySkipFor(automation, /** @type {{triggerStepId?: string|null, cron?: string, tz?: string|null, scheduledFor?: string|null, now?: number}} */ { triggerStepId = null, cron, tz = null, scheduledFor = null, now = Date.now() } = {}) {
     if (!automation || typeof cron !== 'string' || !cron.trim()) return null;
     const { definition } = definitionForRun(automation, { mode: 'live', triggerKind: 'schedule' });
     if (!holidays.scheduleSkipsHolidays(definition, triggerStepId)) return null;

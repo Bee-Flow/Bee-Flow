@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * resolveModelId: a saved display name still resolves to the id the API
  * wants, and anything id-shaped passes through untouched.

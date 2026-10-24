@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Versions tab (Studio → Automations handoff 5, artboard 5d).
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Support Inbox Scan Engine — a one-off, on-demand "how fast did we answer in
  * the past?" scan over a connected support mailbox's HISTORY.
@@ -210,6 +211,7 @@ async function scanOneDue() {
  * Mount the scan drain behind the runtime module gate, so removing Support in
  * the admin Modules panel stops queued scans from reading mailboxes on a
  * running pod (BFSF-438). `gate` is a test seam; scanOneDue stays ungated.
+ * @param {{ gate?: Function }} [opts]
  */
 function startSupportInboxScan({ gate } = {}) {
     if (_timer) return;

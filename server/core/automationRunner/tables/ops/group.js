@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * group: one row per combination of the `by` columns with counts, sums,

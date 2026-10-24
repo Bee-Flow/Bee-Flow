@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — which catalog tool the model meant, and whether this user
  * may run it: the name read out of whatever key it arrived under, the refusal

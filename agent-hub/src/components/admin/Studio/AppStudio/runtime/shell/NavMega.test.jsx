@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import AppShell from '../AppShell';
 import { megaColumns } from './NavMega';
@@ -53,13 +54,14 @@ describe('NavMega', () => {
         expect(pricing).not.toHaveAttribute('aria-haspopup');
     });
 
-    it('a group trigger opens its panel instead of navigating', () => {
+    it('a group trigger opens its panel instead of navigating', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         renderShell(DEF, onNavigate);
         const trigger = screen.getByRole('button', { name: /Work/ });
         expect(trigger).toHaveAttribute('aria-expanded', 'false');
 
-        fireEvent.click(trigger);
+        await user.click(trigger);
         expect(trigger).toHaveAttribute('aria-expanded', 'true');
         // The trigger owns no destination — clicking it must not move anyone.
         expect(onNavigate).not.toHaveBeenCalled();
@@ -69,14 +71,15 @@ describe('NavMega', () => {
         // The description is the whole point of the shape.
         expect(within(panel).getByText('Triage what came in today')).toBeInTheDocument();
 
-        fireEvent.click(within(panel).getByRole('menuitem', { name: /Request/ }));
+        await user.click(within(panel).getByRole('menuitem', { name: /Request/ }));
         expect(onNavigate).toHaveBeenCalledWith('scr_req001');
         expect(screen.queryByRole('menu', { name: 'Work' })).toBeNull();
     });
 
-    it('Escape closes the panel', () => {
+    it('Escape closes the panel', async () => {
+        const user = userEvent.setup();
         renderShell();
-        fireEvent.click(screen.getByRole('button', { name: /Setup/ }));
+        await user.click(screen.getByRole('button', { name: /Setup/ }));
         expect(screen.getByRole('menu', { name: 'Setup' })).toBeInTheDocument();
         fireEvent.keyDown(document, { key: 'Escape' });
         expect(screen.queryByRole('menu', { name: 'Setup' })).toBeNull();
@@ -115,9 +118,10 @@ describe('megaColumns', () => {
  * reading with assistive tech, where the visual adjacency does not exist.
  */
 describe('NavMega — the panel does not repeat the trigger', () => {
-    it('names the panel once, and only to assistive tech', () => {
+    it('names the panel once, and only to assistive tech', async () => {
+        const user = userEvent.setup();
         const { container } = renderShell();
-        fireEvent.click(screen.getByRole('button', { name: /Work/ }));
+        await user.click(screen.getByRole('button', { name: /Work/ }));
         const panel = container.querySelector('[role="menu"]');
         expect(panel.getAttribute('aria-label')).toBe('Work');
         // Every visible line in the panel is a screen, not a restatement of

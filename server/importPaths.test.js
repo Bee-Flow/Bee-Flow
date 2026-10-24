@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Guard: every relative require()/import inside the server package resolves to
  * a file that actually exists.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio canonicalizer — component nodes: the v2 logic fields
  * (visibleWhen / computed / validations / role refs) and the recursive node

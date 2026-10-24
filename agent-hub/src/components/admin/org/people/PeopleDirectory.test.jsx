@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import PeopleDirectory from './PeopleDirectory';
 
@@ -128,9 +129,10 @@ describe('PeopleDirectory', () => {
         expect(rowNames()).toEqual(['Loose Leaf']);
     });
 
-    it('regroups by group on demand, and a global group is marked as such', () => {
+    it('regroups by group on demand, and a global group is marked as such', async () => {
+        const user = userEvent.setup();
         renderDir({ users: [{ ...LOOSE, groups: ['g_glob'] }] });
-        fireEvent.click(screen.getByText('By group'));
+        await user.click(screen.getByText('By group'));
         expect(heading('Everyone')).toBeInTheDocument();
         expect(screen.getByText('Global')).toBeInTheDocument();
     });
@@ -148,14 +150,15 @@ describe('PeopleDirectory', () => {
         expect(screen.queryByText('No people yet')).not.toBeInTheDocument();
     });
 
-    it('offers Clear once filtering and resets every axis', () => {
+    it('offers Clear once filtering and resets every axis', async () => {
+        const user = userEvent.setup();
         renderDir();
         const before = rowNames().length;
         fireEvent.change(screen.getByPlaceholderText('Search by name or email…'), { target: { value: 'eva' } });
         fireEvent.change(screen.getByLabelText('Any membership'), { target: { value: 'group' } });
         expect(rowNames().length).toBeLessThan(before);
 
-        fireEvent.click(screen.getAllByText('Clear')[0]);
+        await user.click(screen.getAllByText('Clear')[0]);
         expect(rowNames().length).toBe(before);
         expect(screen.getByPlaceholderText('Search by name or email…')).toHaveValue('');
     });
@@ -167,11 +170,12 @@ describe('PeopleDirectory', () => {
         expect(screen.getByText('1 of 4 people')).toBeInTheDocument();
     });
 
-    it('collapses and expands a section', () => {
+    it('collapses and expands a section', async () => {
+        const user = userEvent.setup();
         renderDir();
         const header = heading('Acme B.V.').closest('button');
         expect(header).toHaveAttribute('aria-expanded', 'true');
-        fireEvent.click(header);
+        await user.click(header);
         expect(header).toHaveAttribute('aria-expanded', 'false');
         expect(rowNames()).not.toContain('Jan de Vries');
     });
@@ -191,15 +195,16 @@ describe('PeopleDirectory', () => {
         expect(screen.queryByText('Add user')).not.toBeInTheDocument();
     });
 
-    it('wires the row actions to their callbacks', () => {
+    it('wires the row actions to their callbacks', async () => {
+        const user = userEvent.setup();
         const onEditUser = vi.fn();
         const onResetMfa = vi.fn();
         const onDeleteUser = vi.fn();
         renderDir({ onEditUser, onResetMfa, onDeleteUser });
 
-        fireEvent.click(screen.getByLabelText('Edit Jan de Vries'));
-        fireEvent.click(screen.getByLabelText('Reset 2FA for Jan de Vries'));
-        fireEvent.click(screen.getByLabelText('Delete Jan de Vries'));
+        await user.click(screen.getByLabelText('Edit Jan de Vries'));
+        await user.click(screen.getByLabelText('Reset 2FA for Jan de Vries'));
+        await user.click(screen.getByLabelText('Delete Jan de Vries'));
 
         expect(onEditUser).toHaveBeenCalledWith(JAN);
         expect(onResetMfa).toHaveBeenCalledWith(JAN);

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The runner's lock-guarded background passes (extracted from ./ticks.js,
  * which mounts them): event polling and subscription renewal, Talk

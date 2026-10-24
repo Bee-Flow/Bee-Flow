@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 process.env.MASTER_ENCRYPTION_KEY = 'test-master-key-for-transactional-oauth';
 const { test, before, after } = require('node:test');

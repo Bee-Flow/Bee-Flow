@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Platform-module runtime — catalog (./catalog.js) joined with persisted
  * import state (stores/platformModuleStore.js).

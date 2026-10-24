@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage Plan Tool — propose_webpage_plan
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * buildPiiSummary — the compact per-step PII record behind the canvas's
  * "colour lines by PII" mode. Aggregate counts only, grouped via the

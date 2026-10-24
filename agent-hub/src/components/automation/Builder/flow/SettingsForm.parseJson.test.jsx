@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { extractFormState, buildPatch } from './settings/formState';
 import SettingsForm from './SettingsForm';
@@ -79,35 +80,38 @@ describe('SettingsForm — ParseJsonFields', () => {
 
     const getStep = () => ({ ...buildStepFromPayload({ kind: 'parse_json', label: 'Parse JSON' }), id: 'p1' });
 
-    it('adds, edits, and removes field rows', () => {
+    it('adds, edits, and removes field rows', async () => {
+        const user = userEvent.setup();
         renderForm(getStep());
-        fireEvent.click(screen.getByText('Add field'));
+        await user.click(screen.getByText('Add field'));
         const name = screen.getByLabelText('Field name');
         const path = screen.getByLabelText('Field path');
         fireEvent.change(name, { target: { value: 'email' } });
         fireEvent.change(path, { target: { value: 'order.email' } });
         expect(name.value).toBe('email');
         expect(path.value).toBe('order.email');
-        fireEvent.click(screen.getByTitle('Remove field'));
+        await user.click(screen.getByTitle('Remove field'));
         expect(screen.queryByLabelText('Field name')).toBeNull();
     });
 
     it('saves edited rows through onPatch (blank-name row dropped, incomplete row kept)', async () => {
+        const user = userEvent.setup();
         const onPatch = vi.fn(async () => {});
         renderForm(getStep(), { onPatch });
-        fireEvent.click(screen.getByText('Add field'));
+        await user.click(screen.getByText('Add field'));
         fireEvent.change(screen.getByLabelText('Field name'), { target: { value: 'pending' } });
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls.at(-1)[0].fields).toEqual([{ name: 'pending', path: '' }]);
     });
 
     it('the Options toggle persists mode:"ai"', async () => {
+        const user = userEvent.setup();
         const onPatch = vi.fn(async () => {});
         renderForm(getStep(), { onPatch });
-        fireEvent.click(screen.getByText('Options'));
-        fireEvent.click(screen.getByRole('checkbox'));
-        fireEvent.click(screen.getByText('Save'));
+        await user.click(screen.getByText('Options'));
+        await user.click(screen.getByRole('checkbox'));
+        await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls.at(-1)[0].mode).toBe('ai');
     });
@@ -121,12 +125,13 @@ describe('SettingsForm — ParseJsonFields', () => {
     });
 
     it('Map with AI merges returned rows, skips existing names, and badges unverified rows', async () => {
+        const user = userEvent.setup();
         const step = { ...getStep(), sourceRef: 'steps.h1.output.body', fields: [{ name: 'existing', path: 'dupe' }] };
         renderForm(step, { previewSample: SAMPLE });
         fireEvent.change(screen.getByPlaceholderText(/Describe the fields you want/), { target: { value: 'email + ghost' } });
         const btn = screen.getByRole('button', { name: /Map with AI/ });
         expect(btn.disabled).toBe(false);
-        fireEvent.click(btn);
+        await user.click(btn);
         await waitFor(() => expect(api.mapJsonFields).toHaveBeenCalledTimes(1));
         const [sample, instruction, existingFields] = api.mapJsonFields.mock.calls[0];
         expect(sample).toEqual({ order: { email: 'a@b.c' }, items: [{ sku: 'X1' }] }); // parsed, not the raw string
@@ -149,22 +154,24 @@ describe('SettingsForm — ParseJsonFields', () => {
         expect(screen.getByText('no match in sample')).toBeTruthy();
     });
 
-    it('offers "Pick from sample" and appends a row with a suggested unique name', () => {
+    it('offers "Pick from sample" and appends a row with a suggested unique name', async () => {
+        const user = userEvent.setup();
         const step = { ...getStep(), sourceRef: 'steps.h1.output.body' };
         renderForm(step, { previewSample: SAMPLE });
         // The tree renders the parsed source; click the nested email leaf.
-        fireEvent.click(screen.getByText('email'));
+        await user.click(screen.getByText('email'));
         expect(screen.getByDisplayValue('order.email')).toBeTruthy();
         expect(screen.getByDisplayValue('email')).toBeTruthy(); // suggested name
     });
 
-    it('shows the "Use HTTP response body" shortcut when the nearest upstream is http_request', () => {
+    it('shows the "Use HTTP response body" shortcut when the nearest upstream is http_request', async () => {
+        const user = userEvent.setup();
         const groups = [
             { id: 'trg', kind: 'trigger', basePath: 'trigger.output', sample: {}, fields: [] },
             { id: 'h1', kind: 'http_request', basePath: 'steps.h1.output', sample: {}, fields: [] },
         ];
         renderForm(getStep(), { groups, previewSample: SAMPLE });
-        fireEvent.click(screen.getByText('Use HTTP response body'));
+        await user.click(screen.getByText('Use HTTP response body'));
         expect(editorWithValue(document.body, 'steps.h1.output.body')).toBeTruthy();
     });
 });
@@ -214,9 +221,10 @@ describe('parse_json — grouping by list', () => {
     });
 
     it('offers the sample’s lists as one-click grouping targets', async () => {
+        const user = userEvent.setup();
         renderForm({ id: 'p1', type: 'parse_json', sourceRef: 'steps.c1.output', fields: [] }, { previewSample: CAL_SAMPLE });
         const chip = await screen.findByRole('button', { name: 'results' });
-        fireEvent.click(chip);
+        await user.click(chip);
         await waitFor(() => expect(screen.getByPlaceholderText('results').value).toBe('results'));
     });
 
@@ -240,6 +248,7 @@ describe('parse_json — grouping by list', () => {
     });
 
     it('applies an itemsRef proposed by Map with AI', async () => {
+        const user = userEvent.setup();
         api.mapJsonFields.mockResolvedValueOnce({
             itemsRef: 'results',
             fields: [{ name: 'meeting_title', path: 'title', verified: true, sampleValue: 'Daily Scrum' }],
@@ -248,7 +257,7 @@ describe('parse_json — grouping by list', () => {
         fireEvent.change(screen.getByPlaceholderText(/Describe the fields/i), {
             target: { value: 'meeting names with their attendees, grouped per meeting' },
         });
-        fireEvent.click(screen.getByRole('button', { name: /Map with AI/i }));
+        await user.click(screen.getByRole('button', { name: /Map with AI/i }));
         await waitFor(() => expect(screen.getByPlaceholderText('results').value).toBe('results'));
     });
 });

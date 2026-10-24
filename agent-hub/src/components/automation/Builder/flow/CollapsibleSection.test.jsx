@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import CollapsibleSection from './CollapsibleSection';
@@ -49,19 +50,21 @@ describe('CollapsibleSection', () => {
         expect(screen.getByRole('button', { name: 'Inputs' })).toBe(btn);
     });
 
-    it('a section toggles its body and reports state through aria-expanded', () => {
+    it('a section toggles its body and reports state through aria-expanded', async () => {
+        const user = userEvent.setup();
         render(<CollapsibleSection title="Basics" defaultOpen={false}><div>field</div></CollapsibleSection>);
         expect(screen.queryByText('field')).toBeNull();
         expect(header('Basics').getAttribute('aria-expanded')).toBe('false');
-        fireEvent.click(header('Basics'));
+        await user.click(header('Basics'));
         expect(screen.getByText('field')).toBeTruthy();
         expect(header('Basics').getAttribute('aria-expanded')).toBe('true');
     });
 
-    it('the disclosure names itself by count and flips to "Fewer options"', () => {
+    it('the disclosure names itself by count and flips to "Fewer options"', async () => {
+        const user = userEvent.setup();
         render(<CollapsibleSection count={1}><div>extra</div></CollapsibleSection>);
         expect(screen.getByText('Show 1 more option')).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: /Show 1 more option/ }));
+        await user.click(screen.getByRole('button', { name: /Show 1 more option/ }));
         expect(screen.getByText('Fewer options')).toBeTruthy();
         expect(screen.getByText('extra')).toBeTruthy();
     });

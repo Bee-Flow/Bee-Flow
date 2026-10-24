@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "What happens to this meeting?" — and what the answer must never say.
  *

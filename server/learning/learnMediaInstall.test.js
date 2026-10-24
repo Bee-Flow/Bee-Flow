@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * syncFromPin against a loopback http server standing in for the GitHub release.
  *

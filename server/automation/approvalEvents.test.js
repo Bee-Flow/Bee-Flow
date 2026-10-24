@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * approvalEvents — payload assembly + tenancy routing.
  *

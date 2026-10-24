@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { datatablesApi } from './datatablesApi';
@@ -58,21 +59,23 @@ const fill = () => {
 
 describe('the organisation card and the permission behind it', () => {
     it('is offered to a member who holds manage_datatables, and is the default', async () => {
+        const user = userEvent.setup();
         datatablesApi.create.mockResolvedValue({ datatable: { id: 'tbl_new' } });
         open({ user: MANAGER });
         expect(screen.getByRole('radio', { name: /Your organisation/ })).toBeInTheDocument();
         fill();
-        fireEvent.click(screen.getByRole('button', { name: /^Create$/ }));
+        await user.click(screen.getByRole('button', { name: /^Create$/ }));
         await waitFor(() => expect(datatablesApi.create).toHaveBeenCalledWith(
             expect.objectContaining({ scope: 'organisation' })));
     });
 
     it('is not offered to a member without it — and the table really goes personal', async () => {
+        const user = userEvent.setup();
         datatablesApi.create.mockResolvedValue({ datatable: { id: 'tbl_new' } });
         open({ user: MEMBER });
         expect(screen.queryByRole('radio', { name: /Your organisation/ })).toBeNull();
         fill();
-        fireEvent.click(screen.getByRole('button', { name: /^Create$/ }));
+        await user.click(screen.getByRole('button', { name: /^Create$/ }));
         await waitFor(() => expect(datatablesApi.create).toHaveBeenCalledWith(
             expect.objectContaining({ scope: 'personal' })));
     });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Routes for the termination monitor.
  *

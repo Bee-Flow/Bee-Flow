@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * PUT /direct/conversations/:id/workspace — the caller identity must reach the
  * store, and the store's validation errors must not become 500s.

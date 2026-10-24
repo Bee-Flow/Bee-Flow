@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tests for the Nextcloud SSRF target policy.
  *

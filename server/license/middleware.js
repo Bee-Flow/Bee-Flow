@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * License Tier Enforcement Middleware
  *

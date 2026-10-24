@@ -1,5 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { act, cleanup as _c, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ComplianceStage from './ComplianceStage';
@@ -38,7 +39,8 @@ describe('ComplianceStage — the closing reading', () => {
         expect(screen.getByText(/Reading the table, the automations and the app/)).toBeTruthy();
     });
 
-    it('shows each finding with its framework, where it came from and what to do', () => {
+    it('shows each finding with its framework, where it came from and what to do', async () => {
+        const user = userEvent.setup();
         render(<ComplianceStage playbook={PB} phase={{ key: 'compliance', status: 'awaiting', attempt: 0, artifacts: { findings: FINDINGS, frameworks: ['GDPR', 'ISO27001'] } }} dispatch={vi.fn()} t={t} />);
         expect(screen.getByText('Against: GDPR, ISO27001')).toBeTruthy();
         // A `low` finding is a NOTE: it folds away, so three orange rows do
@@ -50,7 +52,7 @@ describe('ComplianceStage — the closing reading', () => {
         expect(items[0].textContent).toContain('from the facts');
         expect(items[0].textContent).toContain('Share it with the groups that need it.');
         expect(items[0].textContent).toContain('Fix before you share');
-        fireEvent.click(screen.getByTestId('playbook-compliance-notes-toggle'));
+        await user.click(screen.getByTestId('playbook-compliance-notes-toggle'));
         items = screen.getAllByTestId('playbook-compliance-finding');
         expect(items).toHaveLength(2);
         expect(items[1].textContent).toContain('noticed by the AI');
@@ -71,6 +73,7 @@ describe('ComplianceStage — the closing reading', () => {
     });
 
     it('registers what the person confirmed, and then points at the register', async () => {
+        const user = userEvent.setup();
         const FACTS = {
             table: { id: 'tbl_1', name: 'Invoices', columns: [{ key: 'supplier', name: 'Leverancier' }, { key: 'email', name: 'E-mail' }, { key: 'invoice_date', name: 'Invoice Date', type: 'date' }], personal: [{ key: 'email', name: 'E-mail', kind: 'email', kinds: ['email'] }], lawfulBasis: null, retentionDays: null, retentionField: null, subjectColumn: null },
             org: { legalBases: ['contract', 'legitimate interest'], defaultRetentionDays: 365 },
@@ -99,10 +102,10 @@ describe('ComplianceStage — the closing reading', () => {
         fireEvent.change(screen.getByTestId('playbook-compliance-basis'), { target: { value: 'consent' } });
         expect(screen.queryByTestId('playbook-compliance-basis-open')).toBeNull();
         fireEvent.change(screen.getByTestId('playbook-compliance-subject'), { target: { value: 'supplier' } });
-        fireEvent.click(screen.getByTestId('playbook-compliance-notes-toggle'));
+        await user.click(screen.getByTestId('playbook-compliance-notes-toggle'));
         const boxes = screen.getAllByTestId('playbook-compliance-keep');
         expect(boxes).toHaveLength(2);
-        fireEvent.click(boxes[1]);   // drop the second from the risk register
+        await user.click(boxes[1]);   // drop the second from the risk register
 
         await act(async () => { fireEvent.click(screen.getByTestId('playbook-compliance-register-go')); });
         await waitFor(() => expect(playbooksApi.register).toHaveBeenCalledWith('pb_1', 'compliance', {
@@ -113,7 +116,8 @@ describe('ComplianceStage — the closing reading', () => {
         expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'replace' }));
     });
 
-    it('once registered it says so and offers the way in', () => {
+    it('once registered it says so and offers the way in', async () => {
+        const user = userEvent.setup();
         const phase = { key: 'compliance', status: 'awaiting', attempt: 0, artifacts: { findings: FINDINGS, frameworks: ['GDPR'], facts: { table: { id: 'tbl_1', name: 'Invoices', columns: [] } }, registered: { written: ['processing_register', 'evidence'] } } };
         const onNavigate = vi.fn();
         render(<ComplianceStage playbook={PB} phase={phase} dispatch={vi.fn()} t={t} onNavigate={onNavigate} />);
@@ -124,15 +128,16 @@ describe('ComplianceStage — the closing reading', () => {
         expect(done).toContain('this review is on the evidence chain');
         expect(done).not.toContain('processing_register');
         // And it lands on THAT entry, not just the register page.
-        fireEvent.click(screen.getByTestId('playbook-compliance-open-ropa'));
+        await user.click(screen.getByTestId('playbook-compliance-open-ropa'));
         expect(onNavigate).toHaveBeenCalledWith('settings/organisation/compliance/ropa/datatable%3Atbl_1');
     });
 
-    it('a finding points at the thing it is about', () => {
+    it('a finding points at the thing it is about', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         const phase = { key: 'compliance', status: 'awaiting', attempt: 0, artifacts: { findings: [{ ...FINDINGS[0], link: 'app' }], frameworks: ['GDPR'], facts: { app: { id: 'app_9' }, table: { id: 'tbl_1', name: 'T', columns: [] } } } };
         render(<ComplianceStage playbook={PB} phase={phase} dispatch={vi.fn()} t={t} onNavigate={onNavigate} />);
-        fireEvent.click(screen.getByTestId('playbook-compliance-goto'));
+        await user.click(screen.getByTestId('playbook-compliance-goto'));
         expect(onNavigate).toHaveBeenCalledWith('studio/apps/app_9');
     });
 });
@@ -175,13 +180,14 @@ describe('ComplianceStage — the verdict, and fixing what it found', () => {
         expect(screen.getByTestId('playbook-compliance-headline').textContent).toBe('Nothing to tidy up');
     });
 
-    it('a finding carries a chip that takes you to the automation it found', () => {
+    it('a finding carries a chip that takes you to the automation it found', async () => {
+        const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<ComplianceStage playbook={PB} phase={phaseWith()} dispatch={vi.fn()} t={t} onNavigate={onNavigate} />);
         const chips = screen.getAllByTestId('playbook-compliance-target');
         expect(chips[0].getAttribute('data-kind')).toBe('automation');
         expect(chips[0].textContent).toContain('Read invoices');
-        fireEvent.click(chips[0]);
+        await user.click(chips[0]);
         expect(onNavigate).toHaveBeenCalledWith('studio/automations/aut_1');
     });
 

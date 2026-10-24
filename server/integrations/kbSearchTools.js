@@ -6,14 +6,14 @@
  * message as the query) isn't sufficient — e.g., after reading an email,
  * the agent can search the KB with the email's topic to find relevant context.
  */
-
+// @typecheck
 require('../stores/configStore');
 const { getServiceHeaders } = require('../core/serviceAuth');
 const { recordSidecarCall } = require('../telemetry/metrics');
 const { toCitation } = require('../core/kb/citation');
 const log = require('../telemetry/log');
 
-const KB_SEARCH_TOOLS = [
+/** @type {Array<Record<string, any>>} */ const KB_SEARCH_TOOLS = [
     {
         type: 'function',
         function: {
@@ -232,7 +232,7 @@ async function executeKbSearchTool(toolName, args, context = {}) {
     try {
         const { resolveKbProvider } = require('../core/kb/resolveProvider');
         const kbProvider = await resolveKbProvider();
-        let chunks = [];
+        /** @type {any[] & { _orphanFiltered?: boolean }} */ let chunks = [];
 
         if (kbProvider === 'local') {
             // ── Local search path (in-process pgvector + RRF + reranker) ──

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Golden behaviour of one whole builder turn (POST /stream), pinned before
  * the route was split into turnSetup / modelSelection / toolMenu / buildLoop /

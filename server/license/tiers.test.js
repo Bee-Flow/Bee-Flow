@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Unit tests for license/tiers.js
  *

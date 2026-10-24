@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * PAYG metered Price — the per-meter-unit amount must be in CENTS.
  *

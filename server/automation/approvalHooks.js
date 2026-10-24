@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * approvalHooks — the on_decided record-write hook.
  *

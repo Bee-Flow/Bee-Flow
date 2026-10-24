@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Studio-app listing for the Nextcloud connector.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The SPA shell (agent-hub's built index.html), fetched and cached.
  *

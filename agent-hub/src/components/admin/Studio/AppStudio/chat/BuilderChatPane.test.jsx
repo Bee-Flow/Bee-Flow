@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -486,6 +487,7 @@ describe('BuilderChatPane', () => {
     });
 
     it('Build it on the plan card sends the EDITED approval turn', async () => {
+        const user = userEvent.setup();
         mockAuthFetchStreams(
             sseResponse([
                 sse('builder_session', { sessionId: 'bs-plan', appId: 'app-1' }),
@@ -502,7 +504,7 @@ describe('BuilderChatPane', () => {
         await sendMessage('Build a tracker');
         const title = await screen.findByDisplayValue('Tracker');
         fireEvent.change(title, { target: { value: 'My Tracker' } });
-        fireEvent.click(screen.getByText('Build it'));
+        await user.click(screen.getByText('Build it'));
 
         await waitFor(() => expect(streamCalls().length).toBe(2));
         const body = JSON.parse(streamCalls()[1][1].body);
@@ -511,6 +513,7 @@ describe('BuilderChatPane', () => {
     });
 
     it('shows a "What changed" chip after a turn: click-to-select + Undo turn', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(sseResponse([
             sse('builder_session', { sessionId: 'bs-wc', appId: 'app-1' }),
             sse('draft', { appId: 'app-1', definition: DRAFT, version: 4 }),
@@ -524,16 +527,17 @@ describe('BuilderChatPane', () => {
         await waitFor(() => expect(ctxRef.current.streamLock).toBe(false));
 
         // Collapsible summary appears; expand it.
-        fireEvent.click(await screen.findByText('What changed'));
+        await user.click(await screen.findByText('What changed'));
         // The added node is listed by its type — clicking selects it on the canvas.
-        fireEvent.click(screen.getByText('button'));
+        await user.click(screen.getByText('button'));
         await waitFor(() => expect(ctxRef.current.selectedNodeId).toBe('cmp_newbtn'));
         // "Undo turn" reuses the shell's single history.undo.
-        fireEvent.click(screen.getByText('Undo turn'));
+        await user.click(screen.getByText('Undo turn'));
         expect(undoTurn).toHaveBeenCalledTimes(1);
     });
 
     it('maps a retryable error code to friendly copy + a Try again button that re-runs the turn', async () => {
+        const user = userEvent.setup();
         mockAuthFetchStreams(
             sseResponse([
                 sse('builder_session', { sessionId: 'bs-e1', appId: 'app-1' }),
@@ -551,7 +555,7 @@ describe('BuilderChatPane', () => {
         expect(screen.queryByText('raw provider text')).not.toBeInTheDocument();
 
         // "Try again" re-runs the last turn verbatim (a second stream fires).
-        fireEvent.click(screen.getByText('Try again'));
+        await user.click(screen.getByText('Try again'));
         await waitFor(() => expect(streamCalls().length).toBe(2));
         expect(JSON.parse(streamCalls()[1][1].body).message).toBe('Build a thing');
     });
@@ -614,6 +618,7 @@ describe('BuilderChatPane', () => {
     });
 
     it('"Undo turn" retires with the summary — one click, never a second', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(sseResponse([
             sse('draft', { appId: 'app-1', definition: DRAFT, version: 4 }),
             sse('done', { appId: 'app-1', finalized: true }),
@@ -623,8 +628,8 @@ describe('BuilderChatPane', () => {
 
         await sendMessage('Add a button');
         await waitFor(() => expect(ctxRef.current.streamLock).toBe(false));
-        fireEvent.click(await screen.findByText('What changed'));
-        fireEvent.click(screen.getByText('Undo turn'));
+        await user.click(await screen.findByText('What changed'));
+        await user.click(screen.getByText('Undo turn'));
 
         expect(undoTurn).toHaveBeenCalledTimes(1);
         // The turn is gone: a second click would eat the user's OWN prior edit.
@@ -642,6 +647,7 @@ describe('BuilderChatPane', () => {
     });
 
     it('offers Stop while building: the run ends, the work so far is kept and it says so', async () => {
+        const user = userEvent.setup();
         const { stream, release } = gatedStream(
             [
                 sse('builder_session', { sessionId: 'bs-stop', appId: 'app-1' }),
@@ -658,7 +664,7 @@ describe('BuilderChatPane', () => {
 
         // Everything else is disabled mid-build, so Stop takes the Send slot.
         expect(screen.queryByLabelText('Send')).not.toBeInTheDocument();
-        fireEvent.click(screen.getByLabelText('Stop'));
+        await user.click(screen.getByLabelText('Stop'));
 
         // The editor is usable again and the drafts that landed are kept + adopted.
         await waitFor(() => expect(ctxRef.current.streamLock).toBe(false));
@@ -722,11 +728,12 @@ describe('BuilderChatPane', () => {
     });
 
     it('quick actions force planMode:"never" (small asks skip the plan)', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(sseResponse([sse('done', { appId: 'app-1', finalized: true })]));
         renderPane({ chrome: { flush: vi.fn().mockResolvedValue(), commitTurn: vi.fn(), markSaved: vi.fn() } });
 
         await waitFor(() => expect(ctxRef.current).not.toBeNull());
-        fireEvent.click(screen.getByText('New screen'));
+        await user.click(screen.getByText('New screen'));
 
         await waitFor(() => expect(
             authFetch.mock.calls.some(([u]) => String(u).includes('/builder/stream')),
@@ -774,6 +781,7 @@ describe('BuilderChatPane', () => {
     });
 
     it('the attach button stages an image, and each thumbnail removes itself', async () => {
+        const user = userEvent.setup();
         renderPane();
         const input = screen.getByTestId('app-builder-image-input');
         await act(async () => {
@@ -781,7 +789,7 @@ describe('BuilderChatPane', () => {
         });
         await waitFor(() => expect(thumbs()).toHaveLength(2));
 
-        fireEvent.click(screen.getByLabelText('Remove one.png'));
+        await user.click(screen.getByLabelText('Remove one.png'));
         await waitFor(() => expect(thumbs()).toHaveLength(1));
         expect(thumbs()[0]).toHaveAttribute('alt', 'two.png');
     });
@@ -815,6 +823,7 @@ describe('BuilderChatPane', () => {
     });
 
     it('an image alone is a complete ask — Send enables and the turn goes out textless', async () => {
+        const user = userEvent.setup();
         mockAuthFetchStreams(sseResponse([sse('done', { appId: 'app-1', finalized: false })]));
         renderPane({ chrome: { flush: vi.fn().mockResolvedValue(), commitTurn: vi.fn(), markSaved: vi.fn() } });
 
@@ -822,7 +831,7 @@ describe('BuilderChatPane', () => {
         pasteImages(screen.getByLabelText('Message the AI builder'), [imageFile()]);
         await waitFor(() => expect(screen.getByLabelText('Send')).toBeEnabled());
 
-        fireEvent.click(screen.getByLabelText('Send'));
+        await user.click(screen.getByLabelText('Send'));
         await waitFor(() => expect(streamCalls().length).toBeGreaterThan(0));
         const body = JSON.parse(streamCalls()[0][1].body);
         expect(body.message).toBeUndefined();

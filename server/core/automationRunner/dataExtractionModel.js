@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which model an automation's `data_extraction` step runs on, and with what
  * request options.

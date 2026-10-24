@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Ticket lifecycle for the company inbox: create, list, read, reply, patch,
  * audit log, the staff SSE stream and the bulk action. The AI auto-responder

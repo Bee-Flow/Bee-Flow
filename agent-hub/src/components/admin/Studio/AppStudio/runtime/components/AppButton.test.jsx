@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
-import { fireEvent, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import AppButton from './AppButton';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
@@ -107,15 +108,17 @@ describe('AppButton — disabledWhen', () => {
         return { ...utils, runAction, button: utils.container.querySelector('button') };
     }
 
-    it('null / absent keeps the button enabled with no aria-disabled (identity)', () => {
+    it('null / absent keeps the button enabled with no aria-disabled (identity)', async () => {
+        const user = userEvent.setup();
         const { button, runAction } = renderButton({ disabledWhen: null });
         expect(button.disabled).toBe(false);
         expect(button.getAttribute('aria-disabled')).toBeNull();
-        fireEvent.click(button);
+        await user.click(button);
         expect(runAction).toHaveBeenCalledWith('act_go001', {});
     });
 
-    it('a truthy formula disables the button and blocks the action', () => {
+    it('a truthy formula disables the button and blocks the action', async () => {
+        const user = userEvent.setup();
         const { button, runAction } = renderButton(
             { disabledWhen: 'vars.locked' },
             { scope: buildScope({ vars: { locked: true }, now: '2020-01-01T00:00:00.000Z' }) },
@@ -123,17 +126,18 @@ describe('AppButton — disabledWhen', () => {
         expect(button.disabled).toBe(true);
         expect(button.getAttribute('aria-disabled')).toBe('true');
         expect(button.className).toContain('disabled:opacity-60');
-        fireEvent.click(button);
+        await user.click(button);
         expect(runAction).not.toHaveBeenCalled();
     });
 
-    it('a falsy formula leaves the button live', () => {
+    it('a falsy formula leaves the button live', async () => {
+        const user = userEvent.setup();
         const { button, runAction } = renderButton(
             { disabledWhen: 'vars.locked' },
             { scope: buildScope({ vars: { locked: false }, now: '2020-01-01T00:00:00.000Z' }) },
         );
         expect(button.disabled).toBe(false);
-        fireEvent.click(button);
+        await user.click(button);
         expect(runAction).toHaveBeenCalled();
     });
 

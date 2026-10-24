@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import PublicFormRenderer, { initialValues } from './PublicFormRenderer';
@@ -141,12 +142,13 @@ describe('PublicFormRenderer — how each declared type renders', () => {
 
 describe('PublicFormRenderer — what counts as an answer', () => {
     it('blocks the submission and names every empty required question at once', async () => {
+        const user = userEvent.setup();
         const { onSubmit } = renderForm([
             { name: 'name', type: 'text', label: 'Your name', required: true },
             { name: 'email', type: 'email', label: 'Your email', required: true },
             { name: 'note', type: 'textarea', label: 'Message', required: false },
         ]);
-        fireEvent.click(send());
+        await user.click(send());
 
         expect(await screen.findByText('Your name is required.')).toBeTruthy();
         expect(screen.getByText('Your email is required.')).toBeTruthy();
@@ -154,40 +156,45 @@ describe('PublicFormRenderer — what counts as an answer', () => {
     });
 
     it('treats spaces as nothing at all', async () => {
+        const user = userEvent.setup();
         const { onSubmit } = renderForm([{ name: 'name', type: 'text', label: 'Your name', required: true }]);
         fireEvent.change(screen.getByLabelText(/Your name/), { target: { value: '   ' } });
-        fireEvent.click(send());
+        await user.click(send());
         expect(await screen.findByText('Your name is required.')).toBeTruthy();
         expect(onSubmit).not.toHaveBeenCalled();
     });
 
     it('accepts a zero as an answer to a required number', async () => {
+        const user = userEvent.setup();
         const { onSubmit } = renderForm([{ name: 'count', type: 'number', label: 'How many', required: true }]);
         fireEvent.change(screen.getByLabelText(/How many/), { target: { value: '0' } });
-        fireEvent.click(send());
+        await user.click(send());
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());
         expect(onSubmit.mock.calls[0][0].count).toBe('0');
     });
 
     it('a required checkbox has to be ticked, not merely touched', async () => {
+        const user = userEvent.setup();
         const { onSubmit } = renderForm([{ name: 'agree', type: 'checkbox', label: 'I agree', required: true }]);
-        fireEvent.click(send());
+        await user.click(send());
         expect(await screen.findByText('I agree is required.')).toBeTruthy();
 
-        fireEvent.click(screen.getByLabelText(/I agree/));
-        fireEvent.click(send());
+        await user.click(screen.getByLabelText(/I agree/));
+        await user.click(send());
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());
         expect(onSubmit.mock.calls[0][0].agree).toBe(true);
     });
 
     it('a required file needs an uploaded descriptor, not a picked file', async () => {
+        const user = userEvent.setup();
         const { onSubmit } = renderForm([{ name: 'proof', type: 'file', label: 'Proof', required: true, maxSizeMb: 5 }]);
-        fireEvent.click(send());
+        await user.click(send());
         expect(await screen.findByText('Proof is required.')).toBeTruthy();
         expect(onSubmit).not.toHaveBeenCalled();
     });
 
     it('lets a badly-shaped answer through — the server, not the form, decides what is valid', async () => {
+        const user = userEvent.setup();
         // `noValidate` is on the form, so the browser's own email check never
         // runs either. wart: the visitor learns "that is not an email" only
         // after a round trip; a stage that wants inline format checking has to
@@ -197,14 +204,15 @@ describe('PublicFormRenderer — what counts as an answer', () => {
         ]);
         expect(container.querySelector('form').noValidate).toBe(true);
         fireEvent.change(screen.getByLabelText(/Your email/), { target: { value: 'nope' } });
-        fireEvent.click(send());
+        await user.click(send());
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());
         expect(onSubmit.mock.calls[0][0].email).toBe('nope');
     });
 
     it('clears a question\'s error the moment it is answered, without re-submitting', async () => {
+        const user = userEvent.setup();
         renderForm([{ name: 'name', type: 'text', label: 'Your name', required: true }]);
-        fireEvent.click(send());
+        await user.click(send());
         await screen.findByText('Your name is required.');
 
         fireEvent.change(screen.getByLabelText(/Your name/), { target: { value: 'Jane' } });
@@ -222,7 +230,7 @@ describe('PublicFormRenderer — sending it', () => {
             { name: 'proof', type: 'file', label: 'Proof', maxSizeMb: 5 },
         ]);
         fireEvent.change(screen.getByLabelText('Your name'), { target: { value: 'Jane' } });
-        fireEvent.click(send());
+        await userEvent.click(send());
 
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());
         expect(onSubmit.mock.calls[0][0]).toEqual({
@@ -235,9 +243,9 @@ describe('PublicFormRenderer — sending it', () => {
         const onSubmit = vi.fn(() => new Promise((resolve) => { release = resolve; }));
         render(<PublicFormRenderer form={form(one)} onSubmit={onSubmit} />);
 
-        fireEvent.click(send());
+        await userEvent.click(send());
         await waitFor(() => expect(send().disabled).toBe(true));
-        fireEvent.click(send());
+        await userEvent.click(send());
         expect(onSubmit).toHaveBeenCalledTimes(1);
 
         release();
@@ -246,14 +254,14 @@ describe('PublicFormRenderer — sending it', () => {
 
     it('replaces the form with the thank-you message when it owns the ending', async () => {
         renderForm(one);
-        fireEvent.click(send());
+        await userEvent.click(send());
         expect(await screen.findByText('Thanks — we got your answer.')).toBeTruthy();
         expect(screen.queryByRole('button', { name: 'Send' })).toBeNull();
     });
 
     it('leaves the form standing when the page that polls owns the ending', async () => {
         const { onSubmit } = renderForm(one, { showSuccess: false });
-        fireEvent.click(send());
+        await userEvent.click(send());
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());
         expect(screen.queryByText('Thanks — we got your answer.')).toBeNull();
         expect(send()).toBeTruthy();
@@ -265,7 +273,7 @@ describe('PublicFormRenderer — sending it', () => {
         const onSubmit = vi.fn(async () => { throw err; });
         render(<PublicFormRenderer form={form(one)} onSubmit={onSubmit} />);
 
-        fireEvent.click(send());
+        await userEvent.click(send());
         expect(await screen.findByText('That name is too short.')).toBeTruthy();
         // The form-level line stays away when the fields carry the story.
         expect(screen.queryByText('Some answers need attention')).toBeNull();
@@ -275,14 +283,14 @@ describe('PublicFormRenderer — sending it', () => {
     it('shows a rejection with no field detail once, above the button', async () => {
         const onSubmit = vi.fn(async () => { throw new Error('The automation is not accepting answers.'); });
         render(<PublicFormRenderer form={form(one)} onSubmit={onSubmit} />);
-        fireEvent.click(send());
+        await userEvent.click(send());
         expect(await screen.findByRole('alert')).toHaveTextContent('The automation is not accepting answers.');
     });
 
     it('sends an empty form as an empty answer set — a declaration with no questions is draft-legal', async () => {
         const { onSubmit } = renderForm([]);
         expect(screen.getByText('Get in touch')).toBeTruthy();
-        fireEvent.click(send());
+        await userEvent.click(send());
         await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ website_url: '' }));
     });
 
@@ -297,7 +305,7 @@ describe('PublicFormRenderer — sending it', () => {
             { name: 'name', type: 'text', label: 'Your name' },
             { name: 'doc', type: 'download', label: 'Your copy', filename: 'copy.pdf', size: 1024 },
         ]);
-        fireEvent.click(send());
+        await userEvent.click(send());
 
         await screen.findByText('Thanks — we got your answer.');
         const card = screen.getByTestId('form-download-doc');
@@ -309,7 +317,7 @@ describe('PublicFormRenderer — sending it', () => {
         const onSubmit = vi.fn();
         render(<PublicFormRenderer form={form(one)} onSubmit={onSubmit} preview />);
         expect(send().disabled).toBe(true);
-        fireEvent.click(send());
+        await userEvent.click(send());
         expect(onSubmit).not.toHaveBeenCalled();
     });
 });
@@ -320,6 +328,7 @@ describe('PublicFormRenderer — a file rides as a descriptor, never as bytes', 
     const pdf = (bytes = 3) => new File(['x'.repeat(bytes)], 'p.pdf', { type: 'application/pdf' });
 
     it('uploads on pick and keeps only what the submission needs', async () => {
+        const user = userEvent.setup();
         const onUpload = vi.fn(async () => ({ fileId: 'up_1', filename: 'p.pdf', size: 3 }));
         const onSubmit = vi.fn(async () => {});
         const { container } = render(
@@ -330,7 +339,7 @@ describe('PublicFormRenderer — a file rides as a descriptor, never as bytes', 
         expect(await screen.findByText('p.pdf')).toBeTruthy();
         expect(onUpload.mock.calls[0][1]).toBe('proof');
 
-        fireEvent.click(send());
+        await user.click(send());
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());
         expect(onSubmit.mock.calls[0][0].proof).toEqual({
             kind: 'form_upload', fileId: 'up_1', filename: 'p.pdf', size: 3,
@@ -374,12 +383,13 @@ describe('PublicFormRenderer — a file rides as a descriptor, never as bytes', 
     });
 
     it('lets an attached file be taken off again', async () => {
+        const user = userEvent.setup();
         const onUpload = vi.fn(async () => ({ fileId: 'up_1', filename: 'p.pdf', size: 3 }));
         const { container } = render(
             <PublicFormRenderer form={form(fileField())} onSubmit={vi.fn()} onUpload={onUpload} />,
         );
         pick(container, pdf());
-        fireEvent.click(await screen.findByRole('button', { name: 'Remove p.pdf' }));
+        await user.click(await screen.findByRole('button', { name: 'Remove p.pdf' }));
         expect(screen.getByText('Choose a file (max 5 MB)')).toBeTruthy();
     });
 });

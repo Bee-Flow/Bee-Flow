@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * OneDrive Routes — REST API for OneDrive integration UI
  *

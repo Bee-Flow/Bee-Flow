@@ -126,7 +126,7 @@ async function exchangeMicrosoft({ config, code, redirectUri, codeVerifier, nonc
             email: userData.mail || userData.userPrincipalName,
             provider: 'microsoft'
         });
-        log.info(`[OAuth/Microsoft] Mapped user — azureUserId: ${user.azureUserId}, displayName: ${user.displayName}, email: ${user.email}`);
+        log.info(`[OAuth/Microsoft] Mapped user — azureUserId: ${user.azureUserId}, displayName: ${user.displayName}, email: ${log.textForLog(user.email)}`);
 
         user.picture = await microsoftLogin.saveMicrosoftPhoto(tokenData.access_token, user) || user.picture;
     } else {

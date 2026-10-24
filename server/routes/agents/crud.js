@@ -325,20 +325,12 @@ router.post('/', requirePermission('manage_agents'), async (req, res) => {
     // organizationId from the body would let any member create agents in
     // other orgs.
     let assignOrgId;
-    try {
-        assignOrgId = await assertUserCanUseOrg(req, organizationId);
-    } catch (err) {
-        return res.status(err.status || 500).json({ error: err.message });
-    }
+    assignOrgId = await assertUserCanUseOrg(req, organizationId);
 
     // Strip any shared_groups that don't belong to the agent's org. Empty/
     // unset on create is fine — publish endpoint is the canonical write path.
     let cleanedSharedGroups;
-    try {
-        cleanedSharedGroups = await validateSharedGroupsForOrg(assignOrgId, sharedGroups);
-    } catch (err) {
-        return res.status(err.status || 500).json({ error: err.message });
-    }
+    cleanedSharedGroups = await validateSharedGroupsForOrg(assignOrgId, sharedGroups);
 
     // Check agent count limit
     if (assignOrgId) {

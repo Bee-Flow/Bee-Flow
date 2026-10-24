@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * MOVING A PLAYBOOK ALONG — the work every route group does between loading
  * the row and answering: resolve the recipe behind it, load the caller's own

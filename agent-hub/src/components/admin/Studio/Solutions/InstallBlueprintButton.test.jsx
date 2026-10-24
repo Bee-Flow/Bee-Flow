@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../../../utils/helpers', () => ({
@@ -94,9 +95,10 @@ describe('the gallery', () => {
     });
 
     it('opens the wizard on a saved one by id, so the stored bytes are the ones described', async () => {
+        const user = userEvent.setup();
         mockFetch({ blueprints: [{ id: 'bp_1', name: 'Onboarding', version: 3 }] });
         const { findByText } = render(<InstallBlueprintButton />);
-        fireEvent.click(await findByText('Onboarding · v3'));
+        await user.click(await findByText('Onboarding · v3'));
 
         await waitFor(() => expect(screen.getByTestId('install-contents')).toBeTruthy());
         const read = globalThis.__authFetch.mock.calls

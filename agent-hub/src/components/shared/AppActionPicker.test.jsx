@@ -1,4 +1,5 @@
 import { fireEvent, render, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 
 import AppActionPicker from './AppActionPicker';
@@ -40,9 +41,9 @@ describe('AppActionPicker', () => {
         expect(getByRole('button', { name: /^Send email/ })).toBeTruthy();
     });
 
-    it('toggles one action and reports which app it belonged to', () => {
+    it('toggles one action and reports which app it belonged to', async () => {
         const { getByRole, onToggle } = renderPicker();
-        fireEvent.click(getByRole('button', { name: /^Search/ }));
+        await userEvent.click(getByRole('button', { name: /^Search/ }));
         const [name, app, action] = onToggle.mock.calls[0];
         expect(name).toBe('gmail_search');
         expect(app.id).toBe('gmail');
@@ -56,9 +57,9 @@ describe('AppActionPicker', () => {
         expect(getByRole('button', { name: /^Search/ }).getAttribute('aria-pressed')).toBe('true');
     });
 
-    it('enables and disables a whole app at once', () => {
+    it('enables and disables a whole app at once', async () => {
         const { getByRole, onToggleApp } = renderPicker();
-        fireEvent.click(getByRole('button', { name: /enable all/i }));
+        await userEvent.click(getByRole('button', { name: /enable all/i }));
         expect(onToggleApp.mock.calls[0][1]).toBe(true);
     });
 
@@ -82,19 +83,19 @@ describe('AppActionPicker', () => {
         expect(queryByRole('button', { name: /^Search\b/ })).toBeNull();
     });
 
-    it('keeps an unconnected app visible and explains what that means', () => {
+    it('keeps an unconnected app visible and explains what that means', async () => {
         // Hiding it is what makes a picker feel broken ("where is Slack?").
         const { getByRole, getByText } = renderPicker({ unavailableHint: 'not connected to your account' });
-        fireEvent.click(getByRole('button', { name: /^Slack$/ }));
+        await userEvent.click(getByRole('button', { name: /^Slack$/ }));
         expect(getByText(/Slack is not connected to your account/i)).toBeTruthy();
         expect(getByRole('button', { name: /^Post message/ })).toBeTruthy();
     });
 
-    it('closes on Escape and on the backdrop', () => {
+    it('closes on Escape and on the backdrop', async () => {
         const { onClose, getByRole } = renderPicker();
         fireEvent.keyDown(document, { key: 'Escape' });
         expect(onClose).toHaveBeenCalledTimes(1);
-        fireEvent.click(getByRole('button', { name: /^Close$/ }));
+        await userEvent.click(getByRole('button', { name: /^Close$/ }));
         expect(onClose).toHaveBeenCalledTimes(2);
     });
 
@@ -121,9 +122,9 @@ describe('AppActionPicker', () => {
         expect(getByRole('dialog', { name: /choose apps & actions/i })).toBeTruthy();
     });
 
-    it('lets the caller reach an app’s actions through the left list', () => {
+    it('lets the caller reach an app’s actions through the left list', async () => {
         const { getByRole } = renderPicker();
-        fireEvent.click(getByRole('button', { name: /^Slack$/ }));
+        await userEvent.click(getByRole('button', { name: /^Slack$/ }));
         const pane = getByRole('dialog');
         expect(within(pane).getByRole('button', { name: /^Post message/ })).toBeTruthy();
     });
@@ -182,9 +183,10 @@ describe('AppActionPicker — het per-app selectiemodel', () => {
         expect(queryByLabelText(/selected$/)).toBeNull();
     });
 
-    it('een app met ONBEKENDE acties biedt niets te vinken en zegt waarom', () => {
+    it('een app met ONBEKENDE acties biedt niets te vinken en zegt waarom', async () => {
+        const user = userEvent.setup();
         const { getByRole, getByTestId, queryByRole } = renderEffects();
-        fireEvent.click(getByRole('button', { name: /^Broken app$/ }));
+        await user.click(getByRole('button', { name: /^Broken app$/ }));
         expect(getByTestId('app-actions-unknown')).toBeTruthy();
         // Geen "Enable all" op een app waarvan we de acties niet kennen.
         expect(queryByRole('button', { name: /enable all/i })).toBeNull();
@@ -192,16 +194,18 @@ describe('AppActionPicker — het per-app selectiemodel', () => {
 });
 
 describe('AppActionPicker — de effect-chips', () => {
-    it('filtert op wat een actie DOET', () => {
+    it('filtert op wat een actie DOET', async () => {
+        const user = userEvent.setup();
         const { getByTestId, getByRole, queryByRole } = renderEffects();
-        fireEvent.click(getByTestId('action-filter-reads'));
+        await user.click(getByTestId('action-filter-reads'));
         expect(getByRole('button', { name: /^Search/ })).toBeTruthy();
         expect(queryByRole('button', { name: /^Compose/ })).toBeNull();
     });
 
-    it('zet een ONBEKEND effect onder "Sends" — de smalle lezing van de runtime', () => {
+    it('zet een ONBEKEND effect onder "Sends" — de smalle lezing van de runtime', async () => {
+        const user = userEvent.setup();
         const { getByTestId, getByRole, queryByRole } = renderEffects();
-        fireEvent.click(getByTestId('action-filter-sends'));
+        await user.click(getByTestId('action-filter-sends'));
         expect(getByRole('button', { name: /^Compose/ })).toBeTruthy();
         expect(getByRole('button', { name: /^Mystery/ })).toBeTruthy();
         expect(queryByRole('button', { name: /^Search/ })).toBeNull();

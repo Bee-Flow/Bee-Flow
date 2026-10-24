@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/webpages/webpageDataCards — het kaartenmodel van de Data-tab.
  *

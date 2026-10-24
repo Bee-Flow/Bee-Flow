@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Knowledge Bases — sources (K1): files for an upload source
  * (POST /:id/sources/:sid/files). The multer plumbing, the 202 that answers
@@ -74,7 +75,7 @@ async function processUploadedFile(kb, source, doc, file) {
         text = extracted.text || '';
         meta = extracted.meta || {};
     } catch (e) {
-        log.warn(`[KB] Extraction failed for "${file.originalname}": ${e.message}`);
+        log.warn(`[KB] Extraction failed for "${log.nameForLog(file.originalname)}": ${e.message}`);
         await kbStore.updateDocumentStatus(doc.id, {
             status: 'error', statusReason: friendlyError(e), chunkCount: 0,
         }).catch(() => {});
@@ -168,7 +169,7 @@ async function addFiles(req, res, next) {
                 try {
                     await processUploadedFile(kb, source, doc, file);
                 } catch (e) {
-                    log.error(`[KB] Upload "${file.originalname}" failed:`, e.message);
+                    log.error(`[KB] Upload "${log.nameForLog(file.originalname)}" failed:`, e.message);
                     await kbStore.updateDocumentStatus(doc.id, {
                         status: 'error', statusReason: helpers().friendlyError(e), chunkCount: 0,
                     }).catch(() => {});

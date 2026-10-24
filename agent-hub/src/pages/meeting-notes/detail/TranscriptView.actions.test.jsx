@@ -17,6 +17,7 @@
  *     server/routes/transcriptions.regenerate.test.js).
  */
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -140,9 +141,10 @@ describe('TranscriptView — the three columns', () => {
         expect(screen.queryAllByTestId('line-mark-decision')).toHaveLength(0);
     });
 
-    it('outlines the selected line with the shared pulse, and only that line', () => {
+    it('outlines the selected line with the shared pulse, and only that line', async () => {
+        const user = userEvent.setup();
         open();
-        fireEvent.click(rowFor('We gaan met leverancier B verder.'));
+        await user.click(rowFor('We gaan met leverancier B verder.'));
         const picked = rowFor('We gaan met leverancier B verder.');
         expect(picked.style.outline).toContain('var(--accent-primary)');
         // The keyframe animates outline-color ONLY, so selecting a line cannot
@@ -177,9 +179,10 @@ describe('TranscriptView — what one line can become', () => {
     });
 
     it('writes an action marked as the person\'s, anchored to that line', async () => {
+        const user = userEvent.setup();
         const { onAddLineAction } = open();
         openMenuOn('We gaan met leverancier B verder.');
-        fireEvent.click(screen.getByText('Action'));
+        await user.click(screen.getByText('Action'));
         await waitFor(() => expect(onAddLineAction).toHaveBeenCalled());
 
         const item = onAddLineAction.mock.calls[0][0];
@@ -192,9 +195,10 @@ describe('TranscriptView — what one line can become', () => {
     });
 
     it('writes a decision the same way', async () => {
+        const user = userEvent.setup();
         const { onAddLineDecision } = open();
         openMenuOn('Ik stuur de opzegging deze week.');
-        fireEvent.click(screen.getByText('Decision'));
+        await user.click(screen.getByText('Decision'));
         await waitFor(() => expect(onAddLineDecision).toHaveBeenCalled());
         const decision = onAddLineDecision.mock.calls[0][0];
         expect(decision.source).toBe('user');
@@ -208,6 +212,7 @@ describe('TranscriptView — what one line can become', () => {
      * once the search box is cleared.
      */
     it('stores the line\'s real number even when the list is filtered', async () => {
+        const user = userEvent.setup();
         const { onAddLineAction } = open();
         fireEvent.change(screen.getByPlaceholderText('Search transcript…'), { target: { value: 'opzegging' } });
         // One row left, so what is written next is being written from the
@@ -215,8 +220,8 @@ describe('TranscriptView — what one line can become', () => {
         const rows = screen.getAllByTestId('transcript-row');
         expect(rows).toHaveLength(1);
 
-        fireEvent.click(within(rows[0]).getByTestId('transcript-line-menu-trigger'));
-        fireEvent.click(screen.getByText('Action'));
+        await user.click(within(rows[0]).getByTestId('transcript-line-menu-trigger'));
+        await user.click(screen.getByText('Action'));
         await waitFor(() => expect(onAddLineAction).toHaveBeenCalled());
         expect(onAddLineAction.mock.calls[0][0].segmentIndex).toBe(3);
         expect(onAddLineAction.mock.calls[0][0].timestamp).toBe('15:00');
@@ -279,6 +284,7 @@ describe('TranscriptView — what one line can become', () => {
      * of de eerste klik landde, klikt gewoon nog eens.
      */
     it('laat een tweede bezoek na een geslaagde schrijfactie niets meer schrijven', async () => {
+        const user = userEvent.setup();
         const onWrite = vi.fn();
         function Harness() {
             const [note, setNote] = React.useState({ ...meeting, actionItems: [] });
@@ -294,7 +300,7 @@ describe('TranscriptView — what one line can become', () => {
         render(<Harness />);
 
         openMenuOn('We gaan met leverancier B verder.');
-        fireEvent.click(screen.getByText('Action'));
+        await user.click(screen.getByText('Action'));
         await waitFor(() => expect(onWrite).toHaveBeenCalledTimes(1));
 
         openMenuOn('We gaan met leverancier B verder.');
@@ -307,6 +313,7 @@ describe('TranscriptView — what one line can become', () => {
     it('copies the quote with who said it and when', async () => {
         open();
         openMenuOn('We gaan met leverancier B verder.');
+        // fireEvent: userEvent.setup() swaps navigator.clipboard for its own stub, and this file's writeText spy lives there.
         fireEvent.click(screen.getByText('Copy quote'));
         await waitFor(() => expect(writeText).toHaveBeenCalledWith('[12:34] Sandra: We gaan met leverancier B verder.'));
     });
@@ -316,6 +323,7 @@ describe('TranscriptView — what one line can become', () => {
         writeText.mockRejectedValue(new Error('denied'));
         open();
         openMenuOn('We gaan met leverancier B verder.');
+        // fireEvent: userEvent.setup() swaps navigator.clipboard for its own stub, and this file's writeText spy lives there.
         fireEvent.click(screen.getByText('Copy quote'));
         expect(await screen.findByRole('alert')).toBeTruthy();
     });
@@ -323,10 +331,11 @@ describe('TranscriptView — what one line can become', () => {
 
 describe('TranscriptView — a line into a knowledge base or a table', () => {
     it('files a text source that says which transcript line it is', async () => {
+        const user = userEvent.setup();
         open();
         openMenuOn('We gaan met leverancier B verder.');
-        fireEvent.click(screen.getByText('To a knowledge base'));
-        fireEvent.click(await screen.findByText('Inkoop'));
+        await user.click(screen.getByText('To a knowledge base'));
+        await user.click(await screen.findByText('Inkoop'));
         await waitFor(() => expect(createSource).toHaveBeenCalled());
 
         const [kbId, body] = createSource.mock.calls[0];
@@ -337,17 +346,18 @@ describe('TranscriptView — a line into a knowledge base or a table', () => {
     });
 
     it('adds a row through the same allow-list the action card uses', async () => {
+        const user = userEvent.setup();
         open();
         openMenuOn('We gaan met leverancier B verder.');
-        fireEvent.click(screen.getByText('Row in a table'));
-        fireEvent.click(await screen.findByText('Backlog'));
+        await user.click(screen.getByText('Row in a table'));
+        await user.click(await screen.findByText('Backlog'));
         // A `number` column cannot hold a sentence, so it is not offered.
         expect(await screen.findByLabelText('Title')).toBeTruthy();
         expect(screen.queryByLabelText('Amount')).toBeNull();
         // The quote lands in the first text column by default; name the
         // speaker into the second by hand.
         fireEvent.change(screen.getByLabelText('Who'), { target: { value: 'assignee' } });
-        fireEvent.click(screen.getByText('Add the row'));
+        await user.click(screen.getByText('Add the row'));
         await waitFor(() => expect(addRow).toHaveBeenCalled());
 
         const [tableId, values] = addRow.mock.calls[0];
@@ -356,20 +366,22 @@ describe('TranscriptView — a line into a knowledge base or a table', () => {
     });
 
     it('shows the route\'s own refusal and leaves the menu open', async () => {
+        const user = userEvent.setup();
         createSource.mockRejectedValue(new Error('This plan allows 3 knowledge sources per knowledge base.'));
         open();
         openMenuOn('We gaan met leverancier B verder.');
-        fireEvent.click(screen.getByText('To a knowledge base'));
-        fireEvent.click(await screen.findByText('Inkoop'));
+        await user.click(screen.getByText('To a knowledge base'));
+        await user.click(await screen.findByText('Inkoop'));
         expect((await screen.findByRole('alert')).textContent).toContain('This plan allows 3 knowledge sources');
     });
 
     it('says so when the note itself refused the write', async () => {
+        const user = userEvent.setup();
         // The popover closing on a PATCH that failed looks exactly like one
         // that worked, and the action would be gone on the next refresh.
         const { onAddLineAction } = open({ onAddLineAction: vi.fn().mockResolvedValue(false) });
         openMenuOn('We gaan met leverancier B verder.');
-        fireEvent.click(screen.getByText('Action'));
+        await user.click(screen.getByText('Action'));
         await waitFor(() => expect(onAddLineAction).toHaveBeenCalled());
         expect((await screen.findByRole('alert')).textContent).toContain('could not be updated');
     });

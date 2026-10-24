@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CONVERGE (design 6.4), with every store and engine injected.
  *

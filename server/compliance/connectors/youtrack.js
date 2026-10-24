@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * YouTrack connector — change/work-tracking evidence for A.8.32: recent
  * issue activity in the designated operations project shows that changes

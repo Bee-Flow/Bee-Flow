@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Sprint planning — the checks templates.test.js cannot make.
  *

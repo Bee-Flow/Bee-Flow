@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Test kit for suites that run the REAL cmsStore against an in-memory config
  * table. Only the store's Postgres edges are replaced: ./configStore becomes a

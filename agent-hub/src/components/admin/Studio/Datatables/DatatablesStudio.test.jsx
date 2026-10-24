@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { datatablesApi } from './datatablesApi';
@@ -143,11 +144,12 @@ describe('the detail', () => {
     });
 
     it('the Used by tab answers what would break', async () => {
+        const user = userEvent.setup();
         datatablesApi.listUsage.mockResolvedValue({
             usage: [{ automationId: 'a1', automationTitle: 'Nightly sync', stepId: 's1', mode: 'write', columns: ['email'] }],
         });
         await openDetail();
-        fireEvent.click(await screen.findByRole('radio', { name: /Used by/ }));
+        await user.click(await screen.findByRole('radio', { name: /Used by/ }));
         // The shared UsedByTab (Track 0.4) renders the row now, so the words
         // are its vocabulary — "writes", not this section's old sentence.
         // What must not change is the ANSWER: which thing, and what it does.
@@ -157,6 +159,7 @@ describe('the detail', () => {
     });
 
     it('shows the enriched usage row: which step, what it does, when it last ran', async () => {
+        const user = userEvent.setup();
         // The generic usage index (T3) carries `consumerKind`, `stepOrdinal`,
         // `stepOp` and `lastRunAt`, and `mode` may now be 'readwrite'. A row
         // that only said "reads" was the reason someone had to open the
@@ -171,7 +174,7 @@ describe('the detail', () => {
             }],
         });
         renderStudio({ initialDatatableId: 'tbl_1', user: { id: 'u1' } });
-        fireEvent.click(await screen.findByRole('radio', { name: /Used by/ }));
+        await user.click(await screen.findByRole('radio', { name: /Used by/ }));
         const row = await screen.findByTestId('usage-row');
         expect(row).toHaveTextContent('Credit check');
         expect(row).toHaveTextContent(/step 4/);
@@ -180,12 +183,13 @@ describe('the detail', () => {
     });
 
     it('deleting names what it would break, and needs the name typed', async () => {
+        const user = userEvent.setup();
         datatablesApi.listUsage.mockResolvedValue({
             usage: [{ automationId: 'a1', automationTitle: 'Nightly sync', stepId: 's1', mode: 'read', columns: [] }],
         });
         await openDetail();
-        fireEvent.click(await screen.findByRole('button', { name: /More about this table/ }));
-        fireEvent.click(await screen.findByRole('menuitem', { name: /Delete this table/ }));
+        await user.click(await screen.findByRole('button', { name: /More about this table/ }));
+        await user.click(await screen.findByRole('menuitem', { name: /Delete this table/ }));
         // The shared DangerZone (Track 0.4) owns this block now — same two
         // gates in the same order: SEE what depends on it, then type the name.
         expect(await screen.findByTestId('danger-dependents')).toHaveTextContent('Nightly sync');
@@ -200,18 +204,20 @@ describe('the detail', () => {
     });
 
     it('asks for the name even when nothing depends on the table — its rows ARE the data', async () => {
+        const user = userEvent.setup();
         await openDetail();
-        fireEvent.click(await screen.findByRole('button', { name: /More about this table/ }));
-        fireEvent.click(await screen.findByRole('menuitem', { name: /Delete this table/ }));
+        await user.click(await screen.findByRole('button', { name: /More about this table/ }));
+        await user.click(await screen.findByRole('menuitem', { name: /Delete this table/ }));
         await screen.findByTestId('danger-unused');
         expect(screen.getByRole('button', { name: /Delete for good/ }).disabled).toBe(true);
     });
 
     it('someone who only holds a grade cannot edit the columns, and is told who can', async () => {
+        const user = userEvent.setup();
         datatablesApi.list.mockResolvedValue({ datatables: [{ ...TABLE, grade: 'editor' }] });
         await openDetail();
         expect(await screen.findByText(/The table.s owner, or an administrator, can/)).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: /More about this table/ }));
+        await user.click(screen.getByRole('button', { name: /More about this table/ }));
         expect(screen.queryByRole('menuitem', { name: /Delete this table/ })).toBeNull();
     });
 });
@@ -241,12 +247,13 @@ describe('the sharing panel states read and write separately', () => {
     });
 
     it('a 402 reads as "this is the paid part", not as a failure', async () => {
+        const user = userEvent.setup();
         const err = new Error('Upgrade required');
         err.status = 402;
         datatablesApi.setSharing.mockRejectedValue(err);
         await openSharing(TABLE);
-        fireEvent.click(await screen.findByRole('radio', { name: /Entire organisation/ }));
-        fireEvent.click(await screen.findByRole('button', { name: /Share it/ }));
+        await user.click(await screen.findByRole('radio', { name: /Entire organisation/ }));
+        await user.click(await screen.findByRole('button', { name: /Share it/ }));
         expect(await screen.findByText(/part of a paid plan/i)).toBeInTheDocument();
         expect(screen.getByText(/keep working exactly as they do now/i)).toBeInTheDocument();
     });
@@ -261,6 +268,7 @@ describe('the sharing panel states read and write separately', () => {
  */
 describe('the sharing panel never widens by accident', () => {
     it('unticking the last group unpublishes rather than silently widening to the whole org', async () => {
+        const user = userEvent.setup();
         // An empty sharedGroups on a PUBLISHED table means the ENTIRE org, so
         // "remove the last group" must not be sent as a published table with [].
         datatablesApi.setSharing.mockResolvedValue({ datatable: TABLE });
@@ -269,18 +277,19 @@ describe('the sharing panel never widens by accident', () => {
         const boxes = screen.getAllByRole('checkbox');
         const checked = boxes.find(b => b.checked);
         expect(checked, 'the selected group should be checked').toBeTruthy();
-        fireEvent.click(checked);
+        await user.click(checked);
         await waitFor(() => expect(datatablesApi.setSharing).toHaveBeenCalled());
         expect(datatablesApi.setSharing).toHaveBeenCalledWith('tbl_1', { audience: 'private' });
     });
 
     it('entering Specific groups on a private table sends NOTHING', async () => {
+        const user = userEvent.setup();
         // The mirror of the case above, on the way IN. An empty sharedGroups on
         // a published table is the whole organisation, so publishing on the
         // click would hand the rows to every colleague the moment someone picks
         // the narrowest option on the screen.
         await openSharing(TABLE);
-        fireEvent.click(await screen.findByRole('radio', { name: /Specific groups/ }));
+        await user.click(await screen.findByRole('radio', { name: /Specific groups/ }));
         expect(await screen.findByText(/picking a group is what shares the table/i)).toBeInTheDocument();
         expect(datatablesApi.setSharing).not.toHaveBeenCalled();
         // The picker is open, so the choice was not lost — only unsent.
@@ -288,48 +297,52 @@ describe('the sharing panel never widens by accident', () => {
     });
 
     it('ticking the first group names who gains access, then publishes with exactly that group', async () => {
+        const user = userEvent.setup();
         datatablesApi.setSharing.mockResolvedValue({ datatable: TABLE });
         await openSharing(TABLE);
-        fireEvent.click(await screen.findByRole('radio', { name: /Specific groups/ }));
-        fireEvent.click(screen.getAllByRole('checkbox')[0]);
+        await user.click(await screen.findByRole('radio', { name: /Specific groups/ }));
+        await user.click(screen.getAllByRole('checkbox')[0]);
         expect(datatablesApi.setSharing).not.toHaveBeenCalled();
         expect(await screen.findByText(/Members of Sales will be able to read every row/)).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: /Share it/ }));
+        await user.click(screen.getByRole('button', { name: /Share it/ }));
         await waitFor(() => expect(datatablesApi.setSharing).toHaveBeenCalledWith(
             'tbl_1', { audience: 'groups', sharedGroups: ['g1'] }));
     });
 
     it('widening to the whole organisation asks first, and cancelling sends nothing', async () => {
+        const user = userEvent.setup();
         datatablesApi.setSharing.mockResolvedValue({ datatable: TABLE });
         await openSharing(TABLE);
-        fireEvent.click(await screen.findByRole('radio', { name: /Entire organisation/ }));
+        await user.click(await screen.findByRole('radio', { name: /Entire organisation/ }));
         expect(datatablesApi.setSharing).not.toHaveBeenCalled();
         expect(await screen.findByText(/Everyone in your organisation will be able to read every row/))
             .toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: /Leave it as it is/ }));
+        await user.click(screen.getByRole('button', { name: /Leave it as it is/ }));
         await waitFor(() => expect(screen.queryByRole('button', { name: /Share it/ })).toBeNull());
         expect(datatablesApi.setSharing).not.toHaveBeenCalled();
     });
 
     it('narrowing back to private does not ask — taking access away is one click', async () => {
+        const user = userEvent.setup();
         datatablesApi.setSharing.mockResolvedValue({ datatable: TABLE });
         await openSharing({ ...TABLE, isPublished: true, sharedGroups: [], writeMode: 'grants' });
-        fireEvent.click(await screen.findByRole('radio', { name: /^Private/ }));
+        await user.click(await screen.findByRole('radio', { name: /^Private/ }));
         await waitFor(() => expect(datatablesApi.setSharing).toHaveBeenCalledWith('tbl_1', { audience: 'private' }));
         expect(screen.queryByRole('button', { name: /Share it/ })).toBeNull();
     });
 
     it('opening writes to the whole audience names what they gain, in that order', async () => {
+        const user = userEvent.setup();
         datatablesApi.setSharing.mockResolvedValue({ datatable: TABLE });
         await openSharing({ ...TABLE, isPublished: true, sharedGroups: [], writeMode: 'grants' });
         const writeBox = (await screen.findAllByRole('checkbox')).find(
             b => b.closest('label')?.textContent?.includes('change it too'));
-        fireEvent.click(writeBox);
+        await user.click(writeBox);
         expect(datatablesApi.setSharing).not.toHaveBeenCalled();
         expect(await screen.findByText(/add, change and delete rows, not just read them/)).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole('button', { name: /Share it/ }));
+        await user.click(screen.getByRole('button', { name: /Share it/ }));
         await waitFor(() => expect(datatablesApi.setSharing).toHaveBeenCalledWith('tbl_1', { writeMode: 'audience' }));
     });
 });
@@ -350,13 +363,14 @@ describe('the create dialog', () => {
     };
 
     it('an org member creates an ORGANISATION table by default', async () => {
+        const user = userEvent.setup();
         datatablesApi.list.mockResolvedValue({ datatables: [], scope: ORG_SCOPE });
         datatablesApi.create.mockResolvedValue({ datatable: { ...TABLE, id: 'tbl_new' } });
         renderStudio({ hasPermission: () => true });
 
-        fireEvent.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
+        await user.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
         fill();
-        fireEvent.click(screen.getByRole('button', { name: /^Create$/ }));
+        await user.click(screen.getByRole('button', { name: /^Create$/ }));
 
         await waitFor(() => expect(datatablesApi.create).toHaveBeenCalled());
         expect(datatablesApi.create).toHaveBeenCalledWith({
@@ -366,35 +380,38 @@ describe('the create dialog', () => {
     });
 
     it('the same member can choose their own account instead', async () => {
+        const user = userEvent.setup();
         datatablesApi.list.mockResolvedValue({ datatables: [], scope: ORG_SCOPE });
         datatablesApi.create.mockResolvedValue({ datatable: { ...TABLE, id: 'tbl_new' } });
         renderStudio({ hasPermission: () => true });
 
-        fireEvent.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
+        await user.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
         fill();
-        fireEvent.click(screen.getByRole('radio', { name: /This account only/ }));
-        fireEvent.click(screen.getByRole('button', { name: /^Create$/ }));
+        await user.click(screen.getByRole('radio', { name: /This account only/ }));
+        await user.click(screen.getByRole('button', { name: /^Create$/ }));
 
         await waitFor(() => expect(datatablesApi.create).toHaveBeenCalledWith(
             expect.objectContaining({ scope: 'personal' })));
     });
 
     it('an org-less account gets the personal option only, and sends it', async () => {
+        const user = userEvent.setup();
         datatablesApi.list.mockResolvedValue({ datatables: [], scope: PERSONAL_SCOPE });
         datatablesApi.create.mockResolvedValue({ datatable: { ...TABLE, id: 'tbl_new', scopeKind: 'user' } });
         renderStudio({ hasPermission: () => false });
 
-        fireEvent.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
+        await user.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
         // A radio group with one dead half is worse than no radio group.
         expect(screen.queryByRole('radio', { name: /Your organisation/ })).toBeNull();
         fill();
-        fireEvent.click(screen.getByRole('button', { name: /^Create$/ }));
+        await user.click(screen.getByRole('button', { name: /^Create$/ }));
 
         await waitFor(() => expect(datatablesApi.create).toHaveBeenCalledWith(
             expect.objectContaining({ scope: 'personal' })));
     });
 
     it('a refusal is read from its CODE, not from the server sentence', async () => {
+        const user = userEvent.setup();
         // Matching on the sentence breaks the day somebody improves the copy,
         // and silently: the dialog would just print whatever came back.
         const err = new Error('A table with this key already exists in your organisation');
@@ -404,9 +421,9 @@ describe('the create dialog', () => {
         datatablesApi.create.mockRejectedValue(err);
         renderStudio({ hasPermission: () => true });
 
-        fireEvent.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
+        await user.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
         fill();
-        fireEvent.click(screen.getByRole('button', { name: /^Create$/ }));
+        await user.click(screen.getByRole('button', { name: /^Create$/ }));
 
         expect(await screen.findByText(/already a table with this key/i)).toBeInTheDocument();
     });
@@ -414,11 +431,12 @@ describe('the create dialog', () => {
 
 describe('the sharing tab of a personal table', () => {
     it('is replaced by the reason there is none', async () => {
+        const user = userEvent.setup();
         datatablesApi.list.mockResolvedValue({
             datatables: [{ ...TABLE, scopeKind: 'user' }], scope: PERSONAL_SCOPE,
         });
         renderStudio({ initialDatatableId: 'tbl_1' });
-        fireEvent.click(await screen.findByRole('radio', { name: /Sharing/ }));
+        await user.click(await screen.findByRole('radio', { name: /Sharing/ }));
 
         expect(await screen.findByText(/cannot be shared/i)).toBeInTheDocument();
         // No control that would suggest the rows could become visible.

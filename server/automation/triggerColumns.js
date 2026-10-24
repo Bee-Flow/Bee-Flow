@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Derive the `automations` row columns that mirror the definition's trigger.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * AIA-Art26-human-oversight — the oversight answer is evidence that someone is
  * named, not the name itself.

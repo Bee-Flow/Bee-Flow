@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 // Pure prompt builders of the template chat route (templateChat.js): the
 // system-prompt sections and the meeting-note fence. No I/O and no SSE; the

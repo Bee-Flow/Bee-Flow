@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The native-app handoff allowlist.
  *

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The last line of defence after capture: does a payload still name a real id?
  *

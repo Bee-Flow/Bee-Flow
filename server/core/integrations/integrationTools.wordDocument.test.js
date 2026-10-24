@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * create_word_document is injected next to create_presentation: every
  * signed-in user outside simple mode gets both, simple mode neither, and the

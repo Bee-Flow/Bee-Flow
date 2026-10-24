@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The test bench's matching: the SAME matchers production runs, applied to a

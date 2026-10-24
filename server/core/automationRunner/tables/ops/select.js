@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /** select: keep, drop and rename columns. Lazy. */
 

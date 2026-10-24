@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Support auto-assignment — round-robin assignment of escalated threads to
  * staff who hold the `admin_support` permission.

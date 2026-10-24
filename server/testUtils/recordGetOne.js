@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -13,6 +14,7 @@
  *   rec.calls                                  // [{ sql, params }, …]
  */
 function recordGetOne(db) {
+    /** @type {{ calls: Array<{ sql: string, params: any }>, answer: (sql?: string, params?: any) => Promise<any> }} */
     const rec = { calls: [], answer: async () => null };
     db.getOne = async (sql, params) => { rec.calls.push({ sql, params }); return rec.answer(sql, params); };
     return rec;

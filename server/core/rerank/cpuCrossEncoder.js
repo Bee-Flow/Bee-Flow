@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * In-process cross-encoder reranking via Transformers.js.
  *

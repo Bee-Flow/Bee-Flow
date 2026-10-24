@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ListPickChooser from './ListPickChooser';
@@ -55,9 +56,10 @@ describe('ListPickChooser', () => {
         }
     });
 
-    it('foreach emits the two writes: the forEach and the row-scoped binding', () => {
+    it('foreach emits the two writes: the forEach and the row-scoped binding', async () => {
+        const user = userEvent.setup();
         const { onChoose } = renderChooser('steps.g.output.results[*].subject');
-        fireEvent.click(screen.getByText('Run this step once for each row'));
+        await user.click(screen.getByText('Run this step once for each row'));
         expect(onChoose).toHaveBeenCalledWith({
             mode: 'foreach',
             forEach: { overRef: 'steps.g.output.results', itemVar: 'result', maxIterations: 100 },
@@ -66,9 +68,10 @@ describe('ListPickChooser', () => {
         });
     });
 
-    it('"Keep the whole list" is a bare ref — never a template', () => {
+    it('"Keep the whole list" is a bare ref — never a template', async () => {
+        const user = userEvent.setup();
         const { onChoose } = renderChooser('steps.g.output.results[*].subject');
-        fireEvent.click(screen.getByText('Keep the whole list'));
+        await user.click(screen.getByText('Keep the whole list'));
         expect(onChoose).toHaveBeenCalledWith({
             mode: 'each',
             binding: { kind: 'ref', path: 'steps.g.output.results[*].subject' },
@@ -76,10 +79,11 @@ describe('ListPickChooser', () => {
         });
     });
 
-    it('join carries the chosen separator into the expression', () => {
+    it('join carries the chosen separator into the expression', async () => {
+        const user = userEvent.setup();
         const { onChoose } = renderChooser('steps.g.output.results[*].subject');
         fireEvent.change(screen.getByLabelText('Separated by'), { target: { value: '\n' } });
-        fireEvent.click(screen.getByText('All of them, joined into text'));
+        await user.click(screen.getByText('All of them, joined into text'));
         expect(onChoose).toHaveBeenCalledWith({
             mode: 'join',
             binding: { kind: 'expr', value: 'join(steps.g.output.results[*].subject, "\\n")' },
@@ -87,13 +91,14 @@ describe('ListPickChooser', () => {
         });
     });
 
-    it('foreach is DISABLED when each row still holds a list here', () => {
+    it('foreach is DISABLED when each row still holds a list here', async () => {
+        const user = userEvent.setup();
         const { onChoose, shape } = renderChooser('steps.g.output.results[*].attachments');
         expect(shape.rowScopedListTail).toBe(true);
         const row = screen.getByText('Run this step once for each row').closest('button');
         expect(row.disabled).toBe(true);
         expect(screen.getByText(/pick a single value inside the row instead/)).toBeTruthy();
-        fireEvent.click(row);
+        await user.click(row);
         expect(onChoose).not.toHaveBeenCalled();
     });
 

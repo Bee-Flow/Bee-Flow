@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The .xlsx writer: a minimal OOXML package (inline strings, no shared-strings
  * table) built with jszip, one worksheet per entry of `sheets`. Pure, no I/O.

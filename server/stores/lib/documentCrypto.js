@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 const crypto = require('node:crypto');
@@ -77,6 +78,12 @@ async function open(value, type, id, field, json = false, resolvedKey = null) {
     }
 }
 
+/**
+ * @param {any} value
+ * @param {any} resource
+ * @param {string} field
+ * @param {{ json?: boolean, context?: any, key?: any }} [opts]
+ */
 async function seal(value, resource, field, { json = false, context, key: resolvedKey = null } = {}) {
     if (value === undefined || value === null) return value;
     const ctx = context === undefined ? await writeContext(resource) : context;

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The pentest sent 120 consecutive failed logins in about two seconds and got
  * 120 × 401 back — no 429, no lockout, no delay. These tests pin the controls

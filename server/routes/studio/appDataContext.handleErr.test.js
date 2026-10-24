@@ -33,9 +33,12 @@ test('an HttpError, a safe refusal and the frozen 4xx contracts keep their answe
     const http = new HttpError(404, 'not_found', 'Table not found');
     assert.throws(() => handleErr(mockRes(), http, 'x'), (thrown) => thrown === http);
 
-    const safe = mockRes();
-    handleErr(safe, Object.assign(new Error('Forbidden'), { status: 403, safe: true }), 'x');
-    assert.deepEqual([safe.statusCode, safe.body], [403, { error: 'Forbidden' }]);
+    // A safe refusal leaves as an HttpError carrying its own message and status.
+    assert.throws(() => handleErr(mockRes(), Object.assign(new Error('Forbidden'), { status: 403, safe: true }), 'x'), (thrown) => {
+        assert.ok(thrown instanceof HttpError);
+        assert.deepEqual([thrown.status, thrown.message], [403, 'Forbidden']);
+        return true;
+    });
 
     const quota = mockRes();
     handleErr(quota, Object.assign(new Error('Quota'), { status: 409, code: 'quota_exceeded', limit: 5, used: 5 }), 'x');

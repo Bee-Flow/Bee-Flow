@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The ONE personal-data column detector: names, values, and the count behind
  * the values.

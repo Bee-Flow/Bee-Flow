@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The skill-test SANDBOX — which tools a Test-tab run may call.
  * (Bee Flow Builder redesign, Sep 2026, Track S3.)
@@ -85,10 +86,11 @@ async function runKbSearch(args, ctx) {
     let chunks = [];
     try {
         const { quickKBSearch } = require('../agentRuntime/knowledgeSearch');
-        chunks = await quickKBSearch(ctx.userId, kbIds, query, {
+        // quickKBSearch's typedef has no `session`; it is passed along unchanged.
+        chunks = await quickKBSearch(ctx.userId, kbIds, query, /** @type {any} */ ({
             topK: SANDBOX_KB_TOPK,
             session: ctx.session || null,
-        }) || [];
+        })) || [];
     } catch (err) {
         // A failed search is a failed search — never "nothing was found",
         // which the model would report as "the sources do not cover this".
@@ -167,7 +169,7 @@ function buildSandboxTools() {
  *
  * @param {string} name
  * @param {object} args   the model's arguments — untrusted
- * @param {{ userId:string, kbIds:string[], session?:object }} ctx
+ * @param {{ userId?:string, kbIds?:string[], session?:object }} [ctx]
  * @returns {Promise<string>}
  */
 async function executeSandboxTool(name, args, ctx = {}) {

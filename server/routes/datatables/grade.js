@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The door: who may touch this table, and the descriptor every compile takes.
  *

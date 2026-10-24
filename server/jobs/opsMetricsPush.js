@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -112,6 +113,7 @@ async function pushSnapshot(c) {
     const orgNames = await orgNameMap();
     const nowMicros = Date.now() * 1000;
 
+    /** @type {Array<[string, any[]]>} */
     const domains = [
         [`${c.prefix}_ops`, snap.ops],
         [`${c.prefix}_product`, snap.product],

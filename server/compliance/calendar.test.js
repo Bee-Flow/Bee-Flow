@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * compliance/calendar — MILESTONES + per-org relevance + "affects" counts.
  *

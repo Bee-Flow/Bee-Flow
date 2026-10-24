@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The rule shapes the AI may write in a Condition (condition, filter, switch
  * cases): only shapes the editor reads back as clickable rows.

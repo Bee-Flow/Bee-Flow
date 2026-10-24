@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The media CMS-over-MCP tools (./dispatch.js maps tool names to them): the

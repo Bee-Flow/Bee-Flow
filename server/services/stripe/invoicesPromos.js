@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Invoices (in-app list, PDF with ownership guard) and promotion codes.
  */
@@ -86,7 +87,7 @@ async function getInvoicePdf(invoiceId, { customerId } = {}) {
  * @param {boolean} [options.firstTimeOnly] - Only allow first-time customers
  * @param {number} [options.minAmount] - Minimum order amount in cents
  * @param {string} [options.name] - Internal name/description
- * @returns {{ couponId: string, promoCodeId: string, code: string }}
+ * @returns {Promise<{ couponId: string, promoCodeId: string, code: string }>}
  */
 async function createPromoCode(options) {
     const stripe = await getClient();
@@ -150,7 +151,7 @@ async function createPromoCode(options) {
 /**
  * List all BeeFlow-created promotion codes from Stripe.
  * @param {number} [limit=25] - Max codes to return
- * @returns {Array} Promotion code objects
+ * @returns {Promise<Array>} Promotion code objects
  */
 async function listPromoCodes(limit = 25) {
     const stripe = await getClient();

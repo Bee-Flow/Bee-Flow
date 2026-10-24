@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * template-to-file — a template MODULE, written out as an importable file.
  *

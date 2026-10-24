@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Mid-loop tool refresh — what happens when the model activates a skill.
  *
@@ -54,7 +55,7 @@ function createSkillActivationHandler({
         skillApps.allowedApps.push(...newApps);
         try {
             const { getIntegrationTools } = require('../../integrations/integrationTools');
-            const fresh = await getIntegrationTools({
+            const fresh = await getIntegrationTools(/** @type {any} */ ({
                 userId,
                 session: userAuth?.session,
                 isAdmin: userAuth?.session?.user?.isAdmin || false,
@@ -62,7 +63,7 @@ function createSkillActivationHandler({
                 agentId,
                 extraEnabledApps: skillApps.allowedApps,
                 connectionPolicy: { ownerUserId: agent.owner_id || null, resourceType: 'agent', resourceId: agentId },
-            });
+            }));
             // Diff against the first-pass snapshot + current tool list so
             // deliberately-stripped tools can't re-enter via activation.
             const delta = fresh.tools.filter(t => {

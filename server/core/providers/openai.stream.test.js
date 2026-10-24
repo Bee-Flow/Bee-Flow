@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Contract tests — OpenAI streaming event mapping.
  *

@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SkillFormModal from './SkillFormModal';
@@ -37,41 +38,45 @@ const open = (props = {}) => render(
 );
 
 describe('SkillFormModal', () => {
-    it('warns that rewriting the workflow text replaces the steps Studio owns', () => {
+    it('warns that rewriting the workflow text replaces the steps Studio owns', async () => {
+        const user = userEvent.setup();
         open({ skill: WITH_STRUCTURE });
         expect(screen.queryByTestId('skill-form-structure-warning')).toBeNull();
-        fireEvent.click(screen.getByRole('button', { name: 'Workflow' }));
+        await user.click(screen.getByRole('button', { name: 'Workflow' }));
         expect(screen.getByTestId('skill-form-structure-warning').textContent)
             .toContain('1 step in Studio');
     });
 
     // The count really can be 1, and the ternary belongs around the KEY
     // (I18N-CONVENTIES §2.3), so both halves have to be reachable.
-    it('counts in the singular for one step and in the plural for two', () => {
+    it('counts in the singular for one step and in the plural for two', async () => {
+        const user = userEvent.setup();
         const two = { ...WITH_STRUCTURE, steps: [...WITH_STRUCTURE.steps, { id: 'b', text: 'Send it.', refs: [] }] };
         open({ skill: two });
-        fireEvent.click(screen.getByRole('button', { name: 'Workflow' }));
+        await user.click(screen.getByRole('button', { name: 'Workflow' }));
         expect(screen.getByTestId('skill-form-structure-warning').textContent)
             .toContain('2 steps in Studio');
         cleanup();
         open({ skill: WITH_STRUCTURE });
-        fireEvent.click(screen.getByRole('button', { name: 'Workflow' }));
+        await user.click(screen.getByRole('button', { name: 'Workflow' }));
         expect(screen.getByTestId('skill-form-structure-warning').textContent)
             .not.toContain('1 steps');
     });
 
-    it('does not nag about a structure a skill does not have', () => {
+    it('does not nag about a structure a skill does not have', async () => {
+        const user = userEvent.setup();
         open({ skill: { ...WITH_STRUCTURE, steps: [] } });
-        fireEvent.click(screen.getByRole('button', { name: 'Workflow' }));
+        await user.click(screen.getByRole('button', { name: 'Workflow' }));
         expect(screen.queryByTestId('skill-form-structure-warning')).toBeNull();
     });
 
-    it('sends exactly the fields it edits, leaving everything else for the server to keep', () => {
+    it('sends exactly the fields it edits, leaving everything else for the server to keep', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn();
         open({ skill: WITH_STRUCTURE, onSave });
         fireEvent.change(screen.getByLabelText('Skill name'), { target: { value: 'Renamed' } });
         fireEvent.change(screen.getByLabelText('Instructions'), { target: { value: 'Be brief.' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Update skill' }));
+        await user.click(screen.getByRole('button', { name: 'Update skill' }));
         const [form] = onSave.mock.calls.at(-1);
         expect(Object.keys(form).sort()).toEqual([
             'description', 'dynamicActivation', 'icon', 'instructions',
@@ -89,11 +94,12 @@ describe('SkillFormModal', () => {
      * every step id and dropped every reference pill — a skill edited in
      * Studio, ruined by a save that touched only its name.
      */
-    it('omits an UNCHANGED workflow, so renaming here cannot re-parse the steps', () => {
+    it('omits an UNCHANGED workflow, so renaming here cannot re-parse the steps', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn();
         open({ skill: WITH_STRUCTURE, onSave });
         fireEvent.change(screen.getByLabelText('Skill name'), { target: { value: 'Renamed' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Update skill' }));
+        await user.click(screen.getByRole('button', { name: 'Update skill' }));
         const [form] = onSave.mock.calls.at(-1);
         expect(form.name).toBe('Renamed');
         expect(form).not.toHaveProperty('workflow');
@@ -101,32 +107,35 @@ describe('SkillFormModal', () => {
         expect(form).not.toHaveProperty('examples');
     });
 
-    it('sends the workflow the moment it is actually edited — the warned-about case', () => {
+    it('sends the workflow the moment it is actually edited — the warned-about case', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn();
         open({ skill: WITH_STRUCTURE, onSave });
-        fireEvent.click(screen.getByRole('button', { name: 'Workflow' }));
+        await user.click(screen.getByRole('button', { name: 'Workflow' }));
         fireEvent.change(screen.getByLabelText('Workflow'), { target: { value: '1. Fetch it twice.' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Update skill' }));
+        await user.click(screen.getByRole('button', { name: 'Update skill' }));
         const [form] = onSave.mock.calls.at(-1);
         expect(form.workflow).toBe('1. Fetch it twice.');
         expect(form).not.toHaveProperty('rules');
     });
 
-    it('re-typing the same text is not an edit — a caret in the box costs nothing', () => {
+    it('re-typing the same text is not an edit — a caret in the box costs nothing', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn();
         open({ skill: WITH_STRUCTURE, onSave });
-        fireEvent.click(screen.getByRole('button', { name: 'Workflow' }));
+        await user.click(screen.getByRole('button', { name: 'Workflow' }));
         fireEvent.change(screen.getByLabelText('Workflow'), { target: { value: '1. Fetch the quote!' } });
         fireEvent.change(screen.getByLabelText('Workflow'), { target: { value: '1. Fetch the quote.' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Update skill' }));
+        await user.click(screen.getByRole('button', { name: 'Update skill' }));
         expect(onSave.mock.calls.at(-1)[0]).not.toHaveProperty('workflow');
     });
 
-    it('a NEW skill still sends every text field — there is no structure to protect', () => {
+    it('a NEW skill still sends every text field — there is no structure to protect', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn();
         open({ onSave });
         fireEvent.change(screen.getByLabelText('Skill name'), { target: { value: 'Fresh' } });
-        fireEvent.click(screen.getByRole('button', { name: 'Create skill' }));
+        await user.click(screen.getByRole('button', { name: 'Create skill' }));
         const [form] = onSave.mock.calls.at(-1);
         expect(Object.keys(form).sort()).toEqual([
             'description', 'dynamicActivation', 'examples', 'icon', 'instructions',
@@ -134,10 +143,11 @@ describe('SkillFormModal', () => {
         ]);
     });
 
-    it('refuses to save a nameless skill', () => {
+    it('refuses to save a nameless skill', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn();
         open({ onSave });
-        fireEvent.click(screen.getByRole('button', { name: 'Create skill' }));
+        await user.click(screen.getByRole('button', { name: 'Create skill' }));
         expect(onSave).not.toHaveBeenCalled();
     });
 
@@ -155,7 +165,8 @@ describe('SkillFormModal: a skill a Solution stage manages', () => {
     const MANAGED = { solutionId: 's1', solutionName: 'Intake', stage: 'prd', releaseSeq: 7, devRef: { kind: 'skill', id: 'dev-skill' } };
     const managedSkill = { ...WITH_STRUCTURE, instructions: 'Be brief.', isShared: false, sharedGroups: [], managed: MANAGED };
 
-    it('reads, and says who manages it', () => {
+    it('reads, and says who manages it', async () => {
+        const user = userEvent.setup();
         open({ skill: managedSkill });
         expect(screen.getByTestId('managed-part-banner').textContent).toContain('Managed by Intake · Production · Release 7.');
         expect(screen.getByLabelText('Skill name').readOnly).toBe(true);
@@ -163,26 +174,28 @@ describe('SkillFormModal: a skill a Solution stage manages', () => {
         expect(screen.getByLabelText('Instructions').readOnly).toBe(true);
         expect(screen.getByRole('button', { name: 'Choose icon' }).disabled).toBe(true);
         // The structure warning is about rewriting text, which cannot happen here.
-        fireEvent.click(screen.getByRole('button', { name: 'Workflow' }));
+        await user.click(screen.getByRole('button', { name: 'Workflow' }));
         expect(screen.queryByTestId('skill-form-structure-warning')).toBeNull();
     });
 
-    it('saves the sharing fields alone', () => {
+    it('saves the sharing fields alone', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn();
         open({ skill: managedSkill, onSave });
-        fireEvent.click(screen.getByRole('button', { name: /Private/ }));
-        fireEvent.click(screen.getByRole('button', { name: /Update skill/ }));
+        await user.click(screen.getByRole('button', { name: /Private/ }));
+        await user.click(screen.getByRole('button', { name: /Update skill/ }));
         expect(onSave).toHaveBeenCalledTimes(1);
         expect(onSave.mock.calls[0][0]).toEqual({ isShared: true, sharedGroups: [] });
     });
 
-    it('an ordinary skill is still editable and still saves its text', () => {
+    it('an ordinary skill is still editable and still saves its text', async () => {
+        const user = userEvent.setup();
         const onSave = vi.fn();
         open({ skill: WITH_STRUCTURE, onSave });
         expect(screen.queryByTestId('managed-part-banner')).toBeNull();
         expect(screen.getByLabelText('Skill name').readOnly).toBe(false);
         fireEvent.change(screen.getByLabelText('Skill name'), { target: { value: 'Renamed' } });
-        fireEvent.click(screen.getByRole('button', { name: /Update skill/ }));
+        await user.click(screen.getByRole('button', { name: /Update skill/ }));
         expect(onSave.mock.calls[0][0].name).toBe('Renamed');
     });
 
@@ -199,12 +212,13 @@ describe('SkillFormModal: a skill a Solution stage manages', () => {
     });
 
     it('a save the stage refuses turns an open modal read-only', async () => {
+        const user = userEvent.setup();
         const refusal = Object.assign(new Error('refused'), {
             status: 409, code: 'managed_part',
             body: { error: 'refused', code: 'managed_part', details: { solutionId: 's2', stage: 'uat' } },
         });
         open({ skill: WITH_STRUCTURE, onSave: vi.fn().mockRejectedValue(refusal) });
-        fireEvent.click(screen.getByRole('button', { name: /Update skill/ }));
+        await user.click(screen.getByRole('button', { name: /Update skill/ }));
         expect(await screen.findByTestId('managed-part-banner')).toBeTruthy();
         expect(screen.getByLabelText('Skill name').readOnly).toBe(true);
     });

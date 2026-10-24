@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ToolInputForm from './ToolInputForm';
 import ValueBuilder from './ValueBuilder';
@@ -82,9 +83,10 @@ describe('a schema-declared parameter renders as the visual editor', () => {
         expect(notes[0].textContent).toMatch(/pick ▸ \d+ fit/);
     });
 
-    it('offers the formula escape, and the chrome survives the switch', () => {
+    it('offers the formula escape, and the chrome survives the switch', async () => {
+        const user = userEvent.setup();
         renderForm({ subject: { kind: 'ref', path: 'steps.act_4d4307a.output.total' } });
-        fireEvent.click(screen.getAllByLabelText('Write this value as a formula')[0]);
+        await user.click(screen.getAllByLabelText('Write this value as a formula')[0]);
         expect(screen.getByText('Back to the simple editor')).toBeTruthy();
         // Still labelled — switching editor must not drop the field's identity.
         expect(screen.getByText('Subject')).toBeTruthy();

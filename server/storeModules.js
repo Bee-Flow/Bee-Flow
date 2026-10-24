@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * storeModules.js — the ordered list of store modules that own schema, and
  * the only place that list lives.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — the SINGLE template-instantiation path for a template's DATA
  * side (data model + seed rows + datasets). (review C4)

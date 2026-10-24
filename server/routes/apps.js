@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Apps API Routes - CRUD for App Marketplace.
  *

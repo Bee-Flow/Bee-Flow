@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Node-Search Tools — Cloud-only agent web search
  *
@@ -118,7 +119,7 @@ async function serperSearch({ query, num }) {
         const txt = await res.text();
         throw new Error(`Serper ${res.status}: ${txt.slice(0, 300)}`);
     }
-    const data = await res.json();
+    const data = /** @type {{ organic?: any[] }} */ (await res.json());
     const organic = Array.isArray(data.organic) ? data.organic : [];
     return organic.map(r => ({
         title: r.title || 'Untitled',

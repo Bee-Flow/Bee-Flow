@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio canonicalizer — an action, cleaned against its ACTION_SPECS entry.
  */

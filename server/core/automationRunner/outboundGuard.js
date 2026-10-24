@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Guarded egress for step types that are not catalog tools.
  *
@@ -24,7 +25,7 @@ function isPrivateHost(hostname) {
  * Guard an outbound payload and decide what actually leaves.
  * Throws GuardrailBlockError on a block (after writing a `blocked` ledger row).
  *
- * @returns {{ payload, policy, auditBase, guarded, destination }}
+ * @returns {Promise<{ payload, policy, auditBase, guarded, destination }>}
  */
 async function guardOutbound(step, ctx, mode, { toolName, payload, destination = 'external', integMeta = null }) {
     const policy = await safety.resolveAutomationPolicy(ctx);

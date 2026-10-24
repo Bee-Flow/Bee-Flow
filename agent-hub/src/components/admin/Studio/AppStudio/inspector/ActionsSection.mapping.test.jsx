@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, fireEvent, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import ActionsSection from './ActionsSection';
@@ -92,11 +93,12 @@ function openDisclosures() {
 }
 
 describe('ActionsSection — deleting an action', () => {
-    it('clears the grid/kanban/calendar event that pointed at it', () => {
+    it('clears the grid/kanban/calendar event that pointed at it', async () => {
+        const user = userEvent.setup();
         const node = { id: 'cmp_grid1', type: 'data_grid', props: {}, style: {}, onRowClick: 'act1' };
         const { lastDef, getByLabelText } = renderActions(node, { act1: { kind: 'toast', message: 'hi', tone: 'info' } });
 
-        fireEvent.click(getByLabelText('Delete action'));
+        await user.click(getByLabelText('Delete action'));
         const next = lastDef();
         expect(next.actions.act1).toBeUndefined();
         expect(findNode(next, 'cmp_grid1').node.onRowClick).toBeUndefined();

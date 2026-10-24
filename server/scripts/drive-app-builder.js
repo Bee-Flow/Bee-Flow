@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder harness — drives a REAL app build end to end, the way
  * drive-builder.js drives an automation build, and judges it against a brief's

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Keeps the stored knowledge-base vectors in the space of the CONFIGURED

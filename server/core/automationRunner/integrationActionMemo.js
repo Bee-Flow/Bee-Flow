@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Ask this app only once" for the integration-action step
  * (./execIntegrationAction.js): the run memo (step.askOnce) and the durable

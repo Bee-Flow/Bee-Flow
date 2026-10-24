@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * De retentie-DELETE op cowork_runs, tegen een gestubde db: dit pint het
  * SQL-contract vast dat de veiligheid draagt — alleen gesloten rijen

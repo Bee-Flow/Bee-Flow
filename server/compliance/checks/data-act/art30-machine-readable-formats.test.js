@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Data Act Art. 30(3) formats: relevance gate, nothing held / nothing covered
  * → n/a, a covered kind with only pdf/html → warn naming it, all

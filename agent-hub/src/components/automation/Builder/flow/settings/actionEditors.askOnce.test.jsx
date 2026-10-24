@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { IntegrationActionFields } from './actionEditors';
@@ -68,20 +69,22 @@ describe('the toggle is off unless ticked', () => {
         expect(toggle().checked).toBe(true);
     });
 
-    it('ticking it writes `true`', () => {
+    it('ticking it writes `true`', async () => {
+        const user = userEvent.setup();
         const { set } = renderFields();
         openAdvanced();
-        fireEvent.click(toggle());
+        await user.click(toggle());
         expect(set).toHaveBeenCalledWith('askOnce', true);
     });
 
-    it('unticking it writes `undefined`, not `false`', () => {
+    it('unticking it writes `undefined`, not `false`', async () => {
+        const user = userEvent.setup();
         // Absent is the off state everywhere else in the definition — a
         // literal `false` would be a field the diff, the validator and the
         // summariser all have to learn to ignore.
         const { set } = renderFields({ draft: { askOnce: true } });
         openAdvanced();
-        fireEvent.click(toggle());
+        await user.click(toggle());
         expect(set).toHaveBeenCalledWith('askOnce', undefined);
     });
 });
@@ -156,21 +159,23 @@ describe('"keep it for later runs" is a second, narrower promise', () => {
         expect(acrossRuns().checked).toBe(false);
     });
 
-    it('is stored on the SAME field, so it cannot claim the wider promise alone', () => {
+    it('is stored on the SAME field, so it cannot claim the wider promise alone', async () => {
+        const user = userEvent.setup();
         // askOnce: {acrossRuns:true} is the tick PLUS the wider promise. A
         // separate field could be set while askOnce was off, which the runtime
         // would ignore — a definition that lies about itself.
         const { set } = renderFields({ draft: { askOnce: true } });
         openAdvanced();
-        fireEvent.click(acrossRuns());
+        await user.click(acrossRuns());
         expect(set).toHaveBeenCalledWith('askOnce', { acrossRuns: true });
     });
 
-    it('unticking it falls back to plain once-per-run, not to off', () => {
+    it('unticking it falls back to plain once-per-run, not to off', async () => {
+        const user = userEvent.setup();
         const { set } = renderFields({ draft: { askOnce: { acrossRuns: true } } });
         openAdvanced();
         expect(acrossRuns().checked).toBe(true);
-        fireEvent.click(acrossRuns());
+        await user.click(acrossRuns());
         expect(set).toHaveBeenCalledWith('askOnce', true);
     });
 
@@ -180,20 +185,21 @@ describe('"keep it for later runs" is a second, narrower promise', () => {
         expect(toggle().checked).toBe(true);
     });
 
-    it('a ttlSeconds nobody can see here survives the tick, both ways', () => {
+    it('a ttlSeconds nobody can see here survives the tick, both ways', async () => {
+        const user = userEvent.setup();
         // No editor writes ttlSeconds — the AI builder and hand-edited
         // definitions do. Now that the form actually PERSISTS askOnce,
         // collapsing to a bare `true` would delete the author's reuse window
         // on a toggle they made about something else entirely.
         const on = renderFields({ draft: { askOnce: { ttlSeconds: 60 } } });
         openAdvanced();
-        fireEvent.click(acrossRuns());
+        await user.click(acrossRuns());
         expect(on.set).toHaveBeenCalledWith('askOnce', { acrossRuns: true, ttlSeconds: 60 });
 
         cleanup();
         const off = renderFields({ draft: { askOnce: { acrossRuns: true, ttlSeconds: 60 } } });
         openAdvanced();
-        fireEvent.click(acrossRuns());
+        await user.click(acrossRuns());
         expect(off.set).toHaveBeenCalledWith('askOnce', { ttlSeconds: 60 });
     });
 

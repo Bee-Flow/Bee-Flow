@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -46,6 +47,7 @@ describe('StudioSearchOverlay', () => {
     });
 
     it('groups hits by kind and opens one at its own Studio address', async () => {
+        const user = userEvent.setup();
         answer({
             query: 'inv', tooShort: false, errors: [],
             results: {
@@ -60,7 +62,7 @@ describe('StudioSearchOverlay', () => {
         await waitFor(() => expect(screen.getByTestId('studio-search-hit-automations-a1')).toBeTruthy());
         expect(fetchMock.mock.calls[0][0]).toBe('/api/studio/search?q=inv');
 
-        fireEvent.click(screen.getByTestId('studio-search-hit-automations-a1'));
+        await user.click(screen.getByTestId('studio-search-hit-automations-a1'));
         // The server's kind key is 'automations'; the SECTION behind it is
         // 'aiTasks' and its URL segment is 'automations' again. The mapping
         // has to go through the registry or a rename breaks the link.
@@ -69,22 +71,24 @@ describe('StudioSearchOverlay', () => {
     });
 
     it('uses the section\'s own segment, not its key, where the two differ', async () => {
+        const user = userEvent.setup();
         answer({ query: 'inv', tooShort: false, errors: [], results: { meetingNotes: [{ id: 'm1', name: 'Invoice call' }] } });
         const onNavigate = vi.fn();
         renderOverlay({ onNavigate });
         type('inv');
         await waitFor(() => expect(screen.getByTestId('studio-search-hit-meetingNotes-m1')).toBeTruthy());
-        fireEvent.click(screen.getByTestId('studio-search-hit-meetingNotes-m1'));
+        await user.click(screen.getByTestId('studio-search-hit-meetingNotes-m1'));
         expect(onNavigate).toHaveBeenCalledWith('studio/meeting-notes/m1');
     });
 
     it('offers a way into the whole section beside the hits', async () => {
+        const user = userEvent.setup();
         answer({ query: 'inv', tooShort: false, errors: [], results: { skills: [{ id: 's1', name: 'Invoice parsing' }] } });
         const onNavigate = vi.fn();
         renderOverlay({ onNavigate });
         type('inv');
         await waitFor(() => expect(screen.getByTestId('studio-search-all-skills')).toBeTruthy());
-        fireEvent.click(screen.getByTestId('studio-search-all-skills'));
+        await user.click(screen.getByTestId('studio-search-all-skills'));
         expect(onNavigate).toHaveBeenCalledWith('studio/skills');
     });
 

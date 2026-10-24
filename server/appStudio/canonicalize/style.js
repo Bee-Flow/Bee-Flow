@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio canonicalizer — the style block on a node or a section.
  */

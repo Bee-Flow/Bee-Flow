@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat input gates, part three: the regex guardrails. The org shield's
  * rules merged with the direct-chat-specific collection, checked against the

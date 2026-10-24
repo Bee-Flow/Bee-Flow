@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Streaming agent chat — shared project-thread collaboration.
  *
@@ -50,7 +51,7 @@ async function setupSharedThreadTurnLock({ conversation, isEphemeral, userId, _p
                 if (!claim.acquired) {
                     throw Object.assign(
                         new Error('Another member is asking the AI in this conversation. Try again in a moment.'),
-                        { code: 'TURN_BUSY', holderUserId: claim.holder?.holderUserId || null }
+                        { code: 'TURN_BUSY', holderUserId: /** @type {any} */ (claim).holder?.holderUserId || null }
                     );
                 }
                 _turnLock = { conversationId: conversation.id, runId };

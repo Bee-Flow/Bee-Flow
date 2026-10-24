@@ -10,6 +10,7 @@
  * Run: cd agent-hub && npx vitest run src/components/admin/AgentWizard/CategoryField.test.jsx
  */
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import CategoryField from './CategoryField';
 
@@ -54,11 +55,12 @@ describe('CategoryField — manage popover (BFSF-272)', () => {
     });
 
     it('inline rename calls onRename; a server error surfaces inline', async () => {
+        const user = userEvent.setup();
         const onRename = vi.fn(async () => ({ ok: false, error: 'A category named "Marketing" already exists' }));
         renderField({ onRename });
         openManage();
 
-        fireEvent.click(screen.getAllByTitle('Rename')[0]);
+        await user.click(screen.getAllByTitle('Rename')[0]);
         const input = screen.getByDisplayValue('Sales');
         fireEvent.change(input, { target: { value: 'Marketing' } });
         fireEvent.keyDown(input, { key: 'Enter' });
@@ -70,21 +72,22 @@ describe('CategoryField — manage popover (BFSF-272)', () => {
     });
 
     it('delete on an in-use category walks the guided flow: unassign', async () => {
+        const user = userEvent.setup();
         const onDelete = vi.fn()
             .mockResolvedValueOnce({ ok: false, code: 'category_in_use', count: 3 })
             .mockResolvedValueOnce({ ok: true });
         renderField({ onDelete });
         openManage();
 
-        fireEvent.click(screen.getAllByTitle('Delete')[0]);
-        fireEvent.click(screen.getByText('Delete', { selector: 'button' })); // ConfirmDialog confirm
+        await user.click(screen.getAllByTitle('Delete')[0]);
+        await user.click(screen.getByText('Delete', { selector: 'button' })); // ConfirmDialog confirm
 
         // 409 → guided step appears with the live count.
         await waitFor(() => expect(screen.getByText(/In use by 3 agent/)).toBeTruthy());
 
         // Default choice = unassign; confirm.
         const guidedDelete = screen.getAllByText('Delete').at(-1);
-        fireEvent.click(guidedDelete);
+        await user.click(guidedDelete);
         await waitFor(() => {
             expect(onDelete).toHaveBeenNthCalledWith(1, 'sales');
             expect(onDelete).toHaveBeenNthCalledWith(2, 'sales', 'none');
@@ -92,10 +95,11 @@ describe('CategoryField — manage popover (BFSF-272)', () => {
     });
 
     it('duplicate create shows the "already exists — selected it" hint (no alert)', async () => {
+        const user = userEvent.setup();
         const onCreate = vi.fn(async () => ({ ok: true, existed: true, category: CATS[0] }));
         renderField({ onCreate });
 
-        fireEvent.click(screen.getByTitle('New category'));
+        await user.click(screen.getByTitle('New category'));
         const input = screen.getByPlaceholderText('New category name');
         fireEvent.change(input, { target: { value: 'sales' } });
         fireEvent.keyDown(input, { key: 'Enter' });
@@ -125,10 +129,11 @@ describe('CategoryField — variant="tag" (A3)', () => {
     });
 
     it('kan nog steeds een categorie aanmaken en beheren', async () => {
+        const user = userEvent.setup();
         const onCreate = vi.fn(async () => ({ ok: true, category: { id: 'x', name: 'X' } }));
         renderField({ variant: 'tag', onCreate });
 
-        fireEvent.click(screen.getByTitle('New category'));
+        await user.click(screen.getByTitle('New category'));
         const input = screen.getByPlaceholderText('New category name');
         fireEvent.change(input, { target: { value: 'Support' } });
         fireEvent.keyDown(input, { key: 'Enter' });

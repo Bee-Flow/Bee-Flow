@@ -46,7 +46,7 @@ class ElevenLabsProvider {
         const durationMs = (options.duration_seconds || 30) * 1000;
         const instrumental = options.instrumental || false;
 
-        log.info(`[ElevenLabs] Music: "${prompt.substring(0, 80)}" (${durationMs / 1000}s, instrumental: ${instrumental})`);
+        log.info(`[ElevenLabs] Music: "${log.textForLog(prompt)}" (${durationMs / 1000}s, instrumental: ${instrumental})`);
 
         // SDK v2.x uses camelCase: musicLengthMs / forceInstrumental / outputFormat.
         // The old snake_case keys were silently dropped, so duration + instrumental
@@ -136,7 +136,7 @@ class ElevenLabsProvider {
         const durationSec = options.duration_seconds || 5;
         const promptInfluence = options.prompt_influence || 0.5;
 
-        log.info(`[ElevenLabs] SFX: "${prompt.substring(0, 80)}" (${durationSec}s)`);
+        log.info(`[ElevenLabs] SFX: "${log.textForLog(prompt)}" (${durationSec}s)`);
 
         const audioStream = await client.textToSoundEffects.convert({
             text: prompt,

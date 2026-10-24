@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Names a model reaches for that are NOT App Studio component types, mapped
  * to the type it means. Read by the batch normaliser (definitionTools) and by

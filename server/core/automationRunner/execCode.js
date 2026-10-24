@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The sandboxed code step and its two egress bridges (ctx.integrations and
  * ctx.http). The sandbox itself is automation/'s (isolated-vm), reached

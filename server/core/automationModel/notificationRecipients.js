@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Who an automation notification goes to: the recipients of one event's settings
  * (automation/notificationDefaults.js) as Bee Flow user ids.

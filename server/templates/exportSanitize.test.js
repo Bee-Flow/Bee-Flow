@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Export sanitization + mermaid-survival tests.
  *

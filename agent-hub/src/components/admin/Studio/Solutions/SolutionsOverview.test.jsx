@@ -78,7 +78,8 @@ describe('the three tabs', () => {
         expect(getByRole('radio', { name: /Installed/ }).textContent).toContain('1');
     });
 
-    it('shows the Solutions built here, and the installed ones on their own tab', () => {
+    it('shows the Solutions built here, and the installed ones on their own tab', async () => {
+        const user = userEvent.setup();
         const { getAllByTestId, getByText, container } = render(
             <SolutionsOverview summary={OK([
                 summaryRow({ id: 'a', name: 'Built here' }),
@@ -88,7 +89,7 @@ describe('the three tabs', () => {
         expect(getAllByTestId('solutions-card')).toHaveLength(1);
         expect(getByText('Built here')).toBeTruthy();
 
-        fireEvent.click(getByText('Installed'));
+        await user.click(getByText('Installed'));
         const cards = container.querySelectorAll('[data-testid="solutions-card"]');
         expect(cards).toHaveLength(1);
         expect(getByText('Came from a Blueprint')).toBeTruthy();
@@ -105,12 +106,13 @@ describe('the three tabs', () => {
         expect(getByText(/viewer/)).toBeTruthy();
     });
 
-    it('opens a card into the Solution', () => {
+    it('opens a card into the Solution', async () => {
+        const user = userEvent.setup();
         const onOpen = vi.fn();
         const { getByTestId } = render(
             <SolutionsOverview summary={OK([summaryRow()])} onOpen={onOpen} />,
         );
-        fireEvent.click(getByTestId('solutions-card'));
+        await user.click(getByTestId('solutions-card'));
         expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'p1' }));
     });
 });
@@ -154,9 +156,10 @@ describe('what the overview could not read', () => {
         expect(getByTestId('solutions-empty').textContent).toContain('Nothing here yet');
     });
 
-    it('an empty INSTALLED tab says something different from an empty workspace', () => {
+    it('an empty INSTALLED tab says something different from an empty workspace', async () => {
+        const user = userEvent.setup();
         const { getByText, getByTestId } = render(<SolutionsOverview summary={OK([summaryRow()])} />);
-        fireEvent.click(getByText('Installed'));
+        await user.click(getByText('Installed'));
         expect(getByTestId('solutions-empty').textContent).toContain('came from a Blueprint');
     });
 });
@@ -230,7 +233,8 @@ describe('one card · where it came from, and whether it has moved on', () => {
         expect(idle.textContent).toContain('Nothing ran today');
     });
 
-    it('AN UNANSWERABLE UPDATE CHECK IS NOT SILENCE', () => {
+    it('AN UNANSWERABLE UPDATE CHECK IS NOT SILENCE', async () => {
+        const user = userEvent.setup();
         // Silence has to mean exactly one thing on this card — "the server
         // compared the versions and there is nothing newer". So the case where
         // it could NOT compare gets a line of its own.
@@ -240,31 +244,33 @@ describe('one card · where it came from, and whether it has moved on', () => {
                 update: { blueprintId: 'bp1', installedVersion: 4, latestVersion: null, available: null },
             })])} />,
         );
-        fireEvent.click(getByText('Installed'));
+        await user.click(getByText('Installed'));
         const chip = getByTestId('solution-card-update');
         expect(chip.getAttribute('data-state')).toBe('unknown');
         expect(chip.textContent).toContain('could not be checked');
     });
 
-    it('an up-to-date Solution shows no update chip at all', () => {
+    it('an up-to-date Solution shows no update chip at all', async () => {
+        const user = userEvent.setup();
         const { getByText, queryByTestId } = render(
             <SolutionsOverview summary={OK([summaryRow({
                 installedFromBlueprintId: 'bp1',
                 update: { blueprintId: 'bp1', installedVersion: 5, latestVersion: 5, available: false },
             })])} />,
         );
-        fireEvent.click(getByText('Installed'));
+        await user.click(getByText('Installed'));
         expect(queryByTestId('solution-card-update')).toBeNull();
     });
 
-    it('a newer version is offered by name', () => {
+    it('a newer version is offered by name', async () => {
+        const user = userEvent.setup();
         const { getByText, getByTestId } = render(
             <SolutionsOverview summary={OK([summaryRow({
                 installedFromBlueprintId: 'bp1',
                 update: { blueprintId: 'bp1', installedVersion: 4, latestVersion: 5, available: true },
             })])} />,
         );
-        fireEvent.click(getByText('Installed'));
+        await user.click(getByText('Installed'));
         expect(getByTestId('solution-card-update').textContent).toContain('v5 available');
         expect(getByTestId('solution-card-sub').textContent).toContain('installed at v4');
     });
@@ -272,21 +278,23 @@ describe('one card · where it came from, and whether it has moved on', () => {
 
 describe('the Catalogue tab', () => {
     it('lists the Blueprints kept on this instance, and only when opened', async () => {
+        const user = userEvent.setup();
         mockFetch({ blueprints: [{ id: 'bp1', name: 'Quotes', version: 2, description: 'A bundle' }] });
         const { getByText, findAllByTestId } = render(<SolutionsOverview summary={OK([])} />);
         // Nothing is fetched for a tab nobody opened.
         expect(globalThis.__authFetch).not.toHaveBeenCalled();
 
-        fireEvent.click(getByText('Catalogue'));
+        await user.click(getByText('Catalogue'));
         const cards = await findAllByTestId('solutions-catalogue-card');
         expect(cards).toHaveLength(1);
         expect(getByText('Blueprint v2')).toBeTruthy();
     });
 
-    it('AN EMPTY CATALOGUE AND ONE THAT WOULD NOT LOAD SAY DIFFERENT THINGS', () => {
+    it('AN EMPTY CATALOGUE AND ONE THAT WOULD NOT LOAD SAY DIFFERENT THINGS', async () => {
+        const user = userEvent.setup();
         mockFetch({ blueprints: [] });
         const empty = render(<SolutionsOverview summary={OK([])} />);
-        fireEvent.click(empty.getByText('Catalogue'));
+        await user.click(empty.getByText('Catalogue'));
         return waitFor(() => {
             expect(empty.getByTestId('solutions-catalogue-empty').textContent).toContain('No Blueprints are kept');
         }).then(() => {
@@ -302,10 +310,11 @@ describe('the Catalogue tab', () => {
     });
 
     it('installing from the catalogue opens the wizard rather than installing', async () => {
+        const user = userEvent.setup();
         mockFetch({ blueprints: [{ id: 'bp1', name: 'Quotes', version: 2 }] });
         const { getByText, findByTestId } = render(<SolutionsOverview summary={OK([])} />);
-        fireEvent.click(getByText('Catalogue'));
-        fireEvent.click(await findByTestId('solutions-catalogue-install'));
+        await user.click(getByText('Catalogue'));
+        await user.click(await findByTestId('solutions-catalogue-install'));
 
         // The wizard's own footer sentence is the proof it is the dialog that
         // opened, and not a POST.

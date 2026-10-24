@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — SCREENS and the SECTIONS inside them: add, update
  * (incl. making one home), remove, plus a section's creation and restyling.

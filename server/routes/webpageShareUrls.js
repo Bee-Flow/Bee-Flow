@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Share-URL exposure rules for GET /api/webpages/:id/public-shares.
  *

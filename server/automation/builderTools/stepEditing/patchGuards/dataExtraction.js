@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * builder_update_step on a data_extraction step: `fields` (the output shape)
  * replaced wholesale and `source` canonicalised, both through the add path's

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CRA Art. 14 clocks: relevance/role gates, empty register, overdue → fail,
  * due-soon / missing preparation → warn, full readiness → pass, store helper

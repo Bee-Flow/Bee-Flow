@@ -102,14 +102,15 @@ describe('a pick that does not fit one-to-one is answered without a question', (
         expect(onChange.mock.calls.at(-1)[0]).toEqual({ kind: 'expr', value: 'first(steps.s1.output.addresses)' });
     });
 
-    it('a value from inside each row runs the step once per row, says so, and can be undone', () => {
+    it('a value from inside each row runs the step once per row, says so, and can be undone', async () => {
+        const user = userEvent.setup();
         const { onChange, onRequestForEach, insertQuiet } = renderEditor();
         insertQuiet('steps.s1.output.results[*].subject');
         expect(onRequestForEach).toHaveBeenCalledWith(expect.objectContaining({ overRef: 'steps.s1.output.results' }));
         expect(onChange.mock.calls.at(-1)[0].kind).toBe('ref');
         expect(onChange.mock.calls.at(-1)[0].path).toMatch(/^loop\.[A-Za-z_]+\.subject$/);
         expect(screen.getByText(/runs once per row/)).toBeTruthy();
-        fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+        await user.click(screen.getByRole('button', { name: 'Undo' }));
         expect(onRequestForEach).toHaveBeenLastCalledWith(null);
     });
 
@@ -160,7 +161,8 @@ describe('picking a value that fits — nothing to ask', () => {
 describe('a LIST into a slot that wants one value — answered inline (artboard 2a)', () => {
     beforeEach(cleanup);
 
-    it('asks in the warning box under the field, not in a popover', () => {
+    it('asks in the warning box under the field, not in a popover', async () => {
+        const user = userEvent.setup();
         const { insert } = renderEditor();
         insert('steps.s1.output.addresses');
         const box = screen.getByTestId('mismatch-resolver');
@@ -168,7 +170,7 @@ describe('a LIST into a slot that wants one value — answered inline (artboard 
         // Collapsed by default (BFSF-482): the applied default is a chip…
         expect(within(box).getByTestId('mismatch-selected').textContent).toBe('All of them, comma separated');
         // …and the rest of the list menu sits behind "List options".
-        fireEvent.click(within(box).getByRole('button', { name: 'List options' }));
+        await user.click(within(box).getByRole('button', { name: 'List options' }));
         expect(within(box).getByText('Only the first')).toBeTruthy();
         expect(within(box).getByText('Only the count (3)')).toBeTruthy();
     });
@@ -221,27 +223,30 @@ describe('a GROUP into a slot that wants one value — a question that used to b
         expect(onChange.mock.calls[0][0]).toEqual({ kind: 'expr', value: 'groupSummary(steps.s1.output.sender)' });
     });
 
-    it('offers the group\'s own fields, and binds the one the author picks', () => {
+    it('offers the group\'s own fields, and binds the one the author picks', async () => {
+        const user = userEvent.setup();
         const { onChange, insert } = renderEditor({ label: 'Body' });
         insert('steps.s1.output.sender');
-        fireEvent.click(screen.getByRole('button', { name: 'Field options' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Email' }));
+        await user.click(screen.getByRole('button', { name: 'Field options' }));
+        await user.click(screen.getByRole('button', { name: 'Email' }));
         expect(onChange.mock.calls.at(-1)[0]).toEqual({ kind: 'ref', path: 'steps.s1.output.sender.email' });
     });
 
-    it('marks the chosen remedy, so the box says what the field holds', () => {
+    it('marks the chosen remedy, so the box says what the field holds', async () => {
+        const user = userEvent.setup();
         const { insert } = renderEditor({ label: 'Body' });
         insert('steps.s1.output.sender');
-        fireEvent.click(screen.getByRole('button', { name: 'Field options' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Name' }));
+        await user.click(screen.getByRole('button', { name: 'Field options' }));
+        await user.click(screen.getByRole('button', { name: 'Name' }));
         expect(screen.getByRole('button', { name: 'Name' }).getAttribute('aria-pressed')).toBe('true');
     });
 
-    it('closing the box leaves the binding it already wrote', () => {
+    it('closing the box leaves the binding it already wrote', async () => {
+        const user = userEvent.setup();
         const { onChange, insert } = renderEditor({ label: 'Body' });
         insert('steps.s1.output.sender');
         const calls = onChange.mock.calls.length;
-        fireEvent.click(screen.getByLabelText('Cancel'));
+        await user.click(screen.getByLabelText('Cancel'));
         expect(screen.queryByTestId('mismatch-resolver')).toBeNull();
         expect(onChange.mock.calls.length).toBe(calls);
     });
@@ -301,7 +306,8 @@ describe('a TABLE into a slot that wants one value — the table menu, not the l
         expect(onChange.mock.calls[0][0]).toEqual({ kind: 'expr', value: 'asTable(steps.s1.output.results)' });
     });
 
-    it('asks the TABLE question, and does not offer the list answers up front', () => {
+    it('asks the TABLE question, and does not offer the list answers up front', async () => {
+        const user = userEvent.setup();
         const { insert } = renderEditor({ label: 'Body' });
         insert('steps.s1.output.results');
         expect(screen.getByTestId('mismatch-resolver')).toBeTruthy();
@@ -309,32 +315,35 @@ describe('a TABLE into a slot that wants one value — the table menu, not the l
         expect(screen.getByTestId('mismatch-selected').textContent).toBe('As a table');
         expect(screen.getByText(/It can go in as a table/)).toBeTruthy();
         // …and opening "Table options" shows the table menu, never the list one.
-        fireEvent.click(screen.getByRole('button', { name: 'Table options' }));
+        await user.click(screen.getByRole('button', { name: 'Table options' }));
         expect(screen.getByRole('button', { name: 'As a table' })).toBeTruthy();
         expect(screen.queryByRole('button', { name: /All of them, one per line/ })).toBeNull();
     });
 
-    it('counts ROWS, not items, when the author asks how many', () => {
+    it('counts ROWS, not items, when the author asks how many', async () => {
+        const user = userEvent.setup();
         const { onChange, insert } = renderEditor({ label: 'Body' });
         insert('steps.s1.output.results');
-        fireEvent.click(screen.getByRole('button', { name: 'Table options' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Only how many rows (2)' }));
+        await user.click(screen.getByRole('button', { name: 'Table options' }));
+        await user.click(screen.getByRole('button', { name: 'Only how many rows (2)' }));
         expect(onChange.mock.calls.at(-1)[0]).toEqual({ kind: 'expr', value: 'count(steps.s1.output.results)' });
     });
 
-    it('offers a run per row, and hands the forEach up to the step', () => {
+    it('offers a run per row, and hands the forEach up to the step', async () => {
+        const user = userEvent.setup();
         const { onChange, onRequestForEach, insert } = renderEditor({ label: 'Body' });
         insert('steps.s1.output.results');
-        fireEvent.click(screen.getByRole('button', { name: 'Table options' }));
-        fireEvent.click(screen.getByRole('button', { name: 'A separate run for each row' }));
+        await user.click(screen.getByRole('button', { name: 'Table options' }));
+        await user.click(screen.getByRole('button', { name: 'A separate run for each row' }));
         expect(onRequestForEach).toHaveBeenCalled();
         expect(onChange.mock.calls.at(-1)[0]).toBeTruthy();
     });
 
-    it('offers no per-row run when the step cannot fan out', () => {
+    it('offers no per-row run when the step cannot fan out', async () => {
+        const user = userEvent.setup();
         const { insert } = renderEditor({ label: 'Body', onRequestForEach: null });
         insert('steps.s1.output.results');
-        fireEvent.click(screen.getByRole('button', { name: 'Table options' }));
+        await user.click(screen.getByRole('button', { name: 'Table options' }));
         expect(screen.queryByRole('button', { name: 'A separate run for each row' })).toBeNull();
     });
 });

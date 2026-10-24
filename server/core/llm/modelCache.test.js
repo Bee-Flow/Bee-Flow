@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The model cache without Redis: the in-process TTL, invalidation, the
  * cross-provider id listing, the "who serves this model" lookup, and the

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Pins the exported key set of createPgAppEngine and of the module, so a split
  * into sub-factories can never silently drop or add a facade method.

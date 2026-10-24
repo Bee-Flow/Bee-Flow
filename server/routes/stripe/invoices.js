@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The in-app billing view's invoice surface — the caller's own invoice list and
  * an ownership-checked proxy for a single Stripe-hosted invoice PDF.

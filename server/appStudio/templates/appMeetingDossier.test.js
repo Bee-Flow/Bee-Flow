@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Meeting dossier — the checks templates.test.js cannot make.
  *

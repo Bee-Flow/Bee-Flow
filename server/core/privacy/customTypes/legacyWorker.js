@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Worker thread for the MIGRATED patterns RE2 cannot run (lookarounds,

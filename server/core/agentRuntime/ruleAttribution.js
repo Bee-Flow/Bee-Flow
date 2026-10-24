@@ -348,7 +348,7 @@ function withTimeout(promise, ms, label) {
  * @param {string} [p.question]    de vraag die eraan voorafging
  * @param {string|null} [p.orgId]
  * @param {string|null} [p.userId]
- * @param {object} [deps]          injectiepunten voor de test
+ * @param {any} [deps]          injectiepunten voor de test
  * @returns {Promise<{rules: Array<{rule: string}>}|null>} null = geen chip
  */
 async function attributeTurn({ testChat, persona, configInfo, answer, question, orgId = null, userId = null }, deps = {}) {

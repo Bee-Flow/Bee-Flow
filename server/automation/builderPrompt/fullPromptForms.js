@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The "Form wizards" section of the FULL builder system prompt (and so of the

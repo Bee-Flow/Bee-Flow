@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct chat: the tier a turn runs on is measured against the person's
  * groups (./turnSetup.js → core/llm/resolveTurnModel.js), and so is the

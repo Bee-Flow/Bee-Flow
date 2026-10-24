@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * compliance/deadlines — the clock list behind GET /deadlines.
  *

@@ -1,4 +1,5 @@
-import { render, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import AppMessageThread from './AppMessageThread';
 import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';
@@ -118,10 +119,11 @@ describe('AppMessageThread', () => {
         expect(getByText('Nog niks.')).toBeTruthy();
     });
 
-    it('fires onRowClick with the row, in run mode only', () => {
+    it('fires onRowClick with the row, in run mode only', async () => {
+        const user = userEvent.setup();
         const runAction = vi.fn();
         const { container } = renderThread(node({}, { onRowClick: 'act_1' }), { runAction, mode: 'run' });
-        fireEvent.click(container.querySelectorAll('button')[0]);
+        await user.click(container.querySelectorAll('button')[0]);
         expect(runAction).toHaveBeenCalledWith('act_1', { formValues: MESSAGES[0], item: MESSAGES[0] });
 
         runAction.mockClear();
@@ -384,9 +386,10 @@ describe('AppMessageThread — a message with a very long file list', () => {
         expect(toggle.textContent).toBe('+237 more');
     });
 
-    it('expands into a scroll box, so the thread keeps its height', () => {
+    it('expands into a scroll box, so the thread keeps its height', async () => {
+        const user = userEvent.setup();
         const { container } = renderThread(bigNode());
-        fireEvent.click(container.querySelector('[data-app-thread-chips-toggle="more"]'));
+        await user.click(container.querySelector('[data-app-thread-chips-toggle="more"]'));
         const group = container.querySelector('[data-app-thread-chips="attachments"]');
         expect(group.querySelectorAll('span')).toHaveLength(243);
         // The cap moves from the count to the height — an open list scrolls.

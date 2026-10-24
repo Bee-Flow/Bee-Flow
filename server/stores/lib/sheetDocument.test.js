@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The settings a tab write stores (settingsWithTabs): everything on the
  * sheet kept, charts pinned to a tab that is gone dropped.

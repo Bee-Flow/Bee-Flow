@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Package loader: the entitlement gates.
  *
@@ -81,7 +82,13 @@ async function applyOfflineGrant(moduleId, grantFile) {
         subjectIds: subjectIds.length ? subjectIds : undefined,
         publicKeyResolver: grantKeyResolver(),
     });
-    if (!res.valid) { const e = new Error(`grant_invalid: ${res.error}`); e.code = 'grant_invalid'; e.detail = res.error; throw e; }
+    if (!res.valid) {
+        /** @type {Error & { code?: string, detail?: any }} */
+        const e = new Error(`grant_invalid: ${res.error}`);
+        e.code = 'grant_invalid';
+        e.detail = res.error;
+        throw e;
+    }
     await configStore().setConfig(_offlineGrantKey(moduleId), {
         format: grantFile.format, format_version: 1, module_id: moduleId,
         subject: grantFile.subject || null, kind: grantFile.kind || res.payload.kind || 'admin_granted',

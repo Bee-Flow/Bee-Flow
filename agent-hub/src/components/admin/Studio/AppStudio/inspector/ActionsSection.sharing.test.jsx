@@ -1,4 +1,5 @@
 import { render, fireEvent, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import ActionsSection from './ActionsSection';
@@ -89,13 +90,14 @@ describe('ActionsSection — shared actions', () => {
         expect(queryByText(/shared with/i)).toBeNull();
     });
 
-    it('"Only for this one" forks a copy and leaves the other component on the original', () => {
+    it('"Only for this one" forks a copy and leaves the other component on the original', async () => {
+        const user = userEvent.setup();
         const def = defWith(
             [button('cmp_a', 'Save', { onClick: 'act_1' }), button('cmp_b', 'Send', { onClick: 'act_1' })],
             { act_1: TOAST },
         );
         const { getByRole, lastDef, queryByText } = renderActions(def, 'cmp_a');
-        fireEvent.click(getByRole('button', { name: /only for this one/i }));
+        await user.click(getByRole('button', { name: /only for this one/i }));
 
         const next = lastDef();
         const forkedId = findNode(next, 'cmp_a').node.onClick;
@@ -107,13 +109,14 @@ describe('ActionsSection — shared actions', () => {
         expect(queryByText(/shared with/i)).toBeNull();
     });
 
-    it('editing a forked action no longer reaches the component it was shared with', () => {
+    it('editing a forked action no longer reaches the component it was shared with', async () => {
+        const user = userEvent.setup();
         const def = defWith(
             [button('cmp_a', 'Save', { onClick: 'act_1' }), button('cmp_b', 'Send', { onClick: 'act_1' })],
             { act_1: TOAST },
         );
         const { getByRole, getByPlaceholderText, lastDef } = renderActions(def, 'cmp_a');
-        fireEvent.click(getByRole('button', { name: /only for this one/i }));
+        await user.click(getByRole('button', { name: /only for this one/i }));
         fireEvent.change(getByPlaceholderText(/what should the message say/i), { target: { value: 'Sent!' } });
 
         const next = lastDef();
@@ -121,33 +124,36 @@ describe('ActionsSection — shared actions', () => {
         expect(next.actions[findNode(next, 'cmp_a').node.onClick].message).toBe('Sent!');
     });
 
-    it('deletes a lone action without stopping to ask', () => {
+    it('deletes a lone action without stopping to ask', async () => {
+        const user = userEvent.setup();
         const def = defWith([button('cmp_a', 'Save', { onClick: 'act_1' })], { act_1: TOAST });
         const { getByRole, lastDef } = renderActions(def, 'cmp_a');
-        fireEvent.click(getByRole('button', { name: /delete action/i }));
+        await user.click(getByRole('button', { name: /delete action/i }));
         expect(lastDef().actions.act_1).toBeUndefined();
         expect(screen.queryByRole('dialog')).toBeNull();
     });
 
-    it('names the other components before deleting a shared action', () => {
+    it('names the other components before deleting a shared action', async () => {
+        const user = userEvent.setup();
         const def = defWith(
             [button('cmp_a', 'Save', { onClick: 'act_1' }), button('cmp_b', 'Send', { onClick: 'act_1' })],
             { act_1: TOAST },
         );
         const { getByRole, onCommit, lastDef } = renderActions(def, 'cmp_a');
-        fireEvent.click(getByRole('button', { name: /delete action/i }));
+        await user.click(getByRole('button', { name: /delete action/i }));
 
         const dialog = screen.getByRole('dialog');
         expect(within(dialog).getByText(/stops happening on Button “Send”/i)).toBeTruthy();
         expect(onCommit).not.toHaveBeenCalled();
 
-        fireEvent.click(within(dialog).getByRole('button', { name: /delete everywhere/i }));
+        await user.click(within(dialog).getByRole('button', { name: /delete everywhere/i }));
         const next = lastDef();
         expect(next.actions.act_1).toBeUndefined();
         expect('onClick' in findNode(next, 'cmp_b').node).toBe(false);
     });
 
-    it('warns about components that show what the action produced', () => {
+    it('warns about components that show what the action produced', async () => {
+        const user = userEvent.setup();
         const def = defWith(
             [
                 button('cmp_a', 'Save', { onClick: 'act_1' }),
@@ -156,18 +162,19 @@ describe('ActionsSection — shared actions', () => {
             { act_1: TOAST },
         );
         const { getByRole } = renderActions(def, 'cmp_a');
-        fireEvent.click(getByRole('button', { name: /delete action/i }));
+        await user.click(getByRole('button', { name: /delete action/i }));
         expect(within(screen.getByRole('dialog')).getByText(/will be left empty/i)).toBeTruthy();
     });
 
-    it('cancelling the warning leaves the wiring alone', () => {
+    it('cancelling the warning leaves the wiring alone', async () => {
+        const user = userEvent.setup();
         const def = defWith(
             [button('cmp_a', 'Save', { onClick: 'act_1' }), button('cmp_b', 'Send', { onClick: 'act_1' })],
             { act_1: TOAST },
         );
         const { getByRole, onCommit } = renderActions(def, 'cmp_a');
-        fireEvent.click(getByRole('button', { name: /delete action/i }));
-        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /cancel/i }));
+        await user.click(getByRole('button', { name: /delete action/i }));
+        await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: /cancel/i }));
         expect(onCommit).not.toHaveBeenCalled();
         expect(screen.queryByRole('dialog')).toBeNull();
     });
