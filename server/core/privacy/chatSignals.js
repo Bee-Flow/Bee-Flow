@@ -45,6 +45,7 @@ const { normalizeCategory } = require('./piiCategories');
 const { kindOfCategory } = require('./personalColumns');
 const { isAnonymousUserId } = require('../../utils/anonymousUser');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Lazy, so requiring the recorder costs nothing until a turn is counted.
 const _store = () => require('../../stores/chatSignalStore');
@@ -208,14 +209,14 @@ let _now = () => new Date();
 
 function _arm() {
     if (_timer) return;
-    _timer = setTimeout(() => { _timer = null; flush().catch(() => {}); }, FLUSH_MS);
+    _timer = setTimeout(() => { _timer = null; flush().catch((e) => bestEffort('privacy/chatSignals:flush', e)); }, FLUSH_MS);
     if (typeof _timer.unref === 'function') _timer.unref();
 }
 
 function _bump(key) {
     if (!_map.has(key) && _map.size >= MAX_KEYS) { _dropped++; return; }
     _map.set(key, (_map.get(key) || 0) + 1);
-    if (_map.size >= MAX_KEYS) flush().catch(() => {});
+    if (_map.size >= MAX_KEYS) flush().catch((e) => bestEffort('privacy/chatSignals:flush', e));
     else _arm();
 }
 
@@ -325,8 +326,8 @@ async function _countTurnAsync(args) {
  */
 function countTurn(args) {
     try {
-        _countTurnAsync(args).catch(() => {});
-    } catch (err) { log.debug('never on the request path', err); }
+        _countTurnAsync(args).catch((e) => bestEffort('privacy/chatSignals:countTurn', e));
+    } catch (err) { bestEffort('privacy/chatSignals:countTurn', err); /* never on the request path */ }
     return undefined;
 }
 

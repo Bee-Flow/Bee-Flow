@@ -103,7 +103,7 @@ async function viewerHasIntegration(integrationId, { userId, orgId, deps: inject
             const resolvedTool = deps.resolveIntegration(name);
             if (resolvedTool?.integration === integrationId) return true;
         }
-    } catch (err) { log.debug('fall through to the grant check', err); }
+    } catch (err) { fallback('appStudio/mailboxIdentity:viewerTools', err); /* not granted: false */ }
     return false;
 }
 

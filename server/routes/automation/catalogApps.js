@@ -57,7 +57,7 @@ async function loadUserTools(req, userId) {
         for (const t of userToolDefs) {
             if (t?.function?.name) userToolNames.add(t.function.name);
         }
-    } catch (err) { log.debug('user might not be fully set up', err); }
+    } catch (err) { fallback('routes/automation/catalogApps:userTools', err); /* none: strict gating */ }
     return { userToolNames, userToolDefs };
 }
 

@@ -680,6 +680,20 @@ test('a blob another row still points at is kept', async () => {
     assert.deepStrictEqual(deleted.blobs, [], 'the bytes stay — f2 still needs them');
 });
 
+test('a blob that cannot be deleted surfaces as a failed retention purge', async () => {
+    const { h } = retentionHarness(
+        [{ file: JSON.stringify({ kind: 'studio_attachment', fileId: 'f1' }) }],
+        [{ id: 'f1', sha256: 'sha-a', size: 10 }],
+    );
+    h._deps.deleteFile = async () => { throw new Error('bucket down'); };
+    const log = require('../telemetry/log');
+    const orig = log.warn;
+    const warnings = [];
+    log.warn = (m) => { warnings.push(String(m)); };
+    try { await runRetention(h); } finally { log.warn = orig; }
+    assert.ok(warnings.some((w) => /retention purge failed/.test(w) && /bucket down/.test(w)));
+});
+
 test('a pending mailbox descriptor leaves nothing of ours to delete', async () => {
     const { h, deleted } = retentionHarness(
         [{ file: JSON.stringify({ kind: 'mailbox_attachment', messageId: 'm1', attachmentId: 'a1' }) }],

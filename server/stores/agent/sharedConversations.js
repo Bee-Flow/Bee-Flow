@@ -42,6 +42,7 @@ const { encryptField, decryptField, isEnvelope } = require('../lib/fieldEnvelope
 const { openTitle } = require('./conversationTitle');
 const { tableFor } = require('./conversationAccess');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * The AAD the owning store binds its meta_json to. Fetched from that store
@@ -99,7 +100,7 @@ async function _rekeyMeta(table, type, conversationId, fromCtx, toCtx) {
         try {
             decryptField(row.meta_json, { key: _metaReadKey(toCtx, conversationId), aad });
             return false;
-        } catch (err) { log.debug('genuinely unreadable — fall through to the warning', err); }
+        } catch (probeErr) { fallback('stores/sharedConversations:rekeyProbe', probeErr); /* unreadable under both keys: the warning below */ }
         log.warn(`[SharedConversations] meta_json for ${conversationId} could not be re-keyed: ${err.message}`);
         return false;
     }

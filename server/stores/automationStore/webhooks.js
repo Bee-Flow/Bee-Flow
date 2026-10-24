@@ -6,6 +6,7 @@
 const crypto = require('crypto');
 const { initDB, run, getOne, getAll } = require('./core');
 const { rowToAutomation } = require('./rowMappers');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Webhooks ──────────────────────────────────────────
 
@@ -72,7 +73,7 @@ async function deleteWebhook(webhookId, automationId) {
 async function checkAndStoreNonce(nonce) {
     await initDB();
     // Garbage-collect old nonces (> 24h) opportunistically.
-    await run(`DELETE FROM automation_webhook_seen_nonces WHERE seen_at < NOW() - INTERVAL '24 hours'`).catch(() => {});
+    await run(`DELETE FROM automation_webhook_seen_nonces WHERE seen_at < NOW() - INTERVAL '24 hours'`).catch((e) => bestEffort('automationStore/webhooks:nonceGc', e));
     try {
         await run(`INSERT INTO automation_webhook_seen_nonces (nonce) VALUES ($1)`, [nonce]);
         return true;

@@ -55,6 +55,7 @@ mock(path.join(SERVER, 'db'), {
     async run(sql, params) {
         fx.calls.push({ sql, params });
         if (/DELETE FROM conversation_messages/i.test(sql)) {
+            if (fx.failWipe) throw new Error('connection reset');
             fx.calls.push({ op: 'wipeMessages', id: params[0] });
             delete fx.stored[params[0]];
             return { rowCount: 1 };
@@ -355,6 +356,17 @@ test('the OWNER can still delete, messages and DLP state included', async () => 
     assert.ok(fx.calls.some(c => c.op === 'wipeMessages' && c.id === id));
     assert.deepStrictEqual(fxDlpCleared, [id]);
     assert.ok(!fx.rows[id]);
+});
+
+test('a failed message wipe fails the delete and keeps the conversation row', async () => {
+    resetFx();
+    const id = privateConv();
+    fx.stored[id] = M(2);
+    fx.failWipe = true;
+    try {
+        await assert.rejects(store.deleteDirectConversation(id, 'alice'), /connection reset/);
+    } finally { fx.failWipe = false; }
+    assert.ok(fx.rows[id], 'the row is still there, so the delete can be retried');
 });
 
 test('deleting an id that does not exist is a no-op, not a wipe', async () => {

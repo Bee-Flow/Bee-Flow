@@ -53,6 +53,7 @@
 const { _tokenCategoryKey } = require('./piiDetection/tokenizer');
 const { isCustomTypeId } = require('./customTypes/ids');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 const telemetryLog = require('../../telemetry/log');
 
 const DEFAULT_THRESHOLD = 0.7;
@@ -318,7 +319,7 @@ async function stripToolResultForModel(content, { toolName, shield, logEvent = n
  */
 function toolLoopGate({ shield, audit = null, tag }) {
     const shieldNow = typeof shield === 'function' ? shield : async () => shield;
-    const logEventFor = (toolName) => (audit ? (fields) => { audit(fields, toolName).catch(() => {}); } : null);
+    const logEventFor = (toolName) => (audit ? (fields) => { audit(fields, toolName).catch((e) => bestEffort('privacy/toolPiiGate:audit', e)); } : null);
     return {
         refuse: async (toolName, args) => refuseToolCall({
             toolName, args, shield: await shieldNow(), logEvent: logEventFor(toolName), tag: `${tag} ToolPiiGuard`,

@@ -15,6 +15,7 @@ const { z } = require('../../utils/zod');
 /** The disconnect button posts nothing; a key in its body is a mistake, not a default. */
 const NoBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 function register(router) {
     // ──────────────────────────────────────────────────────────────────────────
@@ -46,7 +47,7 @@ function register(router) {
             actorUserId: req.session?.user?.id || null,
             action: 'inbox_disconnected',
             payload: { scope: 'company', purgedThreads: removed },
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/support/mailbox:disconnectAudit', e));
         log.info(`[Support] Company mailbox disconnected — ${removed} mail-sourced thread(s) purged`);
         _emit('threads_purged', { removed });
         res.json({ ok: true, removed });

@@ -217,7 +217,7 @@ router.get('/callback', async (req, res) => {
                 const info = await infoRes.json();
                 email = String(info.mail || info.userPrincipalName || '').toLowerCase();
             }
-        } catch (err) { log.debug('non-fatal — status just shows no email', err); }
+        } catch (err) { fallback('routes/integrations/microsoft365:userinfo', err); /* status just shows no email */ }
 
         const userStore = require('../../stores/userStore');
         const user = await userStore.getUser(userId).catch((e) => fallback('routes/integrations/microsoft365:anon', e, null));

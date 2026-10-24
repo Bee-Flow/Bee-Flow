@@ -312,7 +312,7 @@ async function collectExpiredFiles(app, table, where, whereParams, deps) {
  * break the other — hence the refcount over the remaining ledger.
  */
 async function purgeAttachments(app, fileIds, deps) {
-    const before = await deps.listAttachments(app.id, app.userId).catch(() => []);
+    const before = await deps.listAttachments(app.id, app.userId);
     const byId = new Map((before || []).map((a) => [a.id, a]));
 
     const shas = new Set();
@@ -320,16 +320,15 @@ async function purgeAttachments(app, fileIds, deps) {
         const row = byId.get(id);
         if (!row) continue;
         shas.add(row.sha256);
-        await deps.deleteAttachment(id, app.id, app.userId).catch(() => {});
+        await deps.deleteAttachment(id, app.id, app.userId);
     }
     if (!shas.size) return;
 
-    const after = await deps.listAttachments(app.id, app.userId).catch(() => null);
-    if (!after) return; // could not confirm — leave the blob rather than orphan a live row
-    const stillUsed = new Set(after.map((a) => a.sha256));
+    const after = await deps.listAttachments(app.id, app.userId); // a failure leaves the blob rather than orphans a live row
+    const stillUsed = new Set((after || []).map((a) => a.sha256));
     for (const sha of shas) {
         if (stillUsed.has(sha)) continue;
-        await deps.deleteFile(deps.buildAttachmentKey(app.userId, app.id, sha)).catch(() => {});
+        await deps.deleteFile(deps.buildAttachmentKey(app.userId, app.id, sha));
     }
 }
 

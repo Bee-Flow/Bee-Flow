@@ -61,7 +61,7 @@ async function resolveViewerExecution(connector, { app, viewerId, deps }) {
         });
         const names = new Set((resolved?.tools || []).map((t) => t?.function?.name).filter(Boolean));
         if (names.has(connector.tool)) return { userId: viewerId, session };
-    } catch (err) { log.debug('fall through to the grant check', err); }
+    } catch (err) { fallback('appStudio/connectors/dispatch:viewerTools', err); /* the grant check below decides */ }
 
     if (provider) {
         const grant = await deps.resolveConnectionForRun({

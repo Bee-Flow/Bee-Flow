@@ -78,7 +78,7 @@ async function getEmbedding(text, opts = {}) {
                 if (Array.isArray(vec)) return vec;
             }
         }
-    } catch (err) { log.debug('try next tier', err); }
+    } catch (err) { bestEffort('stores/memoryEmbedding:providerEmbed', err); /* try next tier */ }
 
     // (2) CPU embedder — in-process, no external call.
     try {

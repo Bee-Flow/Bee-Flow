@@ -24,6 +24,7 @@
 const path = require('path');
 const { Worker, MessageChannel, receiveMessageOnPort } = require('worker_threads');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const DEFAULT_BUDGET_MS = 50;
 const READY_WAIT_MS = 2000;
@@ -62,8 +63,8 @@ function prewarm() {
 
 function _kill(state) {
     if (_state === state) _state = null;
-    state.worker.terminate().catch(() => { /* already gone */ });
-    try { state.port.close(); } catch (err) { log.debug('closed', err); }
+    state.worker.terminate().catch((e) => bestEffort('privacy/legacyRunner:terminate', e));
+    try { state.port.close(); } catch (err) { bestEffort('privacy/legacyRunner:closePort', err); }
 }
 
 /**

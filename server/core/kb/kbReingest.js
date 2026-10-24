@@ -4,6 +4,7 @@ const { friendlyError } = require('./friendlyError');
 const log = require('../../telemetry/log');
 const { SEARCH_SERVICE_URL, simhash64, byteLength, embedDocumentContent } = require('./kbEmbed');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 /**
  * Remove a document's chunks (local kb_chunks + remote search service) WITHOUT
@@ -28,7 +29,12 @@ async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false } = {
     try {
         const { deleteChunksLocally } = require('./localKBIngest');
         await deleteChunksLocally(tenantId, kbId, docId);
-    } catch (err) { log.debug('table may not exist yet — that\'s fine', err); }
+    } catch (err) {
+        if (!isMissingTable(err)) {
+            if (strict) throw new Error(`local chunk cleanup failed for document ${docId}: ${err.message}`);
+            bestEffort('kb/kbReingest:localChunks', err);
+        }
+    }
 
     // Also clean up via remote search-service (skip when admin chose local-only)
     try {

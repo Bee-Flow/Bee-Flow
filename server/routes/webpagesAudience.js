@@ -397,7 +397,7 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
     // Withdraw the old canonical only after this: up to this point it was the working address,
     // and an error above must not take it along.
     if (existing) {
-        await publicShareStore.revokeShare(existing.id, existing.createdBy).catch(() => {});
+        await publicShareStore.revokeShare(existing.id, existing.createdBy).catch((e) => bestEffort('routes/webpagesAudience:revokeOldCanonical', e));
         await publicShareStore.deleteShare(existing.id, existing.createdBy).catch((e) => bestEffort('routes/webpagesAudience:anon#3', e));
     }
     // Only after this, the other live shares: the just-withdrawn old canonical no longer needs to be

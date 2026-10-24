@@ -84,6 +84,7 @@
 
 const express = require('express');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
 const { z, onUnknownKeys } = require('../utils/zod');
@@ -240,7 +241,7 @@ async function buildStatus(req) {
 
     // Tier/config resolution of the caller's org (memoised 45 s) — the
     // routes/cowork.js idiom. Never an authz decision.
-    const orgId = await resolveEffectiveOrgId(req, { userId }).catch(() => null);
+    const orgId = await resolveEffectiveOrgId(req, { userId }).catch((e) => fallback('routes/privacyShieldStatus:orgId', e, null));
     const aiConfig = await getAIConfig();
     // The two steps of resolveShieldFor (core/privacy/orgShield.js), unrolled
     // only so the answer can say WHICH shield applied; the arguments are the
@@ -255,7 +256,7 @@ async function buildStatus(req) {
         // The recorder's org key for direct chat (core/privacy/chatSignals
         // directOrgKey): the effective org, else the 'default' bucket. Never
         // throws; any error reads off, and then nothing is counted either.
-        Promise.resolve(resolveChatMonitoring(orgId || 'default')).catch(() => null),
+        Promise.resolve(resolveChatMonitoring(orgId || 'default')).catch((e) => fallback('routes/privacyShieldStatus:chatMonitoring', e, null)),
     ]);
 
     return summarizeShield({

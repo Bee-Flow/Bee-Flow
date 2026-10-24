@@ -8,6 +8,7 @@
 
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 const { applyCustomTypes, deriveCustomState } = require('./customTypes/resolve');
 const customTypeRegistry = require('./customTypes/registry');
 
@@ -45,8 +46,7 @@ function _licenseModule() {
  *                                  webSearchGuardPiiCategories = []
  *
  * Safe to call with null/undefined; no-op when nothing to clamp.
- * Fails closed: any resolver error falls back to community-tier clamps
- * (strictest), matching server/routes/orgPrivacyShield.js _tierClamps.
+ * Fails closed: a resolver error means community-tier clamps (strictest), as in routes/orgPrivacyShield.js.
  * @param shield
  * @param {{ organizationId?: string, userId?: string }} [opts]
  */
@@ -57,7 +57,7 @@ async function applyTierClampsToShield(shield, { organizationId, userId } = {}) 
         const lic = _deps.license();
         const tier = await lic.resolveTier({ organizationId, userId });
         hasWebSearchGuard = lic.tiers.tierHasFeature(tier, 'web_search_guard');
-    } catch (err) { log.debug('fail closed — leave `false`, strictest clamp applies', err); }
+    } catch (err) { fallback('privacy/orgShield:tierClamps', err); /* leave `false`: strictest clamp applies */ }
     // NOTE: we deliberately do NOT clamp `piiDetectionAction` down to 'block'
     // here. An explicitly-saved "tokenize" is honored everywhere (text chat
     // already reads the raw config and tokenizes; clamping only the attachment /
@@ -352,7 +352,7 @@ function classifyToolClass(toolName, toolArgs = {}) {
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored literal prefix: constant time
     if (/^cint_/.test(toolName || '')) return 'external';
     let meta = null;
-    try { meta = require('../integrations/integrationToolMap').resolveIntegration(toolName, toolArgs || {}); } catch (err) { log.debug('treat as internal', err); }
+    try { meta = require('../integrations/integrationToolMap').resolveIntegration(toolName, toolArgs || {}); } catch (err) { fallback('privacy/orgShield:classifyTool', err); return 'external'; /* unknown is not internal */ }
     if (!meta) return 'internal';            // internal/unknown tools (notebook_*, workspace_*, set_*, regex_*)
     if (meta.isLocal === true) return 'internal'; // local integrations (Nextcloud family, on-box whisper, …)
     return 'external';                       // any resolved integration leaving the box

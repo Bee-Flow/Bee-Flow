@@ -47,6 +47,7 @@
 'use strict';
 
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * @param {string} userId
@@ -88,7 +89,7 @@ async function buildCatalogForUser(userId, session) {
         let permittedSet = null;
         try {
             permittedSet = await getUserPermittedApps({ userId, session, isAdmin: !!session?.isAdmin });
-        } catch (err) { log.debug('null → fail closed below', err); }
+        } catch (err) { fallback('automation/builderCatalog:permittedApps', err); /* null: permitted follows what is runnable */ }
 
         const apps = TOOL_REGISTRY.map(entry => {
             const tools = loadTools(entry);

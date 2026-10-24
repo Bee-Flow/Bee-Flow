@@ -208,6 +208,19 @@ test('a stage skill is deleted only by a deploy, and a stranger still reads "not
     assert.strictEqual(await skillStore.deleteSkill(skill.id, 'alice', false, { managedWrite: cap() }), true);
 });
 
+test('a failing cleanup of the skill\'s test runs fails the delete instead of leaving them', async () => {
+    const skill = await skillStore.createSkill({ orgId: 'org1', userId: 'alice', name: 'Cleanup' });
+    await db.run(`INSERT INTO skill_test_runs (id, skill_id) VALUES ('str-1', $1)`, [skill.id]);
+    await db.exec(`CREATE OR REPLACE FUNCTION str_boom() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'cleanup refused'; END $$ LANGUAGE plpgsql`);
+    await db.exec('CREATE TRIGGER str_boom_trg BEFORE DELETE ON skill_test_runs FOR EACH ROW EXECUTE FUNCTION str_boom()');
+    try {
+        await assert.rejects(skillStore.deleteSkill(skill.id, 'alice'), /cleanup refused/);
+    } finally {
+        await db.exec('DROP TRIGGER str_boom_trg ON skill_test_runs');
+        await db.run(`DELETE FROM skill_test_runs WHERE id = 'str-1'`);
+    }
+});
+
 test('an ordinary skill is not slowed down or refused by the guard', async () => {
     const skill = await skillStore.createSkill({ orgId: 'org1', userId: 'alice', name: 'Free' });
     assert.strictEqual(await skillStore.updateSkill(skill.id, 'alice', { name: 'Free 2' }), true);

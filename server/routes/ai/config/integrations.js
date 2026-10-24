@@ -337,7 +337,7 @@ router.get('/n8n/diagnostics', requireAuth, async (req, res) => {
         toolsThatWillBeInjected = (tools || [])
             .map(t => t.function?.name)
             .filter(n => n && (n.startsWith('n8n_workflow_') || n.startsWith('n8n_execution_') || n.startsWith('n8n_run_')));
-    } catch (err) { log.debug('non-fatal — if integrationTools throws we still return the gate trace', err); }
+    } catch (err) { fallback('routes/ai/config/integrations:injectedTools', err); /* diagnostic: still return the gate trace */ }
 
     const blockingReason =
         !organizationId ? 'no_organization' :

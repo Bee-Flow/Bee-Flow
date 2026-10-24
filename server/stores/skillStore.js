@@ -62,6 +62,7 @@ const { listProjectSkills, countProjectSkills, setSkillProject, clearProjectFrom
 const { listSkillUsage, getUsageSummary } = require('./skill/usage');
 const { recordTestRun, listTestRuns, getLastTestBySkillIds, TEST_STATUSES } = require('./skill/testRuns');
 const { bestEffort } = require('../utils/bestEffort');
+const { isMissingTable } = require('../utils/isMissingTable');
 
 // ── GitHub Sync hook (fire-and-forget) ───────────────────────────
 // A skill in a Solution stage project is a deployed copy of a Dev skill: Dev
@@ -328,8 +329,9 @@ async function deleteSkill(id, userId, isAdmin = false, opts = {}) {
         result = await run('DELETE FROM skills WHERE id = $1 AND user_id = $2', [id, userId]);
     }
     if (result.rowCount > 0) {
-        try { await run('DELETE FROM skill_test_runs WHERE skill_id = $1', [id]); } catch (err) { log.debug('non-fatal', err); }
-        try { await run('DELETE FROM skill_activations WHERE skill_id = $1', [id]); } catch (err) { log.debug('table may not exist yet', err); }
+        for (const table of ['skill_test_runs', 'skill_activations']) {
+            try { await run(`DELETE FROM ${table} WHERE skill_id = $1`, [id]); } catch (err) { if (!isMissingTable(err)) throw err; }
+        }
     }
     if (result.rowCount > 0 && skill?.org_id) _notifySkillSync(skill.org_id, id, 'deleted', skill.project_id || null);
     return result.rowCount > 0;

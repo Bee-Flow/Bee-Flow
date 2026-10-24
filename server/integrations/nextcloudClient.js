@@ -482,7 +482,7 @@ async function isConnected(session, userId) {
         const userStore = require('../stores/userStore');
         const creds = await userStore.getAppPassword(userId);
         if (creds && creds.username && creds.password) return true;
-    } catch (err) { log.debug('fall through to the binding check', err); }
+    } catch (err) { fallback('integrations/nextcloudClient:isConnectedAppPassword', err); /* the binding check decides */ }
     // DB-backed binding: an NC-org user in a standalone/bridged session is
     // still connected (the connector routes their calls) even though the
     // session carries none of the connector extras.

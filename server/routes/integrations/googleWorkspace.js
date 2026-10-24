@@ -185,7 +185,7 @@ router.get('/callback', async (req, res) => {
                 const info = await infoRes.json();
                 if (info.email_verified !== false) email = info.email || '';
             }
-        } catch (err) { log.debug('non-fatal — status just shows no email', err); }
+        } catch (err) { fallback('routes/integrations/googleWorkspace:userinfo', err); /* status just shows no email */ }
 
         // Persist into the encrypted vault (same home as SSO-acquired tokens).
         const userStore = require('../../stores/userStore');

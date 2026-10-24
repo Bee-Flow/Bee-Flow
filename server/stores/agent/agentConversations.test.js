@@ -37,6 +37,7 @@ function mockModule(absPath, exports) {
 }
 
 const rows = {};
+let failMessageWipe = false;
 const reads = [];            // { id, keyLabel } per convMessages.getMessages call
 
 mockModule(path.join(SERVER, 'db'), {
@@ -52,6 +53,7 @@ mockModule(path.join(SERVER, 'db'), {
     },
     async getAll() { return []; },
     async run(sql, params) {
+        if (failMessageWipe && /DELETE FROM conversation_messages/.test(sql)) throw new Error('connection reset');
         if (/SET meta_json = \$1 WHERE id = \$2/.test(sql)) { rows[params[1]].meta_json = params[0]; return { rowCount: 1 }; }
         if (/SET title = \$1 WHERE id = \$2/.test(sql)) { rows[params[1]].title = params[0]; return { rowCount: 1 }; }
         return { rowCount: 0 };
@@ -175,4 +177,12 @@ test('meta on a shared thread is sealed with the PROJECT key, matching crypto_sc
     assert.throws(() => decryptField(rows[id].meta_json, {
         key: realMessageCrypto.conversationKey(OWNER_ESCROW, id), aad,
     }));
+});
+
+test('deleteConversationById stops when the message wipe fails, the parent row stays', async () => {
+    const id = seed();
+    failMessageWipe = true;
+    try {
+        await assert.rejects(store.deleteConversationById(id), /connection reset/);
+    } finally { failMessageWipe = false; }
 });

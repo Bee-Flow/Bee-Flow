@@ -11,6 +11,7 @@ const { acquireSlot, releaseSlot, MAX_INFLIGHT } = require('./requestShaping');
 const http = require('http');
 const https = require('https');
 const log = require('../../../telemetry/log');
+const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
 // Per-request HTTP deadline. 90s is the historical value the incident notes
 // are written around; post tier-flip an 8k window scans in single-digit
@@ -39,7 +40,7 @@ const STALE_SOCKET = Symbol('staleKeepAliveSocket');
  */
 function _describeFailure(status, raw) {
     let parsed = null;
-    try { parsed = raw ? JSON.parse(raw) : null; } catch (err) { log.debug('not JSON', err); }
+    try { parsed = raw ? JSON.parse(raw) : null; } catch { fallback('privacy/guardClient:errorBody', new Error('not JSON')); /* the parse error would quote the body */ }
     const detail = Array.isArray(parsed?.detail) ? parsed.detail : [];
     const types = [...new Set(detail.map(d => (d && typeof d.type === 'string' ? d.type : null)).filter(Boolean))].slice(0, 5);
     const locs = [...new Set(detail
@@ -205,7 +206,7 @@ async function detectPiiViaCpuModel(text, enabledCategories, confidenceThreshold
             require('../../../telemetry/metrics').recordSidecarCall({
                 service: 'guard', status: _status, durationMs: Date.now() - _t0,
             });
-        } catch (err) { log.debug('telemetry must never break detection', err); }
+        } catch (err) { bestEffort('privacy/guardClient:sidecarMetric', err); /* telemetry must never break detection */ }
     }
     // result = { hasPii, entities: [...], degraded, degraded_reason }
     const entities = (result.entities || []).map(e => ({

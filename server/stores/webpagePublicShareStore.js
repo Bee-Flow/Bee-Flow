@@ -41,7 +41,7 @@ const webpageStore = require('./webpageStore');
 const { makeStoreInit } = require('./lib/storeInit');
 const log = require('../telemetry/log');
 const { parseJSONObject: parseJSON } = require('./lib/json');
-const { fallback } = require('../utils/bestEffort');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const ACCESS_MODES = ['unlisted', 'password', 'email'];
 
@@ -444,7 +444,7 @@ async function deleteShare(id, createdBy) {
     const share = await getShareById(id);
     if (!share || share.createdBy !== createdBy) return false;
     await run('DELETE FROM webpage_public_shares WHERE id = $1', [id]);
-    purgeSnapshotObjects(id).catch(() => {});
+    purgeSnapshotObjects(id).catch((e) => bestEffort('stores/webpagePublicShareStore:purgeSnapshot', e));
     return true;
 }
 
