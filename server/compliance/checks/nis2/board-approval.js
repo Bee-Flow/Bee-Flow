@@ -21,7 +21,6 @@
 
 const { getAll, getOne } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
-const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
 const { isMissingTable } = require('../../../utils/isMissingTable');
 

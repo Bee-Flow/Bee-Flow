@@ -38,7 +38,7 @@ const KEY_POST_INFIX = '_post_';
 const KEY_POSTS_SUFFIX = '_posts';
 
 const { POST_STATUSES, POST_LIMITS } = require('./postLimits');
-const log = require('../../telemetry/log'); const { bestEffort } = require('../../utils/bestEffort');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Path segments the blog itself claims under /blog/… (feed, tag and paging
 // URLs), so no post may take them.

@@ -22,7 +22,6 @@
 'use strict';
 
 const { prepareDryRunPayload } = require('./dryRunTrigger');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 function defaultDeps() {

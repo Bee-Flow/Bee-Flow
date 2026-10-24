@@ -15,7 +15,6 @@
 
 const crypto = require('crypto');
 const { initDB, getClient } = require('./core');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const REMIND_WINDOW_MINUTES = 10;

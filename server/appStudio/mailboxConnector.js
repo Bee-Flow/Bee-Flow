@@ -18,7 +18,6 @@
 
 const emailFetch = require('../services/email/fetch');
 const { resolveMailboxIdentity, sharedModeFor } = require('./mailboxIdentity');
-const log = require('../telemetry/log');
 // The shipped table shapes live in a leaf module so the editor catalog
 // (componentSpecs.js) can serve them without loading this connector.
 const {

@@ -19,7 +19,6 @@
  */
 
 const automationStore = require('../../stores/automationStore');
-const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const ACTIVE_RUNS = new Map();

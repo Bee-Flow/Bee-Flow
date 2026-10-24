@@ -12,7 +12,6 @@
 // into an app table. It is a connector rather than a bespoke subsystem so it
 // inherits scheduling, watermarking, RLS-safe writes, runAs owner/viewer, the
 // viewer connect-prompt UI and the rate limits for free.
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const CONNECTOR_KINDS = Object.freeze(['integration_tool', 'automation', 'rest', 'mailbox']);

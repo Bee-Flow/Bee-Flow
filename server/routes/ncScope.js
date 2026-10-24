@@ -27,7 +27,6 @@ const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 // ── What a caller may send ──────────────────────────────────────────

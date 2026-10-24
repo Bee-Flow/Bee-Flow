@@ -14,7 +14,6 @@
  * happening during the seconds before the first LLM token streams.
  */
 
-const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 function emitPhase(send, stage, detail) {

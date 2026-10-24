@@ -15,7 +15,6 @@ const soaStore = require('../../stores/soaStore');
 const ismsDocStore = require('../../stores/ismsDocStore');
 const registry = require('../../compliance/registry');
 const { orgScope } = require('../../auth/orgScope');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 // The HOME org, read through auth/orgScope.js. 'default' is the single-tenant

@@ -15,7 +15,6 @@
 
 const createDOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
-const log = require('../telemetry/log');
 const { fallback } = require('./bestEffort');
 
 let purifyInstance = null;

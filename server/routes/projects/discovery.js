@@ -5,7 +5,6 @@ const { validate } = require('../../core/http/validate');
 const { lazyProjectRoleGate } = require('./roleGate');
 const { notFound } = require('../../core/http/errors');
 const { TYPES, catalogue, searchCatalogue } = require('../../projects/catalogue');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 const item = z.object({ type: z.enum(TYPES), id: z.string().min(1).max(200) }).strict();
 const query = z.object({ q: z.string().max(200).default(''), type: z.enum(TYPES).optional(), cursor: z.coerce.number().int().min(0).max(10000000).default(0) }).strict();

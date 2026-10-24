@@ -22,7 +22,6 @@
 
 const usageStore = require('../stores/usageStore');
 const integrationActivityStore = require('../stores/integrationActivityStore');
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 /** app-level ∩ step-level (suffix-aware). Empty app list = no confinement. */

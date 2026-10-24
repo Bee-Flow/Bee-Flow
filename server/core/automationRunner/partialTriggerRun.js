@@ -13,7 +13,6 @@ const automationStore = require('../../stores/automationStore');
 const { resolveTriggerPayload } = require('./execution');
 const { callerOnlyUserId } = require('./callerConnections');
 const { resolveRunPolicy } = require('./runPolicy');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 async function runTriggerOnly({ automation, triggerId, triggerNode, triggerPayload, triggerKind, startedByUserId }) {

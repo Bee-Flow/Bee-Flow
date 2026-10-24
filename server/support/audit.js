@@ -10,7 +10,6 @@
  */
 
 const supportStore = require('../stores/supportStore');
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 // Canonical actor kind per action. Includes the historical action strings the

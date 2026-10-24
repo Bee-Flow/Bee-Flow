@@ -27,7 +27,6 @@
  */
 const configStore = require('../../stores/configStore');
 const { limitedChat } = require('../llm/providerLimiter');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 const DATA_EXTRACTION_MODEL_KEY = 'data_extraction_model';

@@ -25,7 +25,6 @@
  */
 
 const complianceStore = require('../stores/complianceStore');
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 const MEMO_MS = Number(process.env.COMPLIANCE_MARKING_MEMO_MS) > 0 ? Number(process.env.COMPLIANCE_MARKING_MEMO_MS) : 60_000;

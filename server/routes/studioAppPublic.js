@@ -88,7 +88,7 @@ const { DATA_LIMITS } = require('../appStudio/dataModel');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { issueVisitorToken, verifyVisitorToken } = require('../auth/publicShareToken');
 const { flattenSteps, normalizeSequence, sanitizeBag } = require('../appStudio/actionSequence');
-const log = require('../telemetry/log'); const { bestEffort, fallback } = require('../utils/bestEffort');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const { assertAttachmentTotalBytes } = mailboxAttachments;
 

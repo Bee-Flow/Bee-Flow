@@ -29,7 +29,6 @@ const router = express.Router();
 const { CategoryBody, CategoryPatch, DeleteCategoryQuery, TransferBody, ToolParamsBody, AgentUpdateBody } = require('./crudSchemas');
 const { verifyHandoffAutomation, resolvePersonaWrite } = require('./agentPersonaWrite');
 const { makeUpdateAgentHandler } = require('./agentUpdate');
-const log = require('../../telemetry/log');
 
 // Block all writes when the caller's org is suspended/archived. Reads are
 // unaffected so customers can still export their data. Super-admins exempt.

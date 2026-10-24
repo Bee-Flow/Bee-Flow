@@ -109,7 +109,6 @@ const { makeWriteThrough } = require('../mirror/writeThrough');
 const { KIND, isMirror } = require('./index');
 const { SpreadsheetSourceError, providerName } = require('./errors');
 const identity = require('./identity');
-const log = require('../../../../telemetry/log');
 const { ROW_MISSING, currentColumns, sameValue, writeFile, scratchOf } = require('./writeThroughFile');
 const { toWire, localValuesFor, keyMoveOf, moveCopy, renumber } = require('./writeThroughMove');
 const { bestEffort } = require('../../../../utils/bestEffort');

@@ -13,7 +13,7 @@
 
 const configStore = require('../../stores/configStore');
 const { createTtlCache } = require('../../utils/ttlCache');
-const log = require('../../telemetry/log'); const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
+const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 // ─── Tier Defaults ────────────────────────────────────────────────────────────
 // Centralised token / temperature / reasoning standards per tier.

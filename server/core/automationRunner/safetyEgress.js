@@ -1,4 +1,3 @@
-const log = require('../../telemetry/log');
 const { collectStringLeaves, applyStringLeaves, _vaultOf } = require('./safetyLeaves');
 const { _detectPii, _scanText } = require('./safetyScan');
 const { bestEffort } = require('../../utils/bestEffort');

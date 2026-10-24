@@ -11,7 +11,6 @@
  * of the payload-truncation helpers.
  */
 
-const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
 const MAX_SHAPE_DEPTH = 24;

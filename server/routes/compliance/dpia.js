@@ -18,7 +18,6 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { CHAT_MONITORING_DPIA_KEY } = require('../../stores/lib/chatMonitoringVocab');
-const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /**

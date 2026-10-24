@@ -72,7 +72,6 @@ const { resolveRuntime } = require('../integrations/webpageFramework');
 const { executeApiHandler } = require('../integrations/webpageApiRuntime');
 const Ai = require('./webpagesPreviewAi');
 const Ask = require('./webpagesPreviewAsk');
-const log = require('../telemetry/log');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 
 // W3 — window.beeflowTables: `/:id/tables/:tid/query|insert|update`. A file

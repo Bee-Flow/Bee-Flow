@@ -17,7 +17,6 @@
  * from stores and routes.
  */
 
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 function isObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }

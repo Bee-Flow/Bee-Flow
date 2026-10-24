@@ -26,7 +26,6 @@ const { Transform } = require('stream');
 const bgzf = require('./bgzf');
 const { parseHeader, parseDataLine, rsNumberOf } = require('./vcfParser');
 const { shardOf } = require('./rsidIndex');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 // A data line larger than this is not a VCF row, it is a malfunction (even

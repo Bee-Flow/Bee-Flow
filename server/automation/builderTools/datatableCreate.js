@@ -30,7 +30,6 @@ const { checkDatatableCreate } = require('./datatableCreateAccess');
 const { stagePendingDatatable } = require('./pendingDatatables');
 const { choiceRequiredError } = require('./datatableApproval');
 const { normaliseKey } = require('./datatableRefs');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 const MAX_FIELDS = 40;

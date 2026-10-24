@@ -6,7 +6,6 @@
 
 const ncClient = require('../nextcloudClient');
 const { XMLParser } = require('fast-xml-parser');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const MAX_TEXT_BYTES = 200 * 1024;          // 200 KB cap on file reads

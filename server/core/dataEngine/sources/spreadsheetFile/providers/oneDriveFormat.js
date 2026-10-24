@@ -11,7 +11,6 @@
 
 const { formulaShaped } = require('../cells');
 const { formatOf } = require('./index');
-const log = require('../../../../../telemetry/log');
 const { fallback } = require('../../../../../utils/bestEffort');
 
 const provider = 'onedrive';

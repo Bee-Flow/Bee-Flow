@@ -19,7 +19,6 @@ const { privateHeaders, loadForm, loadSession, pendingPageFor } = require('./acc
 const { ipLimiter, tokenLimiter, uploadLimiter, pickLimiter, contentLengthGuard } = require('./limits');
 const { pickCaller, declaredPickField } = require('./picks');
 const { friendly } = require('./friendly');
-const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
 
 // Per-form upload quota inside a rolling window. There is no user to bill, so

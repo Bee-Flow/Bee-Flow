@@ -12,7 +12,6 @@
 
 'use strict';
 
-const log = require('../../../telemetry/log');
 
 const {
     _plainObject, toolsConfigOf, CONFIRM_MODES, DATATABLE_SCOPES,

@@ -5,7 +5,6 @@
  */
 
 // ── GitHub Sync hook (fire-and-forget) ───────────────────────────
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 async function _notifySync(orgId, agentId, action = 'pending') {

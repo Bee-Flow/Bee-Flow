@@ -71,7 +71,6 @@
 const { AGG_FNS, PERCENTILE_FNS, DATE_BUCKETS } = require('./dataModel/vocabulary');
 const { resolveDialect } = require('./engineFlag');
 const { dateBucketSql } = require('./dateBuckets');
-const log = require('../../telemetry/log');
 const { MAX_RESULT_ROWS, DEFAULT_LIMIT, MAX_KEY_INDEX_KEYS, MAX_GROUP_BY, MAX_AGGREGATES, ALIAS_RE, CompileError, RowsLockedError, assertRowsWritable, qi, assertTableMeta, fieldMap, resolveColumn, scalar, assertAccessFilter, MATCH_MODES, buildWhere, clampLimit } = require('./queryCompilerBase');
 const { compileInsert, compileUpdate, compileDelete, compileUpsertByKey, compileUpsertById } = require('./queryCompilerWrite');
 const { compileIdList, compileKeyValues, compileDeleteAll, compileDeleteOlderThan, compileSelectOlderThan, compileDeleteOrphans } = require('./queryCompilerMaintenance');

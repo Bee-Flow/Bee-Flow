@@ -22,7 +22,6 @@
  */
 
 const { depsWith } = require('./depsWith');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const LOADERS = {

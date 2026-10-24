@@ -20,7 +20,6 @@
  * @param {(client: any) => Promise<T>} fn
  * @returns {Promise<{ ran: true, value: T } | { ran: false }>}
  */
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 async function withNamedLock(pool, name, fn) {

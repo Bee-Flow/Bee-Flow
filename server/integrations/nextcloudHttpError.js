@@ -14,7 +14,6 @@
  *   other 4xx  the status plus Nextcloud's reason
  */
 
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 const MAX_DETAIL = 200;

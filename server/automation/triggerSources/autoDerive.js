@@ -24,7 +24,6 @@
  */
 const { isSideEffect } = require('../sideEffectMap');
 const { listTriggerSources } = require('./index');
-const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const AUTO_PREFIX = 'auto.';

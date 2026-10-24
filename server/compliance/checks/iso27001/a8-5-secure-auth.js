@@ -29,7 +29,6 @@ const configStore = require('../../../stores/configStore');
 const { configuredSsoProviders } = require('../../lib/ssoProviders');
 // Cached boot-time verdict on OPAQUE_SERVER_SETUP; never loads the WASM.
 const { getServerSetupStatus } = require('../../../auth/opaqueSetup');
-const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
 
 const AUTH_DIR = path.join(__dirname, '..', '..', '..', 'auth');

@@ -12,7 +12,6 @@
  * not be primed with tool noise (it otherwise hallucinates code blocks in
  * tool-heavy chats). Each line is capped so the whole thing stays tiny.
  */
-const log = require('../../../telemetry/log');
 
 function buildTitleTranscript(savedMessages) {
     if (!Array.isArray(savedMessages)) return '';

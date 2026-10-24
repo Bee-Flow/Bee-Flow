@@ -42,7 +42,6 @@
 
 const configStore = require('../../stores/configStore');
 const { NC_INTEGRATIONS, NC_INTEGRATION_ID_SET } = require('./ncIntegrationCatalog');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const MODES = new Set(['all', 'selected', 'off']);

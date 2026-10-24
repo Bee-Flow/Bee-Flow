@@ -17,7 +17,6 @@ const {
 const { analyzePage } = require('./pageModel');
 const { detectMarks, deriveTerms, textReason, norm } = require('./detectMarks');
 const { streamBytes } = require('./pdfFonts');
-const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
 
 const MAX_PAGES = 200;

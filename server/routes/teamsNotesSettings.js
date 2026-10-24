@@ -17,7 +17,6 @@ const { requireAuth, isOrgAdminForOrg: isOrgAdmin } = require('../auth/permissio
 const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const teamsNotes = require('../core/meetingNotes/teamsNotesSettings');
-const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
 const bodyOf = (shape) => z.preprocess(

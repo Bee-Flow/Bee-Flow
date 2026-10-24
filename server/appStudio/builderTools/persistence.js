@@ -12,7 +12,6 @@ const { canonicalizeAppDefinition } = require('../canonicalize');
 const { validateAppDefinition } = require('../validate');
 const ops = require('../definitionOps');
 const { ensureAppName } = require('./appNaming');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 /**

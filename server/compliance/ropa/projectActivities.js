@@ -19,7 +19,6 @@
  */
 
 const pd = require('../projects/projectData');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 const KIND_LABEL = Object.freeze({

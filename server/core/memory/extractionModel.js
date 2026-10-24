@@ -25,7 +25,6 @@
 
 const configStore = require('../../stores/configStore');
 const { resolveModelWithGlobalFallback } = require('../llm/modelResolver');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 const CONFIG_KEY = 'memory_extraction_model';

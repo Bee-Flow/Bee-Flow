@@ -24,7 +24,6 @@ const learningRoutes = require('./ai/learning');
 const learningAdminRoutes = require('./ai/learningAdmin');
 const { requireCapability } = require('../core/entitlements/entitlements');
 const { requireModule } = require('../modules');
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 // Mount all sub-routes

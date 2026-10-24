@@ -23,7 +23,6 @@
  * Pure: no I/O, no dependencies.
  */
 
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const CHART_TYPES = Object.freeze(['column', 'bar', 'line', 'area', 'pie', 'donut']);

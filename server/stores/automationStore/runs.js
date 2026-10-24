@@ -7,7 +7,6 @@ const crypto = require('crypto');
 const { initDB, run, getOne, getAll, pool } = require('./core');
 const { rowToRun, fromJsonb } = require('./rowMappers');
 const { buildUpdate } = require('../lib/sqlBuilder');
-const log = require('../../telemetry/log');
 const { projectOrgRun } = require('./orgRunRow');
 const { JOURNEY_LATERAL, ORG_SCOPE_JOIN, buildRunFilterWhere } = require('./runsFilter');
 const { RUN_FACET_AUTOMATIONS_CAP, getRunFacetsForUser, getRunFacetsForAutomation, getRunFacetsForOrg, getRunCountForUserSince, getRecentRunStatusesForUser, getRunCountsForProjects } = require('./runsStats');

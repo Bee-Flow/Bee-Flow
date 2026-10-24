@@ -19,7 +19,6 @@
  * config read (60 s cache, failure → no override).
  */
 const configStore = require('../../stores/configStore');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 const AI_STEP_MODEL_KEY = 'ai_step_model';

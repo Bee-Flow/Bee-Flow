@@ -30,7 +30,6 @@
 const { getAll } = require('../../db');
 const configStore = require('../../stores/configStore');
 const { SUPPLIER_ROW, LEDGER_ORG_SQL } = require('../../stores/integrationLocationSql');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 const { isMissingTable } = require('../../utils/isMissingTable');
 

@@ -21,7 +21,6 @@
 
 const frameworks = require('../../frameworks');
 const frameworkPolicy = require('../../frameworkPolicy');
-const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
 
 const FAIL_AFTER_DAYS = 365;

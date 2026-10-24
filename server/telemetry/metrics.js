@@ -15,7 +15,6 @@
  */
 
 const { metrics } = require('@opentelemetry/api');
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 const meter = metrics.getMeter('beeflow-server', process.env.APP_BUILD_SHA || 'dev');
 

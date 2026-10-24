@@ -16,7 +16,6 @@ const def = require('./definition');
 const { authOfRow, libraryDefinition, sharedGrantFor, listOrgGrants, providerOf, capIdOf } = require('./service');
 
 const deps = require('./deps');
-const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
 
 const store = () => deps.store();

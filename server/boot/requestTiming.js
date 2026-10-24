@@ -4,7 +4,6 @@
  * parser; the counters it fills are read back by /api/admin/metrics.
  */
 
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 const UNMATCHED_ROUTE = '__unmatched__';

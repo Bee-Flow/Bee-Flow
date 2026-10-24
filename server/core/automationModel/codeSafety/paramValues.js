@@ -17,7 +17,6 @@
 
 'use strict';
 
-const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
 
 function isEmpty(v) {

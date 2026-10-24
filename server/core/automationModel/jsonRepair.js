@@ -30,7 +30,6 @@
 'use strict';
 
 /** Strip a leading ```json / ``` fence and its closing fence, if both are there. */
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 function stripFence(text) {

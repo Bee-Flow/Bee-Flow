@@ -8,7 +8,6 @@
 
 const { getAll } = require('../../db');
 const { initDB } = require('./schema');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 /**

@@ -28,7 +28,7 @@ const { resolveTriggerPayload } = execution;
 const { automationForRun } = require('./definitionForRun');
 const { runTriggerOnly } = require('./partialTriggerRun');
 const { runVarsFor, isManagedAutomation } = require('./stageVars');
-const log = require('../../telemetry/log'); const { bestEffort } = require('../../utils/bestEffort');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // The init seam for what a partial run hands its synthetic to and seeds its
 // replay from. Production never sets it; a test captures the synthetic here

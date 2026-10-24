@@ -48,7 +48,6 @@ const queryCompiler = require('./queryCompiler');
 const accessFilter = require('./accessFilter');
 const datatableStore = require('../../stores/datatableStore');
 const datatableDbStore = require('../../stores/datatableDbStore');
-const log = require('../../telemetry/log');
 const {
     gradeForPrincipal, gradeAtLeast, datatableScopesFor, synthesizeAccess,
 } = require('../../auth/datatableAccess'); const { bestEffort } = require('../../utils/bestEffort');

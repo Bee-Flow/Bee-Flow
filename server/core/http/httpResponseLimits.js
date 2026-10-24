@@ -28,7 +28,6 @@
  */
 'use strict';
 
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const HTTP_RESPONSE_CAP = 1024 * 1024;

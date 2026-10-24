@@ -23,7 +23,6 @@
  * @param {unknown} raw
  * @returns {SelectionOption[]}
  */
-const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
 function parseSelectionOptions(raw) {

@@ -9,7 +9,6 @@
  */
 
 /* global document, window, parent, NodeFilter, CSS, Highlight */
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 function bridgeCore(B) {

@@ -24,7 +24,6 @@ const { resolveMemoryContext, injectProjectAndKnowledgeContext } = require('../c
 const { resolveMemoryPolicy } = require('../../memory/memoryPolicy');
 const { createUntokenisingEventWrapper } = require('../streamUntokeniser');
 const chatSignals = require('../../privacy/chatSignals');
-const log = require('../../../telemetry/log');
 const {
     resolveAndPrewarmShield, buildPromptWithMemory, hydrateTokenVault, runGuardrailsPhase,
     dropWebSearchOnUpload, runAgentDlpPreflight, dlpBlockError,

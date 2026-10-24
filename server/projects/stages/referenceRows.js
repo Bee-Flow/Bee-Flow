@@ -51,7 +51,7 @@ const queryCompiler = require('../../core/dataEngine/queryCompiler');
 const personal = require('../../core/privacy/personalColumns');
 const { toDollarParams } = require('../../stores/lib/pgAppEngine');
 const { HttpError } = require('../../core/http/errors');
-const log = require('../../telemetry/log'); const { bestEffort } = require('../../utils/bestEffort');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** Caps from design section 2. Over any of them the release is blocked. */
 const LIMITS = Object.freeze({

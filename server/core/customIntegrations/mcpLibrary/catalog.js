@@ -35,7 +35,6 @@
  *   safetyNote   optional least-privilege advice shown at install time
  */
 
-const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
 
 const CATEGORIES = Object.freeze(['development', 'data', 'docs', 'payments', 'automation', 'observability']);

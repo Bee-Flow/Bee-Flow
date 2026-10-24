@@ -10,7 +10,6 @@ const { requireAuth } = require('../../auth');
 const { getUserId } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const KB_IDS = 'kbIds is a list of knowledge base ids.';

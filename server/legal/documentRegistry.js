@@ -16,7 +16,6 @@
  */
 
 // The consumer right-of-withdrawal waiver is a checkout-time acknowledgement.
-const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
 const WITHDRAWAL_WAIVER = {

@@ -57,7 +57,6 @@ const { inferColumns } = require('./infer');
 const sync = require('./sync');
 const { KIND, PROVIDERS } = require('./index');
 const { resolveDeclared } = require('./linkRelations');
-const log = require('../../../../telemetry/log');
 const { MAX_CRUMB_DEPTH, deps, rejected, callerApi, linkedIn, browse } = require('./linkBrowse');
 const { wireRef } = require('./linkRef');
 const { applySettings } = require('./linkSettings');

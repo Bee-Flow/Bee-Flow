@@ -18,7 +18,6 @@ const { nextScheduledRunAt } = require('../holidays');
 // scheduler runs" can never drift apart.
 const { DEFAULT_SCHEDULE_TZ } = require('../triggerColumns');
 const { isObject, validatePosition } = require('./helpers');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 /**

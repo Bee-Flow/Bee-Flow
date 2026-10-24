@@ -36,7 +36,6 @@ const MEMO_TTL_MS = 60_000;
 const _memo = new Map();   // memoKey → { at, value, error }
 
 const { integrationClient } = require('../../../integrations/integrationClients');
-const log = require('../../../../telemetry/log');
 const { fallback, bestEffort } = require('../../../../utils/bestEffort');
 
 function deps() {

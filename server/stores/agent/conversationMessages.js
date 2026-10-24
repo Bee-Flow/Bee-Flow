@@ -41,7 +41,7 @@ const { makeStoreInit } = require('../lib/storeInit');
 const { runDdl } = require('../lib/_ddl');
 const { encryptField, decryptField, isEnvelope } = require('../lib/fieldEnvelope');
 const { conversationKey, messageAad, PLAINTEXT_CONTEXT } = require('./messageCrypto');
-const log = require('../../telemetry/log'); const { fallback } = require('../../utils/bestEffort');
+const { fallback } = require('../../utils/bestEffort');
 
 const initMessagesTable = makeStoreInit('ConversationMessages', _initMessagesTable);
 

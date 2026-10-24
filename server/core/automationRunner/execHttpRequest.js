@@ -37,7 +37,6 @@ const { HTTP_RESPONSE_CAP, readBodyBounded } = require('../http/httpResponseLimi
 const safety = require('./safety');
 // Each outbound call runs in its own capture context (core/http/captureCall.js).
 const { captureCall: captured } = require('../http/captureCall');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 // 1MB response cap — shared with codeSandbox's defaultFetchHttp bridge via

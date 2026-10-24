@@ -16,7 +16,6 @@ const { resolveFramework } = require('../integrations/webpageFramework');
 const { composeDoc } = require('../core/webpages/webpageThumbnailGenerator');
 const { composeReactDoc, buildStubBridgeScript } = require('./reactBundleServer');
 const { loadReactFiles } = require('./webpageReactFiles');
-const log = require('../telemetry/log');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const VIEWPORTS = {

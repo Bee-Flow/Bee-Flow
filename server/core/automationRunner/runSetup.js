@@ -19,7 +19,6 @@ const { automationForRun, isTestRun } = require('./definitionForRun');
 // Solution stages (design 4.2, D17): the project's variable values over
 // definition.vars, and whether an automation is managed by a stage.
 const { runVarsFor, isManagedAutomation } = require('./stageVars');
-const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /**

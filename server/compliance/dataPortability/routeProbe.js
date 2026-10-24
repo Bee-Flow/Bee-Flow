@@ -21,7 +21,6 @@
 
 'use strict';
 
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const MAX_DEPTH = 16;

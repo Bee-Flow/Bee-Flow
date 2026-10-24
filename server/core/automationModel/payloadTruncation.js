@@ -33,7 +33,6 @@
  * Non-mutating; returns a new value tree when truncation kicks in.
  */
 
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const DEFAULT_MAX_BYTES = 256 * 1024; // 256 KB per payload

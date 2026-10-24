@@ -23,7 +23,6 @@
  * shared browser comfortably serves the low-volume export/thumbnail/ingest load.
  */
 
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 const DEFAULT_DEPS = {

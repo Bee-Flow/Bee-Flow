@@ -39,7 +39,6 @@
  * able to check.
  */
 
-const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
 
 const supportsModes = ['manual', 'schedule', 'after_meeting'];

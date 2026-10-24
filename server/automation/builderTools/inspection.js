@@ -7,7 +7,6 @@
  */
 
 const { compactSample } = require('./modelPayload');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 /**

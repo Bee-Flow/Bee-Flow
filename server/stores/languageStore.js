@@ -12,7 +12,7 @@
  */
 
 const configStore = require('./configStore');
-const log = require('../telemetry/log'); const { bestEffort } = require('../utils/bestEffort');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ── Default locale list (seeded on first access) ────────────────
 

@@ -28,7 +28,6 @@
 const crypto = require('crypto');
 const { refreshAccessToken } = require('./googleClient');
 const { parseRetryAfter, backoffDelay, sleep } = require('../core/http/retryAfter');
-const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
 const GMAIL_BATCH_ENDPOINT = 'https://gmail.googleapis.com/batch/gmail/v1';

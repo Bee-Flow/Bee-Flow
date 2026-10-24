@@ -10,7 +10,6 @@
 
 const fs = require('fs');
 const summaryTemplateStore = require('../../stores/summaryTemplateStore');
-const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 /** A user-supplied speaker count → a positive int, or null (Auto). */

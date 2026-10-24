@@ -9,7 +9,6 @@
 const { baseNameOf, classify, zipEntryPath, folderOf } = require('./naming');
 const { hasField, fileEntryAsAttachment } = require('./attachmentRows');
 const { MAX_ZIP_ENTRIES, MAX_ARCHIVE_DEPTH, MAX_ZIP_TOTAL_BYTES, MAX_TOTAL_FILES } = require('./limits');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 async function expandArchives(app, model, state, { attTable, fileField, poRe, writeRecord, writeViewer, ctx, mailbox }) {

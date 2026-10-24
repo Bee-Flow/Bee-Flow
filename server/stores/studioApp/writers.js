@@ -13,7 +13,6 @@ const { setStudioAppPublished, setStudioAppAudience, publishDefinitionWith } = r
 const { deleteStudioApp } = require('./deleteApp');
 const { restoreVersion } = require('./versions');
 const { setBuilderSession } = require('./builderSession');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const { run, getOne, getAll, getClient, withTransaction } = dep('db');

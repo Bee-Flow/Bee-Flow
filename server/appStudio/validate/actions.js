@@ -33,7 +33,6 @@ const {
 const { validateBinding } = require('./bindings');
 const { containsSendEmail, KIND_CHECKS } = require('./stepKindChecks');
 const { DATASET_QUERY_OUTPUTS, KIND_CHECKS: DATA_KIND_CHECKS } = require('./stepDataChecks');
-const log = require('../../telemetry/log');
 
 // ---------------------------------------------------------------------------
 // Actions

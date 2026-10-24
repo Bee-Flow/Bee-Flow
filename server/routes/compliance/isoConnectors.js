@@ -27,7 +27,6 @@ const { resolveOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */

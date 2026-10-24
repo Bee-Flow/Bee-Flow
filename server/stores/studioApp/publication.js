@@ -9,7 +9,6 @@ const crypto = require('crypto');
 const { dep } = require('./deps');
 const { initDB } = require('./schema');
 const { META_COLS, mapAppMetaRow } = require('./rowMappers');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const { run, getOne, getAll } = dep('db');

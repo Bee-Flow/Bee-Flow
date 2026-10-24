@@ -31,7 +31,6 @@ const { requireFeature } = require('../license/middleware');
 const service = require('../core/customIntegrations/mcpLibrary/service');
 const members = require('../core/customIntegrations/mcpLibrary/members');
 const policyModule = require('../core/customIntegrations/mcpLibrary/policy');
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 const router = express.Router();

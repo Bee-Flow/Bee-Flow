@@ -24,7 +24,6 @@
 
 const accessFilter = require('../core/dataEngine/accessFilter');
 const studioAppDataStore = require('../stores/studioAppDataStore');
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 // ── Viewer role resolution ──────────────────────────────────────────

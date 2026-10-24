@@ -34,7 +34,6 @@ const { z, bodyOf, choice, typeError } = require('../../core/http/schemaParts');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const findingState = require('../../compliance/findingState');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const MAX_DAYS = 365;

@@ -7,7 +7,6 @@ const { SpreadsheetSourceError, providerName } = require('./errors');
 const { readCell, isBlank } = require('./cells');
 const identity = require('./identity');
 const { fieldsByIdOf } = require('./rows');
-const log = require('../../../../telemetry/log');
 const { bestEffort } = require('../../../../utils/bestEffort');
 
 /**

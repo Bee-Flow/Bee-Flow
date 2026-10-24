@@ -5,7 +5,6 @@
 
 const { getOne, getAll, pool } = require('../../db');
 const { initDB } = require('./initSchema');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 async function getSystemStats(startDate = null, endDate = null) {

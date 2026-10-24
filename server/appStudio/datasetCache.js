@@ -44,7 +44,6 @@ const studioAppDataStore = require('../stores/studioAppDataStore');
 const studioAppDbStore = require('../stores/studioAppDbStore');
 const queryCompiler = require('./queryCompiler');
 const rlsGateway = require('./rlsGateway');
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 const DEFAULT_TTL_SECONDS = 60;

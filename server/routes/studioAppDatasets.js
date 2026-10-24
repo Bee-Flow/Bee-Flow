@@ -134,7 +134,7 @@ const {
     datasetInitLimiter, datasetPartLimiter, datasetCompleteLimiter, datasetStatusLimiter,
 } = require('./studioAppRateLimits');
 const { SHARD_COUNT, shardName } = require('../core/datasets/rsidIndex');
-const log = require('../telemetry/log'); const { bestEffort } = require('../utils/bestEffort');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ── Sizing (env-tunable; a NEW quota axis, deliberately not MAX_ATTACHMENT_BYTES) ──
 const PART_BYTES = parseInt(process.env.DATASET_PART_BYTES, 10) || 32 * 1024 * 1024;

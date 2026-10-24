@@ -14,7 +14,6 @@ const {
     mergeVoteAnswers, voteSummary, panelProgress, isFinalApprover,
 } = require('./approvalRulebook');
 const { outcome, userDisplayName, finalizeDecision } = require('./approvalDecision');
-const log = require('../telemetry/log');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
 /** The next stage's reminder deadline, or undefined to leave the clock alone. */

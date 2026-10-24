@@ -12,7 +12,6 @@ const { MASK_VALUES } = require('./httpAuth');
 // The shared path grammar (pure, no engine module): how a binding root is read.
 const { scanTemplate, formatPath } = require('./expr');
 const { refHead, findRefPaths, tryParseExpr } = require('../automationModel/refPaths');
-const log = require('../../telemetry/log');
 
 const RUNNER_INTERVAL_MS = 60_000;
 const POLLING_INTERVAL_MS = 30_000;

@@ -22,7 +22,6 @@
 const { resolveLinkableDatatable, projectLinkedTable, describeLinkedTables, overlayLinkedRowCounts } = require('../linkedTables');
 const { canonicalizeDataModel, validateDataModel, emptyDataModel } = require('../dataModel');
 const { persistDataModel, dataModelPersistError } = require('./dataTools');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 function currentModel(draftWrap) {

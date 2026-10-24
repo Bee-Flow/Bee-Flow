@@ -12,7 +12,6 @@
 
 const { badRequest, conflict } = require('../../core/http/errors');
 const { taskEvent, sealList, checkDates, canContain } = require('./tasksPresent');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 /** Assignees must be on the project right now. */

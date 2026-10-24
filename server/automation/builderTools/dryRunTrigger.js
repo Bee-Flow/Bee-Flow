@@ -8,7 +8,6 @@
  * that cannot match passed unnoticed.
  */
 
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 /**

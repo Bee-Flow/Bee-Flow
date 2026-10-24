@@ -25,7 +25,6 @@
  */
 
 const chatSignals = require('../../../core/privacy/chatSignals');
-const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
 
 /** The marker and the switch the composer sent; anything else reads as absent. */

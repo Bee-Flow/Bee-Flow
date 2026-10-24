@@ -11,7 +11,6 @@
  * (GET /agents/memory?ids=), which no longer returns a deleted memory.
  */
 
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const PREVIEW_CHARS = 120;

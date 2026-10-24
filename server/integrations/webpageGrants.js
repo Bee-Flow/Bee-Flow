@@ -22,7 +22,6 @@
  * every store pins a DB pool, so eager top-level requires made the unit tests
  * hang/crash.
  */
-const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
 function resolveDeps(_deps = {}) {

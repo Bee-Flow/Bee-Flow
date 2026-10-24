@@ -55,7 +55,6 @@ const { isTranscriptionTool, executeTranscriptionTool } = require('./transcripti
 const { isSupportTool, executeSupportTool } = require('./supportTools');
 const { isWebpageAutomationTool, executeWebpageAutomationTool } = require('./webpageAutomationTools');
 const { executeNextcloudFamilyTool, executeGuardedNextcloudTool, executeCheckedNextcloudTool, isNextcloudFamilyToolName } = require('./nextcloudToolFamily');
-const log = require('../telemetry/log');
 
 /** The org a document tool files its output under. */
 function documentOrgId({ orgId, session }) {

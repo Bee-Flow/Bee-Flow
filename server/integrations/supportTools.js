@@ -11,7 +11,7 @@
 // @typecheck
 const supportStore = require('../stores/supportStore');
 const userStore = require('../stores/userStore');
-const log = require('../telemetry/log'); const { bestEffort, fallback } = require('../utils/bestEffort');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const SUPPORT_TOOLS = [
     {

@@ -30,7 +30,6 @@
 
 const pd = require('../../projects/projectData');
 const signals = require('../../projects/personalDataSignals');
-const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
 
 const ORG_WIDE_DPIA_KEY = 'project_ai_participation';

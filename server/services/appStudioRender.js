@@ -32,7 +32,7 @@ const rlsGateway = require('../appStudio/rlsGateway');
 const { seedVariableDefaults } = require('../appStudio/componentSpecs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
 const { compile, tryEvaluate } = require('../automation/expr');
-const log = require('../telemetry/log'); const { fallback, bestEffort } = require('../utils/bestEffort');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const RUNTIME_DIR = path.join(__dirname, '..', 'vendor', 'app-runtime');
 const BUNDLE_JS = 'app-runtime.mjs';

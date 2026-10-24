@@ -6,7 +6,6 @@
  */
 
 const { describePick } = require('../../../automation/formPickRecord');
-const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
 
 /**

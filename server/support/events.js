@@ -15,7 +15,6 @@
  */
 
 const { EventEmitter } = require('events');
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 const supportEvents = new EventEmitter();

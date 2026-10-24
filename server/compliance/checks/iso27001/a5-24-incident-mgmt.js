@@ -18,7 +18,6 @@
 
 const complianceStore = require('../../../stores/complianceStore');
 const incidentStore = require('../../../stores/incidentStore');
-const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
 
 module.exports = {

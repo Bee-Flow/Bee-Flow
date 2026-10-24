@@ -8,7 +8,6 @@ const { run, getOne, getAll } = require('../../db');
 const storageStore = require('../storageStore');
 const { initDB } = require('./schema');
 const { sha256 } = require('./shared');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Extra-files (multi-file) RustFS helpers ────────────────────────

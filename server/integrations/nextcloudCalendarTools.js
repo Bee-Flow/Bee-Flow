@@ -17,7 +17,7 @@ const ncClient = require('./nextcloudClient');
 const { hasWritePrivilege } = require('./nextcloudDavProps');
 const { extractReason } = require('./nextcloudHttpError');
 const { CalendarInputError, buildVCalendarEvent, updateVCalendarEvent } = require('./nextcloudCalendarIcs');
-const log = require('../telemetry/log'); const { fallback } = require('../utils/bestEffort');
+const { fallback } = require('../utils/bestEffort');
 
 const xmlParser = new XMLParser({
     ignoreAttributes: false,

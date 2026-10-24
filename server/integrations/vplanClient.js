@@ -1,4 +1,3 @@
-const log = require('../telemetry/log');
 const { DEFAULT_LIMIT, MAX_LIMIT } = require('./vplanToolDefs');
 const { fallback: fallbackSwallowed } = require('../utils/bestEffort');
 

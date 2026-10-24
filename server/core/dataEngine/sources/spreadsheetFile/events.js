@@ -50,7 +50,6 @@
 
 const datatableStore = require('../../../../stores/datatableStore');
 const { KIND } = require('./index');
-const log = require('../../../../telemetry/log');
 const { fallback } = require('../../../../utils/bestEffort');
 
 const PROVIDER = 'nextcloud_files';

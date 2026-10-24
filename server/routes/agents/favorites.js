@@ -11,7 +11,6 @@ const router = express.Router();
 const agentStore = require('../../stores/agentStore');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
-const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const AGENT_IDS = 'agentIds is a list of agent ids.';

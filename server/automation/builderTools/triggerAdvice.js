@@ -10,7 +10,6 @@
  * install and a half-built trigger is a normal intermediate state.
  */
 
-const log = require('../../telemetry/log');
 const { PUSH_PENDING } = require('../deliverableEvents');
 const { fallback } = require('../../utils/bestEffort');
 

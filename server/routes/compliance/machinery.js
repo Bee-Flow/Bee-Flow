@@ -29,7 +29,6 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { HttpError } = require('../../core/http/errors');
 const { worded } = require('../../core/http/schemaParts');
-const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const guard = [requireAuth, requirePermission('admin_compliance'), requireCapability('compliance_hub_machinery')];

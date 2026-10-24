@@ -13,7 +13,6 @@
 const { executeTool: dispatchTool } = require('../tools/toolDispatcher');
 const usageStore = require('../../stores/usageStore');
 const { usageLogFields } = require('../providers/usageNormalizer');
-const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 const WORKER_DEFAULT_MAX_TOKENS = 6000;

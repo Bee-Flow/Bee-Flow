@@ -28,7 +28,6 @@
 
 const { guardedFetch } = require('../fetchGuard');
 const { readTextOrThrowOversize, kbWebPageMaxBytes, kbSitemapMaxBytes } = require('../../http/httpResponseLimits');
-const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
 
 /** A crawl source will not walk more than this, whatever its config says. */

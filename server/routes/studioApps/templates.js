@@ -16,7 +16,6 @@ const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { requireAuth } = require('../../auth/permissions');
 const { DownloadQuery } = require('./schemas');
 const { requireManageApps, audienceFor, resolveOwnerOrgId } = require('./access');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 const router = express.Router();

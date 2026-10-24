@@ -12,7 +12,6 @@ const { AGG_FNS } = require('../dataModel');
 const { parseQueryArgs, shapeTableRow, pageDatasetRows, pageMeta, queryFailure, MAX_QUERY_LIMIT } = require('./queryDataArgs');
 const { persistDraft } = require('./persistence');
 const { isDatatableBacked } = require('../datatableSource');
-const log = require('../../telemetry/log');
 const { linkedTableRefusal, rowCountsById, findModelTable, tableIdHint, persistDataModel, dataModelPersistError } = require('./dataToolsShared');
 const { mergeTableOp, applyUpsertTable, findTableRefs, applyRemoveTable, applySetRoles } = require('./dataToolsTables');
 

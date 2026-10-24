@@ -44,7 +44,6 @@
 'use strict';
 
 const { bridgeCore, bridgeDraw } = require('./documentEditBridgeParts');
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 /* global document, window, parent */

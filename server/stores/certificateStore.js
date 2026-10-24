@@ -10,7 +10,6 @@
 // the plaintext token (which is recomputable on demand from the HMAC secret).
 
 const configStore = require('./configStore');
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 const userKey = (userId) => `learning_certificate_user_${userId}`;

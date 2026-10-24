@@ -5,7 +5,6 @@
  */
 
 const { getAIConfig, getProviderForModel } = require('../core/aiAgent');
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 /**

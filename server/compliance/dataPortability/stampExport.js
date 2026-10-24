@@ -19,7 +19,6 @@
 'use strict';
 
 const crypto = require('crypto');
-const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const CHECK_ID = 'DATA_ACT-Art25-exit-procedure';

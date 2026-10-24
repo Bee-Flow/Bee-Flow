@@ -1,5 +1,4 @@
 'use strict';
-const log = require('../../telemetry/log');
 const { _stringify } = require('./safetyLeaves');
 const { PII_SCAN_WINDOW, _detectPii, _scanText } = require('./safetyScan');
 const { mintTokensFor, tokenizeIntoVault, egressMode, maskTokens, prepareForEgress, restoreForRunState, logEgress } = require('./safetyEgress');

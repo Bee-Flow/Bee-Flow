@@ -13,7 +13,6 @@
 
 'use strict';
 
-const log = require('../../../telemetry/log');
 const { fallback: fallbackSwallowed, bestEffort } = require('../../../utils/bestEffort');
 
 const EU_EEA_COUNTRIES = new Set([

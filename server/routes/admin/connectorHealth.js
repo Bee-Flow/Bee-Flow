@@ -32,7 +32,6 @@ const { tagGate } = require('../../auth/gateMeta');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 // -- What a caller may send ------------------------------------------

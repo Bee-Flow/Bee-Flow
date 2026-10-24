@@ -13,7 +13,6 @@
  * a quoted key hid a whole placeholder.
  */
 
-const log = require('../../telemetry/log');
 
 const {
     parsePath, readPath, formatPath, canonicalPath, scanTemplate, replaceTemplate, parseExpr,

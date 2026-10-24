@@ -7,7 +7,6 @@
  */
 
 const { azureModelFor } = require('../providers/azureDeployments');
-const log = require('../../telemetry/log');
 const {
     isMistralServedModel,
     mistralCacheReadRatio,

@@ -16,7 +16,6 @@
 
 const { SpreadsheetSourceError, fromHttp } = require('../errors');
 const { formatOf } = require('./index');
-const log = require('../../../../../telemetry/log');
 const {
     provider, DATE_FORMAT_RE, TIME_FORMAT_RE,
     colLetter, parseAddress, markerEquals, graphError, workbookValue, needsTextFormat, workbookFormat,

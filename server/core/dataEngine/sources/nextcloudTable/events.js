@@ -35,7 +35,6 @@ const { resolveLinker } = require('./linkerAuth');
 const ncApi = require('./ncApi');
 const { mirrorRowFromNc, fieldsByIdOf } = require('./rows');
 const { buildRelationIndexes } = require('./relations');
-const log = require('../../../../telemetry/log');
 const { bestEffort, fallback: fallbackSwallowed } = require('../../../../utils/bestEffort');
 
 const PG = { dialect: 'pg' };

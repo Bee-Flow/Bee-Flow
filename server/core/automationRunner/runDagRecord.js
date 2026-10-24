@@ -16,7 +16,6 @@ const {
 const { isRunPause } = require('./execApproval');
 const { notePublicValues, publicValuesFor } = require('./publicValues');
 const { toolIdentity } = require('./toolIdentity');
-const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 /** Whether this walk writes run-step rows (re-read at every use, as ctx may change). */

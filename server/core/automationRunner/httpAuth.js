@@ -40,7 +40,6 @@
 // The custom-integration auth renderer is integrations/', reached through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
 const { toolIdentity } = require('./toolIdentity');
-const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 const MASK_VALUES = Symbol.for('beeflow.automation.maskValues');

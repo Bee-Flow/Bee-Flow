@@ -5,7 +5,6 @@ const { z } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { projectAccessDeps } = require('./roleGate');
 const { badRequest, conflict, notFound } = require('../../core/http/errors');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 const STATUSES = ['todo', 'doing', 'done'];
 const DEFAULT_COLUMNS = STATUSES.map(id => ({ id, title: '', status: id, wipLimit: null }));

@@ -12,7 +12,6 @@
 
 const kbStore = require('../../stores/knowledgeBases');
 const { friendlyError } = require('./friendlyError');
-const log = require('../../telemetry/log');
 const { assertUrlIsPublic, fetchUrlContent, fetchWithPlaywright } = require('./kbUrlFetch');
 const { extractFileContentWithMeta, extractFileContent } = require('./kbFileExtract');
 const { findDocumentBySourceUri, findDocumentsBySourceUri } = require('./kbDocLookup');

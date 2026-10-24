@@ -22,7 +22,6 @@
 'use strict';
 
 const { keyFromTitle } = require('./sources/mirror/keys');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 function defaultDeps() {

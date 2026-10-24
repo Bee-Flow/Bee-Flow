@@ -18,7 +18,6 @@
 'use strict';
 
 /** Fields whose name says what kind of personal data the table holds. */
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 const CATEGORY_HINTS = Object.freeze([

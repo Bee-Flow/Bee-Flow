@@ -48,7 +48,7 @@ const {
 const { toRefs, variablesInSteeringFields, splitIds, isRef } = require('../../core/packaging/pointers');
 const { sweepRawIds, isTableToken } = require('./idSweep');
 const { buildProjectGraph } = require('../graph');
-const log = require('../../telemetry/log'); const { fallback } = require('../../utils/bestEffort');
+const { fallback } = require('../../utils/bestEffort');
 
 function clone(v) {
     try { return structuredClone(v); } catch { return JSON.parse(JSON.stringify(v ?? null)); }

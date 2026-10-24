@@ -23,7 +23,6 @@
  */
 
 const JSZip = require('jszip');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 const MAX_TEMPLATE_BYTES = 25 * 1024 * 1024;

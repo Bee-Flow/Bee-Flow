@@ -32,7 +32,6 @@
  * problem for whoever is being hammered, and short enough that a source
  * whose upstream came back does not sit idle for a working day.
  */
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const MAX_BACKOFF_MINUTES = 60;

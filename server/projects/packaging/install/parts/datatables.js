@@ -6,7 +6,6 @@
 'use strict';
 
 const { writeOpts } = require('../context');
-const log = require('../../../../telemetry/log');
 const { bestEffort } = require('../../../../utils/bestEffort');
 
 /** `<key>_2` … `<key>_9`: the copies a key clash may try (F7). */

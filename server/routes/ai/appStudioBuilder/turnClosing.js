@@ -20,7 +20,6 @@ const { applyToolCall, persistDraft } = require('../../../appStudio/builderTools
 const { briefForSnapshot } = require('../../../appStudio/builderTools/appNaming');
 const { summariseApp } = require('../../../appStudio/builderPrompt');
 const { HISTORY_EVICT_BLOCK } = require('./turnMessages');
-const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
 
 /** A plan proposed this turn: persist it, hand it over, and wait. */

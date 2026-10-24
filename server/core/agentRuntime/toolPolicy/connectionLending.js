@@ -14,7 +14,6 @@
 'use strict';
 
 const { actionsOfApp, _index } = require('./appIndex');
-const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
 
 /** The connection provider an app id draws credentials from (for lend grants). */

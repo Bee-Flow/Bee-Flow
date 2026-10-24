@@ -1,6 +1,5 @@
 // @typecheck
 const { safeParse } = require('../lib/json');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 /**
  * Pure row→object mappers + JSON helpers (§WS5, extracted verbatim). Leaf module.

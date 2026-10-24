@@ -46,7 +46,6 @@ const { onEvidenceWriteFailed } = require('../../compliance/evidence/writeFailur
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const guard = [requireAuth, requirePermission('admin_compliance'), requireCapability('compliance_hub_custom')];

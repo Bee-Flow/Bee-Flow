@@ -44,7 +44,6 @@
  *
  * @returns {string} e.g. "https://beeflow.nl" — no trailing slash
  */
-const log = require('../telemetry/log');
 const { bestEffort } = require('./bestEffort');
 
 function clientHost() {

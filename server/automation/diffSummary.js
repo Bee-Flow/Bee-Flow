@@ -14,7 +14,6 @@
  * `edges` is ignored — only membership and per-step content matter.
  */
 
-const log = require('../telemetry/log');
 
 function asArray(v) { return Array.isArray(v) ? v : []; }
 function asObject(v) { return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; }

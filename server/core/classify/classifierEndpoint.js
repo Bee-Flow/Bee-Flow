@@ -13,7 +13,6 @@
  * module, and an automation without an "is about" rule must never pay for it.
  */
 
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 const ENDPOINT_CACHE_TTL_MS = 10_000;

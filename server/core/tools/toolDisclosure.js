@@ -21,7 +21,6 @@
  */
 
 const { getToolFamily } = require('./toolFamilyRegistry');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 const LOAD_TOOLS_TOOL_NAME = 'load_tools';

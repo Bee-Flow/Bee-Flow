@@ -16,7 +16,6 @@ const { toContextBias, identifySpeakerNames, applySpeakerNames } = require('../.
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, NO_QUERY } = require('./schemas');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 // ── What a speaker edit may carry ───────────────────────────────────

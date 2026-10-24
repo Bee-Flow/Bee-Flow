@@ -27,7 +27,6 @@
 'use strict';
 
 const crypto = require('crypto');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const KEY_PREFIX = 'cms_mcp_upload_';

@@ -3,7 +3,6 @@
 const { pickClosestId } = require('../../automation/validate/helpers');
 const { emptyDataModel } = require('../dataModel');
 const { persistDraft } = require('./persistence');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 /**

@@ -41,7 +41,6 @@ const userStore = require('../stores/userStore');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
-const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 /** A whole number on the query string, refused in words when it is not one. */

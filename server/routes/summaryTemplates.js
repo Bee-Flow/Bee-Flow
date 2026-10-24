@@ -52,7 +52,6 @@ const {
     validateSharedGroupsForOrg,
 } = require('../auth/permissions');
 const { BUILTIN_TEMPLATES, pickDefaultTemplate } = require('../core/meetingNotes/summaryTemplates');
-const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
 // The prompt is sent to an LLM; a generous but finite cap avoids abuse.

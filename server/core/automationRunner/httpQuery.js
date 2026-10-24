@@ -24,7 +24,6 @@
 'use strict';
 
 const { interpolateTemplate, interpolateJsonBody, resolveValue } = require('../automationModel/bind');
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 const ARRAY_FORMATS = Object.freeze(['indices', 'brackets', 'repeat', 'comma']);

@@ -14,7 +14,6 @@ const { getUserPermissions } = require('../auth/permissions');
 const { resolveCapabilitySet } = require('../core/entitlements/entitlements');
 const { COURSES, buildVisibleByCourse } = require('./courseCatalog');
 const { completedCourses, computeEarnedBadges, lessonDone } = require('./completion');
-const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
 const CACHE_TTL_MS = 60_000;
