@@ -4,10 +4,10 @@
 #
 # Shared packages carry guard-service's pins, so the two CPU sidecars move
 # together.
-fastapi==0.143.0
+fastapi==0.146.0
 uvicorn[standard]==0.54.0
 pydantic==2.14.1
-pydantic-settings==2.15.0
+pydantic-settings==2.16.0
 # certifi: GHSA-6q48-6c7w-9gw2 (compromised emSign intermediates), fixed in 2026.10.19.
 certifi==2026.10.19
 # anyio (via starlette): GHSA-82r6-8w77-94w6, fixed in 4.14.2.
@@ -19,8 +19,8 @@ torch==2.14.0
 # what the model sees: the eval's thresholds hold for this stack, and a
 # floating version could move every score underneath them. Bump them together,
 # with an eval run.
-gliclass==0.1.20
-transformers==5.18.0
+gliclass==0.1.21
+transformers==5.20.1
 tokenizers==0.23.3
 huggingface_hub==1.33.0
 # gliclass requires both (numpy>=2, scikit-learn>=1).
