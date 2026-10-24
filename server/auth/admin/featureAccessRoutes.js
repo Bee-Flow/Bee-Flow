@@ -9,6 +9,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -66,7 +67,6 @@ const OrgAvailabilityBody = z.object({
 const SelectedOrgBody = z.object({
     orgId: worded('An organization id must be text.').trim().max(200, 'That organization id is too long.').nullable().optional(),
 }).strict();
-
 
 // === Beta Features Management API (Admin Only) ===
 
@@ -151,7 +151,7 @@ router.put('/organizations/:orgId/beta-features', requireOrgAdmin('orgId'), vali
         if (trimmed.length !== current.length) {
             await userStore.setOrgEnabledBetaFeatures(orgId, trimmed);
         }
-    } catch (e) { log.debug('non-fatal', e); }
+    } catch (e) { bestEffort('featureAccess:trim-enabled-betas', e); }
     res.json({ success: true, features: updatedFeatures });
 });
 
@@ -265,7 +265,7 @@ async function resolveActiveFeaturesContext(req) {
     let orgId = null;
     if (userOrgIds === null) {
         // Super admin — pick first existing org so they get a usable view.
-        const all = await userStore.getAllOrganizations().catch(() => []);
+        const all = await userStore.getAllOrganizations().catch((e) => fallback('featureAccess:list-orgs', e, []));
         if (Array.isArray(all) && all.length > 0) orgId = all[0].id;
     } else if (userOrgIds.size > 0) {
         orgId = Array.from(userOrgIds)[0];
@@ -332,7 +332,7 @@ async function resolveActiveFeaturesContext(req) {
                 category: 'Custom integrations',
             }));
         }
-    } catch (err) { log.debug('fail-soft — never break the panel', err); }
+    } catch (err) { fallback('featureAccess:custom-integrations', err); }
 
     return {
         orgId,
@@ -538,7 +538,7 @@ async function writeOrgAccessGrants(orgId, granted, actorId) {
     // of them for "All members" on any unrelated toggle; keep them as stored.
     // Their own surfaces (the MCP library) grant and revoke them.
     let storedIntegrations = [];
-    try { storedIntegrations = await userStore.getOrgEnabledIntegrations(orgId); } catch (err) { log.debug('nothing to keep', err); }
+    try { storedIntegrations = await userStore.getOrgEnabledIntegrations(orgId); } catch (err) { fallback('featureAccess:stored-integrations', err); }
     const keptCustom = (Array.isArray(storedIntegrations) ? storedIntegrations : [])
         .filter(id => typeof id === 'string' && id.startsWith('custom:') && !buckets.integration.includes(id));
     await userStore.setOrgEnabledIntegrations(orgId, [...buckets.integration, ...keptCustom]); // NC bypasses; MCP included

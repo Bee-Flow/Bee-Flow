@@ -30,6 +30,7 @@
 const automationCredentialStore = require('../stores/automationCredentialStore');
 const { loadConfig, OAUTH_PROVIDERS, microsoftRefreshScope } = require('./permissions');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const REFRESH_THRESHOLD_MS = 5 * 60_000; // refresh if <5 min left
 
@@ -110,8 +111,7 @@ function reauthError(message) {
 
 async function throwRefreshFailed(label, res) {
     const txt = await res.text().catch(() => '');
-    let oauthError = null;
-    try { oauthError = JSON.parse(txt)?.error || null; } catch (err) { log.debug('non-JSON body', err); }
+    const oauthError = (() => { try { return JSON.parse(txt)?.error || null; } catch (err) { return fallback('automationAuth:refresh-body', err, null); } })();
     const message = `${label} refresh failed (${res.status}): ${txt.slice(0, 200)}`;
     if (FATAL_OAUTH_ERRORS.has(oauthError)) throw reauthError(message);
     throw new Error(message);
@@ -354,7 +354,7 @@ async function _pauseAutomationsAndNotify(userId, provider, errorMessage) {
         // paused proactively here stayed off forever.
         await pauseAll(
             'cowork',
-            await coworkStore.getSchedules(userId).catch(() => []),
+            await coworkStore.getSchedules(userId).catch((e) => fallback('automationAuth:cowork-schedules', e, [])),
             id => coworkStore.updateSchedule(id, { isActive: false, lastStatus: 'needs_reauth' }),
         );
     } catch (err) {

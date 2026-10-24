@@ -46,6 +46,7 @@ const VERIFY_URLS = {
 
 const { clientIp } = require('./signupGuards');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 function provider() {
     const p = String(process.env.SIGNUP_CAPTCHA_PROVIDER || '').trim().toLowerCase();
@@ -97,7 +98,7 @@ async function verifyCaptcha(token, req) {
     try {
         const ip = req ? clientIp(req) : null;
         if (ip) body.set('remoteip', ip);
-    } catch (err) { log.debug('optional signal', err); }
+    } catch (err) { bestEffort('signupCaptcha:client-ip', err); }
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);

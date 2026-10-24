@@ -628,7 +628,7 @@ test('data-anomaly log: connector user under an org without nc_instance_id warns
     userStore.getUserByEmail = async () => ({ id: id2, email: 'ann@acme.example', organizationId: ORG, provider: 'nextcloud_connector', nc_uid: 'ann' });
     userStore.getOrganization = async () => { throw new Error('org lookup'); };
     assertNextOnce(await run(connectorReq(goodPayload())));
-    assert.equal(rec.warns.length, 0);
+    assert.equal(rec.warns.filter((m) => m.includes('Data anomaly')).length, 0);
 });
 
 test('stale nc_uid is repaired only when the email matches; failure is warned and swallowed', async () => {

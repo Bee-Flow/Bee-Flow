@@ -49,11 +49,11 @@
  * than the attack it was guarding against. See utils/perUserRateLimit.js, which
  * makes the same trade for the coarse request caps mounted alongside this.
  */
-
 const crypto = require('crypto');
 const { clientIp, isPrivateIp } = require('./signupGuards');
 const { recordAuthEvent } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * The source address, plus whether it can be trusted to identify one client.
@@ -244,7 +244,7 @@ async function incr(key, ttlMs) {
             // window no matter where a failure lands.
             await r.set(key, 0, 'PX', ttlMs, 'NX');
             return await r.incr(key);
-        } catch (err) { log.debug('fall through to memory', err); }
+        } catch (err) { bestEffort('loginThrottle:redis-fallback-memory', err); }
     }
     const now = Date.now();
     const cur = _mem.get(key);
@@ -263,7 +263,7 @@ async function get(key) {
         try {
             const v = await r.get(key);
             return v === null || v === undefined ? 0 : (parseInt(v, 10) || 0);
-        } catch (err) { log.debug('fall through to memory', err); }
+        } catch (err) { bestEffort('loginThrottle:redis-fallback-memory', err); }
     }
     const cur = _mem.get(key);
     if (!cur || cur.expiresAt <= Date.now()) return 0;
@@ -277,7 +277,7 @@ async function ttl(key) {
         try {
             const ms = await r.pttl(key);
             return ms > 0 ? ms : 0;
-        } catch (err) { log.debug('fall through to memory', err); }
+        } catch (err) { bestEffort('loginThrottle:redis-fallback-memory', err); }
     }
     const cur = _mem.get(key);
     if (!cur) return 0;
@@ -290,7 +290,7 @@ async function set(key, value, ttlMs) {
         try {
             await r.set(key, String(value), 'PX', ttlMs);
             return;
-        } catch (err) { log.debug('fall through to memory', err); }
+        } catch (err) { bestEffort('loginThrottle:redis-fallback-memory', err); }
     }
     _mem.set(key, { value, expiresAt: Date.now() + ttlMs });
     if (_mem.size > MEM_MAX_KEYS) memSweep();
@@ -299,7 +299,7 @@ async function set(key, value, ttlMs) {
 async function del(...keys) {
     const r = redis();
     if (r) {
-        try { await r.del(...keys); } catch (err) { log.debug('best-effort', err); }
+        try { await r.del(...keys); } catch (err) { bestEffort('loginThrottle:redis-del', err); }
     }
     for (const k of keys) _mem.delete(k);
 }

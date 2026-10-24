@@ -7,6 +7,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -412,7 +413,7 @@ router.post('/groups/:id/members', requireAuth, validate({ body: GroupMemberBody
         throw new Error(`Failed to add '${targetUserId}' to group '${id}'`);
     }
     await userStore.logAccessAudit('group.member.add', 'group', id, ctx.adminId || null, null, { userId: targetUserId }, ctx.group.organizationId || null);
-    try { await invalidateAllPermissionCaches(); } catch (err) { log.debug('best-effort', err); }
+    try { await invalidateAllPermissionCaches(); } catch (err) { bestEffort('groupRole:invalidate-perms-add', err); }
     res.json({ success: true });
 });
 
@@ -428,7 +429,7 @@ router.delete('/groups/:id/members/:userId', requireAuth, async (req, res) => {
         throw new Error(`Failed to remove '${targetUserId}' from group '${id}'`);
     }
     await userStore.logAccessAudit('group.member.remove', 'group', id, ctx.adminId || null, { userId: targetUserId }, null, ctx.group.organizationId || null);
-    try { await invalidateAllPermissionCaches(); } catch (err) { log.debug('best-effort', err); }
+    try { await invalidateAllPermissionCaches(); } catch (err) { bestEffort('groupRole:invalidate-perms-remove', err); }
     res.json({ success: true });
 });
 
@@ -486,7 +487,6 @@ router.delete('/groups/:id', requireAuth, async (req, res) => {
         res.status(404).json({ error: 'Group not found' });
     }
 });
-
 
 // === Roles Management API (Admin Only) ===
 
@@ -632,7 +632,7 @@ router.get('/org-roles', requireAdmin, async (req, res) => {
     // decided rather than the shipped defaults. Super admins with no org of
     // their own fall through to the defaults, which is what they administer.
     const orgId = req.session?.user?.organizationId
-        || (await userStore.getUser(req.session?.user?.id).catch(() => null))?.organizationId
+        || (await userStore.getUser(req.session?.user?.id).catch((e) => fallback('groupRole:org-roles-user', e, null)))?.organizationId
         || null;
     const resolved = await orgRolePolicy.resolveOrgRolePermissions(orgId, getOrgRolePermissions());
     // A role the org never edited also carries what its "All members" grants
@@ -683,7 +683,7 @@ router.put('/org-roles/:roleId', requirePrimaryOrgAdmin(), validate({ body: OrgR
     await userStore.logAccessAudit(
         'org_role.permissions.update', 'org_role', `${req.primaryOrgId}:${roleId}`,
         req.session.user?.id || null, null, { permissions: stored }, null,
-    ).catch(() => { });
+    ).catch((e) => bestEffort('groupRole:org-role-audit', e));
     res.json({ id: roleId, permissions: stored });
 });
 

@@ -15,6 +15,7 @@ const { tagGate } = require('./gateMeta');
 /** @type {typeof import('./orgScope').orgScope} */
 const orgScope = dep('orgScope');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 const { OrgRoles, isOrgAdminRole, SystemRoles, Permissions } = require('./permissionsCatalog');
 const { resolveUserOrgIds } = require('./permissionsResolve');
 
@@ -144,7 +145,7 @@ function _evalOrgAdmin(user, allGroups, orgId, { strictOrgRole = false } = {}) {
 
     let groupIds = [];
     if (Array.isArray(user.groups)) groupIds = user.groups;
-    else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (err) { log.debug('leave []', err); } }
+    else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (err) { groupIds = fallback('permissionsOrgGates:groups-json', err, []); } }
 
     for (const gid of groupIds) {
         const group = (allGroups || []).find(g => g.id === gid);
@@ -212,7 +213,7 @@ function requireOrgAdmin(paramName = 'id') {
         // Check group-based membership as fallback
         let groupIds = [];
         if (Array.isArray(user.groups)) groupIds = user.groups;
-        else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (_) { log.debug('user.groups is not valid JSON, treat as no group membership', _); } }
+        else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (err) { groupIds = fallback('permissionsOrgGates:groups-json', err, []); } }
 
         const allGroups = await userStore.getAllGroups();
         const isMember = groupIds.some(gid => {

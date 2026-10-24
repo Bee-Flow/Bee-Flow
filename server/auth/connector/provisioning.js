@@ -15,6 +15,7 @@
 
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 const userStore = require('../../stores/userStore');
 const configStore = require('../../stores/configStore');
 const { invalidateTenantKeyCache } = require('../connectorJwt');
@@ -113,7 +114,13 @@ function defaultProvisioningMode() {
 // default_org_integrations), then the env override, then the deployment
 // default. Anything unrecognised fails closed.
 async function resolveProvisioningMode() {
-    let mode = await configStore.getConfig('connector_provisioning_mode').catch(() => null);
+    let mode;
+    try {
+        mode = await configStore.getConfig('connector_provisioning_mode');
+    } catch (err) {
+        // The operator's stored mode is unknown: never fall back to a default that may be 'open'.
+        return fallback('connectorProvisioning:mode-read', err, 'pairing_only');
+    }
     if (!mode) mode = (process.env.BEEFLOW_CONNECTOR_PROVISIONING || '').trim() || null;
     if (!mode) mode = defaultProvisioningMode();
     mode = String(mode).trim().toLowerCase();

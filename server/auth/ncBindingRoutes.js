@@ -16,6 +16,7 @@
 
 const express = require('express');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 
@@ -340,7 +341,7 @@ router.delete('/admin/nc-bindings/org/:orgId', requireAuth, async (req, res) => 
 
     try {
         await userStore.logAccessAudit('org.nc_binding.remove', 'organization', orgId, freshUser.id, before, null, orgId);
-    } catch (err) { log.debug('audit is best-effort', err); }
+    } catch (err) { bestEffort('ncBinding:remove-audit', err); }
 
     log.info(`[NcBindingRoutes] NC binding removed from org=${orgId} (was ncInstance=${before.ncInstanceId}) by super-admin ${freshUser.id}`);
     orgHealth.event('binding.removed', {

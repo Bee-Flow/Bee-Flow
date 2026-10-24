@@ -62,7 +62,7 @@ const { isOrgAdminRole } = require('./permissions');
 const { canSeePublished, resolveAudienceContext } = require('./audience');
 const userStore = require('../stores/userStore');
 const { orgScope, userScope } = require('../stores/datatableStore');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /** Grades, weakest first. Re-exported so callers compare through one order. */
 const GRADES = Object.freeze(['viewer', 'editor', 'owner']);
@@ -272,7 +272,7 @@ async function resolveDatatablePrincipal(req) {
     };
     // Memoised per request: a route chain resolves the principal in the gate and
     // again in the handler, and this costs three user reads.
-    if (req) { try { req._dtPrincipal = principal; } catch (err) { log.debug('frozen req', err); } }
+    if (req) { try { req._dtPrincipal = principal; } catch (err) { bestEffort('datatableAccess:memoise', err); } }
     return principal;
 }
 

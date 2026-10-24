@@ -34,6 +34,7 @@ const { checkWebSignupAllowed, resolveSignupLocale } = require('./signupGuards')
 const { isFreeEmailDomain, getEffectiveFreeEmailDomains } = require('../utils/freeEmailDomains');
 const { sanitizePlainTextFields } = require('../utils/htmlSanitizer');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * Every way a signup can be refused, with the HTTP status the password route
@@ -512,9 +513,7 @@ async function issueVerificationToken({ userId, displayName, email, organization
     const clientHost = `${process.env.CLIENT_PROTOCOL || 'https'}://${process.env.CLIENT_PUBLIC_HOST || 'beeflow.nl'}`;
     const orgName = organizationId ? (await userStore.getOrganization(organizationId))?.name : '';
     const audit = async (action, details) => {
-        try {
-            await userStore.logAccessAudit(action, 'user', userId, userId, null, { email, ...details }, organizationId || null);
-        } catch (err) { log.debug('best-effort', err); }
+        try { await userStore.logAccessAudit(action, 'user', userId, userId, null, { email, ...details }, organizationId || null); } catch (err) { bestEffort('accountProvisioning:verification-audit', err); }
     };
     const failed = (reason) => {
         const error = String(reason || 'unknown error').slice(0, 200);

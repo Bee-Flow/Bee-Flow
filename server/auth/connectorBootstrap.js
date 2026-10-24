@@ -36,8 +36,8 @@ const crypto = require('crypto');
 // The CJS build exports the limiter function itself (its .d.cts only describes the namespace).
 const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (/** @type {unknown} */ (require('express-rate-limit')));
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 const router = express.Router();
-
 const userStore = require('../stores/userStore');
 const configStore = require('../stores/configStore');
 const { orgHealth } = require('./connector/serviceDeps');
@@ -198,7 +198,7 @@ router.get('/connector/bootstrap/pending/:id', pendingPollLimiter, async (req, r
     if (row.status === 'expired' || (row.status === 'pending' && expired)) {
         // Lazy expiry — sweep this row too.
         if (row.status === 'pending') {
-            try { await userStore.expirePendingNcBindings(); } catch (err) { log.debug('tolerate', err); }
+            try { await userStore.expirePendingNcBindings(); } catch (err) { bestEffort('connectorBootstrap:expire-pending', err); }
         }
         return res.status(410).json({ status: 'expired' });
     }
@@ -467,7 +467,7 @@ router.post('/connector/diagnose', bootstrapLimiter, async (req, res) => {
         const { getOne } = require('../db');
         const row = await getOne('SELECT updated_at FROM config WHERE key = $1', [cfgKey]);
         if (row?.updated_at) out.tenantKey.updatedAt = row.updated_at;
-    } catch (err) { log.debug('tolerate — informational only', err); }
+    } catch (err) { bestEffort('connectorBootstrap:diag-updated-at', err); }
 
     // If the caller sent a test JWT, try to verify it against the stored
     // key. This is the smoking-gun check: connector says "this is what I'm

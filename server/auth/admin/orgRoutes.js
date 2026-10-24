@@ -10,6 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -262,11 +263,8 @@ router.post('/organizations/:id/encryption/backfill', validate({ body: Encryptio
     const actorId = req.session.user?.id || 'system';
     log.info(`[Audit] ${actorId} started ${dryRun ? 'a preview of' : 'an'} encryption backfill for org '${id}'`);
     try {
-        await userStore.logAccessAudit(
-            'org.encryption.backfill', 'organization', id, actorId,
-            null, { dryRun, tier: policy.tier }, id,
-        );
-    } catch (err) { log.debug('logAccessAudit already swallows; belt and braces', err); }
+        await userStore.logAccessAudit('org.encryption.backfill', 'organization', id, actorId, null, { dryRun, tier: policy.tier }, id);
+    } catch (err) { bestEffort('orgRoutes:backfill-audit', err); }
 
     res.status(202).json(job);
 });
@@ -372,7 +370,7 @@ router.put('/organizations/:id/encryption', validate({ body: EncryptionBody }), 
 
     // ── Make the change take effect ──────────────────────────────────────────
     invalidatePolicyCache(id);
-    try { require('../orgEscrow').invalidateOrgKeyCache(id); } catch (err) { log.debug('non-fatal', err); }
+    try { require('../orgEscrow').invalidateOrgKeyCache(id); } catch (err) { bestEffort('orgRoutes:invalidate-org-key', err); }
 
     // Switching INTO zk must force a re-auth. The zero-knowledge tier has no
     // escrow, so the only source of a key is the per-user DEK derived at login.
@@ -402,7 +400,7 @@ router.put('/organizations/:id/encryption', validate({ body: EncryptionBody }), 
             { tier: updates.encryptionTier ?? prevPolicy.tier, scope: updates.encryptionScope ?? null },
             id,
         );
-    } catch (err) { log.debug('logAccessAudit already swallows; belt and braces', err); }
+    } catch (err) { bestEffort('orgRoutes:encryption-audit', err); }
 
     const fresh = await userStore.getOrganization(id);
     const policy = policyFromRow({
@@ -520,7 +518,7 @@ router.put('/organizations/:id', requireOrgAdmin('id'), async (req, res) => {
                 .some(f => orgUpdates[f] !== undefined);
             if (billingTouched) {
                 setImmediate(() => {
-                    require('../../services/stripeService').pushOrgBillingToStripe(id).catch(() => {});
+                    require('../../services/stripeService').pushOrgBillingToStripe(id).catch((e) => bestEffort('orgRoutes:push-billing', e));
                 });
             }
         }

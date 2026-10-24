@@ -42,6 +42,7 @@
  */
 
 const crypto = require('crypto');
+const { fallback } = require('../utils/bestEffort');
 // configStore and userStore are required lazily (through DEFAULT_DEPS), not
 // here: importing configStore stands up the Postgres pool at module load, which
 // makes dependants un-requireable in infra-free unit tests. Tests swap them
@@ -93,7 +94,7 @@ async function verifyConnectorSig(req, { rejectReplay = false } = {}) {
     const instanceId = String(req.headers['x-beeflow-nc-instance-id'] || '');
     if (!instanceId) return null;
     const userStore = _deps.userStore();
-    const org = await userStore.getOrganizationByNcInstanceId(instanceId).catch(() => null);
+    const org = await userStore.getOrganizationByNcInstanceId(instanceId).catch((err) => fallback('connectorSig:org-lookup', err, null));
     if (!org) return null;
     const tenantKey = await configStore.getSecret(`connector_tenant_key_${org.id}`);
     if (!tenantKey) return null;

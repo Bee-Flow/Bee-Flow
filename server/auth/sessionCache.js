@@ -187,6 +187,20 @@ function installRedisCacheWhenReady(liveStore, pgStore, redis) {
     return true;
 }
 
+/** The PG rows are gone but a cached copy could not be removed: the session stays valid until its TTL. */
+class CacheEvictionError extends Error {}
+
+/** Remove busted sessions from the Redis cache; a failure must reach the caller, never leave a revoked session usable. */
+async function evictCached(r, sids) {
+    if (!r || !sids.length) return;
+    const keys = sids.map(sid => `${CACHE_PREFIX}${sid}`);
+    try {
+        await r.unlink(...keys).catch(() => r.del(...keys));
+    } catch (err) {
+        throw new CacheEvictionError(`session cache eviction failed: ${err.message}`);
+    }
+}
+
 /**
  * Bust all live sessions for a given user. Used after the user's license is
  * revoked, their role is downgraded, or their account is deleted — without
@@ -205,19 +219,14 @@ async function bustSessionsForUser(userId) {
             [String(userId)]
         );
         const sids = (result.rows || []).map(r => r.sid);
-        const r = getRedis();
-        if (r && sids.length) {
-            try {
-                const keys = sids.map(sid => `${CACHE_PREFIX}${sid}`);
-                await r.unlink(...keys).catch(() => r.del(...keys).catch(() => { }));
-            } catch (err) { log.debug('best-effort', err); }
-        }
+        await evictCached(getRedis(), sids);
         if (sids.length) {
             log.info(`[SessionCache] bust.user user_id=${userId} sessions=${sids.length}`);
         }
         return sids.length;
     } catch (e) {
         log.error('[SessionCache] bustSessionsForUser error:', e.message);
+        if (e instanceof CacheEvictionError) throw e;
         return 0;
     }
 }
@@ -240,19 +249,14 @@ async function bustSessionsForOrg(organizationId) {
         );
         const sids = (result.rows || []).map(r => r.sid);
         const { getRedis } = require('../db');
-        const r = getRedis();
-        if (r && sids.length) {
-            try {
-                const keys = sids.map(sid => `${CACHE_PREFIX}${sid}`);
-                await r.unlink(...keys).catch(() => r.del(...keys).catch(() => { }));
-            } catch (err) { log.debug('best-effort', err); }
-        }
+        await evictCached(getRedis(), sids);
         if (sids.length) {
             log.info(`[SessionCache] bust.org org_id=${organizationId} sessions=${sids.length}`);
         }
         return sids.length;
     } catch (e) {
         log.error('[SessionCache] bustSessionsForOrg error:', e.message);
+        if (e instanceof CacheEvictionError) throw e;
         return 0;
     }
 }

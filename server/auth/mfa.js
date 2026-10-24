@@ -18,7 +18,7 @@ const bcrypt = require('bcryptjs');
 const { generateSecret: otpGenerateSecret, verifySync, createGuardrails } = require('otplib');
 const QRCode = require('qrcode');
 const configStore = require('../stores/configStore');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Tolerate one 30s step of clock drift on either side. The tolerance is given
 // in seconds: [30, 30] accepts exactly the previous, current and next step for
@@ -125,7 +125,7 @@ async function consumeRecoveryCode(storedCodesJson, inputCode) {
                 entry.usedAt = new Date().toISOString();
                 return codes;
             }
-        } catch (err) { log.debug('skip malformed entry', err); }
+        } catch (err) { bestEffort('mfa:recovery-code-entry', err); }
     }
     return null;
 }

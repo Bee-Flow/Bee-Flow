@@ -7,6 +7,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -82,7 +83,7 @@ router.get('/admin/signup-settings', requireSuperAdmin, async (req, res) => {
     // Whether the platform can actually send the verification email — the UI
     // uses this to warn that the toggle is a no-op without service email.
     let serviceEmailConfigured = false;
-    try { serviceEmailConfigured = (await require('../../utils/emailService').getServiceEmailConfig()).configured; } catch (err) { log.debug('ignore', err); }
+    try { serviceEmailConfigured = (await require('../../utils/emailService').getServiceEmailConfig()).configured; } catch (err) { fallback('signupPolicy:service-email', err); }
     const requireMfaForPasswordAccounts = (await configStore.getConfig('require_mfa_for_password_accounts')) ?? true;
     const consumerLoginMethods = (await configStore.getConfig('consumer_login_methods')) ?? ['password', 'google', 'microsoft'];
     const access = await getSignupAccessConfig();

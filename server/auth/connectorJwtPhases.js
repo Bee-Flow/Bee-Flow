@@ -25,6 +25,7 @@ const { suppressSessionPersistence } = require('./establishSession');
 // (via connector/serviceDeps: the single auth -> services edge, see layering.test.js)
 const { orgHealth } = require('./connector/serviceDeps');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /** @typedef {{ kind: 'reject', status: number, body: object }} Reject */
 /** @typedef {{ kind: 'error', error: Error }} Fail */
@@ -128,7 +129,7 @@ async function reconcileUserRecord(user, orgId, payload) {
     // resolves the org for connector-sourced users so non-NC traffic
     // doesn't pay an extra DB roundtrip.
     if (user.provider === 'nextcloud_connector') {
-        const orgForCheck = await userStore.getOrganization(user.organizationId || orgId).catch(() => null);
+        const orgForCheck = await userStore.getOrganization(user.organizationId || orgId).catch((err) => fallback('connectorJwtPhases:org-anomaly-check', err, null));
         if (orgForCheck && !orgForCheck.nc_instance_id) {
             log.warn(`[ConnectorJWT] Data anomaly: user ${user.id} has provider=nextcloud_connector but org ${orgForCheck.id} has no nc_instance_id`);
         }

@@ -43,6 +43,7 @@ const { reject } = phases;
 // write itself happens off this stack.
 const orgHealth = require('../services/orgHealth');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const TENANT_KEY_PREFIX = 'connector_tenant_key_';
 
@@ -51,7 +52,6 @@ const TENANT_KEY_PREFIX = 'connector_tenant_key_';
 // invalidateTenantKeyCache().
 const _keyCache = new Map();
 const KEY_CACHE_TTL_MS = 60_000;
-
 
 function _cacheGet(orgId) {
     const entry = _keyCache.get(orgId);
@@ -253,7 +253,7 @@ async function _reuseCookieSession(req) {
     // SPA sits on the login form forever even though the connector is
     // sending valid headers.
     if (req.session?.isAuthenticated && req.session?.user?.id) {
-        const stillExists = await userStore.getUser(req.session.user.id).catch(() => null);
+        const stillExists = await userStore.getUser(req.session.user.id).catch((err) => fallback('connectorJwt:session-user', err, null));
         if (stillExists) {
             // Re-sync the mutable identity fields from the DB before reusing the
             // session. The embedded SPA lives in a long-lived Nextcloud iframe,

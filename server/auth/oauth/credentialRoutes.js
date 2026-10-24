@@ -11,6 +11,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const automationCredentialStore = require('../../stores/automationCredentialStore');
@@ -108,7 +109,7 @@ async function revokeProviderCredential(userId, provider) {
 
     // 2. Mark revoked first (so a partial failure leaves the row in a
     // refusable state), then delete.
-    await automationCredentialStore.markRevoked(userId, provider).catch(() => {});
+    await automationCredentialStore.markRevoked(userId, provider).catch((e) => bestEffort('oauthCredential:mark-revoked', e));
     const deleted = await automationCredentialStore.deleteCredential(userId, provider);
 
     // 3. Audit. Uses the access_audit_log added in C7 — same shape as
@@ -124,7 +125,7 @@ async function revokeProviderCredential(userId, provider) {
             { provider, provider_revoke_ok: providerResult.ok },
             cred.orgId || null,
         );
-    } catch (err) { log.debug('non-fatal', err); }
+    } catch (err) { bestEffort('oauthCredential:revoke-audit', err); }
 
     return { found: true, deleted, providerRevokeAttempted: !!revokeToken, providerRevokeOk: providerResult.ok };
 }

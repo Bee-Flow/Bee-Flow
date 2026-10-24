@@ -13,6 +13,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -77,11 +78,11 @@ router.get('/my-permissions', requireAuth, async (req, res) => {
         } else {
             // Transient resolver outage — fall back to the legacy beta list so the
             // UI isn't hard-locked (the API still enforces authoritatively).
-            try { betaFeatures = await require('../../core/entitlements/betaFeatures').getUserBetaFeatures(userId, req.session); } catch (err) { log.debug('leave empty', err); }
+            try { betaFeatures = await require('../../core/entitlements/betaFeatures').getUserBetaFeatures(userId, req.session); } catch (err) { fallback('myPermissions:legacy-betas-outage', err); }
         }
     } catch (err) {
         log.warn('[Auth] my-permissions — entitlement resolution failed:', err?.message);
-        try { betaFeatures = await require('../../core/entitlements/betaFeatures').getUserBetaFeatures(userId, req.session); } catch (err) { log.debug('leave empty', err); }
+        try { betaFeatures = await require('../../core/entitlements/betaFeatures').getUserBetaFeatures(userId, req.session); } catch (e) { fallback('myPermissions:legacy-betas', e); }
     }
 
     res.json({ permissions: perms, groups: userGroups, organizations: userOrgIds, allowedAgentTypes, betaFeatures, canUseFeature, orgRole: user?.orgRole || '' });

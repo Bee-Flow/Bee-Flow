@@ -47,7 +47,7 @@ const FreeEmailDomainsBody = z.object({
 // === Default Integrations Config (Super Admin Only) ===
 
 const configStore = require('../../stores/configStore');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 router.get('/default-integrations', requireSuperAdmin, async (req, res) => {
     const defaults = await configStore.getConfig('default_org_integrations') || null;
@@ -62,7 +62,7 @@ router.get('/default-integrations', requireSuperAdmin, async (req, res) => {
             category: 'MCP servers',
             icon: s.icon || '🔌',
         }));
-    } catch (e) { log.debug('mcpStore not available', e); }
+    } catch (e) { fallback('platformConfig:mcp-integrations', e); }
     res.json({ integrations: [...ALL_INTEGRATIONS, ...mcpIntegrations], defaults });
 });
 

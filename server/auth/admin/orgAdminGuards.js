@@ -17,6 +17,7 @@ const userStore = require('../../stores/userStore');
 const { isOrgAdminRole, invalidatePermissionCache } = require('../permissions');
 const { tagGate } = require('../gateMeta');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // A row with no status predates the column and is active; 'active' is the only
 // other value that can sign in. Anything else cannot administer anything, so it
@@ -201,7 +202,7 @@ async function isOrgAdminForOrg(req, orgId) {
     // Check group-based membership as fallback
     let groupIds = [];
     if (Array.isArray(user.groups)) groupIds = user.groups;
-    else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (_) { log.debug('user.groups is not valid JSON, treat as no group membership', _); } }
+    else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (e) { fallback('orgAdminGuards:groups-json', e); } }
 
     const allGroups = await userStore.getAllGroups();
     return groupIds.some(gid => {

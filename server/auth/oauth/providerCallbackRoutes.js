@@ -27,6 +27,7 @@ const express = require('express');
  *             email?: string, picture?: string, provider: string, organizationId?: string, [key: string]: any }} OAuthUser
  */
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const { loadConfig } = require('../permissions');
@@ -281,7 +282,7 @@ router.get('/callback/:provider', async (req, res) => {
         // Never awaited so it cannot block or fail login.
         if (provider === 'microsoft' && freshUser?.azureUserId && !isLoginBlockedAccount(freshUser)) {
             syncUserGroupsOnLogin(freshUser.id, freshUser.azureUserId, undefined, freshUser.azureTenantId)
-                .catch(() => {}); // errors already logged inside the function
+                .catch((e) => bestEffort('oauthCallback:azure-group-sync', e));
         }
 
         log.info(`[OAuth/${provider}] Session setup — user: ${user.id} (${user.displayName}), pendingApproval: ${pendingApproval}, userHasOrg: ${userHasOrg}`);

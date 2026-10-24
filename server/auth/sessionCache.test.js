@@ -171,3 +171,31 @@ test('installRedisCacheWhenReady activates at once on a ready client and not at 
     installRedisCacheWhenReady(pg, pg, client);
     assert.notEqual(pg.get, originalGet);
 });
+
+function withFakeDb(fakeDb, fn) {
+    const dbPath = require.resolve('../db');
+    const prev = require.cache[dbPath];
+    require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: fakeDb };
+    return Promise.resolve(fn()).finally(() => { if (prev) require.cache[dbPath] = prev; else delete require.cache[dbPath]; });
+}
+
+test('bustSessionsForUser rejects when the redis eviction fails, so a revoked session is not left cached silently', async () => {
+    const { bustSessionsForUser, bustSessionsForOrg } = require('./sessionCache');
+    const pool = { query: async () => ({ rows: [{ sid: 's1' }] }) };
+    const redis = { unlink: async () => { throw new Error('down'); }, del: async () => { throw new Error('down'); } };
+    await withFakeDb({ pool, getRedis: () => redis }, async () => {
+        await assert.rejects(() => bustSessionsForUser('u1'), /eviction failed/);
+        await assert.rejects(() => bustSessionsForOrg('o1'), /eviction failed/);
+    });
+});
+
+test('bustSessionsForUser evicts the cached keys and returns the count', async () => {
+    const { bustSessionsForUser } = require('./sessionCache');
+    const seen = [];
+    const pool = { query: async () => ({ rows: [{ sid: 's1' }, { sid: 's2' }] }) };
+    const redis = { unlink: async (...k) => { seen.push(...k); } };
+    await withFakeDb({ pool, getRedis: () => redis }, async () => {
+        assert.equal(await bustSessionsForUser('u1'), 2);
+    });
+    assert.deepEqual(seen, ['bf:sess:s1', 'bf:sess:s2']);
+});

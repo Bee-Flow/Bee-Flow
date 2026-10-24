@@ -36,6 +36,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 function createSigningSecret(opts) {
     const {
@@ -84,7 +85,7 @@ function createSigningSecret(opts) {
                 durable = true;
                 return cachedSecret;
             }
-        } catch (err) { log.debug('first run', err); }
+        } catch (err) { if (err?.code !== 'ENOENT') bestEffort(`signingSecret:read-dev-cache`, err); }
 
         cachedSecret = crypto.randomBytes(32);
         try {
