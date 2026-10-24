@@ -121,7 +121,7 @@ export function permissionsForRole(roleId: string, mapping?: OrgRoleMapping[] | 
  * would silently drop. Ordered by PERMISSION_CATALOG like the chips above, so
  * the editor reads in the same sequence as the summary it edits.
  */
-export function editablePermissionsForRole(roleId: string, mapping?: OrgRoleMapping[] | null, editable?: string[] | null): Array<DescribedPermission & { granted: boolean }> {
+export function editablePermissionsForRole(roleId: string, mapping?: OrgRoleMapping[] | null, editable?: string[] | null): (DescribedPermission & { granted: boolean })[] {
     const allowed = Array.isArray(editable) ? editable : [];
     if (allowed.length === 0) return [];
     const granted = new Set((mapping || []).find((r) => r.id === roleId)?.permissions || []);
